@@ -1,0 +1,15 @@
+name = "cbc7119"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cha-bio-db"
+database_id = "b12b88e7-fc41-4186-8f35-ee9cbaf994c7"
+
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "cha-bio-storage"
+
+[vars]
+ENVIRONMENT = "production"

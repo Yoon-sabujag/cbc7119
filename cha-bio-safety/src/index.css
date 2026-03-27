@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Safe area 초기값 — JS measureSafeArea()가 실측값으로 덮어씀
+       CSS 파싱은 JS보다 먼저 실행되므로 초기 렌더에서 env()가 올바를 때 즉시 반영 */
+    --sat: 0px;
+    --sab: 0px;
+
+    --bg:    #0d1117;
+    --bg2:   #161b22;
+    --bg3:   #1c2128;
+    --bg4:   #22272e;
+    --bd:    rgba(255,255,255,0.07);
+    --bd2:   rgba(255,255,255,0.13);
+    --t1: #e6edf3;
+    --t2: #8b949e;
+    --t3: #6e7681;
+    --acl:   #3b82f6;
+    --info:  #0ea5e9;
+    --safe:  #22c55e;
+    --warn:  #f59e0b;
+    --danger:#ef4444;
+    --fire:  #f97316;
+    --c-day:   #f59e0b;
+    --c-night: #ef4444;
+    --c-off:   #3b82f6;
+    --c-leave: #6b7280;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    background: #161b22;
+  }
+
+  body {
+    height: 100dvh;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--t1);
+
+    /* iOS PWA standalone: dvh가 불안정하므로 vh 사용 */
+    @media all and (display-mode: standalone) {
+      height: 100vh;
+    }
+  }
+
+  #root {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::-webkit-scrollbar { display: none; }
+  * { scrollbar-width: none; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}

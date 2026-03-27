@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+    <meta name="theme-color" content="#161b22"/>
+    <meta name="mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+    <meta name="apple-mobile-web-app-title" content="방재관리"/>
+    <meta name="description" content="차바이오컴플렉스 소방안전 통합관리 시스템"/>
+    <link rel="icon" href="/favicon.svg"/>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+    <title>차바이오컴플렉스 방재</title>
+  </head>
+  <body>
+    <script>
+      // Safe area 초기화 — React/CSS 보다 먼저 실행
+      // env()를 측정하고, iOS PWA에서 0이 반환되면 screen.height로 기기 판별해 직접 주입
+      ;(function () {
+        var root = document.documentElement
+
+        function readEnv() {
+          var el = document.createElement('div')
+          el.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;' +
+            'padding-top:env(safe-area-inset-top,0px);' +
+            'padding-bottom:env(safe-area-inset-bottom,0px);' +
+            'visibility:hidden;pointer-events:none;z-index:-9999;'
+          document.body.appendChild(el)
+          var cs = window.getComputedStyle(el)
+          var t = parseFloat(cs.paddingTop) || 0
+          var b = parseFloat(cs.paddingBottom) || 0
+          document.body.removeChild(el)
+          return { top: t, bot: b }
+        }
+
+        function apply(top, bot) {
+          root.style.setProperty('--sat', top + 'px')
+          root.style.setProperty('--sab', bot + 'px')
+        }
+
+        function measure() {
+          var v = readEnv()
+          // env()가 0이고 iPhone이면 screen.height로 기기 판별 (standalone 여부 무관)
+          if (v.top === 0 && /iPhone/.test(navigator.userAgent)) {
+            var h = window.screen.height
+            if (h >= 852)      { v.top = 59; v.bot = 34 }  // Dynamic Island (14 Pro~)
+            else if (h >= 700) { v.top = 44; v.bot = 34 }  // 노치 (X~14)
+            else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
+          }
+          apply(v.top, v.bot)
+          return v.top > 0
+        }
+
+        measure()
+
+        // env()가 늦게 초기화되는 경우 재시도
+        window.addEventListener('DOMContentLoaded', function () {
+          if (!measure()) {
+            setTimeout(measure, 100)
+            setTimeout(measure, 500)
+          }
+        })
+
+        window.addEventListener('orientationchange', function () { setTimeout(measure, 150) })
+        if (window.screen && window.screen.orientation) {
+          window.screen.orientation.addEventListener('change', function () { setTimeout(measure, 150) })
+        }
+      })()
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

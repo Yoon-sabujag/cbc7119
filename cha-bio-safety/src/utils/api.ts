@@ -1,0 +1,98 @@
+import { useAuthStore } from '../stores/authStore'
+
+const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) { super(message); this.name = 'ApiError' }
+}
+
+async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { token } = useAuthStore.getState()
+  const headers: Record<string,string> = { 'Content-Type':'application/json', ...(init.headers as Record<string,string>) }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res  = await fetch(`${BASE}${path}`, { ...init, headers })
+  const json = await res.json() as { success: boolean; data?: T; error?: string }
+  if (!res.ok || !json.success) {
+    if (res.status === 401) { useAuthStore.getState().logout(); window.location.href = '/login' }
+    throw new ApiError(res.status, json.error ?? '요청 실패')
+  }
+  return json.data as T
+}
+
+export const api = {
+  get:    <T>(p: string)             => req<T>(p),
+  post:   <T>(p: string, b: unknown) => req<T>(p, { method:'POST',  body: JSON.stringify(b) }),
+  put:    <T>(p: string, b: unknown) => req<T>(p, { method:'PUT',   body: JSON.stringify(b) }),
+  delete: <T>(p: string)             => req<T>(p, { method:'DELETE' }),
+}
+
+export const authApi = {
+  login: (staffId: string, password: string) =>
+    api.post<{ token: string; staff: import('../types').Staff }>('/auth/login', { staffId, password }),
+}
+
+export const dashboardApi = {
+  getStats: () => api.get<{
+    stats: import('../types').DashboardStats
+    todaySchedule: import('../types').ScheduleItem[]
+    onDutyStaff: import('../types').Staff[]
+    weeklyItems: import('../types').WeeklyItem[]
+    todayTarget: string
+  }>('/dashboard/stats'),
+}
+
+export const scheduleApi = {
+  getByDate:  (date: string)  => api.get<import('../types').ScheduleItem[]>(`/schedule?date=${date}`),
+  getByMonth: (month: string) => api.get<import('../types').ScheduleItem[]>(`/schedule?month=${month}`),
+  create: (body: { title:string; date:string; time?:string; category:string; assigneeId?:string; inspectionCategory?:string; memo?:string }) =>
+    api.post<{ id:string }>('/schedule', body),
+  updateStatus: (id: string, status: string) =>
+    fetch(`/api/schedule/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
+      body: JSON.stringify({ status }),
+    }).then(r => r.json()),
+  delete: (id: string) =>
+    fetch(`/api/schedule/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization:`Bearer ${useAuthStore.getState().token}` },
+    }).then(r => r.json()),
+}
+
+export interface LeaveItem {
+  id:        string
+  staffId:   string
+  staffName?: string
+  date:      string
+  type:      'full' | 'half'
+  year:      number
+  createdAt: string
+}
+
+export const leaveApi = {
+  list:   (year: number, month?: string) =>
+    api.get<{ myLeaves: LeaveItem[]; teamLeaves: LeaveItem[] }>(
+      `/leaves?year=${year}${month ? `&month=${month}` : ''}`
+    ),
+  create: (date: string, type: 'full' | 'half') =>
+    api.post<{ id: string }>('/leaves', { date, type }),
+  delete: (id: string) =>
+    api.delete<void>(`/leaves/${id}`),
+}
+
+export const inspectionApi = {
+  getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
+  createSession:  (body: any)    => api.post<any>('/inspections', body),
+  submitRecord:   (sid: string, body: any) => api.post<any>(`/inspections/${sid}/records`, body),
+  getTodayRecords:(date: string) => api.get<any[]>(`/inspections/records?date=${date}`),
+  resolveRecord:  (recordId: string, resolution_memo: string, resolution_photo_key?: string) =>
+    api.post<any>(`/inspections/records/${recordId}/resolve`, { resolution_memo, resolution_photo_key }),
+  saveSessionPhoto: (sessionId: string, photoKey: string) =>
+    api.put<any>(`/inspections/${sessionId}/photo`, { photoKey }),
+  getCheckpoints: (floor?: string, zone?: string) => {
+    const p = new URLSearchParams()
+    if (floor) p.set('floor', floor)
+    if (zone)  p.set('zone',  zone)
+    return api.get<any[]>(`/checkpoints?${p}`)
+  },
+}

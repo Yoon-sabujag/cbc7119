@@ -1,0 +1,44 @@
+{
+  "name": "cha-bio-safety",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "dev:front": "vite",
+    "dev:api": "npx wrangler pages dev dist --d1 DB=cha-bio-db --compatibility-date=2024-09-23",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && npx wrangler pages deploy dist",
+    "db:seed": "npx wrangler d1 execute cha-bio-db --local --file=migrations/seed.sql"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "@types/qrcode": "^1.5.6",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "html5-qrcode": "^2.3.8",
+    "jose": "^5.9.6",
+    "jspdf": "^4.2.1",
+    "lucide-react": "^0.454.0",
+    "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.26.2",
+    "xlsx-js-style": "^1.2.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260317.1",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.8",
+    "vite-plugin-pwa": "^0.21.0",
+    "wrangler": "^4.75.0"
+  }
+}

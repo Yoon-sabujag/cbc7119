@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist 2/
+.wrangler/
+.dev.vars
+.DS_Store
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.com-apple-bird-noname-*
+.claude 2/
+BOTTOMNAV_POSITION_ANALYSIS.md
+QR Code/
+inspections/
+*.bak
