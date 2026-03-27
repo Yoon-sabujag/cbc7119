@@ -36,13 +36,9 @@ jobs:
         run: npm run build
         working-directory: cha-bio-safety
 
-      - name: Apply D1 migrations (remote)
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: cha-bio-safety
-          command: d1 migrations apply cha-bio-db --remote
+      # D1 migrations skipped — remote DB was populated via `wrangler d1 execute --file`
+      # and lacks the d1_migrations tracking table. Migrations will be managed manually
+      # until tracking table is bootstrapped. See Phase 1 Plan 01-03.
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
