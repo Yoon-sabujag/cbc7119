@@ -1,0 +1,9 @@
+# cha-bio-safety/public/_headers
+# Source: https://developers.cloudflare.com/pages/configuration/headers/
+# Prevents service worker cache poisoning on iOS 16.3.1+, Android 15+, and PC
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
