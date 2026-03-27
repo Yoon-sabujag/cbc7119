@@ -1,0 +1,56 @@
+# .github/workflows/deploy.yml
+# Deploys cha-bio-safety to Cloudflare Pages on every push to main.
+# Applies D1 migrations before deploying to keep remote schema in sync.
+#
+# Required GitHub Secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN  — Cloudflare API token (Pages:Edit + D1:Edit permissions)
+#   CLOUDFLARE_ACCOUNT_ID — Cloudflare account ID (visible in dashboard sidebar)
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: cha-bio-safety/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: cha-bio-safety
+
+      - name: Build
+        run: npm run build
+        working-directory: cha-bio-safety
+
+      - name: Apply D1 migrations (remote)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cha-bio-safety
+          command: d1 migrations apply cha-bio-db --remote --yes
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: cha-bio-safety
+          command: pages deploy dist --project-name=cbc7119
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
