@@ -9,8 +9,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Deployment & Infrastructure
 
-- [ ] **DEPLOY-01**: Cloudflare Pages 504 배포 오류 원인을 진단하고 해결하여 실제 배포가 성공한다
-- [ ] **DEPLOY-02**: 배포 후 프로덕션 환경에서 기본 동작(로그인, 대시보드, 점검 기록)이 정상 작동한다
+- [x] **DEPLOY-01**: Cloudflare Pages 504 배포 오류 원인을 진단하고 해결하여 실제 배포가 성공한다
+- [x] **DEPLOY-02**: 배포 후 프로덕션 환경에서 기본 동작(로그인, 대시보드, 점검 기록)이 정상 작동한다
 - [ ] **DEPLOY-03**: D1 로컬/프로덕션 마이그레이션 상태가 일치하는지 검증하고 불일치 시 해결한다
 
 ### Stabilization (재점검)
@@ -76,8 +76,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | Phase 1 | Pending |
-| DEPLOY-02 | Phase 1 | Pending |
+| DEPLOY-01 | Phase 1 | Complete |
+| DEPLOY-02 | Phase 1 | Complete |
 | DEPLOY-03 | Phase 1 | Pending |
 | STAB-01 | Phase 2 | Pending |
 | STAB-02 | Phase 2 | Pending |

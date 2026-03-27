@@ -27,7 +27,12 @@
   1. `wrangler pages deploy` 명령이 504 없이 완료되고 https://cbc7119.pages.dev 에 최신 빌드가 반영된다
   2. 프로덕션 환경에서 로그인, 대시보드, 점검 기록 기본 플로우가 오류 없이 동작한다
   3. `wrangler d1 migrations list --remote` 와 `--local` 결과가 동일하게 표시된다
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [x] 01-01-PLAN.md — Vite bundle splitting (manualChunks) + public/_headers cache control
+- [ ] 01-02-PLAN.md — GitHub remote repo creation + GitHub Actions CI/CD workflow
+- [ ] 01-03-PLAN.md — D1 migration verification + production smoke test
 
 ### Phase 2: Stabilization & Code Quality
 **Goal**: 기존에 구현된 모든 기능이 버그 없이 동작하고 코드베이스가 일관된 패턴을 따른다
@@ -70,7 +75,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Deployment & Infrastructure | 0/? | Not started | - |
+| 1. Deployment & Infrastructure | 1/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 0/? | Not started | - |
 | 3. Excel Reports — Annual Matrix Types | 0/? | Not started | - |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
@@ -105,4 +110,4 @@
 
 ---
 *Roadmap created: 2026-03-28*
-*Last updated: 2026-03-28 after initial creation*
+*Last updated: 2026-03-28 after Phase 1 planning*
