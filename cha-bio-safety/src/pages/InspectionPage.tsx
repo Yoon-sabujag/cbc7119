@@ -1721,7 +1721,7 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
 }) {
   const photo = usePhotoUpload()
   const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(null)
-  const [subItem,     setSubItem]     = useState<'북문'|'남문'|null>(null)
+  const [subItem,     setSubItem]     = useState<string|null>(null)
   const [jdFloor,     setJdFloor]     = useState<string|null>(null)
   const [jdStair,     setJdStair]     = useState<string|null>(null)
   const [result,      setResult]      = useState<CheckResult>('normal')
@@ -1850,18 +1850,17 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
         </div>
       </div>
 
-      {/* 연결송수관 → 북문/남문 */}
+      {/* 연결송수관 → 위치 선택 (DB 데이터 기반) */}
       {item === '연결송수관' && (
         <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
           <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>위치 선택</div>
-          <div style={{ display:'flex', gap:8 }}>
-            {(['북문','남문'] as const).map(door => {
-              const doorCP  = allCheckpoints.find(cp => cp.category === '연결송수관' && cp.location === door)
-              const doneDoor = doorCP ? !!records[doorCP.id] : false
-              const isSel   = subItem === door
+          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+            {allCheckpoints.filter(cp => cp.category === '연결송수관').map(cp => {
+              const isSel  = subItem === cp.location
+              const isDone = !!records[cp.id]
               return (
-                <button key={door} onClick={() => setSubItem(door)} style={btnStyle(isSel)}>
-                  {door}{doneDoor && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+                <button key={cp.id} onClick={() => setSubItem(cp.location)} style={btnStyle(isSel)}>
+                  {cp.location}{isDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
                 </button>
               )
             })}
@@ -1914,7 +1913,7 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>해당 항목을 찾을 수 없습니다</div>
         )}
         {item === '연결송수관' && !subItem && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>북문 또는 남문을 선택해 주세요</div>
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>
         )}
 
         {showForm && (

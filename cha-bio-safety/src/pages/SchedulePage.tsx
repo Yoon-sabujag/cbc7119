@@ -151,6 +151,7 @@ export default function SchedulePage() {
   const [curMonth, setCurMonth] = useState(() => localYM(new Date()))
   const [selDate,  setSelDate]  = useState(today)
   const [showAdd,  setShowAdd]  = useState(false)
+  const [editItem, setEditItem] = useState<ScheduleItem | null>(null)
 
   const { data: fetchedHolidays } = useQuery({
     queryKey: ['holidays'],
@@ -342,6 +343,10 @@ export default function SchedulePage() {
                           완료
                         </button>
                       )}
+                      <button onClick={() => setEditItem(item)}
+                        style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
+                        수정
+                      </button>
                       <button onClick={() => handleDelete(item)}
                         style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
                         삭제
@@ -364,6 +369,14 @@ export default function SchedulePage() {
           onDateChange={setSelDate}
         />
       )}
+
+      {editItem && (
+        <EditModal
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={() => { invalidate(); setEditItem(null); toast.success('수정됐습니다') }}
+        />
+      )}
     </div>
   )
 }
@@ -377,6 +390,11 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
   const [inspTitle,  setInspTitle]= useState('')
   const [title,      setTitle]    = useState('')
   const [memo,       setMemo]     = useState('')
+
+  const handleCat = (v: ScheduleCategory) => {
+    setCat(v)
+    setInsCat(''); setInspTitle(''); setTitle(''); setMemo('')
+  }
 
   const handleInsCat = (v: string) => {
     setInsCat(v)
@@ -466,7 +484,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
             <label style={lbl}>구분</label>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5 }}>
               {SCHED_CATEGORIES.map(c => (
-                <button key={c.value} onClick={() => setCat(c.value)}
+                <button key={c.value} onClick={() => handleCat(c.value)}
                   style={{ padding:'8px 0', borderRadius:8,
                     border:`1px solid ${cat===c.value?c.color:'var(--bd)'}`,
                     background: cat===c.value?`${c.color}22`:'var(--bg3)',
@@ -615,6 +633,78 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
               ›
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── 수정 모달 ────────────────────────────────────────────────
+function EditModal({ item, onClose, onSaved }: {
+  item: ScheduleItem; onClose: () => void; onSaved: () => void
+}) {
+  const [title,  setTitle]  = useState(item.title)
+  const [date,   setDate]   = useState(item.date)
+  const [time,   setTime]   = useState(item.time ?? '')
+  const [memo,   setMemo]   = useState(item.memo ?? '')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!title.trim()) { toast.error('제목을 입력하세요'); return }
+    setSaving(true)
+    try {
+      await scheduleApi.update(item.id, { title: title.trim(), date, time: time || undefined, memo: memo || undefined })
+      onSaved()
+    } catch {
+      toast.error('수정 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
+      onClick={onClose}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'20px 16px 40px', maxHeight:'90dvh', overflowY:'auto' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 수정</span>
+          <button onClick={onClose}
+            style={{ width:28, height:28, borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+          <div>
+            <label style={lbl}>제목</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} style={inp} />
+          </div>
+          <div style={{ display:'flex', gap:10 }}>
+            <div style={{ flex:1 }}>
+              <label style={lbl}>날짜</label>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <input type="time" value={time} onChange={e => setTime(e.target.value)}
+                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+            </div>
+          </div>
+          <div>
+            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+            <textarea value={memo} onChange={e => setMemo(e.target.value)}
+              rows={4} style={{ ...inp, resize:'none', lineHeight:1.6 }} />
+          </div>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding:'14px', borderRadius:12, border:'none',
+              background:'linear-gradient(135deg,#1d4ed8,#2563eb)',
+              color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
+              opacity:saving?0.6:1 }}>
+            {saving ? '저장 중...' : '수정 저장'}
+          </button>
         </div>
       </div>
     </div>

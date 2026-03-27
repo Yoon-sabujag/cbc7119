@@ -1,5 +1,24 @@
 import type { Env } from '../../_middleware'
 
+// PUT /api/schedule/:id  — 내용 수정
+export const onRequestPut: PagesFunction<Env> = async ({ request, env, params }) => {
+  const id   = params.id as string
+  const body = await request.json<{ title?: string; date?: string; time?: string; memo?: string }>()
+  if (!body.title && !body.date) return Response.json({ success: false, error: '수정할 내용이 없습니다' }, { status: 400 })
+
+  await env.DB.prepare(
+    `UPDATE schedule_items SET
+      title      = COALESCE(?, title),
+      date       = COALESCE(?, date),
+      time       = ?,
+      memo       = ?,
+      updated_at = datetime('now')
+    WHERE id = ?`
+  ).bind(body.title ?? null, body.date ?? null, body.time ?? null, body.memo ?? null, id).run()
+
+  return Response.json({ success: true })
+}
+
 // PATCH /api/schedule/:id  — 상태 변경
 export const onRequestPatch: PagesFunction<Env> = async ({ request, env, params }) => {
   const id   = params.id as string
