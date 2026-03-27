@@ -22,7 +22,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [ ] **STAB-05**: 점검 계획 전수 테스트 — 캘린더 UI, 일정 CRUD, 대시보드 연동이 정상 동작한다
 - [ ] **STAB-06**: 기존 엑셀 출력 4종 전수 테스트 — 유수검지장치, 옥내소화전, 청정소화약제, 비상콘센트 출력이 정상 동작한다
 - [ ] **STAB-07**: 운영 기능 전수 테스트 — 근무표, 연차 관리, DIV 압력, 건물 도면, 승강기 고장 기록이 정상 동작한다
-- [ ] **STAB-08**: 미사용 의존성(xlsx-js-style 등) 제거 및 코드 패턴 일관성 정리
+- [x] **STAB-08**: 미사용 의존성(xlsx-js-style 등) 제거 및 코드 패턴 일관성 정리
 
 ### Excel Reports (점검일지 출력)
 
@@ -86,7 +86,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAB-05 | Phase 2 | Pending |
 | STAB-06 | Phase 2 | Pending |
 | STAB-07 | Phase 2 | Pending |
-| STAB-08 | Phase 2 | Pending |
+| STAB-08 | Phase 2 | Complete |
 | EXCEL-01 | Phase 3 | Pending |
 | EXCEL-02 | Phase 3 | Pending |
 | EXCEL-03 | Phase 3 | Pending |

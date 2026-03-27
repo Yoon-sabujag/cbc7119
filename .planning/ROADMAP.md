@@ -47,9 +47,9 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Production test: Auth + Dashboard + Fire Inspection (STAB-01, STAB-02, STAB-03)
-- [ ] 02-02-PLAN.md — Production test: QR + Schedule + Excel 4 types + Operations (STAB-04, STAB-05, STAB-06, STAB-07)
-- [ ] 02-03-PLAN.md — Dependency cleanup: xlsx-js-style + lucide-react + date-fns removal (STAB-08)
+- [x] 02-01-PLAN.md — Production test: Auth + Dashboard + Fire Inspection (STAB-01, STAB-02, STAB-03)
+- [x] 02-02-PLAN.md — Production test: QR + Schedule + Excel 4 types + Operations (STAB-04, STAB-05, STAB-06, STAB-07)
+- [x] 02-03-PLAN.md — Dependency cleanup: xlsx-js-style + lucide-react + date-fns removal (STAB-08)
 - [ ] 02-04-PLAN.md — Bug batch fix (critical/major/minor) + production deploy
 - [ ] 02-05-PLAN.md — Final smoke test + Phase 2 completion
 
@@ -83,7 +83,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
-| 2. Stabilization & Code Quality | 0/5 | Not started | - |
+| 2. Stabilization & Code Quality | 3/5 | In Progress|  |
 | 3. Excel Reports — Annual Matrix Types | 0/? | Not started | - |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
 
