@@ -59,14 +59,6 @@ export default defineConfig({
           ) {
             return 'vendor-react';
           }
-          // Large icon library
-          if (id.includes('node_modules/lucide-react/')) {
-            return 'vendor-icons';
-          }
-          // Date utilities
-          if (id.includes('node_modules/date-fns')) {
-            return 'vendor-date';
-          }
           // QR libraries
           if (
             id.includes('node_modules/qrcode/') ||
