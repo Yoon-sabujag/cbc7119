@@ -31,7 +31,7 @@
 
 Plans:
 - [x] 01-01-PLAN.md — Vite bundle splitting (manualChunks) + public/_headers cache control
-- [ ] 01-02-PLAN.md — GitHub remote repo creation + GitHub Actions CI/CD workflow
+- [x] 01-02-PLAN.md — GitHub remote repo creation + GitHub Actions CI/CD workflow
 - [ ] 01-03-PLAN.md — D1 migration verification + production smoke test
 
 ### Phase 2: Stabilization & Code Quality
@@ -75,7 +75,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Deployment & Infrastructure | 1/3 | In Progress|  |
+| 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 0/? | Not started | - |
 | 3. Excel Reports — Annual Matrix Types | 0/? | Not started | - |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |

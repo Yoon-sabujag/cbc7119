@@ -3,13 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-27T19:13:03.810Z"
+stopped_at: "01-deployment-infrastructure 01-02-PLAN.md — paused at checkpoint:human-action (Task 2); workflow file committed ecf9e36, awaiting GitHub remote creation + secrets"
+last_updated: "2026-03-27T19:16:23.054Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -30,7 +31,7 @@ progress:
 ## Current Position
 
 Phase: 01 (deployment-infrastructure) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 | Field | Value |
 |-------|-------|
 | Phase | 1 — Deployment & Infrastructure |
@@ -40,7 +41,7 @@ Plan: 2 of 3
 
 **Progress:**
 
-[███░░░░░░░] 33% (1/3 plans complete in Phase 1)
+[███████░░░] 67%
 
 Phase 1 [███░░░░░░░] 33%
 Phase 2 [          ] 0%
@@ -61,6 +62,7 @@ Overall: 0/4 phases complete (Phase 1 in progress)
 | Requirements delivered | 2 |
 | Plans written | 3 |
 | Plans complete | 1 |
+| Phase 01 P02 | 1 min | 1 tasks | 1 files |
 
 ### Execution Log
 
@@ -82,6 +84,9 @@ Overall: 0/4 phases complete (Phase 1 in progress)
 | vendor-react chunk includes scheduler, loose-envify, @remix-run/router, goober | Full react dep-chain must be in vendor-react to prevent Rollup circular chunk warnings |
 | Cloudflare Pages _headers in public/ | Vite copies public/ verbatim to dist/; _headers must be in public/ for Cloudflare to pick it up |
 | lucide-react and date-fns are unused in source | Both in package.json but not imported; manualChunks entries correct but produce no output due to tree-shaking |
+| wrangler-action@v3 over deprecated pages-action | Official Cloudflare action; pages-action is deprecated in GitHub Marketplace |
+| Separate D1 migration step from Pages deploy step | Migration failure aborts before deploy — prevents deploying code against a broken schema |
+| Pass --yes to d1 migrations apply in CI | Prevents interactive confirmation prompt from hanging the CI job |
 
 ### Architecture Notes
 
@@ -100,7 +105,7 @@ Overall: 0/4 phases complete (Phase 1 in progress)
 
 ### Todos
 
-- [ ] Create GitHub remote (currently local-only, 89 commits)
+- [ ] Create GitHub remote (workflow file ready at ecf9e36; push to origin main once repo created)
 - [ ] Verify `fflate@^0.8.2` is current stable at npmjs.com before pinning
 - [ ] Spot-check Cloudflare Workers runtime limits at developers.cloudflare.com before Phase 1
 - [ ] Verify Korean regulatory citations (소방시설법, 승강기 안전관리법) at law.go.kr before Phase 4 planning
@@ -113,8 +118,8 @@ None currently. Phase 1 starts immediately.
 
 ## Session Continuity
 
-**Last session:** 2026-03-28 — Completed Phase 01 Plan 01 (Vite bundle splitting + _headers)
-**Stopped at:** 01-deployment-infrastructure 01-01-PLAN.md complete; next is 01-02-PLAN.md
+**Last session:** 2026-03-27T19:16:23.050Z
+**Stopped at:** 01-deployment-infrastructure 01-02-PLAN.md — paused at checkpoint:human-action (Task 2); workflow file committed ecf9e36, awaiting GitHub remote creation + secrets
 
 **To resume:** Read ROADMAP.md for phase goals and success criteria. Phase 01 Plan 01 complete. Next: execute 01-02 (504 diagnosis).
 
