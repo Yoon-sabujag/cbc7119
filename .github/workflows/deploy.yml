@@ -42,7 +42,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: cha-bio-safety
-          command: d1 migrations apply cha-bio-db --remote --yes
+          command: d1 migrations apply cha-bio-db --remote
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
