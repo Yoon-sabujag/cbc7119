@@ -75,7 +75,7 @@ export default defineConfig({
           ) {
             return 'vendor-qr';
           }
-          // All remaining node_modules (including xlsx-js-style — Phase 2 removes it)
+          // All remaining node_modules
           if (id.includes('node_modules')) {
             return 'vendor';
           }
