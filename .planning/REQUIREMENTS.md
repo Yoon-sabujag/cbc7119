@@ -76,31 +76,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | — | Pending |
-| DEPLOY-02 | — | Pending |
-| DEPLOY-03 | — | Pending |
-| STAB-01 | — | Pending |
-| STAB-02 | — | Pending |
-| STAB-03 | — | Pending |
-| STAB-04 | — | Pending |
-| STAB-05 | — | Pending |
-| STAB-06 | — | Pending |
-| STAB-07 | — | Pending |
-| STAB-08 | — | Pending |
-| EXCEL-01 | — | Pending |
-| EXCEL-02 | — | Pending |
-| EXCEL-03 | — | Pending |
-| EXCEL-04 | — | Pending |
-| EXCEL-05 | — | Pending |
-| EXCEL-06 | — | Pending |
-| LINK-01 | — | Pending |
-| LINK-02 | — | Pending |
+| DEPLOY-01 | Phase 1 | Pending |
+| DEPLOY-02 | Phase 1 | Pending |
+| DEPLOY-03 | Phase 1 | Pending |
+| STAB-01 | Phase 2 | Pending |
+| STAB-02 | Phase 2 | Pending |
+| STAB-03 | Phase 2 | Pending |
+| STAB-04 | Phase 2 | Pending |
+| STAB-05 | Phase 2 | Pending |
+| STAB-06 | Phase 2 | Pending |
+| STAB-07 | Phase 2 | Pending |
+| STAB-08 | Phase 2 | Pending |
+| EXCEL-01 | Phase 3 | Pending |
+| EXCEL-02 | Phase 3 | Pending |
+| EXCEL-03 | Phase 3 | Pending |
+| EXCEL-04 | Phase 3 | Pending |
+| EXCEL-05 | Phase 3 | Pending |
+| EXCEL-06 | Phase 4 | Pending |
+| LINK-01 | Phase 4 | Pending |
+| LINK-02 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 (pending roadmap creation)
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-28*
-*Last updated: 2026-03-28 after initial definition*
+*Last updated: 2026-03-28 after roadmap creation*
