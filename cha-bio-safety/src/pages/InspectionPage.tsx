@@ -1721,10 +1721,14 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
 }) {
   const photo = usePhotoUpload()
   const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(null)
+  // 연결송수관 states
   const [subItem,     setSubItem]     = useState<string|null>(null)
-  const [jdFloor,     setJdFloor]     = useState<string|null>(null)
-  const [jdStair,     setJdStair]     = useState<string|null>(null)
   const [result,      setResult]      = useState<CheckResult>('normal')
+  // 전실제연댐퍼 states — StairwellModal 패턴
+  const [selectedStair, setSelectedStair] = useState<string|null>(null)
+  const [selectedEquip, setSelectedEquip] = useState<string|null>(null)
+  const [floorResults,  setFloorResults]  = useState<Record<string, CheckResult>>({})
+
   const [memo,        setMemo]        = useState('')
   const [submitting,  setSubmitting]  = useState(false)
   const [justSaved,   setJustSaved]   = useState(false)
@@ -1733,15 +1737,18 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
+  // Reset on item change
   const prevItem = useRef(item)
   useEffect(() => {
     if (prevItem.current !== item) {
       prevItem.current = item
-      setSubItem(null); setJdFloor(null); setJdStair(null)
-      setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+      setSubItem(null); setSelectedStair(null); setSelectedEquip(null)
+      setFloorResults({}); setResult('normal')
+      setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
     }
   }) // eslint-disable-line
 
+  // Reset on 연결송수관 subItem change
   const prevSub = useRef(subItem)
   useEffect(() => {
     if (prevSub.current !== subItem) {
@@ -1750,56 +1757,91 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
     }
   }) // eslint-disable-line
 
-  const prevJdFloor = useRef(jdFloor)
+  // 계단전실 unique numbers (from locationNo last segment)
+  const stairNums = useMemo(() => {
+    const nums = new Set(
+      allCheckpoints
+        .filter(cp => cp.category === '전실제연댐퍼' && cp.locationNo)
+        .map(cp => cp.locationNo!.split('-').pop()!)
+    )
+    return Array.from(nums).sort((a, b) => Number(a) - Number(b))
+  }, [allCheckpoints])
+
+  // 배기팬/급기팬 (locationNo가 없는 장비 항목)
+  const equipCPs = useMemo(() => {
+    const order: Floor[] = ['B5','B4','B3','B2','B1','1F','2F']
+    return allCheckpoints
+      .filter(cp => cp.category === '전실제연댐퍼' && !cp.locationNo)
+      .sort((a, b) => order.indexOf(a.floor) - order.indexOf(b.floor))
+  }, [allCheckpoints])
+
+  // 선택된 계단전실의 층별 CP 목록
+  const stairCPs = useMemo(() => {
+    if (!selectedStair) return []
+    const order: Floor[] = ['B5','B4','B3','B2','B1','1F']
+    return order
+      .map(f => allCheckpoints.find(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${selectedStair}`) && cp.floor === f))
+      .filter(Boolean) as CheckPoint[]
+  }, [selectedStair, allCheckpoints])
+
+  // Reset on stairwell change — load existing records
+  const prevStair = useRef(selectedStair)
   useEffect(() => {
-    if (prevJdFloor.current !== jdFloor) {
-      prevJdFloor.current = jdFloor
-      setJdStair(null); setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+    if (prevStair.current !== selectedStair) {
+      prevStair.current = selectedStair
+      setSelectedEquip(null)
+      if (selectedStair) {
+        const init: Record<string, CheckResult> = {}
+        stairCPs.forEach(cp => { init[cp.id] = (records[cp.id] as CheckResult) ?? 'normal' })
+        setFloorResults(init)
+      }
+      setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
     }
   }) // eslint-disable-line
 
-  const prevJdStair = useRef(jdStair)
+  // Reset on equip change
+  const prevEquip = useRef(selectedEquip)
   useEffect(() => {
-    if (prevJdStair.current !== jdStair) {
-      prevJdStair.current = jdStair
+    if (prevEquip.current !== selectedEquip) {
+      prevEquip.current = selectedEquip
+      setSelectedStair(null)
       setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
     }
   }) // eslint-disable-line
 
-  // 전실제연댐퍼 사용 가능 층 목록 (순서: 지하5→1, 지상1)
-  const jdFloors = useMemo(() => {
-    const available = new Set(allCheckpoints.filter(cp => cp.category === '전실제연댐퍼').map(cp => cp.floor))
-    const order: Floor[] = ['B5','B4','B3','B2','B1','1F']
-    return order.filter(f => available.has(f))
-  }, [allCheckpoints])
-
-  // 선택된 층의 전실제연댐퍼 계단전실 번호 목록
-  const jdStairs = useMemo(() => {
-    if (!jdFloor) return []
-    return allCheckpoints
-      .filter(cp => cp.category === '전실제연댐퍼' && cp.floor === jdFloor)
-      .map(cp => cp.locationNo?.split('-').pop() ?? '')
-      .filter(Boolean)
-      .sort((a, b) => Number(a) - Number(b))
-  }, [jdFloor, allCheckpoints])
-
-  const cpId = useMemo(() => {
-    if (item === '연결송수관' && subItem)
-      return allCheckpoints.find(cp => cp.category === '연결송수관' && cp.location === subItem)?.id ?? null
-    if (item === '전실제연댐퍼' && jdFloor && jdStair)
-      return allCheckpoints.find(cp => cp.category === '전실제연댐퍼' && cp.floor === jdFloor && cp.locationNo?.endsWith(`-${jdStair}`))?.id ?? null
-    return null
-  }, [item, subItem, jdFloor, jdStair, allCheckpoints])
-
-  const isDone  = cpId ? !!records[cpId] : false
-  const canSave = !!(cpId && ((item === '연결송수관' && subItem) || (item === '전실제연댐퍼' && jdFloor && jdStair)))
-  const showForm = (item === '연결송수관' && !!subItem) || (item === '전실제연댐퍼' && !!jdFloor && !!jdStair)
+  const stairDoneCount = stairCPs.filter(cp => records[cp.id]).length
 
   const JD_FLOOR_LABEL: Record<string, string> = {
-    'B5':'지하5층','B4':'지하4층','B3':'지하3층','B2':'지하2층','B1':'지하1층','1F':'지상1층'
+    'B5':'지하5층','B4':'지하4층','B3':'지하3층','B2':'지하2층','B1':'지하1층','1F':'지상1층','2F':'지상2층'
   }
 
-  const handleSave = async () => {
+  // 연결송수관 cpId
+  const yscpId = useMemo(() => {
+    if (item === '연결송수관' && subItem)
+      return allCheckpoints.find(cp => cp.category === '연결송수관' && cp.location === subItem)?.id ?? null
+    return null
+  }, [item, subItem, allCheckpoints])
+
+  // 전실제연댐퍼 계단전실 일괄 저장
+  const handleStairSave = async () => {
+    if (stairCPs.length === 0) return
+    setSubmitting(true); setSubmitError(null)
+    try {
+      const photoKey = await photo.upload()
+      for (const cp of stairCPs) {
+        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, photoKey ?? undefined)
+      }
+      setJustSaved(true); setMemo(''); photo.reset()
+    } catch (e: any) {
+      setSubmitError(e.message ?? '저장 오류')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // 연결송수관 or 장비 개별 저장
+  const handleSingleSave = async () => {
+    const cpId = item === '연결송수관' ? yscpId : selectedEquip
     if (!cpId) return
     setSubmitting(true); setSubmitError(null)
     try {
@@ -1813,6 +1855,10 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
     }
   }
 
+  const canSave = (item === '전실제연댐퍼' && selectedStair && stairCPs.length > 0)
+    || (item === '전실제연댐퍼' && selectedEquip)
+    || (item === '연결송수관' && subItem)
+
   const btnStyle = (sel: boolean) => ({
     flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' as const,
     border:     sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
@@ -1820,6 +1866,17 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
     color:      sel ? '#fff' : 'var(--t2)',
     transition: 'all .12s',
   })
+
+  const resultBtnStyle = (active: boolean, opt: typeof INSPECT_RESULT_OPTIONS[0]) => ({
+    flex:1, padding:'4px 2px', borderRadius:7, fontSize:10, fontWeight:700, cursor:'pointer' as const,
+    border:      active ? `1.5px solid ${opt.color}` : '1px solid var(--bd)',
+    background:  active ? opt.bg : 'var(--bg2)',
+    color:       active ? opt.color : 'var(--t3)',
+    transition: 'all .1s',
+  })
+
+  // 전실제연댐퍼 UI mode
+  const jdMode = item === '전실제연댐퍼' ? (selectedStair ? 'stair' : selectedEquip ? 'equip' : 'select') : null
 
   return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
@@ -1850,6 +1907,32 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
         </div>
       </div>
 
+      {/* 전실제연댐퍼 → 계단전실 선택 */}
+      {item === '전실제연댐퍼' && (
+        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>계단전실 선택</div>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            {stairNums.map(num => {
+              const sCPs = allCheckpoints.filter(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${num}`))
+              const done = sCPs.length > 0 && sCPs.every(cp => records[cp.id])
+              return (
+                <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }} style={btnStyle(selectedStair === num)}>
+                  {num}{done && <span style={{ fontSize:9, marginLeft:3, opacity:0.8 }}>✓</span>}
+                </button>
+              )
+            })}
+            {equipCPs.length > 0 && equipCPs.map(cp => {
+              const done = !!records[cp.id]
+              return (
+                <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }} style={{ padding:'7px 10px', borderRadius:9, fontSize:11, fontWeight:700, cursor:'pointer', border: selectedEquip === cp.id ? '1.5px solid var(--acl)' : done ? '1.5px solid var(--safe)' : '1px solid var(--bd2)', background: selectedEquip === cp.id ? 'var(--acl)' : done ? 'rgba(34,197,94,.1)' : 'var(--bg)', color: selectedEquip === cp.id ? '#fff' : done ? 'var(--safe)' : 'var(--t2)', transition:'all .12s' }}>
+                  {cp.location}{done && <span style={{ fontSize:9, marginLeft:3, opacity:0.8 }}>✓</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 연결송수관 → 위치 선택 (DB 데이터 기반) */}
       {item === '연결송수관' && (
         <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
@@ -1869,81 +1952,63 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
       )}
 
       {/* 폼 영역 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
         {!item && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>항목을 선택해 주세요</div>
         )}
-        {item === '전실제연댐퍼' && !jdFloor && (
-          <div>
-            <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:8, letterSpacing:'0.05em' }}>층 선택</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {jdFloors.map(f => {
-                const floorCPs  = allCheckpoints.filter(cp => cp.category === '전실제연댐퍼' && cp.floor === f)
-                const floorDone = floorCPs.every(cp => records[cp.id])
-                return (
-                  <button key={f} onClick={() => setJdFloor(f)} style={{ padding:'9px 14px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', border: floorDone ? '1.5px solid var(--safe)' : '1px solid var(--bd2)', background: floorDone ? 'rgba(34,197,94,.1)' : 'var(--bg)', color: floorDone ? 'var(--safe)' : 'var(--t2)' }}>
-                    {JD_FLOOR_LABEL[f] ?? f}{floorDone && ' ✓'}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-        {item === '전실제연댐퍼' && jdFloor && !jdStair && (
-          <div>
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-              <button onClick={() => setJdFloor(null)} style={{ padding:'4px 10px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)' }}>← 층 변경</button>
-              <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{JD_FLOOR_LABEL[jdFloor] ?? jdFloor}</span>
-            </div>
-            <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:8, letterSpacing:'0.05em' }}>계단전실 선택</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {jdStairs.map(s => {
-                const cp   = allCheckpoints.find(c => c.category === '전실제연댐퍼' && c.floor === jdFloor && c.locationNo?.endsWith(`-${s}`))
-                const done = cp ? !!records[cp.id] : false
-                return (
-                  <button key={s} onClick={() => setJdStair(s)} style={{ padding:'9px 14px', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer', border: done ? '1.5px solid var(--safe)' : '1px solid var(--bd2)', background: done ? 'rgba(34,197,94,.1)' : 'var(--bg)', color: done ? 'var(--safe)' : 'var(--t2)' }}>
-                    계단전실 {s}{done && ' ✓'}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-        {item === '전실제연댐퍼' && jdFloor && jdStair && !showForm && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>해당 항목을 찾을 수 없습니다</div>
-        )}
-        {item === '연결송수관' && !subItem && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>
-        )}
 
-        {showForm && (
+        {/* 전실제연댐퍼 — 계단전실 2열 층별 리스트 (StairwellModal 패턴) */}
+        {jdMode === 'stair' && (
           <>
-            {item === '전실제연댐퍼' && jdFloor && jdStair && (
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                <button onClick={() => setJdStair(null)} style={{ padding:'4px 10px', borderRadius:7, fontSize:11, fontWeight:600, cursor:'pointer', border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)' }}>← 계단전실 변경</button>
-                <span style={{ fontSize:12, color:'var(--t2)', fontWeight:600 }}>{JD_FLOOR_LABEL[jdFloor] ?? jdFloor} · 계단전실 {jdStair}</span>
+            {stairDoneCount > 0 && !justSaved && (
+              <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'6px 10px' }}>
+                ✓ {stairDoneCount}/{stairCPs.length}층 이미 점검 완료
               </div>
             )}
-            {isDone && !justSaved && (
-              <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
-            )}
 
-            {/* 점검 결과 */}
-            <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+            {/* 층별 결과 — 2열 */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              {/* 왼쪽 열 */}
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {stairCPs.slice(0, Math.ceil(stairCPs.length / 2)).map(cp => {
+                  const curResult = floorResults[cp.id] ?? 'normal'
+                  return (
+                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                      <div style={{ display:'flex', gap:4 }}>
+                        {INSPECT_RESULT_OPTIONS.map(opt => (
+                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
+                            {opt.icon} {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {/* 오른쪽 열 */}
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {stairCPs.slice(Math.ceil(stairCPs.length / 2)).map(cp => {
+                  const curResult = floorResults[cp.id] ?? 'normal'
+                  return (
+                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                      <div style={{ display:'flex', gap:4 }}>
+                        {INSPECT_RESULT_OPTIONS.map(opt => (
+                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
+                            {opt.icon} {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             {/* 특이사항 + 사진 */}
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
                 <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
                 <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
               </div>
@@ -1957,17 +2022,94 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
           </>
         )}
+
+        {/* 전실제연댐퍼 — 장비(배기/급기팬) 개별 폼 */}
+        {jdMode === 'equip' && selectedEquip && (() => {
+          const eqCp = equipCPs.find(cp => cp.id === selectedEquip)
+          if (!eqCp) return null
+          const eqDone = !!records[eqCp.id]
+          return (
+            <>
+              {eqDone && !justSaved && (
+                <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+              )}
+              <div>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  {INSPECT_RESULT_OPTIONS.map(opt => (
+                    <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
+                      <span style={{ fontSize:20 }}>{opt.icon}</span>
+                      <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                  <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
+                  <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+                </div>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                  <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+                  <PhotoButton hook={photo} label="촬영" noCapture />
+                </div>
+              </div>
+              {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
+              {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            </>
+          )
+        })()}
+
+        {/* 전실제연댐퍼 — 선택 안내 */}
+        {item === '전실제연댐퍼' && jdMode === 'select' && (
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>계단전실을 선택해 주세요</div>
+        )}
+
+        {/* 연결송수관 — 개별 폼 */}
+        {item === '연결송수관' && !subItem && (
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>
+        )}
+        {item === '연결송수관' && subItem && (
+          <>
+            {yscpId && records[yscpId] && !justSaved && (
+              <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+            )}
+            <div>
+              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
+              <div style={{ display:'flex', gap:6 }}>
+                {INSPECT_RESULT_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
+                    <span style={{ fontSize:20 }}>{opt.icon}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              </div>
+              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+                <PhotoButton hook={photo} label="촬영" noCapture />
+              </div>
+            </div>
+            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
+            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+          </>
+        )}
       </div>
 
       {/* 저장 버튼 */}
       <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
         <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
         <button
-          onClick={handleSave}
+          onClick={jdMode === 'stair' ? handleStairSave : handleSingleSave}
           disabled={submitting || photo.uploading || !canSave}
           style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!canSave ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!canSave ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!canSave ? 'default' : 'pointer', transition:'all .13s' }}
         >
-          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
+          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : jdMode === 'stair' ? `계단전실 ${selectedStair} 점검 저장` : '점검 기록 저장'}
         </button>
       </div>
     </div>
