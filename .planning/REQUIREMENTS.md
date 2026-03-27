@@ -15,13 +15,13 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Stabilization (재점검)
 
-- [ ] **STAB-01**: 인증 기능 전수 테스트 — 로그인, 세션 유지, 권한별 접근 제어가 정상 동작한다
-- [ ] **STAB-02**: 대시보드 전수 테스트 — 4개 카드(점검현황, 미조치이슈, 오늘일정, 승강기고장) 데이터가 정확히 표시된다
-- [ ] **STAB-03**: 소방 점검 전수 테스트 — 13개 카테고리 점검 플로우(카테고리→구역→층→개소→결과입력→저장)가 정상 동작한다
-- [ ] **STAB-04**: QR 기능 전수 테스트 — QR 스캔 점검, QR 출력(점검용/점검확인용), 소화기 공개 점검표가 정상 동작한다
-- [ ] **STAB-05**: 점검 계획 전수 테스트 — 캘린더 UI, 일정 CRUD, 대시보드 연동이 정상 동작한다
-- [ ] **STAB-06**: 기존 엑셀 출력 4종 전수 테스트 — 유수검지장치, 옥내소화전, 청정소화약제, 비상콘센트 출력이 정상 동작한다
-- [ ] **STAB-07**: 운영 기능 전수 테스트 — 근무표, 연차 관리, DIV 압력, 건물 도면, 승강기 고장 기록이 정상 동작한다
+- [x] **STAB-01**: 인증 기능 전수 테스트 — 로그인, 세션 유지, 권한별 접근 제어가 정상 동작한다
+- [x] **STAB-02**: 대시보드 전수 테스트 — 4개 카드(점검현황, 미조치이슈, 오늘일정, 승강기고장) 데이터가 정확히 표시된다
+- [x] **STAB-03**: 소방 점검 전수 테스트 — 13개 카테고리 점검 플로우(카테고리→구역→층→개소→결과입력→저장)가 정상 동작한다
+- [x] **STAB-04**: QR 기능 전수 테스트 — QR 스캔 점검, QR 출력(점검용/점검확인용), 소화기 공개 점검표가 정상 동작한다
+- [x] **STAB-05**: 점검 계획 전수 테스트 — 캘린더 UI, 일정 CRUD, 대시보드 연동이 정상 동작한다
+- [x] **STAB-06**: 기존 엑셀 출력 4종 전수 테스트 — 유수검지장치, 옥내소화전, 청정소화약제, 비상콘센트 출력이 정상 동작한다
+- [x] **STAB-07**: 운영 기능 전수 테스트 — 근무표, 연차 관리, DIV 압력, 건물 도면, 승강기 고장 기록이 정상 동작한다
 - [x] **STAB-08**: 미사용 의존성(xlsx-js-style 등) 제거 및 코드 패턴 일관성 정리
 
 ### Excel Reports (점검일지 출력)
@@ -79,13 +79,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-01 | Phase 1 | Complete |
 | DEPLOY-02 | Phase 1 | Complete |
 | DEPLOY-03 | Phase 1 | Complete |
-| STAB-01 | Phase 2 | Pending |
-| STAB-02 | Phase 2 | Pending |
-| STAB-03 | Phase 2 | Pending |
-| STAB-04 | Phase 2 | Pending |
-| STAB-05 | Phase 2 | Pending |
-| STAB-06 | Phase 2 | Pending |
-| STAB-07 | Phase 2 | Pending |
+| STAB-01 | Phase 2 | Complete |
+| STAB-02 | Phase 2 | Complete |
+| STAB-03 | Phase 2 | Complete |
+| STAB-04 | Phase 2 | Complete |
+| STAB-05 | Phase 2 | Complete |
+| STAB-06 | Phase 2 | Complete |
+| STAB-07 | Phase 2 | Complete |
 | STAB-08 | Phase 2 | Complete |
 | EXCEL-01 | Phase 3 | Pending |
 | EXCEL-02 | Phase 3 | Pending |
