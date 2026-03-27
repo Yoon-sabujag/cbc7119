@@ -13,7 +13,8 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res  = await fetch(`${BASE}${path}`, { ...init, headers })
   const json = await res.json() as { success: boolean; data?: T; error?: string }
   if (!res.ok || !json.success) {
-    if (res.status === 401) { useAuthStore.getState().logout(); window.location.href = '/login' }
+    // 로그인 엔드포인트에서의 401은 리다이렉트 없이 에러만 throw (잘못된 비밀번호 등)
+    if (res.status === 401 && !path.includes('/auth/login')) { useAuthStore.getState().logout(); window.location.href = '/login' }
     throw new ApiError(res.status, json.error ?? '요청 실패')
   }
   return json.data as T
@@ -52,6 +53,8 @@ export const scheduleApi = {
       headers: { 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
       body: JSON.stringify({ status }),
     }).then(r => r.json()),
+  update: (id: string, body: { title: string; date: string; time?: string; memo?: string }) =>
+    api.put<void>(`/schedule/${id}`, body),
   delete: (id: string) =>
     fetch(`/api/schedule/${id}`, {
       method: 'DELETE',
