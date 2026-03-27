@@ -35,8 +35,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     zone:        r.zone,
     location:    r.location,
     category:    r.category,
-    description: r.description ?? undefined,
-    locationNo:  r.location_no ?? undefined,
+    description:   r.description ?? undefined,
+    locationNo:    r.location_no ?? undefined,
+    defaultResult: r.default_result ?? undefined,
   }))
   return Response.json({ success:true, data:rows })
 }

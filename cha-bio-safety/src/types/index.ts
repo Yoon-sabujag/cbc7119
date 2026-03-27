@@ -4,8 +4,8 @@ export interface Staff { id:string; name:string; role:Role; title:string; shiftT
 
 export type CheckResult  = 'normal'|'caution'|'bad'|'unresolved'|'missing'
 export type BuildingZone = 'office'|'research'|'common'
-export type Floor = 'B5'|'B4'|'B3'|'B2'|'LOBBY'|'B1'|'1F'|'2F'|'3F'|'M'|'5F'|'6F'|'7F'|'8F'
-export interface CheckPoint { id:string; qrCode:string; floor:Floor; zone:BuildingZone; location:string; category:string; description?:string; locationNo?:string }
+export type Floor = 'B5'|'B4'|'B3'|'B2'|'LOBBY'|'B1'|'1F'|'2F'|'3F'|'M'|'5F'|'6F'|'7F'|'8F'|'8-1F'
+export interface CheckPoint { id:string; qrCode:string; floor:Floor; zone:BuildingZone; location:string; category:string; description?:string; locationNo?:string; defaultResult?:CheckResult }
 export interface CheckRecord { id:string; sessionId:string; checkpointId:string; staffId:string; result:CheckResult; memo?:string; checkedAt:string }
 
 export type ScheduleStatus   = 'pending'|'in_progress'|'done'|'overdue'

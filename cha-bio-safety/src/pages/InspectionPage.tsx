@@ -2322,8 +2322,13 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
       <div style={{ flex:1, overflowY:'auto', padding:'10px 14px 8px', display:'flex', flexDirection:'column', gap:8 }}>
         {/* 선택 CP 정보 */}
         {selectedCP && (
-          <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
-            <div style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</div>
+          <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border: selectedCP.defaultResult ? '1px solid rgba(234,179,8,.4)' : '1px solid var(--bd)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</span>
+              {selectedCP.defaultResult && (
+                <span style={{ fontSize:9, fontWeight:700, color:'#b45309', background:'rgba(234,179,8,.15)', border:'1px solid rgba(234,179,8,.3)', borderRadius:4, padding:'1px 5px' }}>접근불가 — 자동 정상</span>
+              )}
+            </div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{selectedCP.location}</div>
             {selectedCP.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{selectedCP.description}</div>}
           </div>
