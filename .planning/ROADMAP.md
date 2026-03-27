@@ -44,7 +44,14 @@ Plans:
   3. 소방 점검 플로우(카테고리 → 구역 → 층 → 개소 → 결과 입력 → 저장)가 13개 카테고리 모두에서 오류 없이 완료된다
   4. QR 스캔 점검, QR 출력(2종), 소화기 공개 점검표, 기존 엑셀 출력 4종이 모두 정상 다운로드된다
   5. `xlsx-js-style` 등 미사용 의존성이 제거되고 번들 크기가 감소한다
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Production test: Auth + Dashboard + Fire Inspection (STAB-01, STAB-02, STAB-03)
+- [ ] 02-02-PLAN.md — Production test: QR + Schedule + Excel 4 types + Operations (STAB-04, STAB-05, STAB-06, STAB-07)
+- [ ] 02-03-PLAN.md — Dependency cleanup: xlsx-js-style + lucide-react + date-fns removal (STAB-08)
+- [ ] 02-04-PLAN.md — Bug batch fix (critical/major/minor) + production deploy
+- [ ] 02-05-PLAN.md — Final smoke test + Phase 2 completion
 
 ### Phase 3: Excel Reports — Annual Matrix Types
 **Goal**: 법정 요구 5종 연간 매트릭스 점검일지를 현장 양식과 동일한 레이아웃으로 즉시 출력할 수 있다
@@ -63,7 +70,7 @@ Plans:
 **Depends on**: Phase 3
 **Requirements**: EXCEL-06, LINK-01, LINK-02
 **Success Criteria** (what must be TRUE):
-  1. 날짜를 선택하면 해당 날의 근무표/점검일정/승강기이력/소방일정이 자동 기재된 일일업무일지 엑셀 파일이 다운로드된다
+  1. 날짜를 선택하면 해당 날의 근무표/점검일정/승강기이역/소방일정이 자동 기재된 일일업무일지 엑셀 파일이 다운로드된다
   2. 점검 기록을 저장하면 연결된 점검 계획 일정의 완료 상태가 자동으로 업데이트된다
   3. 대시보드 "오늘 일정" 카드에서 각 일정의 완료/미완료 상태가 실제 점검 기록 존재 여부 기반으로 표시된다
 **Plans**: TBD
@@ -76,7 +83,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
-| 2. Stabilization & Code Quality | 0/? | Not started | - |
+| 2. Stabilization & Code Quality | 0/5 | Not started | - |
 | 3. Excel Reports — Annual Matrix Types | 0/? | Not started | - |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
 
@@ -110,4 +117,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-28*
-*Last updated: 2026-03-28 after Phase 1 planning*
+*Last updated: 2026-03-28 after Phase 2 planning*
