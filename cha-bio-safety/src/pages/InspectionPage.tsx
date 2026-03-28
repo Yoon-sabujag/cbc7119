@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { inspectionApi } from '../utils/api'
 import { compressImage } from '../utils/imageUtils'
@@ -2715,6 +2715,8 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
 // ── Main Page ─────────────────────────────────────────
 export default function InspectionPage() {
   const { staff } = useAuthStore()
+  const routeLocation = useLocation()
+  const qrCheckpoint = (routeLocation.state as any)?.qrCheckpoint as CheckPoint | undefined
 
   const [allCheckpoints,   setAllCheckpoints]   = useState<CheckPoint[]>([])
   const [loading,          setLoading]          = useState(true)
@@ -2760,8 +2762,14 @@ export default function InspectionPage() {
     Promise.all([
       inspectionApi.getCheckpoints(),
       loadTodayRecords(),
-    ]).then(([cps]) => { setAllCheckpoints(cps); setLoading(false) })
-      .catch(() => setLoading(false))
+    ]).then(([cps]) => {
+      setAllCheckpoints(cps); setLoading(false)
+      // QR 스캔에서 넘어온 경우 해당 카테고리 자동 선택
+      if (qrCheckpoint) {
+        const groupIdx = CATEGORY_GROUPS.findIndex(g => g.categories.includes(qrCheckpoint.category))
+        if (groupIdx >= 0) setSelectedGroupIdx(groupIdx)
+      }
+    }).catch(() => setLoading(false))
   }, []) // eslint-disable-line
 
   // 30초마다 폴링 (타 직원 기록 실시간 반영)
@@ -3072,6 +3080,7 @@ export default function InspectionPage() {
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
                 const allDone = cps.length > 0 && doneCnt === cps.length
+                if (g.categories.includes('유도등') && cps.length > 0) console.log('[DEBUG 유도등]', { total: cps.length, doneCnt, records: cps.filter(cp => records[cp.id]).length, defaultResult: cps.filter(cp => cp.defaultResult).length, descTag: cps.filter(cp => cp.description?.includes('[접근불가]')).length, sample: cps.slice(-3).map(cp => ({ id:cp.id, desc:cp.description?.slice(-15), dr:cp.defaultResult })) })
                 return (
                   <div key={idx} onClick={() => cps.length > 0 && setSelectedGroupIdx(idx)} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: cps.length > 0 ? 'pointer' : 'default', opacity: cps.length > 0 ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
                     <span style={{ fontSize:16, lineHeight:1.3, flexShrink:0 }}>{g.icon}</span>
