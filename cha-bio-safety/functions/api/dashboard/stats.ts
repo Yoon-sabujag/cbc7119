@@ -13,14 +13,8 @@ function getWeekBounds(today: string) {
   }
 }
 
-const WEEK_ITEMS = [
-  { day:'월', label:'소화기\n점검',     category:'소화기'          },
-  { day:'화', label:'스프링클러\n점검', category:'스프링클러헤드'  },
-  { day:'수', label:'DIV\n점검',       category:'DIV'            },
-  { day:'목', label:'수신기\n점검',     category:'P형수신기'       },
-  { day:'금', label:'승강기\n점검',     category:'승강기'          },
-]
-const COLORS = ['#22c55e','#3b82f6','#f59e0b','#0ea5e9','#8b5cf6']
+const DOW_LABELS = ['일','월','화','수','목','금','토']
+const DOW_COLORS = ['#52525b','#22c55e','#3b82f6','#f59e0b','#0ea5e9','#8b5cf6','#52525b']
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   try {
@@ -71,35 +65,66 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       WHERE status IN ('fault','maintenance')
     `).first<{n:number}>()
 
-    // ── 주간 카테고리별 달성률 ──────────────────────────
-    const weeklyMap: Record<string, { total:number; done:number }> = {}
-    for (const item of WEEK_ITEMS) {
-      const tot = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
-      ).bind(item.category).first<{n:number}>()
-      const done = await env.DB.prepare(`
-        SELECT COUNT(DISTINCT cr.checkpoint_id) as n
-        FROM check_records cr
-        JOIN check_points cp ON cr.checkpoint_id=cp.id
-        WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
-          AND cr.result IN ('normal','caution')
-      `).bind(item.category, start, end).first<{n:number}>()
-      weeklyMap[item.category] = { total: tot?.n ?? 0, done: done?.n ?? 0 }
+    // ── 주간 일정 기반 달성률 ──────────────────────────
+    // 이번 주 월~금 각 날짜의 실제 스케줄에서 점검 일정을 가져옴
+    const weekDates: string[] = []
+    const monDate = new Date(start)
+    for (let i = 0; i < 5; i++) {
+      const d = new Date(monDate)
+      d.setDate(monDate.getDate() + i)
+      weekDates.push(d.toISOString().slice(0, 10))
     }
 
-    const weeklyItems = WEEK_ITEMS.map((item, i) => {
-      const { total, done } = weeklyMap[item.category] ?? { total:0, done:0 }
-      const pct = total > 0 ? Math.round((done / total) * 100) : 0
-      // 오늘이 해당 요일인지 (월=1…금=5)
-      const isToday = (todayDow === i + 1)
-      return {
-        day:     item.day,
-        label:   item.label,
-        pct,
-        color:   pct === 0 ? '#52525b' : COLORS[i],
-        isToday,
+    const weeklyItems = []
+    for (let i = 0; i < 5; i++) {
+      const dateStr = weekDates[i]
+      const dow = i + 1 // 1=월 ~ 5=금
+
+      // 해당 날짜의 점검(inspect) 일정 조회
+      const daySchedules = await env.DB.prepare(`
+        SELECT title, inspection_category FROM schedule_items
+        WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
+        ORDER BY id ASC
+      `).bind(dateStr).all<{title:string; inspection_category:string}>()
+
+      const schedList = daySchedules.results ?? []
+      let label = '일정 없음'
+      let pct = 0
+      let total = 0
+      let done = 0
+
+      if (schedList.length > 0) {
+        // 첫 번째 점검 일정의 제목을 라벨로 사용
+        const firstTitle = schedList[0].title
+        label = firstTitle.length > 8 ? firstTitle.slice(0, 8) + '…' : firstTitle
+
+        // 해당 날짜의 모든 점검 카테고리에 대해 개소 수/완료 수 합산
+        const cats = [...new Set(schedList.map(s => s.inspection_category))]
+        for (const cat of cats) {
+          const t = await env.DB.prepare(
+            `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
+          ).bind(cat).first<{n:number}>()
+          const d = await env.DB.prepare(`
+            SELECT COUNT(DISTINCT cr.checkpoint_id) as n
+            FROM check_records cr
+            JOIN check_points cp ON cr.checkpoint_id=cp.id
+            WHERE cp.category=? AND date(cr.checked_at)=?
+              AND cr.result IN ('normal','caution')
+          `).bind(cat, dateStr).first<{n:number}>()
+          total += t?.n ?? 0
+          done += d?.n ?? 0
+        }
+        pct = total > 0 ? Math.round((done / total) * 100) : 0
       }
-    })
+
+      weeklyItems.push({
+        day:   DOW_LABELS[dow],
+        label,
+        pct,
+        color: pct === 0 ? '#52525b' : DOW_COLORS[dow],
+        isToday: todayDow === dow,
+      })
+    }
 
     // ── 근무자 목록 ─────────────────────────────────────
     const staffRows = await env.DB.prepare(
