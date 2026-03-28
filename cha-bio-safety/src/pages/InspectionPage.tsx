@@ -681,21 +681,10 @@ const DIV_LINE_SEQ: Record<number, number[]> = {
 }
 const DIV_UNDER_SEQ = ['-1-1','-1-2','-1-3','-2-3','-2-1','-2-2','-3-2','-3-3','-4-1','-4-2','-4-3','-5-3','-5-2']
 
-// DIV 측정점 floor → 점검 체크포인트 ID 매핑
-const DIV_FLOOR_CP: Record<number, string> = {
-   8: 'CP-8F-DIV-001',
-   7: 'CP-7F-DIV-001',
-   6: 'CP-6F-DIV-001',
-   5: 'CP-5F-DIV-001',
-   3: 'CP-3F-DIV-001',
-   2: 'CP-2F-DIV-001',
-   1: 'CP-1F-DIV-001',
-  [-1]: 'CP-B1-DIV-001',
-  [-2]: 'CP-B2-DIV-001',
-  [-3]: 'CP-B3-DIV-001',
-  [-4]: 'CP-B4-DIV-001',
-  [-5]: 'CP-B5-DIV-001',
-}
+// DIV 측정점 id → 점검 체크포인트 ID 매핑 (34개 측정점별)
+const DIV_PT_CP: Record<string, string> = Object.fromEntries(
+  DIV_PTS.map(p => [p.id, `CP-DIV-${p.id}`])
+)
 
 // 추세 판단: 연속 방향성 + 누적 임계값
 function detectDivTrend(series: number[], badIfIncreasing: boolean): { level: 'normal'|'caution'|'bad'; cumulative: number } {
@@ -1084,7 +1073,7 @@ function DivModal({ onClose, onSaveRecord, initialFloor }: {
       }
 
       // 점검 기록 연동 — 해당 층 체크포인트에 결과 반영
-      const cpId = DIV_FLOOR_CP[currentPt.floor]
+      const cpId = DIV_PT_CP[currentPt.id]
       if (cpId) {
         await onSaveRecord(cpId, result, memo || '').catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
       }
@@ -2022,8 +2011,8 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialC
                 {stairCPs.slice(0, Math.ceil(stairCPs.length / 2)).map(cp => {
                   const curResult = floorResults[cp.id] ?? 'normal'
                   return (
-                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border: initCp && cp.floor === initCp.floor ? '2px solid #f97316' : '1px solid var(--bd)' }}>
+                      <div style={{ fontSize:11, fontWeight:700, color: initCp && cp.floor === initCp.floor ? '#f97316' : 'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
                       <div style={{ display:'flex', gap:4 }}>
                         {INSPECT_RESULT_OPTIONS.map(opt => (
                           <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
@@ -2040,8 +2029,8 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialC
                 {stairCPs.slice(Math.ceil(stairCPs.length / 2)).map(cp => {
                   const curResult = floorResults[cp.id] ?? 'normal'
                   return (
-                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border: initCp && cp.floor === initCp.floor ? '2px solid #f97316' : '1px solid var(--bd)' }}>
+                      <div style={{ fontSize:11, fontWeight:700, color: initCp && cp.floor === initCp.floor ? '#f97316' : 'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
                       <div style={{ display:'flex', gap:4 }}>
                         {INSPECT_RESULT_OPTIONS.map(opt => (
                           <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
