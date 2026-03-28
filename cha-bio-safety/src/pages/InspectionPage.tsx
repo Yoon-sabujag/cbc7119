@@ -3080,7 +3080,6 @@ export default function InspectionPage() {
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
                 const allDone = cps.length > 0 && doneCnt === cps.length
-                if (g.categories.includes('유도등') && cps.length > 0) console.log('[DEBUG 유도등]', { total: cps.length, doneCnt, records: cps.filter(cp => records[cp.id]).length, defaultResult: cps.filter(cp => cp.defaultResult).length, descTag: cps.filter(cp => cp.description?.includes('[접근불가]')).length, sample: cps.slice(-3).map(cp => ({ id:cp.id, desc:cp.description?.slice(-15), dr:cp.defaultResult })) })
                 return (
                   <div key={idx} onClick={() => cps.length > 0 && setSelectedGroupIdx(idx)} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: cps.length > 0 ? 'pointer' : 'default', opacity: cps.length > 0 ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
                     <span style={{ fontSize:16, lineHeight:1.3, flexShrink:0 }}>{g.icon}</span>
