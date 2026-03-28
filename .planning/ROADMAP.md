@@ -65,7 +65,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Template setup + DB migration + generator functions (generateMatrixExcel, generatePumpExcel)
+- [x] 03-01-PLAN.md — Template setup + DB migration + generator functions (generateMatrixExcel, generatePumpExcel)
 - [ ] 03-02-PLAN.md — ReportsPage UI integration + human verification of Excel output
 
 ### Phase 4: Completion Tracking & Daily Reporting
@@ -87,7 +87,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 3/5 | In Progress|  |
-| 3. Excel Reports — Annual Matrix Types | 0/2 | Not started | - |
+| 3. Excel Reports — Annual Matrix Types | 1/2 | In Progress|  |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
 
 ---
