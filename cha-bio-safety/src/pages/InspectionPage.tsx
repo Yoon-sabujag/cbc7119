@@ -2189,7 +2189,7 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isSohwaGroup, floorCPs])
   // 미완료 항목만 피커에 표시
-  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id] && !cp.defaultResult), [pickerSourceCPs, records])
+  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id] && !cp.defaultResult && !cp.description?.includes('[접근���가]')), [pickerSourceCPs, records])
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
@@ -2891,7 +2891,7 @@ export default function InspectionPage() {
   const categoryStats = useMemo(() =>
     CATEGORY_GROUPS.map((g, idx) => {
       const cps  = allCheckpoints.filter(cp => g.categories.includes(cp.category))
-      const done = cps.filter(cp => records[cp.id] || cp.defaultResult).length
+      const done = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
       return { idx, group:g, total:cps.length, done }
     }).filter(s => s.done > 0),
     [allCheckpoints, records]
@@ -3070,7 +3070,7 @@ export default function InspectionPage() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
               {CATEGORY_GROUPS.map((g, idx) => {
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
-                const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult).length
+                const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
                 const allDone = cps.length > 0 && doneCnt === cps.length
                 return (
                   <div key={idx} onClick={() => cps.length > 0 && setSelectedGroupIdx(idx)} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: cps.length > 0 ? 'pointer' : 'default', opacity: cps.length > 0 ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
