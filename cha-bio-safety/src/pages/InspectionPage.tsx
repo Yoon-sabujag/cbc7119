@@ -891,7 +891,8 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   // initialLocationNo = DIV_PTS의 id (예: '8-1', '-5-3')
   const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
   const initIsUnder = initPt ? initPt.floor < 0 : false
-  const initZone: DivZone|null = initPt ? (initIsUnder ? 'underground' : 'research') : null
+  // pos 1,2 = 연구동(research), pos 3 = 사무동(office)
+  const initZone: DivZone|null = initPt ? (initIsUnder ? 'underground' : initPt.pos <= 2 ? 'research' : 'office') : null
   // 지상: 구역→라인(pos)→층(lineIdx) 순서
   const initLine = initPt && !initIsUnder ? initPt.pos : null
   const initLineIdx = (() => {
