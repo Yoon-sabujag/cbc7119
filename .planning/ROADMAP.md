@@ -62,8 +62,11 @@ Plans:
   2. 자탐/제연/방화셔터/피난방화시설 각각의 점검일지를 출력하면 10개 또는 9개 항목 × 12개월 매트릭스에 ○/△/× 기호가 채워진 엑셀 파일이 다운로드된다
   3. 출력된 엑셀 파일이 Excel/Numbers에서 열릴 때 레이아웃 손상이나 깨진 문자가 없다
   4. 각 점검일지는 점검 기록 DB 데이터를 기반으로 자동 채워진다 (수동 입력 불필요)
-**Plans**: TBD
-**UI hint**: yes
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Template setup + DB migration + generator functions (generateMatrixExcel, generatePumpExcel)
+- [ ] 03-02-PLAN.md — ReportsPage UI integration + human verification of Excel output
 
 ### Phase 4: Completion Tracking & Daily Reporting
 **Goal**: 일일업무일지가 자동으로 조합되고 대시보드의 일정 완료 상태가 점검 기록과 연동된다
@@ -84,7 +87,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 3/5 | In Progress|  |
-| 3. Excel Reports — Annual Matrix Types | 0/? | Not started | - |
+| 3. Excel Reports — Annual Matrix Types | 0/2 | Not started | - |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
 
 ---
@@ -117,4 +120,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-28*
-*Last updated: 2026-03-28 after Phase 2 planning*
+*Last updated: 2026-03-28 after Phase 3 planning*
