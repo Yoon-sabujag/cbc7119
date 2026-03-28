@@ -38,18 +38,27 @@ export default function QRScanPage() {
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const scannedRef = useRef(false)
 
-  // ── 카메라 정지 ──
+  // ── 카메라 정지 (모든 미디어 트랙 해제) ──
   const stopCamera = async () => {
     try {
-      if (scannerRef.current && scanning) {
-        await scannerRef.current.stop()
-        scannerRef.current.clear()
+      if (scannerRef.current) {
+        try { await scannerRef.current.stop() } catch { /* */ }
+        try { scannerRef.current.clear() } catch { /* */ }
+        scannerRef.current = null
       }
     } catch { /* 이미 정지됨 */ }
+    // 혹시 남아있는 카메라 트랙 강제 해제
+    try {
+      const videoEl = document.querySelector(`#${QR_REGION_ID} video`) as HTMLVideoElement
+      if (videoEl?.srcObject) {
+        (videoEl.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+        videoEl.srcObject = null
+      }
+    } catch { /* */ }
     setScanning(false)
   }
 
-  // ── 체크포인트 조회 ──
+  // ── 체크포인트 조회 → 점검 페이지로 이동 ──
   const lookupCheckpoint = async (qr: string) => {
     setLoading(true)
     setCpError(null)
@@ -60,8 +69,10 @@ export default function QRScanPage() {
       })
       const json = await res.json() as { success: boolean; data?: CheckPoint[] }
       if (json.success && json.data && json.data.length > 0) {
-        setCheckpoint(json.data[0])
-        setStage('found')
+        const cp = json.data[0]
+        await stopCamera()
+        // 점검 페이지로 이동하면서 QR로 찾은 체크포인트 정보 전달
+        navigate('/inspection', { state: { qrCheckpoint: cp } })
       } else {
         setCpError(`QR 코드를 찾을 수 없습니다.\n(${qr})`)
         scannedRef.current = false
