@@ -580,6 +580,12 @@ export async function generatePumpExcel(
     xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
   }
 
+  // 점검자 이름 (row 31)
+  const entry = data.find(cp => cp.months?.[month])
+  const inspector = entry?.months?.[month]?.inspector ?? null
+  xml = patchCell(xml, 'I31', inspector)
+  xml = patchCell(xml, 'AJ31', inspector)
+
   // 단일 시트 출력 빌드
   const newFiles: Record<string, Uint8Array> = {}
   for (const key of ['xl/sharedStrings.xml', 'xl/theme/theme1.xml', 'xl/styles.xml', 'docProps/core.xml', 'docProps/app.xml']) {
