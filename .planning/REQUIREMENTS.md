@@ -26,11 +26,11 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Excel Reports (점검일지 출력)
 
-- [ ] **EXCEL-01**: 월간 소방펌프 점검일지 엑셀 출력 — 20개 점검항목, 양호/불량, A4 1장 레이아웃
-- [ ] **EXCEL-02**: 자동화재탐지설비 점검일지 엑셀 출력 — 10개 항목 × 12개월 매트릭스, ○/△/× 기호
-- [ ] **EXCEL-03**: 월간 제연설비 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
-- [ ] **EXCEL-04**: 월간 방화셔터 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
-- [ ] **EXCEL-05**: 월간 피난방화시설 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
+- [x] **EXCEL-01**: 월간 소방펌프 점검일지 엑셀 출력 — 20개 점검항목, 양호/불량, A4 1장 레이아웃
+- [x] **EXCEL-02**: 자동화재탐지설비 점검일지 엑셀 출력 — 10개 항목 × 12개월 매트릭스, ○/△/× 기호
+- [x] **EXCEL-03**: 월간 제연설비 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
+- [x] **EXCEL-04**: 월간 방화셔터 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
+- [x] **EXCEL-05**: 월간 피난방화시설 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
 - [ ] **EXCEL-06**: 일일업무일지(방재업무일지) 엑셀 출력 — 근무표/점검일정/승강기이력/소방일정 자동 기재
 
 ### Schedule Linkage (일정↔기록 연결)
@@ -87,11 +87,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAB-06 | Phase 2 | Complete |
 | STAB-07 | Phase 2 | Complete |
 | STAB-08 | Phase 2 | Complete |
-| EXCEL-01 | Phase 3 | Pending |
-| EXCEL-02 | Phase 3 | Pending |
-| EXCEL-03 | Phase 3 | Pending |
-| EXCEL-04 | Phase 3 | Pending |
-| EXCEL-05 | Phase 3 | Pending |
+| EXCEL-01 | Phase 3 | Complete |
+| EXCEL-02 | Phase 3 | Complete |
+| EXCEL-03 | Phase 3 | Complete |
+| EXCEL-04 | Phase 3 | Complete |
+| EXCEL-05 | Phase 3 | Complete |
 | EXCEL-06 | Phase 4 | Pending |
 | LINK-01 | Phase 4 | Pending |
 | LINK-02 | Phase 4 | Pending |
