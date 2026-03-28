@@ -75,68 +75,54 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       WHERE status IN ('fault','maintenance')
     `).first<{n:number}>()
 
-    // ── 주간 일정 기반 달성률 ──────────────────────────
-    // 이번 주 월~금 각 날짜의 실제 스케줄에서 점검 일정을 가져옴
-    const weekDates: string[] = []
-    const monDate = new Date(start)
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(monDate)
-      d.setDate(monDate.getDate() + i)
-      weekDates.push(d.toISOString().slice(0, 10))
-    }
+    // ── 이번 달 점검 진척도 ──────────────────────────
+    const monthStart = `${today.slice(0,7)}-01`
+    const monthEnd   = (() => {
+      const d = new Date(today); d.setMonth(d.getMonth() + 1, 0)
+      return d.toISOString().slice(0,10)
+    })()
 
-    const weeklyItems = []
-    for (let i = 0; i < 5; i++) {
-      const dateStr = weekDates[i]
-      const dow = i + 1 // 1=월 ~ 5=금
+    // 이번 달 inspect 일정을 inspection_category 기준으로 고유 항목 추출
+    const monthScheds = await env.DB.prepare(`
+      SELECT DISTINCT title, inspection_category
+      FROM schedule_items
+      WHERE date BETWEEN ? AND ? AND category='inspect' AND inspection_category IS NOT NULL
+      ORDER BY date ASC, id ASC
+    `).bind(monthStart, monthEnd).all<{title:string; inspection_category:string}>()
 
-      // 해당 날짜의 점검(inspect) 일정 조회
-      const daySchedules = await env.DB.prepare(`
-        SELECT title, inspection_category FROM schedule_items
-        WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
-        ORDER BY id ASC
-      `).bind(dateStr).all<{title:string; inspection_category:string}>()
+    const ITEM_COLORS = ['#22c55e','#3b82f6','#f59e0b','#0ea5e9','#8b5cf6','#ec4899','#f97316','#14b8a6','#6366f1','#84cc16','#ef4444','#06b6d4','#a855f7']
+    const monthlyItems: {label:string; pct:number; color:string; total:number; done:number}[] = []
+    const seen = new Set<string>()
 
-      const schedList = daySchedules.results ?? []
-      let label = '일정 없음'
-      let pct = 0
-      let total = 0
-      let done = 0
+    for (const sched of (monthScheds.results ?? [])) {
+      if (seen.has(sched.inspection_category)) continue
+      seen.add(sched.inspection_category)
 
-      if (schedList.length > 0) {
-        // 첫 번째 점검 일정의 제목을 라벨로 사용
-        const firstTitle = schedList[0].title
-        label = firstTitle.length > 8 ? firstTitle.slice(0, 8) + '…' : firstTitle
+      const t = await env.DB.prepare(
+        `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
+      ).bind(sched.inspection_category).first<{n:number}>()
+      const d = await env.DB.prepare(`
+        SELECT COUNT(DISTINCT cr.checkpoint_id) as n
+        FROM check_records cr
+        JOIN check_points cp ON cr.checkpoint_id=cp.id
+        WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
+          AND cr.result IN ('normal','caution')
+      `).bind(sched.inspection_category, monthStart, monthEnd).first<{n:number}>()
+      const autoN = await env.DB.prepare(
+        `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1 AND default_result IS NOT NULL`
+      ).bind(sched.inspection_category).first<{n:number}>()
 
-        // 해당 날짜의 모든 점검 카테고리에 대해 개소 수/완료 수 합산
-        const cats = [...new Set(schedList.map(s => s.inspection_category))]
-        for (const cat of cats) {
-          const t = await env.DB.prepare(
-            `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
-          ).bind(cat).first<{n:number}>()
-          const d = await env.DB.prepare(`
-            SELECT COUNT(DISTINCT cr.checkpoint_id) as n
-            FROM check_records cr
-            JOIN check_points cp ON cr.checkpoint_id=cp.id
-            WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
-              AND cr.result IN ('normal','caution')
-          `).bind(cat, start, dateStr).first<{n:number}>()
-          // 접근불가 항목도 완료로 카운트
-          const autoN = await env.DB.prepare(
-            `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1 AND default_result IS NOT NULL`
-          ).bind(cat).first<{n:number}>()
-          total += t?.n ?? 0
-          done += (d?.n ?? 0) + (autoN?.n ?? 0)
-        }
-        pct = total > 0 ? Math.round((done / total) * 100) : 0
-      }
+      const total = t?.n ?? 0
+      const done = (d?.n ?? 0) + (autoN?.n ?? 0)
+      const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
+      const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
 
-      weeklyItems.push({
-        day:   DOW_LABELS[dow],
+      monthlyItems.push({
         label,
         pct,
-        color: pct === 0 ? '#52525b' : DOW_COLORS[dow],
-        isToday: todayDow === dow,
+        color: pct === 0 ? '#52525b' : ITEM_COLORS[monthlyItems.length % ITEM_COLORS.length],
+        total,
+        done,
       })
     }
 
@@ -177,7 +163,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           title:     r.title,
           shiftType: r.shift_type ?? undefined,
         })),
-        weeklyItems,
+        monthlyItems,
         todayTarget,
       },
     })

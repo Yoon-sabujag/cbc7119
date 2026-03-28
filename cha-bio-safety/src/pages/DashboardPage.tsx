@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi } from '../utils/api'
-import { useDateTime, getWeekLabel } from '../hooks/useDateTime'
+import { useDateTime } from '../hooks/useDateTime'
 import { SideMenu }      from '../components/SideMenu'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
-import type { ScheduleItem, Staff, WeeklyItem, Role } from '../types'
+import type { ScheduleItem, Staff, Role } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 
 const STAFF_ROLES: Record<string, Role> = {
@@ -25,19 +25,12 @@ const MOCK_SCHEDULE: ScheduleItem[] = [
   { id:'5', title:'3층 소화기 교체 확인',  date:'',              category:'task',    status:'pending'     },
 ]
 
-const MOCK_WEEKLY: WeeklyItem[] = [
-  { day:'월', label:'소화기\n점검',     pct:100, color:'#22c55e', isToday:false },
-  { day:'화', label:'스프링클러\n점검', pct:80,  color:'#3b82f6', isToday:false },
-  { day:'수', label:'DIV\n점검',       pct:35,  color:'#f59e0b', isToday:true  },
-  { day:'목', label:'수신기\n점검',     pct:0,   color:'#52525b', isToday:false },
-  { day:'금', label:'승강기\n점검',     pct:0,   color:'#52525b', isToday:false },
-]
+interface MonthlyItem { label:string; pct:number; color:string; total:number; done:number }
 
 export default function DashboardPage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
   const datetime  = useDateTime()
-  const weekLabel = getWeekLabel()
 
   const [sideOpen, setSideOpen]       = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -52,7 +45,7 @@ export default function DashboardPage() {
   // 로딩 중엔 빈 값, API 실패 시에만 목업 폴백
   const stats       = data?.stats        ?? (isLoading ? { inspectTotal:0, inspectDone:0, scheduleCount:0, unresolved:0, elevatorFault:0, streakDays:0 } : { inspectTotal:34, inspectDone:22, scheduleCount:5, unresolved:2, elevatorFault:0, streakDays:0 })
   const schedule    = data?.todaySchedule ?? (isLoading ? [] : MOCK_SCHEDULE)
-  const weekly      = data?.weeklyItems   ?? (isLoading ? [] : MOCK_WEEKLY)
+  const monthly: MonthlyItem[] = data?.monthlyItems ?? (isLoading ? [] : [])
   const todayTarget = data?.todayTarget   ?? (isLoading ? '' : '전 층 DIV 격주 점검 · B5~8층 34개 측정점')
   // 08:30 이전이면 전날 근무 기준
   const _now = new Date()
@@ -226,23 +219,25 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ⑤ 이번 주 점검 현황 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', maxHeight:118, animation:'slideUp .28s .20s ease-out both' }}>
+        {/* ⑤ 이번 달 점검 현황 */}
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>이번 주 점검 현황</span>
-            <span style={{ fontSize:9.5, color:'var(--t3)' }}>{weekLabel}</span>
+            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
+            <span style={{ fontSize:9.5, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
           </div>
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'space-around', padding:'1px 4px 2px' }}>
-            {weekly.map(w => (
-              <div key={w.day} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2, flex:1 }}>
-                <div style={{ fontSize:9, fontWeight:700, color: w.isToday ? 'var(--acl)' : 'var(--t3)' }}>
-                  {w.day}{w.isToday ? ' ●' : ''}
+          {monthly.length === 0 ? (
+            <div style={{ padding:'14px 0', textAlign:'center', fontSize:11, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
+          ) : (
+            <div style={{ overflowX:'auto', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12 }}>
+              {monthly.map((m, i) => (
+                <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
+                  <Donut pct={m.pct} color={m.color} size={44} />
+                  <div style={{ fontSize:8, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
+                  <div style={{ fontSize:8, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                 </div>
-                <Donut pct={w.pct} color={w.color} size={40} />
-                <div style={{ fontSize:7.5, color:'var(--t3)', textAlign:'center', lineHeight:1.3 }} dangerouslySetInnerHTML={{ __html: w.label.replace('\n','<br/>') }} />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </main>

@@ -37,7 +37,7 @@ export const dashboardApi = {
     stats: import('../types').DashboardStats
     todaySchedule: import('../types').ScheduleItem[]
     onDutyStaff: import('../types').Staff[]
-    weeklyItems: import('../types').WeeklyItem[]
+    monthlyItems: { label:string; pct:number; color:string; total:number; done:number }[]
     todayTarget: string
   }>('/dashboard/stats'),
 }
