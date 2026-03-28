@@ -183,7 +183,7 @@ async function generatePdf(
           cp.location,
           cp.floor,
         ],
-        bottomFontSize: 8,
+        bottomFontSize: 3,
       })
     } else {
       // 점검확인용: 70×90mm 가로출력 — 상단 문장 쉼표 줄바꿈, QR 65%
@@ -196,13 +196,13 @@ async function generatePdf(
           '아래 QR코드로',
           '점검 내역 확인 가능합니다.',
         ],
-        topFontSize: 9,
+        topFontSize: 3,
         bottomLines: [
           cp.locationNo ?? cp.id,
           cp.location,
           cp.floor,
         ],
-        bottomFontSize: 11,
+        bottomFontSize: 3,
       })
     }
 
