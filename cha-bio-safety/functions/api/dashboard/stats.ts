@@ -103,10 +103,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     const seen = new Set<string>()
 
     for (const sched of (monthScheds.results ?? [])) {
-      // 방화문→특별피난계단, 컴프레셔→DIV 매핑
+      // 일정별로 개별 표시 (방화문, 컴프레셔도 따로 표시)
+      const schedKey = sched.inspection_category
+      if (seen.has(schedKey)) continue
+      seen.add(schedKey)
+      // 체크포인트 조회 시에만 alias 적용
       const cpCategory = CATEGORY_ALIAS[sched.inspection_category] ?? sched.inspection_category
-      if (seen.has(cpCategory)) continue
-      seen.add(cpCategory)
 
       const t = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
