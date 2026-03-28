@@ -81,7 +81,7 @@ function PhotoButton({ hook, label = '사진 첨부', noCapture }: { hook: Retur
 const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
 // ── 층 분류 ───────────────────────────────────────────
-const GROUND_LIST: Floor[] = ['8F','7F','6F','5F','3F','2F','1F']
+const GROUND_LIST: Floor[] = ['8-1F','8F','7F','6F','5F','3F','2F','1F']
 const UNDER_LIST:  Floor[] = ['B1','M','B2','B3','B4','B5']
 const GROUND_SET   = new Set<Floor>(GROUND_LIST)
 const UNDER_SET    = new Set<Floor>(UNDER_LIST)
@@ -891,15 +891,17 @@ function DivTrendSubview({ point, records, onClose }: {
   )
 }
 
-function DivModal({ onClose, onSaveRecord }: {
+function DivModal({ onClose, onSaveRecord, initialFloor }: {
   onClose: () => void
   onSaveRecord: (cpId: string, result: CheckResult, memo: string) => Promise<void>
+  initialFloor?: string
 }) {
   const staff = useAuthStore(s => s.staff)
 
   // ── 단계 선택 ──
-  const [zone,         setZone]         = useState<DivZone|null>(null)
-  const [line,         setLine]         = useState<number|null>(null)
+  const initZone: DivZone|null = initialFloor?.startsWith('B') ? 'underground' : initialFloor ? 'research' : null
+  const [zone,         setZone]         = useState<DivZone|null>(initZone)
+  const [line,         setLine]         = useState<number|null>(initZone === 'research' ? 1 : null)
   const [lineIdx,      setLineIdx]      = useState(0)
   const [underPending, setUnderPending] = useState<string[]>([...DIV_UNDER_SEQ])
   const [underPickIdx, setUnderPickIdx] = useState(0)
@@ -1725,15 +1727,19 @@ function ParkingGateModal({ group, allCheckpoints, records, onClose, onSave }: {
 }
 
 // ── 전실제연댐퍼·연결송수관 전용 모달 ────────────────────
-function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
+function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialCpId }: {
   group:          typeof CATEGORY_GROUPS[0]
   allCheckpoints: CheckPoint[]
   records:        Record<string, CheckResult>
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  initialCpId?:   string
 }) {
   const photo = usePhotoUpload()
-  const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(null)
+  // QR에서 넘어온 경우 초기 항목 자동 선택
+  const initCp = initialCpId ? allCheckpoints.find(cp => cp.id === initialCpId) : null
+  const initItem: '전실제연댐퍼'|'연결송수관'|null = initCp?.category === '전실제연댐퍼' ? '전실제연댐퍼' : initCp?.category === '연결송수관' ? '연결송수관' : null
+  const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(initItem)
   // 연결송수관 states
   const [subItem,     setSubItem]     = useState<string|null>(null)
   const [result,      setResult]      = useState<CheckResult>('normal')
@@ -2130,12 +2136,13 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave }: {
 }
 
 // ── Inspection Modal (전체화면) ────────────────────────
-function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
+function InspectionModal({ group, allCheckpoints, records, onClose, onSave, initialCpId }: {
   group:          typeof CATEGORY_GROUPS[0]
   allCheckpoints: CheckPoint[]
   records:        Record<string, CheckResult>
   onClose:        () => void
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  initialCpId?:   string
 }) {
   const photo   = usePhotoUpload()
   const bcPhoto = usePhotoUpload()
@@ -2158,9 +2165,18 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
-  // 구역 자동 선택 (첫 번째 구역)
+  // 구역 자동 선택 (QR 체크포인트 또는 첫 번째 구역)
   useEffect(() => {
-    if (availableZones.length > 0 && !selectedZone) setSelectedZone(availableZones[0])
+    if (availableZones.length > 0 && !selectedZone) {
+      if (initialCpId) {
+        const cp = allCheckpoints.find(c => c.id === initialCpId)
+        if (cp) {
+          const zone = ZONE_CONFIG.find(z => matchZone(cp, z.key))
+          if (zone) { setSelectedZone(zone.key); return }
+        }
+      }
+      setSelectedZone(availableZones[0])
+    }
   }, [availableZones])
 
   const availableFloors = useMemo(() =>
@@ -2168,9 +2184,15 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
     [groupCPs, selectedZone]
   )
 
-  // 층 자동 선택 (첫 번째 층)
+  // 층 자동 선택 (QR 체크포인트 또는 첫 번째 층)
   useEffect(() => {
-    if (availableFloors.length > 0 && !selectedFloor) setSelectedFloor(availableFloors[0])
+    if (availableFloors.length > 0 && !selectedFloor) {
+      if (initialCpId) {
+        const cp = allCheckpoints.find(c => c.id === initialCpId)
+        if (cp && availableFloors.includes(cp.floor)) { setSelectedFloor(cp.floor); return }
+      }
+      setSelectedFloor(availableFloors[0])
+    }
   }, [availableFloors])
 
   // ▶ floorCPs memoize — pickerIdx 변경에는 재계산 안 됨
@@ -3100,7 +3122,7 @@ export default function InspectionPage() {
       {/* 전체화면 점검 모달 */}
       {selectedGroup && (
         selectedGroup.categories.includes('DIV') ? (
-          <DivModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} />
+          <DivModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} initialFloor={qrCheckpoint?.category === 'DIV' ? qrCheckpoint.floor : undefined} />
         ) : selectedGroup.categories.includes('배연창') ? (
           <BaeyeonModal
             group={selectedGroup}
@@ -3140,6 +3162,7 @@ export default function InspectionPage() {
             records={records}
             onClose={() => setSelectedGroupIdx(null)}
             onSave={handleSave}
+            initialCpId={qrCheckpoint?.id}
           />
         ) : (
           <InspectionModal
@@ -3148,6 +3171,7 @@ export default function InspectionPage() {
             records={records}
             onClose={() => setSelectedGroupIdx(null)}
             onSave={handleSave}
+            initialCpId={qrCheckpoint?.id}
           />
         )
       )}
