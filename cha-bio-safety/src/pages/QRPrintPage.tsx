@@ -60,7 +60,29 @@ async function renderCardCanvas(config: {
 
   const FONT = `-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`
 
-  let y = 6 * S
+  const PAD = 3 * S // 상하 여백
+
+  // 1) 상단 텍스트 높이 계산
+  let topH = 0
+  if (topLines && topLines.length > 0) {
+    const fs = topFontSize * S
+    topH = topLines.length * (fs + 2 * S) + 2 * S
+  }
+
+  // 2) 하단 텍스트 높이 계산
+  let bottomH = 0
+  for (let i = 0; i < bottomLines.length; i++) {
+    const fs = i === 0 ? (bottomFontSize + 1) * S : (bottomFontSize - 1) * S
+    bottomH += fs + 2 * S
+  }
+
+  // 3) QR 크기 = 남은 공간에 맞춤 (폭의 85% 이하)
+  const availH = H - PAD * 2 - topH - bottomH - 4 * S
+  const maxQrW = Math.floor(W * 0.85)
+  const qrDrawSize = Math.min(Math.max(availH, 20 * S), maxQrW)
+
+  // 4) 렌더링
+  let y = PAD
 
   // 상단 안내 텍스트
   if (topLines && topLines.length > 0) {
@@ -71,28 +93,24 @@ async function renderCardCanvas(config: {
     ctx.font = `${fs}px ${FONT}`
     for (const line of topLines) {
       ctx.fillText(line, W / 2, y)
-      y += fs + 3 * S
+      y += fs + 2 * S
     }
-    y += 4 * S
+    y += 2 * S
   }
 
-  // QR 코드 — 카드 폭의 80%를 넘지 않도록 제한
-  const maxQrPx = Math.floor(W * 0.8)
-  const qrDrawSize = Math.min(qrSize * S, maxQrPx)
+  // QR 코드
   const qrCanvas = document.createElement('canvas')
   await QRCode.toCanvas(qrCanvas, qrValue, { width: qrDrawSize, margin: 1 })
   const qrX = (W - qrDrawSize) / 2
   ctx.drawImage(qrCanvas, qrX, y)
-  y += qrDrawSize + 4 * S
+  y += qrDrawSize + 3 * S
 
   // 하단 라벨
   ctx.fillStyle = '#333333'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
   for (let i = 0; i < bottomLines.length; i++) {
-    const fs = i === 0
-      ? (bottomFontSize + 1) * S
-      : (bottomFontSize - 1) * S
+    const fs = i === 0 ? (bottomFontSize + 1) * S : (bottomFontSize - 1) * S
     ctx.font = `${i === 0 ? 'bold ' : ''}${fs}px ${FONT}`
     ctx.fillText(bottomLines[i], W / 2, y)
     y += fs + 2 * S
@@ -174,11 +192,11 @@ async function generatePdf(
         qrValue: `${baseUrl}/e/${cp.id}`,
         qrSize: Math.floor(cardW * 0.65),
         topLines: [
-          '본 소화기는 QR코드로 관리되며',
-          '아래 QR코드로 점검 내역',
-          '확인 가능합니다.',
+          '본 소화기는 QR코드로 관리되며,',
+          '아래 QR코드로',
+          '점검 내역 확인 가능합니다.',
         ],
-        topFontSize: 10,
+        topFontSize: 9,
         bottomLines: [
           cp.locationNo ?? cp.id,
           cp.location,
