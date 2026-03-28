@@ -419,7 +419,8 @@ export async function generateMatrixExcel(
   data: any[],
   sheetIndex: number,
   itemCount: number,
-  reportName: string
+  reportName: string,
+  inspectorRow?: number
 ) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
@@ -480,8 +481,10 @@ export async function generateMatrixExcel(
     for (const row of checkRows) {
       xml = patchCell(xml, `${col}${row}`, monthChecked ? '○' : null)
     }
-    // 점검자 (row 31)
-    xml = patchCell(xml, `${col}31`, inspector)
+    // 점검자
+    if (inspectorRow) {
+      xml = patchCell(xml, `${col}${inspectorRow}`, inspector)
+    }
   }
 
   // 단일 시트 출력 빌드
@@ -580,11 +583,6 @@ export async function generatePumpExcel(
     xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
   }
 
-  // 점검자 이름 (row 31)
-  const entry = data.find(cp => cp.months?.[month])
-  const inspector = entry?.months?.[month]?.inspector ?? null
-  xml = patchCell(xml, 'I31', inspector)
-  xml = patchCell(xml, 'AJ31', inspector)
 
   // 단일 시트 출력 빌드
   const newFiles: Record<string, Uint8Array> = {}
