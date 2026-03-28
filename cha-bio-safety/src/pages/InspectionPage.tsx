@@ -2148,9 +2148,9 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
-  // 구역이 1개면 자동 선택
+  // 구역 자동 선택 (첫 번째 구역)
   useEffect(() => {
-    if (availableZones.length === 1) setSelectedZone(availableZones[0])
+    if (availableZones.length > 0 && !selectedZone) setSelectedZone(availableZones[0])
   }, [availableZones])
 
   const availableFloors = useMemo(() =>
@@ -2158,9 +2158,9 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
     [groupCPs, selectedZone]
   )
 
-  // 층이 1개면 자동 선택
+  // 층 자동 선택 (첫 번째 층)
   useEffect(() => {
-    if (availableFloors.length === 1) setSelectedFloor(availableFloors[0])
+    if (availableFloors.length > 0 && !selectedFloor) setSelectedFloor(availableFloors[0])
   }, [availableFloors])
 
   // ▶ floorCPs memoize — pickerIdx 변경에는 재계산 안 됨
@@ -2235,6 +2235,38 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
       photo.reset()
       bcPhoto.reset()
       setJustSaved(true)
+      // #14: 저장 후 다음 항목/층/구역 자동 이동
+      setTimeout(() => {
+        // pendingCPs는 현재 렌더 기준이므로 저장 후 1개 줄어듦
+        const remainingAfterSave = pendingCPs.length - 1
+        if (remainingAfterSave > 0) {
+          // 같은 층에 미완료 있으면 다음 항목
+          if (pickerIdx >= remainingAfterSave) setPickerIdx(0)
+        } else if (selectedFloor && selectedZone) {
+          // 이 층 완료 — 같은 구역 내 다음 미완료 층 찾기
+          const nextFloor = availableFloors.find(f => {
+            if (f === selectedFloor) return false
+            const fCPs = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
+            return fCPs.some(cp => !records[cp.id])
+          })
+          if (nextFloor) {
+            setSelectedFloor(nextFloor)
+            setPickerIdx(0)
+          } else {
+            // 이 구역 완료 — 다음 미완료 구역 찾기
+            const nextZone = availableZones.find(z => {
+              if (z === selectedZone) return false
+              const zCPs = groupCPs.filter(cp => matchZone(cp, z))
+              return zCPs.some(cp => !records[cp.id])
+            })
+            if (nextZone) {
+              setSelectedZone(nextZone)
+              setSelectedFloor(null)
+              setPickerIdx(0)
+            }
+          }
+        }
+      }, 600)
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
     } finally {
@@ -2300,46 +2332,49 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
         </div>
       )}
 
-      {/* ── 피커 / 좌우 버튼 — 개소가 2개 이상일 때만 표시 ── */}
+      {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
       {selectedFloor && floorCPs.length > 1 && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>
-            개소 선택
-            {totalCount > 0 && (
-              <span style={{ fontWeight:400, marginLeft:4, color: doneCount === totalCount ? 'var(--safe)' : 'var(--t3)' }}>
-                ({doneCount}/{totalCount} 완료)
-              </span>
-            )}
-          </div>
           {pendingCPs.length === 0 ? (
             <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
-              ✅ 이 층 점검 완료
-            </div>
-          ) : pendingCPs.length <= 10 ? (
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <button onClick={() => { if (pickerIdx > 0) { setPickerIdx(pickerIdx - 1) } }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:18, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', opacity: pickerIdx > 0 ? 1 : 0.3, flexShrink:0 }}>‹</button>
-              <div style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {selectedCP?.location ?? ''} <span style={{ fontSize:11, fontWeight:400, color:'var(--t3)' }}>({pickerIdx + 1}/{pendingCPs.length})</span>
-              </div>
-              <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) { setPickerIdx(pickerIdx + 1) } }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:18, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3, flexShrink:0 }}>›</button>
+              ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
             </div>
           ) : (
-            <WheelPicker items={pendingCPs} onSelect={handlePickerSelect} records={records} />
+            <div
+              style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+              onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
+              onTouchEnd={e => {
+                const sx = (e.currentTarget as any)._swX
+                if (sx == null) return
+                const dx = e.changedTouches[0].clientX - sx
+                if (dx > 40 && pickerIdx > 0) setPickerIdx(pickerIdx - 1)
+                else if (dx < -40 && pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1)
+              }}
+            >
+              <button onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx > 0 ? 1 : 0.3 }}>‹</button>
+              <div style={{ flex:1, textAlign:'center' }}>
+                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소 ({pickerIdx + 1}/{pendingCPs.length} 미완료 · {doneCount}/{totalCount} 완료)</div>
+                <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
+                {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
+              </div>
+              <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
+            </div>
           )}
         </div>
       )}
 
       {/* ── 나머지 (스크롤 가능) ── */}
       <div style={{ flex:1, overflowY:'auto', padding:'10px 14px 8px', display:'flex', flexDirection:'column', gap:8 }}>
-        {/* 선택 CP 정보 */}
-        {selectedCP && (
-          <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border: selectedCP.defaultResult ? '1px solid rgba(234,179,8,.4)' : '1px solid var(--bd)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</span>
-              {selectedCP.defaultResult && (
-                <span style={{ fontSize:9, fontWeight:700, color:'#b45309', background:'rgba(234,179,8,.15)', border:'1px solid rgba(234,179,8,.3)', borderRadius:4, padding:'1px 5px' }}>접근불가 — 자동 정상</span>
-              )}
-            </div>
+        {/* 접근불가 뱃지 (해당 항목만) */}
+        {selectedCP?.defaultResult && (
+          <div style={{ background:'rgba(234,179,8,.08)', border:'1px solid rgba(234,179,8,.3)', borderRadius:8, padding:'6px 10px', fontSize:11, color:'#b45309', fontWeight:600 }}>
+            접근불가 구역 — 자동 정상 처리
+          </div>
+        )}
+        {/* 개소가 1개인 경우 정보 표시 */}
+        {selectedCP && floorCPs.length <= 1 && (
+          <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
+            <div style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{selectedCP.location}</div>
             {selectedCP.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{selectedCP.description}</div>}
           </div>

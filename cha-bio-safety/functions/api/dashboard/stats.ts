@@ -41,7 +41,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         )
     `).bind(today).first<{n:number}>()
 
-    const inspDone = await env.DB.prepare(`
+    // 점검 기록 + 접근불가(default_result) 항목 합산
+    const inspDoneRecords = await env.DB.prepare(`
       SELECT COUNT(DISTINCT cr.checkpoint_id) as n
       FROM check_records cr
       JOIN check_points cp ON cr.checkpoint_id=cp.id
@@ -51,6 +52,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
         )
     `).bind(today, today).first<{n:number}>()
+    const inspDoneAuto = await env.DB.prepare(`
+      SELECT COUNT(*) as n FROM check_points
+      WHERE is_active=1 AND default_result IS NOT NULL
+        AND category IN (
+          SELECT inspection_category FROM schedule_items
+          WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
+        )
+    `).bind(today).first<{n:number}>()
+    const inspDone = { n: (inspDoneRecords?.n ?? 0) + (inspDoneAuto?.n ?? 0) }
 
     const unresolved = await env.DB.prepare(`
       SELECT COUNT(*) as n FROM check_records
@@ -108,11 +118,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
             SELECT COUNT(DISTINCT cr.checkpoint_id) as n
             FROM check_records cr
             JOIN check_points cp ON cr.checkpoint_id=cp.id
-            WHERE cp.category=? AND date(cr.checked_at)=?
+            WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
               AND cr.result IN ('normal','caution')
-          `).bind(cat, dateStr).first<{n:number}>()
+          `).bind(cat, start, dateStr).first<{n:number}>()
+          // 접근불가 항목도 완료로 카운트
+          const autoN = await env.DB.prepare(
+            `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1 AND default_result IS NOT NULL`
+          ).bind(cat).first<{n:number}>()
           total += t?.n ?? 0
-          done += d?.n ?? 0
+          done += (d?.n ?? 0) + (autoN?.n ?? 0)
         }
         pct = total > 0 ? Math.round((done / total) * 100) : 0
       }
