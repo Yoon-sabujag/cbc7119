@@ -16,6 +16,13 @@ function getWeekBounds(today: string) {
 const DOW_LABELS = ['일','월','화','수','목','금','토']
 const DOW_COLORS = ['#52525b','#22c55e','#3b82f6','#f59e0b','#0ea5e9','#8b5cf6','#52525b']
 
+// 일정 카테고리 → 실제 체크포인트 카테고리 매핑
+// 방화문 점검은 피난계단 점검과 동시 수행, 컴프레셔는 DIV와 동시 수행
+const CATEGORY_ALIAS: Record<string, string> = {
+  '방화문': '특별피난계단',
+  '컴프레셔': 'DIV',
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   try {
     const today = new Date().toISOString().slice(0,10)
@@ -53,13 +60,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         )
     `).bind(today, today).first<{n:number}>()
     const inspDoneAuto = await env.DB.prepare(`
-      SELECT COUNT(*) as n FROM check_points
-      WHERE is_active=1 AND default_result IS NOT NULL
-        AND category IN (
+      SELECT COUNT(*) as n FROM check_points cp
+      WHERE cp.is_active=1 AND cp.default_result IS NOT NULL
+        AND cp.category IN (
           SELECT inspection_category FROM schedule_items
           WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
         )
-    `).bind(today).first<{n:number}>()
+        AND cp.id NOT IN (SELECT checkpoint_id FROM check_records WHERE date(checked_at)=?)
+    `).bind(today, today).first<{n:number}>()
     const inspDone = { n: (inspDoneRecords?.n ?? 0) + (inspDoneAuto?.n ?? 0) }
 
     const unresolved = await env.DB.prepare(`
@@ -95,22 +103,24 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     const seen = new Set<string>()
 
     for (const sched of (monthScheds.results ?? [])) {
-      if (seen.has(sched.inspection_category)) continue
-      seen.add(sched.inspection_category)
+      // 방화문→특별피난계단, 컴프레셔→DIV 매핑
+      const cpCategory = CATEGORY_ALIAS[sched.inspection_category] ?? sched.inspection_category
+      if (seen.has(cpCategory)) continue
+      seen.add(cpCategory)
 
       const t = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
-      ).bind(sched.inspection_category).first<{n:number}>()
+      ).bind(cpCategory).first<{n:number}>()
       const d = await env.DB.prepare(`
         SELECT COUNT(DISTINCT cr.checkpoint_id) as n
         FROM check_records cr
         JOIN check_points cp ON cr.checkpoint_id=cp.id
         WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
           AND cr.result IN ('normal','caution')
-      `).bind(sched.inspection_category, monthStart, monthEnd).first<{n:number}>()
+      `).bind(cpCategory, monthStart, monthEnd).first<{n:number}>()
       const autoN = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1 AND default_result IS NOT NULL`
-      ).bind(sched.inspection_category).first<{n:number}>()
+        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND cp.default_result IS NOT NULL AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
+      ).bind(cpCategory, cpCategory, monthStart, monthEnd).first<{n:number}>()
 
       const total = t?.n ?? 0
       const done = (d?.n ?? 0) + (autoN?.n ?? 0)
