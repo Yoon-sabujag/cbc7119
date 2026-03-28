@@ -2189,7 +2189,7 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isSohwaGroup, floorCPs])
   // 미완료 항목만 피커에 표시
-  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id]), [pickerSourceCPs, records])
+  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id] && !cp.defaultResult), [pickerSourceCPs, records])
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
