@@ -107,7 +107,7 @@ function patchCellStyled(
 export async function generateDivExcel(year: number, divRaw: any[], timing: '월초' | '월말' = '월초') {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
-  const res = await fetch('/templates/점검표_양식.xlsx')
+  const res = await fetch('/templates/check_template.xlsx')
   const ab  = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
@@ -270,7 +270,7 @@ const CHECK_MARK_ROWS: Record<string, number[]> = {
 export async function generateCheckExcel(year: number, checkRaw: any[], category: string) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
-  const res   = await fetch('/templates/점검표_양식.xlsx')
+  const res   = await fetch('/templates/check_template.xlsx')
   const ab    = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
@@ -409,7 +409,7 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
 export async function generateShiftExcel(year: number, month: number) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
-  const res = await fetch('/templates/근무표_template.xlsx')
+  const res = await fetch('/templates/shift_template.xlsx')
   const ab  = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 

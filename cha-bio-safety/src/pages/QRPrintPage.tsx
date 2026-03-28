@@ -155,37 +155,36 @@ async function generatePdf(
     let imgData: string
 
     if (type === 'inspect') {
-      // 점검용: 3cm×3cm+라벨 (QR 24mm)
-      const qrPx = 200 // 렌더링 QR 크기(scale 전)
+      // 점검용: 30×38mm — QR을 카드 폭의 65%로, 나머지 공간에 번호/위치
       imgData = await renderCardCanvas({
         width: cardW, height: cardH,
         qrValue: cp.id,
-        qrSize: qrPx,
+        qrSize: Math.floor(cardW * 0.65),
         bottomLines: [
           cp.locationNo ?? cp.id,
           cp.location,
           cp.floor,
-          ...(cp.description && cp.description !== '접근불가' ? [cp.description] : []),
         ],
-        bottomFontSize: 11,
+        bottomFontSize: 8,
       })
     } else {
-      // 점검확인용: 7cm×9cm (QR 56mm 상당)
+      // 점검확인용: 70×90mm 가로출력 — 상단 문장 쉼표 줄바꿈, QR 65%
       imgData = await renderCardCanvas({
         width: cardW, height: cardH,
         qrValue: `${baseUrl}/e/${cp.id}`,
-        qrSize: 500,
+        qrSize: Math.floor(cardW * 0.65),
         topLines: [
-          '본 소화기는 QR코드로 관리되며,',
-          '아래 QR코드로 점검 내역 확인 가능합니다.',
+          '본 소화기는 QR코드로 관리되며',
+          '아래 QR코드로 점검 내역',
+          '확인 가능합니다.',
         ],
-        topFontSize: 11,
+        topFontSize: 10,
         bottomLines: [
           cp.locationNo ?? cp.id,
           cp.location,
           cp.floor,
         ],
-        bottomFontSize: 12,
+        bottomFontSize: 11,
       })
     }
 
