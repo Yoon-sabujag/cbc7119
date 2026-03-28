@@ -12,7 +12,7 @@
 
 - [ ] **Phase 1: Deployment & Infrastructure** - 504 오류 해결 및 프로덕션 배포 파이프라인 확립
 - [ ] **Phase 2: Stabilization & Code Quality** - 기존 완료 기능 전수 테스트 및 버그 수정
-- [ ] **Phase 3: Excel Reports — Annual Matrix Types** - 5종 연간 매트릭스 점검일지 엑셀 출력 구현
+- [x] **Phase 3: Excel Reports — Annual Matrix Types** - 5종 연간 매트릭스 점검일지 엑셀 출력 구현 (completed 2026-03-28)
 - [ ] **Phase 4: Completion Tracking & Daily Reporting** - 일일업무일지 출력 및 일정↔기록 연결 로직
 
 ---
@@ -66,7 +66,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Template setup + DB migration + generator functions (generateMatrixExcel, generatePumpExcel)
-- [ ] 03-02-PLAN.md — ReportsPage UI integration + human verification of Excel output
+- [x] 03-02-PLAN.md — ReportsPage UI integration + human verification of Excel output
 
 ### Phase 4: Completion Tracking & Daily Reporting
 **Goal**: 일일업무일지가 자동으로 조합되고 대시보드의 일정 완료 상태가 점검 기록과 연동된다
@@ -87,7 +87,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 3/5 | In Progress|  |
-| 3. Excel Reports — Annual Matrix Types | 1/2 | In Progress|  |
+| 3. Excel Reports — Annual Matrix Types | 2/2 | Complete   | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
 
 ---
