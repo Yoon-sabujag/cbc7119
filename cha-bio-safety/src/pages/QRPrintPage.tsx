@@ -17,7 +17,6 @@ interface CheckPoint {
 const CATEGORIES = [
   { value: '소화기',      label: '소화기',      hasPublic: true },
   { value: '소화전',      label: '소화전',      hasPublic: false },
-  { value: '비상콘센트',  label: '비상콘센트',   hasPublic: false },
   { value: 'DIV',         label: 'DIV',         hasPublic: false },
   { value: '청정소화약제', label: '청정소화약제', hasPublic: false },
   { value: '완강기',      label: '완강기',      hasPublic: false },
