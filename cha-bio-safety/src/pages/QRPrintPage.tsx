@@ -76,12 +76,14 @@ async function renderCardCanvas(config: {
     y += 4 * S
   }
 
-  // QR 코드
+  // QR 코드 — 카드 폭의 80%를 넘지 않도록 제한
+  const maxQrPx = Math.floor(W * 0.8)
+  const qrDrawSize = Math.min(qrSize * S, maxQrPx)
   const qrCanvas = document.createElement('canvas')
-  await QRCode.toCanvas(qrCanvas, qrValue, { width: qrSize * S, margin: 1 })
-  const qrX = (W - qrSize * S) / 2
+  await QRCode.toCanvas(qrCanvas, qrValue, { width: qrDrawSize, margin: 1 })
+  const qrX = (W - qrDrawSize) / 2
   ctx.drawImage(qrCanvas, qrX, y)
-  y += qrSize * S + 4 * S
+  y += qrDrawSize + 4 * S
 
   // 하단 라벨
   ctx.fillStyle = '#333333'
@@ -108,8 +110,9 @@ async function generatePdf(
 ) {
   if (points.length === 0) { toast.error('체크포인트가 없습니다'); return }
 
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
-  const PAGE_W = 210, PAGE_H = 297
+  const isLandscape = type === 'public'
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: isLandscape ? 'landscape' : 'portrait' })
+  const PAGE_W = isLandscape ? 297 : 210, PAGE_H = isLandscape ? 210 : 297
   const MARGIN = 10
   const usableW = PAGE_W - MARGIN * 2
   const usableH = PAGE_H - MARGIN * 2

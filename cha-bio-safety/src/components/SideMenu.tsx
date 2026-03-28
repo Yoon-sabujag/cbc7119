@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { getMonthlySchedule } from '../utils/shiftCalc'
 
 const NAV_H = 'calc(54px + var(--sab, 0px))'
 
@@ -31,6 +33,21 @@ const MENU = [
 export function SideMenu({ open, onClose }: Props) {
   const navigate  = useNavigate()
   const { staff, logout } = useAuthStore()
+
+  const RAW_TO_LABEL: Record<string, string> = { '당':'당직', '비':'비번', '주':'주간', '휴':'연차' }
+  const [todayShiftLabel, setTodayShiftLabel] = useState('평일주간고정')
+  useEffect(() => {
+    if (!staff) return
+    const now = new Date()
+    const ref = (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 30))
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1) : now
+    const { staffRows } = getMonthlySchedule(ref.getFullYear(), ref.getMonth() + 1)
+    const row = staffRows.find(r => r.id === staff.id)
+    if (row) {
+      const idx = ref.getDate() - 1
+      setTodayShiftLabel(RAW_TO_LABEL[row.shifts[idx]] ?? '주간')
+    }
+  }, [staff])
 
   const go = (path: string) => { navigate(path); onClose() }
 
@@ -105,7 +122,7 @@ export function SideMenu({ open, onClose }: Props) {
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:11.5, fontWeight:700 }}>{staff?.name}</div>
-              <div style={{ fontSize:9.5, color:'var(--t3)' }}>{staff?.title} · {staff?.shiftType ? { day:'주간', night:'당직', off:'비번', leave:'연차' }[staff.shiftType] : '평일주간고정'}</div>
+              <div style={{ fontSize:9.5, color:'var(--t3)' }}>{staff?.title} · {todayShiftLabel}</div>
             </div>
             <button
               onClick={() => { logout(); go('/login') }}
