@@ -405,6 +405,117 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+// ── 연간 매트릭스 점검일지 (sheets 6-9: 피난방화/방화셔터/제연/자탐) ──────
+// MATRIX_DATE_COLS: 각 월에 해당하는 열 문자 (12개월 × 1열)
+const MATRIX_DATE_COLS = ['H','J','M','P','S','U','W','Z','AC','AE','AG','AI']
+
+/**
+ * 연간 매트릭스 점검일지 엑셀 생성 (sheets 6-9)
+ * - sheetIndex 6: 피난방화시설, 7: 방화셔터, 8: 제연설비, 9: 자동화재탐지설비
+ * - itemCount 9 (sheets 6/7/8) or 10 (sheet 9)
+ */
+export async function generateMatrixExcel(
+  year: number,
+  data: any[],
+  sheetIndex: number,
+  itemCount: number,
+  reportName: string
+) {
+  const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
+
+  const res = await fetch('/templates/annual_matrix_template.xlsx')
+  const ab  = await res.arrayBuffer()
+  const files = unzipSync(new Uint8Array(ab))
+
+  let xml = strFromU8(files[`xl/worksheets/sheet${sheetIndex}.xml`])
+  // printerSettings 참조 제거 (파일 없으므로 r:id 속성 제거)
+  xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
+
+  function esc(s: string) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  function patchCell(x: string, addr: string, value: string | number | null): string {
+    const tag   = `<c r="${addr}"`
+    const start = x.indexOf(tag)
+    if (start === -1) return x
+    const selfEnd  = x.indexOf('/>', start)
+    const closeEnd = x.indexOf('</c>', start)
+    let end: number
+    if (selfEnd !== -1 && (closeEnd === -1 || selfEnd < closeEnd)) {
+      end = selfEnd + 2
+    } else {
+      end = closeEnd + 4
+    }
+    const orig  = x.slice(start, end)
+    const sAttr = (orig.match(/\ss="([^"]*)"/) ?? [])[1]
+    const s     = sAttr !== undefined ? ` s="${sAttr}"` : ''
+    const newCell = value === null
+      ? `<c r="${addr}"${s}/>`
+      : typeof value === 'number'
+        ? `<c r="${addr}"${s}><v>${value}</v></c>`
+        : `<c r="${addr}"${s} t="str"><v>${esc(value)}</v></c>`
+    return x.slice(0, start) + newCell + x.slice(end)
+  }
+
+  // 연도 패치
+  xml = patchCell(xml, 'E3', String(year))
+
+  // 체크 행 목록 (9 or 10 items)
+  const checkRows = [11, 13, 15, 17, 19, 21, 23, 25, 27]
+  if (itemCount >= 10) checkRows.push(29)
+
+  // 월별 집계: data 배열 전체에서 해당 월 점검 여부 판단
+  for (let m = 1; m <= 12; m++) {
+    const col = MATRIX_DATE_COLS[m - 1]
+    // 해당 월에 점검 기록이 있는 첫 번째 체크포인트 찾기
+    const entry = data.find(cp => cp.months?.[m])
+    const monthChecked = !!entry
+    const day = entry?.months?.[m]?.day ? Number(entry.months[m].day) : null
+    const inspector = entry?.months?.[m]?.inspector ?? null
+
+    // 날짜 (row 9)
+    xml = patchCell(xml, `${col}9`, day)
+    // 체크 항목 (each row)
+    for (const row of checkRows) {
+      xml = patchCell(xml, `${col}${row}`, monthChecked ? '○' : null)
+    }
+    // 점검자 (row 31)
+    xml = patchCell(xml, `${col}31`, inspector)
+  }
+
+  // 단일 시트 출력 빌드
+  const newFiles: Record<string, Uint8Array> = {}
+  for (const key of ['xl/sharedStrings.xml', 'xl/theme/theme1.xml', 'xl/styles.xml', 'docProps/core.xml', 'docProps/app.xml']) {
+    if (files[key]) newFiles[key] = files[key] as Uint8Array
+  }
+  newFiles['xl/worksheets/sheet1.xml'] = strToU8(xml)
+
+  newFiles['xl/workbook.xml'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="29040" windowHeight="15840"/></bookViews><sheets><sheet name="${esc(reportName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`
+  )
+  newFiles['xl/_rels/workbook.xml.rels'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>`
+  )
+  newFiles['[Content_Types].xml'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`
+  )
+  newFiles['_rels/.rels'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`
+  )
+
+  const zipped = zipSync(newFiles, { level: 6 })
+  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url    = URL.createObjectURL(blob)
+  const a      = document.createElement('a')
+  a.href       = url
+  a.download   = `${year}년도_${reportName}_점검일지.xlsx`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 // ── 근무표 (fflate zip 직접 패치 → 원본 서식/이미지 완전 보존) ─
 export async function generateShiftExcel(year: number, month: number) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
