@@ -108,19 +108,21 @@ const INSP_DEFAULTS: Record<string, { title: string; memo: string }> = {
   '소방펌프':     { title:'소방펌프 점검',               memo:'   - 밸브 개폐상태 점검 및 템퍼스위치 점검\n   - 압력셋팅 확인 및 MCC반 조작스위치 상태 점검\n   - 펌프 수동테스트\n   - 밸브 동작시 화재수신반 시그널 확인상태 점검' },
 }
 
-const ELEV_SUBCATS = ['정기 점검', '법정 검사'] as const
-const FIRE_SUBCATS = ['상반기 종합정밀점검', '하반기 작동기능점검', '소방서 불시 점검'] as const
+const ELEV_SUBCATS = ['정기 점검', '수리', '법정 검사'] as const
+const FIRE_SUBCATS = ['상반기 종합정밀점검', '하반기 작동기능점검', '수리', '소방서 불시 점검'] as const
 
 type ElevSubCat = typeof ELEV_SUBCATS[number]
 type FireSubCat = typeof FIRE_SUBCATS[number]
 
 const ELEV_AGENCY: Record<ElevSubCat, string> = {
   '정기 점검': 'TKE',
+  '수리': 'TKE',
   '법정 검사': '한국승강기안전공단',
 }
 const FIRE_AGENCY: Record<FireSubCat, string> = {
   '상반기 종합정밀점검': '동양소방',
   '하반기 작동기능점검': '동양소방',
+  '수리':             '동양소방',
   '소방서 불시 점검':   '성남소방서',
 }
 
@@ -543,7 +545,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
             <>
               <div>
                 <label style={lbl}>제목</label>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
                   {ELEV_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleElevSub(v)}
                       style={{ padding:'9px 0', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer',
@@ -573,7 +575,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
             <>
               <div>
                 <label style={lbl}>제목</label>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
                   {FIRE_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleFireSub(v)}
                       style={{ padding:'8px 4px', borderRadius:9, fontSize:10, fontWeight:700, cursor:'pointer', lineHeight:1.4,

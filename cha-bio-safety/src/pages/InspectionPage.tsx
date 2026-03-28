@@ -813,8 +813,8 @@ function DivTrendSubview({ point, records, onClose }: {
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {([
                 { key:'pressure_1'   as const, label:'1차압',  color:'#3b82f6', dashed:false },
-                { key:'pressure_2'   as const, label:'2차압',  color:'#71717a', dashed:false },
-                { key:'pressure_set' as const, label:'세팅압', color:'#f97316', dashed:true  },
+                { key:'pressure_2'   as const, label:'2차압',  color:'#f97316', dashed:false },
+                { key:'pressure_set' as const, label:'세팅압', color:'#22c55e', dashed:true  },
               ] as const).map(({ key, label, color, dashed }) => {
                 const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
                 if (vals.length === 0) return null
@@ -877,7 +877,7 @@ function DivTrendSubview({ point, records, onClose }: {
                 <div key={`${r.year}-${r.month}`} style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', padding:'7px 10px', borderTop:'1px solid var(--bd)' }}>
                   <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>{r.year}-{String(r.month).padStart(2,'0')}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize:12, fontWeight:700, color:['#3b82f6','#71717a','#f97316'][i], textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>
+                    <div key={i} style={{ fontSize:12, fontWeight:700, color:['#3b82f6','#f97316','#22c55e'][i], textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
@@ -1212,7 +1212,7 @@ function DivModal({ onClose, onSaveRecord }: {
               const prevMonthLabel = prev
                 ? `${prev.month}월${prev.day ? (prev.day <= 15 ? '초' : '말') : ''}`
                 : null
-              const P_COLORS = ['#38bdf8', '#e2e8f0', '#fdba74']
+              const P_COLORS = ['#3b82f6', '#f97316', '#22c55e']
               const rows = [
                 { label:'1차압', dIdx:0, prevVal: prev?.pressure_1   ?? null, diff:diffTag(parsedP1, prev?.pressure_1   ?? null, true),  color: P_COLORS[0] },
                 { label:'2차압', dIdx:2, prevVal: prev?.pressure_2   ?? null, diff:diffTag(parsedP2, prev?.pressure_2   ?? null, false), color: P_COLORS[1] },
@@ -1380,10 +1380,13 @@ function PowerPanelModal({ group, allCheckpoints, records, onClose, onSave }: {
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
-  const zoneCPs = useMemo(() =>
-    zone ? allCheckpoints.filter(cp => cp.category === '소방용전원공급반' && cp.locationNo?.startsWith(PP_ZONE_PREFIX[zone])) : [],
-    [zone, allCheckpoints]
-  )
+  const zoneCPs = useMemo(() => {
+    if (!zone) return []
+    const FLOOR_ORDER: string[] = ['8F','7F','6F','5F','3F','2F','1F','B1','B2','B3','B4','B5']
+    return allCheckpoints
+      .filter(cp => cp.category === '소방용전원공급반' && cp.locationNo?.startsWith(PP_ZONE_PREFIX[zone]))
+      .sort((a, b) => FLOOR_ORDER.indexOf(a.floor) - FLOOR_ORDER.indexOf(b.floor))
+  }, [zone, allCheckpoints])
   const selectedCP = selectedId ? (allCheckpoints.find(cp => cp.id === selectedId) ?? null) : null
   const isDone     = selectedCP ? !!records[selectedCP.id] : false
 
@@ -2297,7 +2300,7 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
         </div>
       )}
 
-      {/* ── 피커 — 개소가 2개 이상일 때만 표시 ── */}
+      {/* ── 피커 / 좌우 버튼 — 개소가 2개 이상일 때만 표시 ── */}
       {selectedFloor && floorCPs.length > 1 && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
           <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>
@@ -2311,6 +2314,14 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave }: {
           {pendingCPs.length === 0 ? (
             <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
               ✅ 이 층 점검 완료
+            </div>
+          ) : pendingCPs.length <= 10 ? (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <button onClick={() => { if (pickerIdx > 0) { setPickerIdx(pickerIdx - 1) } }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:18, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', opacity: pickerIdx > 0 ? 1 : 0.3, flexShrink:0 }}>‹</button>
+              <div style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:700, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {selectedCP?.location ?? ''} <span style={{ fontSize:11, fontWeight:400, color:'var(--t3)' }}>({pickerIdx + 1}/{pendingCPs.length})</span>
+              </div>
+              <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) { setPickerIdx(pickerIdx + 1) } }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:18, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3, flexShrink:0 }}>›</button>
             </div>
           ) : (
             <WheelPicker items={pendingCPs} onSelect={handlePickerSelect} records={records} />

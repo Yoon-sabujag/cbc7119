@@ -304,8 +304,8 @@ export default function DivPage() {
                           <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
                             {[
                               { label: '1차', val: last.v1, col: '#3b82f6', s: s1 },
-                              { label: '2차', val: last.v2, col: '#71717a',  s: s2 },
-                              { label: '세팅', val: last.vc, col: '#f97316', s: sc },
+                              { label: '2차', val: last.v2, col: '#f97316',  s: s2 },
+                              { label: '세팅', val: last.vc, col: '#22c55e', s: sc },
                             ].map(p => (
                               <div key={p.label} style={{ textAlign: 'center', flex: 1 }}>
                                 <div style={{
@@ -431,8 +431,8 @@ export default function DivPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {([
                 { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
-                { key: 'pressure_2' as const,   label: '2차압',  color: '#71717a', dashed: false },
-                { key: 'pressure_set' as const, label: '세팅압', color: '#f97316', dashed: true  },
+                { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
+                { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
               ] as const).map(({ key, label, color, dashed }) => {
                 const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
                 if (vals.length === 0) return null
@@ -502,7 +502,7 @@ export default function DivPage() {
                 <div key={`${r.year}-${r.month}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
                   <div style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{r.year}-{String(r.month).padStart(2,'0')}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#71717a','#f97316'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}

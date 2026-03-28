@@ -57,6 +57,10 @@ export default function WorkShiftPage() {
     try {
       const { generateShiftExcel } = await import('../utils/generateExcel')
       await generateShiftExcel(year, month)
+    } catch (e: any) {
+      console.error('엑셀 생성 오류:', e)
+      const { default: toast } = await import('react-hot-toast')
+      toast.error('엑셀 생성 실패: ' + (e.message ?? '알 수 없는 오류'))
     } finally {
       setDlLoading(false)
     }
