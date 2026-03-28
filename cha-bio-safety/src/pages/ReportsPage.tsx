@@ -19,11 +19,11 @@ const REPORT_CARDS: { type: ReportType; title: string; sub: string }[] = [
   { type: '소방펌프',    title: '월간 소방펌프 점검일지',     sub: '소방펌프 · 월간' },
 ]
 
-const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; itemCount: number; name: string }> = {
-  '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설' },
+const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; itemCount: number; name: string; inspectorRow?: number }> = {
+  '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설', inspectorRow: 29 },
   '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 9, name: '방화셔터' },
   '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 9, name: '제연설비' },
-  '자탐':     { category: '자동화재탐지설비', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비' },
+  '자탐':     { category: '자동화재탐지설비', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비', inspectorRow: 31 },
 }
 
 const CURRENT_YEAR = new Date().getFullYear()
@@ -46,7 +46,7 @@ export default function ReportsPage() {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.category)}`
         )
-        await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name)
+        await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow)
       } else if (type === '소방펌프') {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
