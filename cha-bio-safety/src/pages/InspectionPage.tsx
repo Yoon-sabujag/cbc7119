@@ -899,12 +899,38 @@ function DivModal({ onClose, onSaveRecord, initialFloor }: {
   const staff = useAuthStore(s => s.staff)
 
   // ── 단계 선택 ──
-  const initZone: DivZone|null = initialFloor?.startsWith('B') ? 'underground' : initialFloor ? 'research' : null
+  // initialFloor 예: '8F','B5' → DIV 측정점 floor 번호로 변환
+  const initDivFloor = (() => {
+    if (!initialFloor) return null
+    const f = initialFloor.replace('F','')
+    if (f.startsWith('B')) return -parseInt(f.slice(1))
+    if (f === '8-1') return 9
+    return parseInt(f) || null
+  })()
+  const initIsUnder = initDivFloor !== null && initDivFloor < 0
+  const initZone: DivZone|null = initIsUnder ? 'underground' : initDivFloor !== null ? 'research' : null
+  // 지상: 해당 층의 첫 측정점 라인+인덱스 찾기
+  const initLine = (() => {
+    if (!initDivFloor || initIsUnder) return null
+    const pt = DIV_PTS.find(p => p.floor === initDivFloor)
+    return pt?.pos ?? 1
+  })()
+  const initLineIdx = (() => {
+    if (!initLine || !initDivFloor) return 0
+    const seq = DIV_LINE_SEQ[initLine]
+    return seq ? Math.max(0, seq.indexOf(initDivFloor)) : 0
+  })()
+  // 지하: 해당 층의 첫 측정점 인덱스 찾기
+  const initUnderIdx = (() => {
+    if (!initDivFloor || !initIsUnder) return 0
+    const ptId = DIV_PTS.find(p => p.floor === initDivFloor)?.id
+    return ptId ? Math.max(0, DIV_UNDER_SEQ.indexOf(ptId)) : 0
+  })()
   const [zone,         setZone]         = useState<DivZone|null>(initZone)
-  const [line,         setLine]         = useState<number|null>(initZone === 'research' ? 1 : null)
-  const [lineIdx,      setLineIdx]      = useState(0)
+  const [line,         setLine]         = useState<number|null>(initLine)
+  const [lineIdx,      setLineIdx]      = useState(initLineIdx)
   const [underPending, setUnderPending] = useState<string[]>([...DIV_UNDER_SEQ])
-  const [underPickIdx, setUnderPickIdx] = useState(0)
+  const [underPickIdx, setUnderPickIdx] = useState(initUnderIdx)
 
   // ── 압력 입력 (6 digit boxes) ──
   const [digits, setDigits] = useState<string[]>(['','','','','',''])
@@ -1739,13 +1765,17 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialC
   // QR에서 넘어온 경우 초기 항목 자동 선택
   const initCp = initialCpId ? allCheckpoints.find(cp => cp.id === initialCpId) : null
   const initItem: '전실제연댐퍼'|'연결송수관'|null = initCp?.category === '전실제연댐퍼' ? '전실제연댐퍼' : initCp?.category === '연결송수관' ? '연결송수관' : null
+  // 전실제연댐퍼 QR: locationNo에서 계단전실 번호 추출 (예: "B5F-2" → "2")
+  const initStair = initCp?.category === '전실제연댐퍼' && initCp.locationNo ? initCp.locationNo.split('-').pop() ?? null : null
+  // 연결송수관 QR: location으로 subItem 설정
+  const initSubItem = initCp?.category === '연결송수관' ? initCp.location : null
   const [item,        setItem]        = useState<'전실제연댐퍼'|'연결송수관'|null>(initItem)
   // 연결송수관 states
-  const [subItem,     setSubItem]     = useState<string|null>(null)
+  const [subItem,     setSubItem]     = useState<string|null>(initSubItem)
   const [result,      setResult]      = useState<CheckResult>('normal')
   // 전실제연댐퍼 states — StairwellModal 패턴
-  const [selectedStair, setSelectedStair] = useState<string|null>(null)
-  const [selectedEquip, setSelectedEquip] = useState<string|null>(null)
+  const [selectedStair, setSelectedStair] = useState<string|null>(initStair)
+  const [selectedEquip, setSelectedEquip] = useState<string|null>(!initStair && initCp?.category === '전실제연댐퍼' && !initCp.locationNo ? initCp.id : null)
   const [floorResults,  setFloorResults]  = useState<Record<string, CheckResult>>({})
 
   const [memo,        setMemo]        = useState('')
