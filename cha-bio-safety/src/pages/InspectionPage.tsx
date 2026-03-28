@@ -880,41 +880,27 @@ function DivTrendSubview({ point, records, onClose }: {
   )
 }
 
-function DivModal({ onClose, onSaveRecord, initialFloor }: {
+function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   onClose: () => void
   onSaveRecord: (cpId: string, result: CheckResult, memo: string) => Promise<void>
-  initialFloor?: string
+  initialLocationNo?: string
 }) {
   const staff = useAuthStore(s => s.staff)
 
   // ── 단계 선택 ──
-  // initialFloor 예: '8F','B5' → DIV 측정점 floor 번호로 변환
-  const initDivFloor = (() => {
-    if (!initialFloor) return null
-    const f = initialFloor.replace('F','')
-    if (f.startsWith('B')) return -parseInt(f.slice(1))
-    if (f === '8-1') return 9
-    return parseInt(f) || null
-  })()
-  const initIsUnder = initDivFloor !== null && initDivFloor < 0
-  const initZone: DivZone|null = initIsUnder ? 'underground' : initDivFloor !== null ? 'research' : null
-  // 지상: 해당 층의 첫 측정점 라인+인덱스 찾기
-  const initLine = (() => {
-    if (!initDivFloor || initIsUnder) return null
-    const pt = DIV_PTS.find(p => p.floor === initDivFloor)
-    return pt?.pos ?? 1
-  })()
+  // initialLocationNo = DIV_PTS의 id (예: '8-1', '-5-3')
+  const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
+  const initIsUnder = initPt ? initPt.floor < 0 : false
+  const initZone: DivZone|null = initPt ? (initIsUnder ? 'underground' : 'research') : null
+  // 지상: 구역→라인(pos)→층(lineIdx) 순서
+  const initLine = initPt && !initIsUnder ? initPt.pos : null
   const initLineIdx = (() => {
-    if (!initLine || !initDivFloor) return 0
+    if (!initLine || !initPt) return 0
     const seq = DIV_LINE_SEQ[initLine]
-    return seq ? Math.max(0, seq.indexOf(initDivFloor)) : 0
+    return seq ? Math.max(0, seq.indexOf(initPt.floor)) : 0
   })()
-  // 지하: 해당 층의 첫 측정점 인덱스 찾기
-  const initUnderIdx = (() => {
-    if (!initDivFloor || !initIsUnder) return 0
-    const ptId = DIV_PTS.find(p => p.floor === initDivFloor)?.id
-    return ptId ? Math.max(0, DIV_UNDER_SEQ.indexOf(ptId)) : 0
-  })()
+  // 지하: 해당 측정점 인덱스
+  const initUnderIdx = initPt && initIsUnder ? Math.max(0, DIV_UNDER_SEQ.indexOf(initPt.id)) : 0
   const [zone,         setZone]         = useState<DivZone|null>(initZone)
   const [line,         setLine]         = useState<number|null>(initLine)
   const [lineIdx,      setLineIdx]      = useState(initLineIdx)
@@ -3141,7 +3127,7 @@ export default function InspectionPage() {
       {/* 전체화면 점검 모달 */}
       {selectedGroup && (
         selectedGroup.categories.includes('DIV') ? (
-          <DivModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} initialFloor={qrCheckpoint?.category === 'DIV' ? qrCheckpoint.floor : undefined} />
+          <DivModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} initialLocationNo={qrCheckpoint?.category === 'DIV' ? qrCheckpoint.locationNo : undefined} />
         ) : selectedGroup.categories.includes('배연창') ? (
           <BaeyeonModal
             group={selectedGroup}
