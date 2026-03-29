@@ -32,7 +32,6 @@ const MIN_YEAR = 2023
 export default function ReportsPage() {
   const navigate  = useNavigate()
   const [year, setYear] = useState(CURRENT_YEAR)
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [loading, setLoading] = useState<ReportType | null>(null)
 
   const handleDownload = async (type: ReportType) => {
@@ -62,7 +61,7 @@ export default function ReportsPage() {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
         )
-        await generatePumpExcel(year, month, data)
+        await generatePumpExcel(year, data)
       } else {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent(type)}`
@@ -106,26 +105,9 @@ export default function ReportsPage() {
             <div style={{ marginBottom: 10 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{card.title}</div>
               <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
-                {card.sub} · {year}년도{card.type === '소방펌프' ? ` ${month}월` : ''}
+                {card.sub} · {year}년도
               </div>
             </div>
-
-            {/* 소방펌프 전용 월 선택기 */}
-            {card.type === '소방펌프' && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, marginBottom: 10 }}>
-                <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
-                  {month > 1 && (
-                    <button onClick={() => setMonth(m => m - 1)} style={navBtn}>‹</button>
-                  )}
-                </div>
-                <span style={{ width: 44, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{month}월</span>
-                <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
-                  {month < 12 && (
-                    <button onClick={() => setMonth(m => m + 1)} style={navBtn}>›</button>
-                  )}
-                </div>
-              </div>
-            )}
 
             <button
               onClick={() => handleDownload(card.type)}
