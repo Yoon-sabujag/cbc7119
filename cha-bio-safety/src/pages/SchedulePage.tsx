@@ -335,7 +335,8 @@ export default function SchedulePage() {
                         )}
                         <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
                       </div>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', marginBottom: item.time?4:0 }}>{item.title}</div>
+                      <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time)?4:0 }}>{item.title}</div>
+                      {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time?4:0 }}>{item.memo}</div>}
                       {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
                     </div>
                     <div style={{ display:'flex', gap:4, flexShrink:0 }}>

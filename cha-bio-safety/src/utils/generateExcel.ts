@@ -545,18 +545,19 @@ export async function generatePumpExcel(
     if (files[key]) newFiles[key] = files[key] as Uint8Array
   }
 
-  // 12개월 시트 생성
+  // 점검 기록이 있는 월만 시트 생성
   const sheets: { name: string; fn: string }[] = []
 
   for (let m = 1; m <= 12; m++) {
-    const fn = `pm${m}.xml`
+    const hasRecord = data.some(cp => cp.months?.[m])
+    if (!hasRecord) continue
+
+    const fn = `pm${sheets.length + 1}.xml`
     let xml = templateXml
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
     xml = patchCell(xml, 'D3', String(year))
     xml = patchCell(xml, 'G3', String(m))
-
-    const hasRecord = data.some(cp => cp.months?.[m])
     for (const row of PUMP_RESULT_ROWS) {
       xml = patchCell(xml, `I${row}`,  hasRecord ? '○' : null)
       xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
