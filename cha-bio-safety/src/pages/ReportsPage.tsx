@@ -46,6 +46,17 @@ export default function ReportsPage() {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.category)}`
         )
+        // 자탐: 외부 점검이므로 보조자 이름 랜덤 배정
+        if (type === '자탐' && data.length > 0) {
+          const ASSISTANTS = ['석현민','김병조','박보융']
+          for (const cp of data) {
+            for (const m of Object.keys(cp.months ?? {})) {
+              if (!cp.months[m].inspector) {
+                cp.months[m].inspector = ASSISTANTS[Math.floor(Math.random() * ASSISTANTS.length)]
+              }
+            }
+          }
+        }
         await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow)
       } else if (type === '소방펌프') {
         const data = await api.get<any[]>(
