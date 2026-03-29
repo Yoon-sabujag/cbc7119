@@ -163,9 +163,9 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
     // printerSettings 참조 제거 (파일 없으므로)
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
-    // 헤더: 연도·DIV 호기
+    // 헤더: 연도·DIV 호기 (작성법 1.2: "#"&층&"-"&라인번호)
     xml = patchCell(xml, 'E2', String(year))
-    xml = patchCell(xml, 'N2', locNo)
+    xml = patchCell(xml, 'N2', `#${locNo}`)
 
     // 압력값 소수점 1자리 포맷
     function fmt(v: any) { return v != null ? Number(v).toFixed(1) : null }
@@ -202,7 +202,7 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
     }
 
     newFiles[`xl/worksheets/${fn}`] = strToU8(xml)
-    sheets.push({ name: locName.slice(0, 31), fn })
+    sheets.push({ name: locName.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31), fn })
   })
 
   // workbook.xml
@@ -319,8 +319,15 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
 
   checkRaw.forEach((loc: any, idx: number) => {
     const fn        = `ck${idx + 1}.xml`
-    const locId     = isGas ? (loc.location ?? '') : (loc.location_no ?? loc.location ?? '')
-    const sheetName = (loc.location ?? `개소${idx + 1}`).slice(0, 31)
+    // 개소번호/개소명 형식 (작성법 준수)
+    // 청정소화약제: "층번호F 개소명" (예: 7F 가스소화약제실)
+    // 소화전/비상콘센트: location_no 그대로 (예: B5F-1)
+    const locId = isGas
+      ? `${(loc.location_no ?? '').replace(/-\d+$/, '')} ${loc.location ?? ''}`
+      : (loc.location_no ?? loc.location ?? '')
+    // 시트명: Excel 금지문자 제거
+    const rawName = isGas ? locId : (loc.location ?? `개소${idx + 1}`)
+    const sheetName = rawName.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31)
 
     let xml = templateXml
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
