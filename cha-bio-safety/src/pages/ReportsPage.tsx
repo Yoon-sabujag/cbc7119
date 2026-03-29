@@ -23,7 +23,7 @@ const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; item
   '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설', inspectorRow: 29 },
   '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 9, name: '방화셔터', inspectorRow: 29 },
   '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 9, name: '제연설비', inspectorRow: 29 },
-  '자탐':     { category: '자동화재탐지설비', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비', inspectorRow: 31 },
+  '자탐':     { category: '소방용전원공급반', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비', inspectorRow: 31 },
 }
 
 const CURRENT_YEAR = new Date().getFullYear()
