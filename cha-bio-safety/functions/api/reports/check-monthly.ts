@@ -1,9 +1,10 @@
 import type { Env } from '../../_middleware'
+import { yearKST } from '../../utils/kst'
 
 // GET /api/reports/check-monthly?year=YYYY&category=소화전
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url      = new URL(request.url)
-  const year     = url.searchParams.get('year') ?? String(new Date().getFullYear())
+  const year     = url.searchParams.get('year') ?? String(yearKST())
   const category = url.searchParams.get('category') ?? ''
 
   const rows = await env.DB.prepare(`

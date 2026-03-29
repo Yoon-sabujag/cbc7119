@@ -38,12 +38,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (body.type === 'compressor') {
     await env.DB.prepare(`
       INSERT INTO div_compressor_log (id, div_id, action, action_at, note, staff_name, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
     `).bind(id, body.div_id, body.action ?? '오일보충', body.date, body.note ?? null, body.staff_name ?? null).run()
   } else {
     await env.DB.prepare(`
       INSERT INTO div_drain_log (id, div_id, drained_at, note, staff_name, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
+      VALUES (?, ?, ?, ?, ?, datetime('now','+9 hours'))
     `).bind(id, body.div_id, body.date, body.note ?? null, body.staff_name ?? null).run()
   }
 

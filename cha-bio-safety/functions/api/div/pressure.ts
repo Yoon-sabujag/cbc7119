@@ -51,7 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   await env.DB.prepare(`
     INSERT INTO div_pressures (id, year, month, day, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, result, drain, oil, memo, photo_key, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
     ON CONFLICT(id) DO UPDATE SET
       day          = excluded.day,
       pressure_1   = excluded.pressure_1,

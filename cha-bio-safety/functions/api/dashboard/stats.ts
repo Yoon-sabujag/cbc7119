@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { todayKST } from '../../utils/kst'
 
 function getWeekBounds(today: string) {
   const d   = new Date(today)
@@ -25,7 +26,7 @@ const CATEGORY_ALIAS: Record<string, string> = {
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   try {
-    const today = new Date().toISOString().slice(0,10)
+    const today = todayKST()
     const { start, end } = getWeekBounds(today)
     const todayDow = new Date(today).getDay() // 1=월…5=금
 
@@ -74,7 +75,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       SELECT COUNT(*) as n FROM check_records
       WHERE result IN ('bad','caution')
         AND (status IS NULL OR status = 'open')
-        AND date(checked_at) >= date('now','-30 days')
+        AND date(checked_at) >= date('now','+9 hours','-30 days')
     `).first<{n:number}>()
 
     // ── 승강기 고장/수리중 합산 ──────────────────────────
@@ -86,7 +87,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     // ── 이번 달 점검 진척도 ──────────────────────────
     const monthStart = `${today.slice(0,7)}-01`
     const monthEnd   = (() => {
-      const d = new Date(today); d.setMonth(d.getMonth() + 1, 0)
+      const d = new Date(today + 'T00:00:00+09:00'); d.setMonth(d.getMonth() + 1, 0)
       return d.toISOString().slice(0,10)
     })()
 
