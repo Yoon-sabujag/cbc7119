@@ -21,8 +21,8 @@ const REPORT_CARDS: { type: ReportType; title: string; sub: string }[] = [
 
 const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; itemCount: number; name: string; inspectorRow?: number }> = {
   '피난방화': { category: '특별피난계단', sheetIndex: 6, itemCount: 9, name: '피난방화시설', inspectorRow: 29 },
-  '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 9, name: '방화셔터' },
-  '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 9, name: '제연설비' },
+  '방화셔터': { category: '방화셔터', sheetIndex: 7, itemCount: 9, name: '방화셔터', inspectorRow: 29 },
+  '제연':     { category: '전실제연댐퍼', sheetIndex: 8, itemCount: 9, name: '제연설비', inspectorRow: 29 },
   '자탐':     { category: '자동화재탐지설비', sheetIndex: 9, itemCount: 10, name: '자동화재탐지설비', inspectorRow: 31 },
 }
 
@@ -46,8 +46,8 @@ export default function ReportsPage() {
         const data = await api.get<any[]>(
           `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.category)}`
         )
-        // 자탐: 외부 점검이므로 보조자 이름 랜덤 배정
-        if (type === '자탐' && data.length > 0) {
+        // 점검자 랜덤 배정 (자탐/방화셔터/제연: 우리 단독 점검이 아니거나 랜덤 기입 요청)
+        if (['자탐','방화셔터','제연'].includes(type) && data.length > 0) {
           const ASSISTANTS = ['석현민','김병조','박보융']
           for (const cp of data) {
             for (const m of Object.keys(cp.months ?? {})) {
