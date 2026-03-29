@@ -502,7 +502,6 @@ const PUMP_RESULT_ROWS = [9, 11, 13, 15, 17, 19, 21, 23, 25, 27]
  */
 export async function generatePumpExcel(
   year: number,
-  month: number,
   data: any[]
 ) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
@@ -511,9 +510,7 @@ export async function generatePumpExcel(
   const ab  = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
-  let xml = strFromU8(files['xl/worksheets/sheet10.xml'])
-  // printerSettings 참조 제거
-  xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
+  const templateXml = strFromU8(files['xl/worksheets/sheet10.xml'])
 
   function esc(s: string) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -542,29 +539,63 @@ export async function generatePumpExcel(
     return x.slice(0, start) + newCell + x.slice(end)
   }
 
-  // 헤더: 연도 / 월
-  xml = patchCell(xml, 'D3', String(year))
-  xml = patchCell(xml, 'G3', String(month))
-
-  // 해당 월 점검 기록 존재 여부
-  const hasRecord = data.some(cp => cp.months?.[month])
-
-  // 20개 항목 결과 기입 (좌: items 1-10 col I, 우: items 11-20 col AJ)
-  for (const row of PUMP_RESULT_ROWS) {
-    xml = patchCell(xml, `I${row}`,  hasRecord ? '○' : null)
-    xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
+  // 원본 styles/sharedStrings 그대로 복사
+  const newFiles: Record<string, Uint8Array> = {}
+  for (const key of ['xl/sharedStrings.xml', 'xl/theme/theme1.xml', 'xl/styles.xml', 'docProps/core.xml', 'docProps/app.xml']) {
+    if (files[key]) newFiles[key] = files[key] as Uint8Array
   }
 
+  // 12개월 시트 생성
+  const sheets: { name: string; fn: string }[] = []
 
-  // 원본 템플릿 유��� — 해당 시트��� 패치
-  files['xl/worksheets/sheet10.xml'] = strToU8(xml)
+  for (let m = 1; m <= 12; m++) {
+    const fn = `pm${m}.xml`
+    let xml = templateXml
+    xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
-  const zipped = zipSync(files, { level: 6 })
+    xml = patchCell(xml, 'D3', String(year))
+    xml = patchCell(xml, 'G3', String(m))
+
+    const hasRecord = data.some(cp => cp.months?.[m])
+    for (const row of PUMP_RESULT_ROWS) {
+      xml = patchCell(xml, `I${row}`,  hasRecord ? '○' : null)
+      xml = patchCell(xml, `AJ${row}`, hasRecord ? '○' : null)
+    }
+
+    newFiles[`xl/worksheets/${fn}`] = strToU8(xml)
+    sheets.push({ name: `${m}월`, fn })
+  }
+
+  // workbook.xml
+  const sheetsTag = sheets.map((s, i) =>
+    `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`
+  ).join('')
+  newFiles['xl/workbook.xml'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="29040" windowHeight="15840"/></bookViews><sheets>${sheetsTag}</sheets></workbook>`
+  )
+  const N = sheets.length
+  const sheetRel = sheets.map((s, i) =>
+    `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/${s.fn}"/>`
+  ).join('')
+  newFiles['xl/_rels/workbook.xml.rels'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheetRel}<Relationship Id="rId${N+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${N+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId${N+3}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>`
+  )
+  const sheetCt = sheets.map(s =>
+    `<Override PartName="/xl/worksheets/${s.fn}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`
+  ).join('')
+  newFiles['[Content_Types].xml'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheetCt}<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`
+  )
+  newFiles['_rels/.rels'] = strToU8(
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`
+  )
+
+  const zipped = zipSync(newFiles, { level: 6 })
   const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   const url    = URL.createObjectURL(blob)
   const a      = document.createElement('a')
   a.href       = url
-  a.download   = `${year}년_${month}월_소방펌프_점검일지.xlsx`
+  a.download   = `${year}년도_소방펌프_점검일지.xlsx`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
