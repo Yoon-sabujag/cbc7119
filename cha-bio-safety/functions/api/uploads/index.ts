@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { todayKST } from '../../utils/kst'
 
 function nanoid(n = 21) {
   const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -12,7 +13,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const file = formData.get('file') as File | null
   if (!file) return Response.json({ success: false, error: '파일 없음' }, { status: 400 })
 
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const date = todayKST().replace(/-/g, '')
   const key  = `inspections/${date}/${nanoid()}.jpg`
 
   await env.STORAGE.put(key, file.stream(), {

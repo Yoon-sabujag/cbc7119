@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
   const { id, status } = await request.json<{ id: string; status: string }>()
   await env.DB.prepare(
-    `UPDATE elevators SET status=?, updated_at=datetime('now') WHERE id=?`
+    `UPDATE elevators SET status=?, updated_at=datetime('now','+9 hours') WHERE id=?`
   ).bind(status, id).run()
   return Response.json({ success: true })
 }

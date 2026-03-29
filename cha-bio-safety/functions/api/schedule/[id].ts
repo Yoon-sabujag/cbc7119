@@ -12,7 +12,7 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, params })
       date       = COALESCE(?, date),
       time       = ?,
       memo       = ?,
-      updated_at = datetime('now')
+      updated_at = datetime('now','+9 hours')
     WHERE id = ?`
   ).bind(body.title ?? null, body.date ?? null, body.time ?? null, body.memo ?? null, id).run()
 
@@ -29,7 +29,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, params 
   if (!valid.includes(body.status)) return Response.json({ success: false, error: '유효하지 않은 status' }, { status: 400 })
 
   await env.DB.prepare(
-    `UPDATE schedule_items SET status=?, updated_at=datetime('now') WHERE id=?`
+    `UPDATE schedule_items SET status=?, updated_at=datetime('now','+9 hours') WHERE id=?`
   ).bind(body.status, id).run()
 
   return Response.json({ success: true })

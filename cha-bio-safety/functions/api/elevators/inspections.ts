@@ -73,7 +73,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   // 승강기 last_inspection 업데이트
   await env.DB.prepare(
-    `UPDATE elevators SET last_inspection=?, updated_at=datetime('now') WHERE id=?`
+    `UPDATE elevators SET last_inspection=?, updated_at=datetime('now','+9 hours') WHERE id=?`
   ).bind(body.inspectDate, body.elevatorId).run()
 
   return Response.json({ success: true, data: { id } }, { status: 201 })

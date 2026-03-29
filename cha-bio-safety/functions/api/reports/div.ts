@@ -1,8 +1,9 @@
 import type { Env } from '../../_middleware'
+import { yearKST } from '../../utils/kst'
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url  = new URL(request.url)
-  const year = parseInt(url.searchParams.get('year') ?? String(new Date().getFullYear()))
+  const year = parseInt(url.searchParams.get('year') ?? String(yearKST()))
 
   const rows = await env.DB.prepare(`
     SELECT year, month, day, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector

@@ -53,7 +53,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   // 고장 시 승강기 상태 fault로 업데이트
   if (!body.isResolved) {
     await env.DB.prepare(
-      `UPDATE elevators SET status='fault', updated_at=datetime('now') WHERE id=?`
+      `UPDATE elevators SET status='fault', updated_at=datetime('now','+9 hours') WHERE id=?`
     ).bind(body.elevatorId).run()
   }
 
@@ -87,7 +87,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
 
     if ((remaining?.n ?? 0) === 0) {
       await env.DB.prepare(
-        `UPDATE elevators SET status='normal', updated_at=datetime('now') WHERE id=?`
+        `UPDATE elevators SET status='normal', updated_at=datetime('now','+9 hours') WHERE id=?`
       ).bind(fault.elevator_id).run()
     }
   }
