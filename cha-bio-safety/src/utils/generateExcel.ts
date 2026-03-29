@@ -145,20 +145,11 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
     return xml.slice(0, start) + newCell + xml.slice(end)
   }
 
-  // styles.xml에 shrink 스타일 추가 (N2 셀 기준)
-  let stylesXml = strFromU8(files['xl/styles.xml'])
-  const o2SIdx  = getCellStyleIdx(templateXml, 'N2')
-  let shrinkIdx = o2SIdx
-  if (o2SIdx >= 0) {
-    ;[stylesXml, shrinkIdx] = addShrinkStyle(stylesXml, o2SIdx)
-  }
-
-  // 정적 파일 복사
+  // 원본 styles/sharedStrings/theme 그대로 복사 (수정하지 않음)
   const newFiles: Record<string, Uint8Array> = {}
-  for (const key of ['xl/sharedStrings.xml', 'xl/theme/theme1.xml', 'docProps/core.xml', 'docProps/app.xml']) {
+  for (const key of ['xl/sharedStrings.xml', 'xl/theme/theme1.xml', 'xl/styles.xml', 'docProps/core.xml', 'docProps/app.xml']) {
     if (files[key]) newFiles[key] = files[key] as Uint8Array
   }
-  newFiles['xl/styles.xml'] = strToU8(stylesXml)
 
   // 34개소 시트 생성
   const sheets: { name: string; fn: string }[] = []
@@ -172,9 +163,9 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
     // printerSettings 참조 제거 (파일 없으므로)
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
-    // 헤더: 연도·DIV 호기 (N2 = shrink-to-fit)
+    // 헤더: 연도·DIV 호기
     xml = patchCell(xml, 'E2', String(year))
-    xml = patchCellStyled(xml, 'N2', locNo, shrinkIdx, esc)
+    xml = patchCell(xml, 'N2', locNo)
 
     // 압력값 소수점 1자리 포맷
     function fmt(v: any) { return v != null ? Number(v).toFixed(1) : null }
@@ -295,14 +286,6 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   }
 
-  // shrink 스타일 준비 (idCell 기준)
-  let stylesXml2 = strFromU8(files['xl/styles.xml'])
-  const idSIdx   = getCellStyleIdx(templateXml, idCell)
-  let shrinkIdx2 = idSIdx
-  if (idSIdx >= 0) {
-    ;[stylesXml2, shrinkIdx2] = addShrinkStyle(stylesXml2, idSIdx)
-  }
-
   function patchCell(xml: string, addr: string, value: string | number | null): string {
     const tag   = `<c r="${addr}"`
     const start = xml.indexOf(tag)
@@ -326,12 +309,11 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
     return xml.slice(0, start) + newCell + xml.slice(end)
   }
 
-  // 정적 파일 복사
+  // 원본 styles/sharedStrings/theme 그대로 복사 (수정하지 않음)
   const newFiles: Record<string, Uint8Array> = {}
-  for (const key of ['xl/sharedStrings.xml','xl/theme/theme1.xml','docProps/core.xml','docProps/app.xml']) {
+  for (const key of ['xl/sharedStrings.xml','xl/theme/theme1.xml','xl/styles.xml','docProps/core.xml','docProps/app.xml']) {
     if (files[key]) newFiles[key] = files[key] as Uint8Array
   }
-  newFiles['xl/styles.xml'] = strToU8(stylesXml2)
 
   const sheets: { name: string; fn: string }[] = []
 
@@ -343,9 +325,9 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
     let xml = templateXml
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
-    // 헤더: 연도·개소 (idCell = shrink-to-fit)
+    // 헤더: 연도·개소
     xml = patchCell(xml, yearCell, String(year))
-    xml = patchCellStyled(xml, idCell, locId, shrinkIdx2, esc)
+    xml = patchCell(xml, idCell, locId)
 
     // 월별 데이터 (1~12월)
     for (let m = 1; m <= 12; m++) {
