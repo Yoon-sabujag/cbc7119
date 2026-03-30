@@ -16,6 +16,7 @@ const NotFoundPage   = lazy(() => import('./pages/NotFoundPage'))
 const MorePage       = lazy(() => import('./pages/MorePage'))
 const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
 const ReportsPage    = lazy(() => import('./pages/ReportsPage'))
+const DailyReportPage = lazy(() => import('./pages/DailyReportPage'))
 const WorkShiftPage  = lazy(() => import('./pages/WorkShiftPage'))
 const LeavePage      = lazy(() => import('./pages/LeavePage'))
 const FloorPlanPage           = lazy(() => import('./pages/FloorPlanPage'))
@@ -69,6 +70,7 @@ function Layout() {
             <Route path="/more"          element={<Auth><MorePage /></Auth>} />
             <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
             <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
+            <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
             <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
             <Route path="/leave"         element={<Auth><LeavePage /></Auth>} />
             <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
