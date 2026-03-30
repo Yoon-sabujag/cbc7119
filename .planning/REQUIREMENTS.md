@@ -31,7 +31,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 - [x] **EXCEL-03**: 월간 제연설비 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
 - [x] **EXCEL-04**: 월간 방화셔터 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
 - [x] **EXCEL-05**: 월간 피난방화시설 점검일지 엑셀 출력 — 9개 항목 × 12개월 매트릭스, ○/△/× 기호
-- [ ] **EXCEL-06**: 일일업무일지(방재업무일지) 엑셀 출력 — 근무표/점검일정/승강기이력/소방일정 자동 기재
+- [x] **EXCEL-06**: 일일업무일지(방재업무일지) 엑셀 출력 — 근무표/점검일정/승강기이력/소방일정 자동 기재
 
 ### Schedule Linkage (일정↔기록 연결)
 
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXCEL-03 | Phase 3 | Complete |
 | EXCEL-04 | Phase 3 | Complete |
 | EXCEL-05 | Phase 3 | Complete |
-| EXCEL-06 | Phase 4 | Pending |
+| EXCEL-06 | Phase 4 | Complete |
 | LINK-01 | Phase 4 | Pending |
 | LINK-02 | Phase 4 | Pending |
 
