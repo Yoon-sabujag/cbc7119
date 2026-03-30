@@ -1,6 +1,7 @@
 export type Role      = 'admin' | 'assistant'
 export type ShiftType = 'day' | 'night' | 'off' | 'leave'
-export interface Staff { id:string; name:string; role:Role; title:string; shiftType?:ShiftType }
+export type LeaveType = 'full' | 'half_am' | 'half_pm' | 'official_full' | 'official_half_am' | 'official_half_pm'
+export interface Staff { id:string; name:string; role:Role; title:string; shiftType?:ShiftType; leaveType?:LeaveType }
 
 export type CheckResult  = 'normal'|'caution'|'bad'|'unresolved'|'missing'
 export type BuildingZone = 'office'|'research'|'common'

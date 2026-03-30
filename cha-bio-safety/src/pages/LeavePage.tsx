@@ -111,6 +111,7 @@ export default function LeavePage() {
   const today = new Date()
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth()) // 0-indexed
+  const [selDate, setSelDate] = useState<string | null>(null)
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
 
@@ -140,9 +141,13 @@ export default function LeavePage() {
 
   const myLeavesYear  = leaveYearData?.myLeaves ?? []
 
-  // 소진연차 계산
+  // 소진연차 계산 (공가는 연차 소진에 포함하지 않음)
   const usedDays = useMemo(() => {
-    return myLeavesYear.reduce((acc, l) => acc + (l.type === 'full' ? 1 : 0.5), 0)
+    return myLeavesYear.reduce((acc, l) => {
+      if (l.type === 'full') return acc + 1
+      if (l.type === 'half_am' || l.type === 'half_pm') return acc + 0.5
+      return acc // official_* 는 연차 소진 아님
+    }, 0)
   }, [myLeavesYear])
 
   const quota      = staff ? calcLeaveQuota(staff.id) : 15
@@ -164,11 +169,13 @@ export default function LeavePage() {
     return m
   }, [teamLeaves])
 
-  // elevator/fire 일정 날짜 셋
+  // 연차 차단 일정: 소방 상반기 종합정밀점검 / 하반기 작동기능점검만
   const inspectDates = useMemo(() => {
     const s = new Set<string>()
     scheduleItems.forEach(item => {
-      if (item.category === 'elevator' || item.category === 'fire') {
+      if (item.category === 'fire' && (
+        item.title?.includes('상반기 종합정밀점검') || item.title?.includes('하반기 작동기능점검')
+      )) {
         s.add(item.date)
       }
     })
@@ -231,44 +238,38 @@ export default function LeavePage() {
     return days
   }, [year, month, myLeaveMap, teamLeaveMap, inspectDates, today])
 
-  // ── 날짜 클릭 핸들러: 없음→full→half→취소 ────────────────────
-  async function handleDayClick(ymd: string, myLeave: LeaveItem | null, isWeekend: boolean, isHoliday: boolean, hasInspect: boolean) {
-    if (isWeekend) {
-      toast('주말은 연차 등록이 불가합니다', { icon: '🚫' })
-      return
-    }
-    if (isHoliday) {
-      toast(`공휴일(${HOLIDAYS_FALLBACK[ymd]})은 연차 등록이 불가합니다`, { icon: '🚫' })
-      return
-    }
-    if (hasInspect && !myLeave) {
-      toast(`점검 일정(${inspectMap[ymd]})이 있어 연차 등록이 불가합니다`, { icon: '🔍' })
-      return
-    }
+  // ── 날짜 클릭: 선택/해제 ──
+  function handleDayClick(ymd: string, isWeekend: boolean, isHoliday: boolean) {
+    if (isWeekend) { toast('주말은 연차 등록이 불가합니다', { icon: '🚫' }); return }
+    if (isHoliday) { toast(`공휴일(${HOLIDAYS_FALLBACK[ymd]})은 연차 등록이 불가합니다`, { icon: '🚫' }); return }
+    setSelDate(prev => prev === ymd ? null : ymd)
+  }
 
+  // ── 타입 버튼 핸들러: 선택한 날짜에 신청/취소 ──
+  const selCell = calendarDays.find(c => c.ymd === selDate)
+  const selMyLeave = selCell?.myLeave ?? null
+
+  async function handleTypeBtn(type: string) {
+    if (!selDate) return
     try {
-      // 현재 상태에서 다음 상태로
-      if (!myLeave) {
-        // 없음 → full
-        await leaveApi.create(ymd, 'full')
-        toast.success('연차(전일)가 등록되었습니다')
-      } else if (myLeave.type === 'full') {
-        // full → half: 기존 삭제 후 half 등록
-        await leaveApi.delete(myLeave.id)
-        await leaveApi.create(ymd, 'half')
-        toast.success('반차로 변경되었습니다')
+      if (selMyLeave && selMyLeave.type === type) {
+        // 같은 타입 다시 누르면 취소
+        await leaveApi.delete(selMyLeave.id)
+        toast.success('취소되었습니다')
       } else {
-        // half → 취소
-        await leaveApi.delete(myLeave.id)
-        toast.success('연차가 취소되었습니다')
+        // 다른 타입이면 기존 삭제 후 새로 생성
+        if (selMyLeave) await leaveApi.delete(selMyLeave.id)
+        await leaveApi.create(selDate, type as any)
+        const labels: Record<string,string> = {
+          full: '연차(전일)', half_am: '반차(오전)', half_pm: '반차(오후)',
+          official_full: '공가(전일)', official_half_am: '공가(오전)', official_half_pm: '공가(오후)',
+        }
+        toast.success(`${labels[type] ?? type}이(가) 등록되었습니다`)
       }
     } catch (err: any) {
-      const msg = err?.message ?? '오류가 발생했습니다'
-      toast.error(msg)
+      toast.error(err?.message ?? '오류가 발생했습니다')
       return
     }
-
-    // 캐시 무효화
     qc.invalidateQueries({ queryKey: ['leaves'] })
     qc.invalidateQueries({ queryKey: ['leaves-year'] })
   }
@@ -370,12 +371,21 @@ export default function LeavePage() {
                 // 배경 결정
                 let cellBg = 'transparent'
                 let cellBorder = 'none'
-                if (cell.myLeave?.type === 'full') {
-                  cellBg = 'rgba(34,197,94,0.18)'
-                } else if (cell.myLeave?.type === 'half') {
+                const lt = cell.myLeave?.type
+                const isGreen = lt === 'full' || lt === 'half_am' || lt === 'half_pm'
+                const isOrange = lt === 'official_full' || lt === 'official_half_am' || lt === 'official_half_pm'
+                const isAm = lt === 'half_am' || lt === 'official_half_am'
+                const isPm = lt === 'half_pm' || lt === 'official_half_pm'
+                const isHalf = isAm || isPm
+                const leaveC = isGreen ? '34,197,94' : isOrange ? '249,115,22' : ''
+
+                if (lt === 'full') cellBg = 'rgba(34,197,94,0.18)'
+                else if (lt === 'official_full') cellBg = 'rgba(249,115,22,0.18)'
+                else if (isHalf) {
                   cellBg = 'transparent'
-                  cellBorder = '2px solid rgba(34,197,94,0.7)'
+                  cellBorder = `2px solid rgba(${leaveC},0.7)`
                 }
+                const isSel = cell.ymd === selDate
 
                 // 날짜 숫자 색
                 let dateColor = dow === 0 || cell.isHoliday ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)'
@@ -387,13 +397,14 @@ export default function LeavePage() {
                 return (
                   <div
                     key={cell.ymd}
-                    onClick={() => isClickable && handleDayClick(cell.ymd, cell.myLeave, cell.isWeekend, cell.isHoliday, cell.hasInspect)}
+                    onClick={() => isClickable && handleDayClick(cell.ymd, cell.isWeekend, cell.isHoliday)}
                     style={{
                       aspectRatio: '1',
                       padding: 2,
                       borderRadius: 8,
-                      background: cellBg,
-                      border: cellBorder,
+                      background: isSel ? 'rgba(59,130,246,0.15)' : (isHalf ? 'transparent' : cellBg),
+                      border: isSel ? '2px solid #3b82f6' : (isHalf ? 'none' : cellBorder),
+                      overflow: 'hidden',
                       cursor: isClickable ? 'pointer' : 'default',
                       opacity: inspectOpacity,
                       display: 'flex',
@@ -405,6 +416,14 @@ export default function LeavePage() {
                       WebkitTapHighlightColor: 'transparent',
                     }}
                   >
+                    {/* 반일 대각선 배경 */}
+                    {isHalf && !isSel && (
+                      <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', borderRadius:8 }} viewBox="0 0 40 40" preserveAspectRatio="none">
+                        <rect width={40} height={40} rx={3} fill="transparent" stroke={`rgba(${leaveC},0.7)`} strokeWidth={2} />
+                        <polygon points={isAm ? '0,0 40,0 0,40' : '40,0 40,40 0,40'} fill={`rgba(${leaveC},0.15)`} />
+                        <line x1={0} y1={40} x2={40} y2={0} stroke={`rgba(${leaveC},0.5)`} strokeWidth={1.5} />
+                      </svg>
+                    )}
                     {/* 날짜 숫자 */}
                     <div style={{
                       width: 26,
@@ -439,7 +458,7 @@ export default function LeavePage() {
                             }}
                           >
                             {(teamStaffNameMap[tl.staffId] ?? tl.staffId.slice(-2))[0]}
-                            {tl.type === 'half' ? '½' : ''}
+                            {tl.type === 'half_am' ? '½오전' : tl.type === 'half_pm' ? '½오후' : tl.type === 'official_full' ? '공' : tl.type === 'official_half_am' ? '공½' : tl.type === 'official_half_pm' ? '공½' : ''}
                           </span>
                         ))}
                       </div>
@@ -464,25 +483,101 @@ export default function LeavePage() {
             </div>
           )}
 
-          {/* 범례 */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', padding: '10px 2px 0', marginBottom: 4 }}>
-            {[
-              { color: 'rgba(34,197,94,0.18)', border: 'none', label: '연차(전일)', isFill: true },
-              { color: 'transparent', border: '2px solid rgba(34,197,94,0.7)', label: '반차', isFill: false },
-              { color: 'rgba(107,114,128,0.75)', border: 'none', label: '팀원 연차', isFill: true },
-              { color: '#f97316', border: 'none', label: '승강기 점검', isDot: true },
-              { color: '#ef4444', border: 'none', label: '소방 점검', isDot: true },
-            ].map(l => (
-              <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {(l as any).isDot ? (
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: l.color, display: 'inline-block' }} />
-                ) : (
-                  <span style={{ width: 14, height: 14, borderRadius: 4, background: l.color, border: l.border, display: 'inline-block' }} />
-                )}
-                <span style={{ fontSize: 10, color: 'var(--t3)' }}>{l.label}</span>
+          {/* 신청 버튼 패널 (날짜 선택 시) */}
+          {selDate && !selCell?.isWeekend && !selCell?.isHoliday && (
+            <div style={{ padding: '10px 0 4px' }}>
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 6 }}>
+                {selDate} — 탭하여 신청 (같은 버튼 다시 누르면 취소)
               </div>
-            ))}
-          </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                {([
+                  { type: 'full',             label: '연차(전일)',  rgb: '34,197,94',   isHalfType: false, isAm: false },
+                  { type: 'half_am',          label: '반차(오전)',  rgb: '34,197,94',   isHalfType: true,  isAm: true },
+                  { type: 'half_pm',          label: '반차(오후)',  rgb: '34,197,94',   isHalfType: true,  isAm: false },
+                  { type: 'official_full',    label: '공가(전일)',  rgb: '249,115,22',  isHalfType: false, isAm: false },
+                  { type: 'official_half_am', label: '공가(오전)',  rgb: '249,115,22',  isHalfType: true,  isAm: true },
+                  { type: 'official_half_pm', label: '공가(오후)',  rgb: '249,115,22',  isHalfType: true,  isAm: false },
+                ] as const).map(btn => {
+                  const isActive = selMyLeave?.type === btn.type
+                  return (
+                    <button key={btn.type} onClick={() => handleTypeBtn(btn.type)}
+                      style={{
+                        padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                        cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                        background: isActive ? `rgba(${btn.rgb},0.25)` : (btn.isHalfType ? 'transparent' : `rgba(${btn.rgb},0.1)`),
+                        border: isActive ? '2px solid var(--acl)' : (btn.isHalfType ? `2px solid rgba(${btn.rgb},0.5)` : '1px solid var(--bd)'),
+                        color: isActive ? 'var(--t1)' : 'var(--t2)',
+                      }}>
+                      {btn.isHalfType && !isActive && (
+                        <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%' }} viewBox="0 0 80 32" preserveAspectRatio="none">
+                          <polygon points={btn.isAm ? '0,0 80,0 0,32' : '80,0 80,32 0,32'} fill={`rgba(${btn.rgb},0.12)`} />
+                          <line x1={0} y1={32} x2={80} y2={0} stroke={`rgba(${btn.rgb},0.4)`} strokeWidth={1} />
+                        </svg>
+                      )}
+                      <span style={{ position:'relative', zIndex:1 }}>{btn.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 범례 (날짜 미선택 시) */}
+          {!selDate && (
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', padding: '10px 2px 0', marginBottom: 4 }}>
+              {/* 연차(전일) */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <span style={{ width:12, height:12, borderRadius:3, background:'rgba(34,197,94,0.18)', display:'inline-block' }} />
+                <span style={{ fontSize:10, color:'var(--t3)' }}>연차</span>
+              </div>
+              {/* 반차(오전) — 좌하→우상 대각선, 왼쪽(위) 채우기 */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <svg width={12} height={12} viewBox="0 0 12 12" style={{ display:'block' }}>
+                  <rect width={12} height={12} rx={3} fill="transparent" stroke="rgba(34,197,94,0.7)" strokeWidth={1.5} />
+                  <polygon points="0,0 12,0 0,12" fill="rgba(34,197,94,0.3)" />
+                  <line x1={0} y1={12} x2={12} y2={0} stroke="rgba(34,197,94,0.7)" strokeWidth={1} />
+                </svg>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>반차(오전)</span>
+              </div>
+              {/* 반차(오후) — 오른쪽(아래) 채우기 */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <svg width={12} height={12} viewBox="0 0 12 12" style={{ display:'block' }}>
+                  <rect width={12} height={12} rx={3} fill="transparent" stroke="rgba(34,197,94,0.7)" strokeWidth={1.5} />
+                  <polygon points="12,0 12,12 0,12" fill="rgba(34,197,94,0.3)" />
+                  <line x1={0} y1={12} x2={12} y2={0} stroke="rgba(34,197,94,0.7)" strokeWidth={1} />
+                </svg>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>반차(오후)</span>
+              </div>
+              {/* 공가(전일) */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <span style={{ width:12, height:12, borderRadius:3, background:'rgba(249,115,22,0.18)', display:'inline-block' }} />
+                <span style={{ fontSize:10, color:'var(--t3)' }}>공가</span>
+              </div>
+              {/* 공가(오전) */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <svg width={12} height={12} viewBox="0 0 12 12" style={{ display:'block' }}>
+                  <rect width={12} height={12} rx={3} fill="transparent" stroke="rgba(249,115,22,0.7)" strokeWidth={1.5} />
+                  <polygon points="0,0 12,0 0,12" fill="rgba(249,115,22,0.3)" />
+                  <line x1={0} y1={12} x2={12} y2={0} stroke="rgba(249,115,22,0.7)" strokeWidth={1} />
+                </svg>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>공가(오전)</span>
+              </div>
+              {/* 공가(오후) */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <svg width={12} height={12} viewBox="0 0 12 12" style={{ display:'block' }}>
+                  <rect width={12} height={12} rx={3} fill="transparent" stroke="rgba(249,115,22,0.7)" strokeWidth={1.5} />
+                  <polygon points="12,0 12,12 0,12" fill="rgba(249,115,22,0.3)" />
+                  <line x1={0} y1={12} x2={12} y2={0} stroke="rgba(249,115,22,0.7)" strokeWidth={1} />
+                </svg>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>공가(오후)</span>
+              </div>
+              {/* 팀원 */}
+              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                <span style={{ width:12, height:12, borderRadius:3, background:'rgba(107,114,128,0.75)', display:'inline-block' }} />
+                <span style={{ fontSize:10, color:'var(--t3)' }}>팀원</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 연차 집계 카드 ── */}
@@ -541,13 +636,13 @@ export default function LeavePage() {
                         marginLeft: 8,
                         fontSize: 11,
                         fontWeight: 700,
-                        color: l.type === 'full' ? 'rgba(34,197,94,0.9)' : 'rgba(34,197,94,0.7)',
-                        background: l.type === 'full' ? 'rgba(34,197,94,0.12)' : 'transparent',
-                        border: l.type === 'half' ? '1px solid rgba(34,197,94,0.5)' : 'none',
+                        color: l.type.startsWith('official') ? 'rgba(249,115,22,0.9)' : 'rgba(34,197,94,0.9)',
+                        background: (l.type === 'full' || l.type === 'official_full') ? (l.type.startsWith('official') ? 'rgba(249,115,22,0.12)' : 'rgba(34,197,94,0.12)') : 'transparent',
+                        border: (l.type !== 'full' && l.type !== 'official_full') ? `1px solid ${l.type.startsWith('official') ? 'rgba(249,115,22,0.5)' : 'rgba(34,197,94,0.5)'}` : 'none',
                         borderRadius: 6,
                         padding: '1px 6px',
                       }}>
-                        {l.type === 'full' ? '전일' : '반차'}
+                        {{ full:'연차(전일)', half_am:'반차(오전)', half_pm:'반차(오후)', official_full:'공가(전일)', official_half_am:'공가(오전)', official_half_pm:'공가(오후)' }[l.type] ?? l.type}
                       </span>
                     </div>
                     <button

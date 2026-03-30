@@ -71,10 +71,30 @@ export default function DashboardPage() {
   const { staffRows } = getMonthlySchedule(_today.getFullYear(), _today.getMonth() + 1)
   const _todayIdx = _today.getDate() - 1
   const RAW_TO_STYPE: Record<string, string> = { '당':'night','비':'off','주':'day','휴':'leave' }
+  // 오늘 연차 데이터
+  const todayStr = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}-${String(_today.getDate()).padStart(2,'0')}`
+  const { data: leaveData } = useQuery({
+    queryKey: ['leaves', todayStr],
+    queryFn: async () => {
+      const ym = todayStr.slice(0,7)
+      const res = await fetch(`/api/leaves?year=${_today.getFullYear()}&month=${ym}`, {
+        headers: { Authorization: `Bearer ${useAuthStore.getState().token}` }
+      })
+      const j = await res.json() as any
+      return [...(j.data?.myLeaves ?? []), ...(j.data?.teamLeaves ?? [])]
+    },
+    staleTime: 30_000,
+  })
+  const leaveMap: Record<string, string> = {}
+  for (const l of (leaveData ?? []) as any[]) {
+    if (l.date === todayStr) leaveMap[l.staffId ?? l.staff_id] = l.type
+  }
+
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
     role: STAFF_ROLES[s.id] ?? 'assistant',
     shiftType: (RAW_TO_STYPE[s.shifts[_todayIdx]] ?? 'off') as Staff['shiftType'],
+    leaveType: leaveMap[s.id] as Staff['leaveType'],
   }))
 
   const admin     = dutyStaff.filter(s => s.role === 'admin')
