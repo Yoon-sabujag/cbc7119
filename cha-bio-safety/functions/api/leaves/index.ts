@@ -70,9 +70,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) => {
   const { staffId } = data as any
 
-  const body = await request.json<{ date: string; type: 'full' | 'half' }>()
+  const body = await request.json<{ date: string; type: string }>()
 
-  if (!body.date || !body.type || !['full', 'half'].includes(body.type)) {
+  if (!body.date || !body.type || !['full', 'half_am', 'half_pm', 'official_full', 'official_half_am', 'official_half_pm'].includes(body.type)) {
     return Response.json({ success: false, error: '필수 항목 누락 또는 형식 오류' }, { status: 400 })
   }
 
@@ -109,11 +109,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     }, { status: 409 })
   }
 
-  // 3. 점검 일정 충돌 체크 (elevator/fire 카테고리)
+  // 3. 소방 종합정밀/작동기능점검 충돌 체크
   const scheduleConflict = await env.DB.prepare(`
     SELECT id, title, category
     FROM schedule_items
-    WHERE date = ? AND category IN ('elevator', 'fire')
+    WHERE date = ? AND category = 'fire'
+      AND (title LIKE '%상반기 종합정밀점검%' OR title LIKE '%하반기 작동기능점검%')
     LIMIT 1
   `).bind(body.date).first<{ id: string; title: string; category: string }>()
 

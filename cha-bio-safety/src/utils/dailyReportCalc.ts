@@ -108,46 +108,50 @@ function buildPersonnel(
     shifts[row.id] = row.shifts[day - 1]
   }
 
-  // 연차/반차 목록 (date 기준)
+  // 연차/반차/공가 목록 (date 기준)
+  // type: 'full'=연차1일, 'half'=연차0.5일(반차), 'official_full'=공가1일, 'official_half'=공가0.5일(교육/훈련)
   const todayLeaves = (leaves ?? []).filter((l: any) => l.date === dateStr)
   const leaveMap: Record<string, string> = {}
   for (const l of todayLeaves) {
-    if (l.staff_id) leaveMap[l.staff_id] = l.type // 'full' | 'half'
+    if (l.staff_id) leaveMap[l.staff_id] = l.type
   }
 
-  // 교육/훈련 목록
-  const trainingSchedules = (schedules ?? []).filter((s: any) =>
-    s.date === dateStr && (s.title?.includes('교육') || s.title?.includes('훈련'))
-  )
-  const trainingAssignees = new Set<string>(
-    trainingSchedules.map((s: any) => s.assigneeId).filter(Boolean)
-  )
-
-  const onLeave: string[] = []
-  const halfLeave: string[] = []
-  const training: string[] = []
-  const holiday: string[] = []
-  const dayShift: string[] = []
+  const onLeave: string[] = []    // 연차 1일
+  const halfLeave: string[] = []  // 연차 0.5일 (반차)
+  const training: string[] = []   // 공가 0.5일 (교육/훈련)
+  const holiday: string[] = []    // 휴무 (공휴일/토일 주간→휴)
+  const dayShift: string[] = []   // 주간근무자
   let onDuty = ''
   let offDuty = ''
+  const absent = 0
 
   for (const staff of STAFF) {
     const shift = shifts[staff.id]
     const leaveType = leaveMap[staff.id]
 
-    // 연차/반차 우선
+    // 연차 1일 → 현재원에서 제외
     if (leaveType === 'full') {
       onLeave.push(staff.name)
       continue
     }
-    if (leaveType === 'half') {
-      halfLeave.push(staff.name)
-      // 반차는 현재원에 포함
+
+    // 공가 1일 → 현재원에서 제외
+    if (leaveType === 'official_full') {
+      onLeave.push(staff.name)
+      continue
     }
 
-    // 교육/훈련
-    if (trainingAssignees.has(staff.id)) {
+    // 반차 (오전/오후) → 주간근무자에 포함, 현재원에 포함
+    if (leaveType === 'half_am' || leaveType === 'half_pm') {
+      halfLeave.push(staff.name)
+      dayShift.push(staff.name)
+      continue
+    }
+
+    // 공가 반일 (오전/오후) → 교육/훈련란, 주간근무자에 포함, 현재원에 포함
+    if (leaveType === 'official_half_am' || leaveType === 'official_half_pm') {
       training.push(staff.name)
+      dayShift.push(staff.name)
       continue
     }
 
@@ -162,13 +166,12 @@ function buildPersonnel(
     }
   }
 
-  // 현재원 = 총원 - 비번 - 연차 - 결원
-  const absent = 0
-  const notPresent = offDuty ? 1 : 0
-  const present = STAFF.length - notPresent - onLeave.length - absent
+  // 총원 = 4 - 결원
+  // 현재원 = 주간근무자 수(반차/교육훈련 포함) + 당직자 수 (비번/연차1일/공가1일 제외)
+  const present = dayShift.length + (onDuty ? 1 : 0)
 
   return {
-    total: STAFF.length,
+    total: STAFF.length - absent,
     present,
     onDuty,
     offDuty,

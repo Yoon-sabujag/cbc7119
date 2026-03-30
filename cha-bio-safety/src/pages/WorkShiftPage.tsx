@@ -18,12 +18,17 @@ export default function WorkShiftPage() {
   const todayRef  = useRef<HTMLTableCellElement>(null)
 
   const { data: holidays = [] } = useQuery({
-    queryKey: ['holidays'],
+    queryKey: ['holidays-dates'],
     queryFn: async () => {
       try {
         const res  = await fetch('https://holidays.hyunbin.page/basic.json')
-        const data = await res.json()
-        return Array.isArray(data) ? data : []
+        const data = await res.json() as Record<string, Record<string, string[]>>
+        // { "2026": { "2026-03-01": ["삼일절"], ... } } → ["2026-03-01", "2026-03-02", ...]
+        const dates: string[] = []
+        for (const yr of Object.values(data)) {
+          for (const d of Object.keys(yr)) dates.push(d)
+        }
+        return dates
       } catch {
         return []
       }

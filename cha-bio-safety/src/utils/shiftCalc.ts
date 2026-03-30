@@ -1,5 +1,16 @@
 import type { ShiftType } from '../types'
 
+// ── 공휴일 판정 ─────────────────────────────────────────
+import { isHoliday as _isHolidayKr } from '@hyunbinseo/holidays-kr'
+
+export function isKoreanHolidayOrWeekend(date: Date): boolean {
+  const dow = date.getDay()
+  if (dow === 0 || dow === 6) return true
+  try {
+    return _isHolidayKr(new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0))
+  } catch { return false }
+}
+
 // ── 직원별 근무 패턴 설정 ─────────────────────────────────
 // 기준일: 2026-03-01(일) 박보융 = 당직
 const REF_DATE = new Date(2026, 2, 1) // 2026-03-01 (로컬 시간)
@@ -21,11 +32,11 @@ function daysBetween(a: Date, b: Date): number {
 }
 
 function calcRaw(staffId: string, date: Date): RawShift {
-  const dow = date.getDay() // 0=일, 6=토
+  const isOff = isKoreanHolidayOrWeekend(date)
 
-  // 석현민 (방재책임, 평일 주간 고정)
+  // 석현민 (방재책임, 평일 주간 고정 — 공휴일도 휴)
   if (staffId === '2018042451') {
-    return (dow === 0 || dow === 6) ? '휴' : '주'
+    return isOff ? '휴' : '주'
   }
 
   const offset = SHIFT_OFFSETS[staffId]
@@ -34,8 +45,8 @@ function calcRaw(staffId: string, date: Date): RawShift {
   const diff = daysBetween(REF_DATE, date)
   const base = CYCLE[(((diff + offset) % 3) + 3) % 3]
 
-  // 주간 근무가 토/일이면 휴
-  if (base === '주' && (dow === 0 || dow === 6)) return '휴'
+  // 주간 근무가 공휴일/토/일이면 휴
+  if (base === '주' && isOff) return '휴'
   return base
 }
 

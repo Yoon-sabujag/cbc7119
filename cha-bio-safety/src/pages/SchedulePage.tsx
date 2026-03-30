@@ -293,7 +293,7 @@ export default function SchedulePage() {
         {/* 공휴일 표시 */}
         {holidays[selDate] && (
           <div style={{ marginBottom:8, fontSize:11, color:'#ef4444', fontWeight:600, paddingLeft:2 }}>
-            🎌 {holidays[selDate]}
+            🇰🇷 {holidays[selDate]}
           </div>
         )}
 
