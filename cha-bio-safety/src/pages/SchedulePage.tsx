@@ -108,22 +108,22 @@ const INSP_DEFAULTS: Record<string, { title: string; memo: string }> = {
   '소방펌프':     { title:'소방펌프 점검',               memo:'   - 밸브 개폐상태 점검 및 템퍼스위치 점검\n   - 압력셋팅 확인 및 MCC반 조작스위치 상태 점검\n   - 펌프 수동테스트\n   - 밸브 동작시 화재수신반 시그널 확인상태 점검' },
 }
 
-const ELEV_SUBCATS = ['정기 점검', '수리', '법정 검사'] as const
-const FIRE_SUBCATS = ['상반기 종합정밀점검', '하반기 작동기능점검', '수리', '소방서 불시 점검'] as const
+const ELEV_SUBCATS = ['승강기 정기 점검', '승강기 수리', '승강기 법정 검사'] as const
+const FIRE_SUBCATS = ['소방 상반기 종합정밀점검', '소방 하반기 작동기능점검', '소방 시설물 공사', '소방 관공서 불시 점검'] as const
 
 type ElevSubCat = typeof ELEV_SUBCATS[number]
 type FireSubCat = typeof FIRE_SUBCATS[number]
 
 const ELEV_AGENCY: Record<ElevSubCat, string> = {
-  '정기 점검': 'TKE',
-  '수리': 'TKE',
-  '법정 검사': '한국승강기안전공단',
+  '승강기 정기 점검': 'TKE',
+  '승강기 수리': 'TKE',
+  '승강기 법정 검사': '한국승강기안전공단',
 }
 const FIRE_AGENCY: Record<FireSubCat, string> = {
-  '상반기 종합정밀점검': '동양소방',
-  '하반기 작동기능점검': '동양소방',
-  '수리':             '동양소방',
-  '소방서 불시 점검':   '성남소방서',
+  '소방 상반기 종합정밀점검': '동양소방',
+  '소방 하반기 작동기능점검': '동양소방',
+  '소방 시설물 공사':       '동양소방',
+  '소방 관공서 불시 점검':   '성남소방서',
 }
 
 const SCHED_CATEGORIES: { value: ScheduleCategory; label: string; color: string }[] = [
@@ -407,10 +407,10 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
   }
   const [date,      setDate]      = useState(defaultDate)
   const [time,      setTime]      = useState('')
-  const [elevSub,   setElevSub]   = useState<ElevSubCat>('정기 점검')
-  const [elevAgency,setElevAgency]= useState(ELEV_AGENCY['정기 점검'])
-  const [fireSub,   setFireSub]   = useState<FireSubCat>('상반기 종합정밀점검')
-  const [fireAgency,setFireAgency]= useState(FIRE_AGENCY['상반기 종합정밀점검'])
+  const [elevSub,   setElevSub]   = useState<ElevSubCat>('승강기 정기 점검')
+  const [elevAgency,setElevAgency]= useState(ELEV_AGENCY['승강기 정기 점검'])
+  const [fireSub,   setFireSub]   = useState<FireSubCat>('소방 상반기 종합정밀점검')
+  const [fireAgency,setFireAgency]= useState(FIRE_AGENCY['소방 상반기 종합정밀점검'])
   const [saving,    setSaving]    = useState(false)
 
   const handleElevSub = (v: ElevSubCat) => { setElevSub(v); setElevAgency(ELEV_AGENCY[v]) }

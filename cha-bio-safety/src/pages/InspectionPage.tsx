@@ -908,15 +908,18 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   const [underPending, setUnderPending] = useState<string[]>([...DIV_UNDER_SEQ])
   const [underPickIdx, setUnderPickIdx] = useState(initUnderIdx)
 
-  // ── 압력 입력 (6 digit boxes) ──
-  const [digits, setDigits] = useState<string[]>(['','','','','',''])
+  // ── 압력 입력 (최대 9 digit boxes: 각 행 2칸 or 3칸) ──
+  const [digits, setDigits] = useState<string[]>(['','','','','','','','',''])
   const dRef0 = useRef<HTMLInputElement>(null)
   const dRef1 = useRef<HTMLInputElement>(null)
   const dRef2 = useRef<HTMLInputElement>(null)
   const dRef3 = useRef<HTMLInputElement>(null)
   const dRef4 = useRef<HTMLInputElement>(null)
   const dRef5 = useRef<HTMLInputElement>(null)
-  const dRefs = useMemo(() => [dRef0,dRef1,dRef2,dRef3,dRef4,dRef5], [])
+  const dRef6 = useRef<HTMLInputElement>(null)
+  const dRef7 = useRef<HTMLInputElement>(null)
+  const dRef8 = useRef<HTMLInputElement>(null)
+  const dRefs = useMemo(() => [dRef0,dRef1,dRef2,dRef3,dRef4,dRef5,dRef6,dRef7,dRef8], [])
 
   // ── 부가 항목 ──
   const [drain,  setDrain]  = useState<'none'|'yes'>('none')
@@ -962,8 +965,8 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
   // ── 자동 결과 판단 ──
   useEffect(() => {
-    const p1 = digits[0] && digits[1] ? parseFloat(`${digits[0]}.${digits[1]}`) : null
-    const p2 = digits[2] && digits[3] ? parseFloat(`${digits[2]}.${digits[3]}`) : null
+    const p1 = parsedP1
+    const p2 = parsedP2
     if (p1 === null && p2 === null) { setAutoReason(''); return }
 
     const prev3 = prevRecords.slice(0,3).reverse() // oldest → newest
@@ -998,7 +1001,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
   // ── 폼 초기화 ──
   const resetForm = useCallback(() => {
-    setDigits(['','','','','',''])
+    setDigits(['','','','','','','','',''])
     setDrain('none')
     setOil('sufficient')
     setResult('normal')
@@ -1010,9 +1013,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   // ── 저장 ──
   const handleSave = async () => {
     if (!currentPt) return
-    const p1 = digits[0] && digits[1] ? parseFloat(`${digits[0]}.${digits[1]}`) : null
-    const p2 = digits[2] && digits[3] ? parseFloat(`${digits[2]}.${digits[3]}`) : null
-    const p3 = digits[4] && digits[5] ? parseFloat(`${digits[4]}.${digits[5]}`) : null
+    const p1 = parsedP1
+    const p2 = parsedP2
+    const p3 = parsedP3
     if (p1 === null || p2 === null || p3 === null) {
       alert('압력값을 모두 입력해주세요')
       return
@@ -1083,9 +1086,25 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
   // ── UI 헬퍼 ──
   const prev = prevRecords[0] ?? null
-  const parsedP1 = digits[0] && digits[1] ? parseFloat(`${digits[0]}.${digits[1]}`) : null
-  const parsedP2 = digits[2] && digits[3] ? parseFloat(`${digits[2]}.${digits[3]}`) : null
-  const parsedP3 = digits[4] && digits[5] ? parseFloat(`${digits[4]}.${digits[5]}`) : null
+  // 각 행의 칸 수: 지난달 값 >= 9.8이면 정수부 2칸(총 3) 아니면 1칸(총 2)
+  const p1Slots = prev && Number(prev.pressure_1 ?? 0) >= 9.8 ? 3 : 2
+  const p2Slots = prev && Number(prev.pressure_2 ?? 0) >= 9.8 ? 3 : 2
+  const p3Slots = prev && Number(prev.pressure_set ?? 0) >= 9.8 ? 3 : 2
+  const p1Start = 0
+  const p2Start = p1Slots
+  const p3Start = p1Slots + p2Slots
+
+  function parseRow(start: number, slots: number): number | null {
+    if (slots === 3) {
+      return digits[start] && digits[start+1] && digits[start+2]
+        ? parseFloat(`${digits[start]}${digits[start+1]}.${digits[start+2]}`)
+        : (digits[start+1] && digits[start+2] ? parseFloat(`${digits[start+1]}.${digits[start+2]}`) : null)
+    }
+    return digits[start] && digits[start+1] ? parseFloat(`${digits[start]}.${digits[start+1]}`) : null
+  }
+  const parsedP1 = parseRow(p1Start, p1Slots)
+  const parsedP2 = parseRow(p2Start, p2Slots)
+  const parsedP3 = parseRow(p3Start, p3Slots)
 
   function diffTag(cur: number|null, ref: number|null, badIfUp: boolean) {
     if (cur === null || ref === null) return null
@@ -1095,10 +1114,11 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
     return { text:`${d > 0 ? '↑' : '↓'}${Math.abs(d).toFixed(1)}`, color: isBad ? 'var(--warn)' : 'var(--safe)' }
   }
 
+  const totalDigitSlots = p1Slots + p2Slots + p3Slots
   const handleDigit = (idx: number, val: string) => {
     const v = val.replace(/\D/g,'').slice(-1)
     const next = [...digits]; next[idx] = v; setDigits(next)
-    if (v && idx < 5) setTimeout(() => dRefs[idx+1].current?.focus(), 30)
+    if (v && idx < totalDigitSlots - 1) setTimeout(() => dRefs[idx+1].current?.focus(), 30)
   }
   const handleDigitKey = (idx: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !digits[idx] && idx > 0) dRefs[idx-1].current?.focus()
@@ -1228,9 +1248,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
                 : null
               const P_COLORS = ['#3b82f6', '#f97316', '#22c55e']
               const rows = [
-                { label:'1차압', dIdx:0, prevVal: prev?.pressure_1   ?? null, diff:diffTag(parsedP1, prev?.pressure_1   ?? null, true),  color: P_COLORS[0] },
-                { label:'2차압', dIdx:2, prevVal: prev?.pressure_2   ?? null, diff:diffTag(parsedP2, prev?.pressure_2   ?? null, false), color: P_COLORS[1] },
-                { label:'세팅압', dIdx:4, prevVal: prev?.pressure_set ?? null, diff:diffTag(parsedP3, prev?.pressure_set ?? null, false), color: P_COLORS[2] },
+                { label:'1차압', dIdx:p1Start, slots:p1Slots, prevVal: prev?.pressure_1   ?? null, diff:diffTag(parsedP1, prev?.pressure_1   ?? null, true),  color: P_COLORS[0] },
+                { label:'2차압', dIdx:p2Start, slots:p2Slots, prevVal: prev?.pressure_2   ?? null, diff:diffTag(parsedP2, prev?.pressure_2   ?? null, false), color: P_COLORS[1] },
+                { label:'세팅압', dIdx:p3Start, slots:p3Slots, prevVal: prev?.pressure_set ?? null, diff:diffTag(parsedP3, prev?.pressure_set ?? null, false), color: P_COLORS[2] },
               ]
               return (
                 <div style={{ background:'var(--bg2)', borderRadius:12, padding:14, border:'1px solid var(--bd)' }}>
@@ -1252,7 +1272,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
                     <div style={{ flex:1, textAlign:'center', fontSize:10, fontWeight:600, color:'var(--t3)' }}>현재</div>
                   </div>
                   {/* 압력 행: [라벨42] [직전 flex:1] [변화 flex:1] [입력 flex:1] — 균등 배분 */}
-                  {rows.map(({ label, dIdx, prevVal, diff, color }) => (
+                  {rows.map(({ label, dIdx, slots, prevVal, diff, color }) => (
                     <div key={label} style={{ display:'flex', alignItems:'center', gap:4, marginBottom:10 }}>
                       {/* 라벨 */}
                       <div style={{ width:42, flexShrink:0, fontSize:11, fontWeight:600, color:'var(--t3)' }}>{label}</div>
@@ -1276,17 +1296,19 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
                           </>
                         ) : <span style={{ fontSize:12, color:'var(--t3)' }}>—</span>}
                       </div>
-                      {/* 입력 박스 — flex:1 중앙 정렬, 소수점 고정 (초록선) */}
+                      {/* 입력 박스 — 정수 칸(slots-1개) + . + 소수 1칸 */}
                       <div style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:2 }}>
-                        <input ref={dRefs[dIdx]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx]} maxLength={1}
-                          onChange={e => handleDigit(dIdx, e.target.value)}
-                          onKeyDown={e => handleDigitKey(dIdx, e)}
-                          style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
+                        {Array.from({ length: slots - 1 }, (_, i) => (
+                          <input key={i} ref={dRefs[dIdx + i]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx + i]} maxLength={1}
+                            onChange={e => handleDigit(dIdx + i, e.target.value)}
+                            onKeyDown={e => handleDigitKey(dIdx + i, e)}
+                            style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx + i] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
+                        ))}
                         <span style={{ fontSize:18, fontWeight:700, color, flexShrink:0 }}>.</span>
-                        <input ref={dRefs[dIdx+1]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx+1]} maxLength={1}
-                          onChange={e => handleDigit(dIdx+1, e.target.value)}
-                          onKeyDown={e => handleDigitKey(dIdx+1, e)}
-                          style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx+1] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
+                        <input ref={dRefs[dIdx + slots - 1]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx + slots - 1]} maxLength={1}
+                          onChange={e => handleDigit(dIdx + slots - 1, e.target.value)}
+                          onKeyDown={e => handleDigitKey(dIdx + slots - 1, e)}
+                          style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx + slots - 1] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
                       </div>
                     </div>
                   ))}
@@ -1348,8 +1370,8 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
       <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
         <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
         {currentPt && (
-          <button onClick={handleSave} disabled={saving || digits.some(d => d === '')}
-            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: (saving || digits.some(d=>d==='')) ? 'var(--bd)' : 'var(--primary)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer' }}>
+          <button onClick={handleSave} disabled={saving || digits.slice(0, totalDigitSlots).some(d => d === '')}
+            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--bd)' : 'var(--primary)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer' }}>
             {saving ? '저장 중...' :
               zone === 'underground'
                 ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
