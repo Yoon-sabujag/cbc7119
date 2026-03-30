@@ -700,3 +700,208 @@ export async function generateShiftExcel(year: number, month: number) {
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+// ── 일일업무일지 (방재업무일지) 엑셀 생성 ─────────────────────────────
+// 셀 주소 매핑 (daily_report_template.xlsx Sheet1 기준):
+//   A4  = 날짜 + 요일 (예: 2026년 3월 30일 월요일)
+//   G7-G25  = 금일업무 구분 칸 (빈 셀, 내용은 H7-H25에 기입)
+//   H7-H25  = 금일업무 내용 (행당 1개 항목)
+//   H26-H30 = 명일업무 내용 (행당 1개 항목)
+//   H31-H35 = 특이사항 내용
+//   G37  = 총원, M37 = 현재원, S37 = 당직(명수), Y37 = 비번자 이름
+//   AE37 = 휴무, AK37 = 연차, AO37 = 반차, AW37 = 교육/훈련, BC37 = 결원
+//   O38  = 주간근무자, AZ38 = 당직자
+
+import type { DailyReportData } from './dailyReportCalc'
+
+function patchDailySheet(
+  xml: string,
+  data: DailyReportData
+): string {
+  function esc(s: string) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  // patchCell 헬퍼 (inline string or number)
+  function patchCell(x: string, addr: string, value: string | number | null): string {
+    const tag   = `<c r="${addr}"`
+    const start = x.indexOf(tag)
+    if (start === -1) return x
+    const selfEnd  = x.indexOf('/>', start)
+    const closeEnd = x.indexOf('</c>', start)
+    let end: number
+    if (selfEnd !== -1 && (closeEnd === -1 || selfEnd < closeEnd)) {
+      end = selfEnd + 2
+    } else {
+      end = closeEnd + 4
+    }
+    const orig  = x.slice(start, end)
+    const sAttr = (orig.match(/\ss="([^"]*)"/) ?? [])[1]
+    const s     = sAttr !== undefined ? ` s="${sAttr}"` : ''
+    const newCell = value === null
+      ? `<c r="${addr}"${s}/>`
+      : typeof value === 'number'
+        ? `<c r="${addr}"${s}><v>${value}</v></c>`
+        : `<c r="${addr}"${s} t="str"><v>${esc(String(value))}</v></c>`
+    return x.slice(0, start) + newCell + x.slice(end)
+  }
+
+  // 날짜 헤더 (A4): "2026년 3월 30일 월요일" 형식
+  const [y, m, d] = data.date.split('-').map(Number)
+  const DOW_FULL = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일']
+  const dateObj = new Date(y, m - 1, d)
+  const dateLabel = `${y}년  ${m}월  ${d}일  ${DOW_FULL[dateObj.getDay()]}`
+  xml = patchCell(xml, 'A4', dateLabel)
+
+  // 인원현황 (row 37)
+  xml = patchCell(xml, 'G37', data.personnel.total)
+  xml = patchCell(xml, 'M37', data.personnel.present)
+  xml = patchCell(xml, 'S37', data.personnel.onDuty ? 1 : 0)
+  xml = patchCell(xml, 'Y37', data.personnel.offDuty || null)
+  xml = patchCell(xml, 'AE37', data.personnel.holiday.length || null)
+  xml = patchCell(xml, 'AK37', data.personnel.onLeave.join(', ') || null)
+  xml = patchCell(xml, 'AO37', data.personnel.halfLeave.join(', ') || null)
+  xml = patchCell(xml, 'AW37', data.personnel.training.join(', ') || null)
+  xml = patchCell(xml, 'BC37', data.personnel.absent || null)
+
+  // 인원현황 (row 38)
+  xml = patchCell(xml, 'O38', data.personnel.dayShift.join(', ') || null)
+  xml = patchCell(xml, 'AZ38', data.personnel.onDuty || null)
+
+  // 금일업무 (H7~H25, 최대 19개 항목)
+  const todayRows = ['H7','H8','H9','H10','H11','H12','H13','H14','H15','H16',
+                     'H17','H18','H19','H20','H21','H22','H23','H24','H25']
+  for (let i = 0; i < todayRows.length; i++) {
+    const task = data.todayTasks[i]
+    xml = patchCell(xml, todayRows[i], task ? task.content : null)
+  }
+
+  // 명일업무 (H26~H30, 최대 5개 항목)
+  const tomorrowRows = ['H26','H27','H28','H29','H30']
+  for (let i = 0; i < tomorrowRows.length; i++) {
+    const task = data.tomorrowTasks[i]
+    xml = patchCell(xml, tomorrowRows[i], task ? task.content : null)
+  }
+
+  // 특이사항 (H31~H35, 텍스트를 첫 행에 기입)
+  xml = patchCell(xml, 'H31', data.notes || null)
+  xml = patchCell(xml, 'H32', null)
+  xml = patchCell(xml, 'H33', null)
+  xml = patchCell(xml, 'H34', null)
+  xml = patchCell(xml, 'H35', null)
+
+  return xml
+}
+
+/**
+ * 방재업무일지 엑셀 생성
+ * - mode 'daily': 일별 1장 다운로드 → 방재업무일지(dd일).xlsx
+ * - mode 'monthly': 월별 누적 다운로드 → 일일업무일지(mm월).xlsx (오늘까지 시트)
+ */
+export async function generateDailyExcel(
+  mode: 'daily' | 'monthly',
+  year: number,
+  month: number,
+  dayDataMap: Record<number, DailyReportData>,
+  todayDay: number
+): Promise<void> {
+  const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
+
+  const res = await fetch('/templates/daily_report_template.xlsx')
+  const ab  = await res.arrayBuffer()
+  const files = unzipSync(new Uint8Array(ab))
+
+  const templateXml = strFromU8(files['xl/worksheets/sheet1.xml'])
+
+  function esc(s: string) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  if (mode === 'daily') {
+    // ── 일별 다운로드: 단일 시트 ──────────────────────────
+    const dayData = dayDataMap[todayDay]
+    if (!dayData) throw new Error('No data for selected day')
+
+    let xml = templateXml
+    // printerSettings 참조 제거 (Pitfall 1)
+    xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
+    xml = patchDailySheet(xml, dayData)
+    files['xl/worksheets/sheet1.xml'] = strToU8(xml)
+
+    const zipped = zipSync(files, { level: 6 })
+    const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url    = URL.createObjectURL(blob)
+    const a      = document.createElement('a')
+    a.href       = url
+    a.download   = `방재업무일지(${String(todayDay).padStart(2, '0')}일).xlsx`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+
+  } else {
+    // ── 월별 누적 다운로드: N개 시트 (1일 ~ todayDay) ────
+    const newFiles: Record<string, Uint8Array> = {}
+
+    // styles/sharedStrings/theme 복사
+    for (const key of ['xl/sharedStrings.xml','xl/theme/theme1.xml','xl/styles.xml','docProps/core.xml','docProps/app.xml']) {
+      if (files[key]) newFiles[key] = files[key] as Uint8Array
+    }
+
+    const sheets: { name: string; fn: string }[] = []
+
+    for (let day = 1; day <= todayDay; day++) {
+      const fn = `dr${day}.xml`
+      const dayData = dayDataMap[day]
+      let xml = templateXml
+      // printerSettings 참조 제거 (Pitfall 1: 복제 시 참조 깨짐 방지)
+      xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
+      if (dayData) {
+        xml = patchDailySheet(xml, dayData)
+      }
+      newFiles[`xl/worksheets/${fn}`] = strToU8(xml)
+      sheets.push({ name: `${day}일`, fn })
+    }
+
+    // workbook.xml
+    const sheetsTag = sheets.map((s, i) =>
+      `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`
+    ).join('')
+    newFiles['xl/workbook.xml'] = strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView xWindow="0" yWindow="0" windowWidth="29040" windowHeight="15840"/></bookViews><sheets>${sheetsTag}</sheets></workbook>`
+    )
+
+    // workbook.xml.rels
+    const N = sheets.length
+    const sheetRel = sheets.map((s, i) =>
+      `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/${s.fn}"/>`
+    ).join('')
+    newFiles['xl/_rels/workbook.xml.rels'] = strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheetRel}<Relationship Id="rId${N+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${N+2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/><Relationship Id="rId${N+3}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>`
+    )
+
+    // [Content_Types].xml
+    const sheetCt = sheets.map(s =>
+      `<Override PartName="/xl/worksheets/${s.fn}" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`
+    ).join('')
+    newFiles['[Content_Types].xml'] = strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheetCt}<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`
+    )
+
+    // _rels/.rels
+    newFiles['_rels/.rels'] = strToU8(
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`
+    )
+
+    const zipped = zipSync(newFiles, { level: 6 })
+    const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url    = URL.createObjectURL(blob)
+    const a      = document.createElement('a')
+    a.href       = url
+    a.download   = `일일업무일지(${String(month).padStart(2, '0')}월).xlsx`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+}

@@ -83,6 +83,12 @@ export const leaveApi = {
     api.delete<void>(`/leaves/${id}`),
 }
 
+export const dailyReportApi = {
+  getData: (date: string) => req<{ schedules: any[]; leaves: any[]; elevatorFaults: any[] }>(`/daily-report?date=${date}`),
+  getNotes: (date: string) => req<{ id: string; date: string; content: string } | null>(`/daily-report/notes?date=${date}`),
+  saveNotes: (date: string, content: string) => req<{ id: string; date: string; content: string }>('/daily-report/notes', { method: 'POST', body: JSON.stringify({ date, content }) }),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),
