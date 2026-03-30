@@ -26,15 +26,15 @@
 
 ### Active
 
-- [ ] 기존 완료 기능 전수 동작 테스트 + 코드 품질 점검 + 버그 수정
-- [ ] 점검일지 엑셀 출력 6종 추가 (소방펌프, 자탐, 제연, 방화셔터, 피난방화시설, 일일업무일지)
+- ✓ 기존 완료 기능 전수 동작 테스트 + 코드 품질 점검 + 버그 수정 — Phase 2
+- ✓ 점검일지 엑셀 출력 6종 추가 (소방펌프, 자탐, 제연, 방화셔터, 피난방화시설, 일일업무일지) — Phase 3+4
 - [ ] 승강기 실데이터 연동 (법정 검사 일지, 연간 검사 일정 관리)
 - [ ] 보수교육 일정 관리 (등록, 알림, 이수 기록)
 - [ ] 식사 이용 기록 (개인별 식사 기록, 월별 통계)
 - [ ] 법적 점검 관리 (소방 연 2회, 일정 알림, 결과/서류 관리, 지적사항 추적)
 - [ ] 관리자 설정 (사용자/시스템 설정, 소방시설 현황 관리)
-- [ ] 점검 일정 ↔ 점검 기록 연결 로직
-- [ ] Cloudflare Pages 배포 이슈(504) 해결 + 실제 배포 확인
+- ✓ 점검 일정 ↔ 점검 기록 연결 로직 — Phase 4
+- ✓ Cloudflare Pages 배포 이슈(504) 해결 + 실제 배포 확인 — Phase 1
 
 ### Out of Scope
 
@@ -90,4 +90,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-03-28 after initialization*
+*Last updated: 2026-03-30 after Phase 4 completion — v1 milestone complete*
