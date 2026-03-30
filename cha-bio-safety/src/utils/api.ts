@@ -35,7 +35,7 @@ export const authApi = {
 export const dashboardApi = {
   getStats: () => api.get<{
     stats: import('../types').DashboardStats
-    todaySchedule: import('../types').ScheduleItem[]
+    todaySchedule: import('../types').DashboardScheduleItem[]
     onDutyStaff: import('../types').Staff[]
     monthlyItems: { label:string; pct:number; color:string; total:number; done:number }[]
     todayTarget: string
