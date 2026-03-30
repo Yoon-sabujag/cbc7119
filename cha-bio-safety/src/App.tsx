@@ -41,7 +41,7 @@ function Loader() {
   )
 }
 
-const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print']
+const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report']
 
 function Layout() {
   const { isAuthenticated } = useAuthStore()
