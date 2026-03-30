@@ -20,12 +20,12 @@ const MENU = [
   ]},
   { section: '점검 기록', items: [
     { label: '월간 점검 계획', path: '/schedule',  badge: 0 },
-    { label: '점검 일지 출력', path: '/report',        badge: 0 },
+    { label: '점검 일지 출력', path: '/reports',       badge: 0 },
     { label: '일일업무일지',   path: '/daily-report', badge: 0 },
     { label: '미조치 항목',   path: '/unresolved', badge: 2 },
   ]},
   { section: '근무·복지', items: [
-    { label: '근무표',    path: '/shift',  badge: 0 },
+    { label: '근무표',    path: '/workshift',  badge: 0 },
     { label: '연차 관리', path: '/leave',  badge: 0 },
     { label: '식당 메뉴', path: '/menu',   badge: 0 },
   ]},
