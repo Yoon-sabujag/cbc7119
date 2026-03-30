@@ -32,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
 
     // ── 오늘 일정 ───────────────────────────────────────
     const schedRows = await env.DB.prepare(`
-      SELECT id, title, date, time, category, status
+      SELECT id, title, date, time, category, status, inspection_category, memo
       FROM schedule_items
       WHERE date = ?
       ORDER BY CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC
@@ -161,14 +161,64 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           elevatorFault:  elevatorFault?.n ?? 0,
           streakDays:     0,   // TODO: 연속 달성일 계산
         },
-        todaySchedule: (schedRows.results ?? []).map(r => ({
-          id:       r.id,
-          title:    r.title,
-          date:     r.date,
-          time:     r.time ?? undefined,
-          category: r.category,
-          status:   r.status,
-        })),
+        todaySchedule: await Promise.all(
+          (schedRows.results ?? []).map(async (r: any) => {
+            let completed = false
+
+            if (r.category === 'inspect' && r.inspection_category) {
+              // Per D-17: date+category auto-matching via check_records JOIN check_points
+              // Per D-18: 1+ check records = completed
+              // Per D-20: date range = schedule date to day before next same-category schedule date
+              const cpCat = CATEGORY_ALIAS[r.inspection_category] ?? r.inspection_category
+
+              // D-20: Find next same-category schedule date to determine attribution window
+              const nextSched = await env.DB.prepare(`
+                SELECT date FROM schedule_items
+                WHERE date > ? AND category = 'inspect' AND inspection_category = ?
+                ORDER BY date ASC LIMIT 1
+              `).bind(r.date, r.inspection_category).first<{date:string}>()
+
+              let rec
+              if (nextSched?.date) {
+                // Range: [r.date, nextSched.date) — records on or after schedule date, before next schedule
+                rec = await env.DB.prepare(`
+                  SELECT 1 FROM check_records cr
+                  JOIN check_points cp ON cr.checkpoint_id = cp.id
+                  WHERE cp.category = ?
+                    AND date(cr.checked_at) >= ?
+                    AND date(cr.checked_at) < ?
+                    AND cr.result IN ('normal','caution')
+                  LIMIT 1
+                `).bind(cpCat, r.date, nextSched.date).first()
+              } else {
+                // No next schedule: open-ended range from schedule date onward
+                rec = await env.DB.prepare(`
+                  SELECT 1 FROM check_records cr
+                  JOIN check_points cp ON cr.checkpoint_id = cp.id
+                  WHERE cp.category = ?
+                    AND date(cr.checked_at) >= ?
+                    AND cr.result IN ('normal','caution')
+                  LIMIT 1
+                `).bind(cpCat, r.date).first()
+              }
+              completed = !!rec
+            } else {
+              // Per D-19: non-inspect items use manual status='done'
+              completed = r.status === 'done'
+            }
+
+            return {
+              id:        r.id,
+              title:     r.title,
+              date:      r.date,
+              time:      r.time ?? undefined,
+              category:  r.category,
+              status:    r.status,
+              completed,
+              memo:      r.memo ?? undefined,
+            }
+          })
+        ),
         onDutyStaff: (staffRows.results ?? []).map(r => ({
           id:        r.id,
           name:      r.name,
