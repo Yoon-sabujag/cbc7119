@@ -17,7 +17,7 @@ function isKoreanHoliday(date: Date): boolean {
 
 // ── 순찰 교대 기준일 ───────────────────────────────────────
 // shiftCalc.ts와 동일한 REF_DATE 사용
-// REF_DATE(2026-03-01) 기준: daysBetween 짝수 = 저녁순찰, 홀수 = 야간순찰
+// REF_DATE(2026-03-01) 기준: daysBetween 짝수 = 야간순찰, 홀수 = 야간순찰
 const PATROL_REF_DATE = new Date(2026, 2, 1) // 2026-03-01
 
 function daysBetween(a: Date, b: Date): number {
@@ -49,7 +49,7 @@ export interface PersonnelStatus {
 }
 
 export interface PatrolEntry {
-  type: '저녁순찰' | '야간순찰'
+  type: '야간순찰'
   time: string         // e.g., '22:00~23:00' or '01:00~02:00'
   patroller: string    // 순찰자 이름 (당직자)
 }
@@ -189,15 +189,15 @@ function buildPersonnel(
 function buildPatrol(date: Date, onDutyName: string): PatrolEntry[] {
   const isHoliday = isKoreanHoliday(date)
   const diff = daysBetween(PATROL_REF_DATE, date)
-  // 짝수 차이 = 저녁순찰, 홀수 = 야간순찰
+  // 짝수 차이 = 야간순찰, 홀수 = 야간순찰
   const isEvening = diff % 2 === 0
 
   const entries: PatrolEntry[] = []
 
   if (isEvening) {
-    // 저녁순찰: 평일 22:00~23:00, 휴일 21:00~22:00
+    // 야간순찰: 평일 22:00~23:00, 휴일 21:00~22:00
     const time = isHoliday ? '21:00~22:00' : '22:00~23:00'
-    const type = isHoliday ? '저녁순찰' : '저녁순찰'
+    const type = isHoliday ? '야간순찰' : '야간순찰'
     entries.push({ type, time, patroller: onDutyName })
   } else {
     // 야간순찰: 01:00~02:00
@@ -272,9 +272,7 @@ function buildTasks(
 
   // 3. 순찰 항목 (기재번호 3)
   for (const p of patrol) {
-    const label = p.type === '저녁순찰'
-      ? `저녁순찰 및 소등 (${p.time})`
-      : `야간순찰 및 소등 (${p.time})`
+    const label = `야간순찰 및 소등 (${p.time})`
     tasks.push({ number: num++, content: label })
   }
 
