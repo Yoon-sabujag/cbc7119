@@ -35,8 +35,8 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Schedule Linkage (일정↔기록 연결)
 
-- [ ] **LINK-01**: 점검 계획 일정과 점검 기록을 자동으로 연결하여 일정별 완료 상태가 추적된다
-- [ ] **LINK-02**: 대시보드에서 오늘 일정의 완료/미완료 상태가 점검 기록 기반으로 자동 표시된다
+- [x] **LINK-01**: 점검 계획 일정과 점검 기록을 자동으로 연결하여 일정별 완료 상태가 추적된다
+- [x] **LINK-02**: 대시보드에서 오늘 일정의 완료/미완료 상태가 점검 기록 기반으로 자동 표시된다
 
 ## v2 Requirements
 
@@ -93,8 +93,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXCEL-04 | Phase 3 | Complete |
 | EXCEL-05 | Phase 3 | Complete |
 | EXCEL-06 | Phase 4 | Complete |
-| LINK-01 | Phase 4 | Pending |
-| LINK-02 | Phase 4 | Pending |
+| LINK-01 | Phase 4 | Complete |
+| LINK-02 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total

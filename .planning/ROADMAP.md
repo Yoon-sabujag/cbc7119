@@ -82,7 +82,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — DB migrations + API endpoints + template + route wiring (EXCEL-06 infrastructure)
 - [ ] 04-02-PLAN.md — dailyReportCalc + generateDailyExcel + DailyReportPage (EXCEL-06 client)
-- [ ] 04-03-PLAN.md — Schedule completion JOIN + Dashboard completion UI (LINK-01, LINK-02)
+- [x] 04-03-PLAN.md — Schedule completion JOIN + Dashboard completion UI (LINK-01, LINK-02)
 
 ---
 
@@ -93,7 +93,7 @@ Plans:
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 3/5 | In Progress|  |
 | 3. Excel Reports — Annual Matrix Types | 2/2 | Complete   | 2026-03-28 |
-| 4. Completion Tracking & Daily Reporting | 1/3 | In Progress|  |
+| 4. Completion Tracking & Daily Reporting | 2/3 | In Progress|  |
 
 ---
 
