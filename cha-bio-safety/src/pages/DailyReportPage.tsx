@@ -1,7 +1,7 @@
 // ── 일일업무일지 페이지 ────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { dailyReportApi } from '../utils/api'
 import { buildDailyReportData } from '../utils/dailyReportCalc'
@@ -58,6 +58,7 @@ const smallBtn: React.CSSProperties = {
 // ── 컴포넌트 ──────────────────────────────────────────────
 export default function DailyReportPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [date, setDate] = useState<string>(todayKST())
   const [todayText, setTodayText] = useState<string>('')
@@ -87,6 +88,8 @@ export default function DailyReportPage() {
     queryKey: ['daily-notes', date],
     queryFn: () => dailyReportApi.getNotes(date),
     retry: 1,
+    staleTime: 0,
+    gcTime: 0,
   })
 
   // ── 자동 생성 데이터 ──────────────────────────────────
@@ -98,9 +101,13 @@ export default function DailyReportPage() {
 
   const auto = autoData()
 
-  // ── D1에서 로드 또는 자동 생성으로 초기화 ──────────────
+  // ── D1에서 로드 또는 자동 생성으로 초기화 (날짜 변경 시에만) ──
+  const prevDateRef = useRef<string>('')
   useEffect(() => {
-    if (!auto) return
+    if (!auto || queryNotes.isFetching) return
+    // 날짜가 바뀔 때만 D1에서 로드 (같은 날짜에서 저장 후 refetch 시에는 무시)
+    if (prevDateRef.current === date && loaded === date) return
+    prevDateRef.current = date
     const saved = queryNotes.data as any
     if (saved && (saved.today_text || saved.tomorrow_text || saved.content)) {
       // D1에 저장된 내용 있으면 복원
@@ -134,7 +141,9 @@ export default function DailyReportPage() {
       if (field === 'today') payload.today_text = value
       else if (field === 'tomorrow') payload.tomorrow_text = value
       else payload.content = value
-      dailyReportApi.saveNotes(payload).catch(() => {})
+      dailyReportApi.saveNotes(payload).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['daily-notes', date] })
+      }).catch(() => {})
     }, 2000)
   }, [date, loaded])
 
@@ -151,6 +160,7 @@ export default function DailyReportPage() {
       else if (field === 'tomorrow') payload.tomorrow_text = tomorrowText
       else payload.content = notes
       await dailyReportApi.saveNotes(payload)
+      queryClient.invalidateQueries({ queryKey: ['daily-notes', date] })
       toast.success('저장되었습니다')
     } catch { toast.error('저장 실패') }
     finally { setSaving(s => ({ ...s, [field]: false })) }
