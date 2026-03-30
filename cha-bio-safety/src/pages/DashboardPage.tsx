@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { dashboardApi, scheduleApi } from '../utils/api'
+import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
 import { useDateTime } from '../hooks/useDateTime'
 import { SideMenu }      from '../components/SideMenu'
 import { SettingsPanel } from '../components/SettingsPanel'
@@ -90,6 +90,15 @@ export default function DashboardPage() {
     if (l.date === todayStr) leaveMap[l.staffId ?? l.staff_id] = l.type
   }
 
+  // 최근 수신반 이력 (48시간)
+  const { data: recentAlarms } = useQuery({
+    queryKey: ['fire-alarm-recent'],
+    queryFn: () => fireAlarmApi.getRecent(),
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  })
+  const latestAlarm = (recentAlarms ?? [])[0] as any
+
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
     role: STAFF_ROLES[s.id] ?? 'assistant',
@@ -169,10 +178,21 @@ export default function DashboardPage() {
           animation:'slideUp .28s ease-out',
         }}>
           <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--info)', flexShrink:0, animation:'blink 2s ease-in-out infinite' }} />
-          <div>
+          <div style={{ flex:1 }}>
             <div style={{ fontSize:9, fontWeight:700, color:'var(--info)', letterSpacing:'.05em', textTransform:'uppercase' }}>오늘 점검 대상</div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1, lineHeight:1.2 }}>{todayTarget}</div>
           </div>
+          {latestAlarm && (
+            <>
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'#ef4444', letterSpacing:'.05em' }}>최근 수신반 이력</div>
+                <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1, lineHeight:1.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:150 }}>
+                  {latestAlarm.location || '장소 미기록'}
+                </div>
+              </div>
+              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', flexShrink:0, animation:'blink 1s ease-in-out infinite' }} />
+            </>
+          )}
         </div>
 
         {/* ② 오늘 현황 */}

@@ -91,6 +91,13 @@ export const dailyReportApi = {
     req<any>('/daily-report/notes', { method: 'POST', body: JSON.stringify(data) }),
 }
 
+export const fireAlarmApi = {
+  getByYear: (year: number) => req<any[]>(`/fire-alarm?year=${year}`),
+  getRecent: () => req<any[]>('/fire-alarm?recent=1'),
+  create: (data: { type: string; occurred_at: string; location: string; cause: string; action: string }) =>
+    req<{ id: string }>('/fire-alarm', { method: 'POST', body: JSON.stringify(data) }),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),
