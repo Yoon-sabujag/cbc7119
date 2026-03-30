@@ -54,6 +54,8 @@ export default function DashboardPage() {
     queryFn:  dashboardApi.getStats,
     retry:    1,
     staleTime: 30_000,
+    refetchInterval: 30_000,       // 30초마다 자동 갱신
+    refetchOnWindowFocus: true,    // 탭 포커스 시 즉시 갱신
   })
 
   // 로딩 중엔 빈 값, API 실패 시에만 목업 폴백

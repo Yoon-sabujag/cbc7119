@@ -22,18 +22,44 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (binds.length === 1) stmt = stmt.bind(binds[0])
   else if (binds.length === 2) stmt = stmt.bind(binds[0], binds[1])
 
+  const CATEGORY_ALIAS: Record<string, string> = { '방화문': '특별피난계단', '컴프레셔': 'DIV' }
+
   const result = await stmt.all<Record<string,unknown>>()
-  const rows = (result.results ?? []).map(r => ({
-    id:                  r.id,
-    title:               r.title,
-    date:                r.date,
-    time:                r.time ?? undefined,
-    assigneeId:          r.assignee_id,
-    category:            r.category,
-    status:              r.status,
-    repeatRule:          r.repeat_rule ?? undefined,
-    inspectionCategory:  r.inspection_category ?? undefined,
-    memo:                r.memo ?? undefined,
+  const rows = await Promise.all((result.results ?? []).map(async (r: any) => {
+    let status = r.status as string
+
+    // inspect 카테고리: 점검 기록 기반 완료 판정 (대시보드와 동일 로직)
+    if (r.category === 'inspect' && r.inspection_category && status !== 'done') {
+      const cpCat = CATEGORY_ALIAS[r.inspection_category] ?? r.inspection_category
+      const nextSched = await env.DB.prepare(
+        `SELECT date FROM schedule_items WHERE date > ? AND category='inspect' AND inspection_category=? ORDER BY date ASC LIMIT 1`
+      ).bind(r.date, r.inspection_category).first<{date:string}>()
+
+      let rec
+      if (nextSched?.date) {
+        rec = await env.DB.prepare(
+          `SELECT 1 FROM check_records cr JOIN check_points cp ON cr.checkpoint_id=cp.id WHERE cp.category=? AND date(cr.checked_at)>=? AND date(cr.checked_at)<? AND cr.result IN ('normal','caution') LIMIT 1`
+        ).bind(cpCat, r.date, nextSched.date).first()
+      } else {
+        rec = await env.DB.prepare(
+          `SELECT 1 FROM check_records cr JOIN check_points cp ON cr.checkpoint_id=cp.id WHERE cp.category=? AND date(cr.checked_at)>=? AND cr.result IN ('normal','caution') LIMIT 1`
+        ).bind(cpCat, r.date).first()
+      }
+      if (rec) status = 'done'
+    }
+
+    return {
+      id:                  r.id,
+      title:               r.title,
+      date:                r.date,
+      time:                r.time ?? undefined,
+      assigneeId:          r.assignee_id,
+      category:            r.category,
+      status,
+      repeatRule:          r.repeat_rule ?? undefined,
+      inspectionCategory:  r.inspection_category ?? undefined,
+      memo:                r.memo ?? undefined,
+    }
   }))
   return Response.json({ success: true, data: rows })
 }
