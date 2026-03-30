@@ -55,14 +55,14 @@ Source: measured from `ReportsPage.tsx`, `DashboardPage.tsx`, `src/components/ui
 
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
-| Body | 13px | 700 (bold) | 1.4 | Card titles, schedule item titles, section headings within cards |
-| Secondary body | 11px | 400 (regular) | 1.4 | Sub-labels, card metadata, empty state body, instruction text |
+| Body | 13px | 700 (bold) | 1.4 | Card titles, schedule item titles, section headings within cards, mode toggle segments, textarea input, download button label |
+| Secondary body | 11px | 400 (regular) | 1.4 | Sub-labels, card metadata, empty state body, instruction text, save button label |
 | Label / badge | 8–9px | 700 (bold) | 1 | StatusBadge text, DutyChip role label, CatBar-adjacent text |
 | Header title | 14px | 700 (bold) | 1.2 | Page header `<header>` title span |
 
-Font weights used: 400 (regular) and 700 (bold). No intermediate weights (500, 600) are used in the existing UI primitives — maintain this constraint.
+Font weights used: 400 (regular) and 700 (bold). No intermediate weights (500, 600) are introduced by this phase — maintain this constraint.
 
-Monospace exception: percentages and numeric stats use `font-family: JetBrains Mono, monospace` at `font-size: 10px, weight: 600` (matches `Donut` component).
+Monospace exception: percentages and numeric stats use `font-family: JetBrains Mono, monospace` at `font-size: 10px` within the existing `Donut` component. This falls within the Secondary body (11px) size slot as a component-inherited value. The font weight for this element is inherited from the existing `Donut` component — it is not a new weight declaration in this spec.
 
 ---
 
@@ -94,7 +94,7 @@ Source: `src/index.css` `:root` block. All values are CSS variables — never ha
 - Focus ring on date/month input controls
 
 **`var(--safe)` reserved for:**
-- Completed schedule item row background tint: `rgba(34,197,94,.13)`
+- Completed schedule item row background tint: `rgba(34,197,94,.08)` (lighter than existing `done` StatusBadge tint to avoid visual noise)
 - Completed schedule item checkmark icon color: `var(--safe)`
 - "완료" StatusBadge (already in existing component — do not modify)
 
@@ -155,7 +155,7 @@ Source: D-04 (CONTEXT.md). This is the only new page in Phase 4.
 
 ### Header
 
-- Back button: 34×34px, `background: var(--bg3)`, `border: 1px solid var(--bd)`, `borderRadius: 8px`. Matches `iconBtn` in `ReportsPage.tsx`.
+- Back button: 34×34px, `background: var(--bg3)`, `border: 1px solid var(--bd)`, `borderRadius: 8px`, `aria-label="뒤로 가기"`. Matches `iconBtn` in `ReportsPage.tsx`.
 - Title: `fontSize: 14px`, `fontWeight: 700`, `color: var(--t1)`. Text: `일일업무일지`.
 - Date navigator: chevron buttons (28×28px, `bg3`, `border bd`) flanking date text. Format: `YYYY-MM-DD` in `fontSize: 13px, fontWeight: 700, color: var(--t1)`. Width 90px fixed to prevent layout jump.
 
@@ -163,7 +163,7 @@ Source: D-04 (CONTEXT.md). This is the only new page in Phase 4.
 
 - Two-segment pill toggle: `일별` and `월별 누적` options.
 - Container: `background: var(--bg3)`, `borderRadius: 10px`, `padding: 3px`, `display: flex`.
-- Active segment: `background: var(--acl)`, `color: #fff`, `borderRadius: 8px`, `fontSize: 12px`, `fontWeight: 700`, `padding: 6px 16px`.
+- Active segment: `background: var(--acl)`, `color: #fff`, `borderRadius: 8px`, `fontSize: 13px`, `fontWeight: 700`, `padding: 6px 16px`.
 - Inactive segment: `background: transparent`, `color: var(--t2)`, same sizing.
 - Minimum touch width: 88px per segment.
 
@@ -171,7 +171,7 @@ Source: D-04 (CONTEXT.md). This is the only new page in Phase 4.
 
 - Card: `background: var(--bg2)`, `borderRadius: 14px`, `border: 1px solid var(--bd)`, `padding: 14px`, `marginBottom: 10px`.
 - Label: `fontSize: 13px`, `fontWeight: 700`, `color: var(--t1)`, `marginBottom: 8px`.
-- Textarea: `background: var(--bg3)`, `border: 1px solid var(--bd)`, `borderRadius: 9px`, `color: var(--t1)`, `fontSize: 12px`, `fontWeight: 400`, `padding: 10px 12px`, `minHeight: 80px`, `width: 100%`, `resize: none`.
+- Textarea: `background: var(--bg3)`, `border: 1px solid var(--bd)`, `borderRadius: 9px`, `color: var(--t1)`, `fontSize: 13px`, `fontWeight: 400`, `padding: 10px 12px`, `minHeight: 80px`, `width: 100%`, `resize: none`.
   - Placeholder text: `color: var(--t3)`.
   - On focus: `border-color: var(--bd2)`, no outline.
 - Save button (inline, small): `fontSize: 11px`, `fontWeight: 700`, `padding: 6px 12px`, `borderRadius: 7px`, `background: var(--bg4)`, `color: var(--t2)`, `border: 1px solid var(--bd)`. Aligned to right.
@@ -188,7 +188,7 @@ Source: D-04 (CONTEXT.md). This is the only new page in Phase 4.
 
 ### Download Button
 
-- Style matches existing ReportsPage download button exactly: `width: 100%`, `padding: 11px`, `borderRadius: 9px`, `border: none`, `background: linear-gradient(135deg,#1d4ed8,#2563eb)`, `color: #fff`, `fontSize: 12px`, `fontWeight: 700`.
+- Style matches existing ReportsPage download button exactly: `width: 100%`, `padding: 11px`, `borderRadius: 9px`, `border: none`, `background: linear-gradient(135deg,#1d4ed8,#2563eb)`, `color: #fff`, `fontSize: 13px`, `fontWeight: 700`.
 - Loading state: `background: var(--bg3)`, `color: var(--t3)`, text: `생성 중...`, `cursor: default`, `disabled: true`.
 - Label (일별): `⬇ 방재업무일지(dd일) 다운로드`
 - Label (월별): `⬇ 일일업무일지(mm월) 다운로드`
