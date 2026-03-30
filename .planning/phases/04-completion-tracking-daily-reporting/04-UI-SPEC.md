@@ -46,6 +46,11 @@ Exceptions:
 - Touch targets (buttons, toggle pills): minimum 28px height / 44px touch width on mobile. Existing pattern: `height: 28–34px` for icon buttons.
 - Card border-radius: 14px (matches existing `ReportsPage` card `borderRadius: 14`).
 - Small badge border-radius: 5–7px (matches existing `StatusBadge` padding pattern).
+- Mode toggle container `padding: 3px` — inherited from existing pill-toggle pattern in `DashboardPage.tsx`; this 3px inset creates the visual gap between the container edge and the active segment pill.
+- Toggle segment `padding: 6px 16px` — inherited from existing segment pill sizing in `DashboardPage.tsx`; the 6px vertical inset is required to produce the 28px minimum touch height within the 3px-inset container.
+- Save button `padding: 6px 12px` — inherited from small secondary button pattern in `ReportsPage.tsx`; the 6px vertical inset matches the existing `small` button height of 28px with `fontSize: 11px`.
+- Textarea `padding: 10px 12px` — inherited from existing input field pattern in `ReportsPage.tsx`; the 10px vertical inset provides readable tap target inside the `bg3` input surface without over-padding on mobile.
+- Card `padding: 14px` — inherited from existing card content inset in `ReportsPage.tsx` (`padding: 14`); this value is the established card inner padding across the project and is used alongside the `borderRadius: 14` card exception.
 
 ---
 
