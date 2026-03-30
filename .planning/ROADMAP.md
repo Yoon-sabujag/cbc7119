@@ -76,8 +76,13 @@ Plans:
   1. 날짜를 선택하면 해당 날의 근무표/점검일정/승강기이역/소방일정이 자동 기재된 일일업무일지 엑셀 파일이 다운로드된다
   2. 점검 기록을 저장하면 연결된 점검 계획 일정의 완료 상태가 자동으로 업데이트된다
   3. 대시보드 "오늘 일정" 카드에서 각 일정의 완료/미완료 상태가 실제 점검 기록 존재 여부 기반으로 표시된다
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 04-01-PLAN.md — DB migrations + API endpoints + template + route wiring (EXCEL-06 infrastructure)
+- [ ] 04-02-PLAN.md — dailyReportCalc + generateDailyExcel + DailyReportPage (EXCEL-06 client)
+- [ ] 04-03-PLAN.md — Schedule completion JOIN + Dashboard completion UI (LINK-01, LINK-02)
 
 ---
 
@@ -88,7 +93,7 @@ Plans:
 | 1. Deployment & Infrastructure | 2/3 | In Progress|  |
 | 2. Stabilization & Code Quality | 3/5 | In Progress|  |
 | 3. Excel Reports — Annual Matrix Types | 2/2 | Complete   | 2026-03-28 |
-| 4. Completion Tracking & Daily Reporting | 0/? | Not started | - |
+| 4. Completion Tracking & Daily Reporting | 0/3 | Not started | - |
 
 ---
 
@@ -120,4 +125,4 @@ Plans:
 
 ---
 *Roadmap created: 2026-03-28*
-*Last updated: 2026-03-28 after Phase 3 planning*
+*Last updated: 2026-03-30 after Phase 4 planning*
