@@ -723,6 +723,9 @@ function patchDailySheet(
   }
 
   // patchCell 헬퍼 (inline string or number)
+  // 흰색 글씨 스타일 → 값 기입 시 검은색으로 교체
+  // s=31(fontId=15,white) → s=75(fontId=9,black), s=85(fontId=13,white) → s=35(fontId=9,black)
+  const WHITE_TO_BLACK: Record<string, string> = { '31': '75', '85': '35' }
   function patchCell(x: string, addr: string, value: string | number | null): string {
     const tag   = `<c r="${addr}"`
     const start = x.indexOf(tag)
@@ -736,7 +739,8 @@ function patchDailySheet(
       end = closeEnd + 4
     }
     const orig  = x.slice(start, end)
-    const sAttr = (orig.match(/\ss="([^"]*)"/) ?? [])[1]
+    let sAttr = (orig.match(/\ss="([^"]*)"/) ?? [])[1]
+    if (value !== null && WHITE_TO_BLACK[sAttr]) sAttr = WHITE_TO_BLACK[sAttr]
     const s     = sAttr !== undefined ? ` s="${sAttr}"` : ''
     const newCell = value === null
       ? `<c r="${addr}"${s}/>`
@@ -768,27 +772,14 @@ function patchDailySheet(
   xml = patchCell(xml, 'O38', data.personnel.dayShift.join(', ') || null)
   xml = patchCell(xml, 'AZ38', data.personnel.onDuty || null)
 
-  // 금일업무 (H7~H25, 최대 19개 항목)
-  const todayRows = ['H7','H8','H9','H10','H11','H12','H13','H14','H15','H16',
-                     'H17','H18','H19','H20','H21','H22','H23','H24','H25']
-  for (let i = 0; i < todayRows.length; i++) {
-    const task = data.todayTasks[i]
-    xml = patchCell(xml, todayRows[i], task ? task.content : null)
-  }
+  // 금일업무 (H7 — 병합 셀 H7:BG24에 전체 텍스트)
+  xml = patchCell(xml, 'H7', data.todayText || null)
 
-  // 명일업무 (H26~H30, 최대 5개 항목)
-  const tomorrowRows = ['H26','H27','H28','H29','H30']
-  for (let i = 0; i < tomorrowRows.length; i++) {
-    const task = data.tomorrowTasks[i]
-    xml = patchCell(xml, tomorrowRows[i], task ? task.content : null)
-  }
+  // 명일업무 (H26 — 병합 셀 H26:BG29에 전체 텍스트)
+  xml = patchCell(xml, 'H26', data.tomorrowText || null)
 
-  // 특이사항 (H31~H35, 텍스트를 첫 행에 기입)
+  // 특이사항 (H31 — 병합 셀 H31:BG34에 전체 텍스트)
   xml = patchCell(xml, 'H31', data.notes || null)
-  xml = patchCell(xml, 'H32', null)
-  xml = patchCell(xml, 'H33', null)
-  xml = patchCell(xml, 'H34', null)
-  xml = patchCell(xml, 'H35', null)
 
   return xml
 }
@@ -833,7 +824,7 @@ export async function generateDailyExcel(
     const url    = URL.createObjectURL(blob)
     const a      = document.createElement('a')
     a.href       = url
-    a.download   = `방재업무일지(${String(todayDay).padStart(2, '0')}일).xlsx`
+    a.download   = `${month}월${String(todayDay).padStart(2, '0')}일 방재업무일지.xlsx`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

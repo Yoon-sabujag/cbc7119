@@ -7,24 +7,29 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return Response.json({ success: false, error: '날짜 형식 오류 (YYYY-MM-DD)' }, { status: 400 })
   }
   try {
-    // ── 일정 항목 ────────────────────────────────────────
+    // ── 일정 항목 (오늘 + 내일 — 명일업무 생성용) ─────────
+    const nextDate = (() => {
+      const d = new Date(date + 'T00:00:00')
+      d.setDate(d.getDate() + 1)
+      return d.toISOString().slice(0, 10)
+    })()
     const schedules = await ctx.env.DB.prepare(
       `SELECT id, title, date, time, category, status, inspection_category, memo
-       FROM schedule_items WHERE date = ?
-       ORDER BY CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC`
-    ).bind(date).all()
+       FROM schedule_items WHERE date IN (?, ?)
+       ORDER BY date ASC, CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC`
+    ).bind(date, nextDate).all()
 
     // ── 연차/휴가 ────────────────────────────────────────
     const leaves = await ctx.env.DB.prepare(
-      `SELECT id, staff_id, start_date, end_date, leave_type, reason
-       FROM annual_leaves WHERE start_date <= ? AND end_date >= ?`
-    ).bind(date, date).all()
+      `SELECT id, staff_id, date, type
+       FROM annual_leaves WHERE date = ?`
+    ).bind(date).all()
 
     // ── 승강기 고장 (해당 날짜에 활성 상태) ──────────────
     const elevatorFaults = await ctx.env.DB.prepare(
-      `SELECT id, elevator_id, description, reported_at, resolved_at
+      `SELECT id, elevator_id, symptoms, fault_at, repaired_at, repair_detail, is_resolved
        FROM elevator_faults
-       WHERE date(reported_at) <= ? AND (resolved_at IS NULL OR date(resolved_at) >= ?)`
+       WHERE date(fault_at) <= ? AND (is_resolved = 0 OR date(repaired_at) >= ?)`
     ).bind(date, date).all()
 
     return Response.json({
