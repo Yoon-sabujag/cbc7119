@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { inspectionApi } from '../utils/api'
+import { inspectionApi, fireAlarmApi } from '../utils/api'
+import toast from 'react-hot-toast'
 import { compressImage } from '../utils/imageUtils'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 
@@ -101,6 +102,7 @@ const CATEGORY_GROUPS: { labels:string[]; icon:string; color:string; border:stri
   { labels:['소화전','비상콘센트'],                    icon:'🔌', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['소화전','비상콘센트'] },
   { labels:['소화기'],                               icon:'🧯', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['소화기'] },
   { labels:['소방펌프'],                              icon:'💧', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
+  { labels:['화재수신반'],                            icon:'🔔', color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
 ]
 
 // 점검 결과 입력용 (정상/주의/불량만 — 미조치는 별도 조치 스텝에서 처리)
@@ -2774,6 +2776,7 @@ export default function InspectionPage() {
   const [records,          setRecords]          = useState<Record<string, CheckResult>>({})
   const [recordMeta,       setRecordMeta]       = useState<Record<string, RecordMeta>>({})
   const [showTodayDetail,  setShowTodayDetail]  = useState(false)
+  const [showFireAlarm,    setShowFireAlarm]    = useState(false)
   const [sessionId,        setSessionId]        = useState<string | null>(null)
   const [syncedAt,         setSyncedAt]         = useState<Date | null>(null)
   const [resolveTarget,    setResolveTarget]    = useState<{ cpId: string; recordId: string; result: CheckResult; photoKey?: string; memo?: string } | null>(null)
@@ -3131,12 +3134,15 @@ export default function InspectionPage() {
                 const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
                 const allDone = cps.length > 0 && doneCnt === cps.length
                 return (
-                  <div key={idx} onClick={() => cps.length > 0 && setSelectedGroupIdx(idx)} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: cps.length > 0 ? 'pointer' : 'default', opacity: cps.length > 0 ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
+                  <div key={idx} onClick={() => {
+                    if (g.categories.includes('화재수신반')) { setShowFireAlarm(true); return }
+                    if (cps.length > 0) setSelectedGroupIdx(idx)
+                  }} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: (cps.length > 0 || g.categories.includes('화재수신반')) ? 'pointer' : 'default', opacity: (cps.length > 0 || g.categories.includes('화재수신반')) ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
                     <span style={{ fontSize:16, lineHeight:1.3, flexShrink:0 }}>{g.icon}</span>
                     <div style={{ flex:1, minWidth:0 }}>
                       {g.labels.map(l => <div key={l} style={{ fontSize:10, fontWeight:600, color:'var(--t1)', lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</div>)}
                       <div style={{ fontSize:10, marginTop:2, color: allDone ? 'var(--safe)' : doneCnt > 0 ? 'var(--warn)' : 'var(--t3)' }}>
-                        {cps.length === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${cps.length}` : `${cps.length}개`}
+                        {g.categories.includes('화재수신반') ? '기록' : cps.length === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${cps.length}` : `${cps.length}개`}
                       </div>
                     </div>
                   </div>
@@ -3222,6 +3228,115 @@ export default function InspectionPage() {
           onClose={() => setDetailTarget(null)}
         />
       )}
+
+      {/* 화재수신반 기록 모달 */}
+      {showFireAlarm && (
+        <FireAlarmModal onClose={() => setShowFireAlarm(false)} />
+      )}
+    </div>
+  )
+}
+
+// ── 화재수신반 기록 (전체 화면) ─────────────────────────────────
+function FireAlarmModal({ onClose }: { onClose: () => void }) {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+
+  const [type, setType] = useState<'fire'|'non_fire'>('non_fire')
+  const [date, setDate] = useState(todayStr)
+  const [time, setTime] = useState(timeStr)
+  const [location, setLocation] = useState('')
+  const [cause, setCause] = useState('오작동')
+  const [action, setAction] = useState('자동복구, 현장확인')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await fireAlarmApi.create({ type, occurred_at: `${date} ${time}:00`, location, cause, action })
+      toast.success('화재수신반 기록이 저장되었습니다')
+      onClose()
+    } catch { toast.error('저장 실패') }
+    finally { setSaving(false) }
+  }
+
+  const lbl: React.CSSProperties = { fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:6, display:'block' }
+  const inp: React.CSSProperties = { width:'100%', boxSizing:'border-box' as const, padding:'10px 12px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, outline:'none' }
+
+  return (
+    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* 헤더 */}
+      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'10px 14px', display:'flex', alignItems:'center', gap:10 }}>
+        <span style={{ fontSize:20 }}>🔔</span>
+        <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>화재수신반 기록</span>
+      </div>
+
+      {/* 스크롤 본문 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          {/* 구분 */}
+          <div>
+            <label style={lbl}>구분</label>
+            <div style={{ display:'flex', gap:8 }}>
+              {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
+                <button key={v} onClick={() => setType(v)}
+                  style={{
+                    flex:1, padding:'10px 0', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer',
+                    border: type===v ? '2px solid #ef4444' : '1px solid var(--bd)',
+                    background: type===v ? 'rgba(239,68,68,0.12)' : 'var(--bg3)',
+                    color: type===v ? '#ef4444' : 'var(--t2)',
+                  }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 발생일시 */}
+          <div>
+            <label style={lbl}>발생일시</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              style={{ ...inp, display:'block', WebkitAppearance:'none', marginBottom:6, height:44 }} />
+            <input type="time" value={time} onChange={e => setTime(e.target.value)}
+              style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+          </div>
+
+          {/* 발생장소 */}
+          <div>
+            <label style={lbl}>발생장소</label>
+            <textarea value={location} onChange={e => setLocation(e.target.value)}
+              placeholder="발생장소를 입력하세요" rows={2}
+              style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+          </div>
+
+          {/* 발생원인 */}
+          <div>
+            <label style={lbl}>발생원인</label>
+            <textarea value={cause} onChange={e => setCause(e.target.value)}
+              rows={2} style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+          </div>
+
+          {/* 조치사항 */}
+          <div>
+            <label style={lbl}>조치사항</label>
+            <textarea value={action} onChange={e => setAction(e.target.value)}
+              rows={2} style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+          </div>
+        </div>
+      </div>
+
+      {/* 하단 버튼 바 */}
+      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
+        <button onClick={onClose}
+          style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+          닫기
+        </button>
+        <button onClick={handleSave} disabled={saving}
+          style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 2px 8px rgba(37,99,235,0.3)' }}>
+          {saving ? '저장 중...' : '점검 기록 저장'}
+        </button>
+      </div>
     </div>
   )
 }
