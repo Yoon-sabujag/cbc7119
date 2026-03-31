@@ -1,273 +1,187 @@
-# Feature Landscape: Korean Building Fire Safety Management System
+# Feature Landscape: v1.1 New Features
 
-**Domain:** 건물 소방안전 통합관리 시스템 (Korean Building Fire Safety Facility Management PWA)
-**Researched:** 2026-03-28
-**Context:** Subsequent milestone — completing remaining features for 4-person fire safety team at CHA Bio Complex (Pangyo, Seongnam)
-**Confidence:** MEDIUM-HIGH (primary sources: project design document, reference inspection forms, Korean fire safety regulatory knowledge; web search unavailable)
+**Domain:** Fire Safety / Facility Management PWA (4-person team, single building)
+**Researched:** 2026-03-31 (v1.1 update; initial research 2026-03-28 also preserved below)
+**Context:** v1.0 shipped. This update covers the new features for the v1.1 milestone.
+**Confidence:** MEDIUM-HIGH
 
 ---
 
-## What's Already Built (Do Not Rebuild)
+## What's Already Built (v1.0 — Do Not Rebuild)
 
 | Feature | Status |
 |---------|--------|
 | JWT auth (employee ID + password, 4 accounts) | Done |
 | Dashboard (inspection status, unresolved issues, schedule, elevator faults) | Done |
 | Fire inspection (13 categories, zone/floor/location selection, result input, photos, action flow) | Done |
-| QR scan inspection + QR print (inspection / public) | Done |
-| Inspection schedule management (monthly calendar, CRUD) | Done |
-| Excel report output — 4 types (flow detector, hydrant, clean agent, emergency outlet) | Done |
+| QR scan inspection + QR print | Done |
+| Monthly inspection calendar, schedule CRUD | Done |
+| Excel report output — 10 types | Done |
 | Work shift schedule (3-shift auto-generation, manual adjustment) | Done |
-| Annual leave management (apply/approve, balance calculation) | Done |
+| Annual leave management (6 types) | Done |
 | DIV pressure management (34 measurement points, trend charts) | Done |
-| Building floor plan (floor-by-floor fire facilities) | Done |
+| Building floor plans | Done |
 | Elevator fault recording/history | Done |
+| Daily work report with auto-fill | Done |
+| Inspection schedule ↔ record linkage (dashboard completion sync) | Done |
 
 ---
 
 ## Table Stakes
 
-Features that are legally required or operationally expected. Absence = compliance failure or system unusability.
+Features users will expect as a matter of course. Missing any of these makes the feature feel incomplete or frustrating.
 
-### TS-1: Excel Inspection Log Output — 6 Remaining Types
-
-**Why expected:** Korean fire safety law (소방시설 설치 및 관리에 관한 법률) requires written records of all self-inspection activities. The facility already uses these 10 specific form types derived from the Ministry of Interior's standard forms. The 4 existing types are done; 6 remain.
-
-| Log Type | Items | Format | Priority |
-|----------|-------|--------|----------|
-| Monthly Fire Pump Inspection Log (월간 소방펌프 점검일지) | 20 items, dual-column | Monthly, 양호/불량 symbols | Highest |
-| Automatic Fire Detection System Log (자동화재탐지설비 점검일지) | 10 items | Annual (12-month column matrix), ○/△/× | High |
-| Monthly Smoke Control System Log (월간 제연설비 점검일지) | 9 items | Annual (12-month column matrix), ○/△/× | High |
-| Monthly Fire Shutter Log (월간 방화셔터 점검일지) | 9 items per shutter | Annual (12-month column matrix), ○/△/× | High |
-| Monthly Evacuation/Fire Protection Facilities Log (월간 피난·방화시설 점검일지) | 9 items | Annual (12-month column matrix), ○/△/× | High |
-| Daily Work Report / Disaster Prevention Log (일일업무일지 / 방재업무일지) | Work schedule, inspections, elevator history, fire events | Monthly, tabular + freeform | High |
-
-**Complexity:** Medium per log type. The 12-month matrix types share a common structure — implement one template engine, reuse for 5 types. Fire pump log is structurally different (dual-column monthly format). Daily work report auto-populates from existing data (shifts, schedules, elevator faults).
-
-**Dependencies:**
-- TS-1 requires existing inspection records in DB (done)
-- Daily work report requires work shifts module (done), elevator fault module (done), schedule module (done)
-- Implementation: Excel template copy approach (established pattern from first 4 types) — copy `.xlsx` template → fill values using ExcelJS → download
-
-**Implementation note:** Reference files available at `점검 항목/` directory. The 12-month matrix format (연간 형식) is shared across 5 types: row = inspection item, column = month (1-12), cells = ○/△/×. Use result mapping: 정상→○, 주의→△, 불량→×.
-
----
-
-### TS-2: Legal Fire Safety Inspection Management (법적 점검 관리)
-
-**Why expected:** Korean law mandates 소방시설 자체점검 (self-inspection) twice per year for buildings of this class. The facility manager (소방안전관리자) is legally responsible for scheduling, executing, documenting, and following up on deficiencies. Without this feature, the team has no systematic way to track the legally-mandated bi-annual comprehensive inspection cycle.
-
-| Sub-feature | Details | Complexity |
-|-------------|---------|------------|
-| Legal inspection schedule registration | Date entry, inspection agency name, type (작동기능점검 / 종합정밀점검) | Low |
-| Result and document management | Pass/fail/partial, PDF attachment in R2 | Low-Med |
-| Deficiency (지적사항) tracking | Item list, responsible party, due date, completion status | Medium |
-| Notification | Dashboard alert when inspection is overdue or within 30/7 days | Low |
-| Next inspection auto-calculation | Based on previous inspection date + legal interval (6 months) | Low |
-
-**Legal context (HIGH confidence from regulatory knowledge):**
-- 작동기능점검 (functional inspection): once per year, can be done by the facility's own fire safety manager
-- 종합정밀점검 (comprehensive precision inspection): once per year, must be done by licensed external inspector
-- Total = 2 inspections per year minimum
-- Results must be reported to the fire station (소방서) within specified timeframe
-- Deficiency items (지적사항) must be remediated and documented
-
-**Complexity:** Medium overall. The deficiency tracking sub-feature (linking findings to closure) is the most complex part. Suggest simple list-based approach — no workflow engine needed for 4 users.
-
-**Dependencies:** Legal inspection management is largely independent. Dashboard integration requires dashboard modification (low effort).
-
----
-
-### TS-3: Elevator Real Data Integration (승강기 실데이터 연동)
-
-**Why expected:** Korea's elevator safety law (승강기 안전관리법) requires annual statutory inspection by KOELSA (한국승강기안전공단) or accredited body. The building has 17 elevators. The team already records faults; they need legal inspection records and annual schedule management tied to actual elevator data.
-
-| Sub-feature | Details | Complexity |
-|-------------|---------|------------|
-| Legal inspection record per elevator | Date, inspector/agency, result (합격/불합격/조건부합격), certificate valid until | Medium |
-| Annual inspection schedule management | Per-elevator inspection due date tracking, 30/7-day alerts | Medium |
-| Monthly inspection checklist per elevator | Brake, door, safety devices, lighting, emergency comm — standard KOELSA checklist format | Medium |
-| Inspection log Excel output | Legal inspection journal format for all 17 units | High |
-| Historical inspection records | Multi-year lookup per elevator | Low |
-
-**Context specifics:**
-- 17 units: passenger elevators (8), freight (2), dumbwaiter (1), escalators (6)
-- Escalators have separate inspection schedules from elevators
-- Each unit has a unique registration number (고유번호) — already documented in design spec
-- The team does NOT control inspection scheduling (handled by parent organization 차바이오재단 시설팀) — app receives and records, does not originate schedules
-
-**Complexity:** Medium-High. The existing elevator fault module provides the foundation; extending it with inspection records and schedule management requires new DB tables and UI screens. Excel output for legal inspection log adds complexity.
-
-**Dependencies:** Builds on existing `elevator_faults` table and `/elevator` route. Requires new `elevator_inspections` table (already designed in design spec but not implemented).
-
----
-
-### TS-4: Admin Settings (관리자 설정)
-
-**Why expected:** Without admin settings, the system cannot be maintained over time. Staff changes, facility additions, and system configuration require an admin interface.
-
-| Sub-feature | Details | Complexity |
-|-------------|---------|------------|
-| User management | Password reset, role change for 4 accounts | Low |
-| Fire facility inventory management | Add/edit/deactivate checkpoints, change quantities | Medium |
-| System configuration | Building info, inspection period defaults | Low |
-| QR code management | Regenerate QR codes, link to checkpoints | Low (QR print already exists) |
-
-**Complexity:** Low-Medium. For a 4-person team, this does not need to be sophisticated. Focus on: password reset (admin can reset any account), checkpoint enable/disable (for when a facility is removed), and basic system settings.
-
-**Scope constraint:** Do NOT build a full CRUD facility registration wizard. The facility data is stable — a simple enable/disable plus field edit is sufficient.
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **BottomNav/SideMenu 재편** | 더보기 메뉴 제거 후 조치 메뉴가 직접 접근 가능해야 함. 네비게이션이 정리되지 않으면 신규 기능이 묻힘 | Low | Pure layout change, 0 DB migrations, unblocks everything else |
+| **조치 관리: 미조치 목록** | Dashboard already surfaces 미조치 이슈 count — dedicated page is the natural destination | Low | Data exists: `check_records` with `status`, `resolution_memo`, `resolved_at`, `resolved_by` (migration 0012) |
+| **조치 관리: 조치 등록 (메모 + 사진)** | Industry-standard closed-loop: every deficiency must be documented with action taken and photographic evidence | Medium | Needs `resolution_photo_key` column added to `check_records`. R2 upload mirrors existing inspection photo flow |
+| **조치 관리: 미조치 → 완료 상태 전환** | Closed-loop: item moves open → resolved, dashboard count decrements | Low | PATCH `check_records.status = 'resolved'` |
+| **조치 관리: 필터 (미조치/완료/전체, 날짜, 카테고리)** | Team reviews only open items daily; needs history search too | Low | Client-side filter is fine for 4 users |
+| **법적 점검: 작동기능점검/종합점검 일정 등록** | 법적 의무: 특정소방대상물 — 작동기능점검 연 1회 + 종합정밀점검 연 1회. 소방서 보고 기한 점검 종료 후 15일 이내 | Medium | Two inspection types with legal deadlines; separate from daily self-inspections |
+| **법적 점검: 결과 및 지적사항 기록** | 지적사항 이행계획서는 점검 후 15일 이내 소방서 제출. 이행 완료 보고는 완료 후 10일 이내 | Medium | Per-deficiency status tracking. Keep simple: list + status column, not a state machine |
+| **법적 점검: 서류 첨부 (PDF/이미지)** | 소방서 제출 보고서, 점검업체 점검표, 이행계획서 등 내부 보관 필요 | Low-Med | R2 file upload; list + download. Mirror existing R2 upload pattern |
+| **승강기 법정검사: 검사 기록 (연 1회)** | 승강기 안전관리법: 정기검사 주기 1년 (25년 이상 기기는 6개월). 11대 각각의 만료일 추적 필요 | Low-Med | `elevators` 테이블에 `last_inspection`, `next_inspection` 컬럼 이미 존재. New `elevator_inspections` table for result records |
+| **보수교육: 일정 + 이수 기록** | 소방안전관리자 선임 후 6개월 이내 최초 교육, 이후 2년마다 실무교육 의무. 미이수 시 자격 박탈 | Low-Med | Simple CRUD. 4명 각각의 교육 만료일 추적 |
+| **식사 이용 기록: 개인별 체크인** | 구내식당 이용 여부를 날짜별로 기록. 월별 식비 정산 근거로 사용 | Low | Simple `cafeteria_records` table: staff_id + date + meal_type |
+| **관리자 설정: 직원 정보 수정** | 비밀번호 변경, 직함 수정은 운영 중 필수. admin-only | Low | PATCH `/api/staff/:id` |
+| **점검자 이름 동적 로딩** | 하드코딩된 점검자 목록 제거 — `staff` 테이블 기반으로 동적 로딩 | Low | Tech debt removal. Single source of truth |
 
 ---
 
 ## Differentiators
 
-Features that provide operational efficiency beyond legal minimum. Not expected by regulators but valued by the team.
+Features that go beyond bare minimum and add real team value.
 
-### D-1: Daily Work Report Auto-Population (일일업무일지 자동 기재)
-
-**Value proposition:** The daily work report (방재업무일지) is currently filled out manually every day. Auto-populating from existing data (today's scheduled inspections, elevator fault records, work shift assignments) eliminates ~10-15 minutes of daily data entry per report.
-
-**What auto-populates:**
-- Today's duty staff from work shift schedule
-- Scheduled inspection items from schedule module
-- Elevator fault entries from that day
-- Fire-related events from inspection records
-
-**What remains manual:**
-- Free-text "특이사항" (notable events) field
-- Any events not captured in the system
-
-**Complexity:** Medium. Requires a report-composition API endpoint that queries multiple tables and assembles the report structure. The Excel output follows the `일일업무일지(00월).xlsx` template.
-
----
-
-### D-2: Training / Continuing Education Tracking (보수교육 일정 관리)
-
-**Value proposition:** Fire safety managers in Korea are required to complete continuing education (보수교육) every 2 years. Missing the deadline results in disqualification. This is currently tracked ad-hoc.
-
-| Sub-feature | Details | Complexity |
-|-------------|---------|------------|
-| Training schedule registration | Course name, provider, date, per-person | Low |
-| Completion recording | Date completed, certificate upload to R2 | Low |
-| Dashboard reminder | Alert when training is due within 60/30 days | Low |
-| History view | Past training records per staff member | Low |
-
-**Legal context:** 소방안전관리자 보수교육 주기: 관리자 2년마다, 보조자 기준 동일. Education providers are approved by the National Fire Agency (소방청).
-
-**Complexity:** Low. Simple CRUD with date-based alerting. The `trainings` table is already designed in the schema.
-
----
-
-### D-3: Meal Tracking (식사 이용 기록)
-
-**Value proposition:** The employer provides meals. Individual meal records are needed for monthly cost reconciliation. Currently tracked manually or on paper.
-
-| Sub-feature | Details | Complexity |
-|-------------|---------|------------|
-| Daily meal entry | Lunch / dinner per person, per day | Low |
-| Monthly summary per person | Count by meal type | Low |
-| Admin monthly report | All-staff meal usage for expense reporting | Low |
-
-**Complexity:** Low. The `meals` table is already designed. This is a simple log + aggregation feature. No approval workflow needed.
-
----
-
-### D-4: Inspection Schedule ↔ Inspection Record Linkage (점검 일정 ↔ 점검 기록 연결)
-
-**Value proposition:** Currently, inspection schedules and inspection records are separate — completing an inspection does not mark the corresponding schedule item as done. Linking them closes the loop: dashboard shows accurate completion rates and prevents double-counting.
-
-**Implementation options (as noted in design doc):**
-- Option A: Auto-match records to schedule items by date + category
-- Option B: Manual link from inspection record to schedule item
-
-**Recommendation:** Option A (auto-match) for simplicity — the 4-person team should not need to manually link every record. Auto-match on [inspection date + facility category]. Allow manual override for edge cases.
-
-**Complexity:** Medium. Requires logic change in inspection submission flow and schedule display logic. Risk: false matches if categories don't align perfectly with schedule item definitions.
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **조치 관리: 담당자 배정 + 기한 설정** | "이 불량 개소는 박보융이 3일 내 처리" — accountability without email threads | Medium | Add `assignee_id`, `due_date` to `check_records` or a separate `remediation_tasks` table |
+| **조치 관리: 대시보드 미조치 카운트 연동** | Dashboard count decrements when resolved → satisfying "zero" target for team | Low | Already partially wired; just needs resolved status to filter out correctly |
+| **법적 점검: D-day 알림 배너** | "종합점검 D-14" 배너 on dashboard — proactive reminder without push notifications | Low | Compute days-until from scheduled date; render badge/banner in dashboard |
+| **법적 점검: 지적사항 → 조치관리 연동** | 법적 점검 지적사항이 조치관리 페이지로 자동 유입 — unified remediation list | Medium | Add `source_type` ('daily_inspection' \| 'legal_inspection') to remediation records |
+| **승강기 법정검사: 만료 임박 경고** | 30일 전 대시보드 경고 배지. Mirrors legal inspection D-day pattern | Low | Computed from `next_inspection` column already in `elevators` table |
+| **식당 메뉴표 관리** | 주간/일별 메뉴를 admin이 등록, 당직 근무자가 확인 | Medium | New `cafeteria_menus` table: date + meal_type + menu_text (+ optional image in R2) |
+| **식사 기록: 월별 통계** | 개인별 월 식사 횟수 집계, 식비 정산 엑셀 출력 가능 | Low | Simple GROUP BY; optionally add to existing Excel export surface |
+| **보수교육: 만료 임박 경고** | D-30 대시보드 경고. Legal consequence (자격 박탈)이 크므로 중요도 높음 | Low | Computed from `next_due_date` in education records |
+| **보수교육: 이수증 첨부** | 한국소방안전원 발급 이수증 PDF를 R2에 보관 | Low | R2 upload, mirrors legal inspection document pattern |
+| **관리자 설정: 햄버거 메뉴 항목 구성** | Admin이 사이드 메뉴 표시 항목을 직접 구성 | Medium | Store config in `site_config` D1 table (key-value) or Worker KV; admin UI for toggle/reorder |
+| **streakDays 계산** | 대시보드 연속 달성일 — gamification for team motivation | Low | COUNT consecutive days with at least 1 inspection session |
 
 ---
 
 ## Anti-Features
 
-Features to deliberately NOT build during this milestone.
+Features to explicitly NOT build in v1.1.
 
 | Anti-Feature | Why Avoid | What to Do Instead |
 |--------------|-----------|-------------------|
-| AI daily report auto-writing (AI 자동작성) | Out of scope per PROJECT.md, 4단계 feature. Requires LLM integration, adds external dependency and cost | Manual text field in daily report; auto-populate structured data only |
-| Fire safety plan auto-generation (소방계획서 자동생성) | Same — 4단계. Complex document generation, regulatory format compliance risk | Out of scope for this milestone |
-| Mobile offline inspection support | Explicitly out of scope — network is sufficient, adds service worker complexity | Keep online-only; fail gracefully with user message |
-| OAuth / social login | 4-person internal team, employee ID login is sufficient and simpler | Stay with JWT + employee ID |
-| Push notifications for mobile | PWA push notifications on iOS remain unreliable below iOS 16.4, and the safe-area-inset issue is already permanently unresolved — avoid further PWA edge case work | In-app alerts and dashboard indicators only |
-| Multi-building / multi-tenant support | This system is for one specific building. Generalizing adds UI and data model complexity for zero near-term benefit | Single building, hardcoded configuration |
-| Public-facing compliance dashboard | The public-facing QR inspection history (소화기) already exists. No need to expand public access | Keep scope to existing public QR endpoint |
-| Email / SMS alert system | External service dependency, added cost, team is on-site — in-app dashboard indicators and browser notifications sufficient | Dashboard alert cards |
-| Barcode scanning (non-QR) | Adds library complexity. QR is already implemented and in use | QR only |
-| Complex role permission matrix | 4 users, 2 roles (admin + staff). Simple role check is enough | Keep binary role check (admin / staff) |
+| **Web Push / 소방서 기한 자동 리마인더** | PROJECT.md 명시 제외. iOS PWA push unreliable below iOS 16.4. 4인 팀에 과도 | D-day 배너 UI로 충분 |
+| **식사 결제 / 포인트 시스템** | 이용 여부 체크인이 목적. 회계 시스템 연동은 범위 밖 | 식사 횟수 카운트만 |
+| **교육 이수증 자동 생성** | 이수증은 한국소방안전원에서만 발급. 시스템이 생성 불가 | PDF 첨부 업로드로 대체 |
+| **AI 보고서 자동생성** | PROJECT.md에서 별도 마일스톤 명시 | 현재 범위 밖 |
+| **법적 점검 외부 공유 포털** | 소방서 제출은 safeland.go.kr 등 외부 시스템 | 파일 첨부 다운로드로 대체 |
+| **승강기 원격 모니터링 / KOELSA API 연동** | 불필요한 외부 의존성. 4인 팀 수동 기록으로 충분 | 수동 기록 유지 |
+| **복수 건물 지원** | 단일 건물 전용 시스템 | 단일 건물 유지 |
+| **모바일 오프라인 점검** | PROJECT.md에서 명시 제외 ("현재 네트워크 환경 충분") | 온라인 전용 유지 |
+| **복잡한 권한 매트릭스 (RBAC)** | 4인, 2역할(admin/assistant). 이진 롤 체크로 충분 | 기존 role check 유지 |
+| **점검 이력 삭제 기능** | 데이터 삭제 불가 원칙 (PROJECT.md constraint) | 비활성화(soft-delete)만 허용 |
 
 ---
 
 ## Feature Dependencies
 
 ```
-TS-1 (Excel output 6 types)
-  └── requires: inspection_records data (done)
-  └── requires: work_schedules (done, for daily work report)
-  └── requires: elevator_faults (done, for daily work report)
-  └── requires: ExcelJS library (already in use for first 4 types)
+check_records (result='bad'/'caution', status='open')
+  └── 조치 관리 페이지 [DATA EXISTS — migration 0012 complete]
+      └── resolution_photo_key column [needs 1 migration]
+      └── 대시보드 미조치 카운트 연동 [low effort wire-up]
+      └── 법적 점검 지적사항 연동 [add source_type field]
 
-TS-2 (Legal inspection management)
-  └── requires: R2 storage (done, for document attachments)
-  └── feeds into: Dashboard alert cards (done, needs new alert type)
+BottomNav 재편
+  └── 조치 관리 메뉴 신규 진입점 [navigation must land before page is reachable]
+  └── 승강기 메뉴 이동 [SideMenu reorganization]
 
-TS-3 (Elevator real data)
-  └── requires: elevators table (done)
-  └── requires: elevator_faults table (done)
-  └── new: elevator_inspections table (designed, not implemented)
-  └── feeds into: Dashboard elevator fault card (done, needs inspection status)
+staff 테이블 (dynamic loading)
+  └── 점검자 이름 동적화 [removes hardcoded list]
+  └── 식사 기록 (staff_id FK)
+  └── 보수교육 기록 (staff_id FK)
+  └── 관리자 설정 (user edit)
 
-TS-4 (Admin settings)
-  └── requires: staff table (done)
-  └── requires: check_points table (done)
-  └── no blocking dependencies
+elevators 테이블 (last_inspection, next_inspection columns exist)
+  └── elevator_inspections 신규 테이블 [검사 결과 기록]
+      └── 만료 임박 경고 (D-day 계산)
 
-D-1 (Daily work report auto-population)
-  └── part of: TS-1 daily work log output
-  └── requires: schedule_items (done), work_schedules (done), elevator_faults (done)
+legal_inspections 신규 테이블
+  └── legal_inspection_issues 신규 테이블 (지적사항)
+      └── D-day 배너 (대시보드)
+      └── 조치관리 연동 (source_type='legal_inspection')
 
-D-2 (Training tracking)
-  └── requires: trainings table (designed, not implemented)
-  └── feeds into: Dashboard reminder card (optional enhancement)
+cafeteria_records 신규 테이블
+  └── 월별 통계 (GROUP BY query)
+  └── cafeteria_menus 신규 테이블 (differentiator, optional)
 
-D-3 (Meal tracking)
-  └── requires: meals table (designed, not implemented)
-  └── no other dependencies
+education_records 신규 테이블
+  └── 만료 임박 경고
+  └── R2 이수증 첨부 (mirrors existing upload pattern)
 
-D-4 (Schedule ↔ record linkage)
-  └── requires: schedule_items (done), inspection_records (done)
-  └── feeds into: Dashboard completion stats (done, improves accuracy)
+site_config D1 table (or KV)
+  └── 관리자 설정: 메뉴 구성
 ```
 
 ---
 
-## MVP Recommendation for This Milestone
+## MVP Recommendation
 
-Given a 4-person internal team and the milestone goal (complete remaining features + deploy), prioritize in this order:
+Prioritize in this order:
 
-**Priority 1 — Ship these first (legally required / high operational value):**
-1. TS-1: Excel output 6 types — highest daily-use value, legally required documentation
-2. TS-2: Legal inspection management — legal compliance tracking
-3. TS-3: Elevator real data / inspection management — legally required per 승강기 안전관리법
+1. **BottomNav/SideMenu 재편** — 0 DB work. Unblocks all new page entries. Land first.
+2. **조치 관리 페이지** — Data is 90% in DB already (migration 0012). 1 column migration. Highest daily-use value. Dashboard integration completes 미조치 loop.
+3. **점검자 이름 동적 로딩 + streakDays** — Low complexity, removes tech debt, completes existing dashboard.
+4. **승강기 법정검사** — Existing `elevators` table has the columns. 1 new table. Legal obligation (승강기 안전관리법 연 1회).
+5. **법적 점검 관리** — 2 new tables. Legal obligation (소방시설법 연 2회). D-day UI is high-value differentiator.
+6. **보수교육 관리** — 1 new table. Legal obligation (2년 주기). Simple CRUD + file upload.
+7. **식사 이용 기록 + 메뉴표** — 2 new tables. Lowest urgency but frequently requested by team.
+8. **관리자 설정** — Admin-only CRUD. Milestone wrap-up.
 
-**Priority 2 — Ship these second (complete the system):**
-4. TS-4: Admin settings — needed before deployment, but minimal scope
-5. D-4: Schedule ↔ record linkage — closes the loop on existing features
+Defer to v1.2: AI report generation, push notifications, offline PWA, multi-building.
 
-**Priority 3 — Ship if time allows:**
-6. D-2: Training tracking — simple, legally relevant
-7. D-3: Meal tracking — simple, team-requested
+---
 
-**Defer permanently (this milestone):**
-- D-1 (daily work report auto-population) is partially covered by TS-1 (the Excel output). Full auto-population is a refinement on top of basic Excel output — implement basic version first, enhance later.
-- All anti-features listed above.
+## Domain Context: Korean Legal Requirements (Verified)
+
+### 소방시설 자체점검 (Fire Facility Self-Inspection)
+- **작동기능점검 (Operational Function Check):** 연 1회. 소방시설이 작동하는지 기능 점검.
+- **종합정밀점검 (Comprehensive Inspection):** 연 1회 이상 (특급은 연 2회). 외부 소방시설 관리업체 수행.
+- **보고 기한:** 점검 종료 후 **15일 이내** 소방서에 결과 보고서 + 이행계획서 제출.
+- **이행 완료 보고:** 이행 완료 후 **10일 이내** 소방서 보고.
+- **Confidence:** MEDIUM-HIGH (easylaw.go.kr, busan.go.kr 공지사항, law.go.kr 법령 확인)
+
+### 승강기 법정검사 (Elevator Legal Inspection)
+- **정기검사:** 주기 **연 1회** (설치 25년 이상 기기는 **6개월** 주기). 검사기간 = 만료일 전후 **30일 이내**.
+- **정밀안전검사:** **3년마다** 1회.
+- **차바이오컴플렉스:** 승객용 5대, 화물용 2대, 덤웨이터 2대, 에스컬레이터 2대 = 총 11대.
+- **Confidence:** HIGH (law.go.kr 승강기 안전관리법, keso.kr, koelsa.or.kr 확인)
+
+### 소방안전관리자 보수교육 (Safety Manager Continuing Education)
+- **주기:** 최초 선임 후 **6개월 이내** 강습교육. 이후 **2년마다 1회** 실무교육 의무.
+- **위반 시:** 적발일로부터 3개월 이내 수시교육.
+- **교육 기관:** 한국소방안전원 (kfsi.or.kr).
+- **Confidence:** HIGH (kfsi.or.kr, 다수 법령 출처 일치)
+
+---
+
+## Complexity Summary
+
+| Feature Group | New DB Tables | New Migrations | New API Endpoints | New Pages/Sections | Complexity |
+|---------------|---------------|----------------|-------------------|---------------------|------------|
+| BottomNav 재편 | 0 | 0 | 0 | layout change only | Low |
+| 조치 관리 | 0 (+1 column) | 1 | 2–3 | 1 page | Medium |
+| 점검자 동적 + streakDays | 0 | 0 | 0 (reuse existing) | 0 (code-only) | Low |
+| 승강기 법정검사 | 1 | 1 | 3 | 1 section in ElevatorPage | Low-Med |
+| 법적 점검 관리 | 2 | 1 | 4–5 | 1 page | Medium |
+| 보수교육 관리 | 1 | 1 | 3 | 1 page | Low-Med |
+| 식사 이용 기록 | 2 | 1 | 4 | 1 page | Medium |
+| 관리자 설정 | 0–1 | 0–1 | 2–3 | 1 page | Low-Med |
 
 ---
 
@@ -275,21 +189,25 @@ Given a 4-person internal team and the milestone goal (complete remaining featur
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Excel output 6 types | Fire shutter log has 52 shutters — if each shutter gets its own row, the Excel template becomes very long and complex to generate | Confirm with team: do they need per-shutter rows or aggregated? Use existing `방화셔터.xlsx` reference file before coding |
-| Daily work report | Auto-populating from multiple tables is easy to code but hard to make "feel right" — the report has freeform narrative sections the system cannot fill | Clearly separate auto-populated fields from manual entry areas in the UI |
-| Elevator real data | 17 elevators × annual inspection records × multi-year history = potential for complex UI. KOELSA result codes have specific formats | Start with simple date + pass/fail + certificate upload. Don't over-engineer the result codes |
-| Legal inspection management | Deficiency tracking requires status transitions (발견 → 조치중 → 완료). Without careful design this becomes a mini ticketing system | Keep it as a simple checklist with status column. No state machine needed |
-| Admin settings | Checkpoint edit/disable must preserve historical inspection records (데이터 삭제 불가 원칙) | Soft-delete only (active flag), never hard delete checkpoints |
-| Schedule ↔ record linkage | Auto-matching by date + category may fail when monthly inspection spans multiple days | Use month + year + category as the match key, not exact date |
+| 조치 관리 | `check_records.status` 기본값이 'open'이 아닌 기존 bad/caution 레코드가 있을 수 있음 | Backfill migration: `UPDATE check_records SET status='open' WHERE result IN ('bad','caution') AND status IS NULL` |
+| 법적 점검 지적사항 | 지적사항 추적을 조치관리와 통합하면 `source_type` 필드가 조치관리 쿼리를 복잡하게 만들 수 있음 | 1단계: 지적사항 별도 테이블로 독립 구현. 2단계(v1.2)에서 통합 |
+| 승강기 법정검사 | 11대 각각의 검사 만료일이 다름 — 일괄 알림 UI 설계 복잡 | 대시보드에 "만료 임박 승강기 N대" 단일 배지. 상세는 ElevatorPage에서 |
+| 식사 메뉴표 | 이미지 포함 메뉴표는 R2 업로드 + 표시 로직이 필요 — 출시 복잡도 높아짐 | 1단계: 텍스트 메뉴만. 이미지는 v1.2 |
+| 관리자 설정: 메뉴 구성 | D1 KV 또는 별도 config 테이블 — 어느 쪽이든 구현 가능하나 일관성 필요 | `site_config` D1 table (key TEXT, value TEXT) 단순 패턴 사용 |
+| BottomNav iOS | PROJECT.md: iOS PWA safe-area-inset BottomNav 이슈 건드리지 말 것 | BottomNav 높이/패딩 수정 없이 항목 순서/내용만 변경 |
 
 ---
 
 ## Sources
 
-- Project design document: `/Users/jykevin/Documents/20260328/cbio_fire_system_design.md` (HIGH confidence — first-party design spec)
-- Progress report: `/Users/jykevin/Documents/20260328/cbio_fire_progress_report_20260328.md` (HIGH confidence — current state of implementation)
-- Reference inspection forms: `/Users/jykevin/Documents/20260328/점검 항목/` directory (HIGH confidence — actual forms in use)
-- PROJECT.md requirements: `/Users/jykevin/Documents/20260328/.planning/PROJECT.md` (HIGH confidence)
-- Korean fire safety law knowledge (소방시설 설치 및 관리에 관한 법률, 소방시설법): MEDIUM confidence (training data, ~August 2025 cutoff; verify against 국가법령정보센터 for current regulation text)
-- Korean elevator safety law (승강기 안전관리법): MEDIUM confidence (same caveat)
-- Continuing education (보수교육) requirements: MEDIUM confidence (known regulatory pattern, verify schedule via 한국소방안전원)
+- PROJECT.md requirements: `/Users/jykevin/Documents/20260328/.planning/PROJECT.md` (HIGH confidence — primary source)
+- DB migrations 0001–0032: `/Users/jykevin/Documents/20260328/cha-bio-safety/migrations/` (HIGH confidence — current schema)
+- [소방시설 자체점검 의무 — 찾기쉬운 생활법령정보](https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1574&ccfNo=4&cciNo=4&cnpClsNo=1) — MEDIUM confidence
+- [부산소방재난본부 자체점검 결과보고서 서식 공지](https://119.busan.go.kr/119total/1455139) — MEDIUM confidence
+- [승강기 검사 종류 및 시기 — 찾기쉬운 생활법령정보](https://easylaw.go.kr/CSP/CnpClsMain.laf?popMenu=ov&csmSeq=1169&ccfNo=4&cciNo=1&cnpClsNo=1) — HIGH confidence
+- [한국승강기안전원 검사안내 (keso.kr)](https://www.keso.kr/check/c1) — HIGH confidence
+- [승강기민원24 검사안내 (koelsa.or.kr)](https://minwon.koelsa.or.kr/SubPage.do?pageid=sub00077) — HIGH confidence
+- [한국소방안전원 교육이수 시스템 (kfsi.or.kr)](https://www.kfsi.or.kr/mobile/edu/Main.do?_menuNo=3860) — HIGH confidence
+- [소방안전관리자 실무교육 주기 — 법령 정리](https://jb.marryeight.com/entry/%EC%86%8C%EB%B0%A9%EC%95%88%EC%A0%84%EA%B4%80%EB%A6%AC%EC%9E%90-%EC%8B%A4%EB%AC%B4%EA%B5%90%EC%9C%A1-%EC%A3%BC%EA%B8%B0-6%EA%B0%9C%EC%9B%94-VS-2%EB%85%84) — MEDIUM confidence
+- [Fire Inspection Software corrective action patterns — BlazeStack 2026](https://www.blazestack.com/blog/fire-safety-software) — LOW confidence (general SaaS, reference only)
+- [Bottom Navigation UX 2025 — AppMySite](https://blog.appmysite.com/bottom-navigation-bar-in-mobile-apps-heres-all-you-need-to-know/) — MEDIUM confidence
