@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Completion** — Phases 1-4 (shipped 2026-03-31)
+- 🚧 **v1.1 UI 재편 + 기능 확장** — Phases 5-11 (in progress)
 
 ## Phases
 
@@ -16,6 +17,98 @@
 
 </details>
 
+### 🚧 v1.1 UI 재편 + 기능 확장 (In Progress)
+
+**Milestone Goal:** BottomNav/SideMenu 네비게이션 재편과 함께 조치관리, 식사기록, 보수교육, 법적점검, 승강기검사, 관리자설정 등 잔여 기능 구현
+
+- [ ] **Phase 5: Navigation Restructuring** - BottomNav/SideMenu 재편 — 더보기 제거, 조치 탭 신규, 햄버거 메뉴 통합
+- [ ] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부
+- [ ] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩, streakDays 계산, 관리자 설정 (직원 CRUD, 시스템 설정, 햄버거 순서)
+- [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 식당 메뉴표 — 개인별 기록, 월별 통계, PDF 메뉴 추출
+- [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
+- [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
+- [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
+
+## Phase Details
+
+### Phase 5: Navigation Restructuring
+**Goal**: 사용자가 조치 메뉴를 BottomNav에서 직접 접근하고, 더보기 페이지 없이 햄버거 메뉴로 모든 항목을 탐색할 수 있다
+**Depends on**: Phase 4 (v1.0 complete)
+**Requirements**: NAV-01, NAV-02, NAV-03
+**Success Criteria** (what must be TRUE):
+  1. BottomNav에 조치 탭이 표시되고 /remediation 으로 이동한다
+  2. 승강기 항목이 BottomNav에서 사라지고 햄버거 메뉴에서 접근 가능하다
+  3. /more 경로로 접근하면 앱이 404가 아닌 적절한 페이지(대시보드 등)로 리디렉션한다
+  4. SideMenu(햄버거)에 더보기 항목들이 통합되어 용도별로 구분된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 6: Remediation Tracking
+**Goal**: 점검에서 불량/주의 판정된 개소의 조치 진행 상황을 기록하고 추적할 수 있다
+**Depends on**: Phase 5
+**Requirements**: REM-01, REM-02, REM-03, REM-04
+**Success Criteria** (what must be TRUE):
+  1. 조치 관리 페이지에서 불량/주의 판정 개소 목록을 카테고리·상태·기간별로 필터링해 조회할 수 있다
+  2. 각 항목에 조치 메모를 작성하고 상태(미조치/조치중/완료)를 변경할 수 있다
+  3. 조치 전/후 사진을 R2에 업로드하고 해당 항목 상세 화면에서 확인할 수 있다
+  4. 대시보드의 미조치 카운트가 실제 미조치 건수와 일치한다 (하드코딩 2 제거)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 7: Tech Debt + Admin
+**Goal**: 점검자 이름이 DB에서 동적으로 조회되고, 대시보드에 연속 달성일이 표시되며, 관리자가 직원·시스템 설정을 앱에서 관리할 수 있다
+**Depends on**: Phase 6
+**Requirements**: TECH-01, TECH-02, ADMIN-01, ADMIN-02, ADMIN-03
+**Success Criteria** (what must be TRUE):
+  1. 점검 기록의 점검자 이름이 DB staff 테이블에서 조회되고 하드코딩 STAFF_ROLES 맵이 코드에서 제거된다
+  2. 대시보드의 연속 달성일(streakDays)이 실제 연속 점검 완료 일수를 반영한다 (0 하드코딩 제거)
+  3. 관리자 계정으로만 접근 가능한 관리자 설정 페이지가 존재하며, 직원 계정 추가/수정/비밀번호 초기화가 가능하다
+  4. 관리자가 시스템 설정(점검 카테고리, 개소 관리)을 앱 내에서 구성할 수 있다
+  5. 관리자가 햄버거 메뉴 항목 순서와 표시 여부를 설정할 수 있다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 8: Meal Records
+**Goal**: 팀원이 매일 식사 여부를 앱에서 기록하고, 월별 식사 통계와 주간 메뉴표를 조회할 수 있다
+**Depends on**: Phase 7
+**Requirements**: MEAL-01, MEAL-02, MEAL-03, MEAL-04
+**Success Criteria** (what must be TRUE):
+  1. 개인별로 조식/중식/석식 식사 여부를 날짜별로 기록하고 수정할 수 있다
+  2. 월별 식사 횟수와 금액 합계를 개인 통계로 조회할 수 있다
+  3. 주간 식당 메뉴표를 PDF 업로드 또는 수동 등록으로 관리하고 팀원이 요일별 메뉴를 조회할 수 있다
+  4. 메뉴표 PDF 업로드 시 월~금 점심/저녁 + 토요일 점심 메뉴가 텍스트로 추출되어 표시된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 9: Education Management
+**Goal**: 팀원의 보수교육 일정을 관리하고, 이수 완료 및 인증서를 기록하며, 마감 임박 시 경고를 확인할 수 있다
+**Depends on**: Phase 7
+**Requirements**: EDU-01, EDU-02, EDU-03
+**Success Criteria** (what must be TRUE):
+  1. 교육 일정(교육명, 날짜, 기관, 대상자)을 등록·수정·조회할 수 있다
+  2. 이수 완료를 기록하고 인증서 파일을 R2에 업로드해 앱에서 다운로드할 수 있다
+  3. 개인 페이지에서 다음 교육 마감일까지의 D-day를 확인할 수 있다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 10: Legal Inspection
+**Goal**: 소방시설 법적 점검(작동기능/종합정밀) 결과를 기록하고, 지적사항 시정 진행을 추적하며, 관련 서류를 보관할 수 있다
+**Depends on**: Phase 7
+**Requirements**: LEGAL-01, LEGAL-02
+**Success Criteria** (what must be TRUE):
+  1. 법적 점검 결과(점검 유형, 일자, 점검기관, 결과)를 기록하고 관련 서류를 R2에 업로드할 수 있다
+  2. 지적사항을 항목별로 등록하고 시정조치 내용과 완료 여부를 기록할 수 있다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 11: Elevator Inspection Certs
+**Goal**: 승강기 법정검사 인증서/리포트를 업로드하고 ElevatorPage에서 조회할 수 있다
+**Depends on**: Phase 7
+**Requirements**: ELEV-02
+**Success Criteria** (what must be TRUE):
+  1. 승강기 법정검사 인증서/리포트를 R2에 업로드하고 ElevatorPage에서 확인할 수 있다
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -24,9 +117,15 @@
 | 2. Stabilization & Code Quality | v1.0 | 5/5 | Complete | 2026-03-28 |
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
-
-**Total:** 4 phases, 13 plans — all complete
+| 5. Navigation Restructuring | v1.1 | 0/? | Not started | - |
+| 6. Remediation Tracking | v1.1 | 0/? | Not started | - |
+| 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
+| 8. Meal Records | v1.1 | 0/? | Not started | - |
+| 9. Education Management | v1.1 | 0/? | Not started | - |
+| 10. Legal Inspection | v1.1 | 0/? | Not started | - |
+| 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-28*
-*Last updated: 2026-03-31 after v1.0 milestone completion*
+*v1.1 phases added: 2026-03-31*
+*Last updated: 2026-03-31*
