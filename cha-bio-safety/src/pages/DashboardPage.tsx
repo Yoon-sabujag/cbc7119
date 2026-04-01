@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
 import { useDateTime } from '../hooks/useDateTime'
-import { SideMenu }      from '../components/SideMenu'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
 import type { DashboardScheduleItem, Staff, Role } from '../types'
@@ -35,7 +34,6 @@ export default function DashboardPage() {
 
   const queryClient = useQueryClient()
 
-  const [sideOpen, setSideOpen]       = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleManualComplete = useCallback(async (item: DashboardScheduleItem) => {
@@ -118,7 +116,6 @@ export default function DashboardPage() {
   return (
     <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-      <SideMenu    open={sideOpen}    onClose={() => setSideOpen(false)} />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* ══ 헤더 ══ */}
@@ -126,9 +123,6 @@ export default function DashboardPage() {
 
         {/* 1행 */}
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-          <button onClick={() => setSideOpen(true)} style={iconBtnStyle}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </button>
           <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)', whiteSpace:'nowrap' }}>차바이오컴플렉스 방재팀</span>
           <div style={{ flex:1 }} />
           <span style={{ fontFamily:'JetBrains Mono, monospace', fontSize:11, color:'var(--t2)', whiteSpace:'nowrap' }}>{datetime}</span>

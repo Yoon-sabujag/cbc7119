@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
-import { SideMenu } from '../components/SideMenu'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
@@ -193,7 +192,6 @@ export default function ElevatorPage() {
   const [modal,         setModal]         = useState<Modal>(null)
   const [selectedEv,    setSelectedEv]    = useState<Elevator | null>(null)
   const [selectedFault, setSelectedFault] = useState<ElevatorFault | null>(null)
-  const [sideOpen,      setSideOpen]      = useState(false)
 
   const { data: elevators   = [] } = useQuery({ queryKey:['elevators'],            queryFn: fetchElevators })
   const { data: faults      = [] } = useQuery({ queryKey:['elevator_faults'],      queryFn: fetchFaults })
@@ -268,22 +266,15 @@ export default function ElevatorPage() {
 
   return (
     <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-      <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} />
-
       {/* 헤더 */}
       <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 8px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-          <button onClick={() => setSideOpen(true)} style={iconBtnSt}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-          </button>
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>승강기 관리</span>
-          <div style={{ flex:1 }} />
-          {unresolvedCount > 0 && (
+        {unresolvedCount > 0 && (
+          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.13)', border:'1px solid rgba(239,68,68,.25)', padding:'2px 8px', borderRadius:20 }}>
               미해결 {unresolvedCount}건
             </span>
-          )}
-        </div>
+          </div>
+        )}
         <div style={{ display:'flex', gap:5, overflowX:'auto' }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
@@ -1250,11 +1241,6 @@ function EmptyState({ icon, text }: { icon:string; text:string }) {
 }
 
 // ── 스타일 ────────────────────────────────────────────────
-const iconBtnSt: React.CSSProperties = {
-  width:34, height:34, borderRadius:8, flexShrink:0,
-  background:'var(--bg3)', border:'1px solid var(--bd)',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-}
 const primaryBtnSt: React.CSSProperties = {
   width:'100%', padding:'13px 0', borderRadius:12, border:'none',
   background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)',

@@ -2963,17 +2963,14 @@ export default function InspectionPage() {
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
 
-      {/* 헤더 */}
-      <div style={{ padding:'8px 16px 12px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>소방 점검</div>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', paddingBottom:80 }}>
         {syncedAt && (
-          <div style={{ fontSize:10, color:'var(--t3)' }}>
-            동기화 {syncedAt.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:4 }}>
+            <span style={{ fontSize:10, color:'var(--t3)' }}>
+              동기화 {syncedAt.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
+            </span>
           </div>
         )}
-      </div>
-
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', paddingBottom:80 }}>
 
         {/* 오늘 점검 현황 */}
         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'12px 14px', marginBottom:16 }}>
