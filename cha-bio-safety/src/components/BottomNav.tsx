@@ -28,7 +28,7 @@ const ITEMS: { key: NavKey; label: string; path: string; icon: React.ReactNode }
   },
 ]
 
-export function BottomNav() {
+export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const active = ITEMS.find(i => i.path !== '/' && pathname.startsWith(i.path))?.key ?? 'dashboard'
@@ -91,8 +91,21 @@ export function BottomNav() {
               color: isActive ? 'var(--acl)' : 'var(--t3)',
             }}
           >
-            <div style={{ width: 21, height: 21, color: isActive ? 'var(--acl)' : 'var(--t3)' }}>
+            <div style={{ position: 'relative', width: 21, height: 21, color: isActive ? 'var(--acl)' : 'var(--t3)' }}>
               {item.icon}
+              {item.key === 'remediation' && unresolvedCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: 0, right: 0,
+                  background: 'var(--danger)', color: '#fff',
+                  fontSize: 11, fontWeight: 700, fontFamily: 'JetBrains Mono',
+                  padding: '2px 4px', borderRadius: 9,
+                  minWidth: 16, textAlign: 'center',
+                  lineHeight: 1,
+                  transform: 'translate(50%, -50%)',
+                }}>
+                  {unresolvedCount > 99 ? '99+' : unresolvedCount}
+                </span>
+              )}
             </div>
             <span style={{ fontSize: 9.5, fontWeight: 500, color: isActive ? 'var(--acl)' : 'var(--t3)' }}>
               {item.label}

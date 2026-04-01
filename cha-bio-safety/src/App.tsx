@@ -1,6 +1,6 @@
 import { Suspense, lazy, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './stores/authStore'
 import { BottomNav } from './components/BottomNav'
@@ -8,6 +8,7 @@ import { GlobalHeader } from './components/GlobalHeader'
 import { SideMenu } from './components/SideMenu'
 import { SettingsPanel } from './components/SettingsPanel'
 import { useDateTime } from './hooks/useDateTime'
+import { dashboardApi } from './utils/api'
 // Safe area 초기화는 index.html 인라인 스크립트에서 처리 (React 마운트 전 실행)
 
 const SplashScreen   = lazy(() => import('./pages/SplashScreen'))
@@ -18,6 +19,7 @@ const QRScanPage     = lazy(() => import('./pages/QRScanPage'))
 const ElevatorPage   = lazy(() => import('./pages/ElevatorPage'))
 const NotFoundPage   = lazy(() => import('./pages/NotFoundPage'))
 const RemediationPage = lazy(() => import('./pages/RemediationPage'))
+const RemediationDetailPage = lazy(() => import('./pages/RemediationDetailPage'))
 const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
 const ReportsPage    = lazy(() => import('./pages/ReportsPage'))
 const DailyReportPage = lazy(() => import('./pages/DailyReportPage'))
@@ -58,9 +60,20 @@ const PAGE_TITLES: Record<string, string> = {
 function Layout() {
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
-  const showNav = isAuthenticated && !NO_NAV_PATHS.includes(location.pathname)
+  const showNav = isAuthenticated
+    && !NO_NAV_PATHS.includes(location.pathname)
+    && !location.pathname.match(/^\/remediation\/.+/)
   const [sideOpen, setSideOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const { data: dashData } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: dashboardApi.getStats,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+    enabled: isAuthenticated,
+  })
+  const unresolvedCount = dashData?.stats?.unresolved ?? 0
   const datetime = useDateTime()
   const dateOnly = datetime.split('  ')[0] // "4.1(화)" 부분만
   const pageTitle = PAGE_TITLES[location.pathname] || ''
@@ -94,7 +107,7 @@ function Layout() {
       paddingTop: 'var(--sat, 0px)',
     }}>
       {showNav && <GlobalHeader title={isDashboard ? dateOnly : pageTitle} onMenuOpen={() => setSideOpen(true)} rightSlot={isDashboard ? dashboardRightSlot : undefined} />}
-      {showNav && <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} />}
+      {showNav && <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} unresolvedCount={unresolvedCount} />}
       {isDashboard && showNav && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', paddingBottom: showNav ? 'calc(54px + var(--sab, 34px))' : 0 }}>
         <Suspense fallback={<Loader />}>
@@ -106,6 +119,7 @@ function Layout() {
             <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
             <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
             <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
+            <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
             <Route path="/more"          element={<Navigate to="/dashboard" replace />} />
             <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
             <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
@@ -120,7 +134,7 @@ function Layout() {
           </Routes>
         </Suspense>
       </div>
-      {showNav && <BottomNav />}
+      {showNav && <BottomNav unresolvedCount={unresolvedCount} />}
     </div>
   )
 }

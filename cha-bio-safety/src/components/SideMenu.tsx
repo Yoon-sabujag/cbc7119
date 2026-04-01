@@ -8,6 +8,7 @@ const NAV_H = 'calc(54px + var(--sab, 0px))'
 interface Props {
   open: boolean
   onClose: () => void
+  unresolvedCount?: number
 }
 
 const MENU = [
@@ -37,7 +38,7 @@ const MENU = [
   ]},
 ]
 
-export function SideMenu({ open, onClose }: Props) {
+export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   const navigate  = useNavigate()
   const { staff, logout } = useAuthStore()
 
@@ -125,9 +126,14 @@ export function SideMenu({ open, onClose }: Props) {
                   onMouseLeave={e => (e.currentTarget.style.background='transparent')}
                 >
                   <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
-                  {item.badge > 0 && (
-                    <span style={{ background:'var(--danger)', color:'#fff', fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:9 }}>{item.badge}</span>
-                  )}
+                  {(() => {
+                    const badgeCount = item.path === '/remediation' ? unresolvedCount : item.badge
+                    return badgeCount > 0 ? (
+                      <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, fontWeight:700, fontFamily:'JetBrains Mono', padding:'2px 4px', borderRadius:9, minWidth:16, textAlign:'center' }}>
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    ) : null
+                  })()}
                 </div>
               ))}
             </div>
