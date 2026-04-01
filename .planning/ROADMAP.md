@@ -29,6 +29,10 @@
 - [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
 - [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
 
+### Ad-hoc: 도면 페이지 유도등 PNG 마커 시스템 (completed 2026-04-02, GSD 외부 작업)
+
+FloorPlanPage 전면 리라이트 — SVG viewBox → PNG + CSS transform 핀치줌 + 마커 오버레이. 유도등 도면 13층 PNG 배포, floor_plan_markers 테이블(0033), 마커 CRUD API, 관리자 편집(롱프레스 추가/드래그 이동/삭제), 6종 유도등 마커 체계(천장피난구/벽부피난구/거실통로/복도통로/계단통로/객석통로), 점검 개소 연결 및 점검 페이지 연동.
+
 ## Phase Details
 
 ### Phase 5: Navigation Restructuring
@@ -58,7 +62,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 06-01-PLAN.md — API 엔드포인트 + 공유 훅 추출 + API 클라이언트
-- [ ] 06-02-PLAN.md — RemediationPage 목록 + 상세 페이지 + 라우팅 + 배지 연동
+- [x] 06-02-PLAN.md — RemediationPage 목록 + 상세 페이지 + 라우팅 + 배지 연동
 **UI hint**: yes
 
 ### Phase 7: Tech Debt + Admin

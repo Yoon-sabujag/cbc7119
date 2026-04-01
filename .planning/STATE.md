@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-04-01T17:25:45.483Z"
+stopped_at: "Checkpoint: 06-02 Task 3 visual verification"
+last_updated: "2026-04-01T17:31:46.565Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 100
 ---
 
@@ -55,10 +55,18 @@ Progress: [██████████] 100% (Phase 05 plans)
 | 법적 점검 지적사항 → 조치관리 통합은 v1.2로 이관 | source_type 연동 복잡도 vs 4인 팀 가치 불균형 |
 | SideMenu 4섹션 구조 + soon:boolean 패턴 | 준비중 아이템을 disabled 렌더링으로 표시; 하드코딩 배지 전면 제거 (D-04, D-05, D-06) |
 | SideMenu 하단 사용자 카드/로그아웃 버튼 보존 | MorePage 삭제 후 유일한 로그아웃 경로 (D-07) |
+| 도면 PNG 방식으로 전환 (GSD 외부 작업) | DWG→SVG 불가로 PNG 채택, CSS transform 핀치줌, 마커 오버레이 방식 |
+| 유도등 도면 6종 마커 체계 | 천장피난구(역사다리꼴)/벽부피난구(■)/거실통로(▽)/복도통로(◆세로선)/계단통로(◆가로선)/객석통로(●) |
+| 마커 좌표 % 기반 저장 | 이미지 크기와 무관하게 일관된 위치, objectFit:contain 렌더 영역 기준 |
 
 ### Architecture Notes
 
-- D1 at migration 0032; v1.1에서 0033-0038 (6개 신규 마이그레이션) 적용 예정
+- D1 at migration 0033; floor_plan_markers 테이블 추가 (0033_floor_plan_markers.sql)
+- 도면 이미지: public/floorplans/guidelamp/{floor}.png (13층, 총 ~17MB)
+- FloorPlanPage: SVG viewBox → CSS transform 방식으로 전면 리라이트
+- FloorB5.tsx: 미사용 상태 (삭제 가능)
+- API: /api/floorplan-markers (GET/POST) + /api/floorplan-markers/[id] (PUT/DELETE)
+- D1 at migration 0032; v1.1에서 0034-0038 (5개 신규 마이그레이션) 적용 예정
 - RemediationPage: 신규 마이그레이션 불필요 (migration 0012 스키마 이미 존재)
 - Admin settings: migration 0036 (system_settings 테이블) 필요
 - NO_NAV_PATHS in App.tsx: /meal, /education, /admin, /legal-inspection 추가 필요; /remediation은 추가하면 안 됨
@@ -74,8 +82,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-01T17:25:45.478Z
-**Stopped at:** Completed 06-01-PLAN.md
+**Last session:** 2026-04-01T17:31:46.545Z
+**Stopped at:** Checkpoint: 06-02 Task 3 visual verification
 
 **Key files:**
 
