@@ -42,7 +42,7 @@
   4. SideMenu(햄버거)에 더보기 항목들이 통합되어 용도별로 구분된다
 **Plans**: 2 plans
 Plans:
-- [ ] 05-01-PLAN.md — GlobalHeader + BottomNav 탭 교체 + RemediationPage + 라우트 정리
+- [x] 05-01-PLAN.md — GlobalHeader + BottomNav 탭 교체 + RemediationPage + 라우트 정리
 - [ ] 05-02-PLAN.md — SideMenu 4섹션 재편 + 페이지별 헤더/SideMenu 중복 제거
 **UI hint**: yes
 
@@ -120,7 +120,7 @@ Plans:
 | 2. Stabilization & Code Quality | v1.0 | 5/5 | Complete | 2026-03-28 |
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
-| 5. Navigation Restructuring | v1.1 | 0/2 | Planning | - |
+| 5. Navigation Restructuring | v1.1 | 1/2 | In Progress|  |
 | 6. Remediation Tracking | v1.1 | 0/? | Not started | - |
 | 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
