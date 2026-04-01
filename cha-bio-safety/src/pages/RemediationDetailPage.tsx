@@ -62,7 +62,7 @@ export default function RemediationDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       toast.success('조치 완료')
-      navigate('/remediation')
+      navigate(-1)
     } catch {
       toast.error('조치 처리 실패')
     } finally {
@@ -85,7 +85,7 @@ export default function RemediationDetailPage() {
       }}>
         <button
           aria-label="목록으로 돌아가기"
-          onClick={() => navigate('/remediation')}
+          onClick={() => navigate(-1)}
           style={{
             position: 'absolute',
             left: 12,
@@ -134,7 +134,7 @@ export default function RemediationDetailPage() {
             <SectionHeader>점검 정보</SectionHeader>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <KVRow label="카테고리">{record.category}</KVRow>
-              <KVRow label="위치">{(ZONE_LABEL[record.zone] ?? record.zone)} {record.floor}</KVRow>
+              <KVRow label="위치">{(ZONE_LABEL[record.zone] ?? record.zone)} {record.floor}{record.location ? ` · ${record.location}` : ''}</KVRow>
               <KVRow label="점검일">{fmtDate(record.checkedAt)}</KVRow>
               <KVRow label="점검자">{record.staffName ?? '-'}</KVRow>
               <KVRow label="판정결과">
@@ -213,7 +213,7 @@ export default function RemediationDetailPage() {
                 }}
               />
               <div style={{ marginTop: 12 }}>
-                <PhotoButton hook={photo} />
+                <PhotoButton hook={photo} noCapture />
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { remediationApi } from '../utils/api'
 
@@ -20,7 +20,11 @@ const SKELETON_STYLE: React.CSSProperties = {
 
 export default function RemediationPage() {
   const navigate = useNavigate()
-  const [statusTab, setStatusTab] = useState<'all' | 'open' | 'resolved'>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const statusTab = (searchParams.get('tab') as 'all' | 'open' | 'resolved') || 'all'
+  const setStatusTab = (tab: 'all' | 'open' | 'resolved') => {
+    setSearchParams(prev => { prev.set('tab', tab); return prev }, { replace: true })
+  }
   const [categoryFilter, setCategoryFilter] = useState('')
   const [days, setDays] = useState(30)
 
@@ -189,9 +193,9 @@ export default function RemediationPage() {
                 </span>
               </div>
 
-              {/* Line 2: 위치 (동→층) */}
+              {/* Line 2: 위치 (동→층) + 개소명 */}
               <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                {zoneLabel(record.zone)} {record.floor}
+                {zoneLabel(record.zone)} {record.floor}{record.location ? ` · ${record.location}` : ''}
               </div>
 
               {/* Line 3: 메모 미리보기 */}
