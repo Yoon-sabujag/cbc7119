@@ -42,6 +42,21 @@ export const dashboardApi = {
   }>('/dashboard/stats'),
 }
 
+export const remediationApi = {
+  list: (params: { status?: string; category?: string; days?: number }) => {
+    const q = new URLSearchParams()
+    if (params.status && params.status !== 'all') q.set('status', params.status)
+    if (params.category) q.set('category', params.category)
+    if (params.days !== undefined) q.set('days', String(params.days))
+    const qs = q.toString()
+    return api.get<{ records: import('../types').RemediationRecord[]; categories: string[] }>(
+      `/remediation${qs ? '?' + qs : ''}`
+    )
+  },
+  get: (recordId: string) =>
+    api.get<import('../types').RemediationRecord>(`/remediation/${recordId}`),
+}
+
 export const scheduleApi = {
   getByDate:  (date: string)  => api.get<import('../types').ScheduleItem[]>(`/schedule?date=${date}`),
   getByMonth: (month: string) => api.get<import('../types').ScheduleItem[]>(`/schedule?month=${month}`),
@@ -96,6 +111,33 @@ export const fireAlarmApi = {
   getRecent: () => req<any[]>('/fire-alarm?recent=1'),
   create: (data: { type: string; occurred_at: string; location: string; cause: string; action: string }) =>
     req<{ id: string }>('/fire-alarm', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+export interface FloorPlanMarker {
+  id: string
+  floor: string
+  plan_type: string
+  marker_type: string | null
+  x_pct: number
+  y_pct: number
+  label: string | null
+  check_point_id: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  last_result: string | null
+  last_inspected_at: string | null
+}
+
+export const floorPlanMarkerApi = {
+  list: (floor: string, planType: string) =>
+    api.get<FloorPlanMarker[]>(`/floorplan-markers?floor=${floor}&plan_type=${planType}`),
+  create: (body: { floor: string; plan_type: string; marker_type?: string; x_pct: number; y_pct: number; label?: string; check_point_id?: string }) =>
+    api.post<{ id: string }>('/floorplan-markers', body),
+  update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null }) =>
+    api.put<void>(`/floorplan-markers/${id}`, body),
+  delete: (id: string) =>
+    api.delete<void>(`/floorplan-markers/${id}`),
 }
 
 export const inspectionApi = {

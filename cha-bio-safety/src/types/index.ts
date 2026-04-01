@@ -22,3 +22,22 @@ export type ElevatorStatus = 'normal'|'fault'|'maintenance'|'out_of_service'
 export interface Elevator { id:string; number:number; type:ElevatorType; location:string; status:ElevatorStatus; lastInspection?:string; nextInspection?:string }
 
 export interface ApiResponse<T> { success:boolean; data?:T; error?:string }
+
+export interface RemediationRecord {
+  id: string
+  result: 'bad' | 'caution'
+  memo: string | null
+  photoKey: string | null
+  status: 'open' | 'resolved'
+  resolutionMemo: string | null
+  resolutionPhotoKey: string | null
+  resolvedAt: string | null
+  resolvedBy: string | null
+  checkedAt: string
+  staffId: string
+  staffName: string | null
+  category: string
+  location: string
+  floor: string
+  zone: string
+}
