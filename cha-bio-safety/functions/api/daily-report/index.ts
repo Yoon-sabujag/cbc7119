@@ -9,8 +9,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
     // ── 일정 항목 (오늘 + 내일 — 명일업무 생성용) ─────────
     const nextDate = (() => {
-      const d = new Date(date + 'T00:00:00')
-      d.setDate(d.getDate() + 1)
+      const [y, m, day] = date.split('-').map(Number)
+      const d = new Date(Date.UTC(y, m - 1, day + 1))
       return d.toISOString().slice(0, 10)
     })()
     const schedules = await ctx.env.DB.prepare(

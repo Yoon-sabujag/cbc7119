@@ -87,8 +87,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     // ── 이번 달 점검 진척도 ──────────────────────────
     const monthStart = `${today.slice(0,7)}-01`
     const monthEnd   = (() => {
-      const d = new Date(today + 'T00:00:00+09:00'); d.setMonth(d.getMonth() + 1, 0)
-      return d.toISOString().slice(0,10)
+      const [y, m] = today.split('-').map(Number)
+      const lastDay = new Date(y, m, 0).getDate()
+      return `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
     })()
 
     // 이번 달 inspect 일정을 inspection_category 기준으로 고유 항목 추출
