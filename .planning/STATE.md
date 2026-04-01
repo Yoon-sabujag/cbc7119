@@ -4,11 +4,11 @@ milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
 status: verifying
 stopped_at: Completed 05-02-PLAN.md (Phase 5 complete)
-last_updated: "2026-04-01T10:01:13.958Z"
+last_updated: "2026-04-01T10:27:13.989Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 1
   total_plans: 2
   completed_plans: 2
   percent: 100
@@ -33,8 +33,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 05 (navigation-restructuring) — COMPLETE
-Plan: 2 of 2
+Phase: 6
+Plan: Not started
 Status: Phase 05 complete — all plans verified by user on production
 Last activity: 2026-04-01
 
