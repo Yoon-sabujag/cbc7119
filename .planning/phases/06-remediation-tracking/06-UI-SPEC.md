@@ -59,7 +59,7 @@ Exactly 4 sizes, exactly 2 weights.
 | Role    | Size  | Weight    | Line Height | Font         | Usage |
 |---------|-------|-----------|-------------|--------------|-------|
 | Heading | 16px  | 700 bold  | 1.2         | Noto Sans KR | Card primary line (category name), detail section headers, page title, empty-state heading |
-| Body    | 14px  | 400 regular | 1.5       | Noto Sans KR | Card memo preview, detail section text, filter labels, key-value field values, textarea input |
+| Body    | 14px  | 400 regular (default); 700 bold for emphasis | 1.5 | Noto Sans KR | Card memo preview, detail section text, filter labels, key-value field values, textarea input; card Line 1 (category name) uses 14px weight 700 |
 | Label   | 12px  | 700 bold  | 1.4         | Noto Sans KR | Card category+location line, status badge text, chip labels, section header labels, period button text, dropdown font |
 | Meta    | 11px  | 400 regular | 1.4       | Noto Sans KR | Inspection date, inspector name, resolved date, photo button label |
 
@@ -87,7 +87,7 @@ All values reference CSS variables defined in `src/index.css`:
 | Secondary (30%) | `var(--bg2)` / `var(--bg3)` / `var(--bg4)` | #161b22 / #1c2128 / #22272e | Cards (#bg3), filter bars (#bg2), active tab background (#bg4) |
 | Accent (10%) | `var(--acl)` | #3b82f6 | Active tab indicator (status tabs), active BottomNav icon, primary CTA button background |
 | Warn semantic | `var(--warn)` | #f59e0b | 주의(caution) result badge background tint + text |
-| Danger semantic | `var(--danger)` | #ef4444 | 불량(bad) result badge background tint + text; destructive remove-photo button |
+| Danger semantic | `var(--danger)` | #ef4444 | 불량(bad) result badge background tint + text; destructive remove-photo button; "미조치" status chip text |
 | Safe semantic | `var(--safe)` | #22c55e | 완료(resolved) status badge |
 | Text primary | `var(--t1)` | #e6edf3 | Card headings, detail section headings |
 | Text secondary | `var(--t2)` | #8b949e | Memo preview text, secondary labels |
@@ -153,7 +153,7 @@ Result badge color contract:
   - Line 2: Location "동→층" format (12px Label, weight 400, `var(--t2)`) — e.g. "사무동 B2층"
   - Line 3: Memo first line preview (12px Label, weight 400, `var(--t2)`, max 1 line, text-overflow ellipsis) — show "메모 없음" in `var(--t3)` if null
   - Line 4: Inspection date (11px Meta, `var(--t3)`) + status chip (right-aligned)
-- Status chip: "미조치" = `rgba(249,115,22,.15)` bg, `var(--fire)` text; "완료" = `rgba(34,197,94,.13)` bg, `var(--safe)` text. Font 11px (Meta), weight 700, padding 2px 6px, border-radius 5px
+- Status chip: "미조치" = `rgba(249,115,22,.15)` bg, `var(--danger)` text; "완료" = `rgba(34,197,94,.13)` bg, `var(--safe)` text. Font 11px (Meta), weight 700, padding 2px 6px, border-radius 5px
 - Card tap → navigate to `/remediation/:recordId`
 - Card gap: 8px between cards, 16px horizontal list padding
 
@@ -172,7 +172,7 @@ Result badge color contract:
 **Header:**
 - Back button (left): ChevronLeft icon 20px, `var(--t1)` color, taps → navigate(-1) back to `/remediation`. **Required accessibility attribute:** `aria-label="목록으로 돌아가기"` on the button element.
 - Title: "조치 상세" (16px Heading, weight 700, `var(--t1)`, centered)
-- Background: `rgba(22,27,34,0.97)`, border-bottom `1px solid var(--bd)`, height 52px
+- Background: `rgba(22,27,34,0.97)`, border-bottom `1px solid var(--bd)`, height **48px**
 
 **Section 1: 점검 정보**
 - Section header: "점검 정보" (12px Label, weight 700, `var(--t3)`, uppercase-style label)
@@ -207,7 +207,7 @@ Result badge color contract:
   - Button: 72x72px, `var(--bg2)` background, dashed border `var(--bd2)`, border-radius 10px
   - Label: "사진 첨부" (11px Meta, weight 400, `var(--t3)`)
   - Camera icon: 📷 22px emoji
-  - After selection: 72x72px image preview with ✕ remove button (20px circle, `var(--danger)` background)
+  - After selection: 72x72px image preview with ✕ remove button (20px circle, `var(--danger)` background, `aria-label="사진 제거"`)
   - Uploading overlay: "업로드 중" text on semi-transparent overlay (matches InspectionPage pattern exactly)
 
 **Fixed-bottom CTA area** (only for open items):
@@ -257,7 +257,7 @@ minWidth: 16px, textAlign: center
 | Back button aria-label | "목록으로 돌아가기" |
 
 Destructive actions in this phase:
-- **Remove attached photo (조치 사진 제거):** Tap ✕ on photo preview → immediate removal with no confirmation dialog (matches InspectionPage pattern; photo not yet uploaded so no server-side state affected)
+- **Remove attached photo (조치 사진 제거):** Tap ✕ on photo preview → immediate removal with no confirmation dialog (matches InspectionPage pattern; photo not yet uploaded so no server-side state affected). Button must carry `aria-label="사진 제거"`.
 - No other destructive actions. "조치 완료" is irreversible but is a completion action, not a deletion — no confirmation dialog required per D-09.
 
 **Location format (mandatory):** Always render as `{zone} {floor}` — e.g. "사무동 B2층", "연구동 3층". Source: CONTEXT.md Specifics + Pitfall 6 in RESEARCH.md.
@@ -336,6 +336,10 @@ No third-party component registries. All UI is hand-rolled with inline styles + 
 | Badge min-width 16px, padding 2px 4px | Checker fix — aligns to scale (2px border-snap exception documented) |
 | Back button aria-label | Checker fix — Dimension 2 accessibility requirement |
 | Typography consolidated 9→11, 13→12, 15→14, 600→700 | Checker fix — Dimension 4 max-4-sizes / max-2-weights contract |
+| Header height 52px → 48px | Checker fix (revision) — Dimension 5 spacing must be multiple of 4 |
+| Photo remove button aria-label="사진 제거" | Checker fix (revision) — Dimension 2 accessibility |
+| var(--fire) → var(--danger) for 미조치 chip text | Checker fix (revision) — Dimension 3 undefined variable removed |
+| Body weight clarified: 400 default, 700 for emphasis (card Line 1) | Checker fix (revision) — Dimension 4 weight contract ambiguity resolved |
 
 ---
 
