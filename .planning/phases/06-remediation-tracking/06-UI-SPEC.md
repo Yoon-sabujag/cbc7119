@@ -44,25 +44,36 @@ Declared values (multiples of 4 only):
 | 3xl   | 64px  | Page-level vertical padding (rarely used on mobile) |
 
 Exceptions:
+
 - Touch targets for status tab buttons: minimum 44px height (iOS tap target requirement)
-- BottomNav height: 54px fixed + `var(--sab)` safe-area-inset-bottom (preserved from Phase 5)
+- BottomNav height: **54px fixed** — locked constraint, existing codebase value in `src/components/BottomNav.tsx`. Do not change. Append `var(--sab)` safe-area-inset-bottom as in Phase 5.
 - Photo button: 72x72px (established InspectionPage pattern)
-- Badge on BottomNav remediation tab: 14px min-width, 9px font, 1px/4px padding (matches RESEARCH.md Pattern 4)
+- Badge on BottomNav remediation tab: **16px min-width** (not-a-multiple-of-4 exception granted only for BottomNav locked height above; badge min-width follows scale), padding **2px 4px** (2px is border-snap exception — minimum render artifact for single-digit numbers; 4px follows xs token)
 
 ---
 
 ## Typography
 
-| Role    | Size  | Weight       | Line Height | Font      | Usage |
-|---------|-------|--------------|-------------|-----------|-------|
-| Body    | 14px  | 400 regular  | 1.5         | Noto Sans KR | Card memo preview, detail section text, filter labels |
-| Label   | 12px  | 700 bold     | 1.4         | Noto Sans KR | Card category+location line, status badge text, chip labels |
-| Heading | 16px  | 700 bold     | 1.2         | Noto Sans KR | Card primary line (category name), detail section headers, page title |
-| Meta    | 11px  | 400 regular  | 1.4         | Noto Sans KR | Inspection date, inspector name, resolved date |
+Exactly 4 sizes, exactly 2 weights.
 
-Mono font (JetBrains Mono, weight 600): badge count numbers only (e.g. unresolved count badge).
+| Role    | Size  | Weight    | Line Height | Font         | Usage |
+|---------|-------|-----------|-------------|--------------|-------|
+| Heading | 16px  | 700 bold  | 1.2         | Noto Sans KR | Card primary line (category name), detail section headers, page title, empty-state heading |
+| Body    | 14px  | 400 regular | 1.5       | Noto Sans KR | Card memo preview, detail section text, filter labels, key-value field values, textarea input |
+| Label   | 12px  | 700 bold  | 1.4         | Noto Sans KR | Card category+location line, status badge text, chip labels, section header labels, period button text, dropdown font |
+| Meta    | 11px  | 400 regular | 1.4       | Noto Sans KR | Inspection date, inspector name, resolved date, photo button label |
 
-**Source:** Inferred from `src/components/ui/index.tsx` StatusBadge (8px/700), DutyChip (12px/700, 9px/600), and DashboardPage body patterns (14px). Consistent with existing codebase.
+Absorbed sizes (checker fix):
+- 9px → 11px (Meta role — badge count numbers, photo button label)
+- 13px → 12px (Label role — tab font, empty-state body, filter labels)
+- 15px → 14px (Body role — CTA button label)
+
+Absorbed weights (checker fix):
+- 600 → 700 throughout (JetBrains Mono badge count: weight 700; PhotoButton label: weight 400 per Meta row)
+
+Mono font: JetBrains Mono, weight 700 — badge count numbers only (e.g. unresolved count badge). Size follows Meta (11px).
+
+**Source:** Inferred from `src/components/ui/index.tsx` StatusBadge, DutyChip, and DashboardPage body patterns. Consolidated to 4-size / 2-weight contract per checker requirement.
 
 ---
 
@@ -127,10 +138,10 @@ Result badge color contract:
 - Row 1: Status tabs — "전체" | "미조치" | "완료"
   - Active tab: `var(--acl)` bottom border 2px + background `var(--bg4)`, height 44px
   - Inactive tab: `var(--t3)` text, no border
-  - Tab font: 13px, weight 600
+  - Tab font: 12px (Label), weight 700
 - Row 2: Category dropdown (left) + period buttons (right) on same row, 8px gap
-  - Category dropdown: `<select>` styled with `var(--bg3)` background, `var(--bd2)` border, `var(--t1)` text, 12px font, 8px horizontal padding, 36px height, border-radius 8px
-  - Period buttons: "7일" | "30일" | "90일" | "전체" — active: `var(--bg4)` background, `var(--t1)` text; inactive: `var(--bg2)` background, `var(--t3)` text. Height 32px, padding 0 12px, border-radius 8px, font 12px weight 600
+  - Category dropdown: `<select>` styled with `var(--bg3)` background, `var(--bd2)` border, `var(--t1)` text, 12px font (Label), 8px horizontal padding, 36px height, border-radius 8px
+  - Period buttons: "7일" | "30일" | "90일" | "전체" — active: `var(--bg4)` background, `var(--t1)` text; inactive: `var(--bg2)` background, `var(--t3)` text. Height 32px, padding 0 12px, border-radius 8px, font 12px (Label) weight 700
   - Default period: 30일
 
 **Card list:**
@@ -138,17 +149,17 @@ Result badge color contract:
 - Card layout: horizontal flex, `var(--bg3)` background, `var(--bd)` border, border-radius 12px, padding 12px
 - Left: 2px color bar (CatBar pattern) — `var(--danger)` for bad, `var(--warn)` for caution
 - Main area:
-  - Line 1: Category (14px, weight 700, `var(--t1)`) + result badge (right-aligned)
-  - Line 2: Location "동→층" format (12px, weight 400, `var(--t2)`) — e.g. "사무동 B2층"
-  - Line 3: Memo first line preview (12px, weight 400, `var(--t2)`, max 1 line, text-overflow ellipsis) — show "메모 없음" in `var(--t3)` if null
-  - Line 4: Inspection date (11px, `var(--t3)`) + status chip (right-aligned)
-- Status chip: "미조치" = `rgba(249,115,22,.15)` bg, `var(--fire)` text; "완료" = `rgba(34,197,94,.13)` bg, `var(--safe)` text. Font 9px, weight 700, padding 2px 6px, border-radius 5px
+  - Line 1: Category (14px Body, weight 700, `var(--t1)`) + result badge (right-aligned)
+  - Line 2: Location "동→층" format (12px Label, weight 400, `var(--t2)`) — e.g. "사무동 B2층"
+  - Line 3: Memo first line preview (12px Label, weight 400, `var(--t2)`, max 1 line, text-overflow ellipsis) — show "메모 없음" in `var(--t3)` if null
+  - Line 4: Inspection date (11px Meta, `var(--t3)`) + status chip (right-aligned)
+- Status chip: "미조치" = `rgba(249,115,22,.15)` bg, `var(--fire)` text; "완료" = `rgba(34,197,94,.13)` bg, `var(--safe)` text. Font 11px (Meta), weight 700, padding 2px 6px, border-radius 5px
 - Card tap → navigate to `/remediation/:recordId`
 - Card gap: 8px between cards, 16px horizontal list padding
 
 **Empty state:** Center-aligned, `var(--t3)` color
-- Heading: "조치 항목 없음" (16px, weight 700, `var(--t1)`)
-- Body: "선택한 조건에 해당하는 불량/주의 항목이 없습니다." (13px, `var(--t2)`)
+- Heading: "조치 항목 없음" (16px Heading, weight 700, `var(--t1)`)
+- Body: "선택한 조건에 해당하는 불량/주의 항목이 없습니다." (12px Label, `var(--t2)`)
 
 **Loading state:** Skeleton cards (3 cards) with `var(--bg3)` background pulsing via `animation: blink 2s ease-in-out infinite`.
 
@@ -159,30 +170,30 @@ Result badge color contract:
 **Layout:** Full-screen column. Self-contained header (BottomNav hidden — NO_NAV_PATHS). Scrollable body. Fixed-bottom CTA area (미조치 항목만).
 
 **Header:**
-- Back button (left): `←` chevron icon 20px, `var(--t1)` color, taps → navigate(-1) back to `/remediation`
-- Title: "조치 상세" (16px, weight 700, `var(--t1)`, centered)
+- Back button (left): ChevronLeft icon 20px, `var(--t1)` color, taps → navigate(-1) back to `/remediation`. **Required accessibility attribute:** `aria-label="목록으로 돌아가기"` on the button element.
+- Title: "조치 상세" (16px Heading, weight 700, `var(--t1)`, centered)
 - Background: `rgba(22,27,34,0.97)`, border-bottom `1px solid var(--bd)`, height 52px
 
 **Section 1: 점검 정보**
-- Section header: "점검 정보" (12px, weight 700, `var(--t3)`, uppercase-style label)
+- Section header: "점검 정보" (12px Label, weight 700, `var(--t3)`, uppercase-style label)
 - Fields displayed as key-value rows, 8px gap:
-  - 카테고리: value (14px, `var(--t1)`)
-  - 위치: "동→층" format (14px, `var(--t1)`) — always `${zone} ${floor}` order
-  - 점검일: formatted date (14px, `var(--t1)`)
-  - 점검자: staff name (14px, `var(--t1)`)
+  - 카테고리: value (14px Body, `var(--t1)`)
+  - 위치: "동→층" format (14px Body, `var(--t1)`) — always `${zone} ${floor}` order
+  - 점검일: formatted date (14px Body, `var(--t1)`)
+  - 점검자: staff name (14px Body, `var(--t1)`)
   - 판정결과: result badge inline (bad/caution — same badge style as list)
 
 **Section 2: 점검 메모 + 사진**
 - Section header: "점검 기록"
-- Memo text: (14px, weight 400, `var(--t1)`, line-height 1.5) — "메모 없음" in `var(--t3)` if null
+- Memo text: (14px Body, weight 400, `var(--t1)`, line-height 1.5) — "메모 없음" in `var(--t3)` if null
 - Photo: if `photo_key` exists → `<img src={/api/uploads/${photoKey}} />` width 100%, max-height 240px, object-fit cover, border-radius 10px, border `1px solid var(--bd)`
   - If no photo: not rendered (no placeholder)
 
 **Section 3: 조치 정보** — rendered only when `status === 'resolved'`
 - Section header: "조치 완료"
-- 조치일시: `resolved_at` formatted (14px, `var(--t1)`)
-- 조치자: `resolved_by` staff name (14px, `var(--t1)`)
-- 조치 메모: `resolution_memo` (14px, `var(--t1)`, line-height 1.5)
+- 조치일시: `resolved_at` formatted (14px Body, `var(--t1)`)
+- 조치자: `resolved_by` staff name (14px Body, `var(--t1)`)
+- 조치 메모: `resolution_memo` (14px Body, `var(--t1)`, line-height 1.5)
 - 조치 사진: if `resolution_photo_key` → same image display pattern as inspection photo
 
 **Section 4: 조치 완료 폼** — rendered only when `status === 'open'` (or null)
@@ -190,18 +201,18 @@ Result badge color contract:
 - Memo textarea:
   - Placeholder: "조치 내용을 입력하세요 (필수)"
   - Background: `var(--bg3)`, border: `1px solid var(--bd2)`, border-radius 10px
-  - Font: 14px, `var(--t1)`, padding 12px, min-height 96px
+  - Font: 14px Body, `var(--t1)`, padding 12px, min-height 96px
   - Required: validation on submit (empty → toast.error)
 - Photo upload (PhotoButton):
   - Button: 72x72px, `var(--bg2)` background, dashed border `var(--bd2)`, border-radius 10px
-  - Label: "사진 첨부" (11px, weight 600, `var(--t3)`)
+  - Label: "사진 첨부" (11px Meta, weight 400, `var(--t3)`)
   - Camera icon: 📷 22px emoji
   - After selection: 72x72px image preview with ✕ remove button (20px circle, `var(--danger)` background)
   - Uploading overlay: "업로드 중" text on semi-transparent overlay (matches InspectionPage pattern exactly)
 
 **Fixed-bottom CTA area** (only for open items):
 - Container: `var(--bg)` background, `1px solid var(--bd)` top border, padding 12px 16px + `var(--sab)` bottom safe-area
-- Button: "조치 완료" — full width, height 48px, background `var(--acl)`, color `#fff`, font 15px weight 700, border-radius 12px, border none
+- Button: "조치 완료" — full width, height 48px, background `var(--acl)`, color `#fff`, font 14px (Body) weight 700, border-radius 12px, border none
 - Disabled state (submitting): opacity 0.5, cursor not-allowed, text "처리 중..."
 
 ---
@@ -212,13 +223,14 @@ Result badge color contract:
 ```
 position: absolute, top: 0, right: 0
 background: var(--danger), color: #fff
-fontSize: 9px, fontWeight: 700
-padding: 1px 4px, borderRadius: 9px
-minWidth: 14px, textAlign: center
+fontSize: 11px (Meta), fontWeight: 700, fontFamily: JetBrains Mono
+padding: 2px 4px, borderRadius: 9px
+minWidth: 16px, textAlign: center
 ```
 - Shown when `unresolvedCount > 0`
 - Capped at "99+" if count > 99
 - Value sourced from `dashData?.stats.unresolved` passed as prop from Layout
+- Note on padding: `2px` is a border-snap exception (minimum render artifact for single-digit mono numbers); `4px` follows xs spacing token.
 
 **SideMenu 조치 관리 item badge:** same visual style, driven by same `unresolvedCount` prop.
 
@@ -242,6 +254,7 @@ minWidth: 14px, textAlign: center
 | No memo in card | "메모 없음" (var(--t3) color) |
 | No photo in detail | (not rendered — omit silently) |
 | Detail page header title | "조치 상세" |
+| Back button aria-label | "목록으로 돌아가기" |
 
 Destructive actions in this phase:
 - **Remove attached photo (조치 사진 제거):** Tap ✕ on photo preview → immediate removal with no confirmation dialog (matches InspectionPage pattern; photo not yet uploaded so no server-side state affected)
@@ -313,12 +326,16 @@ No third-party component registries. All UI is hand-rolled with inline styles + 
 | Memo required, photo optional on resolve | CONTEXT.md D-09 |
 | Post-resolve: toast + navigate back + refetch | CONTEXT.md D-10 |
 | PhotoButton: 72x72px, camera/gallery, compressImage | `src/pages/InspectionPage.tsx` lines 62-80 |
-| Badge style (position, danger bg, 9px font) | RESEARCH.md Pattern 4 (derived from SideMenu pattern) |
+| Badge style (position, danger bg, mono font) | RESEARCH.md Pattern 4 (derived from SideMenu pattern) |
 | Card result badge colors (bad/caution) | `src/pages/InspectionPage.tsx` INSPECT_RESULT_OPTIONS |
 | Status badge styling | `src/components/ui/index.tsx` STATUS_STYLE |
 | Location order "동→층" | CONTEXT.md Specifics + RESEARCH.md Pitfall 6 |
-| Typography scale | Inferred from `src/components/ui/index.tsx` + DashboardPage (existing codebase patterns) |
+| Typography scale | Inferred from `src/components/ui/index.tsx` + DashboardPage; consolidated to 4 sizes / 2 weights |
 | Spacing scale | 8-point grid; confirmed by existing component inline styles |
+| BottomNav 54px height locked | `src/components/BottomNav.tsx` — existing codebase value, do not change |
+| Badge min-width 16px, padding 2px 4px | Checker fix — aligns to scale (2px border-snap exception documented) |
+| Back button aria-label | Checker fix — Dimension 2 accessibility requirement |
+| Typography consolidated 9→11, 13→12, 15→14, 600→700 | Checker fix — Dimension 4 max-4-sizes / max-2-weights contract |
 
 ---
 
