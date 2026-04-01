@@ -1,9 +1,10 @@
 interface GlobalHeaderProps {
   title: string
   onMenuOpen: () => void
+  rightSlot?: React.ReactNode
 }
 
-export function GlobalHeader({ title, onMenuOpen }: GlobalHeaderProps) {
+export function GlobalHeader({ title, onMenuOpen, rightSlot }: GlobalHeaderProps) {
   return (
     <header style={{
       display: 'flex',
@@ -29,13 +30,13 @@ export function GlobalHeader({ title, onMenuOpen }: GlobalHeaderProps) {
         </svg>
       </button>
       <span style={{
-        flex: 1, textAlign: 'center',
+        flex: 1, textAlign: rightSlot ? 'left' : 'center',
         fontSize: 13, fontWeight: 700, color: 'var(--t1)',
+        marginLeft: rightSlot ? 8 : 0,
       }}>
         {title}
       </span>
-      {/* Right slot placeholder for future use — keeps title centered */}
-      <div style={{ width: 32 }} />
+      {rightSlot || <div style={{ width: 32 }} />}
     </header>
   )
 }

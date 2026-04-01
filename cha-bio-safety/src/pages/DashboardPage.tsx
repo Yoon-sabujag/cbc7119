@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
-import { useDateTime } from '../hooks/useDateTime'
-import { SettingsPanel } from '../components/SettingsPanel'
 import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
 import type { DashboardScheduleItem, Staff, Role } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
@@ -30,11 +28,9 @@ interface MonthlyItem { label:string; pct:number; color:string; total:number; do
 export default function DashboardPage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
-  const datetime  = useDateTime()
 
   const queryClient = useQueryClient()
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const handleManualComplete = useCallback(async (item: DashboardScheduleItem) => {
     if (!confirm(`"${item.title}"을 완료 처리하시겠습니까?`)) return
@@ -116,45 +112,23 @@ export default function DashboardPage() {
   return (
     <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-
-      {/* ══ 헤더 ══ */}
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 9px' }}>
-
-        {/* 1행 */}
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}>
-          <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)', whiteSpace:'nowrap' }}>차바이오컴플렉스 방재팀</span>
-          <div style={{ flex:1 }} />
-          <span style={{ fontFamily:'JetBrains Mono, monospace', fontSize:11, color:'var(--t2)', whiteSpace:'nowrap' }}>{datetime}</span>
-          <button onClick={() => setSettingsOpen(true)} style={iconBtnStyle}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-        </div>
-
-        {/* 2행: 관리자(좌) / 보조자(우) */}
+      {/* ══ 근무자 칩 바 ══ */}
+      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'6px 12px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-
-          {/* 관리자 */}
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
             <div style={{ display:'flex', gap:5 }}>
               {admin.map(s => <DutyChip key={s.id} staff={s} />)}
             </div>
           </div>
-
-          {/* 보조자 */}
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
             <div style={{ display:'flex', gap:5 }}>
               {assistant.map(s => <DutyChip key={s.id} staff={s} />)}
             </div>
           </div>
-
         </div>
-      </header>
+      </div>
 
       {/* ══ 메인 그리드 ══ */}
       <main style={{
@@ -338,11 +312,4 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
       )}
     </div>
   )
-}
-
-const iconBtnStyle: React.CSSProperties = {
-  width:34, height:34, borderRadius:8, flexShrink:0,
-  background:'var(--bg3)', border:'1px solid var(--bd)',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-  transition:'background .13s',
 }
