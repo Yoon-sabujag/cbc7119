@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: executing
-stopped_at: Checkpoint 05-02-PLAN.md Task 3 - awaiting visual verification
-last_updated: "2026-04-01T06:38:25.893Z"
+status: verifying
+stopped_at: Completed 05-02-PLAN.md (Phase 5 complete)
+last_updated: "2026-04-01T10:01:13.958Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 2
   completed_plans: 2
-  percent: 0
+  percent: 100
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -27,18 +27,18 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core Value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 
-**Current Focus:** Phase 05 — navigation-restructuring
+**Current Focus:** Phase 06 — remediation-page (next phase)
 
 ---
 
 ## Current Position
 
-Phase: 05 (navigation-restructuring) — EXECUTING
+Phase: 05 (navigation-restructuring) — COMPLETE
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase 05 complete — all plans verified by user on production
 Last activity: 2026-04-01
 
-Progress: [░░░░░░░░░░] 0% (v1.1)
+Progress: [██████████] 100% (Phase 05 plans)
 
 ---
 
@@ -53,6 +53,8 @@ Progress: [░░░░░░░░░░] 0% (v1.1)
 | 도면 리뉴얼 v1.1 제외 | DWG 레이어 미분리로 SVG 6-7MB/층, 별도 마일스톤 |
 | Phase 7 완료 후 Phase 8-11 독립 실행 가능 | /api/staff 엔드포인트와 admin role-guard를 Phase 7에서 확립 |
 | 법적 점검 지적사항 → 조치관리 통합은 v1.2로 이관 | source_type 연동 복잡도 vs 4인 팀 가치 불균형 |
+| SideMenu 4섹션 구조 + soon:boolean 패턴 | 준비중 아이템을 disabled 렌더링으로 표시; 하드코딩 배지 전면 제거 (D-04, D-05, D-06) |
+| SideMenu 하단 사용자 카드/로그아웃 버튼 보존 | MorePage 삭제 후 유일한 로그아웃 경로 (D-07) |
 
 ### Architecture Notes
 
@@ -72,8 +74,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-01T06:38:25.884Z
-**Stopped at:** Checkpoint 05-02-PLAN.md Task 3 - awaiting visual verification
+**Last session:** 2026-04-01T10:01:13.939Z
+**Stopped at:** Completed 05-02-PLAN.md (Phase 5 complete)
 
 **Key files:**
 

@@ -24,12 +24,12 @@ decisions:
   - "ElevatorPage header simplified to tab bar only; unresolvedCount badge moved to flex-end row above tabs"
   - "InspectionPage own header removed; syncedAt timestamp moved to top of scrollable content area"
 metrics:
-  duration: "partial (awaiting visual checkpoint)"
+  duration: "~3h 20m"
   completed_date: "2026-04-01"
-  tasks_completed: 2
+  tasks_completed: 3
   tasks_total: 3
   files_created: 0
-  files_modified: 4
+  files_modified: 6
   files_deleted: 0
 ---
 
@@ -45,7 +45,7 @@ metrics:
 |------|------|--------|-----------|
 | 1 | Restructure SideMenu to 4 sections with 준비중 items | 5fa54de | SideMenu.tsx |
 | 2 | Remove individual SideMenu/hamburger mounts from pages | 62ff20d | DashboardPage.tsx, ElevatorPage.tsx, InspectionPage.tsx |
-| 3 | Visual verification (checkpoint) | PENDING | — |
+| 3 | Visual verification (checkpoint) | APPROVED | all 12 items confirmed on production |
 
 ---
 
@@ -126,7 +126,27 @@ Preserved:
 
 ## Deviations from Plan
 
-None — plan executed exactly as written.
+The 2 core plan tasks executed exactly as written (no deviations). The following additional changes were made by user request after Task 2 committed, prior to the Task 3 visual checkpoint:
+
+**1. [User Request] Dashboard header layout redesign**
+- **Commit:** 69b7bb7
+- **Change:** Header title text replaced with date display on left + company name and settings gear on right
+- **Files modified:** `cha-bio-safety/src/pages/DashboardPage.tsx`
+
+**2. [User Request] BottomNav 조치 icon changed to wrench SVG**
+- **Commit:** 69b7bb7
+- **Change:** Remediation tab icon changed from a generic icon to a wrench SVG for clearer intent
+- **Files modified:** `cha-bio-safety/src/components/BottomNav.tsx`
+
+**3. [Rule 1 - Bug] monthEnd UTC timezone bug in stats.ts**
+- **Commit:** 1cda1de
+- **Change:** Fixed `monthEnd` UTC conversion bug causing off-by-one day errors in monthly stats calculations
+- **Files modified:** `cha-bio-safety/functions/api/dashboard/stats.ts`
+
+**4. [Rule 1 - Bug] daily-report nextDate calculation hardened**
+- **Commit:** 1cda1de
+- **Change:** Hardened `nextDate` calculation in daily-report to prevent edge-case null/undefined failures
+- **Files modified:** `cha-bio-safety/functions/api/daily-report` (or related file)
 
 ---
 
@@ -147,3 +167,8 @@ Files modified exist:
 Commits:
 - 5fa54de: Task 1 (SideMenu restructure)
 - 62ff20d: Task 2 (page header cleanup)
+- 69b7bb7: Additional user-requested changes (dashboard header, wrench icon)
+- 1cda1de: Bug fixes (monthEnd UTC, daily-report nextDate)
+- b95765b: docs (prior partial summary)
+
+Visual checkpoint: User approved all 12 verification items on production (2026-04-01)
