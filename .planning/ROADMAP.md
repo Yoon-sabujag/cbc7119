@@ -37,10 +37,13 @@
 **Requirements**: NAV-01, NAV-02, NAV-03
 **Success Criteria** (what must be TRUE):
   1. BottomNav에 조치 탭이 표시되고 /remediation 으로 이동한다
-  2. 승강기 항목이 BottomNav에서 사라지고 햄버거 메뉴에서 접근 가능하다
+  2. 승강기 항목이 BottomNav에 유지되고 SideMenu 시스템 섹션에서도 접근 가능하다
   3. /more 경로로 접근하면 앱이 404가 아닌 적절한 페이지(대시보드 등)로 리디렉션한다
   4. SideMenu(햄버거)에 더보기 항목들이 통합되어 용도별로 구분된다
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 05-01-PLAN.md — GlobalHeader + BottomNav 탭 교체 + RemediationPage + 라우트 정리
+- [ ] 05-02-PLAN.md — SideMenu 4섹션 재편 + 페이지별 헤더/SideMenu 중복 제거
 **UI hint**: yes
 
 ### Phase 6: Remediation Tracking
@@ -117,7 +120,7 @@
 | 2. Stabilization & Code Quality | v1.0 | 5/5 | Complete | 2026-03-28 |
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
-| 5. Navigation Restructuring | v1.1 | 0/? | Not started | - |
+| 5. Navigation Restructuring | v1.1 | 0/2 | Planning | - |
 | 6. Remediation Tracking | v1.1 | 0/? | Not started | - |
 | 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
@@ -128,4 +131,4 @@
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
-*Last updated: 2026-03-31*
+*Last updated: 2026-04-01*
