@@ -83,17 +83,19 @@ Exceptions:
 
 ## Typography
 
+4-size scale. Hierarchy within the same pixel size is expressed through weight, not additional sizes.
+
 | Role | Size | Weight | Line Height | Usage |
 |------|------|--------|-------------|-------|
 | Nav label | 9.5px | 500 | 1.2 | BottomNav tab labels |
 | Caption | 11px | 500–600 | 1.3 | SideMenu section headers (uppercase), badges, metadata |
-| Body | 13px | 500 | 1.5 | SideMenu menu item labels, GlobalHeader title |
-| Subheading | 14px | 600 | 1.4 | Section headings, modal headings |
+| Body | 13px | 400–500 | 1.5 | SideMenu menu item labels, GlobalHeader title |
+| Subheading | 13px | 700 | 1.4 | Section headings, modal headings (same size as Body; weight differentiates) |
 | Heading | 18px | 700 | 1.2 | Page title (MorePage pattern: `fontSize: 18, fontWeight: 700`) |
 
 **Two declared weights:** regular/medium (400–500) and bold (600–700).
 
-**Discretion note:** GlobalHeader page title uses 13px weight 700 — matches ElevatorPage header (`fontSize:13, fontWeight:700`).
+**Discretion note:** GlobalHeader page title uses 13px weight 700 — matches ElevatorPage header (`fontSize:13, fontWeight:700`). This is the Subheading weight applied to the Body size; no separate 14px size is needed.
 
 **Source:** `src/components/BottomNav.tsx` (9.5px), `src/components/SideMenu.tsx` (9px section header, 12.5px items), `src/pages/ElevatorPage.tsx` (13px header), `src/pages/MorePage.tsx` (18px heading)
 
@@ -124,6 +126,7 @@ Accent reserved for: active BottomNav tab icon, active BottomNav tab label, QR b
 - Location: `src/components/GlobalHeader.tsx`
 - Layout: `display: flex`, `alignItems: center`, `height: 48px`, `padding: 0 12px`, `background: var(--bg2)`, `borderBottom: 1px solid var(--bd)`, `flexShrink: 0`
 - Left slot: hamburger button (`32×32px`, background `var(--bg3)`, borderRadius 7px, icon: 3-line SVG `strokeWidth 2`, color `var(--t2)`)
+  - Button must declare `aria-label="메뉴 열기"` as a required prop attribute for screen reader accessibility
 - Center: page title text — `fontSize: 13px`, `fontWeight: 700`, `color: var(--t1)`
 - Right slot: optional (reserved for future use; not rendered in Phase 5)
 - Receives props: `title: string`, `onMenuOpen: () => void`
@@ -193,6 +196,7 @@ Badge changes:
 
 ### GlobalHeader hamburger button
 - Press: sets `sideOpen = true` in Layout state
+- Button props: `aria-label="메뉴 열기"` — required; must be present on the `<button>` element
 - Button style: `width: 32px, height: 32px, borderRadius: 7px, background: var(--bg3), border: none, color: var(--t2), cursor: pointer, display: flex, alignItems: center, justifyContent: center`
 - Icon: 3-line hamburger SVG, `width={15} height={15}`, `strokeWidth={2}`, `stroke="var(--t2)"`
 
