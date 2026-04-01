@@ -57,7 +57,7 @@ Plans:
   4. 대시보드의 미조치 카운트가 실제 미조치 건수와 일치한다 (하드코딩 2 제거)
 **Plans**: 2 plans
 Plans:
-- [ ] 06-01-PLAN.md — API 엔드포인트 + 공유 훅 추출 + API 클라이언트
+- [x] 06-01-PLAN.md — API 엔드포인트 + 공유 훅 추출 + API 클라이언트
 - [ ] 06-02-PLAN.md — RemediationPage 목록 + 상세 페이지 + 라우팅 + 배지 연동
 **UI hint**: yes
 
@@ -124,7 +124,7 @@ Plans:
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
-| 6. Remediation Tracking | v1.1 | 0/2 | Planning | - |
+| 6. Remediation Tracking | v1.1 | 1/2 | In Progress|  |
 | 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
