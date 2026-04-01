@@ -12,22 +12,28 @@ interface Props {
 
 const MENU = [
   { section: '주요 기능', items: [
-    { label: '대시보드',    path: '/dashboard',      badge: 0 },
-    { label: '소방 점검',   path: '/inspection',     badge: 3 },
-    { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0 },
-    { label: 'DIV 트렌드', path: '/div',             badge: 0 },
-    { label: '승강기 관리', path: '/elevator',        badge: 0 },
+    { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
+    { label: '소방 점검',   path: '/inspection',     badge: 0, soon: false },
+    { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0, soon: false },
+    { label: '조치 관리',   path: '/remediation',    badge: 0, soon: false },
   ]},
-  { section: '점검 기록', items: [
-    { label: '월간 점검 계획', path: '/schedule',  badge: 0 },
-    { label: '점검 일지 출력', path: '/reports',       badge: 0 },
-    { label: '일일업무일지',   path: '/daily-report', badge: 0 },
-    { label: '미조치 항목',   path: '/unresolved', badge: 2 },
+  { section: '점검 관리', items: [
+    { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
+    { label: '점검 일지 출력', path: '/reports',        badge: 0, soon: false },
+    { label: '일일업무일지',   path: '/daily-report',  badge: 0, soon: false },
+    { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0, soon: false },
+    { label: 'DIV 압력 관리', path: '/div',            badge: 0, soon: false },
   ]},
   { section: '근무·복지', items: [
-    { label: '근무표',    path: '/workshift',  badge: 0 },
-    { label: '연차 관리', path: '/leave',  badge: 0 },
-    { label: '식당 메뉴', path: '/menu',   badge: 0 },
+    { label: '근무표',    path: '/workshift',  badge: 0, soon: false },
+    { label: '연차 관리', path: '/leave',      badge: 0, soon: false },
+    { label: '식당 메뉴', path: '/meal',       badge: 0, soon: true },
+  ]},
+  { section: '시스템', items: [
+    { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },
+    { label: '승강기 관리', path: '/elevator',   badge: 0, soon: false },
+    { label: '법적 점검',   path: '/legal',      badge: 0, soon: true },
+    { label: '관리자 설정', path: '/admin',      badge: 0, soon: true },
   ]},
 ]
 
@@ -92,7 +98,20 @@ export function SideMenu({ open, onClose }: Props) {
           {MENU.map(({ section, items }) => (
             <div key={section}>
               <div style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>{section}</div>
-              {items.map(item => (
+              {items.map(item => item.soon ? (
+                <div
+                  key={item.path}
+                  style={{
+                    display:'flex', alignItems:'center', gap:10,
+                    padding:'9px 13px', margin:'1px 7px', borderRadius:8,
+                    color:'var(--t3)', opacity: 0.5,
+                    cursor:'default', pointerEvents:'none',
+                  }}
+                >
+                  <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
+                  <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg3)', borderRadius:6, padding:'2px 7px' }}>준비중</span>
+                </div>
+              ) : (
                 <div
                   key={item.path}
                   onClick={() => go(item.path)}
