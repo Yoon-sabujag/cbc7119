@@ -1,9 +1,11 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './stores/authStore'
 import { BottomNav } from './components/BottomNav'
+import { GlobalHeader } from './components/GlobalHeader'
+import { SideMenu } from './components/SideMenu'
 // Safe area 초기화는 index.html 인라인 스크립트에서 처리 (React 마운트 전 실행)
 
 const SplashScreen   = lazy(() => import('./pages/SplashScreen'))
@@ -13,7 +15,7 @@ const InspectionPage = lazy(() => import('./pages/InspectionPage'))
 const QRScanPage     = lazy(() => import('./pages/QRScanPage'))
 const ElevatorPage   = lazy(() => import('./pages/ElevatorPage'))
 const NotFoundPage   = lazy(() => import('./pages/NotFoundPage'))
-const MorePage       = lazy(() => import('./pages/MorePage'))
+const RemediationPage = lazy(() => import('./pages/RemediationPage'))
 const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
 const ReportsPage    = lazy(() => import('./pages/ReportsPage'))
 const DailyReportPage = lazy(() => import('./pages/DailyReportPage'))
@@ -41,12 +43,22 @@ function Loader() {
   )
 }
 
-const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report']
+const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal-inspection']
+
+const PAGE_TITLES: Record<string, string> = {
+  '/dashboard': '대시보드',
+  '/inspection': '소방 점검',
+  '/inspection/qr': 'QR 스캔',
+  '/remediation': '조치 관리',
+  '/elevator': '승강기 관리',
+}
 
 function Layout() {
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
   const showNav = isAuthenticated && !NO_NAV_PATHS.includes(location.pathname)
+  const [sideOpen, setSideOpen] = useState(false)
+  const pageTitle = PAGE_TITLES[location.pathname] || ''
 
   return (
     <div style={{
@@ -58,6 +70,8 @@ function Layout() {
       overflow: 'hidden',
       paddingTop: 'var(--sat, 0px)',
     }}>
+      {showNav && <GlobalHeader title={pageTitle} onMenuOpen={() => setSideOpen(true)} />}
+      {showNav && <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} />}
       <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', paddingBottom: showNav ? 'calc(54px + var(--sab, 34px))' : 0 }}>
         <Suspense fallback={<Loader />}>
           <Routes>
@@ -67,7 +81,8 @@ function Layout() {
             <Route path="/inspection"    element={<Auth><InspectionPage /></Auth>} />
             <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
             <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
-            <Route path="/more"          element={<Auth><MorePage /></Auth>} />
+            <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
+            <Route path="/more"          element={<Navigate to="/dashboard" replace />} />
             <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
             <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
             <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
