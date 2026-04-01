@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: executing
-stopped_at: "Checkpoint: 06-02 Task 3 visual verification"
-last_updated: "2026-04-01T17:31:46.565Z"
+status: complete
+stopped_at: "Completed 06-02-PLAN.md"
+last_updated: "2026-04-01T18:10:00Z"
 last_activity: 2026-04-01
 progress:
   total_phases: 7
@@ -33,12 +33,12 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 06 (remediation-tracking) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
+Phase: 06 (remediation-tracking) — COMPLETE
+Plan: 2 of 2 (all complete)
+Status: Phase 06 complete — ready for Phase 07
 Last activity: 2026-04-01
 
-Progress: [██████████] 100% (Phase 05 plans)
+Progress: [██████████] 100% (Phase 06 plans complete)
 
 ---
 
@@ -58,6 +58,9 @@ Progress: [██████████] 100% (Phase 05 plans)
 | 도면 PNG 방식으로 전환 (GSD 외부 작업) | DWG→SVG 불가로 PNG 채택, CSS transform 핀치줌, 마커 오버레이 방식 |
 | 유도등 도면 6종 마커 체계 | 천장피난구(역사다리꼴)/벽부피난구(■)/거실통로(▽)/복도통로(◆세로선)/계단통로(◆가로선)/객석통로(●) |
 | 마커 좌표 % 기반 저장 | 이미지 크기와 무관하게 일관된 위치, objectFit:contain 렌더 영역 기준 |
+| Tab state via URL searchParams in RemediationPage | Back navigation restores active filter tab (미조치/완료/전체) |
+| 개소명(location) added to remediation card + detail | Field workers need specific location name, not just zone/floor |
+| 조치자 name via staff JOIN (not raw staffId) | Resolved by API-level JOIN already in place; detail page renders name field |
 
 ### Architecture Notes
 
@@ -82,8 +85,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-01T17:31:46.545Z
-**Stopped at:** Checkpoint: 06-02 Task 3 visual verification
+**Last session:** 2026-04-01T18:10:00Z
+**Stopped at:** Completed 06-02-PLAN.md — Phase 06 complete
 
 **Key files:**
 
