@@ -22,7 +22,7 @@
 **Milestone Goal:** BottomNav/SideMenu 네비게이션 재편과 함께 조치관리, 식사기록, 보수교육, 법적점검, 승강기검사, 관리자설정 등 잔여 기능 구현
 
 - [x] **Phase 5: Navigation Restructuring** - BottomNav/SideMenu 재편 — 더보기 제거, 조치 탭 신규, 햄버거 메뉴 통합 (completed 2026-04-01)
-- [ ] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부
+- [x] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부 (completed 2026-04-01)
 - [ ] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩, streakDays 계산, 관리자 설정 (직원 CRUD, 시스템 설정, 햄버거 순서)
 - [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 식당 메뉴표 — 개인별 기록, 월별 통계, PDF 메뉴 추출
 - [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
@@ -128,7 +128,7 @@ Plans:
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
-| 6. Remediation Tracking | v1.1 | 1/2 | In Progress|  |
+| 6. Remediation Tracking | v1.1 | 1/2 | Complete    | 2026-04-01 |
 | 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
