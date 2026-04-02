@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: completed
+status: executing
 stopped_at: Phase 7 UI-SPEC approved
-last_updated: "2026-04-02T01:37:48.275Z"
-last_activity: 2026-04-01
+last_updated: "2026-04-02T03:35:51.635Z"
+last_activity: 2026-04-02 -- Phase 07 execution started
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 4
+  total_plans: 6
   completed_plans: 4
   percent: 100
 ---
@@ -27,16 +27,16 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core Value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 
-**Current Focus:** Phase 06 — remediation-tracking
+**Current Focus:** Phase 07 — tech-debt-admin
 
 ---
 
 ## Current Position
 
-Phase: 7
-Plan: Not started
-Status: Phase 06 complete — ready for Phase 07
-Last activity: 2026-04-01
+Phase: 07 (tech-debt-admin) — EXECUTING
+Plan: 2 of 2
+Status: Executing Phase 07 — Plan 01 complete, Plan 02 next
+Last activity: 2026-04-02 -- Phase 07, Plan 01 complete (TECH-01 done, Staff/CheckPoint API, /admin route)
 
 Progress: [██████████] 100% (Phase 06 plans complete)
 
@@ -61,6 +61,9 @@ Progress: [██████████] 100% (Phase 06 plans complete)
 | Tab state via URL searchParams in RemediationPage | Back navigation restores active filter tab (미조치/완료/전체) |
 | 개소명(location) added to remediation card + detail | Field workers need specific location name, not just zone/floor |
 | 조치자 name via staff JOIN (not raw staffId) | Resolved by API-level JOIN already in place; detail page renders name field |
+| Staff/CheckPoint CRUD API: 5 endpoints, admin role-guard pattern | plain: prefix password, COALESCE partial update, camelCase mapping |
+| TECH-01 complete: useStaffList hook replaces STAFF_ROLES/STAFF hardcoding | getMonthlySchedule accepts optional staffData param; fallback to [] |
+| /admin route + SideMenu role-based filtering (item.role guard) | AdminPage scaffold redirects assistants to /dashboard |
 
 ### Architecture Notes
 
