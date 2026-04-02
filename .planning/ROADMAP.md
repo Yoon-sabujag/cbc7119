@@ -88,7 +88,7 @@ Plans:
   2. 월별 제공 식수, 실제 식수, 미식 횟수, 주말 식대를 요약 카드로 조회할 수 있다
 **Plans**: 2 plans
 Plans:
-- [ ] 08-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + mealCalc 유틸 + 라우팅
+- [x] 08-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + mealCalc 유틸 + 라우팅
 - [ ] 08-02-PLAN.md — MealPage 달력 UI + 탭 인터랙션 + 통계 카드 + 메뉴표 placeholder
 **UI hint**: yes
 
@@ -132,7 +132,7 @@ Plans:
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
 | 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 8. Meal Records | v1.1 | 0/2 | Planned | - |
+| 8. Meal Records | v1.1 | 1/2 | In Progress|  |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
