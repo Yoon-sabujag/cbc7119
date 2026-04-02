@@ -30,6 +30,7 @@ const DivPage                 = lazy(() => import('./pages/DivPage'))
 const QRPrintPage             = lazy(() => import('./pages/QRPrintPage'))
 const ExtinguisherPublicPage  = lazy(() => import('./pages/ExtinguisherPublicPage'))
 const AdminPage               = lazy(() => import('./pages/AdminPage'))
+const MealPage                = lazy(() => import('./pages/MealPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -131,6 +132,7 @@ function Layout() {
             <Route path="/div"           element={<Auth><DivPage /></Auth>} />
             <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
             <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
+            <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
             <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
             <Route path="*"              element={<NotFoundPage />} />
           </Routes>

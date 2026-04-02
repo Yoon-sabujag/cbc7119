@@ -31,7 +31,7 @@ const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '근무·복지', items: [
     { label: '근무표',    path: '/workshift',  badge: 0, soon: false },
     { label: '연차 관리', path: '/leave',      badge: 0, soon: false },
-    { label: '식당 메뉴', path: '/meal',       badge: 0, soon: true  },
+    { label: '식사 기록', path: '/meal',       badge: 0, soon: false },
   ]},
   { section: '시스템', items: [
     { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },
