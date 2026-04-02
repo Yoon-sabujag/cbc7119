@@ -57,7 +57,7 @@ Exceptions:
 |------|------|--------|-------------|-------|
 | Body | 14px | 400 | 1.5 | List item secondary text, form field placeholder, helper text |
 | Label | 12px | 700 | 1.4 | Tab labels, badges, status chips, category labels, input labels |
-| Heading | 16px | 600 | 1.3 | Page title in self-header, section headings, staff name in card |
+| Heading | 16px | 700 | 1.3 | Page title in self-header, section headings, staff name in card |
 | Display | 20px | 700 | 1.2 | Not used in this phase |
 
 **Source:** Inferred from existing patterns — `RemediationPage.tsx` uses fontSize 12 at fontWeight 700 for tab buttons (line 77-78), `ui/index.tsx` uses fontSize 12 fontWeight 700 for staff name and 9-11 for sub-labels.
@@ -92,6 +92,12 @@ Status semantic colors (informational, not interactive):
 
 ## Component Inventory
 
+### Focal Points
+
+Primary visual anchor on 직원 관리 tab: sticky accent FAB (직원 추가) fixed at bottom of tab content — `background: var(--acl)`, full-width, height 52px. This is the first call-to-action the eye reaches after the list.
+
+Primary visual anchor on 개소 관리 tab: category dropdown filter at top of tab content — full-width, height 44px, `background: var(--bg3)`. Filter interaction is the gateway to all list content on this tab.
+
 ### AdminPage — Self Header
 
 ```
@@ -102,7 +108,7 @@ Status semantic colors (informational, not interactive):
 - Background: `var(--bg2)`
 - Border bottom: `1px solid var(--bd)`
 - Back button: lucide `ChevronLeft` 20px, tap target 44x44px, color `var(--t2)`
-- Title: 16px weight 600 `var(--t1)`, centered
+- Title: 16px weight 700 `var(--t1)`, centered
 
 **Source:** D-12 (CONTEXT.md) — /admin in NO_NAV_PATHS, self-header pattern. Consistent with RemediationDetailPage self-header.
 
@@ -125,7 +131,7 @@ Status semantic colors (informational, not interactive):
 ### Staff Tab — List Item Card
 
 ```
-[●active] [이름 16px/600]  [직책 12px/400 var(--t2)]
+[●active] [이름 16px/700]  [직책 12px/400 var(--t2)]
            [사번 JetBrains Mono 12px/400 var(--t3)]  [role badge]
                                                       [수정 ▸]
 ```
@@ -158,9 +164,9 @@ Status semantic colors (informational, not interactive):
 - Backdrop: `rgba(0,0,0,0.6)` full screen
 - Sheet background: `var(--bg2)`, border-radius 16px 16px 0 0
 - Drag handle: 4px × 32px, `background: var(--bd2)`, centered, margin-top 12px
-- Sheet title: 16px weight 600, padding 16px
+- Sheet title: 16px weight 700, padding 16px
 - Input fields: height 44px, background `var(--bg3)`, border `1px solid var(--bd)`, border-radius 8px, padding 0 12px, font 14px `var(--t1)`. Focus state: `border-color: var(--acl)`
-- Label: 12px weight 600 `var(--t2)`, margin-bottom 6px
+- Label: 12px weight 700 `var(--t2)`, margin-bottom 6px
 - Role toggle: two-button segmented control — selected button `background: var(--acl)` `color: #fff`, unselected `background: var(--bg4)` `color: var(--t3)`. Height 36px.
 - Cancel button: `background: var(--bg4)`, `color: var(--t2)`, border-radius 8px, height 44px, flex 1
 - Save button: `background: var(--acl)`, `color: #fff`, border-radius 8px, height 44px, flex 1
@@ -189,7 +195,7 @@ Inline action button within edit modal or staff row context menu.
 - Position: sticky bottom of tab content, full-width, height 52px
 - Background: `var(--acl)`
 - Color: `#fff`
-- Font: 14px weight 600
+- Font: 14px weight 700
 - Icon: lucide `UserPlus` 18px, gap 8px
 - Bottom margin accounts for safe area: `padding-bottom: calc(16px + var(--sab))`
 
@@ -210,7 +216,7 @@ Inline action button within edit modal or staff row context menu.
 ### Checkpoints Tab — Checkpoint List Item
 
 ```
-[● active/inactive] [개소명 14px/600]          [카테고리 badge]
+[● active/inactive] [개소명 14px/700]          [카테고리 badge]
                     [zone·floor 12px var(--t2)]  [수정 ▸]
 ```
 
