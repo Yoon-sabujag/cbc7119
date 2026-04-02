@@ -140,6 +140,20 @@ export const floorPlanMarkerApi = {
     api.delete<void>(`/floorplan-markers/${id}`),
 }
 
+export const staffApi = {
+  list:          () => api.get<import('../types').StaffFull[]>('/staff'),
+  create:        (data: import('../types').StaffCreatePayload)           => api.post<import('../types').StaffFull>('/staff', data),
+  update:        (id: string, data: import('../types').StaffUpdatePayload) => api.put<import('../types').StaffFull>(`/staff/${id}`, data),
+  resetPassword: (id: string) => api.post<void>(`/staff/${id}/reset-password`, {}),
+}
+
+export const checkPointApi = {
+  list:       (category?: string) => api.get<import('../types').CheckPointFull[]>(`/check-points${category ? `?category=${encodeURIComponent(category)}` : ''}`),
+  categories: () => api.get<string[]>('/check-points?categories=all'),
+  create:     (data: import('../types').CheckPointCreatePayload)           => api.post<import('../types').CheckPointFull>('/check-points', data),
+  update:     (id: string, data: import('../types').CheckPointUpdatePayload) => api.put<import('../types').CheckPointFull>(`/check-points/${id}`, data),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),

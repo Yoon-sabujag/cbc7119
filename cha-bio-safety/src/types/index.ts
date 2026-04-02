@@ -23,6 +23,22 @@ export interface Elevator { id:string; number:number; type:ElevatorType; locatio
 
 export interface ApiResponse<T> { success:boolean; data?:T; error?:string }
 
+export interface StaffFull {
+  id: string; name: string; role: Role; title: string;
+  phone: string | null; email: string | null; appointedAt: string | null;
+  active: number; shiftType: string | null; createdAt: string;
+}
+export interface StaffCreatePayload { id: string; name: string; role: Role; title: string; phone?: string; email?: string; appointedAt?: string }
+export interface StaffUpdatePayload { name?: string; role?: Role; title?: string; phone?: string; email?: string; appointedAt?: string; active?: number }
+
+export interface CheckPointFull {
+  id: string; qrCode: string; floor: string; zone: BuildingZone;
+  location: string; category: string; description: string | null;
+  locationNo: string | null; isActive: number; createdAt: string;
+}
+export interface CheckPointCreatePayload { id: string; qrCode: string; floor: string; zone: BuildingZone; location: string; category: string; description?: string; locationNo?: string }
+export interface CheckPointUpdatePayload { location?: string; category?: string; description?: string; locationNo?: string; floor?: string; zone?: BuildingZone; isActive?: number }
+
 export interface RemediationRecord {
   id: string
   result: 'bad' | 'caution'
