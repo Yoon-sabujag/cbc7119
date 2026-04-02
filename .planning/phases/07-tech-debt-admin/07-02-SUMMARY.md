@@ -17,10 +17,11 @@ key_files:
 decisions:
   - "Replaced lucide-react imports with inline SVG components — lucide-react is listed in CLAUDE.md stack docs but is not installed in the project; no node_modules/lucide-react found. Inline SVGs match project convention (RemediationDetailPage uses inline SVG back-arrow)."
   - "CheckPointCreatePayload requires id+qrCode — auto-generated client-side as cp_{timestamp} and QR-{id} since the UI spec did not include these required fields in the Add modal form."
+requirements-completed: [ADMIN-01, ADMIN-02]
 metrics:
-  duration_seconds: 337
+  duration_seconds: ~7200
   completed_date: "2026-04-02"
-  tasks_completed: 1
+  tasks_completed: 2
   tasks_total: 2
   files_changed: 1
 ---
@@ -86,12 +87,32 @@ None. All data flows from real API endpoints:
 
 ## Self-Check: PASSED
 
-- [x] `cha-bio-safety/src/pages/AdminPage.tsx` exists (697 lines)
-- [x] Commit f56a629 exists
+- [x] `cha-bio-safety/src/pages/AdminPage.tsx` exists (697+ lines)
+- [x] Commit f56a629 exists (feat: AdminPage full implementation)
+- [x] Commit 1a8e187 exists (fix: 3 bugs post-checkpoint)
 - [x] TypeScript compiles cleanly (`npx tsc --noEmit` — no output)
 - [x] All 13 acceptance criteria strings present in source
 - [x] 200+ lines minimum (697 lines)
+- [x] Task 2 checkpoint:human-verify — APPROVED by user in production
+- [x] ADMIN-01 + ADMIN-02 requirements marked complete in REQUIREMENTS.md
+- [x] ROADMAP.md phase 7 updated (2 plans, 2 summaries, Complete)
 
-## Pending
+## Task 2: 관리자 설정 페이지 시각/기능 검증 — APPROVED
 
-- Task 2 (checkpoint:human-verify) — awaiting visual/functional verification from user
+사용자가 프로덕션에서 직접 확인 완료. 3건 버그 수정(commit 1a8e187) 후 모든 기능 정상 동작 확인됨.
+
+### Bug Fixes Applied (post-checkpoint, pre-approval)
+
+**[Rule 1 - Bug] 관리자 페이지 버그 3건 수정** — commit `1a8e187`
+- Found during: production testing by user after Task 1 checkpoint
+- Fix: 3 bugs identified and resolved in AdminPage.tsx
+- Verified: user re-tested in production, confirmed all working, approved
+
+## Verification Status: COMPLETE
+
+- [x] Task 1: AdminPage 구현 — f56a629
+- [x] Task 2: 시각/기능 검증 — approved by user (production)
+- [x] Bug fix: 3건 수정 — 1a8e187
+- [x] ADMIN-01 complete: 직원 CRUD + 비밀번호 초기화 + 비활성화
+- [x] ADMIN-02 complete: 개소 카테고리별 조회/CRUD/비활성화
+- [x] Role guard: assistant → /dashboard redirect confirmed

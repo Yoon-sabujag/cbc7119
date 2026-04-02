@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: executing
-stopped_at: "Phase 07-02 checkpoint:human-verify — Task 1 complete, awaiting visual verification"
-last_updated: "2026-04-02T06:18:40.624Z"
-last_activity: 2026-04-02 -- Phase 07, Plan 01 complete (TECH-01 done, Staff/CheckPoint API, /admin route)
+status: complete
+stopped_at: "Phase 07 complete — all plans done (07-01 TECH-01, 07-02 ADMIN-01/ADMIN-02). All phases complete."
+last_updated: "2026-04-02T09:45:00.000Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 7
   completed_phases: 3
@@ -33,10 +33,10 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 07 (tech-debt-admin) — EXECUTING
-Plan: 2 of 2
-Status: Executing Phase 07 — Plan 01 complete, Plan 02 next
-Last activity: 2026-04-02 -- Phase 07, Plan 01 complete (TECH-01 done, Staff/CheckPoint API, /admin route)
+Phase: 07 (tech-debt-admin) — COMPLETE
+Plan: 2 of 2 (all done)
+Status: Phase 07 complete — AdminPage CRUD verified in production. All 7 phases complete.
+Last activity: 2026-04-02
 
 Progress: [██████████] 100% (Phase 06 plans complete)
 
@@ -64,6 +64,9 @@ Progress: [██████████] 100% (Phase 06 plans complete)
 | Staff/CheckPoint CRUD API: 5 endpoints, admin role-guard pattern | plain: prefix password, COALESCE partial update, camelCase mapping |
 | TECH-01 complete: useStaffList hook replaces STAFF_ROLES/STAFF hardcoding | getMonthlySchedule accepts optional staffData param; fallback to [] |
 | /admin route + SideMenu role-based filtering (item.role guard) | AdminPage scaffold redirects assistants to /dashboard |
+| AdminPage tab state via useState (no URL params) | Internal navigation only, per D-13 |
+| Category list read-only (Lock icon, no CRUD) | checkPointApi.categories() for display only, per D-09 |
+| Inline confirmation for destructive actions (deactivate/password reset) | Replaces button row in modal — avoids nested modals pattern |
 
 ### Architecture Notes
 
@@ -88,8 +91,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-02T06:18:40.619Z
-**Stopped at:** Phase 07-02 checkpoint:human-verify — Task 1 complete, awaiting visual verification
+**Last session:** 2026-04-02T09:45:00.000Z
+**Stopped at:** Phase 07 complete — 07-02-SUMMARY.md created, ADMIN-01/ADMIN-02 verified in production
 
 **Key files:**
 
