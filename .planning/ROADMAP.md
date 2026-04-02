@@ -24,7 +24,7 @@
 - [x] **Phase 5: Navigation Restructuring** - BottomNav/SideMenu 재편 — 더보기 제거, 조치 탭 신규, 햄버거 메뉴 통합 (completed 2026-04-01)
 - [x] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부 (completed 2026-04-01)
 - [x] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류 (completed 2026-04-02)
-- [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 식당 메뉴표 — 개인별 기록, 월별 통계, PDF 메뉴 추출
+- [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 월별 통계 — 개인별 미식 기록, 제공 식수 자동 계산, 요약 카드. MEAL-03/04 데스크톱 보류
 - [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
 - [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
 - [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
@@ -80,15 +80,16 @@ Plans:
 **UI hint**: yes
 
 ### Phase 8: Meal Records
-**Goal**: 팀원이 매일 식사 여부를 앱에서 기록하고, 월별 식사 통계와 주간 메뉴표를 조회할 수 있다
+**Goal**: 팀원이 매일 미식(안 먹은 끼니)을 앱에서 기록하고, 월별 식사 통계(제공/실제/미식/주말 식대)를 조회할 수 있다
 **Depends on**: Phase 7
-**Requirements**: MEAL-01, MEAL-02, MEAL-03, MEAL-04
+**Requirements**: MEAL-01, MEAL-02
 **Success Criteria** (what must be TRUE):
-  1. 개인별로 조식/중식/석식 식사 여부를 날짜별로 기록하고 수정할 수 있다
-  2. 월별 식사 횟수와 금액 합계를 개인 통계로 조회할 수 있다
-  3. 주간 식당 메뉴표를 PDF 업로드 또는 수동 등록으로 관리하고 팀원이 요일별 메뉴를 조회할 수 있다
-  4. 메뉴표 PDF 업로드 시 월~금 점심/저녁 + 토요일 점심 메뉴가 텍스트로 추출되어 표시된다
-**Plans**: TBD
+  1. 개인별로 미식(안 먹은 끼니)을 달력에서 탭으로 기록하고 수정할 수 있다
+  2. 월별 제공 식수, 실제 식수, 미식 횟수, 주말 식대를 요약 카드로 조회할 수 있다
+**Plans**: 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + mealCalc 유틸 + 라우팅
+- [ ] 08-02-PLAN.md — MealPage 달력 UI + 탭 인터랙션 + 통계 카드 + 메뉴표 placeholder
 **UI hint**: yes
 
 ### Phase 9: Education Management
@@ -131,7 +132,7 @@ Plans:
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
 | 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 8. Meal Records | v1.1 | 0/? | Not started | - |
+| 8. Meal Records | v1.1 | 0/2 | Planned | - |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
