@@ -622,14 +622,14 @@ export async function generatePumpExcel(
 }
 
 // ── 근무표 (fflate zip 직접 패치 → 원본 서식/이미지 완전 보존) ─
-export async function generateShiftExcel(year: number, month: number) {
+export async function generateShiftExcel(year: number, month: number, staffData?: { id: string; name: string; title: string }[]) {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/shift_template.xlsx')
   const ab  = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
-  const { daysInMonth, staffRows } = getMonthlySchedule(year, month)
+  const { daysInMonth, staffRows } = getMonthlySchedule(year, month, staffData)
 
   // day(1~31) → 열 문자 (D~AH)
   function dayToCol(d: number): string {

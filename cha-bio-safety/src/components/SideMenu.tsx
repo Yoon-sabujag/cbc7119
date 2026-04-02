@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { getMonthlySchedule } from '../utils/shiftCalc'
+import { useStaffList } from '../hooks/useStaffList'
 
 const NAV_H = 'calc(54px + var(--sab, 0px))'
 
@@ -41,6 +42,7 @@ const MENU = [
 export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   const navigate  = useNavigate()
   const { staff, logout } = useAuthStore()
+  const { data: staffList } = useStaffList()
 
   const RAW_TO_LABEL: Record<string, string> = { '당':'당직', '비':'비번', '주':'주간', '휴':'연차' }
   const [todayShiftLabel, setTodayShiftLabel] = useState('평일주간고정')
@@ -49,7 +51,8 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
     const now = new Date()
     const ref = (now.getHours() < 8 || (now.getHours() === 8 && now.getMinutes() < 30))
       ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1) : now
-    const { staffRows } = getMonthlySchedule(ref.getFullYear(), ref.getMonth() + 1)
+    const staffForCalc = (staffList ?? []).map(s => ({ id: s.id, name: s.name, title: s.title }))
+    const { staffRows } = getMonthlySchedule(ref.getFullYear(), ref.getMonth() + 1, staffForCalc)
     const row = staffRows.find(r => r.id === staff.id)
     if (row) {
       const idx = ref.getDate() - 1

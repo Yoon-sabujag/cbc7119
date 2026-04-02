@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { getMonthlySchedule, DOW_KO, SHIFT_COLOR } from '../utils/shiftCalc'
 import type { RawShift } from '../utils/shiftCalc'
+import { useStaffList } from '../hooks/useStaffList'
 
 const SHIFT_LABEL: Record<RawShift, string> = { '당':'당직','비':'비번','주':'주간','휴':'휴무' }
 const HDR_H = 52
@@ -36,7 +37,9 @@ export default function WorkShiftPage() {
     staleTime: 1000 * 60 * 60 * 24,
   })
 
-  const { daysInMonth, staffRows } = getMonthlySchedule(year, month)
+  const { data: staffList } = useStaffList()
+  const staffForCalc = (staffList ?? []).map(s => ({ id: s.id, name: s.name, title: s.title }))
+  const { daysInMonth, staffRows } = getMonthlySchedule(year, month, staffForCalc)
 
   const isToday = (d: number) =>
     year === today.getFullYear() && month === today.getMonth() + 1 && d === today.getDate()
@@ -61,7 +64,7 @@ export default function WorkShiftPage() {
     setDlLoading(true)
     try {
       const { generateShiftExcel } = await import('../utils/generateExcel')
-      await generateShiftExcel(year, month)
+      await generateShiftExcel(year, month, staffForCalc)
     } catch (e: any) {
       console.error('엑셀 생성 오류:', e)
       const { default: toast } = await import('react-hot-toast')

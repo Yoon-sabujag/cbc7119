@@ -94,7 +94,8 @@ function toDateStr(date: Date): string {
 function buildPersonnel(
   date: Date,
   leaves: any[],
-  schedules: any[]
+  schedules: any[],
+  staffData?: { id: string; name: string; title?: string }[]
 ): PersonnelStatus {
   const dateStr = toDateStr(date)
   const day = date.getDate()
@@ -102,7 +103,8 @@ function buildPersonnel(
   const month = date.getMonth() + 1
 
   // 시프트 계산: shiftCalc.ts의 getMonthlySchedule 기반
-  const { staffRows } = getMonthlySchedule(year, month)
+  const staffForCalc = (staffData ?? []).map(s => ({ id: s.id, name: s.name, title: s.title ?? '' }))
+  const { staffRows } = getMonthlySchedule(year, month, staffForCalc)
   const shifts: Record<string, string> = {}
   for (const row of staffRows) {
     shifts[row.id] = row.shifts[day - 1]
@@ -125,7 +127,8 @@ function buildPersonnel(
   let offDuty = ''
   const absent = 0
 
-  for (const staff of STAFF) {
+  const staffList = staffData ?? STAFF
+  for (const staff of staffList) {
     const shift = shifts[staff.id]
     const leaveType = leaveMap[staff.id]
 
@@ -171,7 +174,7 @@ function buildPersonnel(
   const present = dayShift.length + (onDuty ? 1 : 0)
 
   return {
-    total: STAFF.length - absent,
+    total: staffList.length - absent,
     present,
     onDuty,
     offDuty,
@@ -408,12 +411,13 @@ function buildTomorrowTasks(
 export function buildDailyReportData(
   date: string,
   apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[] },
-  notes: string
+  notes: string,
+  staffData?: { id: string; name: string; title?: string }[]
 ): DailyReportData {
   const dateObj = parseDateStr(date)
   const dow = DOW_KO[dateObj.getDay()]
 
-  const personnel = buildPersonnel(dateObj, apiData.leaves ?? [], apiData.schedules ?? [])
+  const personnel = buildPersonnel(dateObj, apiData.leaves ?? [], apiData.schedules ?? [], staffData)
   const patrol = buildPatrol(dateObj, personnel.onDuty)
   const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [])
   const tomorrowTasks = buildTomorrowTasks(dateObj, patrol, apiData.schedules ?? [])

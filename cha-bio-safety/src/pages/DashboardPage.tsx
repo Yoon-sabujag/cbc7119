@@ -5,15 +5,9 @@ import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
-import type { DashboardScheduleItem, Staff, Role } from '../types'
+import type { DashboardScheduleItem, Staff } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
-
-const STAFF_ROLES: Record<string, Role> = {
-  '2018042451': 'admin',
-  '2023071752': 'assistant',
-  '2021061451': 'assistant',
-  '2022051052': 'assistant',
-}
+import { useStaffList } from '../hooks/useStaffList'
 
 const MOCK_SCHEDULE: DashboardScheduleItem[] = [
   { id:'1', title:'VIP 투어 업무협조',     date:'', time:'09:30', category:'event',   status:'in_progress', completed:false },
@@ -28,6 +22,7 @@ interface MonthlyItem { label:string; pct:number; color:string; total:number; do
 export default function DashboardPage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
+  const { data: staffList } = useStaffList()
 
   const queryClient = useQueryClient()
 
@@ -62,7 +57,8 @@ export default function DashboardPage() {
   const _today = (_now.getHours() < 8 || (_now.getHours() === 8 && _now.getMinutes() < 30))
     ? new Date(_now.getFullYear(), _now.getMonth(), _now.getDate() - 1)
     : _now
-  const { staffRows } = getMonthlySchedule(_today.getFullYear(), _today.getMonth() + 1)
+  const staffForCalc = (staffList ?? []).map(s => ({ id: s.id, name: s.name, title: s.title }))
+  const { staffRows } = getMonthlySchedule(_today.getFullYear(), _today.getMonth() + 1, staffForCalc)
   const _todayIdx = _today.getDate() - 1
   const RAW_TO_STYPE: Record<string, string> = { '당':'night','비':'off','주':'day','휴':'leave' }
   // 오늘 연차 데이터
@@ -95,7 +91,7 @@ export default function DashboardPage() {
 
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
-    role: STAFF_ROLES[s.id] ?? 'assistant',
+    role: staffList?.find(st => st.id === s.id)?.role ?? 'assistant',
     shiftType: (RAW_TO_STYPE[s.shifts[_todayIdx]] ?? 'off') as Staff['shiftType'],
     leaveType: leaveMap[s.id] as Staff['leaveType'],
   }))

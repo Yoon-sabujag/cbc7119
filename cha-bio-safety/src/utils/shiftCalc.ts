@@ -67,19 +67,19 @@ export function getRawShift(staffId: string, date: Date): RawShift {
 }
 
 // 월 전체 스케줄 반환
-export function getMonthlySchedule(year: number, month: number): {
+// staffData: 외부에서 주입되는 직원 배열 (TECH-01: 하드코딩 제거)
+export function getMonthlySchedule(
+  year: number,
+  month: number,
+  staffData?: { id: string; name: string; title: string }[]
+): {
   daysInMonth: number
   staffRows: { id: string; name: string; title: string; shifts: RawShift[] }[]
 } {
-  const STAFF = [
-    { id: '2018042451', name: '석현민', title: '방재책임' },
-    { id: '2023071752', name: '박보융', title: '방재사원' },
-    { id: '2021061451', name: '김병조', title: '방재사원' },
-    { id: '2022051052', name: '윤종엽', title: '방재사원' },
-  ]
+  const staff = staffData ?? []
   const daysInMonth = new Date(year, month, 0).getDate()
 
-  const staffRows = STAFF.map(s => ({
+  const staffRows = staff.map(s => ({
     ...s,
     shifts: Array.from({ length: daysInMonth }, (_, i) =>
       calcRaw(s.id, new Date(year, month - 1, i + 1))
