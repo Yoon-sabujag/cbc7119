@@ -25,7 +25,7 @@
 - [x] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부 (completed 2026-04-01)
 - [x] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류 (completed 2026-04-02)
 - [x] **Phase 8: Meal Records** - 식사 이용 기록 + 월별 통계 — 개인별 미식 기록, 제공 식수 자동 계산, 요약 카드. MEAL-03/04 데스크톱 보류 (completed 2026-04-02)
-- [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
+- [x] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고 (completed 2026-04-02)
 - [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
 - [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
 
@@ -103,7 +103,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 09-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
-- [ ] 09-02-PLAN.md — EducationPage UI (카드, D-day 배지, BottomSheet 이수 등록)
+- [x] 09-02-PLAN.md — EducationPage UI (카드, D-day 배지, BottomSheet 이수 등록)
 **UI hint**: yes
 
 ### Phase 10: Legal Inspection
@@ -136,7 +136,7 @@ Plans:
 | 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 9. Education Management | v1.1 | 1/2 | In Progress|  |
+| 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
