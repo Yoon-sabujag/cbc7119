@@ -12,7 +12,9 @@ interface Props {
   unresolvedCount?: number
 }
 
-const MENU = [
+type MenuItem = { label: string; path: string; badge: number; soon: boolean; role?: 'admin' | 'assistant' }
+
+const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '주요 기능', items: [
     { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
     { label: '소방 점검',   path: '/inspection',     badge: 0, soon: false },
@@ -29,13 +31,13 @@ const MENU = [
   { section: '근무·복지', items: [
     { label: '근무표',    path: '/workshift',  badge: 0, soon: false },
     { label: '연차 관리', path: '/leave',      badge: 0, soon: false },
-    { label: '식당 메뉴', path: '/meal',       badge: 0, soon: true },
+    { label: '식당 메뉴', path: '/meal',       badge: 0, soon: true  },
   ]},
   { section: '시스템', items: [
     { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },
     { label: '승강기 관리', path: '/elevator',   badge: 0, soon: false },
-    { label: '법적 점검',   path: '/legal',      badge: 0, soon: true },
-    { label: '관리자 설정', path: '/admin',      badge: 0, soon: true },
+    { label: '법적 점검',   path: '/legal',      badge: 0, soon: true  },
+    { label: '관리자 설정', path: '/admin',      badge: 0, soon: false, role: 'admin' },
   ]},
 ]
 
@@ -102,7 +104,10 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           {MENU.map(({ section, items }) => (
             <div key={section}>
               <div style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>{section}</div>
-              {items.map(item => item.soon ? (
+              {items.map(item => {
+                // role 기반 노출 제어: item.role 지정 시 해당 role만 표시
+                if (item.role && staff?.role !== item.role) return null
+                return item.soon ? (
                 <div
                   key={item.path}
                   style={{
@@ -138,7 +143,8 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
                     ) : null
                   })()}
                 </div>
-              ))}
+              )
+              })}
             </div>
           ))}
         </div>
