@@ -23,7 +23,7 @@
 
 - [x] **Phase 5: Navigation Restructuring** - BottomNav/SideMenu 재편 — 더보기 제거, 조치 탭 신규, 햄버거 메뉴 통합 (completed 2026-04-01)
 - [x] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부 (completed 2026-04-01)
-- [ ] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩, streakDays 계산, 관리자 설정 (직원 CRUD, 시스템 설정, 햄버거 순서)
+- [ ] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류
 - [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 식당 메뉴표 — 개인별 기록, 월별 통계, PDF 메뉴 추출
 - [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
 - [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
@@ -66,16 +66,17 @@ Plans:
 **UI hint**: yes
 
 ### Phase 7: Tech Debt + Admin
-**Goal**: 점검자 이름이 DB에서 동적으로 조회되고, 대시보드에 연속 달성일이 표시되며, 관리자가 직원·시스템 설정을 앱에서 관리할 수 있다
+**Goal**: 점검자 이름이 DB에서 동적으로 조회되고, 관리자가 직원·시스템 설정을 앱에서 관리할 수 있다
 **Depends on**: Phase 6
-**Requirements**: TECH-01, TECH-02, ADMIN-01, ADMIN-02, ADMIN-03
+**Requirements**: TECH-01, ADMIN-01, ADMIN-02
 **Success Criteria** (what must be TRUE):
   1. 점검 기록의 점검자 이름이 DB staff 테이블에서 조회되고 하드코딩 STAFF_ROLES 맵이 코드에서 제거된다
-  2. 대시보드의 연속 달성일(streakDays)이 실제 연속 점검 완료 일수를 반영한다 (0 하드코딩 제거)
-  3. 관리자 계정으로만 접근 가능한 관리자 설정 페이지가 존재하며, 직원 계정 추가/수정/비밀번호 초기화가 가능하다
-  4. 관리자가 시스템 설정(점검 카테고리, 개소 관리)을 앱 내에서 구성할 수 있다
-  5. 관리자가 햄버거 메뉴 항목 순서와 표시 여부를 설정할 수 있다
-**Plans**: TBD
+  2. 관리자 계정으로만 접근 가능한 관리자 설정 페이지가 존재하며, 직원 계정 추가/수정/비밀번호 초기화가 가능하다
+  3. 관리자가 시스템 설정(점검 카테고리 조회, 개소 추가/수정/비활성화)을 앱 내에서 구성할 수 있다
+**Plans**: 2 plans
+Plans:
+- [ ] 07-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + TECH-01 하드코딩 제거 + 라우팅
+- [ ] 07-02-PLAN.md — AdminPage 완전 구현 (직원관리 + 개소관리 2탭)
 **UI hint**: yes
 
 ### Phase 8: Meal Records
@@ -128,8 +129,8 @@ Plans:
 | 3. Excel Reports — Annual Matrix Types | v1.0 | 2/2 | Complete | 2026-03-28 |
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
-| 6. Remediation Tracking | v1.1 | 1/2 | Complete    | 2026-04-01 |
-| 7. Tech Debt + Admin | v1.1 | 0/? | Not started | - |
+| 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
+| 7. Tech Debt + Admin | v1.1 | 0/2 | Planning complete | - |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
@@ -138,4 +139,4 @@ Plans:
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
-*Last updated: 2026-04-01*
+*Last updated: 2026-04-02*
