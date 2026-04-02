@@ -67,7 +67,7 @@ Declared values (multiples of 4):
 | 3xl | 64px | Not used in this phase |
 
 Exceptions:
-- Touch target minimum: 44px height for all tappable elements (header buttons, card rows, tab bar items) — source: existing pattern in MealPage.tsx and RemediationPage.tsx
+- Touch target minimum: 48px height for all tappable elements (header buttons, card rows, tab bar items) — standardised to match header bar height, all multiples of 4
 - Header bar: 48px height fixed — source: MealPage.tsx header pattern (D-02)
 - BottomSheet drag handle: 4px tall × 32px wide centered at top — source: AdminPage.tsx BottomSheet
 
@@ -80,10 +80,10 @@ Exceptions:
 | Body | 14px | 400 | 1.5 | `fontSize: 14, fontWeight: 400` |
 | Label / Caption | 12px | 700 | 1.4 | `fontSize: 12, fontWeight: 700` — used for stat card labels, badges |
 | Heading (card / section) | 16px | 700 | 1.3 | `fontSize: 16, fontWeight: 700` — card staff name, page title |
-| Sub-label | 13px | 500 | 1.4 | `fontSize: 13, fontWeight: 500` — secondary info on cards, date fields |
+| Sub-label | 13px | 400 | 1.4 | `fontSize: 13, fontWeight: 400` — secondary info on cards, date fields; visual distinction from Body comes from 13px size and `var(--t2)` color |
 
 Font family: always inherit from body (Noto Sans KR). Never declare font-family inline.
-Weights used: 400 (body) and 700 (labels/headings). 500 used only for sub-label secondary text on cards.
+Weights used: 400 (body, sub-label) and 700 (labels/headings). Maximum 2 weights. Do not use weight 500.
 
 ---
 
@@ -93,7 +93,7 @@ Weights used: 400 (body) and 700 (labels/headings). 500 used only for sub-label 
 |------|-------|-------|
 | Dominant (60%) | `var(--bg)` `#0d1117` | Page background, list scroll area |
 | Secondary (30%) | `var(--bg2)` `#161b22` | Staff education cards, sticky header, BottomSheet |
-| Accent (10%) | `var(--acl)` `#3b82f6` | Active tab underline only |
+| Accent (10%) | `var(--acl)` `#3b82f6` | Active tab underline; primary action button background (BottomSheet only) |
 | Warning semantic | `var(--warn)` `#f59e0b` | D-day badge when D ≤ 30 and D ≥ 0 |
 | Danger semantic | `var(--danger)` `#ef4444` | D-day badge when past deadline (D < 0) |
 | Safe semantic | `var(--safe)` `#22c55e` | D-day badge when D > 30 (no urgency) |
@@ -101,10 +101,13 @@ Weights used: 400 (body) and 700 (labels/headings). 500 used only for sub-label 
 
 Accent (`var(--acl)`) is reserved for:
 - Completion record type selector active indicator (initial/refresher underline)
-- No other usage in this phase — do not apply to card backgrounds, button fills, or text
+- Primary action button background in BottomSheet (이수일 기록 / 수정 완료)
+- No other usage in this phase — do not apply to card backgrounds or text
 
 D-day badge background: use 20% opacity of the semantic color as background fill.
 Example: warning badge = `background: 'rgba(245,158,11,0.15)'`, text = `color: 'var(--warn)'`
+
+**Focal point:** The D-day badge is the primary visual anchor per card. It must be the highest-contrast element in each row — sized, colored, and positioned (top-right of card) to draw the eye before staff name or other metadata.
 
 ---
 
@@ -113,7 +116,7 @@ Example: warning badge = `background: 'rgba(245,158,11,0.15)'`, text = `color: '
 ```
 EducationPage layout (flex column, height 100%, overflow hidden):
   ┌─ Header bar — 48px, bg2, borderBottom bd ─────────────────┐
-  │  [← 44×44]   보수교육 (center, 16px 700)   [spacer 44×44] │
+  │  [← 48×48]   보수교육 (center, 16px 700)   [spacer 48×48] │
   └───────────────────────────────────────────────────────────┘
   ┌─ Scroll area — flex 1, overflow-y auto ───────────────────┐
   │  padding: 16px                                             │
@@ -136,7 +139,7 @@ Each card represents one staff member and their education status.
 ┌──────────────────────────────────────────────────────────┐
 │  [Avatar initial 32×32 circle bg3 t2]                    │
 │  김철수 (16px 700 t1)          [D-day badge]             │
-│  소방안전관리자 (13px 500 t2)                             │
+│  소방안전관리자 (13px 400 t2)                             │
 │  마지막 이수: 2024-03-15 (보수) (12px 400 t3)            │
 │  다음 마감: 2026-03-15 (12px 400 t2)                     │
 └──────────────────────────────────────────────────────────┘
@@ -149,7 +152,7 @@ Each card represents one staff member and their education status.
 
 **Avatar:** 32px circle, background `var(--bg3)`, text `var(--t2)`, font 14px 700. First character of staff name.
 
-**D-day badge (D-13):**
+**D-day badge (primary visual anchor — highest-contrast element per card):**
 - D > 30: background `rgba(34,197,94,0.12)`, text `var(--safe)`, label "D-{N}"
 - 0 ≤ D ≤ 30: background `rgba(245,158,11,0.15)`, text `var(--warn)`, label "D-{N}"
 - D < 0: background `rgba(239,68,68,0.15)`, text `var(--danger)`, label "D+{|N|} 초과"
@@ -175,7 +178,7 @@ Opens when user taps a StaffEducationCard. Replicates AdminPage.tsx BottomSheet 
         [교육 유형] select (initial / refresher) — default auto-set
         ─────────────────────────────
         [이수일 기록] primary action button
-        [취소] secondary action button
+        [기록 취소] secondary action button
         [bottom safe area padding]
 ```
 
@@ -185,7 +188,7 @@ Opens when user taps a StaffEducationCard. Replicates AdminPage.tsx BottomSheet 
 
 **Primary button (이수일 기록):** full-width, height 48, background `var(--acl)`, borderRadius 10, color white, fontWeight 700, fontSize 15.
 
-**Secondary button (취소):** full-width, height 44, background transparent, border `1px solid var(--bd2)`, color `var(--t2)`, fontSize 14. Placed below primary with 8px gap.
+**Secondary button (기록 취소):** full-width, height 48, background transparent, border `1px solid var(--bd2)`, color `var(--t2)`, fontSize 14. Placed below primary with 8px gap.
 
 **수정 mode:** When editing existing record, title changes to "이수일 수정", primary button label changes to "수정 완료". Education type selector is disabled (read-only, `var(--t3)`, no pointer).
 
@@ -205,6 +208,7 @@ When `staff.appointed_at` is null:
 | Page title | 보수교육 |
 | Primary CTA (register) | 이수일 기록 |
 | Primary CTA (update) | 수정 완료 |
+| Secondary CTA (cancel) | 기록 취소 |
 | BottomSheet title (new) | 이수 기록 등록 |
 | BottomSheet title (edit) | 이수일 수정 |
 | Empty state heading | 교육 이력 없음 |
