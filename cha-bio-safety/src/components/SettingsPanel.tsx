@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { authApi } from '../utils/api'
+import toast from 'react-hot-toast'
 
 const NAV_H = 'calc(54px + var(--sab, 0px))'
 
@@ -28,9 +31,9 @@ function Toggle({ defaultOn = true }: { defaultOn?: boolean }) {
   )
 }
 
-function Row({ label, sub, children }: { label: string; sub?: string; children: React.ReactNode }) {
+function Row({ label, sub, children, onClick }: { label: string; sub?: string; children: React.ReactNode; onClick?: () => void }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
+    <div onClick={onClick} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9, marginBottom:5, cursor: onClick ? 'pointer' : 'default' }}>
       <div>
         <div style={{ fontSize:12, fontWeight:500 }}>{label}</div>
         {sub && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{sub}</div>}
@@ -40,7 +43,56 @@ function Row({ label, sub, children }: { label: string; sub?: string; children: 
   )
 }
 
+function ChangePasswordForm({ onDone }: { onDone: () => void }) {
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [confirm, setConfirm] = useState('')
+
+  const mutation = useMutation({
+    mutationFn: () => authApi.changePassword({ currentPassword: current, newPassword: next }),
+    onSuccess: () => { toast.success('비밀번호가 변경되었습니다'); onDone() },
+    onError: (e: any) => toast.error(e?.message || '비밀번호 변경에 실패했습니다'),
+  })
+
+  const canSave = current.trim() !== '' && next.trim() !== '' && next === confirm && next.length >= 4
+
+  return (
+    <div style={{ padding: '12px 13px' }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>비밀번호 변경</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <input
+          type="password" placeholder="현재 비밀번호" value={current}
+          onChange={e => setCurrent(e.target.value)}
+          style={{ height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+        />
+        <input
+          type="password" placeholder="새 비밀번호 (4자 이상)" value={next}
+          onChange={e => setNext(e.target.value)}
+          style={{ height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+        />
+        <input
+          type="password" placeholder="새 비밀번호 확인" value={confirm}
+          onChange={e => setConfirm(e.target.value)}
+          style={{ height: 40, background: 'var(--bg3)', border: `1px solid ${confirm && next !== confirm ? 'var(--danger)' : 'var(--bd)'}`, borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }}
+        />
+        {confirm && next !== confirm && (
+          <div style={{ fontSize: 11, color: 'var(--danger)' }}>비밀번호가 일치하지 않습니다</div>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onDone} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
+          <button onClick={() => mutation.mutate()} disabled={!canSave || mutation.isPending}
+            style={{ flex: 1, height: 36, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !mutation.isPending ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: canSave && !mutation.isPending ? 1 : 0.4 }}>
+            변경
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function SettingsPanel({ open, onClose }: Props) {
+  const [showPwChange, setShowPwChange] = useState(false)
+
   return (
     <>
       <div
@@ -95,12 +147,16 @@ export function SettingsPanel({ open, onClose }: Props) {
           <Row label="결과 즉시 저장"><Toggle defaultOn /></Row>
         </div>
 
-        <div style={{ padding:'12px 13px 5px' }}>
-          <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase', marginBottom:6 }}>계정</div>
-          <Row label="비밀번호 변경">
-            <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-          </Row>
-        </div>
+        {showPwChange ? (
+          <ChangePasswordForm onDone={() => setShowPwChange(false)} />
+        ) : (
+          <div style={{ padding:'12px 13px 5px' }}>
+            <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase', marginBottom:6 }}>계정</div>
+            <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
+              <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </Row>
+          </div>
+        )}
 
         <div style={{ padding:13, textAlign:'center' }}>
           <div style={{ fontSize:10, color:'var(--t3)' }}>차바이오컴플렉스 방재 v1.0.0</div>

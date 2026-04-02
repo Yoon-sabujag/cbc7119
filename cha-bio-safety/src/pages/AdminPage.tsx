@@ -182,7 +182,12 @@ function StaffModal({
         {/* 선임일자 */}
         <div>
           <label style={LABEL_STYLE}>선임일자</label>
-          <input style={INPUT_STYLE} value={form.appointedAt} onChange={setField('appointedAt')} type="date" />
+          <input style={INPUT_STYLE} value={form.appointedAt} onChange={e => {
+            const v = e.target.value.replace(/[^0-9]/g, '')
+            if (v.length <= 4) setForm(f => ({ ...f, appointedAt: v }))
+            else if (v.length <= 6) setForm(f => ({ ...f, appointedAt: v.slice(0,4) + '-' + v.slice(4) }))
+            else setForm(f => ({ ...f, appointedAt: v.slice(0,4) + '-' + v.slice(4,6) + '-' + v.slice(6,8) }))
+          }} placeholder="2024-01-15" inputMode="numeric" maxLength={10} />
         </div>
         {/* 직책 */}
         <div>
@@ -420,7 +425,7 @@ export default function AdminPage() {
   if (staff?.role !== 'admin') return null
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100vh', overflow: 'hidden' }}>
       <style>{`
         @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
         @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
@@ -456,7 +461,7 @@ export default function AdminPage() {
       </div>
 
       {/* ── 탭 콘텐츠 ────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {activeTab === 'staff' ? (
           <StaffTabContent
             onAdd={() => setStaffModal({ open: true, mode: 'add' })}
@@ -592,7 +597,7 @@ function CheckPointTabContent({
   const cpList = checkPoints ?? []
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', minHeight: 0 }}>
       {/* 카테고리 드롭다운 */}
       <div style={{ padding: 16, flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
@@ -628,7 +633,7 @@ function CheckPointTabContent({
       </div>
 
       {/* 개소 목록 */}
-      <div style={{ flex: 1, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 80 }}>
+      <div style={{ flex: 1, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 80, overflowY: 'auto' }}>
         {selectedCategory === '' && (
           <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t3)', fontSize: 14 }}>
             카테고리를 선택하면 개소 목록이 표시됩니다
