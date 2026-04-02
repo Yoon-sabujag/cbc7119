@@ -31,6 +31,8 @@ const QRPrintPage             = lazy(() => import('./pages/QRPrintPage'))
 const ExtinguisherPublicPage  = lazy(() => import('./pages/ExtinguisherPublicPage'))
 const AdminPage               = lazy(() => import('./pages/AdminPage'))
 const MealPage                = lazy(() => import('./pages/MealPage'))
+const EducationPage           = lazy(() => import('./pages/EducationPage'))
+const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -57,6 +59,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/inspection/qr': 'QR 스캔',
   '/remediation': '조치 관리',
   '/elevator': '승강기 관리',
+  '/staff-service': '직원 서비스',
 }
 
 function Layout() {
@@ -122,7 +125,8 @@ function Layout() {
             <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
             <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
             <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
-            <Route path="/more"          element={<Navigate to="/dashboard" replace />} />
+            <Route path="/staff-service" element={<Auth><StaffServicePage /></Auth>} />
+            <Route path="/more"          element={<Navigate to="/staff-service" replace />} />
             <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
             <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
             <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
@@ -133,6 +137,7 @@ function Layout() {
             <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
             <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
             <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
+            <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
             <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
             <Route path="*"              element={<NotFoundPage />} />
           </Routes>

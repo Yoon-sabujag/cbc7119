@@ -32,6 +32,7 @@ const MENU: { section: string; items: MenuItem[] }[] = [
     { label: '근무표',    path: '/workshift',  badge: 0, soon: false },
     { label: '연차 관리', path: '/leave',      badge: 0, soon: false },
     { label: '식사 기록', path: '/meal',       badge: 0, soon: false },
+    { label: '보수교육',  path: '/education',  badge: 0, soon: false },
   ]},
   { section: '시스템', items: [
     { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },

@@ -142,6 +142,43 @@ export const floorPlanMarkerApi = {
     api.delete<void>(`/floorplan-markers/${id}`),
 }
 
+export interface ExtinguisherDetail {
+  mgmt_no: string
+  zone: string
+  floor: string
+  location: string
+  type: string
+  approval_no: string | null
+  manufactured_at: string | null
+  manufacturer: string | null
+  prefix_code: string | null
+  seal_no: string | null
+  serial_no: string | null
+  note: string | null
+}
+
+export interface ExtinguisherListResponse {
+  items: (ExtinguisherDetail & { seq_no: number; cp_id: string })[]
+  stats: { type: string; cnt: number }[]
+  zones: string[]
+  floors: string[]
+  total: number
+}
+
+export const extinguisherApi = {
+  getDetail: (checkPointId: string) =>
+    api.get<ExtinguisherDetail | null>(`/extinguishers/${checkPointId}`),
+  list: (params?: { floor?: string; zone?: string; type?: string; q?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.floor) qs.set('floor', params.floor)
+    if (params?.zone) qs.set('zone', params.zone)
+    if (params?.type) qs.set('type', params.type)
+    if (params?.q) qs.set('q', params.q)
+    const q = qs.toString()
+    return api.get<ExtinguisherListResponse>(`/extinguishers${q ? '?' + q : ''}`)
+  },
+}
+
 export const staffApi = {
   list:          () => api.get<import('../types').StaffFull[]>('/staff'),
   create:        (data: import('../types').StaffCreatePayload)           => api.post<import('../types').StaffFull>('/staff', data),
@@ -163,6 +200,14 @@ export const mealApi = {
     ),
   upsert: (date: string, skippedMeals: number) =>
     api.post<void>('/meal', { date, skippedMeals }),
+}
+
+export const educationApi = {
+  list: () => api.get<import('../types').StaffEducation[]>('/education'),
+  create: (data: { staffId: string; education_type: 'initial' | 'refresher'; completed_at: string }) =>
+    api.post<import('../types').EducationRecord>('/education', data),
+  update: (id: string, data: { completed_at: string }) =>
+    api.put<void>(`/education/${id}`, data),
 }
 
 export const inspectionApi = {

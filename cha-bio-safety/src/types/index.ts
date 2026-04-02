@@ -39,6 +39,19 @@ export interface CheckPointFull {
 export interface CheckPointCreatePayload { id: string; qrCode: string; floor: string; zone: BuildingZone; location: string; category: string; description?: string; locationNo?: string }
 export interface CheckPointUpdatePayload { location?: string; category?: string; description?: string; locationNo?: string; floor?: string; zone?: BuildingZone; isActive?: number }
 
+export interface EducationRecord {
+  id: string
+  staffId: string
+  educationType: 'initial' | 'refresher'
+  completedAt: string   // YYYY-MM-DD
+  createdAt: string
+}
+
+export interface StaffEducation {
+  staff: { id: string; name: string; title: string; appointedAt: string | null }
+  records: EducationRecord[]
+}
+
 export interface RemediationRecord {
   id: string
   result: 'bad' | 'caution'
