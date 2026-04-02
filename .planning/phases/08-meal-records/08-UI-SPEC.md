@@ -56,9 +56,9 @@ Declared values (multiples of 4):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px | Icon gaps, badge inner padding (1px 3px allowed for small badges) |
+| xs | 4px | Icon gaps, badge inner padding, calendar grid gap |
 | sm | 8px | Compact element spacing, cell internal padding |
-| md | 16px | Default horizontal page padding, header padding |
+| md | 16px | Default horizontal page padding, header padding, month nav button horizontal padding |
 | lg | 24px | Section padding, card internal spacing |
 | xl | 32px | Major layout gaps |
 | 2xl | 48px | Header height (fixed), tab bar height (fixed) |
@@ -68,23 +68,30 @@ Exceptions:
 - Header height: exactly 48px (matches LeavePage/AdminPage established pattern)
 - Tab bar button height: exactly 44px (matches AdminPage established pattern)
 - Back button touch target: 44px x 44px minimum (iOS accessibility minimum)
-- Calendar cell: `aspect-ratio: 1` (square, fills 1/7 of grid width), gap 2px between cells
+- Calendar cell: `aspect-ratio: 1` (square, fills 1/7 of grid width), gap 4px between cells
 - Summary stat cards: 16px padding, no fixed height (content-driven)
 
 ---
 
 ## Typography
 
+Exactly 4 font sizes and 2 font weights are used in this phase.
+
 | Role | Size | Weight | Line Height | Token | Usage |
 |------|------|--------|-------------|-------|-------|
-| Page heading | 16px | 700 | 1.2 | `var(--t1)` | Header title "식사 기록" |
-| Section label | 14px | 700 | 1.2 | `var(--t1)` | Month navigator "YYYY년 M월", stat card values |
-| Body / tab label | 12px | 700 | 1.4 | `var(--t1)` or `var(--t3)` | Tab labels "식사 기록" / "메뉴표", stat card labels |
+| Page heading | 16px | 700 | 1.2 | `var(--t1)` | Header title "식사 기록", stat card values (weight 700 provides emphasis in place of larger size), month navigator label "YYYY년 M월", month navigator buttons |
+| Section label | 14px | 700 | 1.2 | `var(--t1)` | Placeholder heading "메뉴표", placeholder body uses 14px weight 500 |
+| Body / tab label | 12px | 700 | 1.4 | `var(--t1)` or `var(--t3)` | Tab labels "식사 기록" / "메뉴표", stat card labels (uppercase Korean), skip badge content |
 | Calendar date | 13px | 500 (normal) / 700 (today) | 1.0 | date-color (see Color) | Day number inside calendar cell |
 
-Font weights used: 500 (regular calendar dates) and 700 (headings, labels, active states). No other weights.
+Font weights used: 500 (regular calendar dates, placeholder body) and 700 (headings, labels, values, active states). No other weights.
 
 **Korean note:** Noto Sans KR at weight 700 renders as bold. Weight 500 is the "normal" weight for this font at small sizes — do not use 400.
+
+**Consolidation notes:**
+- 11px (previously stat card labels) → 12px. Compensate with uppercase styling if needed.
+- 10px (previously skip badge) → 12px with reduced padding (`padding: 0 3px`, `minWidth: 14px`) to keep badge compact.
+- 22px (previously stat card values) → 16px weight 700. The weight 700 provides sufficient visual emphasis at 16px.
 
 ---
 
@@ -120,6 +127,8 @@ Font weights used: 500 (regular calendar dates) and 700 (headings, labels, activ
 - 미식 value: `var(--acl)` = `#3b82f6` (recorded skip count)
 - 주말 식대 value: `var(--warn)` = `#f59e0b` (financial callout)
 
+**Primary visual anchor:** The calendar grid is the primary focal point of this page. It is the only tappable element for data entry, fills the majority of the viewport below the summary cards, and draws the eye through its 7-column structure and colored cell states. All other elements (header, tab bar, summary cards, month navigator) are supporting chrome.
+
 ---
 
 ## Component Inventory
@@ -138,7 +147,7 @@ Font weights used: 500 (regular calendar dates) and 700 (headings, labels, activ
   [Month Navigator — bg2, borderBottom bd]
     ‹ button | "YYYY년 M월" | › button
   [Day-of-week header row — 7 columns]
-  [Calendar grid — CSS grid repeat(7,1fr), gap 2px]
+  [Calendar grid — CSS grid repeat(7,1fr), gap 4px]
     [Day cells — aspect-ratio:1]
 
 [Tab: 메뉴표]
@@ -149,18 +158,18 @@ Font weights used: 500 (regular calendar dates) and 700 (headings, labels, activ
 
 4 cards in a single horizontal row. Each card:
 - `background: var(--bg2)`, `borderRadius: 12px`, `padding: 12px 16px`
-- Label: 11px, weight 700, `var(--t3)`, uppercase Korean
-- Value: 22px, weight 700, semantic color (see Color section)
+- Label: 12px, weight 700, `var(--t3)`, uppercase Korean
+- Value: 16px, weight 700, semantic color (see Color section)
 - Unit suffix (if any): 13px, weight 500, `var(--t2)` (e.g., "끼", "원")
 - Cards do NOT have fixed width — use `flex: 1 0 auto`, `minWidth: 72px`
 - Container: horizontal flex, gap 8px, `padding: 12px 12px 0`, overflow-x auto (no scrollbar visible)
 
 ### Calendar Cell
 
-- Container: `display: grid, gridTemplateColumns: repeat(7,1fr), gap: 2`
+- Container: `display: grid, gridTemplateColumns: repeat(7,1fr), gap: 4`
 - Cell: `aspectRatio: 1`, `borderRadius: 8`, `position: relative`, `userSelect: none`, `WebkitTapHighlightColor: transparent`
 - Date number: 26px circle (only filled/colored for today), `fontSize: 13`, centered, `flexShrink: 0`
-- Skip badge: positioned `top: 2px, right: 2px`, `fontSize: 10px`, weight 700, `background: var(--acl)`, `color: #fff`, `borderRadius: 10px`, `padding: 0 4px`, `minWidth: 16px`, centered text
+- Skip badge: positioned `top: 2px, right: 2px`, `fontSize: 12px`, weight 700, `background: var(--acl)`, `color: #fff`, `borderRadius: 10px`, `padding: 0 3px`, `minWidth: 14px`, centered text
   - Content: "①" or "②" (circled numbers, Unicode U+2460 / U+2461)
   - Alternatively: plain "1" or "2" in the badge if circled numbers render inconsistently on Android
 - Cell tap: tappable only when `providedMeals > 0`. Opacity `0.4` + `cursor: default` when not tappable
@@ -169,7 +178,7 @@ Font weights used: 500 (regular calendar dates) and 700 (headings, labels, activ
 ### Month Navigator
 
 - Height: 44px, `background: var(--bg2)`, `borderBottom: 1px solid var(--bd)`
-- Prev/next buttons: `background: var(--bg3)`, `borderRadius: 8`, `padding: 6px 14px`, `fontSize: 16`, weight 700, `color: var(--t2)`
+- Prev/next buttons: `background: var(--bg3)`, `borderRadius: 8`, `padding: 8px 16px`, `fontSize: 16`, weight 700, `color: var(--t2)`
 - Month label: `fontSize: 16`, weight 700, `color: var(--t1)`, e.g. "2026년 4월"
 - Month navigation is bounded: cannot navigate past current month + 1 or before 6 months ago
 
@@ -325,7 +334,7 @@ No third-party registries. All components are hand-rolled following established 
 
 4. **Calendar cell tap handler must check providedMeals > 0** before advancing cycle. Return early (optionally with toast) if the day has no provision.
 
-5. **Skip badge content:** Use Unicode circled numbers ① (U+2460) and ② (U+2461) inside a small blue badge positioned at `top: 2, right: 2` relative to the cell. If circled numbers cause rendering issues on Android WebView, fall back to plain "1" / "2" with the blue pill background.
+5. **Skip badge content:** Use Unicode circled numbers ① (U+2460) and ② (U+2461) inside a small blue badge positioned at `top: 2, right: 2` relative to the cell. Badge is 12px font with `padding: 0 3px`, `minWidth: 14px`. If circled numbers cause rendering issues on Android WebView, fall back to plain "1" / "2" with the blue pill background.
 
 6. **Summary card layout:** 4 cards in flex row with `overflowX: auto` on the container. On narrow devices all 4 must be visible without forcing scroll — target `minWidth: 72px` per card so they fit in 320px width. On wider screens cards expand equally.
 
