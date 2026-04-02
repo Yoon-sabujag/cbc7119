@@ -156,6 +156,15 @@ export const checkPointApi = {
   update:     (id: string, data: import('../types').CheckPointUpdatePayload) => api.put<import('../types').CheckPointFull>(`/check-points/${id}`, data),
 }
 
+export const mealApi = {
+  list: (year: number, month: string) =>
+    api.get<{ records: { date: string; skippedMeals: number }[] }>(
+      `/meal?month=${month}`
+    ),
+  upsert: (date: string, skippedMeals: number) =>
+    api.post<void>('/meal', { date, skippedMeals }),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),
