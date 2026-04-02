@@ -23,7 +23,7 @@
 
 - [x] **Phase 5: Navigation Restructuring** - BottomNav/SideMenu 재편 — 더보기 제거, 조치 탭 신규, 햄버거 메뉴 통합 (completed 2026-04-01)
 - [x] **Phase 6: Remediation Tracking** - 조치 관리 페이지 — 불량/주의 개소 조치 기록, 상태 전환, 필터, R2 사진 첨부 (completed 2026-04-01)
-- [ ] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류
+- [x] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류 (completed 2026-04-02)
 - [ ] **Phase 8: Meal Records** - 식사 이용 기록 + 식당 메뉴표 — 개인별 기록, 월별 통계, PDF 메뉴 추출
 - [ ] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고
 - [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
@@ -76,7 +76,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 07-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + TECH-01 하드코딩 제거 + 라우팅
-- [ ] 07-02-PLAN.md — AdminPage 완전 구현 (직원관리 + 개소관리 2탭)
+- [x] 07-02-PLAN.md — AdminPage 완전 구현 (직원관리 + 개소관리 2탭)
 **UI hint**: yes
 
 ### Phase 8: Meal Records
@@ -130,7 +130,7 @@ Plans:
 | 4. Completion Tracking & Daily Reporting | v1.0 | 3/3 | Complete | 2026-03-30 |
 | 5. Navigation Restructuring | v1.1 | 2/2 | Complete   | 2026-04-01 |
 | 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
-| 7. Tech Debt + Admin | v1.1 | 0/2 | Planning complete | - |
+| 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 0/? | Not started | - |
 | 9. Education Management | v1.1 | 0/? | Not started | - |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
