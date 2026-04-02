@@ -102,7 +102,7 @@ Plans:
   3. 개인 페이지에서 다음 교육 마감일까지의 D-day를 확인할 수 있다
 **Plans**: 2 plans
 Plans:
-- [ ] 09-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
+- [x] 09-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
 - [ ] 09-02-PLAN.md — EducationPage UI (카드, D-day 배지, BottomSheet 이수 등록)
 **UI hint**: yes
 
@@ -136,7 +136,7 @@ Plans:
 | 6. Remediation Tracking | v1.1 | 2/2 | Complete    | 2026-04-01 |
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 9. Education Management | v1.1 | 0/2 | Planning complete | - |
+| 9. Education Management | v1.1 | 1/2 | In Progress|  |
 | 10. Legal Inspection | v1.1 | 0/? | Not started | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 

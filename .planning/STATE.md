@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: verifying
-stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-04-02T21:23:52.137Z"
+status: executing
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-04-02T22:57:59.830Z"
 last_activity: 2026-04-02
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 100
 ---
 
@@ -27,18 +27,18 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core Value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 
-**Current Focus:** Phase 08 — meal-records
+**Current Focus:** Phase 09 — education-management
 
 ---
 
 ## Current Position
 
-Phase: 08 (meal-records) — COMPLETE
+Phase: 09 (education-management) — EXECUTING
 Plan: 2 of 2
-Status: Phase 08 fully verified in production — meal-records complete
+Status: Ready to execute
 Last activity: 2026-04-02
 
-Progress: [██████████] 100% (Phase 08 plans complete)
+Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 
 ---
 
@@ -69,6 +69,9 @@ Progress: [██████████] 100% (Phase 08 plans complete)
 | Inline confirmation for destructive actions (deactivate/password reset) | Replaces button row in modal — avoids nested modals pattern |
 | Optimistic mealMap overlay: optimisticMealMap state + server data merge | Immediate tap feedback; rollback on API error prevents stale UI |
 | lucide-react absent in project: inline SVG functions used instead | Matches AdminPage.tsx pattern; avoids adding unneeded dependency |
+| No DELETE on education_records | 이수 이력은 법적 보존 대상 (D-09) |
+| GET /api/education: all roles can view all records | D-11 — no role filter on read; all 4 staff see each other's training |
+| Education write: admin OR record owner | D-10 — self-service allowed; staff can record their own training |
 
 ### Architecture Notes
 
@@ -93,8 +96,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-02T21:23:52.131Z
-**Stopped at:** Phase 9 UI-SPEC approved
+**Last session:** 2026-04-02T22:57:59.825Z
+**Stopped at:** Completed 09-01-PLAN.md
 
 **Key files:**
 
