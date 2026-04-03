@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-04-03T04:46:38.970Z"
+status: verifying
+stopped_at: "Completed 10-02-PLAN.md (checkpoint:human-verify pending)"
+last_updated: "2026-04-03T05:06:03.105Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 90
 ---
 
@@ -35,8 +35,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 10 (legal-inspection) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-04-03
+Status: Phase complete — ready for verification
+Last activity: 2026-04-03 - Completed quick task 260403-jg3: CCTV DVR 점검 기능 추가
 
 Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 
@@ -67,6 +67,12 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 | 마커 편집 권한 확장 | admin + MARKER_EDITOR_IDS (현재 윤종엽 2022051052) — API 3곳 동시 적용 |
 | 도면 인라인 점검 기록 | 페이지 이동 없이 도면 위에서 점검 결과+사진 저장, 점검 페이지와 동일 DB |
 | 마커-개소 연결 중복 방지 | 추가/수정 모달에서 이미 연결된 개소 드롭다운 제외 |
+| 소화기 점검표 QR 페이지 리라이트 | 엑셀 양식 그대로 HTML 테이블, 점검사항 그림 포함, colgroup 비율 고정 |
+| SideMenu 연차/식사 통합 | "연차 관리"+"식사 기록" → "연차 및 식사" /staff-service로 통합 |
+| 직원서비스 달력 셀 리라이트 | 좌상단 근무타입, 우상단 날짜, 우하단 팀원연차/소검/승검/공휴일명 |
+| 연차 신청 차단 | 팀원 연차일+소방 점검일+승강기 검사일 차단, 음영 표시 |
+| 공휴일 API 자동 동기화 | 공공데이터포털 특일정보 API, holidays 테이블(migration 0036), 1일1회 자동 갱신 + 하드코딩 fallback |
+| 주말 날짜 색상 | 일요일/공휴일 진한빨강(#7f1d1d), 토요일 진한파랑(#1e3a5f), 주말 opacity 제거 |
 | Tab state via URL searchParams in RemediationPage | Back navigation restores active filter tab (미조치/완료/전체) |
 | 개소명(location) added to remediation card + detail | Field workers need specific location name, not just zone/floor |
 | 조치자 name via staff JOIN (not raw staffId) | Resolved by API-level JOIN already in place; detail page renders name field |
@@ -92,6 +98,13 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 - API: /api/extinguishers (GET 전체 목록) + /api/extinguishers/[checkPointId] (GET 상세)
 - 소화기 리스트 오버레이: ExtinguisherListOverlay (점검 모달 내 풀스크린)
 - 인라인 점검 모달: 도면에서 직접 점검 기록 입력 (inspectionApi 연동, 사진 첨부)
+- D1 at migration 0036; holidays 테이블 (공공데이터포털 API 연동)
+- API: /api/holidays (GET 조회) + /api/holidays/sync (POST 동기화, public 경로)
+- 공휴일 동기화: StaffServicePage 진입 시 localStorage 기반 1일1회 자동, XML 파싱
+- ExtinguisherPublicPage: 엑셀 양식 HTML 재현, colgroup 비율 고정, extinguisher-check.png
+- SideMenu: 연차관리+식사기록 → "연차 및 식사" /staff-service 통합
+- StaffServicePage 달력: 셀 레이아웃 전면 리라이트 (좌상단 근무/우상단 날짜/우하단 공휴일+팀원연차+소검+승검)
+- 연차 신청 차단: teamLeaveMap + inspectDates + elevInspectDates → isBlocked() 함수
 - D1 at migration 0032; v1.1에서 0034-0038 (5개 신규 마이그레이션) 적용 예정
 - RemediationPage: 신규 마이그레이션 불필요 (migration 0012 스키마 이미 존재)
 - Admin settings: migration 0036 (system_settings 테이블) 필요
@@ -104,12 +117,18 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 
 None currently.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260403-jg3 | CCTV DVR 점검 기능 추가 | 2026-04-03 | da372bd | [260403-jg3-cctv-dvr](./quick/260403-jg3-cctv-dvr/) |
+
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-04-03T04:46:38.965Z
-**Stopped at:** Completed 10-01-PLAN.md
+**Last session:** 2026-04-03T14:00:00.000Z
+**Stopped at:** Completed 10-02-PLAN.md (checkpoint:human-verify pending) + Ad-hoc 2차 완료
 
 **Key files:**
 
@@ -117,7 +136,7 @@ None currently.
 - `.planning/REQUIREMENTS.md` — 20 requirements, traceability updated
 - `.planning/PROJECT.md` — project context with v1.1 goals
 
-**Ad-hoc 작업 (2026-04-02~03, GSD 외부):**
+**Ad-hoc 작업 1차 (2026-04-02~03, GSD 외부):**
 
 - 감지기/스프링클러/소화기·소화전 도면 PDF 크롭 → 4000px 투명 PNG 생성 및 배포
 - FloorPlanPage 4개 카테고리 활성화, 마커 타입 정의, 마커-개소 연결
@@ -126,7 +145,16 @@ None currently.
 - 소화기 리스트 오버레이 (필터/검색/연한 필터)
 - 마커 편집 권한 확장 (admin + 윤종엽)
 - 도면 인라인 점검 기록 입력 (사진 첨부 포함, 페이지 이동 없이)
-- 임의 생성 check_points 6개 삭제, CP 층 정보 수정 (CP-FE-0017→8F, CP-FE-0018→8-1F, CP-FE-0386→8-1F)
+- 임의 생성 check_points 6개 삭제, CP 층 정보 수정
+
+**Ad-hoc 작업 2차 (2026-04-03, GSD 외부):**
+
+- 소화기 점검표 QR 페이지: 엑셀 양식 HTML 재현 (점검사항 그림, colgroup 비율 고정, 복사 방지)
+- SideMenu: 연차 관리 + 식사 기록 → "연차 및 식사" /staff-service 통합
+- 직원서비스 달력: 셀 레이아웃 전면 개선 (좌상단 근무/우상단 날짜/우하단 공휴일명+팀원연차+소검+승검)
+- 연차 신청 차단: 팀원 연차일 + 소방 점검일 + 승강기 검사일 차단 + 음영 표시
+- 공휴일 API 자동 동기화: 공공데이터포털 특일정보 API, holidays 테이블 (migration 0036), 1일1회 자동
+- 주말 날짜 색상 진하게, opacity 제거, 주말 식대 ₩ 기호 수정
 
 ---
 *State initialized: 2026-03-28*
