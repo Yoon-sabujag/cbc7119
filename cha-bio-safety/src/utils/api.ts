@@ -25,6 +25,7 @@ export const api = {
   post:   <T>(p: string, b: unknown) => req<T>(p, { method:'POST',  body: JSON.stringify(b) }),
   put:    <T>(p: string, b: unknown) => req<T>(p, { method:'PUT',   body: JSON.stringify(b) }),
   delete: <T>(p: string)             => req<T>(p, { method:'DELETE' }),
+  patch:  <T>(p: string, b: unknown) => req<T>(p, { method:'PATCH', body: JSON.stringify(b) }),
 }
 
 export const authApi = {
@@ -237,4 +238,23 @@ export const inspectionApi = {
     if (zone)  p.set('zone',  zone)
     return api.get<any[]>(`/checkpoints?${p}`)
   },
+}
+
+export const legalApi = {
+  list: (year?: string) =>
+    api.get<import('../types').LegalRound[]>(`/legal${year ? `?year=${year}` : ''}`),
+  get: (id: string) =>
+    api.get<import('../types').LegalRound>(`/legal/${id}`),
+  updateResult: (id: string, body: { result?: string; report_file_key?: string }) =>
+    api.patch<void>(`/legal/${id}`, body),
+  getFindings: (scheduleItemId: string) =>
+    api.get<import('../types').LegalFinding[]>(`/legal/${scheduleItemId}/findings`),
+  createFinding: (scheduleItemId: string, body: { description: string; location?: string; photo_key?: string }) =>
+    api.post<{ id: string }>(`/legal/${scheduleItemId}/findings`, body),
+  getFinding: (scheduleItemId: string, fid: string) =>
+    api.get<import('../types').LegalFinding>(`/legal/${scheduleItemId}/findings/${fid}`),
+  updateFinding: (scheduleItemId: string, fid: string, body: Record<string, any>) =>
+    api.put<void>(`/legal/${scheduleItemId}/findings/${fid}`, body),
+  resolveFinding: (scheduleItemId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string }) =>
+    api.post<void>(`/legal/${scheduleItemId}/findings/${fid}/resolve`, body),
 }

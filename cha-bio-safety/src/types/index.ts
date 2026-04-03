@@ -70,3 +70,36 @@ export interface RemediationRecord {
   floor: string
   zone: string
 }
+
+// ── Legal Inspection ─────────────────────────────────────
+export type LegalInspectionResult = 'pass' | 'fail' | 'conditional'
+export type LegalFindingStatus = 'open' | 'resolved'
+
+export interface LegalRound {
+  id: string
+  title: string
+  date: string
+  inspectionCategory: string
+  status: string
+  result: LegalInspectionResult | null
+  reportFileKey: string | null
+  findingCount: number
+  resolvedCount: number
+}
+
+export interface LegalFinding {
+  id: string
+  scheduleItemId: string
+  description: string
+  location: string | null
+  photoKey: string | null
+  resolutionMemo: string | null
+  resolutionPhotoKey: string | null
+  status: LegalFindingStatus
+  resolvedAt: string | null
+  resolvedBy: string | null
+  resolvedByName: string | null
+  createdBy: string
+  createdByName: string | null
+  createdAt: string
+}
