@@ -26,7 +26,7 @@
 - [x] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류 (completed 2026-04-02)
 - [x] **Phase 8: Meal Records** - 식사 이용 기록 + 월별 통계 — 개인별 미식 기록, 제공 식수 자동 계산, 요약 카드. MEAL-03/04 데스크톱 보류 (completed 2026-04-02)
 - [x] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고 (completed 2026-04-02)
-- [x] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2 (completed 2026-04-03)
+- [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
 - [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
 
 ### Ad-hoc: 도면 페이지 유도등 PNG 마커 시스템 (completed 2026-04-02, GSD 외부 작업)
@@ -43,15 +43,6 @@ FloorPlanPage 전면 리라이트 — SVG viewBox → PNG + CSS transform 핀치
 - **마커-개소 연결**: 소화기·소화전 마커 타입별 카테고리 매핑 (추가/수정 모두), 중복 연결 방지.
 - **도면 인라인 점검**: 페이지 이동 없이 도면에서 점검 결과+메모+사진 저장, inspectionApi 연동.
 - **DB 정리**: 임의 생성 check_points 6개 삭제, CP 층 정보 수정.
-
-### Ad-hoc: 소화기 점검표 + 달력 개선 + 공휴일 API (completed 2026-04-03, GSD 외부 작업)
-
-- **소화기 점검표 QR 페이지**: ExtinguisherPublicPage 엑셀 양식 HTML 재현 — 점검사항 그림 포함, colgroup 비율 고정, 월별 기록 DB 자동 채움, extinguisher 상세 연동, 복사 방지.
-- **SideMenu 통합**: "연차 관리"+"식사 기록" → "연차 및 식사" /staff-service 단일 메뉴.
-- **직원서비스 달력 전면 개선**: 셀 레이아웃 리라이트 (좌상단 근무타입, 우상단 날짜, 우하단 공휴일명+팀원연차+소검+승검), 주말 opacity 제거, 날짜 색상 진하게.
-- **연차 신청 차단**: 팀원 연차일 + 소방 점검일 + 승강기 검사일 → isBlocked() 함수, 차단일 음영 처리.
-- **공휴일 API 자동 동기화**: 공공데이터포털 한국천문연구원 특일정보 API, holidays 테이블(migration 0036), StaffServicePage 진입 시 localStorage 기반 1일1회 자동 갱신, XML 파싱, 하드코딩 fallback 병행.
-- **기타**: 주말 식대 ₩ 기호 수정, HOLIDAY_API_KEY wrangler secret 등록.
 
 ## Phase Details
 
@@ -135,8 +126,8 @@ Plans:
   2. 지적사항을 항목별로 등록하고 시정조치 내용과 완료 여부를 기록할 수 있다
 **Plans**: 2 plans
 Plans:
-- [x] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
-- [x] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
+- [ ] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
+- [ ] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
 **UI hint**: yes
 
 ### Phase 11: Elevator Inspection Certs
@@ -160,7 +151,7 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-03 |
+| 10. Legal Inspection | v1.1 | 0/2 | Planned | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ---
