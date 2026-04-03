@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: ready
-stopped_at: Completed 09-02-PLAN.md (all tasks done, human verify approved by user)
-last_updated: "2026-04-02T23:30:00.000Z"
-last_activity: 2026-04-03
+status: verifying
+stopped_at: Phase 10 context gathered
+last_updated: "2026-04-03T03:01:03.133Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 7
   completed_phases: 5
@@ -108,8 +108,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-03T08:00:00.000Z
-**Stopped at:** 도면 4종 완성 + 소화기 관리 + 인라인 점검 (GSD 외부 ad-hoc 작업)
+**Last session:** 2026-04-03T03:01:03.127Z
+**Stopped at:** Phase 10 context gathered
 
 **Key files:**
 
@@ -118,6 +118,7 @@ None currently.
 - `.planning/PROJECT.md` — project context with v1.1 goals
 
 **Ad-hoc 작업 (2026-04-02~03, GSD 외부):**
+
 - 감지기/스프링클러/소화기·소화전 도면 PDF 크롭 → 4000px 투명 PNG 생성 및 배포
 - FloorPlanPage 4개 카테고리 활성화, 마커 타입 정의, 마커-개소 연결
 - extinguishers 테이블 + 448개 엑셀 데이터 이관 (migration 0035)
