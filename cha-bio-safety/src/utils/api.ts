@@ -210,6 +210,32 @@ export const educationApi = {
     api.put<void>(`/education/${id}`, data),
 }
 
+export const menuApi = {
+  getByDate:  (date: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }>(`/menu?date=${date}`),
+  getByWeek:  (weekStart: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }[]>(`/menu?week=${weekStart}`),
+  upsert:     (menus: { date: string; lunch_a?: string; lunch_b?: string; dinner?: string }[], pdfKey?: string) =>
+    api.post<{ date: string; id: string }[]>('/menu', { menus, pdf_key: pdfKey }),
+}
+
+export const legalApi = {
+  listInspections: () =>
+    api.get<import('../types').LegalInspection[]>('/legal'),
+  createInspection: (data: { inspection_type: string; inspected_at: string; agency: string; result: string; report_file_key?: string; memo?: string }) =>
+    api.post<{ id: string }>('/legal', data),
+  updateInspection: (id: string, data: Record<string, any>) =>
+    api.put<void>(`/legal/${id}`, data),
+  listFindings: (inspectionId: string) =>
+    api.get<import('../types').LegalFinding[]>(`/legal/${inspectionId}/findings`),
+  createFinding: (inspectionId: string, data: { description: string; location?: string; photo_key?: string }) =>
+    api.post<{ id: string }>(`/legal/${inspectionId}/findings`, data),
+  getFinding: (inspectionId: string, fid: string) =>
+    api.get<import('../types').LegalFinding>(`/legal/${inspectionId}/findings/${fid}`),
+  updateFinding: (inspectionId: string, fid: string, data: Record<string, any>) =>
+    api.put<void>(`/legal/${inspectionId}/findings/${fid}`, data),
+  resolveFinding: (inspectionId: string, fid: string, data: { resolution_memo?: string; resolution_photo_key?: string }) =>
+    api.post<void>(`/legal/${inspectionId}/findings/${fid}/resolve`, data),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),
