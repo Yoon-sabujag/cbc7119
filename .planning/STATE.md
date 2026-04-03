@@ -5,7 +5,7 @@ milestone_name: UI 재편 + 기능 확장
 status: ready
 stopped_at: Completed 09-02-PLAN.md (all tasks done, human verify approved by user)
 last_updated: "2026-04-02T23:30:00.000Z"
-last_activity: 2026-04-02
+last_activity: 2026-04-03
 progress:
   total_phases: 7
   completed_phases: 5
@@ -58,6 +58,15 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 | 도면 PNG 방식으로 전환 (GSD 외부 작업) | DWG→SVG 불가로 PNG 채택, CSS transform 핀치줌, 마커 오버레이 방식 |
 | 유도등 도면 6종 마커 체계 | 천장피난구(역사다리꼴)/벽부피난구(■)/거실통로(▽)/복도통로(◆세로선)/계단통로(◆가로선)/객석통로(●) |
 | 마커 좌표 % 기반 저장 | 이미지 크기와 무관하게 일관된 위치, objectFit:contain 렌더 영역 기준 |
+| 도면 4종 완성 (GSD 외부, 2026-04-02~03) | 감지기/스프링클러/소화기·소화전 PDF→크롭→4000px 투명 PNG 파이프라인 |
+| 감지기 마커: 연기감지기(◉)/열감지기(△) | 2종으로 시작, 향후 확장 |
+| 스프링클러 마커: 폐쇄형헤드(●)/개방형헤드(○)/헤드왕(◎)/시험밸브(▣) | 4종 |
+| 소화기·소화전 마커: 소화기(▲)/소화전(⬡)/완강기(◇)/DIV(■) | 마커 타입별 점검 개소 카테고리 매핑 |
+| extinguishers 테이블 (migration 0035) | 엑셀 관리대장 448개 이관, check_points FK 연결 |
+| 소화기 연한 3단계 경고 | 도래(9년, 노랑)/임박(9.5년, 주황)/초과(10년, 빨강) — 분말 소화기 기준 |
+| 마커 편집 권한 확장 | admin + MARKER_EDITOR_IDS (현재 윤종엽 2022051052) — API 3곳 동시 적용 |
+| 도면 인라인 점검 기록 | 페이지 이동 없이 도면 위에서 점검 결과+사진 저장, 점검 페이지와 동일 DB |
+| 마커-개소 연결 중복 방지 | 추가/수정 모달에서 이미 연결된 개소 드롭다운 제외 |
 | Tab state via URL searchParams in RemediationPage | Back navigation restores active filter tab (미조치/완료/전체) |
 | 개소명(location) added to remediation card + detail | Field workers need specific location name, not just zone/floor |
 | 조치자 name via staff JOIN (not raw staffId) | Resolved by API-level JOIN already in place; detail page renders name field |
@@ -75,11 +84,14 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 
 ### Architecture Notes
 
-- D1 at migration 0033; floor_plan_markers 테이블 추가 (0033_floor_plan_markers.sql)
-- 도면 이미지: public/floorplans/guidelamp/{floor}.png (13층, 총 ~17MB)
-- FloorPlanPage: SVG viewBox → CSS transform 방식으로 전면 리라이트
-- FloorB5.tsx: 미사용 상태 (삭제 가능)
+- D1 at migration 0035; extinguishers 테이블 추가 (소화기 관리대장 상세)
+- 도면 이미지: public/floorplans/{guidelamp,detector,sprinkler,extinguisher}/{floor}.png (4종 × 13층, 4000px 투명 PNG)
+- 도면 PDF→PNG 파이프라인: pymupdf 크롭(derotation_matrix) → 4000px alpha=True 렌더
+- FloorPlanPage: 4개 planType 모두 ready:true, PNG <img> 방식 통일
 - API: /api/floorplan-markers (GET/POST) + /api/floorplan-markers/[id] (PUT/DELETE)
+- API: /api/extinguishers (GET 전체 목록) + /api/extinguishers/[checkPointId] (GET 상세)
+- 소화기 리스트 오버레이: ExtinguisherListOverlay (점검 모달 내 풀스크린)
+- 인라인 점검 모달: 도면에서 직접 점검 기록 입력 (inspectionApi 연동, 사진 첨부)
 - D1 at migration 0032; v1.1에서 0034-0038 (5개 신규 마이그레이션) 적용 예정
 - RemediationPage: 신규 마이그레이션 불필요 (migration 0012 스키마 이미 존재)
 - Admin settings: migration 0036 (system_settings 테이블) 필요
@@ -96,14 +108,24 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-02T23:30:00.000Z
-**Stopped at:** Completed 09-02-PLAN.md — Phase 09 fully complete (human verify approved)
+**Last session:** 2026-04-03T08:00:00.000Z
+**Stopped at:** 도면 4종 완성 + 소화기 관리 + 인라인 점검 (GSD 외부 ad-hoc 작업)
 
 **Key files:**
 
 - `.planning/ROADMAP.md` — phases 5-11 defined
 - `.planning/REQUIREMENTS.md` — 20 requirements, traceability updated
 - `.planning/PROJECT.md` — project context with v1.1 goals
+
+**Ad-hoc 작업 (2026-04-02~03, GSD 외부):**
+- 감지기/스프링클러/소화기·소화전 도면 PDF 크롭 → 4000px 투명 PNG 생성 및 배포
+- FloorPlanPage 4개 카테고리 활성화, 마커 타입 정의, 마커-개소 연결
+- extinguishers 테이블 + 448개 엑셀 데이터 이관 (migration 0035)
+- 소화기 점검 모달 상세정보 패널 + 연한 3단계 경고 (도래/임박/초과)
+- 소화기 리스트 오버레이 (필터/검색/연한 필터)
+- 마커 편집 권한 확장 (admin + 윤종엽)
+- 도면 인라인 점검 기록 입력 (사진 첨부 포함, 페이지 이동 없이)
+- 임의 생성 check_points 6개 삭제, CP 층 정보 수정 (CP-FE-0017→8F, CP-FE-0018→8-1F, CP-FE-0386→8-1F)
 
 ---
 *State initialized: 2026-03-28*
