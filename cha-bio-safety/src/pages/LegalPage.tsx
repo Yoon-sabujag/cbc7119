@@ -92,7 +92,7 @@ export default function LegalPage() {
   const [year, setYear] = useState<string>(new Date().getFullYear().toString())
   const years = genYears()
 
-  const { data: rounds, isLoading, isError } = useQuery({
+  const { data: rounds, isLoading, isError, refetch } = useQuery({
     queryKey: ['legal-rounds', year],
     queryFn: () => legalApi.list(year),
     staleTime: 30_000,
@@ -203,8 +203,23 @@ export default function LegalPage() {
 
         {/* 에러 */}
         {isError && !isLoading && (
-          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t2)', fontSize: 14 }}>
-            목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.
+          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t2)', fontSize: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <span>목록을 불러오지 못했습니다.</span>
+            <button
+              onClick={() => refetch()}
+              style={{
+                background: 'var(--acl)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                padding: '8px 24px',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              다시 시도
+            </button>
           </div>
         )}
 
