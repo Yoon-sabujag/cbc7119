@@ -70,36 +70,3 @@ export interface RemediationRecord {
   floor: string
   zone: string
 }
-
-export type InspectionType = 'comprehensive' | 'functional'
-export type InspectionResult = 'pass' | 'fail' | 'conditional'
-export type FindingStatus = 'open' | 'resolved'
-
-export interface LegalInspection {
-  id: string
-  inspectionType: InspectionType
-  inspectedAt: string
-  agency: string
-  result: InspectionResult
-  reportFileKey: string | null
-  memo: string | null
-  createdBy: string
-  createdAt: string
-  findingCount: number
-  resolvedCount: number
-}
-
-export interface LegalFinding {
-  id: string
-  inspectionId: string
-  description: string
-  location: string | null
-  photoKey: string | null
-  resolutionMemo: string | null
-  resolutionPhotoKey: string | null
-  status: FindingStatus
-  resolvedAt: string | null
-  resolvedBy: string | null
-  createdBy: string
-  createdAt: string
-}
