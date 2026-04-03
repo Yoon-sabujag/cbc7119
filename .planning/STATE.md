@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: verifying
-stopped_at: Phase 10 UI-SPEC approved
-last_updated: "2026-04-03T03:44:39.012Z"
-last_activity: 2026-04-02
+status: executing
+stopped_at: Completed 10-legal-inspection/10-01-PLAN.md
+last_updated: "2026-04-03T15:42:26.878Z"
+last_activity: 2026-04-03
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
-  percent: 90
+  total_plans: 12
+  completed_plans: 11
+  percent: 92
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -27,18 +27,18 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core Value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 
-**Current Focus:** Phase 09 — education-management
+**Current Focus:** Phase 10 — legal-inspection
 
 ---
 
 ## Current Position
 
-Phase: 09 (education-management) — EXECUTING
+Phase: 10 (legal-inspection) — EXECUTING
 Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-04-02
+Status: Executing Phase 10 (plan 01 complete, plan 02 next)
+Last activity: 2026-04-03
 
-Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
+Progress: [█████████░] 92% (Phase 10 plan 1 of 2 complete)
 
 ---
 
@@ -81,6 +81,8 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 | No DELETE on education_records | 이수 이력은 법적 보존 대상 (D-09) |
 | GET /api/education: all roles can view all records | D-11 — no role filter on read; all 4 staff see each other's training |
 | Education write: admin OR record owner | D-10 — self-service allowed; staff can record their own training |
+| Legal rounds = schedule_items rows (category=fire, inspectionCategory in legal subtypes) | no new table needed; schedule creation via SchedulePage |
+| api.patch added to base api object | PATCH semantics for partial result/report updates on legal rounds |
 
 ### Architecture Notes
 
@@ -92,7 +94,8 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 - API: /api/extinguishers (GET 전체 목록) + /api/extinguishers/[checkPointId] (GET 상세)
 - 소화기 리스트 오버레이: ExtinguisherListOverlay (점검 모달 내 풀스크린)
 - 인라인 점검 모달: 도면에서 직접 점검 기록 입력 (inspectionApi 연동, 사진 첨부)
-- D1 at migration 0032; v1.1에서 0034-0038 (5개 신규 마이그레이션) 적용 예정
+- D1 at migration 0039; CCTV DVR 체크포인트 12개 추가 (category='CCTV', floor='B1', zone='common')
+- D1 at migration 0032; v1.1에서 0034-0039 (6개 신규 마이그레이션) 적용 예정
 - RemediationPage: 신규 마이그레이션 불필요 (migration 0012 스키마 이미 존재)
 - Admin settings: migration 0036 (system_settings 테이블) 필요
 - NO_NAV_PATHS in App.tsx: /meal, /education, /admin, /legal-inspection 추가 필요; /remediation은 추가하면 안 됨
@@ -104,12 +107,18 @@ Progress: [█████████░] 90% (Phase 09 plan 1 of 2 complete)
 
 None currently.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260403-jg3 | CCTV DVR 점검 기능 추가 (마이그레이션+CctvModal+SchedulePage 카테고리) | 2026-04-03 | da372bd | [260403-jg3-cctv-dvr](./quick/260403-jg3-cctv-dvr/) |
+
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-04-03T03:44:39.006Z
-**Stopped at:** Phase 10 UI-SPEC approved
+**Last session:** 2026-04-03T15:42:26.873Z
+**Stopped at:** Completed 10-legal-inspection/10-01-PLAN.md
 
 **Key files:**
 
@@ -127,6 +136,23 @@ None currently.
 - 마커 편집 권한 확장 (admin + 윤종엽)
 - 도면 인라인 점검 기록 입력 (사진 첨부 포함, 페이지 이동 없이)
 - 임의 생성 check_points 6개 삭제, CP 층 정보 수정 (CP-FE-0017→8F, CP-FE-0018→8-1F, CP-FE-0386→8-1F)
+
+**Ad-hoc 작업 3차 (2026-04-03, GSD quick task):**
+
+- CCTV DVR 점검 기능: migration 0039 (DVR 1~12 체크포인트), InspectionPage CctvModal (2열 그리드, 일괄 저장)
+- SchedulePage INSP_CATEGORIES + INSP_DEFAULTS에 CCTV 추가 (점검 계획 + 대시보드 연동)
+- CctvModal DVR 카드 레이아웃 2줄 압축 (DVR번호+층 한줄 / 버튼 한줄)
+
+**Ad-hoc 작업 4차 (2026-04-03, GSD 외부):**
+
+- 소화기 점검표 QR 페이지: ExtinguisherPublicPage 엑셀 양식 HTML 재현 (점검사항 그림, colgroup 비율 고정, 복사 방지)
+- SideMenu: 연차 관리 + 식사 기록 → "연차 및 식사" /staff-service 통합
+- 직원서비스 달력 전면 개선: 셀 레이아웃 (좌상단 근무타입/우상단 날짜/우하단 공휴일명+팀원연차+소검+승검), 주말 opacity 제거, 날짜 색상 진하게
+- 연차 신청 차단: 팀원 연차일 + 소방 점검일 + 승강기 검사일 → isBlocked() + 음영 표시
+- 공휴일 API 자동 동기화: 공공데이터포털 특일정보 API, holidays 테이블 (migration 0036), 1일1회 자동 갱신 + 하드코딩 fallback, HOLIDAY_API_KEY wrangler secret 등록
+- 주말 식대 ₩ 기호 수정
+- DB 정리: 조치 내역 14건 초기화 (status→open, resolution 필드 NULL), 불량/주의 점검 기록 14건 삭제
+- 제연댐퍼 CP-B1F-3-JD (계단전실 3 B1) 삭제 → DamperModal 계단실 3번 버튼 자동 제거 (동적 추출)
 
 ---
 *State initialized: 2026-03-28*

@@ -126,7 +126,7 @@ Plans:
   2. 지적사항을 항목별로 등록하고 시정조치 내용과 완료 여부를 기록할 수 있다
 **Plans**: 2 plans
 Plans:
-- [ ] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
+- [x] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
 - [ ] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
 **UI hint**: yes
 
@@ -151,7 +151,7 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 0/2 | Planned | - |
+| 10. Legal Inspection | v1.1 | 1/2 | In Progress|  |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ---
