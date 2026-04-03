@@ -26,7 +26,7 @@
 - [x] **Phase 7: Tech Debt + Admin** - 점검자 동적 로딩 + 관리자 설정 (직원 CRUD, 개소 관리). TECH-02/ADMIN-03 보류 (completed 2026-04-02)
 - [x] **Phase 8: Meal Records** - 식사 이용 기록 + 월별 통계 — 개인별 미식 기록, 제공 식수 자동 계산, 요약 카드. MEAL-03/04 데스크톱 보류 (completed 2026-04-02)
 - [x] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고 (completed 2026-04-02)
-- [ ] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2
+- [x] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2 (completed 2026-04-03)
 - [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
 
 ### Ad-hoc: 도면 페이지 유도등 PNG 마커 시스템 (completed 2026-04-02, GSD 외부 작업)
@@ -127,7 +127,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
-- [ ] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
+- [x] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
 **UI hint**: yes
 
 ### Phase 11: Elevator Inspection Certs
@@ -151,7 +151,7 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 1/2 | In Progress|  |
+| 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-03 |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ---
