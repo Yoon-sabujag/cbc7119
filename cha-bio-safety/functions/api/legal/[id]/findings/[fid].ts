@@ -4,22 +4,37 @@ import type { Env } from '../../../../_middleware'
 
 // GET /api/legal/:id/findings/:fid
 export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
-  const inspectionId = params.id as string
+  const scheduleItemId = params.id as string
   const fid = params.fid as string
 
   try {
     const row = await env.DB.prepare(`
-      SELECT id, inspection_id, description, location, photo_key,
-             resolution_memo, resolution_photo_key, status,
-             resolved_at, resolved_by, created_by, created_at
-      FROM legal_findings
-      WHERE id = ? AND inspection_id = ?
-    `).bind(fid, inspectionId).first<{
-      id: string; inspection_id: string; description: string; location: string | null;
+      SELECT
+        lf.id,
+        lf.schedule_item_id,
+        lf.description,
+        lf.location,
+        lf.photo_key,
+        lf.resolution_memo,
+        lf.resolution_photo_key,
+        lf.status,
+        lf.resolved_at,
+        lf.resolved_by,
+        lf.created_by,
+        lf.created_at,
+        s.name  AS created_by_name,
+        s2.name AS resolved_by_name
+      FROM legal_findings lf
+      LEFT JOIN staff s  ON s.id  = lf.created_by
+      LEFT JOIN staff s2 ON s2.id = lf.resolved_by
+      WHERE lf.id = ? AND lf.schedule_item_id = ?
+    `).bind(fid, scheduleItemId).first<{
+      id: string; schedule_item_id: string; description: string; location: string | null;
       photo_key: string | null; resolution_memo: string | null;
       resolution_photo_key: string | null; status: string;
       resolved_at: string | null; resolved_by: string | null;
-      created_by: string; created_at: string
+      created_by: string; created_at: string;
+      created_by_name: string | null; resolved_by_name: string | null
     }>()
 
     if (!row) {
@@ -30,7 +45,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       success: true,
       data: {
         id: row.id,
-        inspectionId: row.inspection_id,
+        scheduleItemId: row.schedule_item_id,
         description: row.description,
         location: row.location,
         photoKey: row.photo_key,
@@ -39,7 +54,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         status: row.status,
         resolvedAt: row.resolved_at,
         resolvedBy: row.resolved_by,
+        resolvedByName: row.resolved_by_name,
         createdBy: row.created_by,
+        createdByName: row.created_by_name,
         createdAt: row.created_at,
       },
     })
@@ -53,7 +70,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 // Partial update; admin only
 export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, params }) => {
   const { role } = data as any
-  const inspectionId = params.id as string
+  const scheduleItemId = params.id as string
   const fid = params.fid as string
 
   if (role !== 'admin') {
@@ -69,8 +86,8 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, par
 
   try {
     const existing = await env.DB.prepare(
-      `SELECT id FROM legal_findings WHERE id = ? AND inspection_id = ?`
-    ).bind(fid, inspectionId).first<{ id: string }>()
+      `SELECT id FROM legal_findings WHERE id = ? AND schedule_item_id = ?`
+    ).bind(fid, scheduleItemId).first<{ id: string }>()
 
     if (!existing) {
       return Response.json({ success: false, error: '지적사항을 찾을 수 없습니다' }, { status: 404 })
@@ -82,13 +99,13 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, par
         description = COALESCE(?, description),
         location    = COALESCE(?, location),
         photo_key   = COALESCE(?, photo_key)
-      WHERE id = ? AND inspection_id = ?
+      WHERE id = ? AND schedule_item_id = ?
     `).bind(
       body.description ?? null,
       body.location ?? null,
       body.photo_key ?? null,
       fid,
-      inspectionId,
+      scheduleItemId,
     ).run()
 
     return Response.json({ success: true })
