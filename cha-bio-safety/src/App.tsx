@@ -33,6 +33,9 @@ const AdminPage               = lazy(() => import('./pages/AdminPage'))
 const MealPage                = lazy(() => import('./pages/MealPage'))
 const EducationPage           = lazy(() => import('./pages/EducationPage'))
 const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
+const LegalPage               = lazy(() => import('./pages/LegalPage'))
+const LegalFindingsPage       = lazy(() => import('./pages/LegalFindingsPage'))
+const LegalFindingDetailPage  = lazy(() => import('./pages/LegalFindingDetailPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -51,7 +54,7 @@ function Loader() {
   )
 }
 
-const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal-inspection']
+const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -68,6 +71,7 @@ function Layout() {
   const showNav = isAuthenticated
     && !NO_NAV_PATHS.includes(location.pathname)
     && !location.pathname.match(/^\/remediation\/.+/)
+    && !location.pathname.match(/^\/legal\/.+/)
   const [sideOpen, setSideOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -138,6 +142,9 @@ function Layout() {
             <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
             <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
             <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
+            <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
+            <Route path="/legal/:id"                  element={<Auth><LegalFindingsPage /></Auth>} />
+            <Route path="/legal/:id/finding/:fid"     element={<Auth><LegalFindingDetailPage /></Auth>} />
             <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
             <Route path="*"              element={<NotFoundPage />} />
           </Routes>

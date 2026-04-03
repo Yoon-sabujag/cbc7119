@@ -1,0 +1,881 @@
+import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import { leaveApi, scheduleApi, mealApi, menuApi, holidayApi, type LeaveItem } from '../utils/api'
+import { useAuthStore } from '../stores/authStore'
+import { useStaffList } from '../hooks/useStaffList'
+import { getRawShift, SHIFT_COLOR, DOW_KO, type RawShift } from '../utils/shiftCalc'
+import { calcProvidedMeals, calcWeekendAllowance } from '../utils/mealCalc'
+import * as pdfjsLib from 'pdfjs-dist'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+
+const HIRE_DATES: Record<string, string> = {
+  '2018042451': '2018-04-24',
+  '2021061451': '2021-06-14',
+  '2022051052': '2022-05-10',
+  '2023071752': '2023-07-17',
+}
+
+function calcLeaveQuota(staffId: string): number {
+  const hireStr = HIRE_DATES[staffId]
+  if (!hireStr) return 15
+  const hire = new Date(hireStr)
+  const today = new Date()
+  const daysWorked = Math.round((today.getTime() - hire.getTime()) / 86400000) + 1
+  if (daysWorked <= 365) return Math.min(Math.floor(daysWorked / 30), 11)
+  let years = today.getFullYear() - hire.getFullYear()
+  if (today.getMonth() < hire.getMonth() ||
+    (today.getMonth() === hire.getMonth() && today.getDate() < hire.getDate())) years--
+  const extra = Math.min(Math.max(0, Math.floor((years - 1) / 2)), 10)
+  return Math.min(15 + extra, 25)
+}
+
+function localYMD(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const HOLIDAYS_FALLBACK: Record<string, string> = {
+  '2025-01-01': '신정',
+  '2025-01-27': '임시공휴일',
+  '2025-01-28': '설날 연휴', '2025-01-29': '설날', '2025-01-30': '설날 연휴',
+  '2025-03-01': '삼일절', '2025-03-03': '대체공휴일',
+  '2025-05-05': '어린이날/부처님오신날', '2025-05-06': '대체공휴일',
+  '2025-06-03': '임시공휴일', '2025-06-06': '현충일',
+  '2025-08-15': '광복절',
+  '2025-10-03': '개천절',
+  '2025-10-05': '추석 연휴', '2025-10-06': '추석', '2025-10-07': '추석 연휴',
+  '2025-10-08': '대체공휴일', '2025-10-09': '한글날',
+  '2025-12-25': '크리스마스',
+  '2026-01-01': '신정',
+  '2026-02-16': '설날 연휴', '2026-02-17': '설날', '2026-02-18': '설날 연휴',
+  '2026-03-01': '삼일절', '2026-03-02': '대체공휴일',
+  '2026-05-05': '어린이날', '2026-05-24': '부처님오신날', '2026-05-25': '대체공휴일',
+  '2026-06-03': '전국동시지방선거', '2026-06-06': '현충일',
+  '2026-08-15': '광복절', '2026-08-17': '대체공휴일',
+  '2026-09-23': '추석 연휴', '2026-09-24': '추석', '2026-09-25': '추석 연휴',
+  '2026-10-03': '개천절', '2026-10-05': '대체공휴일', '2026-10-09': '한글날',
+  '2026-12-25': '크리스마스',
+  '2027-01-01': '신정',
+  '2027-02-06': '설날 연휴', '2027-02-07': '설날', '2027-02-08': '설날 연휴', '2027-02-09': '대체공휴일',
+  '2027-03-01': '삼일절',
+  '2027-05-05': '어린이날', '2027-05-13': '부처님오신날',
+  '2027-06-06': '현충일',
+  '2027-08-15': '광복절', '2027-08-16': '대체공휴일',
+  '2027-10-03': '개천절', '2027-10-04': '대체공휴일', '2027-10-09': '한글날',
+  '2027-10-14': '추석 연휴', '2027-10-15': '추석', '2027-10-16': '추석 연휴',
+  '2027-12-25': '크리스마스',
+}
+
+const SHIFT_LABEL: Record<RawShift, string> = { '당': '당', '비': '비', '주': '주', '휴': '휴' }
+const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
+
+// 공가: 보라(#a855f7) — 주간(#f59e0b)과 구분
+const LEAVE_TYPES = [
+  { type: 'full', label: '연차', rgb: '34,197,94' },
+  { type: 'half_am', label: '오전반차', rgb: '34,197,94' },
+  { type: 'half_pm', label: '오후반차', rgb: '34,197,94' },
+  { type: 'official_full', label: '공가', rgb: '168,85,247' },
+  { type: 'official_half_am', label: '공가오전', rgb: '168,85,247' },
+  { type: 'official_half_pm', label: '공가오후', rgb: '168,85,247' },
+] as const
+
+// 셀 배경색 — 앱 헤더 동그라미와 동일한 CSS 변수
+const SHIFT_BG: Record<RawShift, string> = {
+  '당': 'var(--c-night)',  // #ef4444
+  '비': 'var(--c-off)',    // #3b82f6
+  '주': 'var(--c-day)',    // #f59e0b
+  '휴': 'var(--c-leave)',  // #6b7280
+}
+const LEAVE_BG: Record<string, string> = {
+  full: '#22c55e',
+  half_am: '#22c55e',
+  half_pm: '#22c55e',
+  official_full: '#a855f7',
+  official_half_am: '#a855f7',
+  official_half_pm: '#a855f7',
+}
+
+const LEAVE_LABEL: Record<string, string> = {
+  full: '연차', half_am: '오전반차', half_pm: '오후반차',
+  official_full: '공가', official_half_am: '공가오전', official_half_pm: '공가오후',
+}
+
+export default function StaffServicePage() {
+  const navigate = useNavigate()
+  const qc = useQueryClient()
+  const { staff } = useAuthStore()
+  const { data: staffList = [] } = useStaffList()
+
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+  const [selDate, setSelDate] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+
+  const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
+  const staffId = staff?.id ?? ''
+
+  // ── Data fetching ─────────────────────────────────────────
+  const { data: leaveData, isLoading: leaveLoading } = useQuery({
+    queryKey: ['leaves', year, monthStr],
+    queryFn: () => leaveApi.list(year, monthStr),
+    enabled: !!staff,
+  })
+
+  const { data: leaveYearData } = useQuery({
+    queryKey: ['leaves-year', year],
+    queryFn: () => leaveApi.list(year),
+    enabled: !!staff,
+  })
+
+  const { data: mealData } = useQuery({
+    queryKey: ['meals', year, monthStr],
+    queryFn: () => mealApi.list(year, monthStr),
+    enabled: !!staff,
+  })
+
+  const { data: scheduleItems = [] } = useQuery({
+    queryKey: ['schedule', monthStr],
+    queryFn: () => scheduleApi.getByMonth(monthStr),
+    enabled: !!staff,
+  })
+
+  // 공휴일: 앱 로드 시 1일 1회 API 동기화 → DB 조회
+  useEffect(() => {
+    const key = 'holiday_sync_date'
+    const today = new Date().toISOString().slice(0, 10)
+    if (localStorage.getItem(key) !== today) {
+      fetch('/api/holidays/sync', { method: 'POST' })
+        .then(() => localStorage.setItem(key, today))
+        .catch(() => {})
+    }
+  }, [])
+
+  const { data: holidayList = [] } = useQuery({
+    queryKey: ['holidays', year],
+    queryFn: () => holidayApi.list(year),
+    staleTime: 60 * 60 * 1000,
+    enabled: !!staff,
+  })
+  const holidayMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    // DB 데이터 우선
+    holidayList.forEach(h => { m[h.date] = h.name })
+    // DB에 없으면 하드코딩 fallback
+    Object.entries(HOLIDAYS_FALLBACK).forEach(([d, n]) => { if (!m[d]) m[d] = n })
+    return m
+  }, [holidayList])
+
+  const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const todayStr = localYMD(todayKST)
+
+  const { data: menuData } = useQuery({
+    queryKey: ['menu', todayStr],
+    queryFn: () => menuApi.getByDate(todayStr),
+    enabled: !!staff,
+  })
+
+  const handleMenuUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const toastId = toast.loading('식단표 분석 중...')
+
+    try {
+      // 1) PDF 텍스트 + 좌표 추출
+      const arrayBuffer = await file.arrayBuffer()
+      const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      const page = await doc.getPage(1)
+      const tc = await page.getTextContent()
+      const items = tc.items
+        .filter((i: any) => i.str?.trim())
+        .map((i: any) => ({ x: Math.round(i.transform[4]), y: Math.round(i.transform[5]), text: i.str.trim() }))
+
+      // 2) 날짜 헤더 파싱 → 열 경계 결정
+      const dateRe = /(\d{1,2})월\s*(\d{1,2})일\(([월화수목금토일])\)/
+      const dateCols: { x: number; ymd: string; dow: string }[] = []
+      const thisYear = new Date().getFullYear()
+      for (const it of items) {
+        const m = it.text.match(dateRe)
+        if (m) {
+          const mo = parseInt(m[1]), da = parseInt(m[2])
+          dateCols.push({ x: it.x, ymd: `${thisYear}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`, dow: m[3] })
+        }
+      }
+      dateCols.sort((a, b) => a.x - b.x)
+      // 토요일 제외 (메뉴 없음)
+      const weekdayCols = dateCols.filter(d => d.dow !== '토')
+      if (weekdayCols.length < 3) throw new Error('날짜를 찾을 수 없습니다')
+
+      // 3) 섹션 y좌표 찾기 (PDF 좌표는 아래→위, y가 클수록 위)
+      const sectionItems = items.filter((i: any) =>
+        i.text === '중식' || i.text === 'A' || i.text === 'B' || i.text === '석식' || i.text === 'PLUS' || i.text === 'SNACK'
+      )
+      // 왼쪽 섹션 헤더만 (x < 첫 열 x)
+      const leftHeaders = sectionItems.filter((i: any) => i.x < weekdayCols[0].x)
+
+      const findY = (label: string) => leftHeaders.find(i => i.text === label)?.y
+      const lunchAY = findY('A')
+      const lunchBY = findY('B')
+      const dinnerY = findY('석식')
+      const plusY = findY('PLUS')
+      const snackY = findY('SNACK')
+
+      if (!lunchAY || !lunchBY || !dinnerY) throw new Error('메뉴 섹션을 찾을 수 없습니다')
+
+      // 4) 열별 x 범위 계산
+      const colRanges = weekdayCols.map((col, idx) => {
+        const nextX = idx < weekdayCols.length - 1 ? weekdayCols[idx + 1].x : col.x + 120
+        return { ...col, xMin: col.x - 10, xMax: nextX - 10 }
+      })
+
+      // 5) 영역별 텍스트 수집
+      function collectTexts(xMin: number, xMax: number, yMin: number, yMax: number): string {
+        // PDF 좌표: y 큰 값 = 위 → yMin/yMax 반전 주의
+        const inRange = items.filter((i: any) =>
+          i.x >= xMin && i.x < xMax &&
+          i.y <= yMin && i.y > yMax  // y가 작을수록 아래
+        )
+        // 김치류, 밥 제외 (주요 메뉴만)
+        const filtered = inRange
+          .filter((i: any) => !/(포기김치|깍두기|쌀밥|귀리밥|흑미밥)/.test(i.text) && !/</.test(i.text))
+          .sort((a: any, b: any) => b.y - a.y) // 위→아래 순서
+          .map((i: any) => i.text)
+        return filtered.slice(0, 5).join(' / ')
+      }
+
+      // 6) 각 날짜별 메뉴 조합
+      const menus = colRanges.map(col => ({
+        date: col.ymd,
+        lunch_a: collectTexts(col.xMin, col.xMax, lunchAY, lunchBY),
+        lunch_b: collectTexts(col.xMin, col.xMax, lunchBY, plusY ?? dinnerY),
+        dinner: collectTexts(col.xMin, col.xMax, dinnerY, snackY ?? dinnerY - 200),
+      }))
+
+      // 7) R2에 PDF 업로드
+      const fd = new FormData()
+      fd.append('file', file)
+      const uploadRes = await fetch('/api/uploads', {
+        method: 'POST', body: fd,
+        headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+      })
+      const uploadJson = await uploadRes.json() as any
+      const pdfKey = uploadJson.success ? uploadJson.data.key : undefined
+
+      // 8) DB에 메뉴 저장
+      await menuApi.upsert(menus, pdfKey)
+      qc.invalidateQueries({ queryKey: ['menu'] })
+
+      toast.success(`${menus.length}일분 메뉴 등록 완료`, { id: toastId })
+    } catch (err: any) {
+      toast.error(err?.message ?? '식단표 분석 실패', { id: toastId })
+    }
+  }, [qc])
+
+  const myLeaves = leaveData?.myLeaves ?? []
+  const teamLeaves = leaveData?.teamLeaves ?? []
+  const myLeavesYear = leaveYearData?.myLeaves ?? []
+  const mealRecords = mealData?.records ?? []
+
+  // ── Derived data ──────────────────────────────────────────
+  const usedDays = useMemo(() =>
+    myLeavesYear.reduce((a, l) => {
+      if (l.type === 'full') return a + 1
+      if (l.type === 'half_am' || l.type === 'half_pm') return a + 0.5
+      return a
+    }, 0)
+  , [myLeavesYear])
+
+  const quota = staff ? calcLeaveQuota(staff.id) : 15
+  const remaining = quota - usedDays
+
+  const myLeaveMap = useMemo(() => {
+    const m: Record<string, LeaveItem> = {}
+    myLeaves.forEach(l => { m[l.date] = l })
+    return m
+  }, [myLeaves])
+
+  const teamLeaveMap = useMemo(() => {
+    const m: Record<string, LeaveItem[]> = {}
+    teamLeaves.forEach(l => {
+      if (!m[l.date]) m[l.date] = []
+      m[l.date].push(l)
+    })
+    return m
+  }, [teamLeaves])
+
+  const mealMap = useMemo(() => {
+    const m: Record<string, number> = {}
+    mealRecords.forEach(r => { m[r.date] = r.skippedMeals })
+    return m
+  }, [mealRecords])
+
+  const inspectDates = useMemo(() => {
+    const s = new Set<string>()
+    scheduleItems.forEach(item => {
+      if (item.category === 'fire' && (
+        item.title?.includes('상반기 종합정밀점검') || item.title?.includes('하반기 작동기능점검')
+      )) s.add(item.date)
+    })
+    return s
+  }, [scheduleItems])
+
+  // 승강기 검사일
+  const elevInspectDates = useMemo(() => {
+    const s = new Set<string>()
+    scheduleItems.forEach(item => {
+      if (item.category === 'elevator' && item.title?.includes('법정 검사')) s.add(item.date)
+    })
+    return s
+  }, [scheduleItems])
+
+  // 차단일: 팀원 연차 or 소방 점검 or 승강기 검사
+  function isBlocked(ymd: string): boolean {
+    if ((teamLeaveMap[ymd] ?? []).length > 0) return true
+    if (inspectDates.has(ymd)) return true
+    if (elevInspectDates.has(ymd)) return true
+    return false
+  }
+
+  // 셀 우하단 텍스트 생성
+  function getCellInfo(cell: any): string {
+    const parts: string[] = []
+    // 팀원 연차
+    ;(cell.teamLeaveList as LeaveItem[]).forEach(tl => {
+      const name = (teamNameMap[tl.staffId] ?? '').slice(0, 1) // 성
+      if (tl.type === 'full') parts.push(`${name}연`)
+      else if (tl.type === 'half_am' || tl.type === 'official_half_am') parts.push(`${name}전반`)
+      else if (tl.type === 'half_pm' || tl.type === 'official_half_pm') parts.push(`${name}후반`)
+      else if (tl.type === 'official_full') parts.push(`${name}공가`)
+    })
+    if (cell.hasInspect) parts.push('소검')
+    if (elevInspectDates.has(cell.ymd)) parts.push('승검')
+    return parts.join(' ')
+  }
+
+  // ── Monthly meal/allowance summary ────────────────────────
+  const monthlySummary = useMemo(() => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    let totalProvided = 0
+    let totalSkipped = 0
+    let totalAllowance = 0
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d)
+      const ymd = localYMD(date)
+      const dow = date.getDay()
+      const raw = getRawShift(staffId, date)
+      const leaveType = myLeaveMap[ymd]?.type
+      const provided = calcProvidedMeals(raw, leaveType, dow)
+      const skipped = mealMap[ymd] ?? 0
+      totalProvided += provided
+      totalSkipped += Math.min(skipped, provided)
+      totalAllowance += calcWeekendAllowance(raw, dow)
+    }
+
+    return {
+      totalProvided,
+      actualMeals: totalProvided - totalSkipped,
+      totalSkipped,
+      totalAllowance,
+    }
+  }, [year, month, staffId, myLeaveMap, mealMap])
+
+  // ── Calendar days ─────────────────────────────────────────
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startDow = firstDay.getDay()
+    const todayYMD = localYMD(today)
+
+    const days: Array<{
+      date: Date | null; ymd: string; day: number; dow: number
+      isToday: boolean; isHoliday: boolean; holidayName: string; isWeekend: boolean
+      rawShift: RawShift; myLeave: LeaveItem | null
+      teamLeaveList: LeaveItem[]; skipped: number; provided: number
+      hasInspect: boolean
+    }> = []
+
+    for (let i = 0; i < startDow; i++) {
+      days.push({ date: null, ymd: '', day: 0, dow: -1, isToday: false, isHoliday: false, holidayName: '', isWeekend: false, rawShift: '휴', myLeave: null, teamLeaveList: [], skipped: 0, provided: 0, hasInspect: false })
+    }
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, month, d)
+      const ymd = localYMD(date)
+      const dow = date.getDay()
+      const raw = getRawShift(staffId, date)
+      const myLeave = myLeaveMap[ymd] ?? null
+      const provided = calcProvidedMeals(raw, myLeave?.type, dow)
+      days.push({
+        date, ymd, day: d, dow,
+        isToday: ymd === todayYMD,
+        isHoliday: !!holidayMap[ymd],
+        holidayName: holidayMap[ymd] ?? '',
+        isWeekend: dow === 0 || dow === 6,
+        rawShift: raw,
+        myLeave,
+        teamLeaveList: teamLeaveMap[ymd] ?? [],
+        skipped: mealMap[ymd] ?? 0,
+        provided,
+        hasInspect: inspectDates.has(ymd),
+      })
+    }
+    return days
+  }, [year, month, staffId, myLeaveMap, teamLeaveMap, mealMap, inspectDates, today])
+
+  // ── Handlers ──────────────────────────────────────────────
+  function prevMonth() {
+    if (month === 0) { setYear(y => y - 1); setMonth(11) }
+    else setMonth(m => m - 1)
+    setSelDate(null); setSheetOpen(false)
+  }
+  function nextMonth() {
+    if (month === 11) { setYear(y => y + 1); setMonth(0) }
+    else setMonth(m => m + 1)
+    setSelDate(null); setSheetOpen(false)
+  }
+
+  function handleDayClick(ymd: string) {
+    setSelDate(ymd)
+    setSheetOpen(true)
+  }
+
+  const selCell = calendarDays.find(c => c.ymd === selDate)
+  const selMyLeave = selCell?.myLeave ?? null
+
+  const handleTypeBtn = useCallback(async (type: string) => {
+    if (!selDate) return
+    const isWeekend = selCell?.isWeekend
+    const isHoliday = selCell?.isHoliday
+    if (isWeekend || isHoliday) return
+    // 이미 등록된 내 연차를 취소하는 게 아니면 차단 체크
+    const isCancelling = selMyLeave && selMyLeave.type === type
+    if (!isCancelling && isBlocked(selDate)) {
+      toast.error('해당 날짜에는 연차 신청이 불가합니다')
+      return
+    }
+    try {
+      if (isCancelling) {
+        await leaveApi.delete(selMyLeave.id)
+        toast.success('취소되었습니다')
+      } else {
+        if (selMyLeave) await leaveApi.delete(selMyLeave.id)
+        await leaveApi.create(selDate, type as any)
+        toast.success(`${LEAVE_LABEL[type] ?? type} 등록`)
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? '오류가 발생했습니다')
+      return
+    }
+    qc.invalidateQueries({ queryKey: ['leaves'] })
+    qc.invalidateQueries({ queryKey: ['leaves-year'] })
+  }, [selDate, selMyLeave, selCell, qc])
+
+  const handleMealCycle = useCallback(async () => {
+    if (!selDate || !selCell) return
+    const provided = selCell.provided
+    if (provided === 0) return
+    const current = selCell.skipped
+    const next = (current + 1) % (provided + 1)
+    try {
+      await mealApi.upsert(selDate, next)
+      qc.invalidateQueries({ queryKey: ['meals'] })
+    } catch (err: any) {
+      toast.error(err?.message ?? '오류가 발생했습니다')
+    }
+  }, [selDate, selCell, qc])
+
+  // ── Team staff name map ───────────────────────────────────
+  const teamNameMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    staffList.forEach(s => { m[s.id] = s.name })
+    teamLeaves.forEach(l => {
+      if (l.staffName && !m[l.staffId]) m[l.staffId] = l.staffName
+    })
+    return m
+  }, [staffList, teamLeaves])
+
+  // ── Render ────────────────────────────────────────────────
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
+
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 20px' }}>
+
+        {/* Calendar */}
+        <div style={{ padding: '0 8px' }}>
+          {/* 연도/월 선택 + 요일 헤더 (7열 그리드 내 배치) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center', marginBottom: 2, padding: '8px 0 4px' }}>
+            {/* 연도: 일~화 열 (col 1-3) */}
+            <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&lsaquo;</button>
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', minWidth: 50, textAlign: 'center' }}>{year}년</span>
+              <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&rsaquo;</button>
+            </div>
+            {/* 빈 수요일 열 */}
+            <div />
+            {/* 월: 목~토 열 (col 5-7) */}
+            <div style={{ gridColumn: '5 / 8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+              <button onClick={prevMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&lsaquo;</button>
+              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', minWidth: 28, textAlign: 'center' }}>{MONTH_NAMES[month]}</span>
+              <button onClick={nextMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&rsaquo;</button>
+            </div>
+          </div>
+          {/* 요일 헤더 */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 2 }}>
+            {DOW_KO.map((d, i) => (
+              <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : 'var(--t3)', padding: '4px 0' }}>{d}</div>
+            ))}
+          </div>
+
+          {leaveLoading ? (
+            <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ width: 24, height: 24, border: '2px solid var(--bd)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+              <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+              {calendarDays.map((cell, idx) => {
+                if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
+
+                const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
+                const isSel = cell.ymd === selDate
+                const lt = myLeave?.type
+                const isClickable = rawShift !== '비' && rawShift !== '휴'
+                const isFullLeave = lt === 'full' || lt === 'official_full'
+                const isHalf = lt === 'half_am' || lt === 'half_pm' || lt === 'official_half_am' || lt === 'official_half_pm'
+                const isAm = lt === 'half_am' || lt === 'official_half_am'
+                const blocked = isBlocked(cell.ymd)
+
+                const shiftBg = SHIFT_BG[rawShift]
+                const leaveBgColor = lt ? LEAVE_BG[lt] : ''
+                let cellBg: string
+                if (isFullLeave) cellBg = leaveBgColor
+                else if (isHalf) cellBg = isAm ? `linear-gradient(135deg, ${leaveBgColor} 50%, ${shiftBg} 50%)` : `linear-gradient(135deg, ${shiftBg} 50%, ${leaveBgColor} 50%)`
+                else cellBg = shiftBg
+
+                // 일요일/공휴일: 진한 빨강, 토요일: 진한 파랑 — 어떤 배경에서도 보이게
+                const dateColor = (dow === 0 || isHoliday) ? '#7f1d1d' : dow === 6 ? '#1e3a5f' : 'var(--t1)'
+                const infoText = getCellInfo(cell)
+
+                return (
+                  <div
+                    key={cell.ymd}
+                    onClick={() => isClickable && handleDayClick(cell.ymd)}
+                    style={{
+                      aspectRatio: '1',
+                      borderRadius: 8,
+                      background: cellBg,
+                      border: isSel ? '2.5px solid var(--acl)' : isToday ? '2px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
+                      cursor: isClickable ? 'pointer' : 'default',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      userSelect: 'none',
+                      WebkitTapHighlightColor: 'transparent',
+                      padding: 2,
+                    }}
+                  >
+                    {/* 차단 음영 */}
+                    {blocked && !myLeave && (
+                      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.25)', borderRadius:8, pointerEvents:'none' }} />
+                    )}
+
+                    {/* 좌상단: 근무 타입 */}
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                      <span style={{ fontSize:8, fontWeight:800, color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', lineHeight:1 }}>
+                        {isFullLeave ? (lt === 'full' ? '연차' : '공가') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
+                      </span>
+                      {/* 날짜 우상단 */}
+                      <span style={{ fontSize:11, fontWeight:700, color: dateColor, lineHeight:1 }}>
+                        {cell.day}
+                      </span>
+                    </div>
+
+                    {/* 중간 여백 */}
+                    <div style={{ flex:1 }} />
+
+                    {/* 우하단: 팀원 연차/소검/승검 */}
+                    {infoText && (
+                      <div style={{ fontSize:6, fontWeight:700, color:'rgba(255,255,255,0.85)', lineHeight:1.2, textAlign:'right', wordBreak:'break-all' }}>
+                        {infoText}
+                      </div>
+                    )}
+
+                    {/* 식사 미사용 */}
+                    {provided > 0 && skipped > 0 && !infoText && (
+                      <div style={{ fontSize:7, color:'#fbbf24', fontWeight:800, lineHeight:1, textAlign:'right' }}>
+                        미{skipped}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 12px 0', alignItems: 'center' }}>
+          {([
+            { label: '당직', bg: 'var(--c-night)' },
+            { label: '비번', bg: 'var(--c-off)' },
+            { label: '주간', bg: 'var(--c-day)' },
+            { label: '휴무', bg: 'var(--c-leave)' },
+            { label: '연차', bg: '#22c55e' },
+            { label: '공가', bg: '#a855f7' },
+          ]).map(l => (
+            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: l.bg }} />
+              <span style={{ fontSize: 10, color: 'var(--t3)' }}>{l.label}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
+            <span style={{ fontSize: 10, color: 'var(--t3)' }}>반차</span>
+          </div>
+        </div>
+
+        {/* Summary cards — 1행 4열 */}
+        <div style={{ display: 'flex', gap: 8, padding: '14px 12px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          {[
+            { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', bd: 'rgba(34,197,94,0.25)' },
+            { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6,182,212,0.1)', bd: 'rgba(6,182,212,0.25)' },
+            { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#ec4899', bg: 'rgba(236,72,153,0.1)', bd: 'rgba(236,72,153,0.25)' },
+            { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#f97316', bg: 'rgba(249,115,22,0.1)', bd: 'rgba(249,115,22,0.25)' },
+          ].map(c => (
+            <div key={c.label} style={{ flex: '1 0 0', minWidth: 72, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600, marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: c.color, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* 당일 메뉴표 — 시간대별 표시 */}
+        {(() => {
+          const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+          const h = now.getHours()
+          const m = now.getMinutes()
+          const hm = h * 60 + m // 분 단위
+          const menu = menuData
+
+          if (!menu) return null
+          // 08:00(480)~13:00(780): 중식, 13:00(780)~18:30(1110): 석식, 그 외: 없음
+          const isLunch = hm >= 480 && hm < 780
+          const isDinner = hm >= 780 && hm < 1110
+          if (!isLunch && !isDinner) return null
+
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 12px 0' }}>
+              {isLunch && menu.lunch_a && (
+                <>
+                  <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#06b6d4', marginBottom: 6 }}>중식 A코너</div>
+                    <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {menu.lunch_a.split(' / ').join('\n')}
+                    </div>
+                  </div>
+                  {menu.lunch_b && (
+                    <div style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>중식 B코너</div>
+                      <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                        {menu.lunch_b.split(' / ').join('\n')}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              {isDinner && menu.dinner && (
+                <div style={{ gridColumn: '1 / 3', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>석식 메뉴</div>
+                  <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                    {menu.dinner.split(' / ').join('\n')}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })()}
+
+        {/* 식단표 PDF 업로드 */}
+        <div style={{ padding: '14px 12px' }}>
+          <label style={{
+            display: 'block', padding: '12px 0', borderRadius: 12,
+            background: 'var(--bg2)', border: '1px solid var(--bd)',
+            color: 'var(--t2)', fontSize: 12, fontWeight: 600,
+            textAlign: 'center', cursor: 'pointer',
+          }}>
+            식단표 PDF 업로드
+            <input type="file" accept=".pdf" style={{ display: 'none' }}
+              onChange={handleMenuUpload} />
+          </label>
+        </div>
+
+      </div>
+
+      {/* Bottom Sheet Overlay */}
+      {sheetOpen && selCell?.date && (
+        <>
+          <div
+            onClick={() => { setSheetOpen(false); setSelDate(null) }}
+            style={{
+              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90,
+              animation: 'fadeIn .2s ease',
+            }}
+          />
+          <style>{`
+            @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+            @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+          `}</style>
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100,
+            background: 'var(--bg2)', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+            padding: '16px 16px 24px', maxHeight: '65vh', overflowY: 'auto',
+            boxShadow: '0 -4px 24px rgba(0,0,0,0.2)',
+            animation: 'slideUp .25s ease',
+          }}>
+            {/* Handle bar */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd)' }} />
+            </div>
+
+            {/* Sheet header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+                {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
+              </span>
+              <span style={{
+                fontSize: 11, fontWeight: 700, color: '#fff',
+                background: SHIFT_COLOR[selCell.rawShift],
+                borderRadius: 6, padding: '2px 8px',
+              }}>
+                {selCell.rawShift === '당' ? '당직근무' : selCell.rawShift === '비' ? '비번' : selCell.rawShift === '주' ? '주간근무' : '휴무'}
+              </span>
+              {selCell.isHoliday && (
+                <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
+              )}
+            </div>
+
+            {/* Leave section */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>연차</div>
+              {(selCell.isWeekend || selCell.isHoliday) ? (
+                <div style={{ fontSize: 11, color: 'var(--t3)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
+                  {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 연차 등록이 불가합니다
+                </div>
+              ) : (
+                <>
+                  {selCell.hasInspect && (
+                    <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 6, padding: '4px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 6 }}>
+                      소방 점검일 - 연차 등록 주의
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    {LEAVE_TYPES.map(btn => {
+                      const isActive = selMyLeave?.type === btn.type
+                      return (
+                        <button
+                          key={btn.type}
+                          onClick={() => handleTypeBtn(btn.type)}
+                          style={{
+                            padding: '8px 2px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                            cursor: 'pointer',
+                            background: isActive ? `rgba(${btn.rgb},0.25)` : `rgba(${btn.rgb},0.08)`,
+                            border: isActive ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                            color: isActive ? 'var(--t1)' : 'var(--t2)',
+                          }}
+                        >
+                          {btn.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Meal section */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>
+                식사 (제공 {selCell.provided}끼)
+              </div>
+              {selCell.provided === 0 ? (
+                <div style={{ fontSize: 11, color: 'var(--t3)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
+                  식사 미제공
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 12, color: 'var(--t2)' }}>미사용:</span>
+                  <button
+                    onClick={handleMealCycle}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 16px', borderRadius: 10,
+                      background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
+                      border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
+                      cursor: 'pointer', fontSize: 14, fontWeight: 700,
+                      color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t2)',
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>{selCell.skipped}</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>끼</span>
+                  </button>
+                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>탭하여 변경</span>
+                </div>
+              )}
+            </div>
+
+            {/* Team leave */}
+            {selCell.teamLeaveList.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>팀원 연차</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {selCell.teamLeaveList.map(tl => (
+                    <span key={tl.id} style={{
+                      fontSize: 11, fontWeight: 600, color: 'var(--t1)',
+                      background: 'var(--bg3)', borderRadius: 8, padding: '4px 10px',
+                      border: '1px solid var(--bd)',
+                    }}>
+                      {teamNameMap[tl.staffId] ?? tl.staffId.slice(-4)}
+                      <span style={{ marginLeft: 4, fontSize: 10, color: tl.type.startsWith('official') ? '#f97316' : '#22c55e', fontWeight: 700 }}>
+                        ({LEAVE_LABEL[tl.type] ?? tl.type})
+                      </span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Weekend allowance info */}
+            {(() => {
+              const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow)
+              if (allow > 0) return (
+                <div style={{ marginBottom: 16, padding: '8px 12px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
+                  <span style={{ fontSize: 11, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
+                </div>
+              )
+              return null
+            })()}
+
+            {/* Close button */}
+            <button
+              onClick={() => { setSheetOpen(false); setSelDate(null) }}
+              style={{
+                width: '100%', padding: '12px', borderRadius: 12,
+                background: 'var(--bg3)', border: '1px solid var(--bd)',
+                fontSize: 14, fontWeight: 700, color: 'var(--t2)',
+                cursor: 'pointer',
+              }}
+            >
+              닫기
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

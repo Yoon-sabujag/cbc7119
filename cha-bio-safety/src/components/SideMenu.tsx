@@ -29,15 +29,14 @@ const MENU: { section: string; items: MenuItem[] }[] = [
     { label: 'DIV 압력 관리', path: '/div',            badge: 0, soon: false },
   ]},
   { section: '근무·복지', items: [
-    { label: '근무표',    path: '/workshift',  badge: 0, soon: false },
-    { label: '연차 관리', path: '/leave',      badge: 0, soon: false },
-    { label: '식사 기록', path: '/meal',       badge: 0, soon: false },
-    { label: '보수교육',  path: '/education',  badge: 0, soon: false },
+    { label: '근무표',      path: '/workshift',      badge: 0, soon: false },
+    { label: '연차 및 식사', path: '/staff-service',  badge: 0, soon: false },
+    { label: '보수교육',    path: '/education',      badge: 0, soon: false },
   ]},
   { section: '시스템', items: [
     { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },
     { label: '승강기 관리', path: '/elevator',   badge: 0, soon: false },
-    { label: '법적 점검',   path: '/legal',      badge: 0, soon: true  },
+    { label: '법적 점검',   path: '/legal',      badge: 0, soon: false },
     { label: '관리자 설정', path: '/admin',      badge: 0, soon: false, role: 'admin' },
   ]},
 ]
