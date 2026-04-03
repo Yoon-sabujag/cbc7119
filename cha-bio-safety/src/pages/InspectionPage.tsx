@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { inspectionApi, fireAlarmApi } from '../utils/api'
+import { inspectionApi, fireAlarmApi, extinguisherApi, type ExtinguisherDetail, type ExtinguisherListResponse } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -31,6 +31,7 @@ const CATEGORY_GROUPS: { labels:string[]; icon:string; color:string; border:stri
   { labels:['소화기'],                               icon:'🧯', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['소화기'] },
   { labels:['소방펌프'],                              icon:'💧', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
   { labels:['화재수신반'],                            icon:'🔔', color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
+  { labels:['CCTV'],                               icon:'📹', color:'rgba(71,85,105,.12)',  border:'rgba(71,85,105,.3)',  categories:['CCTV'] },
 ]
 
 // 점검 결과 입력용 (정상/주의/불량만 — 미조치는 별도 조치 스텝에서 처리)
@@ -345,6 +346,178 @@ function StairwellModal({ group, allCheckpoints, records, onClose, onSave }: {
           style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!selectedSW ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!selectedSW ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!selectedSW ? 'default' : 'pointer', transition:'all .13s' }}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : `계단실 ${selectedSW ?? ''} 점검 저장`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── CCTV DVR 점검 모달 ───────────────────────────────────
+const CCTV_DVRS = [
+  { no: 'DVR-01', label: 'DVR 1',  desc: '8F, 7F' },
+  { no: 'DVR-02', label: 'DVR 2',  desc: '6F, 5F' },
+  { no: 'DVR-03', label: 'DVR 3',  desc: '5F, 2F' },
+  { no: 'DVR-04', label: 'DVR 4',  desc: '3F' },
+  { no: 'DVR-05', label: 'DVR 5',  desc: '3F, 2F' },
+  { no: 'DVR-06', label: 'DVR 6',  desc: '1F, B1F' },
+  { no: 'DVR-07', label: 'DVR 7',  desc: 'B1F, B2F' },
+  { no: 'DVR-08', label: 'DVR 8',  desc: 'B2F~B4F' },
+  { no: 'DVR-09', label: 'DVR 9',  desc: 'B3F (주차장)' },
+  { no: 'DVR-10', label: 'DVR 10', desc: 'B4F (주차장)' },
+  { no: 'DVR-11', label: 'DVR 11', desc: 'B5F (주차장)' },
+  { no: 'DVR-12', label: 'DVR 12', desc: '리서치프라자, 서버실' },
+]
+
+function CctvModal({ allCheckpoints, records, onClose, onSave }: {
+  allCheckpoints: CheckPoint[]
+  records:        Record<string, CheckResult>
+  onClose:        () => void
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+}) {
+  const photo = usePhotoUpload()
+  const [dvrResults,  setDvrResults]  = useState<Record<string, CheckResult>>({})
+  const [memo,        setMemo]        = useState('')
+  const [submitting,  setSubmitting]  = useState(false)
+  const [justSaved,   setJustSaved]   = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [visible,     setVisible]     = useState(false)
+
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
+
+  const cctvCPs = useMemo(() =>
+    allCheckpoints.filter(cp => cp.category === 'CCTV'),
+    [allCheckpoints]
+  )
+
+  // 초기화: 기존 records 로드, 없으면 'normal'
+  useEffect(() => {
+    const init: Record<string, CheckResult> = {}
+    cctvCPs.forEach(cp => { init[cp.id] = (records[cp.id] as CheckResult) ?? 'normal' })
+    setDvrResults(init)
+  }, [cctvCPs]) // eslint-disable-line
+
+  const doneCnt = cctvCPs.filter(cp => records[cp.id]).length
+  const allDone = doneCnt === cctvCPs.length && cctvCPs.length > 0
+
+  const resultBtnStyle = (active: boolean, opt: typeof INSPECT_RESULT_OPTIONS[0]) => ({
+    flex:1, padding:'4px 2px', borderRadius:7, fontSize:10, fontWeight:700, cursor:'pointer' as const,
+    border:      active ? `1.5px solid ${opt.color}` : '1px solid var(--bd)',
+    background:  active ? opt.bg : 'var(--bg2)',
+    color:       active ? opt.color : 'var(--t3)',
+    transition: 'all .1s',
+  })
+
+  const handleSave = async () => {
+    if (cctvCPs.length === 0) return
+    setSubmitting(true); setSubmitError(null)
+    try {
+      const photoKey = await photo.upload()
+      for (const cp of cctvCPs) {
+        await onSave(cp.id, dvrResults[cp.id] ?? 'normal', memo, photoKey ?? undefined)
+      }
+      setJustSaved(true); setMemo(''); photo.reset()
+    } catch (e: any) {
+      setSubmitError(e.message ?? '저장 오류')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
+
+      {/* 헤더 */}
+      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
+        <span style={{ fontSize:22, lineHeight:1 }}>📹</span>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>CCTV 점검</div>
+          <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>B1F 방재센터 DVR 12대</div>
+        </div>
+        {allDone && !justSaved && (
+          <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.1)', borderRadius:6, padding:'3px 8px', border:'1px solid rgba(34,197,94,.2)' }}>✓ 완료</div>
+        )}
+      </div>
+
+      {/* 스크롤 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+
+        {doneCnt > 0 && !justSaved && (
+          <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'6px 10px' }}>
+            ✓ {doneCnt}/{cctvCPs.length}대 이미 점검 완료
+          </div>
+        )}
+
+        {/* 2열 그리드: 좌 DVR-01~06 / 우 DVR-07~12 */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+          {/* 왼쪽 열 */}
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {CCTV_DVRS.slice(0, 6).map(dvr => {
+              const cp = cctvCPs.find(c => c.locationNo === dvr.no)
+              if (!cp) return null
+              const curResult = dvrResults[cp.id] ?? 'normal'
+              return (
+                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>{dvr.label}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)', marginBottom:5 }}>{dvr.desc}</div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {INSPECT_RESULT_OPTIONS.map(opt => (
+                      <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
+                        {opt.icon} {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {/* 오른쪽 열 */}
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+            {CCTV_DVRS.slice(6, 12).map(dvr => {
+              const cp = cctvCPs.find(c => c.locationNo === dvr.no)
+              if (!cp) return null
+              const curResult = dvrResults[cp.id] ?? 'normal'
+              return (
+                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>{dvr.label}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)', marginBottom:5 }}>{dvr.desc}</div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {INSPECT_RESULT_OPTIONS.map(opt => (
+                      <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
+                        {opt.icon} {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 특이사항 + 사진 */}
+        <div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+            <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
+            <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+          </div>
+          <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+            <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+            <PhotoButton hook={photo} label="촬영" noCapture />
+          </div>
+        </div>
+
+        {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
+        {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+      </div>
+
+      {/* 하단 바 */}
+      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
+        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+        <button
+          onClick={handleSave}
+          disabled={submitting || photo.uploading}
+          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading ? 'default' : 'pointer', transition:'all .13s' }}
+        >
+          {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : 'CCTV 점검 저장'}
         </button>
       </div>
     </div>
@@ -2183,6 +2356,11 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
     [isSohwaGroup, selectedCP, floorCPs]
   )
 
+  // ── 소화기 상세정보 ──
+  const isExtinguisher = group.categories.includes('소화기')
+  const [extDetail, setExtDetail] = useState<ExtinguisherDetail | null>(null)
+  const [showExtList, setShowExtList] = useState(false)
+
   // CP 바뀌면 기존 기록 로드 (없으면 기본값 '정상') + 사진 초기화
   useEffect(() => {
     if (selectedCP) {
@@ -2195,6 +2373,11 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
       setBcResult('normal')
       setBcMemo('')
       bcPhoto.reset()
+      // 소화기면 상세정보 로드
+      if (isExtinguisher) {
+        setExtDetail(null)
+        extinguisherApi.getDetail(selectedCP.id).then(d => setExtDetail(d)).catch(() => {})
+      }
     }
   }, [selectedCP?.id]) // eslint-disable-line
 
@@ -2277,13 +2460,18 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
       transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
     }}>
 
-      {/* ── 헤더 (닫기 버튼 없음 — 하단 버튼으로 대체) ── */}
+      {/* ── 헤더 ── */}
       <div style={{ paddingTop:'10px', paddingBottom:10, paddingLeft:16, paddingRight:16, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
         <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
           {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
         </div>
+        {isExtinguisher && (
+          <button onClick={() => setShowExtList(true)} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+            리스트
+          </button>
+        )}
       </div>
 
       {/* ── 구역 선택 — CP가 2개 이상일 때만 ── */}
@@ -2344,8 +2532,18 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
               <button onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx > 0 ? 1 : 0.3 }}>‹</button>
               <div style={{ flex:1, textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소 ({pickerIdx + 1}/{pendingCPs.length} 미완료 · {doneCount}/{totalCount} 완료)</div>
-                <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
-                {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
+                {isExtinguisher && extDetail ? (
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:3 }}>
+                    <span style={{ fontSize:14 }}>🧯</span>
+                    <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{extDetail.mgmt_no}</span>
+                    <span style={{ fontSize:10, fontWeight:600, color:'#ef4444', background:'rgba(239,68,68,.1)', padding:'1px 6px', borderRadius:4 }}>{extDetail.type}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
+                    {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
+                  </>
+                )}
               </div>
               <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
             </div>
@@ -2362,13 +2560,64 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
           </div>
         )}
         {/* 개소가 1개인 경우 정보 표시 */}
-        {selectedCP && floorCPs.length <= 1 && (
+        {selectedCP && floorCPs.length <= 1 && !isExtinguisher && (
           <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
             <div style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{selectedCP.location}</div>
             {selectedCP.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{selectedCP.description}</div>}
           </div>
         )}
+
+        {/* ── 소화기 상세정보 ── */}
+        {isExtinguisher && selectedCP && extDetail && (() => {
+          // 분말 소화기 교체 주기: 제조 후 10년
+          let replaceWarning: 'danger' | 'imminent' | 'warn' | null = null
+          if (extDetail.type?.includes('분말') && extDetail.manufactured_at) {
+            const [y, m] = extDetail.manufactured_at.split('-').map(Number)
+            if (y && m) {
+              const expiry = new Date(y + 10, m - 1)
+              const imm = new Date(expiry); imm.setMonth(imm.getMonth() - 6)
+              const warn = new Date(expiry); warn.setFullYear(warn.getFullYear() - 1)
+              const now = new Date()
+              if (now >= expiry) replaceWarning = 'danger'
+              else if (now >= imm) replaceWarning = 'imminent'
+              else if (now >= warn) replaceWarning = 'warn'
+            }
+          }
+          const rwStyle = {
+            danger:   { bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)', color:'#dc2626', text:'연한 초과 — 즉시 교체 필요' },
+            imminent: { bg:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', color:'#c2410c', text:'연한 임박 — 교체 시급' },
+            warn:     { bg:'rgba(234,179,8,.12)',  border:'rgba(234,179,8,.3)',  color:'#a16207', text:'연한 도래 — 교체 준비 필요' },
+          }
+          return (
+            <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)' }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
+                <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.location}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufacturer ?? '-'}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufactured_at ?? '-'}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.approval_no ?? '-'}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.prefix_code ?? '-'}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.seal_no ?? '-'}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.serial_no ?? '-'}</span></div>
+              </div>
+              {replaceWarning && (
+                <div style={{
+                  marginTop:8, fontSize:11, fontWeight:700, borderRadius:6, padding:'6px 10px',
+                  background: rwStyle[replaceWarning].bg,
+                  border: `1px solid ${rwStyle[replaceWarning].border}`,
+                  color: rwStyle[replaceWarning].color,
+                }}>
+                  {rwStyle[replaceWarning].text}
+                </div>
+              )}
+              {extDetail.note && (
+                <div style={{ marginTop:6, fontSize:11, color:'var(--t2)', background:'rgba(245,158,11,.08)', padding:'4px 8px', borderRadius:4 }}>
+                  {extDetail.note}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* 결과 선택 — 1행 3열 (정상/주의/불량, 기본값 정상) */}
         {selectedCP && (
@@ -2462,6 +2711,193 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
         >
           {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
         </button>
+      </div>
+
+      {/* ── 소화기 리스트 풀스크린 오버레이 ── */}
+      {showExtList && <ExtinguisherListOverlay onClose={() => setShowExtList(false)} />}
+    </div>
+  )
+}
+
+// ── 소화기 리스트 오버레이 ──────────────────────────────
+function ExtinguisherListOverlay({ onClose }: { onClose: () => void }) {
+  const [data, setData] = useState<ExtinguisherListResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<{ floor?: string; zone?: string; type?: string; q?: string }>({})
+  const [replaceFilter, setReplaceFilter] = useState<'warn' | 'imminent' | 'danger' | false>(false)
+  const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
+
+  useEffect(() => {
+    setLoading(true)
+    extinguisherApi.list(filter).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
+  }, [filter])
+
+  // 교체 필요 판별: danger(초과) > imminent(6개월) > warn(1년)
+  function getReplaceStatus(item: any): 'danger' | 'imminent' | 'warn' | null {
+    if (!item.type?.includes('분말') || !item.manufactured_at) return null
+    const [y, m] = item.manufactured_at.split('-').map(Number)
+    if (!y || !m) return null
+    const expiry = new Date(y + 10, m - 1)
+    const imm = new Date(expiry); imm.setMonth(imm.getMonth() - 6)
+    const warn = new Date(expiry); warn.setFullYear(warn.getFullYear() - 1)
+    const now = new Date()
+    if (now >= expiry) return 'danger'
+    if (now >= imm) return 'imminent'
+    if (now >= warn) return 'warn'
+    return null
+  }
+
+  // 만료일 계산 (정렬용)
+  function getExpiryMs(item: any): number {
+    if (!item.manufactured_at) return Infinity
+    const [y, m] = item.manufactured_at.split('-').map(Number)
+    if (!y || !m) return Infinity
+    return new Date(y + 10, m - 1).getTime()
+  }
+
+  const allItems = data?.items ?? []
+  const dangerCount = allItems.filter(i => getReplaceStatus(i) === 'danger').length
+  const imminentCount = allItems.filter(i => getReplaceStatus(i) === 'imminent').length
+  const warnCount = allItems.filter(i => getReplaceStatus(i) === 'warn').length
+  const displayItems = replaceFilter
+    ? allItems.filter(i => getReplaceStatus(i) === replaceFilter).sort((a, b) => getExpiryMs(a) - getExpiryMs(b))
+    : allItems
+
+  return (
+    <div style={{
+      position:'absolute', top:0, left:0, right:0, bottom:0,
+      zIndex:120, background:'var(--bg)',
+      display:'flex', flexDirection:'column',
+      transform: visible ? 'translateY(0)' : 'translateY(100%)',
+      transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
+    }}>
+
+      {/* 헤더 */}
+      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
+        <span style={{ fontSize:20 }}>🧯</span>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>소화기 리스트</div>
+          <div style={{ fontSize:10, color:'var(--t3)' }}>{data ? `총 ${data.total}개` : '로딩 중...'}</div>
+        </div>
+        <button onClick={onClose} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      </div>
+
+      {/* 종류별 요약 + 교체 경고 뱃지 */}
+      {data && (
+        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:5, flexWrap:'wrap' }}>
+          {data.stats.map(s => (
+            <button key={s.type} onClick={() => { setReplaceFilter(false); setFilter(f => f.type === s.type ? { ...f, type: undefined } : { ...f, type: s.type }) }} style={{
+              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:600, cursor:'pointer',
+              background: !replaceFilter && filter.type === s.type ? 'var(--acl)' : 'var(--bg3)',
+              color: !replaceFilter && filter.type === s.type ? '#fff' : 'var(--t2)',
+              border: !replaceFilter && filter.type === s.type ? 'none' : '1px solid var(--bd)',
+            }}>
+              {s.type} {s.cnt}
+            </button>
+          ))}
+          {(warnCount > 0 || imminentCount > 0 || dangerCount > 0) && (
+            <div style={{ width:1, height:18, background:'var(--bd)', margin:'0 2px', alignSelf:'center' }} />
+          )}
+          {warnCount > 0 && (
+            <button onClick={() => { setReplaceFilter(replaceFilter === 'warn' ? false : 'warn'); setFilter(f => ({ ...f, type: undefined })) }} style={{
+              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
+              background: replaceFilter === 'warn' ? 'rgba(234,179,8,.25)' : 'rgba(234,179,8,.08)',
+              color: '#a16207',
+              border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
+            }}>
+              연한도래 {warnCount}
+            </button>
+          )}
+          {imminentCount > 0 && (
+            <button onClick={() => { setReplaceFilter(replaceFilter === 'imminent' ? false : 'imminent'); setFilter(f => ({ ...f, type: undefined })) }} style={{
+              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
+              background: replaceFilter === 'imminent' ? 'rgba(249,115,22,.25)' : 'rgba(249,115,22,.08)',
+              color: '#c2410c',
+              border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
+            }}>
+              연한임박 {imminentCount}
+            </button>
+          )}
+          {dangerCount > 0 && (
+            <button onClick={() => { setReplaceFilter(replaceFilter === 'danger' ? false : 'danger'); setFilter(f => ({ ...f, type: undefined })) }} style={{
+              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
+              background: replaceFilter === 'danger' ? 'rgba(239,68,68,.25)' : 'rgba(239,68,68,.08)',
+              color: '#dc2626',
+              border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
+            }}>
+              연한초과 {dangerCount}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 필터 바 */}
+      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:5, alignItems:'center' }}>
+        <input
+          placeholder="제조번호 검색"
+          value={filter.q ?? ''}
+          onChange={e => setFilter(f => ({ ...f, q: e.target.value || undefined }))}
+          style={{ flex:1, minWidth:0, padding:'6px 8px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11, boxSizing:'border-box' }}
+        />
+        <select value={filter.zone ?? ''} onChange={e => setFilter(f => ({ ...f, zone: e.target.value || undefined }))} style={{ padding:'6px 6px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11 }}>
+          <option value="">구역</option>
+          {data?.zones.map(z => <option key={z} value={z}>{z}</option>)}
+        </select>
+        <select value={filter.floor ?? ''} onChange={e => setFilter(f => ({ ...f, floor: e.target.value || undefined }))} style={{ padding:'6px 6px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11 }}>
+          <option value="">층</option>
+          {data?.floors.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
+      </div>
+
+      {/* 리스트 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'6px 14px' }}>
+        {loading ? (
+          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--t3)', fontSize:13 }}>로딩 중...</div>
+        ) : displayItems.length === 0 ? (
+          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--t3)', fontSize:13 }}>결과 없음</div>
+        ) : displayItems.map(item => {
+          const rs = getReplaceStatus(item)
+          return (
+            <div
+              key={item.seq_no}
+              onClick={() => setSelectedItem(selectedItem?.seq_no === item.seq_no ? null : item)}
+              style={{
+                padding:'8px 10px', margin:'4px 0', borderRadius:10, cursor:'pointer',
+                background: selectedItem?.seq_no === item.seq_no ? 'var(--bg3)' : 'var(--bg2)',
+                border: rs === 'danger' ? '1px solid rgba(239,68,68,.4)' : rs === 'imminent' ? '1px solid rgba(249,115,22,.4)' : rs === 'warn' ? '1px solid rgba(234,179,8,.4)' : '1px solid var(--bd)',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', minWidth:70 }}>{item.mgmt_no}</span>
+                <span style={{ fontSize:10, fontWeight:600, color:'#ef4444', background:'rgba(239,68,68,.1)', padding:'1px 5px', borderRadius:4 }}>{item.type}</span>
+                <span style={{ flex:1, fontSize:10, color:'var(--t3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.location}</span>
+                {rs === 'danger' && <span style={{ fontSize:9, fontWeight:700, color:'#dc2626', background:'rgba(239,68,68,.12)', padding:'1px 4px', borderRadius:3 }}>연한초과</span>}
+                {rs === 'imminent' && <span style={{ fontSize:9, fontWeight:700, color:'#c2410c', background:'rgba(249,115,22,.12)', padding:'1px 4px', borderRadius:3 }}>연한임박</span>}
+                {rs === 'warn' && <span style={{ fontSize:9, fontWeight:700, color:'#a16207', background:'rgba(234,179,8,.12)', padding:'1px 4px', borderRadius:3 }}>연한도래</span>}
+              </div>
+
+              {/* 펼침 상세 */}
+              {selectedItem?.seq_no === item.seq_no && (
+                <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px 12px', fontSize:11 }}>
+                  <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.manufacturer ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.manufactured_at ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.approval_no ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.prefix_code ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.seal_no ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.serial_no ?? '-'}</span></div>
+                  {item.note && <div style={{ gridColumn:'1/3', color:'var(--t2)', background:'rgba(245,158,11,.08)', padding:'3px 6px', borderRadius:4, marginTop:2 }}>{item.note}</div>}
+                  {rs && (() => {
+                    const s = { danger: { color:'#dc2626', text:'연한 초과 — 즉시 교체 필요' }, imminent: { color:'#c2410c', text:'연한 임박 — 교체 시급' }, warn: { color:'#a16207', text:'연한 도래 — 교체 준비 필요' } }
+                    return <div style={{ gridColumn:'1/3', marginTop:2, fontWeight:700, color: s[rs].color, fontSize:10 }}>{s[rs].text}</div>
+                  })()}
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -3093,6 +3529,13 @@ export default function InspectionPage() {
         ) : selectedGroup.categories.includes('소방용전원공급반') ? (
           <PowerPanelModal
             group={selectedGroup}
+            allCheckpoints={allCheckpoints}
+            records={records}
+            onClose={() => setSelectedGroupIdx(null)}
+            onSave={handleSave}
+          />
+        ) : selectedGroup.categories.includes('CCTV') ? (
+          <CctvModal
             allCheckpoints={allCheckpoints}
             records={records}
             onClose={() => setSelectedGroupIdx(null)}
