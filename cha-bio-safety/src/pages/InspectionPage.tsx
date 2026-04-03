@@ -456,9 +456,11 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
               if (!cp) return null
               const curResult = dvrResults[cp.id] ?? 'normal'
               return (
-                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>{dvr.label}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)', marginBottom:5 }}>{dvr.desc}</div>
+                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'6px 8px 5px', border:'1px solid var(--bd)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>{dvr.label}</span>
+                    <span style={{ fontSize:9, color:'var(--t3)' }}>{dvr.desc}</span>
+                  </div>
                   <div style={{ display:'flex', gap:4 }}>
                     {INSPECT_RESULT_OPTIONS.map(opt => (
                       <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
@@ -477,9 +479,11 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
               if (!cp) return null
               const curResult = dvrResults[cp.id] ?? 'normal'
               return (
-                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>{dvr.label}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)', marginBottom:5 }}>{dvr.desc}</div>
+                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'6px 8px 5px', border:'1px solid var(--bd)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>{dvr.label}</span>
+                    <span style={{ fontSize:9, color:'var(--t3)' }}>{dvr.desc}</span>
+                  </div>
                   <div style={{ display:'flex', gap:4 }}>
                     {INSPECT_RESULT_OPTIONS.map(opt => (
                       <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
