@@ -169,7 +169,7 @@ All components are hand-rolled inline (no library). Reuse these exact patterns f
 - Title: `fontSize:16, fontWeight:700, color: var(--t1)`, `padding: '12px 16px 0'`
 - Form fields: `background: var(--bg3)`, `borderRadius:8`, `padding:12`, `border: '1px solid var(--bd2)'`
 - Form inputs/textareas border-radius: 8px (visual property; `borderRadius:8` — must use 8, not 10)
-- Primary button: `height:48, background: var(--acl), borderRadius:10, fontWeight:700, fontSize:14`
+- Primary button: `height:48, background: var(--acl), borderRadius:8, fontWeight:700, fontSize:14`
 - Cancel button: `height:48, background:transparent, border: '1px solid var(--bd2)', color: var(--t2), fontSize:14`
 
 **Spinner** (loading state in detail pages):
