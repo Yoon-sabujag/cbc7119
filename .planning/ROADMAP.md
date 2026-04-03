@@ -124,7 +124,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. 법적 점검 결과(점검 유형, 일자, 점검기관, 결과)를 기록하고 관련 서류를 R2에 업로드할 수 있다
   2. 지적사항을 항목별로 등록하고 시정조치 내용과 완료 여부를 기록할 수 있다
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 10-01-PLAN.md — DB 마이그레이션 + API 엔드포인트 + 타입·클라이언트 + 라우팅 배선
+- [ ] 10-02-PLAN.md — LegalPage + LegalFindingsPage + LegalFindingDetailPage 3개 페이지 UI
 **UI hint**: yes
 
 ### Phase 11: Elevator Inspection Certs
@@ -148,10 +151,10 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 0/? | Not started | - |
+| 10. Legal Inspection | v1.1 | 0/2 | Planned | - |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
-*Last updated: 2026-04-02*
+*Last updated: 2026-04-03*
