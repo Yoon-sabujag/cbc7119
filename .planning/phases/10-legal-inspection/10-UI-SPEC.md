@@ -45,7 +45,7 @@ Declared values (multiples of 4):
 Exceptions:
 - Header height fixed at exactly 48px (matches RemediationDetailPage, EducationPage patterns)
 - Touch target minimum 44x44px for back button and interactive icon buttons (matches EducationPage: `width:44, height:44`)
-- Card border-radius: 12px for list cards, 10px for form inputs/textareas
+- Card border-radius: 12px for list cards (visual property, declared here as spacing exception only for the 12px value)
 - BottomSheet border-radius: 16px top corners, 0 bottom corners
 
 Source: RemediationDetailPage.tsx, EducationPage.tsx patterns
@@ -135,7 +135,7 @@ All components are hand-rolled inline (no library). Reuse these exact patterns f
 
 **Self-contained header** (NO_NAV pages):
 - `height:48`, `background: rgba(22,27,34,0.97)`, `borderBottom: '1px solid var(--bd)'`
-- Back button: `position:'absolute', left:12`, `width:36, height:36`, inline SVG chevron-left (20×20, stroke=2)
+- Back button: `position:'absolute', left:12`, `width:36, height:36`, inline SVG chevron-left (20×20, stroke=2), `aria-label="뒤로 가기"`
 - Page title: `fontSize:16, fontWeight:700, color: var(--t1)`, centered
 
 **KVRow component**:
@@ -168,7 +168,8 @@ All components are hand-rolled inline (no library). Reuse these exact patterns f
 - Drag handle: `width:32, height:4, background: var(--bd2), borderRadius:2`, centered, `paddingTop:12`
 - Title: `fontSize:16, fontWeight:700, color: var(--t1)`, `padding: '12px 16px 0'`
 - Form fields: `background: var(--bg3)`, `borderRadius:8`, `padding:12`, `border: '1px solid var(--bd2)'`
-- Primary button: `height:48, background: var(--acl), borderRadius:10, fontWeight:700, fontSize:15`
+- Form inputs/textareas border-radius: 8px (visual property; `borderRadius:8` — must use 8, not 10)
+- Primary button: `height:48, background: var(--acl), borderRadius:10, fontWeight:700, fontSize:14`
 - Cancel button: `height:48, background:transparent, border: '1px solid var(--bd2)', color: var(--t2), fontSize:14`
 
 **Spinner** (loading state in detail pages):
@@ -179,6 +180,8 @@ All components are hand-rolled inline (no library). Reuse these exact patterns f
 ## Page Layout Specifications
 
 ### LegalPage (`/legal`)
+
+**Primary visual anchor:** The sticky 2-row filter header (status tab strip + year filter) is the focal element. It anchors the user's task context — which inspection round and status they are browsing — and remains visible as the card list scrolls beneath it.
 
 Structure:
 1. Self-contained header (48px) — title: "법적 점검"
