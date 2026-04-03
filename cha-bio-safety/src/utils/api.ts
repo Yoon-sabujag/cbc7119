@@ -210,6 +210,18 @@ export const educationApi = {
     api.put<void>(`/education/${id}`, data),
 }
 
+export const menuApi = {
+  getByDate:  (date: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }>(`/menu?date=${date}`),
+  getByWeek:  (weekStart: string) => api.get<{ date: string; lunch_a: string | null; lunch_b: string | null; dinner: string | null; pdf_key?: string }[]>(`/menu?week=${weekStart}`),
+  upsert:     (menus: { date: string; lunch_a?: string; lunch_b?: string; dinner?: string }[], pdfKey?: string) =>
+    api.post<{ date: string; id: string }[]>('/menu', { menus, pdf_key: pdfKey }),
+}
+
+export const holidayApi = {
+  list: (year?: number) => api.get<{ date: string; name: string }[]>(`/holidays${year ? `?year=${year}` : ''}`),
+  sync: () => api.post<{ years: number[]; inserted: number }>('/holidays/sync', {}),
+}
+
 export const inspectionApi = {
   getSessions:    (date: string) => api.get<any[]>(`/inspections?date=${date}`),
   createSession:  (body: any)    => api.post<any>('/inspections', body),

@@ -1,17 +1,33 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
+import { InstallPrompt, shouldShowInstallPrompt, dismissInstallPrompt } from '../components/InstallPrompt'
 
 export default function SplashScreen() {
   const [pct, setPct] = useState(0)
+  const [showInstall, setShowInstall] = useState(false)
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     const tick = setInterval(() => setPct(p => Math.min(p + 4, 100)), 48)
-    const nav  = setTimeout(() => navigate(isAuthenticated ? '/dashboard' : '/login', { replace: true }), 1600)
+
+    const nav = setTimeout(() => {
+      if (shouldShowInstallPrompt()) {
+        setShowInstall(true)
+      } else {
+        navigate(isAuthenticated ? '/dashboard' : '/login', { replace: true })
+      }
+    }, 1600)
+
     return () => { clearInterval(tick); clearTimeout(nav) }
   }, [isAuthenticated, navigate])
+
+  function handleDismiss() {
+    dismissInstallPrompt()
+    setShowInstall(false)
+    navigate(isAuthenticated ? '/dashboard' : '/login', { replace: true })
+  }
 
   return (
     <div style={{
@@ -28,18 +44,13 @@ export default function SplashScreen() {
             background:'rgba(37,99,235,0.2)',
             border:'1px solid rgba(59,130,246,0.3)',
             display:'flex', alignItems:'center', justifyContent:'center',
+            overflow: 'hidden',
           }}>
-            <svg width={48} height={48} viewBox="0 0 52 52" fill="none">
-              <path d="M26 8C26 8 18 18 18 26C18 30.4 21.6 34 26 34C30.4 34 34 30.4 34 26C34 22 32 18 28 14C28 14 30 20 26 22C22 20 26 8 26 8Z" fill="#f97316"/>
-              <path d="M26 22C24 24 22 26 22 28C22 30.2 23.8 32 26 32C28.2 32 30 30.2 30 28C30 26 28 24 26 22Z" fill="#fde68a"/>
-              <path d="M14 36V42C14 45.3 19.4 48 26 48C32.6 48 38 45.3 38 42V36H14Z" fill="none" stroke="#93c5fd" strokeWidth={1.5} strokeLinejoin="round"/>
-              <line x1="14" y1="36" x2="38" y2="36" stroke="#93c5fd" strokeWidth={1.5} strokeLinecap="round"/>
-              <text x="26" y="44" textAnchor="middle" fontSize="9" fontWeight="600" fill="#93c5fd">방재</text>
-            </svg>
+            <img src="/icons/icon-192.png" alt="" style={{ width: 64, height: 64, borderRadius: 14 }} />
           </div>
         </div>
         <div style={{ textAlign:'center' }}>
-          <h1 style={{ fontSize:22, fontWeight:900, color:'#e6edf3', margin:0, letterSpacing:'-.02em' }}>차바이오컴플렉스</h1>
+          <h1 style={{ fontSize:22, fontWeight:900, color:'#e6edf3', margin:0, letterSpacing:'-.02em' }}>CBC 방재</h1>
           <p style={{ fontSize:12, color:'#6e7681', margin:'6px 0 0', letterSpacing:'.1em' }}>소방안전 통합관리 시스템</p>
         </div>
       </div>
@@ -55,6 +66,9 @@ export default function SplashScreen() {
       </div>
 
       <p style={{ position:'absolute', bottom:20, fontSize:10, color:'#3d444d' }}>v1.0.0 · 경기도 성남시 분당구</p>
+
+      {/* PWA 설치 팝업 */}
+      {showInstall && <InstallPrompt onDismiss={handleDismiss} />}
 
       <style>{`
         @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }

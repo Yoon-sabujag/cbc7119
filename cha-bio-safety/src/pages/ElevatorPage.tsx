@@ -38,6 +38,7 @@ interface ElevatorInspection {
   overall: string
   action_needed?: string
   memo?: string
+  certificate_key?: string
   elevator_location: string
   elevator_number: number
   elevator_type: string
@@ -188,10 +189,22 @@ async function fetchEvHistory(elevatorId: string, from: string, to: string): Pro
 // ── 메인 ─────────────────────────────────────────────────
 export default function ElevatorPage() {
   const qc = useQueryClient()
+  const { staff } = useAuthStore()
+  const isAdmin = staff?.role === 'admin'
   const [tab,           setTab]           = useState<Tab>('list')
   const [modal,         setModal]         = useState<Modal>(null)
   const [selectedEv,    setSelectedEv]    = useState<Elevator | null>(null)
   const [selectedFault, setSelectedFault] = useState<ElevatorFault | null>(null)
+  const [expandedAnnual, setExpandedAnnual] = useState<string | null>(null)
+
+  async function deleteRecord(type: 'fault' | 'inspection', id: string) {
+    if (!confirm('삭제하시겠습니까?')) return
+    const endpoint = type === 'fault' ? '/api/elevators/faults' : '/api/elevators/inspections'
+    await fetch(`${endpoint}?id=${id}`, { method: 'DELETE', headers: authHeader() })
+    qc.invalidateQueries({ queryKey: type === 'fault' ? ['elevator_faults'] : ['elevator_annuals'] })
+    qc.invalidateQueries({ queryKey: ['elevator_inspections'] })
+    toast.success('삭제 완료')
+  }
 
   const { data: elevators   = [] } = useQuery({ queryKey:['elevators'],            queryFn: fetchElevators })
   const { data: faults      = [] } = useQuery({ queryKey:['elevator_faults'],      queryFn: fetchFaults })
@@ -381,7 +394,12 @@ export default function ElevatorPage() {
                       style={{ flexShrink:0, width:52, height:52, borderRadius:10, border:'none', cursor:'pointer', background:'rgba(34,197,94,.15)', color:'var(--safe)', fontSize:10, fontWeight:700, whiteSpace:'pre-line', textAlign:'center', lineHeight:1.4 }}
                     >{'수리\n내용\n입력'}</button>
                   ) : (
-                    <div style={{ flexShrink:0, width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>✅</div>
+                    <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                      <div style={{ width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>✅</div>
+                      {isAdmin && (
+                        <button onClick={() => deleteRecord('fault', f.id)} style={{ fontSize:9, color:'var(--danger)', background:'none', border:'none', cursor:'pointer', fontWeight:600, opacity:0.6 }}>삭제</button>
+                      )}
+                    </div>
                   )}
                 </div>
               )
@@ -416,12 +434,15 @@ export default function ElevatorPage() {
                     <div style={{ fontSize:13, color:'var(--t2)' }}>{pureAction || '조치 사항 없음'}</div>
                     <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date}</div>
                   </div>
-                  {/* 해당층 (엘베만) */}
-                  {!isEs && floorLabel && (
-                    <div style={{ flexShrink:0, display:'flex', alignItems:'center' }}>
+                  {/* 우측: 해당층 + 삭제 */}
+                  <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                    {!isEs && floorLabel && (
                       <span style={{ fontSize:11, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.1)', padding:'2px 7px', borderRadius:8 }}>{floorLabel}</span>
-                    </div>
-                  )}
+                    )}
+                    {isAdmin && (
+                      <button onClick={() => deleteRecord('inspection', i.id)} style={{ fontSize:9, color:'var(--danger)', background:'none', border:'none', cursor:'pointer', fontWeight:600, opacity:0.6 }}>삭제</button>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -434,19 +455,103 @@ export default function ElevatorPage() {
             {annuals.length === 0 && <EmptyState icon="📋" text="검사 기록이 없어요" />}
             {annuals.map(i => {
               const ov = OVERALL_STYLE[i.overall] ?? OVERALL_STYLE.pass
+              const isExpanded = expandedAnnual === i.id
               return (
-                <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'stretch', gap:10 }}>
-                  <div style={{ width:48, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 }}>
-                    {TYPE_ICON[i.elevator_type]}
-                  </div>
-                  <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', gap:3 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{i.elevator_number ? `${i.elevator_number}호기` : i.elevator_location || '호기 미상'}</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:ov.color, background:`${ov.color}22`, padding:'1px 6px', borderRadius:6 }}>{ov.label}</span>
+                <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden' }}>
+                  {/* 리스트 행: 탭하면 상세 펼침 */}
+                  <div
+                    onClick={() => setExpandedAnnual(isExpanded ? null : i.id)}
+                    style={{ padding:'10px 12px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}
+                  >
+                    <div style={{ width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
+                      {TYPE_ICON[i.elevator_type]}
                     </div>
-                    <div style={{ fontSize:13, color:'var(--t2)' }}>{i.action_needed || '검사 결과 없음'}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date} · 연간검사</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{i.elevator_number ? `${i.elevator_number}호기` : i.elevator_location || '호기 미상'}</span>
+                        <span style={{ fontSize:10, fontWeight:700, color:ov.color, background:`${ov.color}22`, padding:'1px 6px', borderRadius:6 }}>{ov.label}</span>
+                      </div>
+                      <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date} · 연간검사</div>
+                    </div>
+                    {/* 우측: 인증서 정사각형 버튼 */}
+                    {i.certificate_key ? (
+                      <a
+                        href={`/api/uploads/${i.certificate_key}`} target="_blank" rel="noopener"
+                        onClick={e => e.stopPropagation()}
+                        style={{ width:52, height:52, borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, textDecoration:'none' }}
+                      >
+                        <span style={{ fontSize:20 }}>📄</span>
+                        <span style={{ fontSize:8, fontWeight:700, color:'var(--safe)' }}>보기</span>
+                      </a>
+                    ) : (
+                      <label
+                        onClick={e => e.stopPropagation()}
+                        style={{ width:52, height:52, borderRadius:10, background:'var(--bg3)', border:'1px dashed var(--bd2)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, cursor:'pointer' }}
+                      >
+                        <span style={{ fontSize:20 }}>📎</span>
+                        <span style={{ fontSize:8, fontWeight:600, color:'var(--t3)' }}>첨부</span>
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display:'none' }}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            try {
+                              const fd = new FormData()
+                              fd.append('file', file)
+                              const res = await fetch('/api/uploads', { method:'POST', body:fd, headers:{ Authorization:`Bearer ${useAuthStore.getState().token}` } })
+                              const json = await res.json() as any
+                              if (!json.success) throw new Error(json.error)
+                              await fetch(`/api/elevators/${i.elevator_id}/inspections/${i.id}/cert`, {
+                                method:'PUT',
+                                headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
+                                body: JSON.stringify({ certificate_key: json.data.key }),
+                              })
+                              qc.invalidateQueries({ queryKey:['elevator_annuals'] })
+                              toast.success('인증서 첨부 완료')
+                            } catch (err: any) {
+                              toast.error(err?.message ?? '업로드 실패')
+                            }
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    )}
                   </div>
+
+                  {/* 상세 펼침 */}
+                  {isExpanded && (
+                    <div style={{ padding:'0 12px 12px', borderTop:'1px solid var(--bd)' }}>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, paddingTop:10 }}>
+                        <div>
+                          <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사일</div>
+                          <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{i.inspect_date}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 결과</div>
+                          <div style={{ fontSize:12, color:ov.color, fontWeight:700 }}>{ov.label}</div>
+                        </div>
+                      </div>
+                      {i.action_needed && (
+                        <div style={{ marginTop:10 }}>
+                          <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 결과 상세</div>
+                          <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{i.action_needed}</div>
+                        </div>
+                      )}
+                      {i.memo && (
+                        <div style={{ marginTop:8 }}>
+                          <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>메모</div>
+                          <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{i.memo}</div>
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => deleteRecord('inspection', i.id)}
+                          style={{ marginTop:10, width:'100%', padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                        >
+                          검사 기록 삭제
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -1150,6 +1255,7 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
   const [annualOverall, setAnnualOverall] = useState<'pass'|'conditional'|'fail'|''>('')
   const [inspectResult, setInspectResult] = useState('')
   const [memo,          setMemo]          = useState('')
+
 
   return (
     <ModalWrap title="검사 기록 입력" onClose={onClose}>

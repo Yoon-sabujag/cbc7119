@@ -599,15 +599,16 @@ export default function StaffServicePage() {
                     {/* 중간 여백 */}
                     <div style={{ flex:1 }} />
 
-                    {/* 우하단: 팀원 연차/소검/승검 */}
-                    {infoText && (
+                    {/* 우하단: 공휴일명 + 팀원 연차/소검/승검 */}
+                    {(cell.holidayName || infoText) && (
                       <div style={{ fontSize:6, fontWeight:700, color:'rgba(255,255,255,0.85)', lineHeight:1.2, textAlign:'right', wordBreak:'break-all' }}>
+                        {cell.holidayName && <div style={{ color:'#fca5a5' }}>{cell.holidayName}</div>}
                         {infoText}
                       </div>
                     )}
 
                     {/* 식사 미사용 */}
-                    {provided > 0 && skipped > 0 && !infoText && (
+                    {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
                       <div style={{ fontSize:7, color:'#fbbf24', fontWeight:800, lineHeight:1, textAlign:'right' }}>
                         미{skipped}
                       </div>

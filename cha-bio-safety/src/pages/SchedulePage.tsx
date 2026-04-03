@@ -84,7 +84,7 @@ async function fetchHolidays(): Promise<Record<string, string>> {
 const INSP_CATEGORIES = [
   '소화기','소화전','방화문','특별피난계단','유도등','방화셔터','DIV','컴프레셔',
   '비상콘센트','배연창','주차장비','완강기','전실제연댐퍼',
-  '청정소화약제','연결송수관','소방용전원공급반','회전문','소방펌프',
+  '청정소화약제','연결송수관','소방용전원공급반','회전문','소방펌프','CCTV',
 ]
 
 const INSP_DEFAULTS: Record<string, { title: string; memo: string }> = {
@@ -106,6 +106,7 @@ const INSP_DEFAULTS: Record<string, { title: string; memo: string }> = {
   '소방용전원공급반': { title:'화재수신기 및 전원공급반 점검', memo:'   - 전층 전원공급반 전압상태 확인\n   - 휴즈 및 LED 점등상태 확인\n   - 중계기 통신상태 점검 및 예비전원 시험' },
   '회전문':       { title:'회전문 점검',                 memo:'   - 구리스 주입 및 안전센서 점검' },
   '소방펌프':     { title:'소방펌프 점검',               memo:'   - 밸브 개폐상태 점검 및 템퍼스위치 점검\n   - 압력셋팅 확인 및 MCC반 조작스위치 상태 점검\n   - 펌프 수동테스트\n   - 밸브 동작시 화재수신반 시그널 확인상태 점검' },
+  'CCTV':         { title:'전층 CCTV 및 DVR 점검',       memo:'   - CCTV 부착상태 및 화각체크\n   - DVR 작동상태 및 녹화상태 점검' },
 }
 
 const ELEV_SUBCATS = ['승강기 정기 점검', '승강기 수리', '승강기 법정 검사'] as const

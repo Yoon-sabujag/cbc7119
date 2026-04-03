@@ -60,6 +60,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   return Response.json({ success: true, data: { id } }, { status: 201 })
 }
 
+// DELETE /api/elevators/faults?id=xxx — 고장 기록 삭제 (admin only)
+export const onRequestDelete: PagesFunction<Env> = async ({ request, env, data }) => {
+  if ((data as any).role !== 'admin') return Response.json({ success: false, error: '권한 없음' }, { status: 403 })
+  const id = new URL(request.url).searchParams.get('id')
+  if (!id) return Response.json({ success: false, error: 'id 필수' }, { status: 400 })
+  await env.DB.prepare('DELETE FROM elevator_faults WHERE id=?').bind(id).run()
+  return Response.json({ success: true })
+}
+
 // PATCH /api/elevators/faults — 고장 수리 완료 처리
 export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
   const body = await request.json<{

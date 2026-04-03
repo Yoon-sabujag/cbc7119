@@ -165,7 +165,7 @@ export default function DashboardPage() {
             <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>오늘 현황</span>
             {stats.streakDays > 0 && (
               <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:9.5, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'2px 7px', borderRadius:20 }}>
-                0/0/0 · {stats.streakDays}일 유지 🔥
+                연속 {stats.streakDays}일 달성 🔥
               </span>
             )}
           </div>
@@ -195,10 +195,10 @@ export default function DashboardPage() {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:7 }}>
             {[
-              { icon:'🗺️', label:'도면 점검',    desc:'층·동 선택\n도면 + 체크리스트', bg:'rgba(59,130,246,.13)', path:'/inspection' },
+              { icon:'🗺️', label:'도면 점검',    desc:'층별 도면 보기\n유도등·감지기·소화기', bg:'rgba(59,130,246,.13)', path:'/floorplan' },
               { icon:'📈', label:'DIV 트렌드',   desc:'측정점 선택\n압력 트렌드 차트',  bg:'rgba(14,165,233,.13)', path:'/div'        },
               { icon:'🚨', label:'고장 접수',     desc:'승강기 고장 접수\nTKE 자동 연결', bg:'rgba(239,68,68,.13)',  path:'/elevator?modal=fault_new' },
-              { icon:'🍱', label:'직원 서비스',   desc:'연차·식사 이용\n식당 메뉴표',    bg:'rgba(34,197,94,.13)',  path:'/more'       },
+              { icon:'🍱', label:'직원 서비스',   desc:'연차·식사 이용\n근무표 기반 통합',  bg:'rgba(34,197,94,.13)',  path:'/staff-service' },
             ].map(t => (
               <div
                 key={t.label}

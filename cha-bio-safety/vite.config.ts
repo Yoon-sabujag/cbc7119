@@ -8,28 +8,37 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '차바이오컴플렉스 방재',
-        short_name: '방재관리',
+        name: 'CBC 방재',
+        short_name: 'CBC 방재',
         description: '차바이오컴플렉스 소방안전 통합관리',
         theme_color: '#161b22',
         background_color: '#0d1117',
-        display: 'fullscreen',
+        display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          { src:'/icon-192.png', sizes:'192x192', type:'image/png' },
-          { src:'/icon-512.png', sizes:'512x512', type:'image/png', purpose:'any maskable' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
       },
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [{
-          urlPattern: ({ request }) => request.method === 'GET' && /\/api\//.test(request.url),
-          handler: 'NetworkFirst',
-          options: { cacheName:'api-cache', expiration:{ maxEntries:50, maxAgeSeconds:300 } },
-        }],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — 고해상도 도면 PNG
+        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
+        globIgnores: ['**/floorplans/**'], // 도면은 런타임 캐시 사용
+        runtimeCaching: [
+          {
+            urlPattern: /\/floorplans\/.+\.(svg|png|pdf)$/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'floorplan-cache', expiration: { maxEntries: 30, maxAgeSeconds: 30 * 24 * 3600 } },
+          },
+          {
+            urlPattern: ({ request }) => request.method === 'GET' && /\/api\//.test(request.url),
+            handler: 'NetworkFirst',
+            options: { cacheName:'api-cache', expiration:{ maxEntries:50, maxAgeSeconds:300 } },
+          },
+        ],
       },
     }),
   ],

@@ -103,7 +103,7 @@ function buildPersonnel(
   const month = date.getMonth() + 1
 
   // 시프트 계산: shiftCalc.ts의 getMonthlySchedule 기반
-  const staffForCalc = (staffData ?? []).map(s => ({ id: s.id, name: s.name, title: s.title ?? '' }))
+  const staffForCalc = (staffData ?? STAFF).map(s => ({ id: s.id, name: s.name, title: (s as any).title ?? '' }))
   const { staffRows } = getMonthlySchedule(year, month, staffForCalc)
   const shifts: Record<string, string> = {}
   for (const row of staffRows) {
@@ -192,8 +192,13 @@ function buildPersonnel(
 function buildPatrol(date: Date, onDutyName: string): PatrolEntry[] {
   const isHoliday = isKoreanHoliday(date)
   const diff = daysBetween(PATROL_REF_DATE, date)
-  // 짝수 차이 = 야간순찰, 홀수 = 야간순찰
-  const isEvening = diff % 2 === 0
+  // 매월 1일에 전달 말일 순찰을 반복 → 월 경계마다 패턴이 1일씩 밀림
+  // 기준월(2026-03) 이후 경과한 월 수만큼 diff에서 빼서 보정
+  const refYear = PATROL_REF_DATE.getFullYear()
+  const refMonth = PATROL_REF_DATE.getMonth()
+  const monthsFromRef = (date.getFullYear() - refYear) * 12 + (date.getMonth() - refMonth)
+  const adjustedDiff = diff - Math.max(0, monthsFromRef)
+  const isEvening = adjustedDiff % 2 === 0
 
   const entries: PatrolEntry[] = []
 

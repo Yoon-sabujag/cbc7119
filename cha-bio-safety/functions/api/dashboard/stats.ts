@@ -24,6 +24,108 @@ const CATEGORY_ALIAS: Record<string, string> = {
   '컴프레셔': 'DIV',
 }
 
+/**
+ * 점검 연속 달성일 계산
+ * - 오늘부터 과거로 거슬러 올라가며, inspect 일정이 있는 날만 카운트
+ * - 해당 날의 모든 inspect 일정이 완료됐으면 streak +1, 하나라도 미완이면 중단
+ * - 멀티데이 점검(DIV, 소화기 등): attribution window(현재 일정~다음 같은 카테고리 일정) 내
+ *   기록이 있으면 완료로 판정 → 2~3일 기간을 하나의 단위로 취급
+ * - inspect 일정이 없는 날(주말/공휴일)은 건너뜀 (streak 끊지 않음)
+ * - 최대 90일까지만 확인
+ */
+async function calcStreakDays(env: { DB: D1Database }, today: string): Promise<number> {
+  try {
+    // 최근 90일 inspect 일정 가져오기
+    const d90 = new Date(today)
+    d90.setDate(d90.getDate() - 90)
+    const from = d90.toISOString().slice(0, 10)
+
+    const rows = await env.DB.prepare(`
+      SELECT date, inspection_category
+      FROM schedule_items
+      WHERE date BETWEEN ? AND ? AND category = 'inspect' AND inspection_category IS NOT NULL
+      ORDER BY date DESC
+    `).bind(from, today).all<{ date: string; inspection_category: string }>()
+
+    if (!rows.results?.length) return 0
+
+    // 날짜별 inspect 카테고리 그룹핑
+    const dateMap = new Map<string, string[]>()
+    for (const r of rows.results) {
+      const cats = dateMap.get(r.date) ?? []
+      cats.push(r.inspection_category)
+      dateMap.set(r.date, cats)
+    }
+
+    // 카테고리별 다음 일정 날짜 캐시 (attribution window 계산용)
+    const nextSchedCache = new Map<string, Map<string, string | null>>()
+
+    async function getNextSchedDate(cat: string, date: string): Promise<string | null> {
+      let catCache = nextSchedCache.get(cat)
+      if (!catCache) { catCache = new Map(); nextSchedCache.set(cat, catCache) }
+      if (catCache.has(date)) return catCache.get(date)!
+      const r = await env.DB.prepare(`
+        SELECT date FROM schedule_items
+        WHERE date > ? AND category = 'inspect' AND inspection_category = ?
+        ORDER BY date ASC LIMIT 1
+      `).bind(date, cat).first<{ date: string }>()
+      const val = r?.date ?? null
+      catCache.set(date, val)
+      return val
+    }
+
+    // 오늘부터 과거로 — inspect 일정이 있는 날만 체크
+    let streak = 0
+    const sortedDates = [...dateMap.keys()].sort().reverse() // 최신순
+
+    for (const date of sortedDates) {
+      const cats = dateMap.get(date)!
+      let allDone = true
+
+      for (const cat of cats) {
+        const cpCat = CATEGORY_ALIAS[cat] ?? cat
+        const nextDate = await getNextSchedDate(cat, date)
+
+        let rec
+        if (nextDate) {
+          rec = await env.DB.prepare(`
+            SELECT 1 FROM check_records cr
+            JOIN check_points cp ON cr.checkpoint_id = cp.id
+            WHERE cp.category = ?
+              AND date(cr.checked_at) >= ?
+              AND date(cr.checked_at) < ?
+              AND cr.result IN ('normal','caution')
+            LIMIT 1
+          `).bind(cpCat, date, nextDate).first()
+        } else {
+          rec = await env.DB.prepare(`
+            SELECT 1 FROM check_records cr
+            JOIN check_points cp ON cr.checkpoint_id = cp.id
+            WHERE cp.category = ?
+              AND date(cr.checked_at) >= ?
+              AND cr.result IN ('normal','caution')
+            LIMIT 1
+          `).bind(cpCat, date).first()
+        }
+
+        if (!rec) { allDone = false; break }
+      }
+
+      if (allDone) {
+        streak++
+      } else {
+        // 오늘이 미완이면 streak=0, 과거 날짜가 미완이면 거기서 끊김
+        break
+      }
+    }
+
+    return streak
+  } catch (e) {
+    console.error('calcStreakDays error:', e)
+    return 0
+  }
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
   try {
     const today = todayKST()
@@ -160,7 +262,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           scheduleCount:  schedRows.results?.length ?? 0,
           unresolved:     unresolved?.n ?? 0,
           elevatorFault:  elevatorFault?.n ?? 0,
-          streakDays:     0,   // TODO: 연속 달성일 계산
+          streakDays:     await calcStreakDays(env, today),
         },
         todaySchedule: await Promise.all(
           (schedRows.results ?? []).map(async (r: any) => {

@@ -21,7 +21,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
     return Response.json({ success: false, error: '소화기 체크포인트가 아닙니다' }, { status: 400, headers: cors })
   }
 
-  // 연간 점검 기록 조회 (최근 12개월)
+  // 소화기 상세정보
+  const ext = await env.DB.prepare(
+    'SELECT mgmt_no, type, approval_no, manufactured_at, manufacturer, prefix_code, seal_no, serial_no, note, location FROM extinguishers WHERE check_point_id = ?'
+  ).bind(checkpointId).first<Record<string, unknown>>()
+
+  // 연간 점검 기록 조회
   const records = await env.DB.prepare(`
     SELECT
       cr.id,
@@ -47,6 +52,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
         floor: cp.floor,
         description: cp.description,
       },
+      extinguisher: ext ? {
+        mgmtNo: ext.mgmt_no,
+        type: ext.type,
+        approvalNo: ext.approval_no,
+        manufacturedAt: ext.manufactured_at,
+        manufacturer: ext.manufacturer,
+        prefixCode: ext.prefix_code,
+        sealNo: ext.seal_no,
+        serialNo: ext.serial_no,
+        note: ext.note,
+        location: ext.location,
+      } : null,
       records: records.results ?? [],
     }
   }, { headers: cors })

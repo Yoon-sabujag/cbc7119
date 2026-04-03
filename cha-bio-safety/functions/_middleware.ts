@@ -21,8 +21,8 @@ async function verifyJWT(token: string, secret: string): Promise<JWTPayload | nu
   } catch { return null }
 }
 
-const PUBLIC = ['/api/auth/login', '/api/health']
-const PUBLIC_PREFIX = ['/api/uploads/', '/api/public/']
+const PUBLIC = ['/api/auth/login', '/api/health', '/api/holidays/sync']
+const PUBLIC_PREFIX = ['/api/uploads/', '/api/public/', '/api/holidays']
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const { request, env, next } = ctx

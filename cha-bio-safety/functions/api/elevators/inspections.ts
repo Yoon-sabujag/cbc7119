@@ -25,6 +25,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   return Response.json({ success: true, data: rows.results ?? [] })
 }
 
+// DELETE /api/elevators/inspections?id=xxx — 점검/검사 기록 삭제 (admin only)
+export const onRequestDelete: PagesFunction<Env> = async ({ request, env, data }) => {
+  if ((data as any).role !== 'admin') return Response.json({ success: false, error: '권한 없음' }, { status: 403 })
+  const id = new URL(request.url).searchParams.get('id')
+  if (!id) return Response.json({ success: false, error: 'id 필수' }, { status: 400 })
+  await env.DB.prepare('DELETE FROM elevator_inspections WHERE id=?').bind(id).run()
+  return Response.json({ success: true })
+}
+
 // POST /api/elevators/inspections
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) => {
   const { staffId } = data as any
@@ -42,6 +51,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     actionNeeded?: string
     floorOccurred?: string
     memo?: string
+    certificateKey?: string
   }>()
 
   const isAnnual = body.type === 'annual'
@@ -53,8 +63,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     INSERT INTO elevator_inspections
       (id, elevator_id, inspector_id, inspect_date, type,
        brake, door, safety_device, lighting, emergency_call,
-       overall, action_needed, memo)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+       overall, action_needed, memo, certificate_key)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).bind(
     id,
     body.elevatorId,
@@ -68,7 +78,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     isAnnual ? null : (body.emergencyCall ?? 'normal'),
     body.overall || (isAnnual ? 'pass' : 'normal'),
     body.actionNeeded ?? null,
-    body.memo ?? null
+    body.memo ?? null,
+    body.certificateKey ?? null
   ).run()
 
   // 승강기 last_inspection 업데이트
