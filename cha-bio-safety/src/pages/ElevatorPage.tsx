@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { elevatorInspectionApi } from '../utils/api'
+import type { ElevatorNextInspection } from '../types'
 import PdfFloorPlan from '../components/PdfFloorPlan'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -227,6 +228,15 @@ export default function ElevatorPage() {
   const { data: faults      = [] } = useQuery({ queryKey:['elevator_faults'],      queryFn: fetchFaults })
   const { data: inspections = [] } = useQuery({ queryKey:['elevator_inspections'], queryFn: () => fetchInspections('monthly') })
   const { data: annuals     = [] } = useQuery({ queryKey:['elevator_annuals'],     queryFn: () => fetchInspections('annual') })
+  const nextInspQuery = useQuery({
+    queryKey: ['elev-next-inspection'],
+    queryFn: () => elevatorInspectionApi.getNextInspection(),
+  })
+  const nextInspMap = useMemo(() => {
+    const m = new Map<string, ElevatorNextInspection>()
+    nextInspQuery.data?.forEach(ni => m.set(ni.elevatorId, ni))
+    return m
+  }, [nextInspQuery.data])
 
   const location = useLocation()
   const navigate  = useNavigate()
@@ -333,6 +343,7 @@ export default function ElevatorPage() {
                   </div>
                   {group.map(ev => {
                     const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
+                    const ni = nextInspMap.get(ev.id)
                     return (
                       <div key={ev.id}
                         onClick={() => { setDetailEv(ev); setModal('ev_detail') }}
@@ -351,7 +362,24 @@ export default function ElevatorPage() {
                             {(ev.active_faults ?? 0) > 0 && <span style={{ color:'var(--danger)', marginLeft:6 }}>미해결 {ev.active_faults}건</span>}
                           </div>
                         </div>
-                        <span style={{ fontSize:10, fontWeight:700, color:st.color, background:st.bg, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>{st.label}</span>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                          <span style={{ fontSize:10, fontWeight:700, color:st.color, background:st.bg, padding:'3px 8px', borderRadius:20 }}>{st.label}</span>
+                          {ni && ni.status === 'due_soon' && ni.daysUntil != null && (
+                            <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
+                              D-{ni.daysUntil}
+                            </span>
+                          )}
+                          {ni && ni.status === 'overdue' && (
+                            <span style={{ background:'#ffebee', color:'#c62828', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
+                              검사 초과
+                            </span>
+                          )}
+                          {ni && ni.status === 'no_record' && (
+                            <span style={{ background:'#e3f2fd', color:'#1565c0', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
+                              기록 없음
+                            </span>
+                          )}
+                        </div>
                         <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
                       </div>
                     )
