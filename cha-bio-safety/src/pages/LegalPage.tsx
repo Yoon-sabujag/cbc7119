@@ -60,7 +60,7 @@ const SKELETON_STYLE: React.CSSProperties = {
 type TabKey = '전체' | '미조치' | '완료'
 const STATUS_TABS: { key: TabKey; label: string }[] = [
   { key: '전체', label: '전체' },
-  { key: '미조치', label: '미조치' },
+  { key: '미조치', label: '진행 중' },
   { key: '완료', label: '완료' },
 ]
 
