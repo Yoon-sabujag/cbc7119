@@ -16,9 +16,9 @@ Requirements for PWA 데스크톱 최적화. Each maps to roadmap phases.
 
 ### 문서 작업
 
-- [ ] **DOC-01**: 사용자가 점검일지를 데스크톱 화면에서 작성/수정할 수 있다
-- [ ] **DOC-02**: 사용자가 소방계획서 등 문서를 데스크톱에서 편집할 수 있다
-- [ ] **DOC-03**: 사용자가 작성된 문서를 엑셀/PDF로 즉시 출력(다운로드)할 수 있다
+- [ ] **DOC-01**: 사용자가 자동 생성된 점검일지를 데스크톱에서 조회하고 엑셀/PDF로 즉시 출력할 수 있다
+- [ ] **DOC-02**: 사용자가 소방계획서를 데스크톱에서 작성하고 편집할 수 있다
+- [ ] **DOC-03**: 사용자가 소방훈련용 자료(PPT 등)를 데스크톱에서 작성할 수 있다
 - [ ] **DOC-04**: 사용자가 인쇄 시 인쇄용 스타일시트가 적용된 상태로 출력할 수 있다
 
 ### 파일 저장
@@ -39,6 +39,10 @@ Requirements for PWA 데스크톱 최적화. Each maps to roadmap phases.
 ## v2 Requirements
 
 Deferred to future milestone. Tracked but not in current roadmap.
+
+### 보고서
+
+- **REPORT-01**: 사용자가 주간 보고서 등 상위 팀 보고용 문서를 작성할 수 있다 (구체 범위 미정)
 
 ### 설정 패널
 
@@ -65,26 +69,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LAYOUT-01 | — | Pending |
-| LAYOUT-02 | — | Pending |
-| LAYOUT-03 | — | Pending |
-| LAYOUT-04 | — | Pending |
-| DOC-01 | — | Pending |
-| DOC-02 | — | Pending |
-| DOC-03 | — | Pending |
-| DOC-04 | — | Pending |
-| FILE-01 | — | Pending |
-| FILE-02 | — | Pending |
-| FILE-03 | — | Pending |
-| MENU-01 | — | Pending |
-| MENU-02 | — | Pending |
-| POLISH-01 | — | Pending |
+| LAYOUT-01 | Phase 11 | Pending |
+| LAYOUT-02 | Phase 11 | Pending |
+| LAYOUT-03 | Phase 11 | Pending |
+| LAYOUT-04 | Phase 11 | Pending |
+| DOC-01 | Phase 12 | Pending |
+| DOC-02 | Phase 12 | Pending |
+| DOC-03 | Phase 12 | Pending |
+| DOC-04 | Phase 12 | Pending |
+| FILE-01 | Phase 13 | Pending |
+| FILE-02 | Phase 13 | Pending |
+| FILE-03 | Phase 13 | Pending |
+| MENU-01 | Phase 14 | Pending |
+| MENU-02 | Phase 14 | Pending |
+| POLISH-01 | Phase 14 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14 ⚠️
+- Mapped to phases: 14
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 after initial definition*
+*Last updated: 2026-04-05 after roadmap creation*
