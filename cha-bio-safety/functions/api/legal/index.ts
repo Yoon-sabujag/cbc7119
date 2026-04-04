@@ -26,7 +26,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       FROM schedule_items si
       LEFT JOIN legal_findings lf ON lf.schedule_item_id = si.id
       WHERE si.category = 'fire'
-        AND si.inspection_category IN ('소방 상반기 종합정밀점검', '소방 하반기 작동기능점검')
+        AND si.title IN ('소방 상반기 종합정밀점검', '소방 하반기 작동기능점검')
         ${yearFilter}
       GROUP BY si.id
       ORDER BY si.date DESC
