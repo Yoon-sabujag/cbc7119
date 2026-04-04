@@ -56,17 +56,23 @@ Exceptions:
 
 Source: existing `index.css` + Tailwind config. All sizes apply to desktop layout components only; mobile pages are untouched.
 
+4-size scale (collapsed from 5 — 12px and 13px merged into 12px):
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label | 13px | 500 (medium) | 1.4 |
-| Heading (page title in desktop header) | 13px | 700 (bold) | 1.0 |
+| Label / Heading | 12px | 500–700 (medium to bold) | 1.4 |
 | Section header (sidebar group label) | 11px | 600 (semibold) | 1.2 |
+| KPI value (dashboard) | 28px | 700 (bold) | 1.0 |
 
-Notes:
-- Sidebar nav item labels: 14px, weight 500, truncated to single line with `text-overflow: ellipsis`
-- KPI card values on dashboard: 28px, weight 700 (existing dashboard pattern — do not change)
-- KPI card labels: 12px, weight 400 — existing pattern
+Explicit assignments:
+- Sidebar nav item labels: 14px, weight 500, truncated with `text-overflow: ellipsis`
+- Desktop header page title: 12px, weight 700, `var(--t1)`
+- User card name in sidebar footer: 12px, weight 600, `var(--t1)`
+- User card role label in sidebar footer: 11px, weight 400, `var(--t2)`
+- Sidebar section group labels: 11px, weight 600, `var(--t2)`, uppercase
+- KPI card labels: 12px, weight 400, `var(--t2)`
+- Table header labels: 12px, weight 600, `var(--t2)`, uppercase
 - Korean text only: Noto Sans KR. No mixed monospace in navigation or headers.
 
 ---
@@ -158,7 +164,7 @@ Section 4: 시설 관리
 - Background: `var(--bg2)`
 - Top border: `1px solid var(--bd)`
 - Layout: 16px horizontal padding, flex row, align center
-- Left: user name 13px weight 600 `var(--t1)` + role label 11px `var(--t2)` stacked vertically
+- Left: user name 12px weight 600 `var(--t1)` + role label 11px `var(--t2)` stacked vertically
 - Right: logout icon button (LogOut from lucide-react, 16px, `var(--danger)`)
 - Logout on click: call `logout()` from authStore, no confirmation dialog (not destructive data-wise)
 
@@ -247,7 +253,7 @@ For 대시보드, 근무표, 승강기, 관리자 설정:
 
 For inspection results, floor plan tabs:
 - Tab bar: `display: flex`, `border-bottom: 1px solid var(--bd)`, `background: var(--bg2)`
-- Tab item: 14px weight 500, 16px horizontal + 10px vertical padding
+- Tab item: 14px weight 500, 16px horizontal + 8px vertical padding
 - Active tab: `border-bottom: 2px solid var(--acl)`, label color `var(--acl)`
 - Inactive tab: label color `var(--t2)`, no border
 - Floor filter tabs (B2, B1, 1F, 2F, 3F, 전체): same visual style, rendered as pill row below main tabs
@@ -303,9 +309,19 @@ This phase has no new data-entry forms or destructive flows. Copywriting scope i
 | Logout button tooltip / aria-label | 로그아웃 |
 | User role — admin | 관리자 |
 | User role — assistant | 부관리자 |
-| Empty state (no data in table) | 데이터가 없습니다 |
 | Error state (layout load failure) | 페이지를 불러오지 못했습니다. 새로고침 해주세요. |
 | Destructive action (logout) | 별도 확인 없음 — 즉시 실행 (세션 손실 없음, 인증 토큰만 삭제) |
+
+Empty state copy — parameterized by table/view type (use the specific variant, not a generic fallback):
+
+| Context | Copy |
+|---------|------|
+| 점검 세션 목록 (no sessions) | 표시할 점검 세션이 없습니다. 모바일에서 새 점검을 시작하세요. |
+| 조치 관리 목록 (no items) | 미조치 항목이 없습니다. 모든 점검 항목이 정상입니다. |
+| 문서 목록 (no reports) | 생성된 점검 일지가 없습니다. 점검 완료 후 일지를 출력하세요. |
+| 승강기 관리 (no records) | 등록된 승강기 기록이 없습니다. |
+| 법적 점검 목록 (no items) | 표시할 법적 점검 항목이 없습니다. |
+| 범용 fallback (unknown context) | 표시할 항목이 없습니다. |
 
 No primary CTA for this phase — Phase 11 is purely structural (layout shell). Page-level CTAs are unchanged from existing implementations.
 
