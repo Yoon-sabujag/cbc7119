@@ -151,7 +151,7 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-04 |
+| 10. Legal Inspection | v1.1 | 2/2 | Complete    | 2026-04-04 |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ## Backlog
