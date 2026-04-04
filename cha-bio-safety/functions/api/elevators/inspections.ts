@@ -52,6 +52,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     floorOccurred?: string
     memo?: string
     certificateKey?: string
+    // Phase 11: 검사 유형 + 결과 (annual 전용)
+    inspectType?: string   // regular | special | detailed
+    result?: string        // pass | conditional | fail
   }>()
 
   const isAnnual = body.type === 'annual'
@@ -59,12 +62,17 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   // annual 타입은 brake 등 점검항목 null, overall은 pass/conditional/fail
   // monthly 타입은 brake 등 normal/bad, overall은 normal/caution/bad
+  // For annual: result column takes explicit pass/conditional/fail; overall mirrors result for backward compat
+  const resultValue = isAnnual ? (body.result ?? body.overall ?? 'pass') : null
+  const overallValue = body.overall || (isAnnual ? (body.result ?? 'pass') : 'normal')
+
   await env.DB.prepare(`
     INSERT INTO elevator_inspections
       (id, elevator_id, inspector_id, inspect_date, type,
        brake, door, safety_device, lighting, emergency_call,
-       overall, action_needed, memo, certificate_key)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       overall, action_needed, memo, certificate_key,
+       inspect_type, result)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).bind(
     id,
     body.elevatorId,
@@ -76,10 +84,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     isAnnual ? null : (body.safetyDevice ?? 'normal'),
     isAnnual ? null : (body.lighting ?? 'normal'),
     isAnnual ? null : (body.emergencyCall ?? 'normal'),
-    body.overall || (isAnnual ? 'pass' : 'normal'),
+    overallValue,
     body.actionNeeded ?? null,
     body.memo ?? null,
-    body.certificateKey ?? null
+    body.certificateKey ?? null,
+    isAnnual ? (body.inspectType ?? 'regular') : null,
+    resultValue
   ).run()
 
   // 승강기 last_inspection 업데이트

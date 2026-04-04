@@ -258,3 +258,20 @@ export const legalApi = {
   resolveFinding: (scheduleItemId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string }) =>
     api.post<void>(`/legal/${scheduleItemId}/findings/${fid}/resolve`, body),
 }
+
+export const elevatorInspectionApi = {
+  getFindings: (elevatorId: string, inspectionId: string) =>
+    api.get<import('../types').ElevatorInspectionFinding[]>(
+      `/elevators/${elevatorId}/inspections/${inspectionId}/findings`
+    ),
+  createFinding: (elevatorId: string, inspectionId: string, body: { description: string; location?: string; photo_key?: string }) =>
+    api.post<{ id: string }>(
+      `/elevators/${elevatorId}/inspections/${inspectionId}/findings`, body
+    ),
+  resolveFinding: (elevatorId: string, inspectionId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string }) =>
+    api.post<void>(
+      `/elevators/${elevatorId}/inspections/${inspectionId}/findings/${fid}/resolve`, body
+    ),
+  getNextInspection: () =>
+    api.get<import('../types').ElevatorNextInspection[]>('/elevators/next-inspection'),
+}
