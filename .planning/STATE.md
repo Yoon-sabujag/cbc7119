@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: UI 재편 + 기능 확장
-status: verifying
-stopped_at: "Completed 10-legal-inspection/10-02: awaiting human verify checkpoint"
-last_updated: "2026-04-03T15:50:20.306Z"
-last_activity: 2026-04-03
+status: completed
+stopped_at: "Completed 10-legal-inspection/10-02: legal inspection frontend fully verified"
+last_updated: "2026-04-04T14:53:46.806Z"
+last_activity: 2026-04-04
 progress:
-  total_phases: 7
+  total_phases: 11
   completed_phases: 6
   total_plans: 12
   completed_plans: 12
-  percent: 92
+  percent: 100
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -33,12 +33,12 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 10 (legal-inspection) — EXECUTING
-Plan: 2 of 2
-Status: Phase complete — ready for verification
-Last activity: 2026-04-03
+Phase: 10 (legal-inspection) — COMPLETE
+Plan: 2 of 2 (all plans complete)
+Status: v1.1 milestone complete — ready for production deployment
+Last activity: 2026-04-04
 
-Progress: [█████████░] 92% (Phase 10 plan 1 of 2 complete)
+Progress: [██████████] 100% (Phase 10 plan 2 of 2 complete — v1.1 fully done)
 
 ---
 
@@ -83,6 +83,8 @@ Progress: [█████████░] 92% (Phase 10 plan 1 of 2 complete)
 | Education write: admin OR record owner | D-10 — self-service allowed; staff can record their own training |
 | Legal rounds = schedule_items rows (category=fire, inspectionCategory in legal subtypes) | no new table needed; schedule creation via SchedulePage |
 | api.patch added to base api object | PATCH semantics for partial result/report updates on legal rounds |
+| Legal round filter uses title substring match (not inspection_category) | schedule_items store Korean title text, not normalized enum |
+| LegalPage tab label '진행 중' (not '미조치') | round-level filter concept differs from individual finding status |
 
 ### Architecture Notes
 
@@ -117,8 +119,8 @@ None currently.
 
 ## Session Continuity
 
-**Last session:** 2026-04-03T15:50:20.301Z
-**Stopped at:** Completed 10-legal-inspection/10-02: awaiting human verify checkpoint
+**Last session:** 2026-04-04T14:53:46.801Z
+**Stopped at:** Completed 10-legal-inspection/10-02: legal inspection frontend fully verified
 
 **Key files:**
 

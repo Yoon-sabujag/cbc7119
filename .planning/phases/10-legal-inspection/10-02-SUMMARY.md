@@ -39,6 +39,8 @@ key-decisions:
   - "Report PDF opens in new tab via window.open (no in-app viewer)"
   - "Before-photo (지적 사진) can be uploaded from detail page when finding is open and no photo exists"
   - "BottomSheet registration skips inline photo (user can add from detail page)"
+  - "Round filtering uses title substring match instead of inspection_category — schedule_items store Korean title text"
+  - "Tab label renamed from '미조치' to '진행 중' for round-level filter clarity"
 
 patterns-established:
   - "NO_NAV pages: self-contained 48px header + back button (exact pattern from RemediationDetailPage)"
@@ -50,20 +52,20 @@ requirements-completed:
   - LEGAL-02
 
 # Metrics
-duration: 4min
+duration: ~120min (including checkpoint verification and post-checkpoint fixes)
 completed: 2026-04-03
 ---
 
 # Phase 10 Plan 02: Legal Inspection Frontend Summary
 
-**Three legal inspection pages with round list + status filter, finding registration BottomSheet, admin result panel, and resolution flow with photo upload**
+**Three legal inspection pages with round list + status filter, finding registration BottomSheet, admin result panel, and resolution flow with photo upload — all 12 verification steps confirmed by user**
 
 ## Performance
 
-- **Duration:** 4 min
+- **Duration:** ~120 min (including human verify checkpoint and post-checkpoint bug fixes)
 - **Started:** 2026-04-03T15:45:17Z
-- **Completed:** 2026-04-03T15:49:00Z
-- **Tasks:** 2 auto-tasks completed (1 human-verify checkpoint pending)
+- **Completed:** 2026-04-03T16:30:00Z (approx)
+- **Tasks:** 3 (2 auto + 1 checkpoint, fully verified)
 - **Files modified:** 3
 
 ## Accomplishments
@@ -77,8 +79,12 @@ Each task was committed atomically:
 
 1. **Task 1: LegalPage + LegalFindingsPage** - `cb37782` (feat)
 2. **Task 2: LegalFindingDetailPage** - `5f39461` (feat)
+3. **Task 3: Visual verification checkpoint** - Approved by user (no code commit)
+4. **Post-checkpoint fix: retry button on error state** - `99b135c` (fix)
+5. **Post-checkpoint fix: filter legal rounds by title substring** - `cee441e` (fix)
+6. **Post-checkpoint fix: rename '미조치' tab to '진행 중'** - `35d44ed` (fix)
 
-**Plan metadata:** pending (will be committed after checkpoint)
+**Plan metadata:** `3e04db1` (docs: complete legal inspection frontend plan — pre-checkpoint commit)
 
 ## Files Created/Modified
 - `cha-bio-safety/src/pages/LegalPage.tsx` - Round list with status/year filter, result badges, empty state
@@ -95,10 +101,39 @@ Each task was committed atomically:
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues (Post-Checkpoint)
+
+**1. [Rule 1 - Bug] Round filter using wrong field (`inspection_category` vs `title`)**
+- **Found during:** Task 3 checkpoint verification (rounds not appearing in list)
+- **Issue:** LegalPage filtering used `inspection_category` field comparison; schedule_items rows store Korean display title text, not a normalized category enum, so all rounds were silently filtered out
+- **Fix:** Changed filtering to use `title` substring matching (`title.includes('종합')` / `title.includes('작동')`)
+- **Files modified:** `cha-bio-safety/src/pages/LegalPage.tsx`
+- **Verification:** User confirmed rounds appeared after fix
+- **Committed in:** `cee441e`
+
+**2. [Rule 2 - Missing Critical] Missing retry action on error state**
+- **Found during:** Task 3 checkpoint verification
+- **Issue:** LegalPage error state displayed message with no way to retry — users on flaky mobile connections would be stuck without navigating away
+- **Fix:** Added retry button that calls `queryClient.invalidateQueries` to trigger refetch
+- **Files modified:** `cha-bio-safety/src/pages/LegalPage.tsx`
+- **Committed in:** `99b135c`
+
+**3. [Rule 1 - Bug] Tab label '미조치' misleading at round level**
+- **Found during:** Task 3 checkpoint verification (Step 11 — filter tab testing)
+- **Issue:** '미조치' (unresolved) implies individual finding status; at the round level the correct concept is "rounds with open findings" which maps better to '진행 중'
+- **Fix:** Renamed tab label from '미조치' to '진행 중'
+- **Files modified:** `cha-bio-safety/src/pages/LegalPage.tsx`
+- **Committed in:** `35d44ed`
+
+---
+
+**Total deviations:** 3 auto-fixed post-checkpoint (2 bugs, 1 UX clarity fix)
+**Impact on plan:** All fixes required for correct operation. No scope creep.
 
 ## Issues Encountered
-None.
+
+- Round filtering was silently broken on first verification run because schedule_items title text was used instead of a normalized category enum — fixed immediately (Deviation 1 above)
+- All 12 user verification steps passed after the 3 post-checkpoint fixes
 
 ## User Setup Required
 None - no external service configuration required.
@@ -110,7 +145,9 @@ None - all three pages wire real data via legalApi. No hardcoded/placeholder val
 - All 3 legal inspection pages are fully functional replacements for placeholder stubs
 - Routes already set up in App.tsx (`/legal`, `/legal/:id`, `/legal/:id/finding/:fid`)
 - NO_NAV_PATHS already includes `/legal` in App.tsx
-- Awaiting human visual verification (Task 3 checkpoint)
+- Human verification checkpoint fully passed (all 12 steps confirmed)
+- Phase 10 complete (both plans 01 + 02 done) — LEGAL-01 and LEGAL-02 requirements satisfied
+- v1.1 milestone fully complete; ready for production deployment via `npm run deploy -- --branch production`
 
 ---
 *Phase: 10-legal-inspection*

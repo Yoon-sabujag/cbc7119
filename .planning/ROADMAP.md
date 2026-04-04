@@ -151,7 +151,7 @@ Plans:
 | 7. Tech Debt + Admin | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
-| 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-03 |
+| 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-04 |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
 ## Backlog
@@ -160,7 +160,7 @@ Plans:
 
 **Goal:** 법적 점검 4~5일 연속 진행 시 매일 등록 필요 문제 해결. 시작일 선택 시 종료일 기본값=시작일. 기존 날짜/시간을 시작일/시작시간+종료일/종료시간으로 확장
 **Requirements:** TBD
-**Plans:** 0 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
