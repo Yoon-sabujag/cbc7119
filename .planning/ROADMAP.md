@@ -154,7 +154,18 @@ Plans:
 | 10. Legal Inspection | v1.1 | 2/2 | Complete   | 2026-04-03 |
 | 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
 
+## Backlog
+
+### Phase 999.1: SchedulePage 시작일/종료일 범위 입력 (BACKLOG)
+
+**Goal:** 법적 점검 4~5일 연속 진행 시 매일 등록 필요 문제 해결. 시작일 선택 시 종료일 기본값=시작일. 기존 날짜/시간을 시작일/시작시간+종료일/종료시간으로 확장
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
-*Last updated: 2026-04-03*
+*Last updated: 2026-04-04*
