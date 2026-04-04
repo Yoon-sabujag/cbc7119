@@ -36,6 +36,7 @@ const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
 const LegalPage               = lazy(() => import('./pages/LegalPage'))
 const LegalFindingsPage       = lazy(() => import('./pages/LegalFindingsPage'))
 const LegalFindingDetailPage  = lazy(() => import('./pages/LegalFindingDetailPage'))
+const ElevatorFindingDetailPage = lazy(() => import('./pages/ElevatorFindingDetailPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -54,7 +55,7 @@ function Loader() {
   )
 }
 
-const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal']
+const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal', '/elevator/findings']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -72,6 +73,7 @@ function Layout() {
     && !NO_NAV_PATHS.includes(location.pathname)
     && !location.pathname.match(/^\/remediation\/.+/)
     && !location.pathname.match(/^\/legal\/.+/)
+    && !location.pathname.match(/^\/elevator\/findings\/.+/)
   const [sideOpen, setSideOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -127,6 +129,7 @@ function Layout() {
             <Route path="/inspection"    element={<Auth><InspectionPage /></Auth>} />
             <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
             <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
+            <Route path="/elevator/findings/:fid" element={<Auth><ElevatorFindingDetailPage /></Auth>} />
             <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
             <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
             <Route path="/staff-service" element={<Auth><StaffServicePage /></Auth>} />
