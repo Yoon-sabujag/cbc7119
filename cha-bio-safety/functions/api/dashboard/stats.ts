@@ -1,5 +1,6 @@
 import type { Env } from '../../_middleware'
 import { todayKST } from '../../utils/kst'
+import { addMonths, differenceInDays, parseISO } from 'date-fns'
 
 function getWeekBounds(today: string) {
   const d   = new Date(today)
@@ -186,6 +187,34 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       WHERE status IN ('fault','maintenance')
     `).first<{n:number}>()
 
+    // ── 승강기 검사 도래/초과 건수 ───────────────────────
+    const elevInspRows = await env.DB.prepare(`
+      SELECT e.id, e.type, e.install_year, MAX(i.inspect_date) AS last_date
+      FROM elevators e
+      LEFT JOIN elevator_inspections i ON i.elevator_id = e.id AND i.type = 'annual'
+      GROUP BY e.id
+    `).all<{ id: string; type: string; install_year: number | null; last_date: string | null }>()
+
+    const todayDate = new Date(today)
+    todayDate.setHours(0, 0, 0, 0)
+    const todayPlus30 = new Date(todayDate)
+    todayPlus30.setDate(todayDate.getDate() + 30)
+
+    function getElevCycleMonths(type: string, installYear: number | null): number {
+      if (installYear !== null && (todayDate.getFullYear() - installYear) >= 25) return 6
+      if (type === 'passenger' || type === 'escalator') return 12
+      return 24
+    }
+
+    let elevInspDueSoon = 0
+    for (const r of (elevInspRows.results ?? [])) {
+      if (!r.last_date) { elevInspDueSoon++; continue }
+      const cycleMonths = getElevCycleMonths(r.type, r.install_year)
+      const nextDate = addMonths(parseISO(r.last_date), cycleMonths)
+      const days = differenceInDays(nextDate, todayDate)
+      if (days <= 30) elevInspDueSoon++
+    }
+
     // ── 이번 달 점검 진척도 ──────────────────────────
     const monthStart = `${today.slice(0,7)}-01`
     const monthEnd   = (() => {
@@ -263,6 +292,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           unresolved:     unresolved?.n ?? 0,
           elevatorFault:  elevatorFault?.n ?? 0,
           streakDays:     await calcStreakDays(env, today),
+          elevInspDueSoon,
         },
         todaySchedule: await Promise.all(
           (schedRows.results ?? []).map(async (r: any) => {

@@ -48,7 +48,7 @@ export default function DashboardPage() {
   })
 
   // 로딩 중엔 빈 값, API 실패 시에만 목업 폴백
-  const stats       = data?.stats        ?? (isLoading ? { inspectTotal:0, inspectDone:0, scheduleCount:0, unresolved:0, elevatorFault:0, streakDays:0 } : { inspectTotal:34, inspectDone:22, scheduleCount:5, unresolved:2, elevatorFault:0, streakDays:0 })
+  const stats       = data?.stats        ?? (isLoading ? { inspectTotal:0, inspectDone:0, scheduleCount:0, unresolved:0, elevatorFault:0, streakDays:0, elevInspDueSoon:0 } : { inspectTotal:34, inspectDone:22, scheduleCount:5, unresolved:2, elevatorFault:0, streakDays:0, elevInspDueSoon:0 })
   const schedule: DashboardScheduleItem[] = data?.todaySchedule ?? (isLoading ? [] : MOCK_SCHEDULE)
   const monthly: MonthlyItem[] = data?.monthlyItems ?? (isLoading ? [] : [])
   const todayTarget = data?.todayTarget   ?? (isLoading ? '' : '전 층 DIV 격주 점검 · B5~8층 34개 측정점')
@@ -186,6 +186,13 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          {stats.elevInspDueSoon > 0 && (
+            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
+              <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:11, fontWeight:600 }}>
+                검사도래 {stats.elevInspDueSoon}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ③ 빠른 도구 모음 */}
