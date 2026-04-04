@@ -157,7 +157,7 @@ Plans:
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete   | 2026-04-04 |
+| 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete    | 2026-04-04 |
 
 ## Backlog
 
