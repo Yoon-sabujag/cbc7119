@@ -27,7 +27,7 @@
 - [x] **Phase 8: Meal Records** - 식사 이용 기록 + 월별 통계 — 개인별 미식 기록, 제공 식수 자동 계산, 요약 카드. MEAL-03/04 데스크톱 보류 (completed 2026-04-02)
 - [x] **Phase 9: Education Management** - 보수교육 일정 관리 — 등록/이수/인증서 R2, D-day 경고 (completed 2026-04-02)
 - [x] **Phase 10: Legal Inspection** - 법적 점검 관리 — 소방 점검 기록, 지적사항, 서류 R2 (completed 2026-04-03)
-- [ ] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회
+- [x] **Phase 11: Elevator Inspection Certs** - 승강기 법정검사 인증서 R2 업로드/조회 (completed 2026-04-04)
 
 ### Ad-hoc: 도면 페이지 유도등 PNG 마커 시스템 (completed 2026-04-02, GSD 외부 작업)
 
@@ -140,7 +140,7 @@ Plans:
 Plans:
 - [x] 11-01-PLAN.md — DB 마이그레이션 + 타입 + API 엔드포인트 (findings CRUD, next-inspection 계산)
 - [x] 11-02-PLAN.md — ElevatorPage annual 탭 강화 (검사유형/결과, 인증서 뷰어, 조건부합격 지적사항) + ElevatorFindingDetailPage
-- [ ] 11-03-PLAN.md — 검사 도래 경고 배지 (승강기 목록 탭 + 대시보드)
+- [x] 11-03-PLAN.md — 검사 도래 경고 배지 (승강기 목록 탭 + 대시보드)
 **UI hint**: yes
 
 ## Progress
@@ -157,7 +157,7 @@ Plans:
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 11. Elevator Inspection Certs | v1.1 | 2/3 | In Progress|  |
+| 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete   | 2026-04-04 |
 
 ## Backlog
 
@@ -165,7 +165,7 @@ Plans:
 
 **Goal:** 법적 점검 4~5일 연속 진행 시 매일 등록 필요 문제 해결. 시작일 선택 시 종료일 기본값=시작일. 기존 날짜/시간을 시작일/시작시간+종료일/종료시간으로 확장
 **Requirements:** TBD
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
