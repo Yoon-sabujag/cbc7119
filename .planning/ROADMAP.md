@@ -165,6 +165,33 @@ Plans:
 Plans:
 - [ ] TBD (promote with /gsd:review-backlog when ready)
 
+### Phase 999.2: 지적사항 등록 BottomSheet 구조 개선 (BACKLOG)
+
+**Goal:** 점검 항목 선택(직접입력 포함), 위치 구조화(구역→층→상세위치), 지적내용, 사진 순서로 BottomSheet 재구성
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.3: 지적/조치 사진 다중 업로드 + 갤러리 (BACKLOG)
+
+**Goal:** 지적·조치 사진 최대 5장 업로드, 2장 이상일 때 썸네일 그리드 표시, 탭하면 확대보기. 1장일 때는 현재 방식 유지
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
+### Phase 999.4: 지적·조치 내용+사진 다운로드 (BACKLOG)
+
+**Goal:** 관리자 보고서 작성 지원. 지적사항 조치 전/후 내용 및 사진을 건별·일괄 다운로드 가능하게 함 (형식·양식 설계 필요)
+**Requirements:** TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (promote with /gsd:review-backlog when ready)
+
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
