@@ -3,6 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { elevatorInspectionApi } from '../utils/api'
+import PdfFloorPlan from '../components/PdfFloorPlan'
+import { usePhotoUpload } from '../hooks/usePhotoUpload'
+import { PhotoButton } from '../components/PhotoButton'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -36,6 +40,8 @@ interface ElevatorInspection {
   inspect_date: string
   type: string
   overall: string
+  inspect_type?: string
+  result?: string
   action_needed?: string
   memo?: string
   certificate_key?: string
@@ -159,6 +165,16 @@ const OVERALL_STYLE: Record<string,{ label:string; color:string }> = {
   conditional: { label:'조건부합격',color:'var(--warn)'   },
   fail:        { label:'불합격',    color:'var(--danger)' },
 }
+const INSPECT_TYPE_LABEL: Record<string, string> = {
+  regular:  '정기검사',
+  special:  '수시검사',
+  detailed: '정밀안전검사',
+}
+const RESULT_STYLE: Record<string, { bg: string; color: string; label: string }> = {
+  pass:        { bg: '#e8f5e9', color: '#2e7d32', label: '합격' },
+  conditional: { bg: '#fff3e0', color: '#e65100', label: '조건부합격' },
+  fail:        { bg: '#ffebee', color: '#c62828', label: '불합격' },
+}
 const TKE_TEL = 'tel:18999070'
 
 // ── API ───────────────────────────────────────────────────
@@ -196,6 +212,7 @@ export default function ElevatorPage() {
   const [selectedEv,    setSelectedEv]    = useState<Elevator | null>(null)
   const [selectedFault, setSelectedFault] = useState<ElevatorFault | null>(null)
   const [expandedAnnual, setExpandedAnnual] = useState<string | null>(null)
+  const [certViewerKey,  setCertViewerKey]  = useState<string | null>(null)
 
   async function deleteRecord(type: 'fault' | 'inspection', id: string) {
     if (!confirm('삭제하시겠습니까?')) return
@@ -454,8 +471,11 @@ export default function ElevatorPage() {
           <>
             {annuals.length === 0 && <EmptyState icon="📋" text="검사 기록이 없어요" />}
             {annuals.map(i => {
-              const ov = OVERALL_STYLE[i.overall] ?? OVERALL_STYLE.pass
+              const resultKey = i.result || i.overall
+              const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
               const isExpanded = expandedAnnual === i.id
+              const isConditional = resultKey === 'conditional'
+              const typeLabel = i.inspect_type ? (INSPECT_TYPE_LABEL[i.inspect_type] ?? i.inspect_type) : '연간검사'
               return (
                 <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden' }}>
                   {/* 리스트 행: 탭하면 상세 펼침 */}
@@ -467,23 +487,23 @@ export default function ElevatorPage() {
                       {TYPE_ICON[i.elevator_type]}
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                         <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{i.elevator_number ? `${i.elevator_number}호기` : i.elevator_location || '호기 미상'}</span>
-                        <span style={{ fontSize:10, fontWeight:700, color:ov.color, background:`${ov.color}22`, padding:'1px 6px', borderRadius:6 }}>{ov.label}</span>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:6, background:rs.bg, color:rs.color }}>{rs.label}</span>
+                        <FindingCountBadge elevatorId={i.elevator_id} inspectionId={i.id} isConditional={isConditional} />
                       </div>
-                      <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date} · 연간검사</div>
+                      <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date} · {typeLabel}</div>
                     </div>
-                    {/* 우측: 인증서 정사각형 버튼 */}
+                    {/* 우측: 인증서 버튼 */}
                     {i.certificate_key ? (
-                      <a
-                        href={`/api/uploads/${i.certificate_key}`} target="_blank" rel="noopener"
-                        onClick={e => e.stopPropagation()}
-                        style={{ width:52, height:52, borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, textDecoration:'none' }}
+                      <button
+                        onClick={e => { e.stopPropagation(); setCertViewerKey(i.certificate_key!) }}
+                        style={{ width:52, height:52, borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, cursor:'pointer' }}
                       >
                         <span style={{ fontSize:20 }}>📄</span>
-                        <span style={{ fontSize:8, fontWeight:700, color:'var(--safe)' }}>보기</span>
-                      </a>
-                    ) : (
+                        <span style={{ fontSize:8, fontWeight:700, color:'var(--safe)' }}>인증서 보기</span>
+                      </button>
+                    ) : isAdmin ? (
                       <label
                         onClick={e => e.stopPropagation()}
                         style={{ width:52, height:52, borderRadius:10, background:'var(--bg3)', border:'1px dashed var(--bd2)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, cursor:'pointer' }}
@@ -514,7 +534,7 @@ export default function ElevatorPage() {
                           }}
                         />
                       </label>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* 상세 펼침 */}
@@ -526,8 +546,12 @@ export default function ElevatorPage() {
                           <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{i.inspect_date}</div>
                         </div>
                         <div>
+                          <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 유형</div>
+                          <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{typeLabel}</div>
+                        </div>
+                        <div>
                           <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 결과</div>
-                          <div style={{ fontSize:12, color:ov.color, fontWeight:700 }}>{ov.label}</div>
+                          <div style={{ fontSize:12, fontWeight:700, color:rs.color }}>{rs.label}</div>
                         </div>
                       </div>
                       {i.action_needed && (
@@ -542,6 +566,12 @@ export default function ElevatorPage() {
                           <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{i.memo}</div>
                         </div>
                       )}
+
+                      {/* 조건부합격 지적사항 패널 */}
+                      {isConditional && (
+                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} navigate={navigate} />
+                      )}
+
                       {isAdmin && (
                         <button
                           onClick={() => deleteRecord('inspection', i.id)}
@@ -604,6 +634,7 @@ export default function ElevatorPage() {
       {modal === 'inspect_new'  && <InspectModal      elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
       {modal === 'annual_new'   && <AnnualModal       elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
       {modal === 'ev_detail'    && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
+      {certViewerKey && <CertViewerModal certKey={certViewerKey} onClose={() => setCertViewerKey(null)} />}
     </div>
   )
 }
@@ -1252,6 +1283,7 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
   const [evKind,        setEvKind]        = useState<EvKind>(initKind)
   const [elevatorId,    setElevatorId]    = useState(selected?.id ?? '')
   const [inspectDate,   setInspectDate]   = useState(new Date().toISOString().slice(0,10))
+  const [inspectType,   setInspectType]   = useState<'regular'|'special'|'detailed'>('regular')
   const [annualOverall, setAnnualOverall] = useState<'pass'|'conditional'|'fail'|''>('')
   const [inspectResult, setInspectResult] = useState('')
   const [memo,          setMemo]          = useState('')
@@ -1272,6 +1304,23 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
             <Field label="검사일">
               <input type="date" value={inspectDate} onChange={e => setInspectDate(e.target.value)} style={inputSt} />
             </Field>
+
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>검사 유형</div>
+              <div style={{ display:'flex', gap:7 }}>
+                {([
+                  { key:'regular',  label:'정기검사'    },
+                  { key:'special',  label:'수시검사'    },
+                  { key:'detailed', label:'정밀안전검사' },
+                ] as const).map(opt => (
+                  <button key={opt.key} onClick={() => setInspectType(opt.key)} style={{
+                    flex:1, padding:'11px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
+                    background: inspectType === opt.key ? 'var(--acl)' : 'var(--bg3)',
+                    color:      inspectType === opt.key ? '#fff'        : 'var(--t3)',
+                  }}>{opt.label}</button>
+                ))}
+              </div>
+            </div>
 
             <div>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>검사 결과</div>
@@ -1300,7 +1349,7 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
             </Field>
 
             <button
-              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', overall:annualOverall, actionNeeded:inspectResult, memo })}
+              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', inspect_type:inspectType, result:annualOverall, overall:annualOverall, actionNeeded:inspectResult, memo })}
               disabled={!elevatorId || !annualOverall || loading}
               style={{ ...primaryBtnSt, opacity:(!elevatorId||!annualOverall||loading)?0.5:1 }}
             >
@@ -1310,6 +1359,142 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
         )}
       </div>
     </ModalWrap>
+  )
+}
+
+// ── 인증서 뷰어 모달 ─────────────────────────────────────
+function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>void }) {
+  const isPdf = certKey.toLowerCase().endsWith('.pdf')
+  const url   = `/api/uploads/${certKey}`
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.85)', zIndex:200 }} />
+      <div style={{ position:'fixed', inset:0, zIndex:201, display:'flex', flexDirection:'column', paddingTop:'var(--sat, 44px)', paddingBottom:'var(--sab, 0px)' }}>
+        {/* 헤더 */}
+        <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', background:'rgba(22,27,34,0.97)', borderBottom:'1px solid var(--bd)' }}>
+          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>인증서</span>
+          <div style={{ display:'flex', gap:8 }}>
+            <a href={url} target="_blank" rel="noopener" style={{ fontSize:11, fontWeight:700, color:'var(--acl)', padding:'6px 12px', borderRadius:8, background:'rgba(59,130,246,.15)', border:'1px solid rgba(59,130,246,.3)', textDecoration:'none' }}>새 탭 열기</a>
+            <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:20 }}>✕</button>
+          </div>
+        </div>
+        {/* 뷰어 영역 */}
+        <div style={{ flex:1, minHeight:0, overflow:'hidden', position:'relative', background:'var(--bg)' }}>
+          {isPdf ? (
+            <PdfFloorPlan url={url} scale={1} onReady={() => {}} />
+          ) : (
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', overflow:'auto' }}>
+              <img src={url} alt="인증서" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', display:'block' }} />
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── 지적 건수 배지 (헤더용) ───────────────────────────────
+function FindingCountBadge({ elevatorId, inspectionId, isConditional }: { elevatorId:string; inspectionId:string; isConditional:boolean }) {
+  const { data: findings = [] } = useQuery({
+    queryKey: ['elev-findings', inspectionId],
+    queryFn:  () => elevatorInspectionApi.getFindings(elevatorId, inspectionId),
+    enabled:  isConditional,
+    staleTime: 60_000,
+  })
+  if (!isConditional || findings.length === 0) return null
+  const open = findings.filter(f => f.status === 'open').length
+  return (
+    <span style={{ fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:6, background:'rgba(239,68,68,.12)', color:'var(--danger)' }}>
+      지적 {findings.length}건{open > 0 ? ` (미조치 ${open})` : ''}
+    </span>
+  )
+}
+
+// ── 조건부합격 지적사항 패널 ─────────────────────────────
+function FindingsPanel({ elevatorId, inspectionId, navigate }: { elevatorId:string; inspectionId:string; navigate:(to:string)=>void }) {
+  const qc = useQueryClient()
+  const [showAdd, setShowAdd] = useState(false)
+  const [desc, setDesc]       = useState('')
+  const [loc,  setLoc]        = useState('')
+  const photo = usePhotoUpload()
+
+  const { data: findings = [], isLoading } = useQuery({
+    queryKey: ['elev-findings', inspectionId],
+    queryFn:  () => elevatorInspectionApi.getFindings(elevatorId, inspectionId),
+    staleTime: 60_000,
+  })
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      let photoKey: string | undefined
+      if (photo.hasPhoto) {
+        const k = await photo.upload()
+        if (k) photoKey = k
+      }
+      return elevatorInspectionApi.createFinding(elevatorId, inspectionId, { description: desc.trim(), location: loc.trim() || undefined, photo_key: photoKey })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['elev-findings', inspectionId] })
+      toast.success('등록 완료')
+      setDesc(''); setLoc(''); photo.reset(); setShowAdd(false)
+    },
+    onError: () => toast.error('등록 실패'),
+  })
+
+  return (
+    <div style={{ marginTop:12, borderTop:'1px solid var(--bd)', paddingTop:10 }}>
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--warn)', marginBottom:8 }}>조건부합격 지적사항</div>
+
+      {isLoading && <div style={{ fontSize:11, color:'var(--t3)' }}>불러오는 중...</div>}
+
+      {findings.map(f => (
+        <div key={f.id}
+          onClick={() => navigate(`/elevator/findings/${f.id}?eid=${elevatorId}&iid=${inspectionId}`)}
+          style={{ padding:'8px 10px', background:'var(--bg3)', borderRadius:9, marginBottom:6, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}
+        >
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.description}</div>
+            {f.location && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{f.location}</div>}
+          </div>
+          <span style={{
+            fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:10, flexShrink:0,
+            background: f.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
+            color:      f.status === 'open' ? 'var(--danger)'        : 'var(--safe)',
+          }}>{f.status === 'open' ? '미조치' : '조치완료'}</span>
+          <svg width={12} height={12} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </div>
+      ))}
+
+      {/* 등록 폼 */}
+      {showAdd && (
+        <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px', marginBottom:8 }}>
+          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>지적사항 등록</div>
+          <Field label="지적 내용">
+            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="지적 내용을 입력하세요" style={{ ...inputSt, resize:'none', fontSize:12 }} />
+          </Field>
+          <div style={{ marginTop:8 }}>
+            <Field label="위치 (선택)">
+              <input value={loc} onChange={e => setLoc(e.target.value)} placeholder="예: B1층 주차장" style={{ ...inputSt, fontSize:12 }} />
+            </Field>
+          </div>
+          <div style={{ marginTop:8 }}>
+            <PhotoButton hook={photo} label="지적 사진 (선택)" noCapture />
+          </div>
+          <div style={{ display:'flex', gap:8, marginTop:10 }}>
+            <button onClick={() => { setShowAdd(false); setDesc(''); setLoc(''); photo.reset() }} style={{ flex:1, padding:'8px 0', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>취소</button>
+            <button onClick={() => createMutation.mutate()} disabled={!desc.trim() || createMutation.isPending} style={{ flex:2, padding:'8px 0', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity:(!desc.trim()||createMutation.isPending)?0.5:1 }}>
+              {createMutation.isPending ? '등록 중...' : '등록'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!showAdd && (
+        <button onClick={() => setShowAdd(true)} style={{ width:'100%', padding:'8px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color:'var(--t3)', fontSize:11, fontWeight:600, cursor:'pointer', marginTop:4 }}>
+          + 지적사항 등록
+        </button>
+      )}
+    </div>
   )
 }
 
