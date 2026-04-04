@@ -136,7 +136,12 @@ Plans:
 **Requirements**: ELEV-02
 **Success Criteria** (what must be TRUE):
   1. 승강기 법정검사 인증서/리포트를 R2에 업로드하고 ElevatorPage에서 확인할 수 있다
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 11-01-PLAN.md — DB 마이그레이션 + 타입 + API 엔드포인트 (findings CRUD, next-inspection 계산)
+- [ ] 11-02-PLAN.md — ElevatorPage annual 탭 강화 (검사유형/결과, 인증서 뷰어, 조건부합격 지적사항) + ElevatorFindingDetailPage
+- [ ] 11-03-PLAN.md — 검사 도래 경고 배지 (승강기 목록 탭 + 대시보드)
+**UI hint**: yes
 
 ## Progress
 
@@ -152,7 +157,7 @@ Plans:
 | 8. Meal Records | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 9. Education Management | v1.1 | 2/2 | Complete   | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 11. Elevator Inspection Certs | v1.1 | 0/? | Not started | - |
+| 11. Elevator Inspection Certs | v1.1 | 0/3 | Not started | - |
 
 ## Backlog
 
@@ -195,4 +200,4 @@ Plans:
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 phases added: 2026-03-31*
-*Last updated: 2026-04-04*
+*Last updated: 2026-04-05*
