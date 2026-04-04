@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { authApi } from '../utils/api'
 import toast from 'react-hot-toast'
@@ -93,6 +93,17 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 export function SettingsPanel({ open, onClose }: Props) {
   const [showPwChange, setShowPwChange] = useState(false)
 
+  useEffect(() => {
+    if (!open) return
+    const prevent = (e: TouchEvent) => {
+      const panel = document.getElementById('settings-panel')
+      if (panel && panel.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', prevent, { passive: false })
+    return () => document.removeEventListener('touchmove', prevent)
+  }, [open])
+
   return (
     <>
       <div
@@ -106,17 +117,19 @@ export function SettingsPanel({ open, onClose }: Props) {
         }}
       />
       <div
+        id="settings-panel"
         style={{
-          position:'fixed', top:0, bottom:0, right:0, zIndex:200,
+          position:'fixed', top:'var(--sat, 0px)', bottom:'calc(54px + var(--sab, 34px) - var(--sat, 0px))', right:0, zIndex:200,
           width:'88%', maxWidth:320,
           background:'var(--bg2)',
           transform: open ? 'translateX(0)' : 'translateX(100%)',
           transition:'transform 0.3s cubic-bezier(.4,0,.2,1)',
           overflowY:'auto',
+          borderRadius:'16px 0 0 16px',
         }}
       >
         {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'calc(15px + var(--sat, 0px)) 15px 12px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
           <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <circle cx="12" cy="12" r="3"/>

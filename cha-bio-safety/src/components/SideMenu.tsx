@@ -62,6 +62,19 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
     }
   }, [staff])
 
+  // 메뉴 열림 시 뒤쪽 스크롤 방지 (iOS safe-area 깨짐 없이)
+  useEffect(() => {
+    if (!open) return
+    const prevent = (e: TouchEvent) => {
+      // 패널 내부 스크롤은 허용
+      const panel = document.getElementById('side-menu-panel')
+      if (panel && panel.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', prevent, { passive: false })
+    return () => document.removeEventListener('touchmove', prevent)
+  }, [open])
+
   const go = (path: string) => { navigate(path); onClose() }
 
   return (
@@ -80,18 +93,20 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
 
       {/* 패널 */}
       <div
+        id="side-menu-panel"
         style={{
-          position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 200,
+          position: 'fixed', top: 'var(--sat, 0px)', bottom: 'calc(54px + var(--sab, 34px) - var(--sat, 0px))', left: 0, zIndex: 200,
           width: '82%', maxWidth: 300,
           background: 'var(--bg2)',
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)',
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          borderRadius: '0 16px 16px 0',
         }}
       >
         {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'calc(15px + var(--sat, 0px)) 15px 12px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ width:30, height:30, borderRadius:8, background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>🛡️</div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+          <img src="/icons/icon-192.png" alt="" style={{ width:30, height:30, borderRadius:8, flexShrink:0 }} />
           <div>
             <div style={{ fontSize:13, fontWeight:700 }}>차바이오컴플렉스</div>
             <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:1 }}>소방안전 통합관리</div>
