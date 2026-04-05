@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
@@ -362,6 +363,7 @@ export default function LegalFindingsPage() {
   const [selectedResult, setSelectedResult] = useState<string>('')
   const [savingResult, setSavingResult] = useState(false)
   const [uploadingReport, setUploadingReport] = useState(false)
+  const [zipLoading, setZipLoading] = useState<string | false>(false)
   const reportInputRef = useRef<HTMLInputElement>(null)
 
   const { data: round, isLoading: roundLoading } = useQuery({
@@ -442,6 +444,61 @@ export default function LegalFindingsPage() {
       toast.success('삭제되었습니다')
     } catch (err: any) {
       toast.error(err?.message ?? '삭제 실패')
+    }
+  }
+
+  async function handleZipDownload() {
+    if (!findings?.length) return
+    setZipLoading('준비 중...')
+    try {
+      const { zipSync } = await import('fflate')
+      const files: Record<string, Uint8Array> = {}
+      const encoder = new TextEncoder()
+
+      for (let i = 0; i < findings.length; i++) {
+        const f = findings[i]
+        const idx = String(i + 1).padStart(3, '0')
+        const folderName = `finding-${idx}_${(f.location ?? '위치없음').replace(/[\/\\:*?"<>|]/g, '_')}`
+        setZipLoading(`수집 중... (${i + 1}/${findings.length})`)
+
+        // 내용.txt — always included even if no photos
+        files[`${folderName}/내용.txt`] = encoder.encode(buildMetaTxt(f))
+
+        // 지적 사진
+        const photoResults = await Promise.allSettled(
+          f.photoKeys.map(k => fetch('/api/uploads/' + k).then(r => r.arrayBuffer()))
+        )
+        photoResults.forEach((r, j) => {
+          if (r.status === 'fulfilled') {
+            files[`${folderName}/지적사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+          }
+        })
+
+        // 조치 사진
+        const resResults = await Promise.allSettled(
+          f.resolutionPhotoKeys.map(k => fetch('/api/uploads/' + k).then(r => r.arrayBuffer()))
+        )
+        resResults.forEach((r, j) => {
+          if (r.status === 'fulfilled') {
+            files[`${folderName}/조치사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+          }
+        })
+      }
+
+      setZipLoading('압축 중...')
+      const zipped = zipSync(files, { level: 6 })
+      const blob = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+
+      // Per D-08, D-10: window.open only, NO <a download>
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+      toast.success('다운로드 완료')
+    } catch (e) {
+      console.error('ZIP download failed:', e)
+      toast.error('다운로드에 실패했습니다')
+    } finally {
+      setZipLoading(false)
     }
   }
 
@@ -589,6 +646,27 @@ export default function LegalFindingsPage() {
               {uploadingReport ? '업로드 중...' : '보고서 업로드'}
             </button>
           )}
+
+          <button
+            onClick={handleZipDownload}
+            disabled={!!zipLoading || !findings?.length}
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              height: 36,
+              background: 'var(--bg3)',
+              borderRadius: 8,
+              padding: '0 12px',
+              border: '1px solid var(--bd2)',
+              color: 'var(--t1)',
+              cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer',
+              opacity: (zipLoading || !findings?.length) ? 0.6 : 1,
+              flexShrink: 0,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {zipLoading || '일괄 다운로드'}
+          </button>
         </div>
       )}
 
