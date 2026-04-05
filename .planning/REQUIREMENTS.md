@@ -53,22 +53,22 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | TBD | Pending |
-| SCHED-02 | TBD | Pending |
-| FIND-01 | TBD | Pending |
-| FIND-02 | TBD | Pending |
-| PHOTO-01 | TBD | Pending |
-| PHOTO-02 | TBD | Pending |
-| PHOTO-03 | TBD | Pending |
-| DL-01 | TBD | Pending |
-| DL-02 | TBD | Pending |
-| DL-03 | TBD | Pending |
+| SCHED-01 | Phase 14 | Pending |
+| SCHED-02 | Phase 14 | Pending |
+| FIND-01 | Phase 13 | Pending |
+| FIND-02 | Phase 13 | Pending |
+| PHOTO-01 | Phase 12 | Pending |
+| PHOTO-02 | Phase 12 | Pending |
+| PHOTO-03 | Phase 12 | Pending |
+| DL-01 | Phase 15 | Pending |
+| DL-02 | Phase 15 | Pending |
+| DL-03 | Phase 15 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 10 total
-- Mapped to phases: 0
-- Unmapped: 10 ⚠️
+- Mapped to phases: 10
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 after initial definition*
+*Last updated: 2026-04-05 — traceability updated after roadmap creation (phases 12-15)*
