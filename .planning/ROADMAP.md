@@ -113,7 +113,7 @@ Plans:
 | 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
-| 15. Finding Download | v1.2 | 2/2 | Complete   | 2026-04-05 |
+| 15. Finding Download | v1.2 | 2/2 | Complete    | 2026-04-05 |
 
 ## Backlog
 

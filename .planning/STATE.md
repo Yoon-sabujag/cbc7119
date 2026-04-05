@@ -4,7 +4,7 @@ milestone: v1.2
 milestone_name: UX 개선 + 다운로드
 status: verifying
 stopped_at: Completed 15-finding-download 15-02-PLAN.md — Phase 15 complete, v1.2 milestone done
-last_updated: "2026-04-05T17:29:19.808Z"
+last_updated: "2026-04-05T17:33:08.830Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 
 ## Current Position
 
-Phase: 15 (finding-download) — EXECUTING
-Plan: 2 of 2
+Phase: 15
+Plan: Not started
 Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
