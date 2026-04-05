@@ -273,6 +273,20 @@ export default function LegalFindingsPage() {
     ? `${round.title.includes('종합정밀') ? '종합정밀' : '작동기능'} ${fmtMonthOnly(round.date)}`
     : '지적사항 목록'
 
+  const handleDeleteFinding = async (e: React.MouseEvent, finding: LegalFinding) => {
+    e.stopPropagation()
+    if (!id) return
+    try {
+      await legalApi.deleteFinding(id, finding.id)
+      queryClient.invalidateQueries({ queryKey: ['legal-findings', id] })
+      queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
+      queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
+      toast.success('삭제되었습니다')
+    } catch (err: any) {
+      toast.error(err?.message ?? '삭제 실패')
+    }
+  }
+
   const sortedFindings: LegalFinding[] = [...(findings ?? [])].sort((a, b) => {
     // open 먼저
     if (a.status === 'open' && b.status !== 'open') return -1
@@ -482,9 +496,17 @@ export default function LegalFindingsPage() {
                   {finding.location ?? '위치 미지정'}
                 </div>
 
-                {/* Line 3: 등록일 + 등록자 */}
-                <div style={{ fontSize: 11, color: 'var(--t3)' }}>
-                  {fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}
+                {/* Line 3: 등록일 + 등록자 + 삭제 */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>
+                    {fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteFinding(e, finding)}
+                    style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             ))

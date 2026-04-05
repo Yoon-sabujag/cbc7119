@@ -212,9 +212,13 @@ export default function SchedulePage() {
   }
 
   const handleDelete = async (item: ScheduleItem) => {
-    await scheduleApi.delete(item.id)
-    invalidate()
-    toast.success('삭제됐습니다')
+    try {
+      await scheduleApi.delete(item.id)
+      invalidate()
+      toast.success('삭제됐습니다')
+    } catch (e: any) {
+      toast.error(e?.message ?? '삭제 중 오류가 발생했습니다')
+    }
   }
 
   const catInfo = (c: string) => SCHED_CATEGORIES.find(x => x.value === c)

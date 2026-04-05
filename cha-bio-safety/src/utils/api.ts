@@ -66,18 +66,11 @@ export const scheduleApi = {
   create: (body: { title:string; date:string; time?:string; category:string; assigneeId?:string; inspectionCategory?:string; memo?:string }) =>
     api.post<{ id:string }>('/schedule', body),
   updateStatus: (id: string, status: string) =>
-    fetch(`/api/schedule/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
-      body: JSON.stringify({ status }),
-    }).then(r => r.json()),
+    api.patch<void>(`/schedule/${id}`, { status }),
   update: (id: string, body: { title: string; date: string; time?: string; memo?: string }) =>
     api.put<void>(`/schedule/${id}`, body),
   delete: (id: string) =>
-    fetch(`/api/schedule/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization:`Bearer ${useAuthStore.getState().token}` },
-    }).then(r => r.json()),
+    api.delete<void>(`/schedule/${id}`),
 }
 
 export interface LeaveItem {
@@ -257,6 +250,8 @@ export const legalApi = {
     api.put<void>(`/legal/${scheduleItemId}/findings/${fid}`, body),
   resolveFinding: (scheduleItemId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string }) =>
     api.post<void>(`/legal/${scheduleItemId}/findings/${fid}/resolve`, body),
+  deleteFinding: (scheduleItemId: string, fid: string) =>
+    api.delete<void>(`/legal/${scheduleItemId}/findings/${fid}`),
 }
 
 export const elevatorInspectionApi = {

@@ -114,3 +114,25 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, par
     return Response.json({ success: false, error: '지적사항 수정 실패' }, { status: 500 })
   }
 }
+
+// DELETE /api/legal/:id/findings/:fid
+export const onRequestDelete: PagesFunction<Env> = async ({ env, params }) => {
+  const scheduleItemId = params.id as string
+  const fid = params.fid as string
+
+  try {
+    const existing = await env.DB.prepare(
+      `SELECT id FROM legal_findings WHERE id = ? AND schedule_item_id = ?`
+    ).bind(fid, scheduleItemId).first<{ id: string }>()
+
+    if (!existing) {
+      return Response.json({ success: false, error: '지적사항을 찾을 수 없습니다' }, { status: 404 })
+    }
+
+    await env.DB.prepare(`DELETE FROM legal_findings WHERE id = ? AND schedule_item_id = ?`).bind(fid, scheduleItemId).run()
+    return Response.json({ success: true })
+  } catch (e) {
+    console.error('[legal/:id/findings/:fid DELETE]', e)
+    return Response.json({ success: false, error: '지적사항 삭제 실패' }, { status: 500 })
+  }
+}
