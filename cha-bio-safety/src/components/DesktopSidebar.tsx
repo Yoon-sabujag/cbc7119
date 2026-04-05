@@ -50,19 +50,25 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {/* ── 로고 스트립 (48px) ─────────────────────────────────────────── */}
-      <div style={{
-        height: 48,
-        background: 'var(--bg2)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: 16,
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>
-          CBC 방재
-        </span>
+      {/* ── 로고 스트립 ─────────────────────────────────────────── */}
+      <div
+        onClick={() => navigate('/dashboard')}
+        style={{
+          padding: '12px 16px',
+          background: 'var(--bg2)',
+          borderBottom: '1px solid var(--bd)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          flexShrink: 0,
+          cursor: 'pointer',
+        }}
+      >
+        <img src="/icons/icon-192.png" alt="" style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>차바이오컴플렉스</div>
+          <div style={{ fontSize: 9.5, color: 'var(--t3)', marginTop: 1 }}>소방안전 통합관리</div>
+        </div>
       </div>
 
       {/* ── 스크롤 가능 네비 (flex: 1) ────────────────────────────────── */}
@@ -75,7 +81,8 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
               <button
                 onClick={() => toggleSection(section.label)}
                 style={{
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
                   width: '100%',
                   textAlign: 'left',
                   fontSize: 11,
@@ -89,7 +96,10 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
                   letterSpacing: '0.05em',
                 }}
               >
-                {section.label}
+                <span style={{ flex: 1 }}>{section.label}</span>
+                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.15s', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
               </button>
 
               {/* 섹션 아이템 */}

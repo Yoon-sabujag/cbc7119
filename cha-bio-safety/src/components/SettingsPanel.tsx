@@ -120,7 +120,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
       <div
         id="settings-panel"
         style={{
-          position:'fixed', top: isDesktop ? 48 : 'var(--sat, 0px)', bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 34px) - var(--sat, 0px))', right:0, zIndex:200,
+          position:'fixed', top: isDesktop ? 0 : 'var(--sat, 0px)', bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 34px) - var(--sat, 0px))', right:0, zIndex:200,
           width:'88%', maxWidth:320,
           background:'var(--bg2)',
           transform: open ? 'translateX(0)' : 'translateX(100%)',
