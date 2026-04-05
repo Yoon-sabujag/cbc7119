@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UX 개선 + 다운로드
 status: executing
-stopped_at: Phase 15 context gathered
-last_updated: "2026-04-05T17:00:04.638Z"
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-04-05T17:22:45.356Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-05)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
-**Current focus:** Phase 12 — multi-photo-infrastructure
+**Current focus:** Phase 15 — finding-download
 
 ## Current Position
 
-Phase: 12 (multi-photo-infrastructure) — EXECUTING
+Phase: 15 (finding-download) — EXECUTING
 Plan: 2 of 2
 Status: Ready to execute
 Last activity: 2026-04-05
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
 
 *Updated after each plan completion*
 | Phase 12 P01 | 3 | 2 tasks | 6 files |
+| Phase 15 P01 | 2m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting v1.2 work:
 - [Phase 12]: Blob URL cleanup uses previewUrls ref (updated via useEffect) rather than closure over slots to avoid stale state at unmount
 - [Phase 12]: Promise.allSettled for parallel upload — partial failure does not block successful keys from being returned
 - [Phase 12]: No capture attribute on hidden file input — iOS does not support capture+multiple simultaneously (research D-07)
+- [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass (D-08 compliance)
+- [Phase 15]: Promise.allSettled for parallel photo fetch — partial photo failure does not block report
 
 ### Pending Todos
 
@@ -85,9 +88,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T17:00:04.634Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-finding-download/15-CONTEXT.md
+Last session: 2026-04-05T17:22:45.352Z
+Stopped at: Completed 15-01-PLAN.md
+Resume file: None
 
 ---
 *State initialized: 2026-03-28*

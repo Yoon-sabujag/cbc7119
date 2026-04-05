@@ -89,9 +89,9 @@ Plans:
   1. 지적사항 상세 화면에서 건별 다운로드 버튼으로 내용+사진을 내려받을 수 있다
   2. 라운드 목록에서 일괄 다운로드 버튼으로 전체 지적사항을 ZIP으로 내려받을 수 있다
   3. iOS PWA 홈 화면 모드에서 다운로드가 정상 동작한다 (window.open + 공유시트)
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 15-01-PLAN.md — findingDownload.ts 유틸리티 + LegalFindingDetailPage 건별 다운로드 버튼
+- [x] 15-01-PLAN.md — findingDownload.ts 유틸리티 + LegalFindingDetailPage 건별 다운로드 버튼
 - [ ] 15-02-PLAN.md — LegalFindingsPage 일괄 ZIP 다운로드 + 프로덕션 배포/검증
 **UI hint**: yes
 
@@ -113,7 +113,7 @@ Plans:
 | 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | 0/? | Not started | - |
-| 15. Finding Download | v1.2 | 0/2 | Planning | - |
+| 15. Finding Download | v1.2 | 1/2 | In Progress|  |
 
 ---
 *Roadmap created: 2026-03-28*

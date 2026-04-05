@@ -25,9 +25,9 @@ Requirements for v1.2 release. Each maps to roadmap phases.
 
 ### 다운로드
 
-- [ ] **DL-01**: 지적사항 1건의 내용+사진을 건별로 다운로드할 수 있다
+- [x] **DL-01**: 지적사항 1건의 내용+사진을 건별로 다운로드할 수 있다
 - [ ] **DL-02**: 라운드 전체 지적사항을 일괄 ZIP으로 다운로드할 수 있다
-- [ ] **DL-03**: iOS PWA에서 window.open + 공유시트 방식으로 다운로드를 지원한다
+- [x] **DL-03**: iOS PWA에서 window.open + 공유시트 방식으로 다운로드를 지원한다
 
 ## Future Requirements
 
@@ -55,14 +55,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | SCHED-01 | Phase 14 | Pending |
 | SCHED-02 | Phase 14 | Pending |
-| FIND-01 | Phase 13 | Pending |
-| FIND-02 | Phase 13 | Pending |
+| FIND-01 | Phase 13 | Complete |
+| FIND-02 | Phase 13 | Complete |
 | PHOTO-01 | Phase 12 | Complete |
 | PHOTO-02 | Phase 12 | Complete |
 | PHOTO-03 | Phase 12 | Complete |
-| DL-01 | Phase 15 | Pending |
+| DL-01 | Phase 15 | Complete |
 | DL-02 | Phase 15 | Pending |
-| DL-03 | Phase 15 | Pending |
+| DL-03 | Phase 15 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 10 total
