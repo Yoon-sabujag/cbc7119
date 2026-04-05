@@ -4,7 +4,7 @@ milestone: v1.3
 milestone_name: 설정 페이지
 status: verifying
 stopped_at: Completed 16-02-PLAN.md (wire /settings route, remove SettingsPanel, deploy to production)
-last_updated: "2026-04-05T23:55:59.690Z"
+last_updated: "2026-04-05T23:59:00.763Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 8
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 ## Current Position
 
-Phase: 16 (settings-page-profile) — EXECUTING
-Plan: 2 of 2
+Phase: 17
+Plan: Not started
 Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 

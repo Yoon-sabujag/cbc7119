@@ -174,7 +174,7 @@ Plans:
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
-| 16. Settings Page + Profile | v1.3 | 2/2 | Complete   | 2026-04-05 |
+| 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
 | 17. Push Notification Settings | v1.3 | 0/? | Not started | - |
 | 18. Menu Customization | v1.3 | 0/? | Not started | - |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
