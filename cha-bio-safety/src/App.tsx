@@ -166,10 +166,10 @@ function Layout() {
           <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} unresolvedCount={unresolvedCount} />
         )}
 
-        {/* 데스크톱: 간소화된 헤더 48px */}
+        {/* 데스크톱: 간소화된 헤더 — 사이드바 로고와 높이 일치 */}
         {isDesktop && showNav && (
           <header data-no-print style={{
-            height: 48,
+            height: 54,
             display: 'flex',
             alignItems: 'center',
             padding: '0 16px',

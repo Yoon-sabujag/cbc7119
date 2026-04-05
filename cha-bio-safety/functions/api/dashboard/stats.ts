@@ -271,6 +271,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       })
     }
 
+    // ── 이번 달 일정 날짜별 카테고리 (캘린더 dot용) ────
+    const monthDatesRows = await env.DB.prepare(`
+      SELECT date, category FROM schedule_items
+      WHERE date BETWEEN ? AND ?
+      ORDER BY date ASC
+    `).bind(monthStart, monthEnd).all<{date:string; category:string}>()
+
+    const monthScheduleDates: Record<string, string[]> = {}
+    for (const r of (monthDatesRows.results ?? [])) {
+      const day = r.date.slice(8, 10).replace(/^0/, '') // "01" → "1"
+      if (!monthScheduleDates[day]) monthScheduleDates[day] = []
+      if (!monthScheduleDates[day].includes(r.category)) monthScheduleDates[day].push(r.category)
+    }
+
     // ── 근무자 목록 ─────────────────────────────────────
     const staffRows = await env.DB.prepare(
       `SELECT id, name, role, title, shift_type FROM staff ORDER BY role DESC, id ASC`
@@ -361,6 +375,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         })),
         monthlyItems,
         todayTarget,
+        monthScheduleDates,
       },
     })
   } catch (e) {

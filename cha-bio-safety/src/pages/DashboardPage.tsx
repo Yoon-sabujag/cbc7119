@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const schedule: DashboardScheduleItem[] = data?.todaySchedule ?? (isLoading ? [] : MOCK_SCHEDULE)
   const monthly: MonthlyItem[] = data?.monthlyItems ?? (isLoading ? [] : [])
   const todayTarget = data?.todayTarget   ?? (isLoading ? '' : '전 층 DIV 격주 점검 · B5~8층 34개 측정점')
+  const monthScheduleDates: Record<string, string[]> = data?.monthScheduleDates ?? {}
   // 08:30 이전이면 전날 근무 기준
   const _now = new Date()
   const _today = (_now.getHours() < 8 || (_now.getHours() === 8 && _now.getMinutes() < 30))
@@ -117,10 +118,10 @@ export default function DashboardPage() {
       { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', path:'/elevator' },
     ]
     const tools = [
-      { icon:'🗺️', label:'도면 점검',    bg:'rgba(59,130,246,.1)',  path:'/floorplan' },
-      { icon:'📈', label:'DIV 트렌드',   bg:'rgba(14,165,233,.1)',  path:'/div' },
-      { icon:'🚨', label:'고장 접수',     bg:'rgba(239,68,68,.1)',   path:'/elevator?modal=fault_new' },
-      { icon:'🍱', label:'직원 서비스',   bg:'rgba(34,197,94,.1)',   path:'/staff-service' },
+      { icon:'🗺️', label:'도면 점검',    desc:'층별 도면 · 유도등 · 감지기',  bg:'rgba(59,130,246,.1)',  path:'/floorplan' },
+      { icon:'📈', label:'DIV 트렌드',   desc:'측정점 압력 트렌드 차트',      bg:'rgba(14,165,233,.1)',  path:'/div' },
+      { icon:'🚨', label:'고장 접수',     desc:'승강기 고장 접수 · TKE 연결',  bg:'rgba(239,68,68,.1)',   path:'/elevator?modal=fault_new' },
+      { icon:'🍱', label:'직원 서비스',   desc:'연차 · 식사 · 근무표 통합',    bg:'rgba(34,197,94,.1)',   path:'/staff-service' },
     ]
 
     // 미니 캘린더 데이터
@@ -132,182 +133,198 @@ export default function DashboardPage() {
     const calDaysInMonth = calLast.getDate()
     const calToday = now.getDate()
 
-    // schedule에서 이번달 일정 dot
-    const calDots: Record<number, boolean> = {}
-    schedule.forEach(s => {
-      const d = parseInt(s.date.split('-')[2])
-      if (d) calDots[d] = true
-    })
-    // monthly에서도 일정이 있는 날 표시
-    monthly.forEach(m => { if (m.total > 0) calDots[calToday] = true })
+    // 카테고리별 dot 색상
+    const CAT_DOT: Record<string, string> = { inspect:'var(--acl)', event:'var(--fire)', repair:'var(--danger)', task:'var(--t3)', elevator:'#f97316', fire:'#ef4444' }
+    // 날짜별 카테고리 목록 (API에서 받은 이번 달 전체)
+    const calDayCategories: Record<number, string[]> = {}
+    for (const [day, cats] of Object.entries(monthScheduleDates)) {
+      calDayCategories[Number(day)] = cats
+    }
 
     return (
-      <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      <div style={{ width:'100%', height:'100%', overflow:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:16 }}>
 
-        {/* 근무자 칩 바 — 사이드바 로고 스트립과 높이 일치 */}
-        <div style={{ flexShrink:0, height:54, boxSizing:'border-box', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'0 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        {/* Row 0: 근무자 칩 + 연속 달성 */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
             <div style={{ display:'flex', gap:6 }}>{admin.map(s => <DutyChip key={s.id} staff={s} />)}</div>
-            <div style={{ width:1, height:20, background:'var(--bd)', margin:'0 8px' }} />
+            <div style={{ width:1, height:22, background:'var(--bd)', margin:'0 6px' }} />
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
             <div style={{ display:'flex', gap:6 }}>{assistant.map(s => <DutyChip key={s.id} staff={s} />)}</div>
           </div>
           {stats.streakDays > 0 && (
-            <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'4px 12px', borderRadius:20 }}>
+            <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.18)', padding:'5px 14px', borderRadius:20 }}>
               연속 {stats.streakDays}일 달성
             </span>
           )}
         </div>
 
-        {/* 메인 */}
-        <div style={{ flex:1, overflow:'auto', padding:'16px 20px', display:'flex', flexDirection:'column', gap:12 }}>
-
-          {/* Row 1: 오늘 점검 배너(280px) + 통계 카드 4열 */}
-          <div style={{ display:'flex', gap:12 }}>
-            {/* 오늘 점검 대상 + 수신반 (사이드바 폭 280px) */}
-            <div style={{
-              width:280, flexShrink:0,
-              background:'linear-gradient(135deg,rgba(37,99,235,.12),rgba(14,165,233,.06))',
-              border:'1px solid rgba(59,130,246,.18)', borderRadius:14,
-              padding:'14px 16px', display:'flex', flexDirection:'column', justifyContent:'center', gap:8,
-            }}>
-              <div>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--info)', letterSpacing:'.05em', textTransform:'uppercase' }}>오늘 점검 대상</div>
-                <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:3, lineHeight:1.3 }}>{todayTarget}</div>
-              </div>
-              {latestAlarm && (
-                <div style={{ borderTop:'1px solid rgba(59,130,246,.15)', paddingTop:6 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:'#ef4444', letterSpacing:'.05em', display:'flex', alignItems:'center', gap:5 }}>
-                    <div style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', animation:'blink 1s ease-in-out infinite' }} />
-                    최근 수신반 이력
-                  </div>
-                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {latestAlarm.location || '장소 미기록'}
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* 통계 카드 4열 */}
-            <div style={{ flex:1, display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
-              {statCards.map(c => (
-                <div key={c.label} onClick={() => navigate(c.path)} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, padding:'14px 16px', cursor:'pointer', position:'relative', overflow:'hidden', transition:'border-color .15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:6 }}>{c.label}</div>
-                  <div style={{ display:'flex', alignItems:'baseline', gap:3 }}>
-                    <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:28, fontWeight:700, lineHeight:1, color:c.color }}>{c.val}</span>
-                    <span style={{ fontSize:12, color:'var(--t3)' }}>{c.sub}</span>
-                  </div>
-                  <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:c.color, borderRadius:'0 0 14px 14px' }} />
-                </div>
-              ))}
-            </div>
+        {/* Row 1: 전폭 배너 — 오늘 점검 대상 + 수신반 */}
+        <div style={{
+          background:'linear-gradient(135deg,rgba(37,99,235,.10),rgba(14,165,233,.05))',
+          border:'1px solid rgba(59,130,246,.15)', borderRadius:16,
+          padding:'18px 24px', display:'flex', alignItems:'center', gap:20,
+        }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--info)', flexShrink:0, animation:'blink 2s ease-in-out infinite' }} />
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--info)', letterSpacing:'.05em', textTransform:'uppercase' }}>오늘 점검 대상</div>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:4, lineHeight:1.4 }}>{todayTarget}</div>
           </div>
-
-          {/* Row 2: 3열 — 캘린더+일정(280px) | 점검 현황(flex) | 빠른도구(280px) */}
-          <div style={{ display:'flex', gap:12, flex:1, minHeight:0 }}>
-
-            {/* 좌: 미니 캘린더 + 오늘 일정 (사이드바 폭) */}
-            <div style={{ width:280, flexShrink:0, display:'flex', flexDirection:'column', gap:12 }}>
-
-              {/* 미니 캘린더 */}
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, padding:'12px 10px', flexShrink:0 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', textAlign:'center', marginBottom:8 }}>
-                  {calYear}년 {calMonth + 1}월
+          {latestAlarm && (
+            <>
+              <div style={{ width:1, height:36, background:'rgba(59,130,246,.15)', flexShrink:0 }} />
+              <div style={{ textAlign:'right', flexShrink:0 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#ef4444', letterSpacing:'.05em', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
+                  <div style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', animation:'blink 1s ease-in-out infinite' }} />
+                  최근 수신반 이력
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:1, textAlign:'center' }}>
-                  {['일','월','화','수','목','금','토'].map(d => (
-                    <div key={d} style={{ fontSize:9, fontWeight:700, color: d==='일'?'var(--danger)':d==='토'?'var(--info)':'var(--t3)', padding:'2px 0' }}>{d}</div>
-                  ))}
-                  {Array.from({ length: calStartDow }, (_, i) => (
-                    <div key={`e${i}`} />
-                  ))}
-                  {Array.from({ length: calDaysInMonth }, (_, i) => {
-                    const d = i + 1
-                    const dow = (calStartDow + i) % 7
-                    const isToday = d === calToday
-                    return (
-                      <div key={d} style={{ padding:'3px 0', position:'relative' }}>
-                        <div style={{
-                          width:24, height:24, borderRadius:'50%', margin:'0 auto',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:11, fontWeight: isToday ? 700 : 400,
-                          color: isToday ? '#fff' : dow===0 ? 'var(--danger)' : dow===6 ? 'var(--info)' : 'var(--t1)',
-                          background: isToday ? 'var(--acl)' : 'transparent',
-                        }}>
-                          {d}
-                        </div>
-                        {calDots[d] && !isToday && (
-                          <div style={{ width:4, height:4, borderRadius:'50%', background:'var(--acl)', margin:'1px auto 0' }} />
-                        )}
-                      </div>
-                    )
-                  })}
+                <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', marginTop:4 }}>
+                  {latestAlarm.location || '장소 미기록'}
                 </div>
               </div>
+            </>
+          )}
+        </div>
 
-              {/* 오늘 일정 */}
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, overflow:'hidden', display:'flex', flexDirection:'column', flex:1, minHeight:0 }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>오늘 일정</span>
-                  <span style={{ fontSize:11, color:'var(--t3)', background:'var(--bg3)', padding:'2px 8px', borderRadius:10 }}>{schedule.length}건</span>
-                </div>
-                <div style={{ overflowY:'auto', flex:1 }}>
-                  {schedule.length === 0 ? (
-                    <div style={{ padding:20, textAlign:'center', fontSize:12, color:'var(--t3)' }}>오늘 일정 없음</div>
-                  ) : (
-                    <>
-                      {timed.length > 0 && (
-                        <>
-                          <div style={{ padding:'6px 14px 3px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em' }}>시간 확정</div>
-                          {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-                        </>
-                      )}
-                      {untimed.length > 0 && (
-                        <>
-                          <div style={{ padding:'6px 14px 3px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', borderTop: timed.length > 0 ? '1px solid var(--bd)' : 'none' }}>시간 미정</div>
-                          {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
+        {/* Row 2: 통계 카드 4열 (전폭) */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+          {statCards.map(c => (
+            <div key={c.label} onClick={() => navigate(c.path)} style={{
+              background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16,
+              padding:'20px 22px', cursor:'pointer', position:'relative', overflow:'hidden',
+              transition:'border-color .15s, transform .15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--bd2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)'; e.currentTarget.style.transform = 'none' }}>
+              <div style={{ fontSize:12, fontWeight:600, color:'var(--t3)', marginBottom:10 }}>{c.label}</div>
+              <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
+                <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:36, fontWeight:700, lineHeight:1, color:c.color }}>{c.val}</span>
+                <span style={{ fontSize:14, color:'var(--t3)' }}>{c.sub}</span>
               </div>
+              <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:c.color, borderRadius:'0 0 16px 16px' }} />
             </div>
+          ))}
+        </div>
 
-            {/* 중앙: 이번 달 점검 현황 (6열 그리드) */}
-            <div style={{ flex:1, background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>이번 달 점검 현황</span>
-                <span style={{ fontSize:12, color:'var(--t3)' }}>{calYear}년 {calMonth + 1}월</span>
+        {/* Row 3: 2열 — 좌(점검현황 + 빠른도구) | 우(캘린더 + 일정) */}
+        <div style={{ display:'flex', gap:16, flex:1, minHeight:0 }}>
+
+          {/* 좌: 점검 현황 + 빠른 도구 */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
+
+            {/* 이번 달 점검 현황 */}
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', flex:1 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+                <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>이번 달 점검 현황</span>
+                <span style={{ fontSize:13, color:'var(--t3)' }}>{calYear}년 {calMonth + 1}월</span>
               </div>
               {monthly.length === 0 ? (
-                <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
+                <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
               ) : (
-                <div style={{ padding:'20px 24px', display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:'20px 16px', flex:1, alignContent:'center' }}>
+                <div style={{ padding:'24px 28px', display:'grid', gridTemplateColumns:`repeat(${Math.min(monthly.length, 6)},1fr)`, gap:'24px 20px', flex:1, alignContent:'center' }}>
                   {monthly.map((m, i) => (
-                    <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-                      <Donut pct={m.pct} color={m.color} size={48} />
-                      <div style={{ fontSize:11, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
-                      <div style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                    <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+                      <Donut pct={m.pct} color={m.color} size={64} />
+                      <div style={{ fontSize:12, color:'var(--t2)', textAlign:'center', lineHeight:1.4, wordBreak:'keep-all' }}>{m.label}</div>
+                      <div style={{ fontSize:12, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* 우: 빠른 도구 (사이드바 폭, 세로) */}
-            <div style={{ width:280, flexShrink:0, display:'flex', flexDirection:'column', gap:10 }}>
+            {/* 빠른 도구 모음 (가로 4열) */}
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, flexShrink:0 }}>
               {tools.map(t => (
                 <div key={t.label} onClick={() => navigate(t.path)}
-                  style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'14px 14px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', transition:'border-color .15s', flex:1 }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--bd2)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--bd)')}>
-                  <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>{t.icon}</div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
+                  style={{
+                    background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14,
+                    padding:'16px', display:'flex', flexDirection:'column', alignItems:'center', gap:10,
+                    cursor:'pointer', transition:'border-color .15s, transform .15s', textAlign:'center',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--bd2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)'; e.currentTarget.style.transform = 'none' }}>
+                  <div style={{ width:44, height:44, borderRadius:12, background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>{t.icon}</div>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
+                    <div style={{ fontSize:11, color:'var(--t3)', marginTop:3, lineHeight:1.3 }}>{t.desc}</div>
+                  </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* 우: 캘린더 + 오늘 일정 (340px) */}
+          <div style={{ width:340, flexShrink:0, display:'flex', flexDirection:'column', gap:16 }}>
+
+            {/* 미니 캘린더 */}
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, padding:'16px 14px', flexShrink:0 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', textAlign:'center', marginBottom:10 }}>
+                {calYear}년 {calMonth + 1}월
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, textAlign:'center' }}>
+                {['일','월','화','수','목','금','토'].map(d => (
+                  <div key={d} style={{ fontSize:10, fontWeight:700, color: d==='일'?'var(--danger)':d==='토'?'var(--info)':'var(--t3)', padding:'3px 0' }}>{d}</div>
+                ))}
+                {Array.from({ length: calStartDow }, (_, i) => (
+                  <div key={`e${i}`} />
+                ))}
+                {Array.from({ length: calDaysInMonth }, (_, i) => {
+                  const d = i + 1
+                  const dow = (calStartDow + i) % 7
+                  const isToday = d === calToday
+                  const dayCats = calDayCategories[d] ?? []
+                  return (
+                    <div key={d} style={{ padding:'2px 0', position:'relative' }}>
+                      <div style={{
+                        width:28, height:28, borderRadius:'50%', margin:'0 auto',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:12, fontWeight: isToday ? 700 : 400,
+                        color: isToday ? '#fff' : dow===0 ? 'var(--danger)' : dow===6 ? 'var(--info)' : 'var(--t1)',
+                        background: isToday ? 'var(--acl)' : 'transparent',
+                      }}>
+                        {d}
+                      </div>
+                      {dayCats.length > 0 && (
+                        <div style={{ display:'flex', justifyContent:'center', gap:2, marginTop:1, height:5 }}>
+                          {dayCats.slice(0, 3).map((cat, ci) => (
+                            <div key={ci} style={{ width:4, height:4, borderRadius:'50%', background: CAT_DOT[cat] ?? 'var(--t3)' }} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 오늘 일정 */}
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', flex:1, minHeight:0 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>오늘 일정</span>
+                <span style={{ fontSize:12, color:'var(--t3)', background:'var(--bg3)', padding:'3px 10px', borderRadius:10 }}>{schedule.length}건</span>
+              </div>
+              <div style={{ overflowY:'auto', flex:1 }}>
+                {schedule.length === 0 ? (
+                  <div style={{ padding:24, textAlign:'center', fontSize:13, color:'var(--t3)' }}>오늘 일정 없음</div>
+                ) : (
+                  <>
+                    {timed.length > 0 && (
+                      <>
+                        <div style={{ padding:'8px 16px 4px', fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em' }}>시간 확정</div>
+                        {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
+                      </>
+                    )}
+                    {untimed.length > 0 && (
+                      <>
+                        <div style={{ padding:'8px 16px 4px', fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', borderTop: timed.length > 0 ? '1px solid var(--bd)' : 'none' }}>시간 미정</div>
+                        {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

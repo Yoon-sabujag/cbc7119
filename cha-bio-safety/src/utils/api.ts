@@ -42,6 +42,7 @@ export const dashboardApi = {
     onDutyStaff: import('../types').Staff[]
     monthlyItems: { label:string; pct:number; color:string; total:number; done:number }[]
     todayTarget: string
+    monthScheduleDates: Record<string, string[]>
   }>('/dashboard/stats'),
 }
 
