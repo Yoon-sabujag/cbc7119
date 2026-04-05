@@ -4,7 +4,8 @@
 
 - ✅ **v1.0 Completion** — Phases 1-4 (shipped 2026-03-31)
 - ✅ **v1.1 UI 재편 + 기능 확장** — Phases 5-11 (shipped 2026-04-05)
-- 🚧 **v1.2 UX 개선 + 다운로드** — Phases 12-15 (in progress)
+- ✅ **v1.2 UX 개선 + 다운로드** — Phases 12-15 (shipped 2026-04-06)
+- 🚧 **v1.3 설정 페이지** — Phases 16-19 (in progress)
 
 ## Phases
 
@@ -33,14 +34,24 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.2 UX 개선 + 다운로드 (In Progress)
+<details>
+<summary>✅ v1.2 UX 개선 + 다운로드 (Phases 12-15) — SHIPPED 2026-04-06</summary>
 
-**Milestone Goal:** 법적 점검·조치 관련 UX 편의성 개선 및 보고서 다운로드 기능
+- [x] Phase 12: Multi-Photo Infrastructure (2/2 plans) — completed 2026-04-06
+- [x] Phase 13: Finding BottomSheet Restructure — completed 2026-04-06
+- [x] Phase 14: Schedule Date Range — completed 2026-04-06
+- [x] Phase 15: Finding Download (2/2 plans) — completed 2026-04-05
 
-- [x] **Phase 12: Multi-Photo Infrastructure** - DB migration + useMultiPhotoUpload hook + PhotoGrid component — completed 2026-04-06
-- [x] **Phase 13: Finding BottomSheet Restructure** - 점검항목 선택 + 위치 3단계 드롭다운 + 사진 업로드 통합 — completed 2026-04-06
-- [x] **Phase 14: Schedule Date Range** - 시작일/종료일 범위로 연속 일정 한번에 등록 — completed 2026-04-06
-- [x] **Phase 15: Finding Download** - 건별 다운로드 + 일괄 ZIP + iOS PWA 지원 (completed 2026-04-05)
+</details>
+
+### 🚧 v1.3 설정 페이지 (In Progress)
+
+**Milestone Goal:** 사용자별 앱 설정을 관리할 수 있는 설정 페이지 구축
+
+- [ ] **Phase 16: Settings Page + Profile** - 설정 페이지 진입점 + 비밀번호·이름 변경 + 로그아웃
+- [ ] **Phase 17: Push Notification Settings** - PWA 푸시 알림 구독/해제 + 알림 유형별 토글
+- [ ] **Phase 18: Menu Customization** - BottomNav 순서 변경 + SideMenu 항목 표시/숨김 설정
+- [ ] **Phase 19: App Info & Cache** - 빌드 버전 표시 + 서비스워커 캐시 초기화
 
 ## Phase Details
 
@@ -53,10 +64,10 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
   2. 업로드된 사진이 썸네일 그리드로 표시된다
   3. 썸네일을 탭하면 라이트박스로 풀스크린 확대보기된다
   4. 기존 단일 사진(photo_key) 데이터가 기존과 동일하게 표시된다 (하위 호환)
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 Plans:
 - [x] 12-01-PLAN.md — Migration + dependency + types + useMultiPhotoUpload hook + PhotoGrid component
-- [ ] 12-02-PLAN.md — API handler updates + LegalFindingDetailPage integration + deploy
+- [x] 12-02-PLAN.md — API handler updates + LegalFindingDetailPage integration + deploy
 **UI hint**: yes
 
 ### Phase 13: Finding BottomSheet Restructure
@@ -95,6 +106,52 @@ Plans:
 - [x] 15-02-PLAN.md — LegalFindingsPage 일괄 ZIP 다운로드 + 프로덕션 배포/검증
 **UI hint**: yes
 
+### Phase 16: Settings Page + Profile
+**Goal**: 사용자가 설정 페이지에서 비밀번호·이름을 변경하고 로그아웃할 수 있다
+**Depends on**: Phase 15
+**Requirements**: PROF-01, PROF-02, APP-03
+**Success Criteria** (what must be TRUE):
+  1. SideMenu 또는 BottomNav에서 설정 페이지로 진입할 수 있다
+  2. 설정 페이지에서 현재 비밀번호 확인 후 새 비밀번호로 변경할 수 있다
+  3. 설정 페이지에서 자신의 이름을 수정하고 저장할 수 있다
+  4. 설정 페이지에서 로그아웃 버튼으로 세션을 종료하고 로그인 화면으로 이동한다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 17: Push Notification Settings
+**Goal**: 사용자가 PWA 푸시 알림을 구독하고 알림 유형별로 활성화 여부를 제어할 수 있다
+**Depends on**: Phase 16
+**Requirements**: NOTI-01, NOTI-02, NOTI-03
+**Success Criteria** (what must be TRUE):
+  1. 설정 페이지에서 PWA 푸시 알림을 구독하거나 해제할 수 있다
+  2. 점검 일정 알림을 개별적으로 켜고 끌 수 있다
+  3. 미조치 이슈 알림을 개별적으로 켜고 끌 수 있다
+  4. 알림 구독 상태(허용/차단/미설정)가 설정 화면에 시각적으로 표시된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 18: Menu Customization
+**Goal**: 사용자가 BottomNav 순서와 SideMenu 표시 항목을 직접 커스터마이징할 수 있다
+**Depends on**: Phase 16
+**Requirements**: MENU-01, MENU-02
+**Success Criteria** (what must be TRUE):
+  1. 설정 페이지에서 BottomNav 메뉴 항목을 드래그 또는 버튼으로 순서 변경할 수 있다
+  2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
+  3. 변경한 메뉴 설정이 앱을 닫고 다시 열어도 유지된다 (로컬 퍼시스턴스)
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 19: App Info & Cache
+**Goal**: 사용자가 빌드 버전을 확인하고 서비스워커 캐시를 직접 초기화할 수 있다
+**Depends on**: Phase 16
+**Requirements**: APP-01, APP-02
+**Success Criteria** (what must be TRUE):
+  1. 설정 페이지에서 현재 앱 빌드 버전을 확인할 수 있다
+  2. 캐시 초기화 버튼을 탭하면 서비스워커 캐시가 삭제되고 완료 메시지가 표시된다
+  3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -113,7 +170,11 @@ Plans:
 | 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
-| 15. Finding Download | v1.2 | 2/2 | Complete    | 2026-04-05 |
+| 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
+| 16. Settings Page + Profile | v1.3 | 0/? | Not started | - |
+| 17. Push Notification Settings | v1.3 | 0/? | Not started | - |
+| 18. Menu Customization | v1.3 | 0/? | Not started | - |
+| 19. App Info & Cache | v1.3 | 0/? | Not started | - |
 
 ## Backlog
 
@@ -127,5 +188,6 @@ Plans:
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 shipped: 2026-04-05*
-*v1.2 started: 2026-04-05*
+*v1.2 shipped: 2026-04-06*
+*v1.3 started: 2026-04-06*
 *Last updated: 2026-04-06*

@@ -89,12 +89,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DL-01 | Phase 15 | Complete |
 | DL-02 | Phase 15 | Complete |
 | DL-03 | Phase 15 | Complete |
+| PROF-01 | Phase 16 | Pending |
+| PROF-02 | Phase 16 | Pending |
+| APP-03 | Phase 16 | Pending |
+| NOTI-01 | Phase 17 | Pending |
+| NOTI-02 | Phase 17 | Pending |
+| NOTI-03 | Phase 17 | Pending |
+| MENU-01 | Phase 18 | Pending |
+| MENU-02 | Phase 18 | Pending |
+| APP-01 | Phase 19 | Pending |
+| APP-02 | Phase 19 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 10 total
 - Mapped to phases: 10
 - Unmapped: 0 ✓
 
+- v1.3 requirements: 10 total
+- Mapped to phases: 10
+- Unmapped: 0 ✓
+
 ---
 *Requirements defined: 2026-04-05*
-*Last updated: 2026-04-05 — traceability updated after roadmap creation (phases 12-15)*
+*Last updated: 2026-04-06 — v1.3 traceability added (phases 16-19)*

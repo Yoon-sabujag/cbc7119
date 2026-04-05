@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: 설정 페이지
-status: defining_requirements
-stopped_at: Milestone v1.3 started
+status: roadmap_ready
+stopped_at: Roadmap created — Phase 16 is next
 last_updated: "2026-04-06T00:00:00.000Z"
 last_activity: 2026-04-06
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -26,60 +26,55 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
-**Current focus:** Not started (defining requirements)
+**Current focus:** Phase 16 — Settings Page + Profile
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 16 — Settings Page + Profile (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-06 — Milestone v1.3 started
+Status: Roadmap created, ready to plan Phase 16
+Last activity: 2026-04-06 — v1.3 roadmap created (Phases 16-19)
 
-Progress: [░░░░░░░░░░] 0% (v1.3, 0/? phases)
+Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.2): 0
+- Total plans completed (v1.3): 0
 - Average duration: —
 - Total execution time: —
 
-**By Phase (v1.2):**
+**By Phase (v1.3):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 12. Multi-Photo Infrastructure | — | — | — |
-| 13. Finding BottomSheet Restructure | — | — | — |
-| 14. Schedule Date Range | — | — | — |
-| 15. Finding Download | — | — | — |
+| 16. Settings Page + Profile | — | — | — |
+| 17. Push Notification Settings | — | — | — |
+| 18. Menu Customization | — | — | — |
+| 19. App Info & Cache | — | — | — |
 
 *Updated after each plan completion*
-| Phase 12 P01 | 3 | 2 tasks | 6 files |
-| Phase 15 P01 | 2m | 2 tasks | 2 files |
-| Phase 15 P02 | 15 | 2 tasks | 1 files |
-| Phase 15 P02 | 30 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Recent decisions affecting v1.2 work:
+Carried from v1.2:
 
 - [v1.2 Research]: photo_keys migration은 additive — photo_key 컬럼 유지, photo_keys TEXT DEFAULT '[]' 추가, API fallback read 적용 (migration 0043)
 - [v1.2 Research]: iOS PWA에서 `<a download>` 미동작 (WebKit bug 167341) — window.open() + 공유시트 사용
 - [v1.2 Research]: multi-photo에서 capture + multiple 동시 사용 불가 (iOS) — 카메라/갤러리 버튼 분리
-- [v1.2 Research]: 일정 범위 등록은 1일 1행 모델로 구현 — group_id 모델 금지 (법적점검 목록 쿼리 중복 방지)
 - [v1.2 Research]: 클라이언트 ZIP (fflate.zipSync) 사용 — Worker 128MB 제한 + 4인 팀 규모에 서버사이드 불필요
-- [v1.2 Research]: yet-another-react-lightbox ^3.25.0 신규 의존성 추가 (~25 kB gzip, React 18 호환)
-- [Phase 12]: Blob URL cleanup uses previewUrls ref (updated via useEffect) rather than closure over slots to avoid stale state at unmount
-- [Phase 12]: Promise.allSettled for parallel upload — partial failure does not block successful keys from being returned
-- [Phase 12]: No capture attribute on hidden file input — iOS does not support capture+multiple simultaneously (research D-07)
-- [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass (D-08 compliance)
-- [Phase 15]: Promise.allSettled for parallel photo fetch — partial photo failure does not block report
-- [Phase 15]: window.open(blobUrl, '_blank') not <a download> for iOS PWA ZIP download compatibility
-- [Phase 15]: window.open(blobUrl, '_blank') not <a download> for iOS PWA ZIP delivery (D-08 compliance, WebKit bug 167341)
-- [Phase 15]: Promise.allSettled for photo fetch in ZIP — partial photo failure does not abort bulk download, 내용.txt always included
+- [Phase 12]: Promise.allSettled for parallel upload — partial failure does not block successful keys
+- [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass
+
+v1.3 decisions:
+
+- [v1.3 Roadmap]: 개인별 메뉴 설정은 로컬 퍼시스턴스 (Zustand persist) — 서버 저장 불필요 (4인 고정 기기)
+- [v1.3 Roadmap]: APP-03 로그아웃은 Phase 16(설정 페이지 Shell)에 포함 — 설정 진입점과 함께 구축
+- [v1.3 Roadmap]: Phase 17(알림)은 Phase 16 이후 — 설정 페이지 라우트가 먼저 존재해야 함
+- [v1.3 Roadmap]: Phase 18(메뉴)과 Phase 19(앱 정보)는 Phase 16 이후 병렬 가능하나 순차로 계획
 
 ### Pending Todos
 
@@ -87,17 +82,18 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 12: migration 0043 배포 후 Worker 코드 배포까지 D1 전파 대기(~5초) 필요 — 배포 순서 주의
-- Phase 13: FINDING_ITEMS 목록 (~25개 한국어 점검항목) 방재팀과 내용 확인 필요 (도메인 결정)
-- Phase 15: 물리 iOS 16.x 기기 PWA 홈 화면 모드 테스트 필수 — Chrome 데스크톱 결과는 비대표적
+- Phase 17: PWA 푸시 알림은 Cloudflare Workers + Web Push (VAPID) 구현 필요 — 연구 단계에서 확인 필요
+- Phase 17: iOS Safari PWA 푸시 알림은 iOS 16.4+ 필요 — iOS 16.3.1 타겟과 충돌 가능성 확인 필요
+- Phase 18: 메뉴 커스터마이징 상태를 사용자별로 저장할 위치 결정 필요 (localStorage vs D1)
 
 ## Session Continuity
 
-Last session: 2026-04-05T17:29:19.804Z
-Stopped at: Completed 15-finding-download 15-02-PLAN.md — Phase 15 complete, v1.2 milestone done
+Last session: 2026-04-06
+Stopped at: v1.3 roadmap created — Phases 16-19 defined, ready to plan Phase 16
 Resume file: None
 
 ---
 *State initialized: 2026-03-28*
 *Milestone v1.1 shipped: 2026-04-05*
-*Milestone v1.2 roadmap created: 2026-04-05*
+*Milestone v1.2 shipped: 2026-04-06*
+*Milestone v1.3 roadmap created: 2026-04-06*
