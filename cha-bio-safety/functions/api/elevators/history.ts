@@ -107,7 +107,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
     // ── 3. 검사 이력 (annual) ─────────────────────────────
     const annualRows = await env.DB.prepare(`
-      SELECT id, inspect_date as date, overall, action_needed
+      SELECT id, inspect_date as date, overall, action_needed, inspect_type
       FROM elevator_inspections
       WHERE elevator_id = ?
         AND type = 'annual'
@@ -115,15 +115,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       ORDER BY inspect_date DESC
     `).bind(elevatorId, from, to).all<any>()
 
+    const inspTypeLabel: Record<string,string> = { regular:'정기검사', special:'수시검사', detailed:'정밀안전검사' }
     for (const a of (annualRows.results ?? [])) {
       const overallLabel = a.overall === 'pass' ? '합격'
                          : a.overall === 'conditional' ? '조건부합격'
                          : a.overall === 'fail' ? '불합격' : a.overall
+      const typeName = a.inspect_type ? (inspTypeLabel[a.inspect_type] ?? a.inspect_type) : '정기검사'
       result.push({
         id:      `annual-${a.id}`,
         kind:    'annual',
         date:    a.date,
-        summary: `연간검사 ${overallLabel}`,
+        summary: `${typeName} ${overallLabel}`,
         detail:  a.action_needed ?? undefined,
       })
     }

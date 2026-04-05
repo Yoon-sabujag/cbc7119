@@ -50,7 +50,7 @@ interface ElevatorInspection {
   elevator_number: number
   elevator_type: string
 }
-type Tab   = 'list' | 'fault' | 'inspect' | 'annual'
+type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual'
 type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
@@ -317,9 +317,11 @@ export default function ElevatorPage() {
   })
 
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
+  const repairCount = faults.filter(f => f.is_resolved && f.repair_detail).length
   const TABS: { key:Tab; label:string }[] = [
     { key:'list',    label:'목록' },
     { key:'fault',   label:`고장${unresolvedCount > 0 ? ` (${unresolvedCount})` : ''}` },
+    { key:'repair',  label:'수리' },
     { key:'inspect', label:'점검 기록' },
     { key:'annual',  label:'검사 기록' },
   ]
@@ -472,6 +474,31 @@ export default function ElevatorPage() {
           </>
         )}
 
+        {/* ── 수리 내역 ── */}
+        {tab === 'repair' && (
+          <>
+            {faults.filter(f => f.is_resolved && f.repair_detail).length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
+            {faults.filter(f => f.is_resolved && f.repair_detail).sort((a, b) => (b.repaired_at ?? '').localeCompare(a.repaired_at ?? '')).map(f => (
+              <div key={f.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+                <div style={{ width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
+                  {TYPE_ICON[f.elevator_type] ?? '🔧'}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{f.elevator_number ? `${f.elevator_number}호기` : f.elevator_location}</span>
+                    {f.repair_company && <span style={{ fontSize:10, fontWeight:600, padding:'1px 6px', borderRadius:6, background:'rgba(34,197,94,0.1)', color:'var(--safe)' }}>{f.repair_company}</span>}
+                  </div>
+                  <div style={{ fontSize:12, color:'var(--t1)', marginTop:3, lineHeight:1.4 }}>{f.repair_detail}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                    고장: {f.fault_at?.slice(0,10)} → 수리: {f.repaired_at?.slice(0,10)}
+                    {f.symptoms && <span> · {f.symptoms.length > 20 ? f.symptoms.slice(0,20)+'...' : f.symptoms}</span>}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
         {/* ── 점검 기록 ── */}
         {tab === 'inspect' && (
           <>
@@ -523,7 +550,7 @@ export default function ElevatorPage() {
               const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
               const isExpanded = expandedAnnual === i.id
               const isConditional = resultKey === 'conditional'
-              const typeLabel = i.inspect_type ? (INSPECT_TYPE_LABEL[i.inspect_type] ?? i.inspect_type) : '연간검사'
+              const typeLabel = i.inspect_type ? (INSPECT_TYPE_LABEL[i.inspect_type] ?? i.inspect_type) : '정기검사'
               return (
                 <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0 }}>
                   {/* 리스트 행: 탭하면 상세 펼침 */}
