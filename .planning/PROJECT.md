@@ -35,20 +35,20 @@
 
 ### Active
 
-- [ ] 일정 범위 입력 (시작일/종료일로 연속 법적 점검 한번에 등록)
-- [ ] 지적사항 BottomSheet 구조 개선 (점검 항목 선택, 위치 구조화)
-- [ ] 다중 사진 업로드 + 갤러리 (지적·조치 사진 최대 5장, 썸네일+확대)
-- [ ] 지적·조치 내용+사진 다운로드 (건별·일괄, 관리자 보고서 지원)
+- [ ] 프로필/비밀번호 변경 (사원번호, 이름, 비밀번호 수정)
+- [ ] 알림 설정 (점검 일정 알림, 미조치 알림 등 PWA 푸시)
+- [ ] 메뉴 편집 (BottomNav/SideMenu 메뉴 순서·표시 커스터마이징)
+- [ ] 앱 정보/버전 (빌드 버전, 캐시 초기화, 로그아웃)
 
-## Current Milestone: v1.2 UX 개선 + 다운로드
+## Current Milestone: v1.3 설정 페이지
 
-**Goal:** 법적 점검·조치 관련 UX 편의성 개선 및 보고서 다운로드 기능
+**Goal:** 사용자별 앱 설정을 관리할 수 있는 설정 페이지 구축
 
 **Target features:**
-- 일정 범위 입력 — 법적 점검 4~5일 연속 시 시작일/종료일로 한번에 등록
-- 지적사항 BottomSheet 개선 — 점검 항목 선택(직접입력 포함), 위치 구조화(구역→층→상세위치)
-- 다중 사진 업로드 + 갤러리 — 지적·조치 사진 최대 5장, 썸네일 그리드 + 확대보기
-- 지적·조치 다운로드 — 건별·일괄 다운로드로 관리자 보고서 작성 지원
+- 프로필/비밀번호 변경 — 사원번호, 이름, 비밀번호 수정
+- 알림 설정 — 점검 일정, 미조치 이슈 등 PWA 푸시 알림 관리
+- 메뉴 편집 — BottomNav/SideMenu 메뉴 순서·표시 커스터마이징
+- 앱 정보/버전 — 빌드 버전 표시, 캐시 초기화, 로그아웃
 
 ### Out of Scope
 
@@ -59,7 +59,7 @@
 
 ## Context
 
-- **현재 상태:** v1.2 개발 중 (v1.1 출시 2026-04-05, 프로덕션 운영 중)
+- **현재 상태:** v1.3 개발 중 (v1.2 출시 2026-04-06, 프로덕션 운영 중)
 - **대상 건물:** 차바이오컴플렉스 (지하5층~지상8층, 4층 없음, M층 있음, 사무동/연구동 분리)
 - **사용자:** 방재팀 4인 (관리자 1 + 보조자 3, 3교대 근무)
 - **기술 스택:** React 18 / TypeScript 5.6 / Vite 5.4 / Zustand / TanStack Query / Tailwind CSS / Cloudflare Pages Functions
@@ -105,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-05 after v1.2 milestone start*
+*Last updated: 2026-04-06 after v1.3 milestone start*
