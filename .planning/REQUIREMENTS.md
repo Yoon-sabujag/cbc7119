@@ -35,8 +35,8 @@ Requirements for v1.3 release. Each maps to roadmap phases.
 
 ### 프로필/계정
 
-- [ ] **PROF-01**: 비밀번호를 변경할 수 있다
-- [ ] **PROF-02**: 이름을 수정할 수 있다
+- [x] **PROF-01**: 비밀번호를 변경할 수 있다
+- [x] **PROF-02**: 이름을 수정할 수 있다
 
 ### 알림
 
@@ -53,7 +53,7 @@ Requirements for v1.3 release. Each maps to roadmap phases.
 
 - [ ] **APP-01**: 빌드 버전과 앱 정보를 확인할 수 있다
 - [ ] **APP-02**: 서비스워커 캐시를 초기화할 수 있다
-- [ ] **APP-03**: 로그아웃할 수 있다
+- [x] **APP-03**: 로그아웃할 수 있다
 
 ## Future Requirements
 
@@ -89,9 +89,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DL-01 | Phase 15 | Complete |
 | DL-02 | Phase 15 | Complete |
 | DL-03 | Phase 15 | Complete |
-| PROF-01 | Phase 16 | Pending |
-| PROF-02 | Phase 16 | Pending |
-| APP-03 | Phase 16 | Pending |
+| PROF-01 | Phase 16 | Complete |
+| PROF-02 | Phase 16 | Complete |
+| APP-03 | Phase 16 | Complete |
 | NOTI-01 | Phase 17 | Pending |
 | NOTI-02 | Phase 17 | Pending |
 | NOTI-03 | Phase 17 | Pending |

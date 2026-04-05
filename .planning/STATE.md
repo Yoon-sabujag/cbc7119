@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: 설정 페이지
-status: planning
-stopped_at: Phase 16 context gathered
-last_updated: "2026-04-05T23:19:18.039Z"
-last_activity: 2026-04-06 — v1.3 roadmap created (Phases 16-19)
+status: executing
+stopped_at: "Completed 16-01-PLAN.md (SettingsPage core: profile API, authStore.updateStaff, SettingsPage.tsx)"
+last_updated: "2026-04-05T23:50:37.711Z"
+last_activity: 2026-04-05
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
   percent: 0
 ---
 
@@ -26,14 +26,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-06)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
-**Current focus:** Phase 16 — Settings Page + Profile
+**Current focus:** Phase 16 — settings-page-profile
 
 ## Current Position
 
-Phase: 16 — Settings Page + Profile (not started)
-Plan: —
-Status: Roadmap created, ready to plan Phase 16
-Last activity: 2026-04-06 — v1.3 roadmap created (Phases 16-19)
+Phase: 16 (settings-page-profile) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
 | 19. App Info & Cache | — | — | — |
 
 *Updated after each plan completion*
+| Phase 16-settings-page-profile P01 | 12 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ v1.3 decisions:
 - [v1.3 Roadmap]: APP-03 로그아웃은 Phase 16(설정 페이지 Shell)에 포함 — 설정 진입점과 함께 구축
 - [v1.3 Roadmap]: Phase 17(알림)은 Phase 16 이후 — 설정 페이지 라우트가 먼저 존재해야 함
 - [v1.3 Roadmap]: Phase 18(메뉴)과 Phase 19(앱 정보)는 Phase 16 이후 병렬 가능하나 순차로 계획
+- [Phase 16-settings-page-profile]: SettingsPage is a full page (not panel) — standalone route /settings, lazy-loadable default export
+- [Phase 16-settings-page-profile]: updateStaff added to authStore with Partial<Staff> for local name sync after profile API success
 
 ### Pending Todos
 
@@ -88,9 +91,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T23:19:18.025Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-settings-page-profile/16-CONTEXT.md
+Last session: 2026-04-05T23:50:37.706Z
+Stopped at: Completed 16-01-PLAN.md (SettingsPage core: profile API, authStore.updateStaff, SettingsPage.tsx)
+Resume file: None
 
 ---
 *State initialized: 2026-03-28*

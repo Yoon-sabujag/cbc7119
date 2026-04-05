@@ -115,9 +115,9 @@ Plans:
   2. 설정 페이지에서 현재 비밀번호 확인 후 새 비밀번호로 변경할 수 있다
   3. 설정 페이지에서 자신의 이름을 수정하고 저장할 수 있다
   4. 설정 페이지에서 로그아웃 버튼으로 세션을 종료하고 로그인 화면으로 이동한다
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 16-01-PLAN.md — Profile API + authStore update + SettingsPage component
+- [x] 16-01-PLAN.md — Profile API + authStore update + SettingsPage component
 - [ ] 16-02-PLAN.md — App.tsx wiring + SideMenu/DesktopSidebar cleanup + deploy
 **UI hint**: yes
 
@@ -174,7 +174,7 @@ Plans:
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
-| 16. Settings Page + Profile | v1.3 | 0/2 | Planning | - |
+| 16. Settings Page + Profile | v1.3 | 1/2 | In Progress|  |
 | 17. Push Notification Settings | v1.3 | 0/? | Not started | - |
 | 18. Menu Customization | v1.3 | 0/? | Not started | - |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
