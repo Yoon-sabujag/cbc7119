@@ -39,9 +39,14 @@
 
   html {
     height: 100%;
-    overflow: hidden;
     margin: 0;
     background: #161b22;
+  }
+
+  @media (max-width: 1023px) {
+    html {
+      overflow: hidden;
+    }
   }
 
   body {

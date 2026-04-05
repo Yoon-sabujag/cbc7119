@@ -12,9 +12,9 @@ interface Props {
   unresolvedCount?: number
 }
 
-type MenuItem = { label: string; path: string; badge: number; soon: boolean; role?: 'admin' | 'assistant' }
+export type MenuItem = { label: string; path: string; badge: number; soon: boolean; role?: 'admin' | 'assistant' }
 
-const MENU: { section: string; items: MenuItem[] }[] = [
+export const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '주요 기능', items: [
     { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
     { label: '소방 점검',   path: '/inspection',     badge: 0, soon: false },
