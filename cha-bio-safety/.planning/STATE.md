@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PWA 데스크톱 최적화
-status: verifying
-stopped_at: Phase 12 UI-SPEC approved
-last_updated: "2026-04-05T04:50:33.398Z"
+status: executing
+stopped_at: Completed 12-document-editing-export 12-01-PLAN.md
+last_updated: "2026-04-05T05:12:59.567Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-05)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다.
-**Current focus:** Phase 11 — desktop-layout-foundation
+**Current focus:** Phase 12 — document-editing-export
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 12 (document-editing-export) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0%
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase 11 P01 | 17 | 2 tasks | 5 files |
 | Phase 11 P02 | 20 | 1 tasks | 2 files |
+| Phase 12 P01 | 25 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 11]: DesktopSidebar uses 3px transparent left border on inactive items to prevent layout shift on activation
 - [Phase 11]: Split NO_NAV_PATHS into MOBILE/DESKTOP variants: DESKTOP keeps only ['/', '/login'] to show sidebar on all authenticated pages
 - [Phase 11]: main tag uses overflow: auto instead of nested div overflow: hidden to enable desktop page scrolling without phantom bottom gap
+- [Phase 12]: HTML table preview is data-confirmation quality not pixel-perfect Excel reproduction — print via Excel download for precision
+- [Phase 12]: downloadReport() shared async function used by both desktop and mobile layouts in ReportsPage
+- [Phase 12]: data-no-print attribute pattern on chrome elements for @media print control (sidebar, header, tab row, left panel)
 
 ### Pending Todos
 
@@ -82,6 +86,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-05T04:50:33.393Z
-Stopped at: Phase 12 UI-SPEC approved
-Resume file: .planning/phases/12-document-editing-export/12-UI-SPEC.md
+Last session: 2026-04-05T05:12:59.563Z
+Stopped at: Completed 12-document-editing-export 12-01-PLAN.md
+Resume file: None

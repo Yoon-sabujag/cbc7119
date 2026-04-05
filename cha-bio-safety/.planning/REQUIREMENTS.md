@@ -10,16 +10,16 @@ Requirements for PWA 데스크톱 최적화. Each maps to roadmap phases.
 ### 데스크톱 레이아웃
 
 - [x] **LAYOUT-01**: 사용자가 PC(1920x1080)에서 영구 사이드바로 모든 메뉴에 접근할 수 있다
-- [ ] **LAYOUT-02**: 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 확인할 수 있다
-- [ ] **LAYOUT-03**: 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
+- [x] **LAYOUT-02**: 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 확인할 수 있다
+- [x] **LAYOUT-03**: 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
 - [x] **LAYOUT-04**: 모바일 레이아웃이 기존과 동일하게 유지된다
 
 ### 문서 작업
 
-- [ ] **DOC-01**: 사용자가 자동 생성된 점검일지를 데스크톱에서 조회하고 엑셀/PDF로 즉시 출력할 수 있다
+- [x] **DOC-01**: 사용자가 자동 생성된 점검일지를 데스크톱에서 조회하고 엑셀/PDF로 즉시 출력할 수 있다
 - [ ] **DOC-02**: 사용자가 소방계획서를 데스크톱에서 작성하고 편집할 수 있다
 - [ ] **DOC-03**: 사용자가 소방훈련용 자료(PPT 등)를 데스크톱에서 작성할 수 있다
-- [ ] **DOC-04**: 사용자가 인쇄 시 인쇄용 스타일시트가 적용된 상태로 출력할 수 있다
+- [x] **DOC-04**: 사용자가 인쇄 시 인쇄용 스타일시트가 적용된 상태로 출력할 수 있다
 
 ### 파일 저장
 
@@ -70,13 +70,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | LAYOUT-01 | Phase 11 | Complete |
-| LAYOUT-02 | Phase 12 | Pending |
-| LAYOUT-03 | Phase 12 | Pending |
+| LAYOUT-02 | Phase 12 | Complete |
+| LAYOUT-03 | Phase 12 | Complete |
 | LAYOUT-04 | Phase 11 | Complete |
-| DOC-01 | Phase 12 | Pending |
+| DOC-01 | Phase 12 | Complete |
 | DOC-02 | Phase 12 | Pending |
 | DOC-03 | Phase 12 | Pending |
-| DOC-04 | Phase 12 | Pending |
+| DOC-04 | Phase 12 | Complete |
 | FILE-01 | Phase 13 | Pending |
 | FILE-02 | Phase 13 | Pending |
 | FILE-03 | Phase 13 | Pending |

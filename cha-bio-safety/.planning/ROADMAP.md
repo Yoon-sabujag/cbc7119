@@ -39,9 +39,9 @@ Plans:
   2. 사용자가 데스크톱 화면에서 소방계획서를 작성하고 편집할 수 있다
   3. 사용자가 데스크톱 화면에서 소방훈련용 자료(PPT 등)를 작성할 수 있다
   4. 사용자가 인쇄 시 사이드바가 숨겨지고 인쇄용 스타일이 적용된 상태로 출력된다
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 12-01-PLAN.md — ExcelPreview 컴포넌트 + DesktopReportsPage 3분할 레이아웃 + @media print 스타일
+- [x] 12-01-PLAN.md — ExcelPreview 컴포넌트 + DesktopReportsPage 3분할 레이아웃 + @media print 스타일
 - [ ] 12-02-PLAN.md — DailyReportPage 데스크톱 2분할 레이아웃 + 시각 검증
 **UI hint**: yes
 **Note**: DOC-02 (소방계획서), DOC-03 (소방훈련 자료) deferred — 관리자 상의 후 진행
@@ -76,6 +76,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 11. Desktop Layout Foundation | v1.1 | 2/2 | Complete    | 2026-04-05 |
-| 12. Document Editing & Export | v1.1 | 0/2 | Planning complete | - |
+| 12. Document Editing & Export | v1.1 | 1/2 | In Progress|  |
 | 13. File System Access Auto-Save | v1.1 | 0/? | Not started | - |
 | 14. Menu Upload & Keyboard Polish | v1.1 | 0/? | Not started | - |
