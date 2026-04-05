@@ -1740,7 +1740,7 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
           <option value="">전체 호기</option>
           {filteredElevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
         </select>
-        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="부품, 호기, 층, 업체 검색..." style={{ ...inputSt, flex:'2 1 100px', fontSize:11 }} />
+        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="부품, 호기, 층, 대상 검색..." style={{ ...inputSt, flex:'2 1 100px', fontSize:11 }} />
       </div>
 
       {isLoading && <EmptyState icon="⏳" text="불러오는 중..." />}

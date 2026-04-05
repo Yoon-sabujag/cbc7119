@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     {
       let w = '1=1'; const b: string[] = []
       if (elevatorId) { w += ' AND r.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (r.repair_item LIKE ? OR r.repair_detail LIKE ? OR r.repair_target LIKE ? OR r.hall_floor LIKE ? OR r.repair_company LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
+      if (keyword) { w += ' AND (r.repair_item LIKE ? OR r.repair_detail LIKE ? OR r.repair_target LIKE ? OR r.hall_floor LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     {
       let w = 'f.is_resolved = 1 AND f.repair_detail IS NOT NULL'; const b: string[] = []
       if (elevatorId) { w += ' AND f.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (f.repair_detail LIKE ? OR f.symptoms LIKE ? OR f.repair_company LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
+      if (keyword) { w += ' AND (f.repair_detail LIKE ? OR f.symptoms LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
