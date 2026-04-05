@@ -1,215 +1,179 @@
 # Project Research Summary
 
-**Project:** CHA Bio Complex Fire Safety Management System
-**Domain:** Fire Safety / Facility Management PWA — single building, 4-person internal team, Cloudflare-native edge stack
-**Researched:** 2026-03-31 (v1.1 update; initial synthesis 2026-03-28 also incorporated)
-**Confidence:** HIGH (stack/architecture derived from direct codebase inspection at migration 0032; features confirmed against Korean legal requirements; pitfalls cross-validated against project context)
-
----
+**Project:** CHA Bio Safety v1.2 — UX Improvements
+**Domain:** Fire Safety / Facility Management PWA (Cloudflare Pages + D1 + R2)
+**Researched:** 2026-04-05
+**Confidence:** HIGH
 
 ## Executive Summary
 
-This is a v1.1 milestone execution against a production PWA that shipped v1.0 complete. The system is a Cloudflare Pages + D1 + R2 application serving 4 fire safety personnel at CHA Bio Complex (Pangyo). v1.0 delivered 13 inspection categories, 10 Excel report types, QR scan workflow, shift scheduling, annual leave, elevator fault tracking, DIV pressure management, and daily work reports. The v1.1 work is entirely additive: 6 new DB migrations (0033–0038), 16 new API routes, 5 new React pages, and navigation restructuring — with zero architectural changes or rebuilds of existing features.
+This project adds four UX improvements to an existing production PWA used by a 4-person fire safety team. The app is built on a locked stack (React 18, Cloudflare Pages Functions, D1, R2) with 42 migrations already in production. All four features — date range scheduling, structured finding BottomSheet, multi-photo upload, and findings download — extend the existing `legal_findings` / `schedule_items` domain. The recommended approach is additive: one new dependency (`yet-another-react-lightbox`), one DB migration (0043), and no breaking changes to existing data structures. Every design decision prioritizes zero-downtime deployment and backward compatibility with existing records.
 
-The recommended approach is to continue every established pattern without deviation. The `fflate` + XML template patching strategy for Excel is battle-tested across 4 report types and must not be replaced with ExcelJS or SheetJS for new types. All API routes follow Cloudflare Pages Functions file-system routing with named exports (no Hono). All new pages use TanStack Query for server state with no new Zustand stores. The 8 new feature areas each follow the identical pattern already proven in the codebase: DB migration → API handler file → React page → TanStack Query key. No new libraries are needed; only `xlsx-js-style` should be removed (unused, ~400KB) and `fflate` made an explicit dependency (currently an inline dynamic import).
+The primary risk vector is the iOS Safari PWA environment. Three distinct iOS limitations affect v1.2: the `<a download>` attribute is silently ignored in PWA mode (use `window.open()` and the share sheet instead), the `capture` and `multiple` attributes on file inputs are mutually exclusive on iOS (require separate buttons for camera and library), and blob URLs from `createObjectURL` no longer persist to Files on iOS 18.2+. All download and upload UI must be designed for iOS first and tested on a physical iOS 16.x device in Home Screen PWA mode — Chrome desktop results are not representative.
 
-The critical risks for v1.1 are: (1) a known deployment 504 that must be diagnosed and resolved before any new feature can ship — the fix depends entirely on whether it is a build-time timeout or a runtime timeout; (2) D1 local/remote schema drift if migration files are edited post-apply, especially with 6 new migrations pending; and (3) forgetting to update `NO_NAV_PATHS` in `App.tsx` when adding 4 new full-screen pages. The legal compliance urgency across 3 feature areas (소방시설법 연 2회 점검, 승강기 안전관리법 연 1회 검사, 소방안전관리자 2년 주기 교육) means regulatory consequences are real if these features are not delivered this milestone.
-
----
+The second architectural risk is the `photo_key` to multi-photo migration. The correct path is additive: add `photo_keys TEXT DEFAULT '[]'` alongside the existing `photo_key` column, and have the API read both with a fallback. Destructive renames or data migrations in the same step risk silently nulling photos for existing resolved findings. The `elevator_repairs` table already uses JSON-array TEXT columns for multi-photo, confirming this is the established project pattern.
 
 ## Key Findings
 
 ### Recommended Stack
 
-The existing stack requires only two dependency changes for v1.1: remove `xlsx-js-style` (installed but unused, ~400KB bundle waste) and explicitly declare `fflate@^0.8.2` as a direct dependency (currently used via inline dynamic import in production). No new frameworks, no new runtime dependencies. React 18 + Vite + Zustand + TanStack Query + Tailwind + Cloudflare D1/R2/Pages Functions is the complete runtime for all v1.1 features.
+The existing stack requires no changes except one new package. All v1.2 features are achievable with native `<input type="date">` (no date picker library), the existing hand-rolled BottomSheet component (no headlessui or radix), `yet-another-react-lightbox` for the photo fullscreen viewer, and `fflate.zipSync` already in the bundle for ZIP generation. The only stack addition is `yet-another-react-lightbox ^3.25.0` (~25 kB gzip) — chosen over `react-image-lightbox` (unmaintained since 2021), `PhotoSwipe` (React 18 strict mode issues), and `lightgallery` (GPLv3 license risk for internal tools).
 
-**Core technologies (no changes to these):**
-- `fflate` (explicit dep, ^0.8.2): ZIP/unzip for `.xlsx` template patching — the only edge-runtime-compatible approach that preserves merged cells, Korean fonts, and government-mandated form layouts. ExcelJS uses Node.js streams (incompatible with Workers). SheetJS community edition has license ambiguity and template-fidelity issues.
-- Cloudflare Pages Functions (file-system routing, named exports `onRequestGet` etc.): all 16 new API handlers follow this pattern. No Hono.
-- D1 SQLite (migrations 0033–0038): 6 new additive tables covering meal records, cafeteria menus, education records, system settings, legal inspections + issues, and elevator annual schedules.
-- TanStack Query: server state for all new pages; 9 new cache key namespaces. No new Zustand stores.
-- `date-fns` + `date-fns-tz`: already handles all date arithmetic for Korean legal deadline calculations (Asia/Seoul timezone).
-
-**Dependency changes:**
-- Remove: `xlsx-js-style` (unused, saves ~400KB bundle)
-- Add: `fflate@^0.8.2` (promotes existing dynamic import to explicit dep)
+**Core technologies:**
+- `<input type="date">` (native): Date range input — native iOS/Android picker, zero bundle cost, superior mobile UX vs. any library; `min`/`max` not enforced by iOS Safari so JS validation required
+- `yet-another-react-lightbox ^3.25.0` (new): Photo lightbox — actively maintained, React 18, touch/swipe, no deps, ~25 kB gzip
+- `fflate.zipSync` (existing): Client-side ZIP for bulk download — already bundled for Excel generation, synchronous, browser-safe at max ~10 MB payload
+- JSON array in TEXT column (existing project pattern): Multi-photo storage — established by `elevator_repairs` table at migration 0041, no junction table needed
+- Migration 0043 (one new migration): Additive columns only — `photo_keys TEXT DEFAULT '[]'`, `resolution_photo_keys TEXT DEFAULT '[]'`, `inspection_item TEXT` on `legal_findings`
 
 ### Expected Features
 
-**Must have (table stakes — legally required or daily-use blockers):**
-- BottomNav/SideMenu restructuring — removes dead "더보기" menu end; adds direct 조치 tab; unblocks all new page navigation entries
-- 조치 관리 (remediation tracking) — closed-loop for deficiencies: list/filter/resolve all open check records; migration 0012 schema already complete, zero new DB migration needed
-- 법적 점검 관리 (legal inspection management) — 소방시설법 연 2회 statutory obligation, 15-day reporting deadline to fire department
-- 승강기 법정검사 관리 (elevator annual inspection) — 승강기 안전관리법 1회/year per elevator (11 elevators, each with distinct expiry date)
-- 보수교육 관리 (safety manager continuing education) — 2-year recertification cycle; license revocation risk if missed
-- 식사 이용 기록 (meal usage records) — daily canteen check-in for monthly expense settlement
-- 관리자 설정 (admin settings) — staff password/title management; role-guard pattern established here for later admin-gated routes
-- 점검자 이름 동적 로딩 (dynamic inspector names) — remove hardcoded `STAFF_ROLES` map from DashboardPage.tsx (known anti-pattern at lines 14–19)
+All four features are confirmed table stakes for inspection apps (SafetyCulture, GoAudits, FieldEz patterns). Priority order is set by implementation independence: date range is fully independent and ships as its own phase; structured BottomSheet needs its own migration but not multi-photo; multi-photo is the largest change and blocks download; download depends on multi-photo for full value.
 
-**Should have (differentiators):**
-- D-day 알림 배너 (legal deadline countdown badges on dashboard) — proactive reminder for 소방 and 승강기 inspection due dates
-- streakDays calculation — consecutive daily inspection completion metric (currently hardcoded to 0 with `// TODO` in `dashboard/stats.ts`)
-- 대시보드 미조치 카운트 연동 — live unresolved count in SideMenu (currently hardcoded to 2)
-- 보수교육 이수증 R2 첨부 — certificate PDF storage mirrors existing R2 upload pattern
-- 식당 메뉴표 관리 (text only) — weekly menu management; image upload deferred to v1.2
+**Must have (table stakes):**
+- Date range input (start/end dates) — current single-date forces 4-5 manual re-entries per multi-day inspection cycle
+- BottomSheet item picker with "직접입력" fallback — predefined list (~25 items) eliminates typo variance across rounds
+- Structured location (zone/floor/detail) — stored as `zone|floor|detail` encoded in existing TEXT column; enables future filtering
+- Multi-photo upload up to 5 per finding/resolution — single photo is a daily felt limitation in field work
+- Thumbnail grid with tap-to-enlarge lightbox — mandatory UX for multi-photo on small mobile viewports
+- Per-item download (finding metadata + photos) — admin compliance report preparation
+- Bulk download (all findings in a round as ZIP) — standard export for facility inspection reporting
 
-**Defer to v1.2:**
-- Web Push / VAPID notifications (iOS PWA push unreliable; 4-person scope does not justify VAPID infrastructure)
-- AI report generation (separate milestone per PROJECT.md)
-- Offline PWA inspection mode (explicitly excluded per PROJECT.md — "현재 네트워크 환경 충분")
-- Multi-building support (single building by design)
-- 법적 점검 지적사항 → 조치관리 통합 (implement each independently in v1.1; `source_type` integration in v1.2 to avoid query complexity)
+**Should have (competitive):**
+- Per-photo progress indicators per slot (not a single spinner for all uploads)
+- Contextual floor pre-population from schedule item context in BottomSheet
+- Named ZIP entries with context (`[N]_finding/지적사진-1.jpg`) for self-documenting archives
+- Filter findings by zone/floor across rounds (enabled by structured location; add in a later release)
+
+**Defer (v2+):**
+- Offline photo queue — connectivity is sufficient per PROJECT.md ("현재 네트워크 환경 충분")
+- AI auto-fill for finding descriptions — separate future milestone per PROJECT.md
+- Drag-to-reorder photos — brittle on mobile Safari, low ROI for field use
+- Real-time collaborative editing — last-write-wins is acceptable for 4 users
 
 ### Architecture Approach
 
-All v1.1 features integrate into the existing React SPA → Pages Functions → D1/R2 architecture without structural changes. The data flow is unchanged: React component calls `api.ts` (with Bearer token), `_middleware.ts` verifies JWT and sets `ctx.data.staffId/role`, handler queries D1 via prepared statements, returns `{ success, data? }` envelope, TanStack Query caches the response. Excel generation stays 100% client-side. No new Zustand stores. The `authStore` `staff.role` field (already in JWT) is sufficient for all role-based access — no new auth infrastructure needed.
+The architecture is a React SPA calling Cloudflare Pages Functions with D1 (SQLite) and R2. The v1.2 change surface is concentrated in three pages (`SchedulePage`, `LegalFindingsPage`, `LegalFindingDetailPage`), three API handler files (`schedule/index.ts`, `legal/[id]/findings/index.ts`, `[fid].ts`, `[fid]/resolve.ts`), two new files (`useMultiPhotoUpload.ts` hook, `PhotoGrid.tsx` component), and one migration. All download functionality runs client-side — no new API endpoints needed. The `fflate` ZIP runs in the browser (max ~10 MB for 10 findings at 5 photos each at 200 KB), well within browser memory limits on target devices (iOS 16.3.1+).
 
-**Key component changes for v1.1:**
-1. `src/components/BottomNav.tsx` — replace static 5-item `ITEMS` array with new layout including 조치 tab (replaces 승강기 in nav)
-2. `src/App.tsx` — add 5 new routes and update `NO_NAV_PATHS` (add `/meal`, `/education`, `/admin`, `/legal-inspection`; `/remediation` must NOT be in NO_NAV_PATHS)
-3. `src/components/SideMenu.tsx` — replace hardcoded `badge: 2` on 미조치 with live count from TanStack Query `['dashboard']` cache; move 승강기 from BottomNav into SideMenu
-4. `functions/api/**` — 16 new route handler files following named-export pattern; file paths use `[id].ts` bracket syntax (already established in `[sessionId].ts`)
-5. `migrations/0033–0038.sql` — 6 additive migrations; each migration includes indexes on frequently-queried columns in the same file
-
-**New DB migrations summary:**
-
-| Migration | Table(s) | Feature |
-|-----------|----------|---------|
-| 0033 | `meal_records` | Meal check-in |
-| 0034 | `cafeteria_menus` | Weekly menu management |
-| 0035 | `education_records` | Training records |
-| 0036 | `system_settings` | Admin settings |
-| 0037 | `legal_inspections`, `legal_inspection_issues` | Legal inspection management |
-| 0038 | `elevator_annual_schedules` | Elevator legal inspection |
-
-No migration needed for: BottomNav restructuring, RemediationPage (schema exists since migration 0012), streakDays, dynamic staff names.
+**Major components:**
+1. `useMultiPhotoUpload` hook — manages array of up to 5 photo slots, sequential R2 upload, AbortController cleanup on BottomSheet unmount, blob URL revocation in useEffect cleanup
+2. `PhotoGrid` component — 72x72 px thumbnail grid with add slot and lightbox overlay; replaces single `PhotoButton` in legal finding pages only; `PhotoButton` is unchanged for inspection and remediation pages
+3. Migration 0043 — additive columns on `legal_findings`: `photo_keys TEXT DEFAULT '[]'`, `resolution_photo_keys TEXT DEFAULT '[]'`, `inspection_item TEXT`; existing `photo_key` and `resolution_photo_key` columns retained for legacy fallback
+4. `FindingBottomSheet` (restructured) — item picker with `FINDING_ITEMS` constant plus "직접입력" plus 3-level location chain wired to `useMultiPhotoUpload`
+5. `SchedulePage AddModal` (modified) — end_date input plus day count preview; `POST /api/schedule` handler loops one `schedule_items` row per calendar day in range
 
 ### Critical Pitfalls
 
-1. **504 deployment has two distinct causes — must diagnose before fixing** — Build-time timeout (Cloudflare Pages CI >20-min limit) and runtime timeout (Worker CPU >30s) both surface as 504 but require completely different fixes. Diagnose by running `npm run build && du -sh dist/` and comparing Pages build logs vs. Worker invocation logs. Do not attempt a fix before confirming the cause.
+1. **iOS `<a download>` is silently ignored in PWA Home Screen mode** — WebKit bug 167341 has been open since 2017 and is unresolved as of 2026. Use `window.open(url, '_blank')` for photos. For PDF/report output, generate HTML and open in a new tab for the user to print-to-PDF. Never use `FileSaver.js` or blob URL anchor download shims on iOS.
 
-2. **D1 local/remote schema drift** — Never edit a migration file after it has been applied to any environment. If a schema error is found, create a new migration to fix it. Before each phase deploy, run `wrangler d1 migrations list --remote` and `--local` and resolve any discrepancy. D1 has no rollback. This project goes from migration 0032 to 0038 in v1.1.
+2. **`photo_key` to `photo_keys` migration breaks existing records if done destructively** — Apply an expand-only migration (add `photo_keys` column with DEFAULT '[]', keep `photo_key` intact). API reads `photo_keys` with fallback to `photo_key` for legacy records. Deploy the migration first, wait ~5 seconds for D1 propagation, then deploy the Worker code. Drop `photo_key` in a future migration only after confirming all records use the new column.
 
-3. **`NO_NAV_PATHS` in App.tsx must be updated for every new full-screen page** — Forgetting this causes BottomNav to appear where it should not. Four new paths must be added: `/meal`, `/education`, `/admin`, `/legal-inspection`. `/remediation` must explicitly NOT be added (it shows BottomNav with 조치 tab active).
+3. **Date range multi-row model creates duplicate schedule entries that break the legal inspection list query** — Use the single-row model: one `schedule_items` row per calendar day in the range (loop INSERT in the API handler). The existing legal inspection list query and finding attachment by `schedule_item_id` both work correctly with this model. Do not design a group_id model — it requires API and UI rewrites.
 
-4. **`STAFF_ROLES` hardcode anti-pattern must not spread** — `DashboardPage.tsx` lines 14–19 contain hardcoded staff IDs. Remove when implementing dynamic staff names. Do not replicate in any new component. Use `staff.role` from the JWT/Zustand store or `/api/staff`.
+4. **COALESCE pattern silently deletes photos when applied to JSON array columns** — The existing `PUT` handler uses `COALESCE(?, photo_key)`. Never apply this pattern to `photo_keys`. Always send the full replacement array from the client. The API validates that the array has 0-5 elements before writing.
 
-5. **PWA service worker cache poisoning after deploy** — `sw.js` must be served with `Cache-Control: no-cache` via `_headers` file. Without this, the 4 users (who keep the PWA open across shifts) receive broken UI silently after deployments. Add a "new version available, tap to refresh" banner via Workbox `waitingWorker` event.
-
----
+5. **iOS camera permission re-prompts with `capture="environment"` in multi-photo flows** — The `capture` and `multiple` attributes are mutually exclusive on iOS. For multi-photo, use `accept="image/*"` without `capture` and offer two separate buttons: single camera shot and multi-select from library. Test on a physical iOS 16.x device — simulators do not reproduce permission behavior.
 
 ## Implications for Roadmap
 
-Based on the dependency graph confirmed in ARCHITECTURE.md, the build order is constrained at the top (BottomNav → Remediation → cleanup → Admin) and then fans out to 4 parallel independent tracks.
+Based on research, suggested phase structure:
 
-### Phase 1: Foundation — Deployment Fix and Navigation Restructuring
-**Rationale:** The known 504 blocks shipping anything. BottomNav restructuring is the zero-migration, zero-API entry point that establishes navigation for all new pages. Both must land together before any feature work is useful. Dependency housekeeping (remove `xlsx-js-style`, add explicit `fflate`) and PWA cache-control fix also belong here to prevent later regressions.
-**Delivers:** Working deployment pipeline; restructured BottomNav with 조치 tab; SideMenu reorganization; clean dependency baseline; PWA `_headers` cache-control fix
-**Addresses:** 504 deployment fix, BottomNav/SideMenu 재편, dependency housekeeping (STACK Decision 4)
-**Avoids:** Pitfall 2 (diagnose 504 cause first, do not guess fix), Pitfall 7 (PWA cache poisoning), Pitfall 5 (binding verification after deploy)
-**Research flag:** NONE — run diagnostic sequence first, then apply the appropriate fix
+### Phase 1: Multi-Photo Infrastructure (DB + Hook + Component)
 
-### Phase 2: Remediation Tracking (조치 관리)
-**Rationale:** Schema exists since migration 0012. Zero new DB migrations. The `/unresolved` route is already referenced in SideMenu with a hardcoded badge. This closes the most critical v1.0 gap: inspection deficiencies had no resolution workflow. Requires Phase 1 BottomNav 조치 tab.
-**Delivers:** RemediationPage listing all open `check_records` with `result IN ('bad','caution')`; filter by date/category/status; inline resolve with memo; live unresolved count replacing SideMenu hardcode
-**Addresses:** 조치 관리 전체 (미조치 목록, 조치 등록, 상태 전환, 필터, 대시보드 카운트 연동)
-**Avoids:** Pitfall 3 (confirm no migration needed; add backfill check for existing records with null status); Pitfall 6 (no new table, but existing `check_records` query needs index review)
-**Research flag:** NONE — schema confirmed, all patterns established
+**Rationale:** Multi-photo is the architectural blocker for the entire milestone. The DB migration must land before any UI changes to avoid a deploy-window data loss window. `PhotoGrid` and `useMultiPhotoUpload` are shared by BottomSheet (Phase 2) and DetailPage. Shipping infrastructure first unblocks all downstream phases and eliminates data integrity risk.
 
-### Phase 3: Tech Debt Removal and Admin Foundation
-**Rationale:** streakDays (hardcoded 0) and dynamic staff names (hardcoded map) are low-effort fixes that remove known anti-patterns and establish the `/api/staff` endpoint used by several later features. Admin settings come here because the role-guard pattern (`if (role !== 'admin') return 403`) is established once and reused by all subsequent admin-gated write endpoints.
-**Delivers:** Working streakDays dashboard count; `/api/staff` endpoint; `STAFF_ROLES` hardcode removed from DashboardPage; AdminPage with staff CRUD and system settings (migration 0036)
-**Addresses:** 점검자 이름 동적 로딩, streakDays 계산, 관리자 설정
-**Avoids:** Pitfall 3 (apply migration 0036 with checklist); Pitfall 6 (add `system_settings` key index in same migration)
-**Research flag:** NONE — standard CRUD, established patterns
+**Delivers:** Migration 0043 applied, `useMultiPhotoUpload` hook with sequential uploads plus AbortController, `PhotoGrid` component with lightbox (read-only display mode), updated API handlers accepting `photo_keys[]`, `LegalFindingDetailPage` displaying existing finding photos via PhotoGrid (display-only, no upload yet), `LegalFinding` and related TypeScript types updated.
 
-### Phase 4A: Meal Records (식사 이용 기록)
-**Rationale:** Independent of Phases 4B–4D. Two new tables (migrations 0033–0034). Straightforward CRUD. Frequently requested by team. Can run in parallel with 4B–4D after Phase 3 admin auth is confirmed working.
-**Delivers:** MealPage with personal daily check-in, monthly count per staff, weekly menu text view; admin menu management
-**Addresses:** 식사 이용 기록, 식당 메뉴표 관리 (text only; image upload to v1.2)
-**Avoids:** Pitfall 3 (migration checklist); Pitfall 6 (unique index `idx_meal_records_unique` on `(staff_id, date, meal_type)` prevents double-booking)
-**Research flag:** NONE
+**Addresses:** Multi-photo upload (table stakes), thumbnail grid with lightbox (table stakes)
 
-### Phase 4B: Education Management (보수교육 관리)
-**Rationale:** Independent of 4A/4C/4D. One new table (migration 0035). Legal consequence (license revocation) makes this high priority despite simple CRUD. R2 certificate upload mirrors the existing inspection photo upload pattern exactly.
-**Delivers:** EducationPage with per-staff training schedule, completion status, R2 certificate PDF upload; D-30 expiry warning badge on dashboard
-**Addresses:** 보수교육 일정 + 이수 기록, 만료 임박 경고, 이수증 R2 첨부
-**Avoids:** Pitfall 3 (migration checklist); Pitfall 4 (R2 read as arrayBuffer for certificate downloads)
-**Research flag:** NONE
+**Avoids:** Pitfall 2 (additive migration — keep `photo_key`, add `photo_keys` with fallback read), Pitfall 4 (never COALESCE a JSON array column), Pitfall 6 from PITFALLS.md (blob URL cleanup in useEffect), Pitfall 8 from PITFALLS.md (parallel uploads with AbortController for abort on unmount)
 
-### Phase 4C: Legal Inspection Management (법적 점검 관리)
-**Rationale:** Independent of 4A/4B/4D. Two new tables (migration 0037). Highest legal consequence of all new features — 15-day reporting deadline to fire department for deficiency remediation plans. D-day dashboard banner is a high-value differentiator that also directly reduces operational risk.
-**Delivers:** LegalInspectionPage with timeline view of past/upcoming 소방 legal inspections, per-inspection deficiency tracker, document upload; D-day countdown badge on dashboard
-**Addresses:** 법적 점검 작동기능점검/종합점검 일정 등록, 결과 및 지적사항 기록, 서류 첨부, D-day 배너
-**Avoids:** Pitfall 3 (migration checklist); intentionally NOT integrating with 조치관리 `source_type` yet (v1.2 work — per FEATURES.md phase warning)
-**Research flag:** NONE — implement issues as standalone list, no cross-table `source_type` integration in this phase
+### Phase 2: Finding BottomSheet Restructure
 
-### Phase 4D: Elevator Annual Schedule (승강기 법정검사)
-**Rationale:** Independent of 4A/4B/4C. One new table (migration 0038). `ElevatorPage` already has an `annual` tab and `annual_new` modal — extend the existing UI rather than building a new page. 11 elevators with distinct inspection expiry dates; dashboard shows single aggregate badge.
-**Delivers:** Extended ElevatorPage annual tab with legal inspection fields (inspector_org, next_due_date, document_key, result); elevator annual schedule records; D-30 expiry badge on dashboard
-**Addresses:** 승강기 법정검사 기록, 만료 임박 경고 (승강기 안전관리법 연 1회; 25년+ 기기는 6개월)
-**Avoids:** Pitfall 3 (migration checklist); dashboard shows "만료 임박 승강기 N대" single badge — do not show individual elevator alerts on dashboard (detail belongs in ElevatorPage)
-**Research flag:** NONE
+**Rationale:** Depends on `PhotoGrid` and `useMultiPhotoUpload` from Phase 1 to wire multi-photo upload into the finding create/resolve flows. Shares migration 0043's `inspection_item` column. Independent of Phase 3 (date range) and Phase 4 (download).
+
+**Delivers:** `FINDING_ITEMS` constant (~25 common inspection items), restructured `FindingBottomSheet` with item picker plus "직접입력" plus zone/floor/detail location chain plus `PhotoGrid` upload slot, resolve flow updated to accept `resolution_photo_keys[]`.
+
+**Addresses:** Structured BottomSheet item picker (table stakes), structured location (table stakes), multi-photo creation and resolve flows
+
+**Avoids:** Pitfall 5 from PITFALLS.md (iOS camera permission — use `accept="image/*"` with two separate buttons, no `capture` + `multiple` on same input), UX pitfall of blank "사진 없음" state (render explicit placeholder)
+
+### Phase 3: Schedule Date Range Input
+
+**Rationale:** Fully independent of Phases 1 and 2. No DB migration needed — the single-row model (one `schedule_items` row per day) requires only a loop in the API handler and a UI change in `AddModal`. Listed as Phase 3 because Phase 1 is the architectural blocker that should be unambiguously the first priority, but this phase can be executed in parallel with Phase 1 if a second developer is available.
+
+**Delivers:** `AddModal` in `SchedulePage` with start/end date inputs plus day count preview ("N일 일정이 추가됩니다"), `POST /api/schedule` loops one row per calendar day with a 14-day max guard, `scheduleApi.create` type signature updated.
+
+**Addresses:** Date range input (table stakes), multi-day legal inspection scheduling pain
+
+**Avoids:** Pitfall 7 from PITFALLS.md (single-row model — one row per day — avoids duplicate-titled entries breaking the legal inspection list query)
+
+### Phase 4: Finding Download (Per-Item + Bulk ZIP)
+
+**Rationale:** Depends on Phase 1 multi-photo display for full archive value. Per-item and bulk download share the fetch-blobs-and-assemble pattern and should ship together. Both are client-side only — no new API endpoints. iOS download behavior must be tested before shipping.
+
+**Delivers:** Per-item download button in `LegalFindingDetailPage` (admin gate) — HTML page with metadata plus base64-embedded photos opened in new tab for print-to-PDF. Bulk ZIP download button in `LegalFindingsPage` (admin gate) — `fflate.zip` of all finding content and photos with context-named entries (`finding-001/지적사진-1.jpg` etc.).
+
+**Addresses:** Per-item download (table stakes), bulk download (table stakes)
+
+**Avoids:** Pitfall 3 from PITFALLS.md (iOS `<a download>` — use `window.open()` and share sheet; never blob URL anchor on iOS PWA), Pitfall 1 from PITFALLS.md (client-side ZIP avoids Worker 128 MB memory limit entirely — no server-side ZIP endpoint needed)
 
 ### Phase Ordering Rationale
 
-- Phase 1 is a hard prerequisite: the 504 blocks all deployments; BottomNav establishes navigation entry points for every new page.
-- Phase 2 must follow Phase 1: requires the 조치 BottomNav tab to exist; closes the most impactful v1.0 gap with zero migration cost.
-- Phase 3 must follow Phase 2: `/api/staff` endpoint and admin role-guard pattern are reused by Phase 4A–4D features; removes anti-patterns before they can be inadvertently copied.
-- Phases 4A–4D are fully independent after Phase 3 and can be planned or executed in parallel. Within the parallel track, Phases 4C and 4D (legal compliance) carry higher regulatory urgency than 4A and 4B.
+- Phase 1 must be first: the migration must precede all code changes to avoid a deploy-window where new code runs against the old schema. `PhotoGrid` and the hook are shared dependencies — build once, use in Phase 2 and beyond.
+- Phase 2 must follow Phase 1: the BottomSheet creation and resolve flows require `PhotoGrid` for upload. The `inspection_item` column lands in migration 0043 with Phase 1.
+- Phase 3 is independent: it can run in parallel with Phase 1 on a separate branch if a second developer is available. If working sequentially, Phase 3 is the lowest-risk feature and ships quickly after Phase 1.
+- Phase 4 is last: full archive value requires multi-photo (Phase 1). Shipping download before Phase 1 means the feature delivers only single-photo archives. iOS download testing also requires a stable feature to test against.
 
 ### Research Flags
 
-Phases needing deeper research during planning: **NONE** — all 8 feature areas are additions to established patterns. Architecture research was derived from direct codebase inspection at migration 0032 (HIGH confidence). No external API integrations, no new runtime dependencies, no novel patterns.
+Phases likely needing deeper research during planning:
+- **Phase 1 (Migration + hook):** The expand/migrate/contract migration pattern and the AbortController integration in `useMultiPhotoUpload` need explicit implementation spec. The COALESCE pitfall is non-obvious — the phase spec must document the full replacement array contract for `photo_keys` PUT updates explicitly.
+- **Phase 4 (Download):** iOS download behavior varies by iOS version (16.x vs 18.2+). The phase spec should include a decision tree and explicit iOS test cases before implementation begins. Confirm test device availability (physical iOS 16.x in PWA Home Screen mode).
 
-Phases with standard patterns (skip `/gsd:research-phase`):
-- **All phases:** Follow existing file-system routing, D1 migration, TanStack Query, and React page patterns already proven in the codebase. The dependency graph and migration schemas are fully specified in ARCHITECTURE.md.
-
----
+Phases with standard patterns (skip research-phase):
+- **Phase 2 (BottomSheet):** All data constants and types exist in the codebase. The change is a UI restructure on an existing component. No novel integration.
+- **Phase 3 (Date range):** Straightforward API loop plus UI field addition. Single-row model decision is locked by research. No ambiguity.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | fflate + XML patching verified by direct inspection of `generateExcel.ts` (504 lines, 4 working report types). ExcelJS/SheetJS alternatives: MEDIUM (runtime compat may have changed since Aug 2025 knowledge cutoff — verify before any future Excel library change). |
-| Features | HIGH | Korean legal requirements verified against law.go.kr, kfsi.or.kr, keso.kr (MEDIUM-HIGH for regulatory specifics). PROJECT.md requirements are primary source (HIGH). 8 feature areas fully specified. |
-| Architecture | HIGH | All integration points confirmed from actual source files: migrations 0001–0032, all pages, all functions, App.tsx routing, BottomNav.tsx, SideMenu.tsx. Migration schemas and API route lists derived from direct inspection. |
-| Pitfalls | MEDIUM | Runtime behavior (D1 local vs. remote, Workers CPU limits, R2 binary handling, Workbox PWA) based on training knowledge through Aug 2025. No live documentation verification available. Flag specific Cloudflare limits for spot-check before Phase 1 execution. |
+| Stack | HIGH | Derived from direct codebase audit at migration 0042. `yet-another-react-lightbox` verified for React 18 compatibility and active maintenance. All other decisions use existing dependencies. |
+| Features | HIGH (scope) / MEDIUM (UX patterns) | Feature scope from codebase analysis is authoritative. UX patterns from GoAudits, SafetyCulture, FieldEz comparisons are directional guides, not prescriptive requirements. |
+| Architecture | HIGH | All integration points traced through actual production code at migration 0042. JSON-array TEXT pattern validated from `elevator_repairs` table in the same codebase (migration 0041). |
+| Pitfalls | HIGH | iOS download limitation (WebKit bug 167341) is documented and verified across multiple sources including Apple Developer Forums. Worker memory limits are from official Cloudflare docs. D1 migration and COALESCE risks are from codebase-specific analysis of the exact SQL patterns in use. |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **504 exact cause unconfirmed**: STACK.md Decision 4 documents a diagnostic sequence (`npm run build && du -sh dist/`, build logs vs. Worker invocation logs) but the fix cannot be prescribed without running it. Phase 1 must begin with diagnosis, not a fix attempt.
-- **fflate version**: Last confirmed stable branch is 0.8.x as of Aug 2025. Verify current version at https://www.npmjs.com/package/fflate before pinning in Phase 1.
-- **D1 remote migration state**: Current local migration count is 0032. Remote state is not verified. Phase 1 checklist must include `wrangler d1 migrations list --remote` before any migration is applied.
-- **법적 점검 지적사항 → 조치관리 통합**: Explicitly deferred to v1.2. Phase 4C implements legal inspection issues as a standalone list. The `source_type` field integration that would unify daily-inspection deficiencies with legal-inspection deficiencies adds query complexity that is not justified for a 4-person team in v1.1.
-- **ExcelJS/SheetJS Workers compat (future reference)**: MEDIUM confidence. If a future milestone requires server-side Excel generation, re-verify against current docs at https://github.com/exceljs/exceljs and https://docs.sheetjs.com/docs/getting-started/platforms/cloudflare before committing.
-
----
+- **FINDING_ITEMS list content:** Research specifies ~25 items from the 소방시설 자체점검 체크리스트 standard categories. The exact Korean-language item strings must be drafted and reviewed with the fire safety team before Phase 2 implementation. This is a domain decision, not a technical one.
+- **iOS test device availability:** Three critical pitfalls (download, camera permission, blob URL) require testing on a physical iOS 16.3.1 device in PWA Home Screen mode. Confirm test device access before Phase 4 begins.
+- **Bulk download format decision (ZIP vs presigned URL list):** Research documents both options as acceptable for a 4-user tool. Phase 4 spec must lock this decision. ZIP is recommended for compliance reporting (self-contained archive) but presigned URL list is a valid lower-complexity fallback.
+- **`photo_key` column removal timing:** Phase 1 keeps `photo_key` for legacy fallback. The follow-up migration to drop `photo_key` and `resolution_photo_key` is deferred. Schedule this as migration 0044 for v1.3 after confirming all records in production use the new columns.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/src/` — direct codebase inspection (all pages, components, utils, types)
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/functions/` — all API handlers and middleware
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/migrations/0001–0032.sql` — complete D1 schema
-- `/Users/jykevin/Documents/20260328/.planning/PROJECT.md` — v1.1 requirements (primary source)
-- law.go.kr 승강기 안전관리법 — elevator inspection interval (연 1회; 25년+ 기기 6개월)
-- keso.kr / koelsa.or.kr — elevator inspection agency confirmation
-- kfsi.or.kr — fire safety manager education cycle (최초 6개월 이내 + 2년 주기)
+- Codebase at migration 0042 — `migrations/`, `functions/api/`, `src/` — stack, architecture, all integration points
+- [MDN `<input type="date">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/date) — iOS 16 `min`/`max` not enforced by Mobile Safari
+- [yet-another-react-lightbox GitHub](https://github.com/igordanchenko/yet-another-react-lightbox) — React 18 peer dep, touch/swipe, no dependencies, maintenance status
+- [fflate GitHub](https://github.com/101arrowz/fflate) — `zipSync` browser safety, synchronous, no Web Workers needed
+- [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/) — 128 MB memory per isolate, verified 2026-04-05
+- [WebKit bug 167341](https://bugs.webkit.org/show_bug.cgi?id=167341) — `<a download>` not honored on iOS Safari, open since 2017
 
 ### Secondary (MEDIUM confidence)
-- easylaw.go.kr — 소방시설 자체점검 의무 (연 2회, 15일 보고 기한)
-- 119.busan.go.kr — 자체점검 결과보고서 서식 공지
-- Cloudflare Workers runtime limits and D1 migration behavior (training knowledge Aug 2025) — verify at https://developers.cloudflare.com/workers/platform/limits/ and https://developers.cloudflare.com/d1/reference/migrations/
-- Workbox service worker update patterns (training knowledge Aug 2025) — verify with current vite-plugin-pwa docs
+- [GoAudits mobile inspection app patterns 2026](https://goaudits.com/blog/best-mobile-inspection-apps/) — multi-photo and export as table stakes in inspection apps
+- [iOS PWA limitations guide 2026](https://www.magicbell.com/blog/pwa-ios-limitations-safari-support-complete-guide) — download, camera, blob URL behavior in PWA context
+- [Apple Developer Forums — iOS blob URL issues 18.2+](https://developer.apple.com/forums/thread/751063) — `createObjectURL` behavior change
+- [w00kie.com — ZIP R2 objects on Cloudflare Workers](https://w00kie.com/2024/07/13/zip-r2-objects-in-memory-with-cloudflare-workers/) — confirms zip.js workaround requirement; validates client-side for small payloads
+- [FieldEx facility management 2025](https://www.fieldex.com/en/blog/facility-management-software) — bulk export as standard compliance reporting pattern
 
-### Tertiary (LOW confidence, needs validation)
-- SheetJS Cloudflare Workers compatibility — verify current recommended import path at https://docs.sheetjs.com/docs/getting-started/platforms/cloudflare before any future Excel library change
-- Korea Public Data Portal (data.go.kr) elevator API — confirmed out of scope; returns aggregate national data, not per-building records
+### Tertiary (LOW confidence)
+- [Map UI Patterns — Floor Selector](https://mapuipatterns.com/floor-selector/) — location hierarchy UX patterns (directional only)
+- [Mobbin — Date Picker UI](https://mobbin.com/glossary/date-picker) — date range UX mobile best practices (directional only)
 
 ---
-
-*Research completed: 2026-03-31*
+*Research completed: 2026-04-05*
 *Ready for roadmap: yes*

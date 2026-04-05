@@ -1,621 +1,602 @@
-# Architecture Patterns
+# Architecture Research
 
-**Domain:** Fire safety facility management PWA (Cloudflare-native, edge-first)
-**Researched:** 2026-03-31 (v1.1 update — new feature integration)
-**Confidence:** HIGH — derived from direct codebase inspection (migration 0032, 103 commits)
-
----
-
-## Existing Architecture (Baseline — v1.0)
-
-```
-Browser (PWA)
-  └─ React 18 + Vite build → dist/
-       ├─ Static assets served by Cloudflare Pages CDN
-       ├─ /api/* routed to Pages Functions (via _routes.json)
-       └─ /public/* served statically (xlsx templates, icons)
-
-Cloudflare Pages Functions
-  ├─ functions/_middleware.ts       ← JWT auth + CORS (runs on every /api/* request)
-  └─ functions/api/
-       ├─ auth/login.ts
-       ├─ checkpoints/index.ts
-       ├─ inspections/[sessionId].ts, index.ts, records/, records.ts
-       ├─ dashboard/stats.ts
-       ├─ elevators/ (index.ts, faults.ts, history.ts, inspections.ts)
-       ├─ reports/ (check-monthly.ts, div.ts)
-       ├─ schedule/ ([id].ts, index.ts)
-       ├─ leaves/ ([id].ts, index.ts)
-       ├─ div/ (logs.ts, pressure.ts)
-       ├─ daily-report/ (index.ts, notes.ts)
-       ├─ fire-alarm/ (index.ts)
-       ├─ uploads/
-       └─ public/
-
-D1 (SQLite) ← bound as env.DB in every function
-R2 Bucket   ← bound as env.STORAGE (photo uploads)
-```
-
-**Key constraints (confirmed from codebase):**
-- No Hono — native Pages Functions file-system routing only, named exports (`onRequestGet`, `onRequestPost`, etc.)
-- Excel generation is 100% client-side: `fflate` unzip → XML patch → rezip in browser
-- JWT payload carries `staffId`, `staffName`, `role` — available in every handler as `(ctx.data as any).staffId`
-- `check_records` already has `status`, `resolution_memo`, `resolved_at`, `resolved_by` columns (migration 0012)
-- `streakDays` is hardcoded to `0` in `dashboard/stats.ts` — marked `// TODO`
-- `STAFF_ROLES` is hardcoded in `DashboardPage.tsx` (line 14-19) — not DB-driven
-- `BottomNav` ITEMS array is a static constant in `BottomNav.tsx` with exactly 5 entries
+**Domain:** Fire Safety PWA — v1.2 UX Improvements Integration
+**Researched:** 2026-04-05
+**Confidence:** HIGH (based on direct codebase inspection at migration 0042)
 
 ---
 
-## Component Boundaries
+## Standard Architecture
 
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| React SPA (`src/`) | UI rendering, local state, Excel generation | Pages Functions via `/api/*` fetch |
-| `functions/_middleware.ts` | JWT verification, CORS headers | All downstream handlers via `ctx.data` |
-| `functions/api/**/*.ts` | D1 queries, R2 operations, JSON responses | D1 (`env.DB`), R2 (`env.STORAGE`), `ctx.data.staffId/role` |
-| D1 database | Persistent data: inspections, checkpoints, staff, schedules | Functions only |
-| R2 bucket | Photo blob storage | Upload function (write), uploads/public routes (read) |
-| `public/templates/*.xlsx` | Excel form templates | Client-side `generateExcel.ts` via `fetch('/templates/...')` |
-| `src/utils/api.ts` | Centralized HTTP client, auth header injection | All page components |
-| `src/stores/authStore.ts` | JWT + staff state persisted to localStorage | All components needing auth |
+### System Overview
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                   React SPA (Cloudflare Pages)                  │
+│                                                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
+│  │ SchedulePage │  │LegalFindings │  │LegalFinding          │  │
+│  │  (AddModal)  │  │    Page      │  │  DetailPage          │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────┬───────────┘  │
+│         │                 │                      │              │
+│  ┌──────▼─────────────────▼──────────────────────▼───────────┐  │
+│  │         TanStack Query  (cache + invalidation)             │  │
+│  └──────┬────────────────────────────────────────────────────┘  │
+│         │  src/utils/api.ts  (scheduleApi, legalApi)            │
+└─────────┼──────────────────────────────────────────────────────┘
+          │  HTTP + JWT Bearer
+┌─────────▼──────────────────────────────────────────────────────┐
+│               Cloudflare Pages Functions                         │
+│                                                                  │
+│  functions/_middleware.ts  (JWT verify + CORS)                   │
+│                                                                  │
+│  POST /api/schedule              → schedule/index.ts             │
+│  POST /api/uploads               → uploads/index.ts              │
+│  GET  /api/uploads/[[path]]      → uploads/[[path]].ts           │
+│  GET|POST /api/legal/:id/findings → legal/[id]/findings/index.ts │
+│  PUT|DELETE /api/legal/:id/findings/:fid → [fid].ts              │
+│  POST /api/legal/:id/findings/:fid/resolve → resolve.ts          │
+└────────────┬───────────────────────────────────────────────────┘
+             │
+  ┌──────────▼────────┐   ┌──────────────────────┐
+  │   D1 (SQLite)     │   │   R2 Object Storage   │
+  │  schedule_items   │   │  inspections/{date}/  │
+  │  legal_findings   │   │  documents/{date}/    │
+  └───────────────────┘   └──────────────────────┘
+```
+
+### Component Responsibilities
+
+| Component | Responsibility | v1.2 Change |
+|-----------|----------------|-------------|
+| `SchedulePage / AddModal` | Create schedule_items; single-date input only | Add end_date input; loop inserts server-side |
+| `LegalFindingsPage / FindingBottomSheet` | Create legal_findings; free-text location + description | Add item picker + structured 3-level location chain |
+| `LegalFindingDetailPage` | Show finding detail; single photo per side | Replace with PhotoGrid (up to 5 photos) + download button |
+| `usePhotoUpload` hook | Single blob → upload → return key | UNCHANGED; existing single-photo flows unaffected |
+| `PhotoButton` component | Single photo tile with remove | UNCHANGED; still used by InspectionPage/RemediationPage |
+| `uploads/index.ts` | Single file PUT to R2 | UNCHANGED; called N times for N photos |
+| `uploads/[[path]].ts` | Serve any R2 object | UNCHANGED |
+| `legal_findings` table | Single `photo_key`, single `resolution_photo_key` TEXT | Add `photo_keys TEXT`, `resolution_photo_keys TEXT`, `inspection_item TEXT` (additive migration) |
+
+---
+
+## Integration Points — All 4 Features
+
+### Feature 1: Schedule Date Range Input
+
+**What changes:**
+
+| Layer | Change | Type |
+|-------|--------|------|
+| `schedule_items` DB | None — single-date architecture kept; one row per day | No migration |
+| `POST /api/schedule` | Accept optional `end_date`; loop insert one row per calendar day in handler | Modified |
+| `AddModal` in SchedulePage | Add end_date `<input type="date">` below date; show "N일 등록 예정" preview count | Modified |
+| `scheduleApi.create` in api.ts | Add optional `end_date` to type | Modified |
+
+**Why no schema change:** `schedule_items` already has a single `date` column. Legal inspection flows read by `schedule_item_id`; each day of a multi-day round gets its own item and its own `id`. This matches how findings are currently linked and avoids JOIN complexity.
+
+**Max range guard:** Reject `end_date - date > 14 days` in the handler to prevent accidental mass insert. Return clear error message.
+
+**Data flow:**
+
+```
+AddModal submits { date: '2026-06-10', end_date: '2026-06-14', title, category: 'fire', ... }
+    ↓
+POST /api/schedule
+    ↓
+for d in [2026-06-10 .. 2026-06-14]:
+    INSERT schedule_items (id=SCH-xxx, date=d, title, ...)
+    ↓
+Response: { success: true, data: { ids: ['SCH-aaa', 'SCH-bbb', ...] } }
+    ↓
+queryClient.invalidateQueries(['schedule', curMonth])
+```
+
+---
+
+### Feature 2: Finding BottomSheet Restructure
+
+**What changes:**
+
+| Layer | Change | Type |
+|-------|--------|------|
+| `legal_findings` DB | Add `inspection_item TEXT` column (folded into migration 0043) | New column |
+| `POST /api/legal/:id/findings` | Accept `inspection_item` field | Modified |
+| `PUT /api/legal/:id/findings/:fid` | Accept `inspection_item` field | Modified |
+| `GET /api/legal/:id/findings` + `GET .../[fid]` | Return `inspectionItem` in response | Modified |
+| `FindingBottomSheet` | Replace free-text description with item picker (dropdown + custom entry option) and zone→floor→detail location chain | Modified |
+| `LegalFinding` type in types/index.ts | Add `inspectionItem: string \| null` | Modified |
+
+**Structured location pattern:** Encode the 3-level location as `"${zone}|${floor}|${detail}"` stored in the existing `location TEXT` column. Parse on display by splitting `|`. No schema change needed — the column already holds free text, queries only filter by `schedule_item_id`, never by location parts.
+
+**Inspection item list:** Store as a typed constant in the frontend (same pattern as `INSP_DEFAULTS` in SchedulePage). Include a "직접입력" option that shows a free-text input. The item list maps to the legal inspection checklist used by 동양소방.
+
+**Data flow:**
+
+```
+FindingBottomSheet:
+  [item picker]         → inspection_item  (new DB column)
+  [zone select]         ↘
+  [floor select]         → location = "zone|floor|detail"  (existing TEXT column)
+  [detail input]        ↗
+  [PhotoGrid, 0-5 photos] → uploaded immediately on tap "등록", keys collected
+
+  POST /api/legal/:id/findings
+  body: { inspection_item, location, photo_keys: ['k1','k2'] }
+```
+
+---
+
+### Feature 3: Multi-Photo Upload + Gallery
+
+This is the most architecturally significant change for v1.2.
+
+**Current state:** `legal_findings` has `photo_key TEXT` (single key) and `resolution_photo_key TEXT` (single key). The `elevator_repairs` table (migration 0041) already uses the multi-photo pattern with separate TEXT columns storing comma-separated key lists.
+
+**Decision — JSON array in new additive columns vs separate junction table:**
+
+Use JSON arrays stored in new additive TEXT columns, following the established `elevator_repairs` precedent (`parts_arrival_photos`, `completed_photos`, etc. are all TEXT). A junction table (`finding_photos`) would require more migrations and API complexity for a 4-user app. The JSON array pattern is already in production in this codebase.
+
+**Migration 0043 (additive, no destructive changes):**
+
+```sql
+-- Add array columns alongside existing single-key columns (keep for legacy fallback)
+ALTER TABLE legal_findings ADD COLUMN photo_keys TEXT DEFAULT '[]';
+ALTER TABLE legal_findings ADD COLUMN resolution_photo_keys TEXT DEFAULT '[]';
+ALTER TABLE legal_findings ADD COLUMN inspection_item TEXT;
+```
+
+Keeping `photo_key` and `resolution_photo_key` intact means the existing resolve.ts and [fid].ts APIs continue working for already-resolved findings. No data migration risk.
+
+**Legacy fallback rule in API read:**
+
+```typescript
+// In findings GET handler, per row:
+const photoKeys: string[] = (() => {
+  try { return JSON.parse(r.photo_keys ?? '[]') } catch { return [] }
+})()
+// If no keys in array column, promote legacy single key
+const effectivePhotoKeys = photoKeys.length > 0 ? photoKeys
+  : r.photo_key ? [r.photo_key] : []
+```
+
+**New hook: `useMultiPhotoUpload`**
+
+```typescript
+// src/hooks/useMultiPhotoUpload.ts
+export function useMultiPhotoUpload(maxPhotos = 5) {
+  const [photos, setPhotos] = useState<{ blob: Blob; preview: string }[]>([])
+  const [uploading, setUploading] = useState(false)
+
+  const addPhoto = async (file: File) => { /* compressImage + append, guard maxPhotos */ }
+  const removePhoto = (index: number) => { /* URL.revokeObjectURL + splice */ }
+  const uploadAll = async (): Promise<string[]> => {
+    // sequential POST /api/uploads for each blob; return keys[]
+  }
+  const reset = () => { /* revoke all object URLs */ }
+
+  return { photos, uploading, addPhoto, removePhoto, uploadAll, reset, count: photos.length }
+}
+```
+
+Upload sequentially (not parallel) to avoid creating orphaned R2 objects on partial failure. Sequential is fast enough for 5 compressed images (~200KB each) over mobile LTE.
+
+**New component: `PhotoGrid`**
+
+```typescript
+// src/components/PhotoGrid.tsx
+// Props: photos (preview URLs for new), existingKeys (R2 keys for display), 
+//        onAdd, onRemove, maxPhotos, readonly
+// Renders: row of 72x72 thumbnails + add button (if count < max && !readonly)
+// Tap any thumbnail → open lightbox (full-screen fixed overlay, prev/next)
+```
+
+The lightbox is a simple fixed-position overlay with chevron navigation buttons. No external library needed — total implementation ~60 lines.
+
+**API changes for multi-photo:**
+
+| Endpoint | Change |
+|----------|--------|
+| `POST /api/legal/:id/findings` | Accept `photo_keys: string[]` in body |
+| `PUT /api/legal/:id/findings/:fid` | Accept `photo_keys: string[]` in body |
+| `GET /api/legal/:id/findings` | Return `photoKeys: string[]` and `resolutionPhotoKeys: string[]` |
+| `GET /api/legal/:id/findings/:fid` | Return same |
+| `POST /api/legal/:id/findings/:fid/resolve` | Accept `resolution_photo_keys: string[]` in body |
+
+Serialization: `JSON.stringify(keys)` on write, `JSON.parse(row.photo_keys ?? '[]')` on read.
+
+**Data flow (photo upload in FindingBottomSheet):**
+
+```
+User picks photo(s) via PhotoGrid → <input type="file" accept="image/*">
+    ↓
+compressImage() each → useMultiPhotoUpload state (preview + blob)
+    ↓
+User taps "등록"
+    ↓
+useMultiPhotoUpload.uploadAll()
+    → POST /api/uploads (x N, sequential)
+    ← { key: 'inspections/20260405/abc.jpg' } x N
+    ↓
+POST /api/legal/:id/findings { inspection_item, location, photo_keys: ['key1', 'key2'] }
+    ↓
+DB: photo_keys = '["key1","key2"]'
+    ↓
+queryClient.invalidateQueries(['legal-findings', scheduleItemId])
+```
+
+**Data flow (resolve with multiple photos):**
+
+```
+User inputs resolution_memo + picks up to 5 photos via PhotoGrid
+    ↓
+useMultiPhotoUpload.uploadAll() → keys[]
+    ↓
+POST /api/legal/:id/findings/:fid/resolve
+  { resolution_memo, resolution_photo_keys: ['rk1', 'rk2'] }
+    ↓
+DB: resolution_photo_keys = '["rk1","rk2"]', status = 'resolved'
+```
+
+---
+
+### Feature 4: Finding/Resolution Content + Photo Download
+
+**Two download modes:**
+
+1. **Per-item download** — triggered from `LegalFindingDetailPage` (admin only). Single-finding report with metadata + photos.
+
+2. **Bulk download** — triggered from `LegalFindingsPage` (admin only). All findings for the round as a ZIP.
+
+**Approach — client-side only, no new API endpoint needed:**
+
+The existing `GET /api/legal/:id/findings` returns all finding data. Photos are served via `/api/uploads/{key}`. Both can be fetched client-side. The app already uses `fflate` for Excel template patching (see `generateExcel.ts`) — use it for ZIP creation.
+
+**Per-item: HTML + print dialog**
+
+```
+LegalFindingDetailPage → "다운로드" button (admin only)
+    ↓
+For each key in photoKeys + resolutionPhotoKeys:
+    fetch('/api/uploads/' + key) → blob → FileReader.readAsDataURL → base64
+    ↓
+Build HTML string:
+  <h2>지적사항 상세</h2>
+  <table> finding metadata </table>
+  <img src="data:image/jpeg;base64,..." />
+  <h3>조치 결과</h3>
+  ...
+    ↓
+window.open('data:text/html,' + encodeURIComponent(html))
+User: Print → Save as PDF
+```
+
+**Bulk: fflate ZIP + download anchor**
+
+```
+LegalFindingsPage → "일괄 다운로드" button (admin only)
+    ↓
+findings already loaded in TanStack Query cache
+    ↓
+For each finding (photo_keys + resolution_photo_keys):
+    fetch('/api/uploads/' + key) → ArrayBuffer
+    ↓
+Build ZIP entries:
+  'finding-001/지적정보.txt'
+  'finding-001/지적사진-1.jpg'
+  'finding-001/지적사진-2.jpg'
+  'finding-001/조치사진-1.jpg'
+  '요약.txt'  (all findings metadata in plain text)
+    ↓
+fflate.zip(entries) → Uint8Array
+    ↓
+URL.createObjectURL(new Blob([bytes], { type: 'application/zip' }))
+anchor.click() → browser downloads ZIP
+```
+
+**No new API endpoint required.** All data is already accessible through existing endpoints.
+
+---
+
+## Recommended Project Structure (new and modified files only)
+
+```
+src/
+├── hooks/
+│   ├── usePhotoUpload.ts         # UNCHANGED — single photo flows
+│   └── useMultiPhotoUpload.ts    # NEW — multi-photo (up to N, sequential upload)
+│
+├── components/
+│   ├── PhotoButton.tsx           # UNCHANGED — still used by InspectionPage
+│   └── PhotoGrid.tsx             # NEW — thumbnail grid + lightbox + add slot
+│
+├── pages/
+│   ├── SchedulePage.tsx          # MODIFIED — AddModal gets end_date + preview count
+│   ├── LegalFindingsPage.tsx     # MODIFIED — BottomSheet restructure + bulk download
+│   └── LegalFindingDetailPage.tsx # MODIFIED — PhotoGrid display + per-item download
+│
+├── utils/
+│   └── api.ts                    # MODIFIED — legalApi, scheduleApi.create signatures
+│
+└── types/
+    └── index.ts                  # MODIFIED — LegalFinding + ScheduleItem types
+
+functions/api/
+├── schedule/
+│   └── index.ts                  # MODIFIED — POST accepts end_date, loops inserts
+│
+└── legal/[id]/findings/
+    ├── index.ts                  # MODIFIED — photo_keys[], inspection_item
+    ├── [fid].ts                  # MODIFIED — photo_keys[], inspection_item
+    └── [fid]/resolve.ts          # MODIFIED — resolution_photo_keys[]
+
+migrations/
+└── 0043_legal_findings_v12.sql   # NEW — additive columns only
+```
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Additive Column Migration (Multi-Photo)
+
+**What:** Add `photo_keys TEXT DEFAULT '[]'` and `resolution_photo_keys TEXT DEFAULT '[]'` alongside existing single-key columns. Both coexist. API reads `photo_keys` with fallback to `photo_key` for legacy records.
+
+**When to use:** Existing production data that cannot be lost. Additive change is risk-free vs destructive rename.
+
+**Trade-offs:** Two code paths during transition. Clean-up migration (dropping `photo_key`) can be a future migration after confirming all records use the new columns.
+
+**Example (API read handler):**
+
+```typescript
+const photoKeys: string[] = (() => {
+  try { return JSON.parse(r.photo_keys ?? '[]') } catch { return [] }
+})()
+const effective = photoKeys.length > 0 ? photoKeys
+  : r.photo_key ? [r.photo_key] : []
+```
+
+---
+
+### Pattern 2: Structured Location as Encoded String
+
+**What:** Store structured location `zone|floor|detail` in the existing `location TEXT` column. Parse on display.
+
+**When to use:** When the DB column is already TEXT, there is no SQL filtering on location sub-parts, and adding columns would require a migration with no query benefit.
+
+**Trade-offs:** Cannot filter by zone or floor in SQL. Acceptable here — findings are always queried by `schedule_item_id`, never by location sub-parts.
+
+**Example:**
+
+```typescript
+// Encode on save:
+const location = [zone, floor, detail].filter(Boolean).join('|')
+
+// Decode on display (LegalFindingDetailPage):
+const [zone = '', floor = '', detail = ''] = (finding.location ?? '').split('|')
+```
+
+---
+
+### Pattern 3: Sequential Multi-Upload then Single API Write
+
+**What:** Upload N photos to R2 sequentially (one request each), collect keys, then POST the finding with `photo_keys: string[]` in one DB write.
+
+**When to use:** Always — avoids partial-write states. If an upload fails mid-sequence, the user sees an error before the finding row is created. Clean rollback: nothing was written to D1.
+
+**Trade-offs:** N round-trips for N photos. Acceptable for max 5 compressed images (~200KB each). Parallel would be faster but creates orphaned R2 objects on partial failure with no cleanup mechanism.
+
+---
+
+### Pattern 4: Client-Side ZIP for Bulk Download
+
+**What:** Fetch photo blobs from R2 via `/api/uploads/...`, bundle into ZIP using `fflate.zip`, trigger browser download.
+
+**When to use:** When binary file bundling is needed without server-side infrastructure. `fflate` is already a dependency in this project (used by Excel generation).
+
+**Trade-offs:** All photo bytes pass through browser memory. For 10 findings × 5 photos × 200KB = 10MB — well within browser limits. No server CPU or memory cost.
 
 ---
 
 ## Data Flow
 
-### Normal API Request
-```
-React component
-  → api.get('/some/endpoint')          (src/utils/api.ts — adds Bearer token)
-  → Cloudflare Pages CDN
-  → _middleware.ts (JWT verify, set ctx.data.staffId/role)
-  → functions/api/.../handler.ts
-  → env.DB.prepare(...).bind(...).all()
-  → Response.json({ success: true, data: ... })
-  → TanStack Query cache → React re-render
-```
+### Date Range Schedule Creation
 
-### Excel Generation (Client-Side, must stay client-side)
 ```
-User clicks "다운로드"
-  → ReportsPage calls api.get('/reports/check-monthly?...')
-  → API returns raw DB rows as JSON
-  → generateExcel(year, data, type) runs in browser
-     ├─ fetch('/templates/점검표_양식.xlsx')  (static asset)
-     ├─ fflate.unzipSync(xlsx binary)
-     ├─ DOM-patch XML cells in worksheet
-     └─ fflate.zipSync → Blob → anchor download
+AddModal: date='2026-06-10', end_date='2026-06-14', category='fire'
+    ↓
+POST /api/schedule { date, end_date, title, category, ... }
+    ↓
+Handler: for d in range(date, end_date, inclusive):
+    INSERT schedule_items (id=SCH-{nanoid}, date=d, ...)
+    ↓
+Response: { success: true, data: { ids: ['SCH-a', ..., 'SCH-e'] } }
+    ↓
+queryClient.invalidateQueries(['schedule', curMonth])
+Calendar dots appear for all 5 days
 ```
 
----
+### Multi-Photo Finding Creation
 
-## New Feature Integration Map
-
-### 1. BottomNav Restructuring
-
-**What changes:**
-- `src/components/BottomNav.tsx` — replace static `ITEMS` array (5 items) with new 5-item layout:
-  - 대시보드 (unchanged)
-  - 점검 (unchanged)
-  - QR 스캔 (unchanged, center special button)
-  - 조치 (NEW — replaces 승강기)
-  - 햄버거/더보기 (renamed trigger, opens SideMenu — replaces 승강기 item or keeps icon)
-- `src/App.tsx` — add `/remediation` to `NO_NAV_PATHS` exclusion list if remediation is a full-screen page; add routes for new pages
-- `src/components/SideMenu.tsx` — move 승강기 관리 from BottomNav into SideMenu under "주요 기능" section (it is already listed there — just make it the only access point)
-
-**No API changes needed.** Pure UI restructuring.
-
-**Risk:** `NO_NAV_PATHS` in `App.tsx` currently lists paths that hide BottomNav. Any new full-screen page that should hide the nav must be added to this array. Forgetting this causes nav to appear on pages where it should not.
-
----
-
-### 2. Remediation Tracking (조치 관리)
-
-**Existing foundation:**
-- `check_records` already has `status TEXT DEFAULT 'open'`, `resolution_memo TEXT`, `resolved_at TEXT`, `resolved_by TEXT` (migration 0012)
-- `inspectionApi.resolveRecord()` already exists in `src/utils/api.ts`
-- `GET /api/inspections/records?date=YYYY-MM-DD` returns `status`, `resolutionMemo`, `resolvedAt`, `resolvedBy`
-
-**What is missing:**
-- No dedicated page for listing ALL open/unresolved items across all dates
-- No filter/sort UI for remediation items
-- SideMenu has a `미조치 항목` link to `/unresolved` (hardcoded with badge=2) but the route does not exist in App.tsx
-
-**New components needed:**
-- `src/pages/RemediationPage.tsx` — list of `check_records` with `result IN ('bad','caution') AND status='open'`, grouped by date or category, with inline resolve action
-- Route: `/remediation` (or `/unresolved` to match existing SideMenu link)
-
-**New API endpoint needed:**
 ```
-GET /api/inspections/unresolved
-  → query: SELECT cr.*, cp.category, cp.location, cp.floor FROM check_records cr
-           JOIN check_points cp ON cr.checkpoint_id = cp.id
-           WHERE cr.result IN ('bad','caution') AND (cr.status IS NULL OR cr.status='open')
-           ORDER BY cr.checked_at DESC
-  → response: { success, data: UnresolvedRecord[] }
+FindingBottomSheet:
+  inspection_item = '유도등'
+  location = 'office|3F|복도 끝'   (encoded from 3 selects)
+  photos = [blob1, blob2]
+    ↓
+useMultiPhotoUpload.uploadAll():
+  POST /api/uploads (blob1) → { key: 'inspections/20260405/abc.jpg' }
+  POST /api/uploads (blob2) → { key: 'inspections/20260405/def.jpg' }
+    ↓
+legalApi.createFinding(scheduleItemId, {
+  inspection_item: '유도등',
+  location: 'office|3F|복도 끝',
+  photo_keys: ['inspections/20260405/abc.jpg', 'inspections/20260405/def.jpg']
+})
+    ↓
+DB: legal_findings row with photo_keys='["abc","def"]', inspection_item='유도등'
+    ↓
+queryClient.invalidateQueries(['legal-findings', scheduleItemId])
 ```
 
-**New `api.ts` entry:**
-```typescript
-export const remediationApi = {
-  listOpen: () => api.get<UnresolvedRecord[]>('/inspections/unresolved'),
-  resolve:  (id: string, memo: string, photoKey?: string) =>
-    inspectionApi.resolveRecord(id, memo, photoKey),  // reuse existing
-}
+### Per-Item Download
+
+```
+LegalFindingDetailPage: admin taps "다운로드"
+    ↓
+photoKeys + resolutionPhotoKeys → fetch each /api/uploads/{key} → blob → base64
+    ↓
+Assemble HTML: metadata table + embedded base64 images
+    ↓
+window.open('data:text/html;charset=utf-8,' + encodeURIComponent(html))
+User prints → Save as PDF
 ```
 
-**No new DB migration needed** — schema already supports this.
+### Bulk ZIP Download
 
-**Dashboard integration:** `stats.unresolved` already counts open records. After implementing the page, replace the hardcoded badge value in SideMenu with a live query result.
-
----
-
-### 3. Meal Records (식사 이용 기록)
-
-**New DB table (migration 0033):**
-```sql
-CREATE TABLE IF NOT EXISTS meal_records (
-  id          TEXT PRIMARY KEY,
-  staff_id    TEXT NOT NULL REFERENCES staff(id),
-  date        TEXT NOT NULL,   -- YYYY-MM-DD
-  meal_type   TEXT NOT NULL CHECK(meal_type IN ('breakfast','lunch','dinner')),
-  used        INTEGER NOT NULL DEFAULT 1,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_meal_records_unique ON meal_records(staff_id, date, meal_type);
-CREATE INDEX IF NOT EXISTS idx_meal_records_date ON meal_records(date);
 ```
-
-**New DB table for menu management (migration 0034):**
-```sql
-CREATE TABLE IF NOT EXISTS cafeteria_menus (
-  id          TEXT PRIMARY KEY,
-  week_start  TEXT NOT NULL,   -- ISO week Monday YYYY-MM-DD
-  day_of_week INTEGER NOT NULL CHECK(day_of_week BETWEEN 1 AND 5),  -- 1=Mon
-  meal_type   TEXT NOT NULL CHECK(meal_type IN ('breakfast','lunch','dinner')),
-  menu_text   TEXT NOT NULL DEFAULT '',
-  created_by  TEXT NOT NULL REFERENCES staff(id),
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_cafeteria_menus_week ON cafeteria_menus(week_start);
-```
-
-**New API routes:**
-```
-GET  /api/meals?year=YYYY&month=MM&staffId=optional  ← monthly view
-POST /api/meals                                       ← log meal usage { date, meal_type }
-DELETE /api/meals/[id]                                ← cancel same-day only
-
-GET  /api/meals/menu?week=YYYY-MM-DD                  ← weekly menu
-POST /api/meals/menu                                  ← admin: create/update menu entry
-```
-
-**New component:**
-- `src/pages/MealPage.tsx` — calendar grid showing personal meal records + monthly count; tab for weekly menu display
-- Route: `/meal`
-- SideMenu `식당 메뉴` path (`/menu`) should be updated to `/meal` to match
-
-**API additions to `src/utils/api.ts`:**
-```typescript
-export const mealApi = {
-  getMonthly: (year: number, month: number, staffId?: string) =>
-    api.get<MealRecord[]>(`/meals?year=${year}&month=${String(month).padStart(2,'0')}${staffId ? `&staffId=${staffId}` : ''}`),
-  log: (date: string, meal_type: string) => api.post<{ id: string }>('/meals', { date, meal_type }),
-  remove: (id: string) => api.delete<void>(`/meals/${id}`),
-  getWeekMenu: (weekStart: string) => api.get<CafeteriaMenu[]>(`/meals/menu?week=${weekStart}`),
-  saveMenu: (body: CafeteriaMenuInput) => api.post<void>('/meals/menu', body),
-}
+LegalFindingsPage: admin taps "일괄 다운로드"
+    ↓
+sortedFindings (already in query cache)
+    ↓
+For each finding:
+  fetch each key in photoKeys → ArrayBuffer → ZIP entry 'finding-{n}/지적사진-{i}.jpg'
+  fetch each key in resolutionPhotoKeys → ZIP entry 'finding-{n}/조치사진-{i}.jpg'
+  append '요약.txt' with all metadata
+    ↓
+fflate.zip(allEntries) → Uint8Array
+    ↓
+Blob → URL.createObjectURL → <a>.click() → file saves as '지적사항_20260610.zip'
 ```
 
 ---
 
-### 4. Education Management (보수교육 일정 관리)
+## New vs Modified Artifacts
 
-**New DB table (migration 0035):**
-```sql
-CREATE TABLE IF NOT EXISTS education_records (
-  id              TEXT PRIMARY KEY,
-  staff_id        TEXT NOT NULL REFERENCES staff(id),
-  title           TEXT NOT NULL,
-  scheduled_date  TEXT NOT NULL,   -- YYYY-MM-DD
-  completed_date  TEXT,
-  provider        TEXT,            -- 교육 기관
-  duration_hours  REAL,
-  is_required     INTEGER NOT NULL DEFAULT 1,
-  status          TEXT NOT NULL DEFAULT 'pending'
-                  CHECK(status IN ('pending','completed','cancelled')),
-  memo            TEXT,
-  created_by      TEXT NOT NULL REFERENCES staff(id),
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_education_date ON education_records(staff_id, scheduled_date);
-```
-
-**New API routes:**
-```
-GET  /api/education?staffId=optional&year=YYYY
-POST /api/education
-PATCH /api/education/[id]    ← mark complete, update memo
-DELETE /api/education/[id]   ← admin only, soft-cancel preferred
-```
-
-**New component:**
-- `src/pages/EducationPage.tsx` — list of scheduled/completed trainings per staff member; admin can create records for any staff
-- Route: `/education`
-- Access: SideMenu under "근무·복지" section
-
-**No calendar-specific library needed** — date-fns already in the project handles date arithmetic.
+| Artifact | Status | Scope |
+|----------|--------|-------|
+| `migrations/0043_legal_findings_v12.sql` | NEW | Adds `photo_keys`, `resolution_photo_keys`, `inspection_item` to `legal_findings` |
+| `src/hooks/useMultiPhotoUpload.ts` | NEW | Multi-blob state + sequential upload + reset |
+| `src/components/PhotoGrid.tsx` | NEW | Thumbnail grid + add slot + lightbox overlay |
+| `functions/api/schedule/index.ts` | MODIFIED | POST: accept `end_date`, loop inserts, max 14-day guard |
+| `functions/api/legal/[id]/findings/index.ts` | MODIFIED | Accept/return `photo_keys[]`, `inspection_item` |
+| `functions/api/legal/[id]/findings/[fid].ts` | MODIFIED | Accept/return `photo_keys[]`, `inspection_item` |
+| `functions/api/legal/[id]/findings/[fid]/resolve.ts` | MODIFIED | Accept `resolution_photo_keys[]` |
+| `src/pages/SchedulePage.tsx` | MODIFIED | `AddModal`: add end_date input, insert count preview |
+| `src/pages/LegalFindingsPage.tsx` | MODIFIED | Restructure `FindingBottomSheet`; bulk download button (admin) |
+| `src/pages/LegalFindingDetailPage.tsx` | MODIFIED | Replace single-img sections with `PhotoGrid`; per-item download button (admin) |
+| `src/utils/api.ts` | MODIFIED | `legalApi.createFinding`, `resolveFinding`, `updateFinding`; `scheduleApi.create` |
+| `src/types/index.ts` | MODIFIED | `LegalFinding`: add `inspectionItem`, `photoKeys[]`, `resolutionPhotoKeys[]`; `ScheduleItem`: unchanged |
+| `src/hooks/usePhotoUpload.ts` | UNCHANGED | Existing single-photo flows unaffected |
+| `src/components/PhotoButton.tsx` | UNCHANGED | Still used by InspectionPage, RemediationDetailPage |
+| `functions/api/uploads/index.ts` | UNCHANGED | Called N times for N photos, no change needed |
+| `functions/api/uploads/[[path]].ts` | UNCHANGED | Serve endpoint unchanged |
+| `functions/api/legal/index.ts` | UNCHANGED | Round list aggregation not affected |
+| `functions/api/legal/[id].ts` | UNCHANGED | Round detail + result update not affected |
 
 ---
 
-### 5. Admin Settings (관리자 설정)
+## Build Order
 
-**New DB table (migration 0036):**
-```sql
-CREATE TABLE IF NOT EXISTS system_settings (
-  key         TEXT PRIMARY KEY,
-  value       TEXT NOT NULL,
-  updated_by  TEXT REFERENCES staff(id),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-```
+This order minimizes blocked work:
 
-**New API routes:**
-```
-GET   /api/admin/settings         ← any authenticated user (read)
-PATCH /api/admin/settings         ← admin role only
-GET   /api/admin/users            ← list all staff (admin only)
-PATCH /api/admin/users/[id]       ← update staff name/title/password (admin only)
-```
+**Phase 1 — Multi-Photo Infrastructure (blocker for Features 2 and 4)**
+- Write `migrations/0043_legal_findings_v12.sql` and apply
+- Implement `useMultiPhotoUpload` hook
+- Implement `PhotoGrid` component with lightbox
+- Update `LegalFinding` type to include `photoKeys[]`, `resolutionPhotoKeys[]`, `inspectionItem`
+- Update API handlers (findings index, [fid], resolve) to handle JSON arrays
+- Update `legalApi` signatures in api.ts
+- Update `LegalFindingDetailPage` to display photos via PhotoGrid (read-only first)
 
-**Role enforcement in handler (pattern):**
-```typescript
-export const onRequestPatch: PagesFunction<Env> = async ({ request, env, data }) => {
-  const { role } = data as any
-  if (role !== 'admin') return Response.json({ success: false, error: '권한 없음' }, { status: 403 })
-  // ...
-}
-```
+**Phase 2 — BottomSheet Restructure (depends on PhotoGrid from Phase 1)**
+- Add inspection item picker constant + "직접입력" fallback
+- Restructure `FindingBottomSheet` with 3-level location chain + PhotoGrid upload slot
+- Wire `useMultiPhotoUpload` into BottomSheet submit flow
 
-**New component:**
-- `src/pages/AdminPage.tsx` — tabs: 사용자 관리 (name/title/password reset), 시스템 설정 (key-value entries)
-- Route: `/admin`
-- Access: SideMenu under "시스템" section, only rendered/accessible when `staff.role === 'admin'`
+**Phase 3 — Schedule Date Range (fully independent, can be done in parallel with Phase 1)**
+- Modify `POST /api/schedule` to accept and loop-insert for `end_date`
+- Modify `AddModal` in SchedulePage with end_date input and preview count
+- Update `scheduleApi.create` type signature
 
-**Hardcoded `STAFF_ROLES` in `DashboardPage.tsx` (line 14-19) must be removed** and replaced with `staff.role` from the JWT/Zustand store. This is the "dynamic inspector names" part — not a separate feature, but fixing the hardcode.
+**Phase 4 — Download (depends on Phase 1 multi-photo display)**
+- Add per-item download button to `LegalFindingDetailPage` (admin gate)
+- Add bulk ZIP download to `LegalFindingsPage` using fflate (admin gate)
 
 ---
 
-### 6. Dynamic Inspector Names (점검자 이름 동적 로딩)
+## Anti-Patterns
 
-**Problem:** `DashboardPage.tsx` has a hardcoded `STAFF_ROLES` map with literal staff IDs. New staff or role changes require code edits.
+### Anti-Pattern 1: Parallel Photo Uploads
 
-**Solution (no new table needed):**
-- `GET /api/auth/me` or reuse staff list from `GET /api/admin/users` (admin-only) or add `GET /api/staff` (any authenticated)
-- Remove hardcoded `STAFF_ROLES` from `DashboardPage.tsx`
-- Derive roles from `useAuthStore().staff.role` for the current user
-- For inspector selection in inspection flows, query `/api/staff` to get all staff names
+**What people do:** `Promise.all(photos.map(upload))` to speed up multi-upload.
 
-**New API route:**
-```
-GET /api/staff    ← returns id, name, role, title for all staff (any authenticated user)
-                     mirrors the staff query already in dashboard/stats.ts onDutyStaff section
-```
+**Why it's wrong:** If 5 uploads fire simultaneously and one fails, there are 4 orphaned R2 objects (no cleanup mechanism) and an ambiguous error state — which keys were committed? The finding row has not been written yet so there is no way to trace orphaned keys.
 
-**Affected files:**
-- `src/pages/DashboardPage.tsx` — remove `STAFF_ROLES` constant
-- Any component that shows inspector names for reports
+**Do this instead:** Sequential upload in `uploadAll()`. Fail fast on first error before any finding row is created. Error handling is simple: show toast, let user retry.
 
 ---
 
-### 7. streakDays Calculation
+### Anti-Pattern 2: Junction Table for Finding Photos
 
-**Problem:** `dashboard/stats.ts` returns `streakDays: 0` with a `// TODO` comment.
+**What people do:** Create `finding_photos (id, finding_id, photo_key, photo_type, seq)` table for proper relational storage.
 
-**Calculation logic (server-side, in dashboard/stats.ts):**
-```sql
--- For each day going backward from yesterday, check if any inspect schedule was completed
--- A day "counts" if: at least one inspect schedule_item exists for that date
---   AND at least one check_record exists with result IN ('normal','caution')
---   for a checkpoint whose category matches the schedule's inspection_category
--- streak ends at first day with an inspect schedule that has NO completed records
-```
+**Why it's wrong:** Overkill for a 4-user app with max 5 photos per finding. Requires migration + new API + JOIN in every findings GET. The `elevator_repairs` table in this codebase already proves JSON-array TEXT columns are the project's established pattern.
 
-**Implementation:** Add a helper function `calcStreakDays(env: D1Database, today: string): Promise<number>` in the dashboard stats handler or a shared `functions/utils/` module. Walk backward day-by-day (max 365 iterations, break on first incomplete day).
-
-**No new table or migration needed.** Uses existing `schedule_items` and `check_records`.
+**Do this instead:** `photo_keys TEXT DEFAULT '[]'` with `JSON.parse` on read and `JSON.stringify` on write.
 
 ---
 
-### 8. Legal Inspection Management (법적 점검 관리)
+### Anti-Pattern 3: Schema-Breaking Migration for Multi-Photo
 
-**New DB tables (migration 0037):**
-```sql
-CREATE TABLE IF NOT EXISTS legal_inspections (
-  id              TEXT PRIMARY KEY,
-  type            TEXT NOT NULL,   -- '소방종합점검', '소방작동기능점검', '기타'
-  scheduled_date  TEXT NOT NULL,   -- YYYY-MM-DD
-  actual_date     TEXT,
-  inspector_name  TEXT,            -- 외부 점검업체 담당자
-  result          TEXT CHECK(result IN ('pass','conditional_pass','fail')),
-  issue_count     INTEGER NOT NULL DEFAULT 0,
-  document_key    TEXT,            -- R2 key for uploaded report PDF
-  memo            TEXT,
-  created_by      TEXT NOT NULL REFERENCES staff(id),
-  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
+**What people do:** `ALTER TABLE legal_findings RENAME COLUMN photo_key TO photo_key_legacy`, migrate data in the same script, then drop.
 
-CREATE TABLE IF NOT EXISTS legal_inspection_issues (
-  id              TEXT PRIMARY KEY,
-  inspection_id   TEXT NOT NULL REFERENCES legal_inspections(id),
-  description     TEXT NOT NULL,
-  location        TEXT,
-  due_date        TEXT,
-  status          TEXT NOT NULL DEFAULT 'open'
-                  CHECK(status IN ('open','resolved')),
-  resolved_at     TEXT,
-  resolved_by     TEXT REFERENCES staff(id),
-  resolution_memo TEXT,
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_legal_insp_date ON legal_inspections(scheduled_date);
-CREATE INDEX IF NOT EXISTS idx_legal_issues_insp ON legal_inspection_issues(inspection_id, status);
-```
+**Why it's wrong:** D1 SQLite `RENAME COLUMN` runs against production data that already has `photo_key` populated. Any bug silently nulls photo references for existing resolved findings.
 
-**New API routes:**
-```
-GET/POST   /api/legal-inspections
-PATCH      /api/legal-inspections/[id]
-GET/POST   /api/legal-inspections/[id]/issues
-PATCH      /api/legal-inspections/issues/[id]
-```
-
-**New component:**
-- `src/pages/LegalInspectionPage.tsx` — timeline view of past/upcoming legal inspections; issue tracker per inspection
-- Route: `/legal-inspection`
-- Access: SideMenu under "관리" section (replacing the `soon: true` placeholder in MorePage)
+**Do this instead:** `ADD COLUMN photo_keys TEXT DEFAULT '[]'`. Keep `photo_key` intact. API reads `photo_keys` with fallback to `photo_key`. Clean-up is a separate future migration after verifying no regressions.
 
 ---
 
-### 9. Elevator Legal Inspection (승강기 법정 검사)
+### Anti-Pattern 4: Server-Side PDF Generation in Workers
 
-**Existing foundation:**
-- `elevator_inspections` table exists with `type IN ('monthly','annual')`
-- `/api/elevators/inspections.ts` handles both types
-- `ElevatorPage.tsx` already has `Tab = 'list' | 'fault' | 'inspect' | 'annual'` and modal `'annual_new'`
+**What people do:** Generate PDFs in a Cloudflare Worker using jsPDF or by streaming Puppeteer.
 
-**What is missing — annual schedule table (migration 0038):**
-```sql
-CREATE TABLE IF NOT EXISTS elevator_annual_schedules (
-  id              TEXT PRIMARY KEY,
-  elevator_id     TEXT NOT NULL REFERENCES elevators(id),
-  scheduled_date  TEXT NOT NULL,   -- YYYY-MM-DD (법정 검사 예정일)
-  actual_date     TEXT,
-  result          TEXT CHECK(result IN ('pass','conditional_pass','fail')),
-  inspector_org   TEXT,            -- 검사기관
-  next_due_date   TEXT,            -- 다음 법정 검사 만료일
-  document_key    TEXT,            -- R2 key for 검사 결과 PDF
-  memo            TEXT,
-  created_by      TEXT NOT NULL REFERENCES staff(id),
-  created_at      TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_ev_annual_elevator ON elevator_annual_schedules(elevator_id, scheduled_date);
-```
+**Why it's wrong:** Workers have CPU time limits (~30s on paid). Photo-fetching + PDF rendering inside a Worker would be complex to bundle and would hit memory limits for bulk downloads. Puppeteer is not available in Workers.
 
-**New API routes:**
-```
-GET  /api/elevators/annual-schedules?elevatorId=optional
-POST /api/elevators/annual-schedules
-PATCH /api/elevators/annual-schedules/[id]
-```
-
-**Integration:** ElevatorPage already handles an `annual` tab — extend the existing modal `annual_new` to include legal inspection fields (inspector_org, next_due_date, document upload). No new page required — add to existing ElevatorPage tabs.
+**Do this instead:** Client-side HTML + print dialog (per-item) or fflate ZIP + download anchor (bulk). Both run entirely in the browser, zero Worker CPU cost.
 
 ---
 
-## New DB Migrations Required (v1.1)
+## Scaling Considerations
 
-| Migration | Table(s) | Trigger |
-|-----------|----------|---------|
-| 0033 | `meal_records` | Meal records feature |
-| 0034 | `cafeteria_menus` | Meal menu management |
-| 0035 | `education_records` | Education management |
-| 0036 | `system_settings` | Admin settings |
-| 0037 | `legal_inspections`, `legal_inspection_issues` | Legal inspection management |
-| 0038 | `elevator_annual_schedules` | Elevator legal inspection |
-
-**No migration needed for:** BottomNav restructuring, remediation page (schema exists), streakDays, dynamic staff names, inspector name fix.
-
----
-
-## New API Routes Required (v1.1)
-
-| Route | Method | Handler file | Purpose |
-|-------|--------|--------------|---------|
-| `/api/staff` | GET | `functions/api/staff/index.ts` | Dynamic staff list |
-| `/api/inspections/unresolved` | GET | `functions/api/inspections/unresolved.ts` | Remediation list |
-| `/api/meals` | GET, POST | `functions/api/meals/index.ts` | Meal records |
-| `/api/meals/[id]` | DELETE | `functions/api/meals/[id].ts` | Cancel meal |
-| `/api/meals/menu` | GET, POST | `functions/api/meals/menu.ts` | Cafeteria menu |
-| `/api/education` | GET, POST | `functions/api/education/index.ts` | Education records |
-| `/api/education/[id]` | PATCH, DELETE | `functions/api/education/[id].ts` | Update education |
-| `/api/admin/settings` | GET, PATCH | `functions/api/admin/settings.ts` | System settings |
-| `/api/admin/users` | GET | `functions/api/admin/users/index.ts` | User management |
-| `/api/admin/users/[id]` | PATCH | `functions/api/admin/users/[id].ts` | Update staff |
-| `/api/legal-inspections` | GET, POST | `functions/api/legal-inspections/index.ts` | Legal inspections |
-| `/api/legal-inspections/[id]` | PATCH | `functions/api/legal-inspections/[id].ts` | Update inspection |
-| `/api/legal-inspections/[id]/issues` | GET, POST | `functions/api/legal-inspections/[id]/issues.ts` | Issues per inspection |
-| `/api/legal-inspections/issues/[id]` | PATCH | `functions/api/legal-inspections/issues/[id].ts` | Resolve issue |
-| `/api/elevators/annual-schedules` | GET, POST | `functions/api/elevators/annual-schedules.ts` | Elevator legal schedule |
-| `/api/elevators/annual-schedules/[id]` | PATCH | `functions/api/elevators/annual-schedules/[id].ts` | Update schedule |
-
-**Note on `[id]` routing in Pages Functions:** Dynamic segments use bracket syntax in file paths (`[id].ts`). This is already established in `functions/api/inspections/[sessionId].ts`. The same convention applies to all new dynamic routes.
-
----
-
-## New React Routes Required (v1.1)
-
-Add to `App.tsx` Routes and `NO_NAV_PATHS`:
-
-| Path | Component | BottomNav shown | Access level |
-|------|-----------|-----------------|--------------|
-| `/remediation` | `RemediationPage` | YES (조치 tab active) | All |
-| `/meal` | `MealPage` | NO (full-screen) | All |
-| `/education` | `EducationPage` | NO (full-screen) | All |
-| `/admin` | `AdminPage` | NO (full-screen) | Admin only |
-| `/legal-inspection` | `LegalInspectionPage` | NO (full-screen) | All |
-
-**Current `NO_NAV_PATHS` list in App.tsx (line 44):**
-```
-['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report']
-```
-Add `/meal`, `/education`, `/admin`, `/legal-inspection` to this array.
-
-`/remediation` must NOT be in `NO_NAV_PATHS` — it should show the BottomNav with 조치 tab highlighted as active.
-
----
-
-## State Management Changes
-
-**No new Zustand stores needed.** All new features use TanStack Query for server state.
-
-**Potential addition to authStore:** After dynamic staff list is implemented, the `staff` object from JWT already has `role`. No change needed to the store itself — the hardcoded `STAFF_ROLES` map in DashboardPage needs to be deleted, not the store.
-
-**TanStack Query key conventions for new features:**
-```typescript
-['unresolved']             // RemediationPage
-['meals', year, month]     // MealPage monthly view
-['cafeteria-menu', week]   // MealPage menu tab
-['education', staffId]     // EducationPage
-['admin-settings']         // AdminPage
-['legal-inspections']      // LegalInspectionPage
-['legal-issues', inspId]   // LegalInspectionPage issue list
-['elevator-annual', evId]  // ElevatorPage annual tab
-['staff-list']             // Any component needing staff dropdown
-```
-
----
-
-## Patterns to Follow
-
-### Pattern 1: File-System API Route (unchanged)
-Every new API endpoint is a new file in `functions/api/`. Named exports only. No Hono.
-
-### Pattern 2: Client-Side Excel Generation (unchanged)
-API returns JSON rows. Client fetches template, patches XML, triggers download. Never move xlsx work into Workers.
-
-### Pattern 3: Consistent Response Envelope (unchanged)
-`{ success: boolean, data?: T, error?: string }`. All new handlers must follow this.
-
-### Pattern 4: nanoid Primary Keys (unchanged)
-21-char IDs from `crypto.getRandomValues`. No auto-increment integers.
-
-### Pattern 5: Role Guard in Admin Handlers (new for v1.1)
-```typescript
-const { role } = data as any
-if (role !== 'admin') return Response.json({ success: false, error: '권한 없음' }, { status: 403 })
-```
-Apply to all `/api/admin/*` write endpoints and to any delete that should be admin-only.
-
-### Pattern 6: SideMenu Badge from Live Query (new for v1.1)
-The hardcoded `badge: 2` for `미조치 항목` in SideMenu must be replaced with a live count fetched from the same TanStack Query cache as the dashboard stats. Use `useQuery(['dashboard'])` and read `data?.stats?.unresolved` in SideMenu to show the real count.
-
----
-
-## Anti-Patterns to Avoid
-
-### Anti-Pattern 1: Excel Generation in a Worker (unchanged)
-CPU limits. Keep client-side.
-
-### Anti-Pattern 2: Hono or Express (unchanged)
-No need. Native file-system routing works.
-
-### Anti-Pattern 3: Module-Level Cache in Workers (unchanged)
-Workers isolates are not persistent. Use TanStack Query client-side.
-
-### Anti-Pattern 4: Inline SQL String Concatenation (unchanged)
-Always `prepare(sql).bind(params)`.
-
-### Anti-Pattern 5: New Full-Screen Pages Without Updating NO_NAV_PATHS
-Forgetting to add a new path to `NO_NAV_PATHS` in `App.tsx` causes BottomNav to appear on full-screen pages. Always update the array when adding a route that should hide the nav.
-
-### Anti-Pattern 6: Hardcoding Role Checks as Staff IDs
-The existing `STAFF_ROLES` map in `DashboardPage.tsx` is a known anti-pattern (line 14-19). Do not replicate this pattern in new components. Use `staff.role` from the JWT/Zustand store or from `/api/staff`.
-
----
-
-## Build Order Implications for v1.1 Roadmap
-
-The dependency graph for v1.1 features (arrows = "must come before"):
-
-```
-[BottomNav restructuring]              ← no deps; pure UI, safe to do first
-         ↓
-[RemediationPage + /api/inspections/unresolved]
-  ← requires BottomNav to show 조치 tab; no DB migration
-         ↓
-[streakDays calculation in dashboard/stats.ts]
-  ← no migration; touches existing tables
-         ↓
-[Dynamic staff names — /api/staff + remove hardcoded map]
-  ← no migration; removes technical debt
-         ↓
-[Admin settings — migration 0036, /api/admin/*, AdminPage]
-  ← needs dynamic staff API for user management tab
-         ↓
-[Meal records — migrations 0033-0034, /api/meals/*, MealPage]
-  ← independent after admin auth is confirmed working
-         ↓
-[Education management — migration 0035, /api/education/*, EducationPage]
-  ← independent; can run parallel with meal records
-         ↓
-[Legal inspection management — migration 0037, /api/legal-inspections/*, LegalInspectionPage]
-  ← independent; can run parallel with education
-         ↓
-[Elevator annual schedule — migration 0038, /api/elevators/annual-schedules, ElevatorPage extension]
-  ← independent; can run parallel with legal inspection
-```
-
-**Truly independent (can be done in any order after BottomNav):**
-- Meal records
-- Education management
-- Legal inspection management
-- Elevator annual schedule
-
-**Must be in sequence:**
-1. BottomNav restructuring (establishes nav structure everything else hangs from)
-2. RemediationPage (depends on new 조치 BottomNav tab)
-3. streakDays + dynamic staff names (cleanup work, establish patterns for later features)
-4. Admin settings (admin auth pattern needed by some later admin-gated features)
-
-**Parallel after step 4:**
-- Meal + Education + Legal + Elevator annual (all independent, all follow same table+API+page pattern)
-
----
-
-## Scalability Considerations
-
-| Concern | At 4 users (current + v1.1) | Notes |
-|---------|------------------------------|-------|
-| D1 read throughput | Not a constraint | 4 concurrent users max |
-| R2 storage | Not a constraint | PDFs/photos for legal inspections + meals |
-| Workers CPU | Excel offloaded to client; new endpoints are simple CRUD | No concern |
-| D1 schema complexity | 6 new migrations; all additive | No concern; D1 handles SQLite table count fine |
-| Page bundle size | 5 new lazy-loaded pages | Vite code splitting keeps initial load fast |
+| Concern | At current scale (4 users) | Notes |
+|---------|---------------------------|-------|
+| D1 write throughput | Not a constraint | Max 5 rows per schedule create; findings are rare events |
+| R2 storage growth | 5 photos × 200KB × findings count | 1000 findings = ~1GB = ~$0.015/month. Non-issue. |
+| Worker CPU for ZIP | Not a concern | Bulk ZIP runs client-side via fflate |
+| Browser memory for ZIP | ~10MB for 10 findings × 5 photos | Well within limits for target devices (iOS 16.3.1+) |
+| Future multi-building | Encoded `zone\|floor\|detail` in TEXT would need migration to proper columns | Flag if multi-building is ever added |
 
 ---
 
 ## Sources
 
-All findings derived from direct inspection of:
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/src/` (all pages, components, utils, types)
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/functions/` (all API handlers, middleware)
-- `/Users/jykevin/Documents/20260328/cha-bio-safety/migrations/0001–0032.sql` (full schema)
-- `/Users/jykevin/Documents/20260328/.planning/PROJECT.md` (v1.1 requirements)
-- Previous ARCHITECTURE.md (v1.0 baseline, 2026-03-28)
+All findings derived from direct codebase inspection:
+- `migrations/0038_legal_findings.sql` — current `legal_findings` schema
+- `migrations/0041_elevator_repairs.sql` — JSON array in TEXT multi-photo precedent
+- `functions/api/elevators/repairs/index.ts` — JSON array serialization pattern in production
+- `functions/api/legal/[id]/findings/index.ts`, `[fid].ts`, `[fid]/resolve.ts` — current finding APIs
+- `functions/api/schedule/index.ts` — current schedule POST handler
+- `functions/api/uploads/index.ts` — single-file R2 upload endpoint
+- `src/hooks/usePhotoUpload.ts` — existing single-upload hook to extend
+- `src/components/PhotoButton.tsx` — existing single-photo component
+- `src/pages/LegalFindingsPage.tsx` + `LegalFindingDetailPage.tsx` — current BottomSheet and detail page
+- `src/types/index.ts` — current `LegalFinding`, `LegalRound`, `ScheduleItem` interfaces
+- `src/utils/api.ts` — `legalApi`, `scheduleApi` shapes
 
-**Confidence: HIGH** — all integration points derived from actual codebase state at migration 0032.
+**Confidence: HIGH** — all integration points derived from actual code at migration 0042, 280+ commits.
+
+---
+
+*Architecture research for: CHA Bio Complex Fire Safety PWA — v1.2 UX Improvements*
+*Researched: 2026-04-05*

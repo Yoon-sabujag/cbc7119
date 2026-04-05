@@ -1,278 +1,269 @@
-# Technology Stack — Milestone 2 Additions
+# Stack Research
 
-**Project:** CHA Bio Complex Fire Safety Management System
-**Researched:** 2026-03-28
-**Scope:** Additive research only — what's needed for new features. Existing stack (React 18, TypeScript, Vite, Zustand, TanStack Query, Tailwind, Hono, Cloudflare D1/R2, JWT) is already validated.
-
----
-
-## Executive Summary
-
-The existing Excel generation approach is the right approach for this project and should be **continued and extended, not replaced.** The codebase already uses a client-side template-patching strategy: `fflate` unzips an `.xlsx` template, XML cells are patched directly, then `fflate` rezips and triggers a browser download. This is battle-tested in this codebase for 4 report types, avoids Cloudflare Workers runtime constraints entirely, and produces output that exactly matches the prescribed form templates.
-
-For the 6 new report types, the pattern is already established. The only new decisions are:
-1. Whether to add `fflate` as an explicit dependency (it's currently dynamically imported)
-2. How to handle elevator legal inspection data (no external API — this is manual-entry data managed in D1)
-3. How to fix the 504 deployment issue (Cloudflare Pages `wrangler pages deploy` race condition with large bundles)
+**Domain:** Fire Safety Management PWA — v1.2 UX improvements
+**Researched:** 2026-04-05
+**Confidence:** HIGH
 
 ---
 
-## Existing Stack Confirmation
+## Context: Existing Stack (Validated — Do Not Re-research)
 
-These are already installed and working — listed here only for dependency clarity.
+The following are already in production and locked. This document only covers **additions and changes** needed for v1.2 features.
 
-| Technology | Version | Role |
-|------------|---------|------|
-| `fflate` | via dynamic import | ZIP/unzip for .xlsx template manipulation — the actual Excel engine |
-| `xlsx-js-style` | ^1.2.0 | **Installed but not used for primary generation** — can be removed or repurposed |
-| `vite-plugin-pwa` | ^0.21.0 | PWA/service worker |
-| `wrangler` | ^4.75.0 | Cloudflare CLI for deploy |
-
----
-
-## Decision 1: Excel Generation for 6 New Report Types
-
-### Recommendation: Continue the `fflate` + XML Template Patching Pattern
-
-**Confidence: HIGH** — Based on direct codebase analysis of the existing `generateExcel.ts` (504 lines), confirmed working for DIV, 소화전, 청정소화약제, 비상콘센트 reports.
-
-**Why this pattern is correct for this project:**
-
-The project constraint states "기존 양식 파일과 호환되는 형태로 출력 필수" — output must match prescribed form files. Template patching achieves this with zero formatting risk. No library will reproduce merged cells, print margins, Korean font settings, and custom border styles from a pre-existing government-mandated form as accurately as patching the original file's XML directly.
-
-**What the pattern does:**
-```
-1. fetch('/templates/점검표_양식.xlsx')           → get the original form
-2. fflate.unzipSync(bytes)                        → unpack OOXML ZIP
-3. strFromU8(files['xl/worksheets/sheetN.xml'])   → read individual sheet XML
-4. patchCell(xml, 'A1', value)                    → string-replace cell values
-5. fflate.zipSync(newFiles)                        → repack
-6. URL.createObjectURL(blob) + <a>.click()         → browser download
-```
-
-**Why NOT ExcelJS for this project:**
-
-| Issue | Detail |
-|-------|--------|
-| Worker incompatibility | ExcelJS uses Node.js streams (`fs`, `stream`) internally. Even in browser bundle mode, stream polyfills add ~100KB to the bundle and break under Cloudflare Workers runtime (no Node.js compat for streams). |
-| Template fidelity | ExcelJS loads templates but re-renders them — merged cells, conditional formats, print settings, and Korean-language custom number formats can shift or be dropped on round-trip. |
-| Already solved | The project has 504 lines of working template patching. ExcelJS would be a lateral rewrite with regression risk. |
-| Confidence | MEDIUM — ExcelJS's Worker compat is officially documented as "Node.js only" for stream-based operations. Browser build exists but is larger and less stable for round-trip template editing. |
-
-**Why NOT SheetJS (xlsx) for this project:**
-
-| Issue | Detail |
-|-------|--------|
-| License | SheetJS Pro (xlsx ^0.20+) requires a commercial license for server-side use. The free community version (xlsx ^0.18) is MIT but stale since 2023 and misses OOXML features. |
-| Worker compat | SheetJS Community Edition works in Workers (no Node deps), but same template-fidelity problem as ExcelJS on round-trip. |
-| Confidence | MEDIUM — Based on npm registry and SheetJS docs as of knowledge cutoff. Verify current license terms at https://sheetjs.com/pro |
-
-**What `xlsx-js-style` (currently installed) is for:**
-
-`xlsx-js-style` ^1.2.0 is a fork of the old community SheetJS that adds cell styling. It was installed but the codebase pivoted to direct XML patching before it was used. It can be **removed** from `package.json` to reduce bundle size — it adds ~400KB and serves no active purpose.
-
-### New Report Types — Template Mapping Required
-
-The 6 new reports require template XML analysis before implementation. The template strategy requires knowing which sheet index maps to which report. Reference files listed in PROJECT.md:
-- `점검항목/소방설비_월간점검일지_2026.xlsx` — 소방펌프, 자탐, 제연, 방화셔터, 피난방화시설
-- `점검항목/일일업무일지(00월).xlsx` — 일일업무일지
-
-For each new report: open the xlsx in Excel, identify which sheet number contains the target form, then add a new branch in `generateCheckExcel()` pointing to that sheet XML path.
-
-**Action item for implementation phase:** Before writing generator code, run:
-```bash
-# Inspect template structure to identify sheet indices
-unzip -l 점검항목/소방설비_월간점검일지_2026.xlsx | grep worksheet
-```
-This reveals `xl/worksheets/sheet1.xml`, `sheet2.xml`, etc. — which map to the tab order in Excel.
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Frontend | React + TypeScript + Vite | 18.3 / 5.6 / 5.4 |
+| State | Zustand + TanStack Query | 5.0 / 5.59 |
+| Backend | Cloudflare Pages Functions | — |
+| Database | Cloudflare D1 (SQLite) | migration 0042 |
+| Storage | Cloudflare R2 | `env.STORAGE` binding |
+| Photo compression | Browser Canvas API in `src/utils/imageUtils.ts` | built-in |
+| ZIP / Excel | fflate | 0.8.2 (in package.json) |
+| Auth | jose JWT | 5.9.6 |
 
 ---
 
-## Decision 2: Elevator Legal Inspection Integration
+## New Capabilities Needed for v1.2
 
-### Recommendation: Internal D1 data only — no external API integration
-
-**Confidence: HIGH** — Based on PROJECT.md requirements analysis and Korea elevator inspection API availability.
-
-**What "승강기 실데이터 연동" means in this context:**
-
-The requirement is NOT to integrate with an external elevator IoT system. It means:
-1. Displaying elevator inspection records already stored in D1 (`elevator_inspections` table — confirmed in `functions/api/elevators/inspections.ts`)
-2. Adding a view for "법정 검사 일지" (legal inspection journal) — annual government-mandated inspection results vs monthly in-house checks
-3. Managing "연간 검사 일정" (annual inspection schedule) — dates tracked in D1
-
-The `elevator_inspections` table already distinguishes `type: 'monthly' | 'annual'`. The annual (법정) records are entered manually after the government inspector visits — this is standard Korean building management practice where the facility team does not have API access to the government 한국승강기안전공단 (Korea Elevator Safety Agency) database.
-
-**No new libraries required.** This feature is a new UI page + new D1 queries using the existing Hono API pattern.
-
-**Korea Elevator Safety Agency (KESA) API:**
-If integration with 한국승강기안전공단 public data is later desired, the Korea Public Data Portal (data.go.kr) provides an API. However: (a) it requires a separate API key registration, (b) it returns aggregate national data not per-building records, and (c) the PROJECT.md shows this is internal team-only with manual data entry workflow. Out of scope for this milestone.
+| Feature | Technical challenge |
+|---------|-------------------|
+| Date range input | Start/end date for multi-day legal inspections |
+| Structured location BottomSheet | Inspection item picker + cascading zone→floor→detail |
+| Multi-photo upload + gallery | Up to 5 photos per finding/resolution, thumbnail grid + lightbox |
+| Finding/resolution download | Single-item and bulk ZIP download for admin reports |
 
 ---
 
-## Decision 3: Legal Inspection Tracking (소방 법적 점검 관리)
+## Recommended Stack Additions
 
-### Recommendation: D1 new table + existing Hono/D1 pattern — no new libraries
+### Feature 1: Date Range Input
 
-**Confidence: HIGH** — The feature is data management, not a new technical domain.
+**No new library needed. Use two `<input type="date">` elements.**
 
-**Requirements from PROJECT.md:**
-- 소방 연 2회 법정 점검 (fire safety mandatory inspection, twice annual)
-- 일정 알림 (schedule notifications)
-- 결과/서류 관리 (result and document management)
-- 지적사항 추적 (deficiency tracking)
+`<input type="date">` triggers the native OS date picker on iOS 16+ Safari and Android 15+. This is exactly what field staff need: a familiar, touch-optimized date selector with no bundle cost.
 
-**Implementation approach:**
-- New D1 table: `legal_inspections` (id, type, inspection_date, inspector_org, result, deficiencies JSON, documents R2 keys, next_due_date)
-- Document storage: existing R2 binding (`STORAGE`) — already handles file uploads for inspection photos
-- Notifications: no push notification infrastructure exists. Use in-app banners (React state + TanStack Query) showing days until next due date. Real push notifications would require VAPID web push setup (significant scope expansion — defer to later milestone).
+**Compatibility:** iOS Safari has partial support but the native date picker UI works correctly. `min` and `max` attributes are not enforced by iOS Safari, so range validation (start <= end) must be done in JavaScript — a simple `Date` comparison, not a library problem.
 
-**For document attachments:** No new library needed. The existing R2 upload pattern from `functions/api/uploads/index.ts` is reusable.
+The existing `localYMD()` helper in `SchedulePage.tsx` already formats dates as YYYY-MM-DD for API calls. No new utilities needed.
+
+**Why not a date picker library:** react-day-picker, react-datepicker, and similar packages add 15–60 kB gzipped. They provide calendar UI that is worse on mobile than the OS-native picker. For a 4-user internal tool targeting iOS and Android, native wins on UX and bundle size simultaneously.
+
+**DB change required:** `schedule_items.date` is currently `TEXT NOT NULL` (YYYY-MM-DD). Add `end_date TEXT NULL` via migration 0043. API POST handler for schedule creation receives `{ date, end_date? }` and either: (a) creates one row spanning the range with the range stored as-is, or (b) loops to create one row per day. Option (a) is recommended — the existing legal inspection UI consumes schedule items by ID, so one row per inspection round is the correct model.
 
 ---
 
-## Decision 4: Cloudflare Pages 504 Deployment Fix
+### Feature 2: Structured Location BottomSheet
 
-### Recommendation: Diagnose wrangler version and bundle size; update compatibility date
+**No new library needed. Extend the existing hand-rolled BottomSheet component.**
 
-**Confidence: MEDIUM** — 504 errors on Cloudflare Pages deploy have multiple causes. Exact diagnosis requires running `wrangler pages deploy` with `--debug` flag on the actual project.
+The current `FindingBottomSheet` in `LegalFindingsPage.tsx` is a self-contained function component using a CSS `slideUp` keyframe animation. The v1.2 changes are purely data and layout:
 
-**Current state:**
-- `wrangler` version: `^4.75.0` (very current as of analysis date)
-- `compatibility_date`: `2024-09-23` (valid)
-- Bundle output: `dist/` directory, full React SPA
+- **Inspection item picker:** Replace the free-text `description` textarea with a `<select>` from `INSP_CATEGORIES` (already defined in `SchedulePage.tsx`) plus an "직접입력" option that reveals a textarea.
+- **Cascading location:** Three fields — zone `<select>` (사무동/연구동/공통 from `BuildingZone` type), floor `<select>` (B5–8F values from `Floor` type), detail `<input type="text">`.
 
-**Known causes of 504 on Cloudflare Pages deploy:**
+All required data constants and types already exist in the codebase. The BottomSheet needs no external component library.
 
-| Cause | Diagnosis | Fix |
-|-------|-----------|-----|
-| Large asset upload timeout | Run `du -sh dist/` — if >20MB, split chunks | Vite `build.rollupOptions.output.manualChunks` to split vendor bundle |
-| Worker script too large | Check `dist/_worker.js` or `dist/functions/` size — 1MB limit for Pages Functions | Split large functions files; avoid importing large Node modules in functions |
-| `fflate` bundle size | `fflate` is dynamically imported in `generateExcel.ts` — if Vite bundles it eagerly, it inflates the main chunk | Add `fflate` to `optimizeDeps.exclude` or verify dynamic import splitting |
-| wrangler auth timeout | Wrangler 4.x can timeout with slow network + large uploads | Use `--upload-source-maps false` flag to skip source map upload |
-| D1 migration not applied to remote | After deploy succeeds but API returns 500 | Run `npx wrangler d1 migrations apply cha-bio-db --remote` |
+**DB change:** `legal_findings.location` is a single `TEXT NULL` column. To preserve backward compatibility with existing finding records, serialize the structured location as a `구역:층:상세` string. Maximum length is ~40 chars. This avoids a migration that would alter the column definition, and the frontend can parse the colon-delimited format on display. Existing records with plain text location strings display as-is (no colon = no split needed).
 
-**Recommended sequence for 504 resolution:**
+---
 
-Step 1 — Check bundle size:
-```bash
-npm run build && du -sh dist/ && find dist -name "*.js" | xargs ls -lh | sort -k5 -hr | head -20
-```
+### Feature 3: Multi-Photo Upload + Gallery
 
-Step 2 — If any single JS file >500KB:
+**New library needed for lightbox only. Upload and thumbnail are no-library.**
+
+#### Upload (no new library)
+
+Extend `usePhotoUpload.ts` into a new `useMultiPhotoUpload` hook. The hook manages an array of photo slots (max 5), each containing `{ blob: Blob | null, preview: string | null, key: string | null }`. Upload calls `/api/uploads` sequentially — the existing endpoint accepts one file per request and is unchanged.
+
+Photo keys are stored as a comma-separated string in the `photo_key` / `resolution_photo_key` column (e.g., `inspections/20260405/abc.jpg,inspections/20260405/def.jpg`). Maximum 5 keys × ~100 chars = ~500 chars, well within SQLite TEXT. No migration needed for the `legal_findings` table columns.
+
+#### Thumbnail Grid (no new library)
+
+The thumbnail grid is 4 fixed-size photo thumbnails + 1 "add" slot rendered as a CSS flex row, following the visual language of the existing `PhotoButton` component. The add slot triggers the file input. No library.
+
+#### Lightbox (new library: `yet-another-react-lightbox`)
+
+| Property | Detail |
+|----------|--------|
+| Package | `yet-another-react-lightbox` |
+| Current version | 3.25.0 |
+| Install | `npm install yet-another-react-lightbox` |
+| Gzipped size | ~25 kB (core); optional plugins are tree-shaken |
+| React peer dep | React >= 18 |
+| iOS 16 | Tested and supported |
+| Touch | Swipe left/right built-in; pinch-to-zoom via optional `Zoom` plugin |
+| Dependencies | None |
+| Maintenance | Active; 300k+ weekly npm downloads; last release within past 6 months |
+
+**Why yet-another-react-lightbox over alternatives:**
+- `react-image-lightbox` — last published 2021, React 18 not officially supported, stale
+- `PhotoSwipe` — requires imperative DOM manipulation outside React's render cycle; known issues with React 18 strict mode double-invoke
+- `lightgallery` — GPLv3 license for open source; paid license required for internal tools (license risk)
+- `yet-another-react-lightbox` — actively maintained, React-native portals, no deps, SSR-compatible, touch-first
+
+**Integration pattern:**
+
 ```typescript
-// vite.config.ts — add manual chunks
-build: {
-  rollupOptions: {
-    output: {
-      manualChunks: {
-        vendor: ['react', 'react-dom', 'react-router-dom'],
-        tanstack: ['@tanstack/react-query'],
-        qr: ['qrcode', 'qrcode.react', 'html5-qrcode'],
-      }
-    }
-  }
+import Lightbox from 'yet-another-react-lightbox'
+import 'yet-another-react-lightbox/styles.css'
+
+// slides built from comma-split keys
+const slides = photoKeys.split(',').filter(Boolean).map(k => ({
+  src: `/api/uploads/${k}`,
+}))
+
+<Lightbox
+  open={lightboxOpen}
+  close={() => setLightboxOpen(false)}
+  index={lightboxIndex}
+  slides={slides}
+/>
+```
+
+The CSS import (`yet-another-react-lightbox/styles.css`) is ~2 kB. Vite processes it automatically with no additional config.
+
+---
+
+### Feature 4: Finding/Resolution Content + Photo Download
+
+**No new library. Use existing `fflate.zipSync` (already installed) + native `<a download>`.**
+
+#### Single-item download (no library)
+
+Fetch the R2 image via the existing `/api/uploads/{key}` endpoint (GET, public within auth), create a `Blob URL`, set `<a download>` and click:
+
+```typescript
+async function downloadPhoto(key: string, filename: string) {
+  const blob = await fetch(`/api/uploads/${key}`).then(r => r.blob())
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 ```
 
-Step 3 — Deploy with verbose output:
-```bash
-npx wrangler pages deploy dist --commit-dirty=true 2>&1 | tee deploy.log
+#### Bulk ZIP download (fflate — already installed)
+
+For bulk download (all photos from a finding, or all findings from a round), use `fflate.zipSync`:
+
+```typescript
+import { zipSync } from 'fflate'
+
+async function downloadFindingZip(finding: LegalFinding) {
+  const keys = (finding.photoKey ?? '').split(',').filter(Boolean)
+  const files: Record<string, Uint8Array> = {}
+
+  for (const key of keys) {
+    const buf = await fetch(`/api/uploads/${key}`).then(r => r.arrayBuffer())
+    const filename = key.split('/').pop()!
+    files[filename] = new Uint8Array(buf)
+  }
+
+  const zipped = zipSync(files)
+  const blob = new Blob([zipped], { type: 'application/zip' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `finding-${finding.id}.zip`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 ```
 
-Step 4 — If deploy succeeds but API still 504s (runtime timeout):
-- Cloudflare Pages Functions have a 30-second CPU time limit (50ms for free, 30s for paid)
-- The paid plan is confirmed active — 30s limit applies
-- Excel generation is browser-side, so not an issue
-- Dashboard N+1 query (noted in CONCERNS.md) is the most likely runtime timeout risk
+`zipSync` is synchronous and runs on the browser main thread — appropriate here because the payload is at most 5 photos × ~200 kB = ~1 MB. No web worker overhead needed at this scale.
 
-**Confidence caveat:** The specific 504 symptom is not fully described in PROJECT.md. If 504 occurs at upload time (not runtime), the bundle size approach resolves it. If 504 occurs at runtime, it's a Worker timeout issue. The diagnostic sequence above distinguishes these.
+**Why not a server-side ZIP endpoint on Cloudflare Workers:**
+The community-validated approach for R2 + Workers ZIP uses `@zip.js/zip.js` with `configure({ useCompressionStream: false })` as a required workaround for a `pipeTo()` incompatibility in the workerd runtime. This adds a new library with a known quirk, a Pages Function endpoint to maintain, and auth passthrough complexity — all for a 4-user tool where the photos are < 1 MB total. Client-side `fflate.zipSync` is simpler, already bundled, and sufficient for this scale.
 
----
-
-## Decision 5: Notification System for Legal Inspection Due Dates
-
-### Recommendation: In-app only (no Web Push), use TanStack Query polling
-
-**Confidence: HIGH** — Scope and user count (4 people) make Web Push disproportionately complex.
-
-**Why not Web Push (VAPID):**
-- Requires: VAPID key generation, subscription storage per-user in D1, push API calls from Workers, service worker `push` event handler updates
-- Value: Moderate — only 4 users who are actively logged in during work shifts anyway
-- Cost: 2-3 days implementation; `web-push` npm package is Node.js-only (not compatible with Cloudflare Workers without a Node.js compatibility flag)
-
-**Recommended approach: in-app banner + dashboard widget**
-- `TanStack Query` already polls dashboard stats. Add `legal_inspections` upcoming due dates to the `/api/dashboard/stats` response.
-- Show a banner when next inspection is within 30 days.
-- No new libraries. Zero infrastructure change.
-
-If push notifications are genuinely needed later: Cloudflare's own `web-push` implementation via `@cloudflare/workers-web-push` (released 2024) works natively in Workers. Defer to a separate milestone.
+**Why not JSZip:**
+`fflate` is already in `package.json` (used for Excel generation). Adding JSZip would duplicate compression functionality. `fflate.zipSync` produces standard ZIP files compatible with all OS ZIP tools.
 
 ---
 
-## Dependency Changes for This Milestone
+## Net New Dependencies
 
-### Remove (safe, zero functionality impact)
-| Package | Reason |
-|---------|--------|
-| `xlsx-js-style` | Installed but unused — replaced by fflate XML patching. Remove to save ~400KB bundle. |
+**One new package total.**
 
-### Add (explicit)
-| Package | Version | Purpose | Rationale |
-|---------|---------|---------|-----------|
-| `fflate` | `^0.8.2` | ZIP/unzip for Excel template manipulation | Currently dynamically imported inline; making it an explicit dependency prevents tree-shaking surprises and allows proper type checking |
+| Package | Version | Purpose | Bundle impact |
+|---------|---------|---------|---------------|
+| `yet-another-react-lightbox` | `^3.25.0` | Photo fullscreen viewer with swipe | ~25 kB gzip |
 
-**Confidence: HIGH** — `fflate` is already in use in production code (dynamic `import('fflate')`). Making it an explicit dep is a housekeeping change, not a new technology bet. Version `^0.8.2` is the stable branch as of knowledge cutoff (Aug 2025); verify current version at https://www.npmjs.com/package/fflate.
+Everything else is satisfied by existing code, existing libraries, or native browser APIs.
 
-### No Change Needed
-| Package | Note |
-|---------|------|
-| `date-fns` + `date-fns-tz` | Already handles Korean timezone (Asia/Seoul) for legal inspection date tracking |
-| `jspdf` | Installed, available if PDF export of legal inspection records is needed later |
-| All Cloudflare bindings | D1 + R2 + Workers — sufficient for all new features |
+---
+
+## Installation
+
+```bash
+# Run from cha-bio-safety/
+npm install yet-another-react-lightbox
+```
+
+No removals needed. No version changes to existing packages.
+
+---
+
+## DB Migrations for v1.2
+
+| Migration | SQL | Reason |
+|-----------|-----|--------|
+| 0043 | `ALTER TABLE schedule_items ADD COLUMN end_date TEXT;` | Date range feature — stores end date of multi-day inspection, NULL for single-day |
+
+The `legal_findings.photo_key` and `legal_findings.resolution_photo_key` TEXT columns already support comma-separated keys. No migration needed for multi-photo support.
 
 ---
 
 ## Alternatives Considered
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| Excel generation | fflate + XML patching (continue current) | ExcelJS | Node.js streams dependency; template fidelity risk on round-trip; already solved in codebase |
-| Excel generation | fflate + XML patching (continue current) | SheetJS Community | License ambiguity in recent versions; same template-fidelity problem; unnecessary migration |
-| Notifications | In-app TanStack Query banner | Web Push (VAPID) | 4-user system; `web-push` is Node-only; disproportionate complexity |
-| Elevator data | Internal D1 only | Korea Elevator Safety API (data.go.kr) | Requires separate API key; returns aggregate national data not per-building records; out of scope |
-| Deployment fix | Bundle analysis + wrangler flags | Migrate to GitHub CI/CD | Out of scope for this milestone; manual deploy is working except for 504 issue |
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| Two `<input type="date">` | react-day-picker | 30 kB gzip; OS-native picker is better UX on mobile |
+| Two `<input type="date">` | react-datepicker | 42 kB gzip; same problem |
+| Extend existing BottomSheet | headlessui / radix-ui BottomSheet | No bottom sheet primitive exists in these libs; custom CSS already works |
+| yet-another-react-lightbox | react-image-lightbox | Unmaintained since 2021 |
+| yet-another-react-lightbox | PhotoSwipe | React 18 strict mode issues with imperative DOM API |
+| yet-another-react-lightbox | lightgallery | GPLv3 license risk for internal tools |
+| fflate.zipSync (client) | Server-side ZIP Worker | Requires @zip.js/zip.js workaround; adds endpoint to maintain; overkill for < 1 MB payloads |
+| fflate.zipSync (client) | JSZip | Already have fflate; adding JSZip duplicates compression |
+| Comma-separated photo keys | New `legal_finding_photos` join table | Adds migration + JOIN complexity; 5 photos = ~500 chars is no constraint for SQLite TEXT |
 
 ---
 
-## Quick Installation
+## What NOT to Use
 
-```bash
-# In cha-bio-safety/
-
-# Remove unused package
-npm uninstall xlsx-js-style
-
-# Add fflate as explicit dependency (currently dynamically imported)
-npm install fflate@^0.8.2
-```
-
-After removing `xlsx-js-style`, verify `src/pages/ReportsPage.tsx` and `src/utils/generateExcel.ts` have no imports from it (they don't, based on current analysis).
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| JSZip | Duplicate of fflate already in bundle | `fflate.zipSync()` |
+| @zip.js/zip.js | Requires `configure({ useCompressionStream: false })` workaround in workerd | `fflate.zipSync()` in browser |
+| react-datepicker | 42 kB gzip for functionality native `<input type="date">` provides free | `<input type="date">` + JS validation |
+| react-day-picker | 30 kB gzip; calendar grid is inferior UX on mobile vs native OS picker | `<input type="date">` |
+| date-fns for range validation | Overkill; range validation is arithmetic, not parsing | Plain `new Date(str)` comparison |
+| lightgallery | GPLv3 requires commercial license for internal tools | `yet-another-react-lightbox` |
+| Separate photo keys table | Adds JOIN, migration, API shape change for ≤5 photos | Comma-separated TEXT in existing column |
 
 ---
 
-## Sources and Confidence Assessment
+## Version Compatibility
 
-| Area | Confidence | Source | Notes |
-|------|------------|--------|-------|
-| fflate Excel pattern | HIGH | Direct codebase analysis of `generateExcel.ts` | Pattern is working in production for 4 report types |
-| ExcelJS Workers incompatibility | MEDIUM | Knowledge of ExcelJS internals (streams); not re-verified against 2026 release | Verify at https://github.com/exceljs/exceljs — check if browser bundle now works without streams |
-| SheetJS license | MEDIUM | Knowledge cutoff Aug 2025 | Verify current license at https://sheetjs.com — community vs pro boundary may have shifted |
-| 504 fix approach | MEDIUM | Cloudflare Pages documentation patterns; exact symptom unknown | Run diagnostic sequence to confirm cause before applying fix |
-| Korean elevator API | LOW | knowledge of Korea Public Data Portal (data.go.kr) | Not directly verified; may have changed registration requirements |
-| fflate version | MEDIUM | Last known stable branch 0.8.x as of Aug 2025 | Verify at https://www.npmjs.com/package/fflate before pinning |
-| Cloudflare Workers 30s CPU limit | HIGH | Cloudflare pricing/limits documentation | Confirmed for paid plans; free plan is 10ms (irrelevant here, paid plan confirmed) |
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| yet-another-react-lightbox ^3.25.0 | react ^18.3.1 | Peer dep is React >= 18; matches project |
+| fflate 0.8.2 (existing) | Browser main thread | `zipSync` is synchronous; safe in browser. `zip` uses Web Workers — do NOT use in Pages Functions |
 
 ---
 
-*Research completed: 2026-03-28 | Model: Claude Sonnet 4.6*
+## Sources
+
+- Codebase audit — `src/hooks/usePhotoUpload.ts`, `src/types/index.ts`, `src/pages/LegalFindingsPage.tsx`, `src/pages/LegalFindingDetailPage.tsx`, `functions/api/uploads/index.ts`, `migrations/0038_legal_findings.sql`, `package.json` — HIGH confidence
+- [MDN `<input type="date">`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/date) — iOS 16 partial support; `min`/`max` not enforced by Mobile Safari — HIGH confidence
+- [yet-another-react-lightbox GitHub](https://github.com/igordanchenko/yet-another-react-lightbox) — React 18+, touch/swipe, no deps, active maintenance — HIGH confidence
+- [fflate GitHub](https://github.com/101arrowz/fflate) — `zipSync` confirmed browser-safe, synchronous, no Web Workers — HIGH confidence
+- [w00kie.com — Zip R2 objects in Cloudflare Workers](https://w00kie.com/2024/07/13/zip-r2-objects-in-memory-with-cloudflare-workers/) — confirms zip.js workaround requirement; validates client-side approach for small payloads — MEDIUM confidence
+- [zip.js discussion #248](https://github.com/gildas-lormeau/zip.js/discussions/248) — fflate lacks ZIP64, confirmed acceptable for < 4 GB files (finding photos are KB range) — MEDIUM confidence
+
+---
+
+*Stack research for: CHA Bio Safety v1.2 UX improvements*
+*Researched: 2026-04-05*
