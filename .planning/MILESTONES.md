@@ -1,5 +1,29 @@
 # Milestones
 
+## v1.1 UI 재편 + 기능 확장 (Shipped: 2026-04-05)
+
+**Phases completed:** 11 phases, 15 plans, 23 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- One-liner:
+- 1. [Rule 1 - Bug] Corrected _middleware import path in [recordId].ts
+- One-liner:
+- One-liner:
+- 1. [Rule 3 - Blocking] Replaced lucide-react with inline SVGs
+- Migration `0035_meal_records.sql`:
+- React calendar page with optimistic tap-cycle meal tracking, 4-stat summary cards, and month navigation wired to mealApi + leaveApi + shiftCalc
+- education_records D1 table, three CRUD endpoints with admin-or-self auth, TypeScript contracts, API client, and /education route wired into SideMenu
+- 1. [Rule 3 - Blocking] date-fns not installed
+- migration 0038 + 5 API handlers rewritten for schedule_items schema + LegalRound/LegalFinding types + legalApi client with api.patch
+- Three legal inspection pages with round list + status filter, finding registration BottomSheet, admin result panel, and resolution flow with photo upload — all 12 verification steps confirmed by user
+- One-liner:
+- Constants added:
+- One-liner:
+
+---
+
 ## v1.0 Completion: Bug Fixes, Excel Reports, Schedule Linkage (Shipped: 2026-03-30)
 
 **Phases completed:** 4 phases, 13 plans, 26 tasks
