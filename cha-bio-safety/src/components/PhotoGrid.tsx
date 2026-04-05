@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Lightbox from 'yet-another-react-lightbox'
+import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 
@@ -142,6 +143,15 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
         close={() => setLbOpen(false)}
         index={lbIndex}
         slides={slides}
+        plugins={[Zoom]}
+        zoom={{ maxZoomPixelRatio: 3, scrollToZoom: true }}
+        render={{
+          buttonZoom: () => null,
+          iconClose: () => <span style={{ fontSize: 18, fontWeight: 700 }}>✕</span>,
+        }}
+        styles={{
+          root: { position: 'fixed', inset: 0, zIndex: 9999, '--yarl__color_button': 'rgba(255,255,255,0.9)', '--yarl__toolbar_padding': 'calc(env(safe-area-inset-top, 0px) + 8px) 8px 0', '--yarl__navigation_padding': '0', '--yarl__container_background_color': '#000' } as any,
+        }}
       />
     </div>
   )

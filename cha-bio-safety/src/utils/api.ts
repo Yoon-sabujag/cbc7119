@@ -244,13 +244,13 @@ export const legalApi = {
     api.patch<void>(`/legal/${id}`, body),
   getFindings: (scheduleItemId: string) =>
     api.get<import('../types').LegalFinding[]>(`/legal/${scheduleItemId}/findings`),
-  createFinding: (scheduleItemId: string, body: { description: string; location?: string; photo_key?: string }) =>
+  createFinding: (scheduleItemId: string, body: { description: string; location?: string; photo_keys?: string[] }) =>
     api.post<{ id: string }>(`/legal/${scheduleItemId}/findings`, body),
   getFinding: (scheduleItemId: string, fid: string) =>
     api.get<import('../types').LegalFinding>(`/legal/${scheduleItemId}/findings/${fid}`),
   updateFinding: (scheduleItemId: string, fid: string, body: Record<string, any>) =>
     api.put<void>(`/legal/${scheduleItemId}/findings/${fid}`, body),
-  resolveFinding: (scheduleItemId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string }) =>
+  resolveFinding: (scheduleItemId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string; resolution_photo_keys?: string[] }) =>
     api.post<void>(`/legal/${scheduleItemId}/findings/${fid}/resolve`, body),
   deleteFinding: (scheduleItemId: string, fid: string) =>
     api.delete<void>(`/legal/${scheduleItemId}/findings/${fid}`),

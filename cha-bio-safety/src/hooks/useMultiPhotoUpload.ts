@@ -5,31 +5,33 @@ import { useAuthStore } from '../stores/authStore'
 // ── 다중 사진 업로드 훅 ────────────────────────────────────
 const MAX_PHOTOS = 5
 
-interface PhotoSlot {
+export interface PhotoSlot {
   blob: Blob
-  preview: string       // URL.createObjectURL result
+  preview: string
   uploading: boolean
-  key: string | null    // R2 key after upload
+  key: string | null
   error: string | null
+}
+
+async function uploadBlob(blob: Blob, token: string | null): Promise<string> {
+  const form = new FormData()
+  form.append('file', blob, 'photo.jpg')
+  const headers: Record<string, string> = {}
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const res = await fetch('/api/uploads', { method: 'POST', body: form, headers })
+  const json = await res.json() as { success: boolean; data?: { key: string } }
+  if (!json.success || !json.data?.key) throw new Error('업로드 실패')
+  return json.data.key
 }
 
 export function useMultiPhotoUpload() {
   const [slots, setSlots] = useState<PhotoSlot[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
-  const abortControllers = useRef<AbortController[]>([])
-  // Track preview URLs in a ref for safe unmount cleanup
-  const previewUrls = useRef<string[]>([])
 
-  // Keep previewUrls ref in sync with slots
-  useEffect(() => {
-    previewUrls.current = slots.map(s => s.preview)
-  }, [slots])
-
-  // Cleanup on unmount: revoke all blob URLs and abort pending uploads
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      previewUrls.current.forEach(url => URL.revokeObjectURL(url))
-      abortControllers.current.forEach(ac => ac.abort())
+      slots.forEach(s => URL.revokeObjectURL(s.preview))
     }
   }, [])
 
@@ -44,31 +46,22 @@ export function useMultiPhotoUpload() {
     e.target.value = ''
     if (!files.length) return
 
-    // Limit to remaining slots
-    setSlots(prev => {
-      const remaining = MAX_PHOTOS - prev.length
-      return prev // will update after compression
-    })
-
-    const currentSlots = slots.length
-    const remaining = MAX_PHOTOS - currentSlots
-    const filesToProcess = files.slice(0, remaining)
-
     const newSlots: PhotoSlot[] = []
-    for (const file of filesToProcess) {
+    for (const file of files) {
+      if (newSlots.length >= MAX_PHOTOS) break
       try {
         const blob = await compressImage(file)
         const preview = URL.createObjectURL(blob)
         newSlots.push({ blob, preview, uploading: false, key: null, error: null })
       } catch {
-        // skip files that fail compression
+        // skip
       }
     }
 
     if (newSlots.length > 0) {
       setSlots(prev => [...prev, ...newSlots].slice(0, MAX_PHOTOS))
     }
-  }, [slots.length])
+  }, [])
 
   const removeSlot = useCallback((idx: number) => {
     setSlots(prev => {
@@ -78,80 +71,44 @@ export function useMultiPhotoUpload() {
     })
   }, [])
 
-  const uploadAll = useCallback(async (): Promise<string[]> => {
+  // Upload all blobs and return R2 keys
+  // Takes explicit slot array to avoid ANY closure issues
+  const uploadAll = useCallback(async (explicitSlots: PhotoSlot[]): Promise<string[]> => {
+    if (explicitSlots.length === 0) return []
     const token = useAuthStore.getState().token
+    const keys: string[] = []
 
-    // Collect already-uploaded keys and pending slots
-    const alreadyUploaded: string[] = []
-    const pendingIndices: number[] = []
-
-    slots.forEach((slot, idx) => {
+    for (let i = 0; i < explicitSlots.length; i++) {
+      const slot = explicitSlots[i]
       if (slot.key) {
-        alreadyUploaded.push(slot.key)
-      } else {
-        pendingIndices.push(idx)
+        keys.push(slot.key)
+        continue
       }
-    })
-
-    if (pendingIndices.length === 0) return alreadyUploaded
-
-    // Mark pending slots as uploading
-    setSlots(prev => prev.map((s, i) =>
-      pendingIndices.includes(i) ? { ...s, uploading: true, error: null } : s
-    ))
-
-    // Create abort controllers for this batch
-    const controllers = pendingIndices.map(() => new AbortController())
-    abortControllers.current = [...abortControllers.current, ...controllers]
-
-    const uploadPromises = pendingIndices.map(async (slotIdx, i) => {
-      const slot = slots[slotIdx]
-      const form = new FormData()
-      form.append('file', slot.blob, 'photo.jpg')
-      const res = await fetch('/api/uploads', {
-        method: 'POST',
-        body: form,
-        headers: { Authorization: `Bearer ${token}` },
-        signal: controllers[i].signal,
-      })
-      const json = await res.json() as { success: boolean; data?: { key: string } }
-      if (!json.success) throw new Error('업로드 실패')
-      return { slotIdx, key: json.data!.key }
-    })
-
-    const results = await Promise.allSettled(uploadPromises)
-
-    const newKeys: string[] = []
-    setSlots(prev => {
-      const next = [...prev]
-      results.forEach((result, i) => {
-        const slotIdx = pendingIndices[i]
-        if (result.status === 'fulfilled') {
-          next[slotIdx] = { ...next[slotIdx], uploading: false, key: result.value.key, error: null }
-          newKeys.push(result.value.key)
-        } else {
-          next[slotIdx] = { ...next[slotIdx], uploading: false, error: '업로드 실패' }
-        }
-      })
-      return next
-    })
-
-    return [...alreadyUploaded, ...newKeys]
-  }, [slots])
+      try {
+        const key = await uploadBlob(slot.blob, token)
+        keys.push(key)
+      } catch {
+        // skip failed
+      }
+    }
+    return keys
+  }, [])
 
   const reset = useCallback(() => {
-    slots.forEach(s => URL.revokeObjectURL(s.preview))
-    abortControllers.current.forEach(ac => ac.abort())
-    abortControllers.current = []
-    setSlots([])
-  }, [slots])
+    setSlots(prev => {
+      prev.forEach(s => URL.revokeObjectURL(s.preview))
+      return []
+    })
+  }, [])
 
   const isUploading = slots.some(s => s.uploading)
+  const hasPhotos = slots.length > 0
 
   return {
     inputRef,
     slots,
     canAdd,
+    hasPhotos,
     pickPhotos,
     handleFiles,
     removeSlot,

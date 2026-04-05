@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
+import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import type { LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
@@ -35,6 +36,30 @@ function Spinner() {
   )
 }
 
+// ── 구역/층 매핑 ─────────────────────────────────────────────────
+const ZONES = [
+  { key: 'research', label: '연구동' },
+  { key: 'office',   label: '사무동' },
+  { key: 'bridge',   label: '브릿지' },
+  { key: 'basement', label: '지하' },
+] as const
+
+const ZONE_FLOORS: Record<string, string[]> = {
+  research: ['8-1F','8F','7F','6F','5F','3F','2F','1F'],
+  office:   ['8-1F','8F','7F','6F','5F','3F','2F','1F'],
+  bridge:   ['7F','6F','5F','3F'],
+  basement: ['B1','M','B2','B3','B4','B5'],
+}
+
+const FINDING_ITEMS = [
+  '직접입력',
+  '감지기(불꽃)','감지기(열)','감지기(연기)',
+  '방화문','방화셔터','비상방송설비','비상콘센트',
+  'DIV','소방펌프','소화기','소화전','스프링클러','시각경보기',
+  '완강기','유도등','자동화재탐지설비',
+  '전실제연댐퍼','청정소화약제',
+]
+
 // ── 지적사항 등록 BottomSheet ─────────────────────────────────────
 interface BottomSheetProps {
   scheduleItemId: string
@@ -43,19 +68,35 @@ interface BottomSheetProps {
 
 function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
   const queryClient = useQueryClient()
+  const [zone, setZone] = useState('')
+  const [floor, setFloor] = useState('')
+  const [locationDetail, setLocationDetail] = useState('')
+  const [inspectionItem, setInspectionItem] = useState('')
+  const [customItem, setCustomItem] = useState('')
   const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
+  const photos = useMultiPhotoUpload()
 
   const mutation = useMutation({
-    mutationFn: () => legalApi.createFinding(scheduleItemId, {
-      description: description.trim(),
-      location: location.trim() || undefined,
-    }),
+    mutationFn: async () => {
+      const photoKeys = await photos.uploadAll(photos.slots)
+      const loc = [
+        ZONES.find(z => z.key === zone)?.label,
+        floor,
+        locationDetail.trim(),
+      ].filter(Boolean).join(' ')
+      const item = inspectionItem === '직접입력' ? customItem.trim() : inspectionItem
+      return legalApi.createFinding(scheduleItemId, {
+        description: [item, description.trim()].filter(Boolean).join(' — '),
+        location: loc || undefined,
+        photo_keys: photoKeys.length > 0 ? photoKeys : undefined,
+      })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legal-findings', scheduleItemId] })
       queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
       queryClient.invalidateQueries({ queryKey: ['legal-round', scheduleItemId] })
       toast.success('지적사항이 등록되었습니다.')
+      photos.reset()
       onClose()
     },
     onError: () => {
@@ -63,7 +104,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
     },
   })
 
-  const isSubmitting = mutation.isPending
+  const isSubmitting = mutation.isPending || photos.isUploading
 
   const handleSubmit = () => {
     if (!description.trim()) {
@@ -73,23 +114,56 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
     mutation.mutate()
   }
 
+  const floors = zone ? (ZONE_FLOORS[zone] ?? []) : []
+
+  const lblStyle: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }
   const inputStyle: React.CSSProperties = {
     background: 'var(--bg3)',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 9,
+    padding: '10px 12px',
     border: '1px solid var(--bd2)',
     width: '100%',
     color: 'var(--t1)',
-    fontSize: 14,
+    fontSize: 13,
     boxSizing: 'border-box',
     outline: 'none',
-    fontFamily: 'Noto Sans KR, sans-serif',
+    fontFamily: 'inherit',
     lineHeight: 1.5,
+    minWidth: 0,
+    WebkitAppearance: 'none',
+    appearance: 'none',
   }
+  const chipStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    minWidth: 0,
+    padding: '9px 0',
+    borderRadius: 8,
+    border: active ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
+    background: active ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
+    color: active ? 'var(--acl)' : 'var(--t2)',
+    fontSize: 13,
+    fontWeight: active ? 700 : 400,
+    cursor: 'pointer',
+    textAlign: 'center',
+  })
+  const floorChipStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    minWidth: 0,
+    padding: '7px 0',
+    borderRadius: 8,
+    border: active ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
+    background: active ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
+    color: active ? 'var(--acl)' : 'var(--t2)',
+    fontSize: 12,
+    fontWeight: active ? 700 : 400,
+    cursor: 'pointer',
+    textAlign: 'center',
+  })
 
   return (
     <div
       onClick={onClose}
+      onTouchMove={e => e.stopPropagation()}
       style={{
         position: 'fixed',
         inset: 0,
@@ -98,16 +172,19 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
         flexDirection: 'column',
         justifyContent: 'flex-end',
         zIndex: 50,
+        overscrollBehavior: 'contain',
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
+        onTouchMove={e => e.stopPropagation()}
         style={{
           background: 'var(--bg2)',
           borderRadius: '16px 16px 0 0',
           animation: 'slideUp 0.28s ease-out both',
           maxHeight: '90vh',
           overflowY: 'auto',
+          overscrollBehavior: 'contain',
         }}
       >
         {/* 드래그 핸들 */}
@@ -121,36 +198,117 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
         </div>
 
         {/* 폼 */}
-        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* 구역 선택 */}
+          <div>
+            <div style={lblStyle}>구역</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {ZONES.map(z => (
+                <button key={z.key} onClick={() => { setZone(z.key); setFloor('') }} style={chipStyle(zone === z.key)}>{z.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* 층 선택 */}
+          {floors.length > 0 && (
+            <div>
+              <div style={lblStyle}>층</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {floors.map(f => (
+                  <button key={f} onClick={() => setFloor(f)} style={floorChipStyle(floor === f)}>{f}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 상세 위치 */}
+          <div>
+            <div style={lblStyle}>위치 상세</div>
+            <input
+              type="text"
+              value={locationDetail}
+              onChange={e => setLocationDetail(e.target.value)}
+              placeholder="예: 복도, 계단실, 전기실"
+              style={inputStyle}
+            />
+          </div>
+
+          {/* 지적 항목 (리스트 선택) */}
+          <div>
+            <div style={lblStyle}>지적 항목</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--bd2)', borderRadius: 9, overflow: 'hidden', maxHeight: 123, overflowY: 'auto' }}>
+              {FINDING_ITEMS.map((item, i) => (
+                <button
+                  key={item}
+                  onClick={() => setInspectionItem(item)}
+                  style={{
+                    padding: '10px 12px',
+                    background: inspectionItem === item ? 'rgba(59,130,246,.1)' : 'var(--bg3)',
+                    border: 'none',
+                    borderBottom: i < FINDING_ITEMS.length - 1 ? '1px solid var(--bd)' : 'none',
+                    color: inspectionItem === item ? 'var(--acl)' : 'var(--t1)',
+                    fontSize: 13,
+                    fontWeight: inspectionItem === item ? 700 : 400,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            {inspectionItem === '직접입력' && (
+              <input
+                type="text"
+                value={customItem}
+                onChange={e => setCustomItem(e.target.value)}
+                placeholder="점검 항목을 직접 입력하세요"
+                style={{ ...inputStyle, marginTop: 8 }}
+              />
+            )}
+          </div>
+
           {/* 지적 내용 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>
+            <div style={lblStyle}>
               지적 내용 <span style={{ color: 'var(--danger)' }}>*</span>
             </div>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="지적 내용을 입력하세요"
-              rows={4}
+              rows={3}
               style={{ ...inputStyle, resize: 'vertical' }}
             />
           </div>
 
-          {/* 위치 */}
+          {/* 지적 사진 (최대 5장) */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>위치 (선택)</div>
-            <input
-              type="text"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              placeholder="예: 3층 복도"
-              style={inputStyle}
-            />
+            <div style={lblStyle}>지적 사진 (최대 5장)</div>
+            <input ref={photos.inputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+              {photos.slots.map((slot, i) => (
+                <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                  <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                  <button
+                    aria-label="사진 제거"
+                    onClick={() => photos.removeSlot(i)}
+                    style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                  >✕</button>
+                  {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                </div>
+              ))}
+              {photos.canAdd && (
+                <button onClick={photos.pickPhotos} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
+                  <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* 버튼 영역 */}
-        <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
@@ -158,7 +316,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
               width: '100%',
               height: 48,
               background: 'var(--acl)',
-              borderRadius: 8,
+              borderRadius: 10,
               border: 'none',
               color: '#fff',
               fontWeight: 700,
@@ -177,7 +335,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
               height: 48,
               background: 'transparent',
               border: '1px solid var(--bd2)',
-              borderRadius: 8,
+              borderRadius: 10,
               color: 'var(--t2)',
               fontSize: 14,
               cursor: 'pointer',

@@ -3,8 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
-import { usePhotoUpload } from '../hooks/usePhotoUpload'
-import { PhotoButton } from '../components/PhotoButton'
+import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import type { LegalFinding } from '../types'
 
@@ -51,8 +50,7 @@ export default function LegalFindingDetailPage() {
   const queryClient = useQueryClient()
 
   const [memo, setMemo] = useState('')
-  const resolutionPhoto = usePhotoUpload()
-  const beforePhoto = usePhotoUpload()
+  const resolutionPhotos = useMultiPhotoUpload()
 
   const { data: finding, isLoading, error } = useQuery({
     queryKey: ['legal-finding', id, fid],
@@ -62,15 +60,10 @@ export default function LegalFindingDetailPage() {
 
   const resolveMutation = useMutation({
     mutationFn: async () => {
-      let photoKey: string | undefined = undefined
-      if (resolutionPhoto.hasPhoto) {
-        const key = await resolutionPhoto.upload()
-        if (key === null) throw new Error('photo upload failed')
-        photoKey = key
-      }
+      const photoKeys = await resolutionPhotos.uploadAll(resolutionPhotos.slots)
       return legalApi.resolveFinding(id!, fid!, {
         resolution_memo: memo.trim(),
-        resolution_photo_key: photoKey,
+        resolution_photo_keys: photoKeys.length > 0 ? photoKeys : undefined,
       })
     },
     onSuccess: () => {
@@ -79,26 +72,11 @@ export default function LegalFindingDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
       queryClient.invalidateQueries({ queryKey: ['legal-round', id] })
       toast.success('조치 완료')
+      resolutionPhotos.reset()
       navigate(-1)
     },
     onError: () => {
       toast.error('조치 처리 실패')
-    },
-  })
-
-  const updateBeforePhotoMutation = useMutation({
-    mutationFn: async () => {
-      const key = await beforePhoto.upload()
-      if (key === null) throw new Error('photo upload failed')
-      return legalApi.updateFinding(id!, fid!, { photo_key: key })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['legal-finding', id, fid] })
-      toast.success('사진이 저장되었습니다.')
-      beforePhoto.reset()
-    },
-    onError: () => {
-      toast.error('사진 업로드 실패')
     },
   })
 
@@ -110,7 +88,7 @@ export default function LegalFindingDetailPage() {
     resolveMutation.mutate()
   }
 
-  const isSubmitting = resolveMutation.isPending
+  const isSubmitting = resolveMutation.isPending || resolutionPhotos.isUploading
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
@@ -181,34 +159,12 @@ export default function LegalFindingDetailPage() {
             </div>
           </div>
 
-          {/* Section 2: 지적 사진 */}
+          {/* Section 2: 지적 사진 (보기 전용) */}
           <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
             <SectionHeader>지적 사진</SectionHeader>
             {finding.photoKeys && finding.photoKeys.length > 0 ? (
               <div style={{ marginTop: 8 }}>
                 <PhotoGrid photoUrls={finding.photoKeys.map(k => '/api/uploads/' + k)} />
-              </div>
-            ) : finding.status === 'open' ? (
-              <div style={{ marginTop: 8 }}>
-                <PhotoButton hook={beforePhoto} label="지적 사진" noCapture />
-                {beforePhoto.hasPhoto && (
-                  <button
-                    onClick={() => updateBeforePhotoMutation.mutate()}
-                    disabled={updateBeforePhotoMutation.isPending}
-                    style={{
-                      marginTop: 8,
-                      padding: '6px 12px',
-                      background: 'var(--bg3)',
-                      border: '1px solid var(--bd2)',
-                      borderRadius: 8,
-                      color: 'var(--t2)',
-                      fontSize: 12,
-                      cursor: updateBeforePhotoMutation.isPending ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {updateBeforePhotoMutation.isPending ? '저장 중...' : '사진 저장'}
-                  </button>
-                )}
               </div>
             ) : (
               <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 8 }}>사진 없음</div>
@@ -223,24 +179,44 @@ export default function LegalFindingDetailPage() {
                 value={memo}
                 onChange={e => setMemo(e.target.value)}
                 placeholder="조치 내용을 입력하세요"
-                rows={4}
+                rows={3}
                 style={{
                   width: '100%',
                   background: 'var(--bg3)',
-                  borderRadius: 8,
-                  padding: 12,
+                  borderRadius: 9,
+                  padding: '10px 12px',
                   border: '1px solid var(--bd2)',
                   color: 'var(--t1)',
-                  fontSize: 14,
+                  fontSize: 13,
                   boxSizing: 'border-box',
-                  fontFamily: 'Noto Sans KR, sans-serif',
+                  fontFamily: 'inherit',
                   lineHeight: 1.5,
                   resize: 'vertical',
                   outline: 'none',
                 }}
               />
+              {/* 조치 사진 (최대 5장) */}
               <div style={{ marginTop: 12 }}>
-                <PhotoButton hook={resolutionPhoto} label="조치 사진" noCapture />
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 (최대 5장)</div>
+                <input ref={resolutionPhotos.inputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                  {resolutionPhotos.slots.map((slot, i) => (
+                    <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                      <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                      <button
+                        aria-label="사진 제거"
+                        onClick={() => resolutionPhotos.removeSlot(i)}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                      >✕</button>
+                      {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                    </div>
+                  ))}
+                  {resolutionPhotos.canAdd && (
+                    <button onClick={resolutionPhotos.pickPhotos} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
+                      <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
