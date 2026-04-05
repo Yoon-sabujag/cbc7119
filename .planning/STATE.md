@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UX 개선 + 다운로드
-status: executing
-stopped_at: "15-finding-download 15-02-PLAN.md — paused at checkpoint:human-verify (Task 3); production deployed at https://c2ba7414.cbc7119.pages.dev"
-last_updated: "2026-04-05T17:26:54.488Z"
+status: verifying
+stopped_at: Completed 15-finding-download 15-02-PLAN.md — Phase 15 complete, v1.2 milestone done
+last_updated: "2026-04-05T17:29:19.808Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 
 Phase: 15 (finding-download) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
 | Phase 12 P01 | 3 | 2 tasks | 6 files |
 | Phase 15 P01 | 2m | 2 tasks | 2 files |
 | Phase 15 P02 | 15 | 2 tasks | 1 files |
+| Phase 15 P02 | 30 | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Recent decisions affecting v1.2 work:
 - [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass (D-08 compliance)
 - [Phase 15]: Promise.allSettled for parallel photo fetch — partial photo failure does not block report
 - [Phase 15]: window.open(blobUrl, '_blank') not <a download> for iOS PWA ZIP download compatibility
+- [Phase 15]: window.open(blobUrl, '_blank') not <a download> for iOS PWA ZIP delivery (D-08 compliance, WebKit bug 167341)
+- [Phase 15]: Promise.allSettled for photo fetch in ZIP — partial photo failure does not abort bulk download, 내용.txt always included
 
 ### Pending Todos
 
@@ -90,8 +93,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T17:26:54.483Z
-Stopped at: 15-finding-download 15-02-PLAN.md — paused at checkpoint:human-verify (Task 3); production deployed at https://c2ba7414.cbc7119.pages.dev
+Last session: 2026-04-05T17:29:19.804Z
+Stopped at: Completed 15-finding-download 15-02-PLAN.md — Phase 15 complete, v1.2 milestone done
 Resume file: None
 
 ---
