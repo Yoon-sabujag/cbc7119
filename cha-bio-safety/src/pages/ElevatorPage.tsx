@@ -1689,6 +1689,7 @@ const SOURCE_TYPE_LABEL: Record<string, { label: string; color: string }> = {
 }
 
 function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; navigate: (to:string)=>void }) {
+  const qc = useQueryClient()
   const [evType, setEvType] = useState<'' | 'elevator' | 'escalator'>('')
   const [filterEv, setFilterEv] = useState('')
   const [keyword, setKeyword] = useState('')
@@ -1779,6 +1780,22 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
                 {renderPhotos('파손 부품', r.damagedPartsPhotos)}
                 {renderPhotos('수리 중', r.duringRepairPhotos)}
                 {renderPhotos('수리 완료 / 조치 사진', r.completedPhotos)}
+                {r.sourceType === 'standalone' && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('삭제하시겠습니까?')) return
+                      try {
+                        await elevatorRepairApi.delete(r.sourceId)
+                        qc.invalidateQueries({ queryKey: ['elev-repairs'] })
+                        toast.success('삭제 완료')
+                        setExpandedId(null)
+                      } catch { toast.error('삭제 실패') }
+                    }}
+                    style={{ marginTop:10, width:'100%', padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  >
+                    수리 기록 삭제
+                  </button>
+                )}
               </div>
             )}
           </div>
