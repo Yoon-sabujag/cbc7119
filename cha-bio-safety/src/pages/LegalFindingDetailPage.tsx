@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
+import { PhotoGrid } from '../components/PhotoGrid'
 import type { LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
@@ -183,20 +184,10 @@ export default function LegalFindingDetailPage() {
           {/* Section 2: 지적 사진 */}
           <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
             <SectionHeader>지적 사진</SectionHeader>
-            {finding.photoKey ? (
-              <img
-                src={'/api/uploads/' + finding.photoKey}
-                alt="지적 사진"
-                style={{
-                  width: '100%',
-                  maxHeight: 240,
-                  objectFit: 'cover',
-                  borderRadius: 10,
-                  border: '1px solid var(--bd)',
-                  display: 'block',
-                  marginTop: 12,
-                }}
-              />
+            {finding.photoKeys && finding.photoKeys.length > 0 ? (
+              <div style={{ marginTop: 8 }}>
+                <PhotoGrid photoUrls={finding.photoKeys.map(k => '/api/uploads/' + k)} />
+              </div>
             ) : finding.status === 'open' ? (
               <div style={{ marginTop: 8 }}>
                 <PhotoButton hook={beforePhoto} label="지적 사진" noCapture />
@@ -265,20 +256,10 @@ export default function LegalFindingDetailPage() {
                   <span style={{ whiteSpace: 'pre-wrap' }}>{finding.resolutionMemo ?? '-'}</span>
                 </KVRow>
               </div>
-              {finding.resolutionPhotoKey && (
-                <img
-                  src={'/api/uploads/' + finding.resolutionPhotoKey}
-                  alt="조치 사진"
-                  style={{
-                    width: '100%',
-                    maxHeight: 240,
-                    objectFit: 'cover',
-                    borderRadius: 10,
-                    border: '1px solid var(--bd)',
-                    display: 'block',
-                    marginTop: 12,
-                  }}
-                />
+              {finding.resolutionPhotoKeys && finding.resolutionPhotoKeys.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <PhotoGrid photoUrls={finding.resolutionPhotoKeys.map(k => '/api/uploads/' + k)} />
+                </div>
               )}
             </div>
           )}
