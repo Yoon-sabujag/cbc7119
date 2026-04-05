@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
+import { useAuthStore } from '../stores/authStore'
+import { openFindingReport } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
@@ -50,6 +52,8 @@ export default function LegalFindingDetailPage() {
   const queryClient = useQueryClient()
 
   const [memo, setMemo] = useState('')
+  const [downloading, setDownloading] = useState(false)
+  const staff = useAuthStore(s => s.staff)
   const resolutionPhotos = useMultiPhotoUpload()
 
   const { data: finding, isLoading, error } = useQuery({
@@ -79,6 +83,16 @@ export default function LegalFindingDetailPage() {
       toast.error('조치 처리 실패')
     },
   })
+
+  async function handleDownload() {
+    if (!finding) return
+    setDownloading(true)
+    try {
+      await openFindingReport(finding)
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   const handleResolve = () => {
     if (!memo.trim()) {
@@ -127,6 +141,31 @@ export default function LegalFindingDetailPage() {
           </svg>
         </button>
         <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적 상세</span>
+        {staff?.role === 'admin' && finding && (
+          <button
+            aria-label="다운로드"
+            onClick={handleDownload}
+            disabled={downloading}
+            style={{
+              position: 'absolute',
+              right: 12,
+              width: 36,
+              height: 36,
+              border: 'none',
+              background: 'none',
+              cursor: downloading ? 'not-allowed' : 'pointer',
+              color: 'var(--t1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: downloading ? 0.5 : 1,
+            }}
+          >
+            <svg width={18} height={18} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-6-6m6 6l6-6M5 19h14" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* 로딩 */}
