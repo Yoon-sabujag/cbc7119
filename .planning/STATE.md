@@ -1,23 +1,23 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: UI 재편 + 기능 확장
-status: verifying
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-04-05T06:50:41.170Z"
+milestone: v1.2
+milestone_name: UX 개선 + 다운로드
+status: defining-requirements
+stopped_at: null
+last_updated: "2026-04-05T12:00:00.000Z"
 last_activity: 2026-04-05
 progress:
-  total_phases: 11
-  completed_phases: 7
-  total_plans: 15
-  completed_plans: 15
-  percent: 87
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
 
-**Last updated:** 2026-03-31
-**Milestone:** v1.1 — UI 재편 + 기능 확장
+**Last updated:** 2026-04-05
+**Milestone:** v1.2 — UX 개선 + 다운로드
 
 ---
 
@@ -31,14 +31,19 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ---
 
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-04-05)
+
+**Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
+**Current focus:** Defining requirements for v1.2
+
 ## Current Position
 
-Phase: 999.1
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-05
-
-Progress: [█████████░] 87% (Phase 11 plan 1 of 3 complete)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-05 — Milestone v1.2 started
 
 ---
 
