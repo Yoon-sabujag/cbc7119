@@ -29,6 +29,32 @@ Requirements for v1.2 release. Each maps to roadmap phases.
 - [x] **DL-02**: 라운드 전체 지적사항을 일괄 ZIP으로 다운로드할 수 있다
 - [x] **DL-03**: iOS PWA에서 window.open + 공유시트 방식으로 다운로드를 지원한다
 
+## v1.3 Requirements
+
+Requirements for v1.3 release. Each maps to roadmap phases.
+
+### 프로필/계정
+
+- [ ] **PROF-01**: 비밀번호를 변경할 수 있다
+- [ ] **PROF-02**: 이름을 수정할 수 있다
+
+### 알림
+
+- [ ] **NOTI-01**: PWA 푸시 알림을 구독/해제할 수 있다
+- [ ] **NOTI-02**: 점검 일정 알림을 켜고 끌 수 있다
+- [ ] **NOTI-03**: 미조치 이슈 알림을 켜고 끌 수 있다
+
+### 메뉴 편집
+
+- [ ] **MENU-01**: BottomNav 메뉴 순서를 변경할 수 있다
+- [ ] **MENU-02**: SideMenu 항목 표시/숨김을 설정할 수 있다
+
+### 앱 정보
+
+- [ ] **APP-01**: 빌드 버전과 앱 정보를 확인할 수 있다
+- [ ] **APP-02**: 서비스워커 캐시를 초기화할 수 있다
+- [ ] **APP-03**: 로그아웃할 수 있다
+
 ## Future Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
