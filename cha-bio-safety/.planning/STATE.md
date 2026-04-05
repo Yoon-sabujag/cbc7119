@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: PWA 데스크톱 최적화
-status: executing
-stopped_at: 11-desktop-layout-foundation 11-01-PLAN.md — complete
-last_updated: "2026-04-05T01:01:58.828Z"
+status: verifying
+stopped_at: "11-desktop-layout-foundation 11-02-PLAN.md — paused at checkpoint:human-verify (Task 2); Task 1 committed 091907b, awaiting visual verification"
+last_updated: "2026-04-05T01:20:25.119Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 
 Phase: 11 (desktop-layout-foundation) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0%
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 - No plans completed yet.
 
 | Phase 11 P01 | 17 | 2 tasks | 5 files |
+| Phase 11 P02 | 20 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - v1.1 init: Chrome/Edge 타겟 — File System Access API 지원 브라우저 한정
 - [Phase 11]: lucide-react@0.454.0 installed — listed in CLAUDE.md spec but missing from package.json
 - [Phase 11]: DesktopSidebar uses 3px transparent left border on inactive items to prevent layout shift on activation
+- [Phase 11]: Split NO_NAV_PATHS into MOBILE/DESKTOP variants: DESKTOP keeps only ['/', '/login'] to show sidebar on all authenticated pages
+- [Phase 11]: main tag uses overflow: auto instead of nested div overflow: hidden to enable desktop page scrolling without phantom bottom gap
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-04-05T01:01:58.824Z
-Stopped at: 11-desktop-layout-foundation 11-01-PLAN.md — complete
+Last session: 2026-04-05T01:20:25.114Z
+Stopped at: 11-desktop-layout-foundation 11-02-PLAN.md — paused at checkpoint:human-verify (Task 2); Task 1 committed 091907b, awaiting visual verification
 Resume file: None
