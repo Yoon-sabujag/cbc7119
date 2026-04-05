@@ -26,9 +26,9 @@
   2. 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 스크롤하여 확인할 수 있다 (하단 공백이나 잘림 없음)
   3. 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
   4. 모바일(767px 이하)에서 기존 BottomNav/헤더/드로어 방식이 기존과 동일하게 동작한다
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
-- [ ] 11-01-PLAN.md — CSS overflow 수정 + useIsDesktop 훅 + DesktopSidebar 컴포넌트 생성
+- [x] 11-01-PLAN.md — CSS overflow 수정 + useIsDesktop 훅 + DesktopSidebar 컴포넌트 생성
 - [ ] 11-02-PLAN.md — App.tsx Layout 분기 + SettingsPanel 데스크톱 대응 + 시각 검증
 **UI hint**: yes
 
@@ -73,7 +73,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 11. Desktop Layout Foundation | v1.1 | 0/2 | Planning complete | - |
+| 11. Desktop Layout Foundation | v1.1 | 1/2 | In Progress|  |
 | 12. Document Editing & Export | v1.1 | 0/? | Not started | - |
 | 13. File System Access Auto-Save | v1.1 | 0/? | Not started | - |
 | 14. Menu Upload & Keyboard Polish | v1.1 | 0/? | Not started | - |
