@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -82,7 +82,7 @@ const EV_FLOORS: Record<string, string[]> = {
   'EV-06': ['B2F','B1F','사1F','사2F','사3F','사5F','사6F','사7F'],
   'EV-07': ['B2F','M','B1F'],
   'EV-08': ['연3F','연5F','연6F','연7F'],
-  'EV-09': ['B2F','2F하역장','연3F','연5F','연6F','연7F'],
+  'EV-09': ['B2F','B1F','B1F식당','2F하역장','연3F','연5F','연6F','연7F'],
   'EV-10': ['2F하역장','연8F'],
   'EV-11': ['B1F식당','2F하역장'],
 }
@@ -1680,71 +1680,149 @@ const SOURCE_LABEL: Record<string, string> = {
   standalone: '수리', fault: '고장수리', inspect: '점검수리', annual: '검사수리',
 }
 
-// ── 수리 목록 섹션 (필터+검색 포함) ───────────────────────────
+// ── 수리 통합 뷰 (고장수리 + 검사조치 + 독립수리 통합) ──────
+const SOURCE_TYPE_LABEL: Record<string, { label: string; color: string }> = {
+  standalone:     { label: '독립수리', color: '#eab308' },
+  fault:          { label: '고장수리', color: 'var(--danger)' },
+  annual_finding: { label: '검사조치', color: 'var(--warn)' },
+}
+
 function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; navigate: (to:string)=>void }) {
+  const [evType, setEvType] = useState<'' | 'elevator' | 'escalator'>('')
   const [filterEv, setFilterEv] = useState('')
-  const [filterTarget, setFilterTarget] = useState('')
   const [keyword, setKeyword] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null)
+
+  const filteredElevators = evType ? elevators.filter(e => evType === 'escalator' ? e.type === 'escalator' : e.type !== 'escalator') : elevators
 
   const { data: repairs = [], isLoading } = useQuery({
-    queryKey: ['elev-repairs', filterEv, filterTarget, keyword],
+    queryKey: ['elev-repairs', filterEv, keyword, evType],
     queryFn: () => elevatorRepairApi.list({
       elevator_id: filterEv || undefined,
-      target: filterTarget || undefined,
       keyword: keyword || undefined,
+      ev_type: evType || undefined,
     }),
     staleTime: 30_000,
   })
 
+  const renderPhotos = (label: string, csv: string | null) => {
+    if (!csv) return null
+    const keys = csv.split(',').filter(Boolean)
+    if (!keys.length) return null
+    return (
+      <div style={{ marginTop:8 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:4 }}>{label} ({keys.length})</div>
+        <div style={{ display:'flex', gap:4, overflowX:'auto' }}>
+          {keys.map((k, i) => (
+            <img key={k} src={`/api/uploads/${k}`} alt="" onClick={() => setViewerSrc(`/api/uploads/${k}`)}
+              style={{ width:56, height:56, objectFit:'cover', borderRadius:6, border:'1px solid var(--bd)', cursor:'pointer', flexShrink:0 }}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
+      {viewerSrc && <RepairImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
+
       {/* 필터 바 */}
       <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, flexShrink:0 }}>
-        <select value={filterEv} onChange={e => setFilterEv(e.target.value)} style={{ ...inputSt, flex:'1 1 100px', fontSize:11 }}>
-          <option value="">전체 호기</option>
-          {elevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
-        </select>
-        <select value={filterTarget} onChange={e => setFilterTarget(e.target.value)} style={{ ...inputSt, flex:'1 1 80px', fontSize:11 }}>
-          <option value="">전체 대상</option>
-          <option value="car">카</option>
-          <option value="hall">홀</option>
-          <option value="machine_room">기계실</option>
-          <option value="pit">피트</option>
+        <select value={evType} onChange={e => { setEvType(e.target.value as any); setFilterEv('') }} style={{ ...inputSt, flex:'1 1 90px', fontSize:11 }}>
+          <option value="">전체 유형</option>
+          <option value="elevator">엘리베이터</option>
           <option value="escalator">에스컬레이터</option>
         </select>
-        <input
-          value={keyword} onChange={e => setKeyword(e.target.value)}
-          placeholder="수리 항목 검색..."
-          style={{ ...inputSt, flex:'2 1 120px', fontSize:11 }}
-        />
+        <select value={filterEv} onChange={e => setFilterEv(e.target.value)} style={{ ...inputSt, flex:'1 1 100px', fontSize:11 }}>
+          <option value="">전체 호기</option>
+          {filteredElevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
+        </select>
+        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="검색..." style={{ ...inputSt, flex:'2 1 100px', fontSize:11 }} />
       </div>
 
       {isLoading && <EmptyState icon="⏳" text="불러오는 중..." />}
       {!isLoading && repairs.length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
 
-      {repairs.map(r => (
-        <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', flexShrink:0, marginBottom:2 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <div style={{ width:36, height:36, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
-              {TYPE_ICON[r.elevatorType] ?? '🔧'}
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{r.elevatorNumber}호기</span>
-                <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:5, background:'rgba(234,179,8,0.12)', color:'#eab308' }}>{REPAIR_TARGET_LABEL[r.repairTarget]}{r.hallFloor ? ` ${r.hallFloor}` : ''}</span>
-                <span style={{ fontSize:9, fontWeight:600, padding:'1px 5px', borderRadius:5, background:'var(--bg3)', color:'var(--t3)' }}>{SOURCE_LABEL[r.source]}</span>
+      {repairs.map((r: any) => {
+        const st = SOURCE_TYPE_LABEL[r.sourceType] ?? SOURCE_TYPE_LABEL.standalone
+        const isExpanded = expandedId === r.id
+        return (
+          <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0, marginBottom:2 }}>
+            <div onClick={() => setExpandedId(isExpanded ? null : r.id)} style={{ padding:'10px 12px', display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+              <div style={{ width:36, height:36, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
+                {TYPE_ICON[r.elevatorType] ?? '🔧'}
               </div>
-              <div style={{ fontSize:12, color:'var(--t1)', marginTop:2, fontWeight:600 }}>{r.repairItem}</div>
-              {r.repairDetail && <div style={{ fontSize:11, color:'var(--t2)', marginTop:1, lineHeight:1.4 }}>{r.repairDetail.length > 60 ? r.repairDetail.slice(0,60)+'...' : r.repairDetail}</div>}
-              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
-                {r.repairDate}{r.repairCompany ? ` · ${r.repairCompany}` : ''}
-                {(r.partsArrivalPhotos || r.damagedPartsPhotos || r.duringRepairPhotos || r.completedPhotos) && ' · 📷'}
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{r.elevatorNumber}호기</span>
+                  <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:5, background:`${st.color}18`, color:st.color }}>{st.label}</span>
+                  {r.target && <span style={{ fontSize:9, fontWeight:600, padding:'1px 5px', borderRadius:5, background:'var(--bg3)', color:'var(--t3)' }}>{REPAIR_TARGET_LABEL[r.target]}{r.hallFloor ? ` ${r.hallFloor}` : ''}</span>}
+                </div>
+                <div style={{ fontSize:12, color:'var(--t1)', marginTop:2, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.title}</div>
+                <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>
+                  {r.date}{r.company ? ` · ${r.company}` : ''}
+                  {r.photos && ' · 📷'}
+                </div>
               </div>
+              <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExpanded ? 'rotate(90deg)' : 'none', transition:'transform 0.15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
             </div>
+
+            {isExpanded && (
+              <div style={{ padding:'0 12px 12px', borderTop:'1px solid var(--bd)' }}>
+                {r.detail && (
+                  <div style={{ paddingTop:10, fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{r.detail}</div>
+                )}
+                {renderPhotos('부품 입고', r.partsArrivalPhotos)}
+                {renderPhotos('파손 부품', r.damagedPartsPhotos)}
+                {renderPhotos('수리 중', r.duringRepairPhotos)}
+                {renderPhotos('수리 완료 / 조치 사진', r.completedPhotos)}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </>
+  )
+}
+
+// ── 수리 이미지 뷰어 (핀치투줌+패닝) ─────────────────────────
+function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
+  const [scale, setScale] = useState(1)
+  const [pos, setPos] = useState({ x:0, y:0 })
+  const [dragging, setDragging] = useState(false)
+  const lastTouch = useRef<{ dist:number; x:number; y:number } | null>(null)
+  const dragStart = useRef<{ x:number; y:number; px:number; py:number } | null>(null)
+  const dist = (t: React.TouchEvent) => {
+    if (t.touches.length < 2) return 0
+    const dx = t.touches[0].clientX - t.touches[1].clientX, dy = t.touches[0].clientY - t.touches[1].clientY
+    return Math.sqrt(dx*dx+dy*dy)
+  }
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.95)', display:'flex', flexDirection:'column' }}>
+      <div style={{ flexShrink:0, display:'flex', justifyContent:'flex-end', padding:'12px 16px', paddingTop:'calc(12px + var(--sat, 44px))' }}>
+        <button onClick={onClose} style={{ background:'none', border:'none', color:'#fff', fontSize:24, cursor:'pointer' }}>✕</button>
+      </div>
+      <div
+        onTouchStart={e => {
+          if (e.touches.length === 2) { e.preventDefault(); lastTouch.current = { dist:dist(e), x:pos.x, y:pos.y } }
+          else if (e.touches.length === 1 && scale > 1) { dragStart.current = { x:e.touches[0].clientX, y:e.touches[0].clientY, px:pos.x, py:pos.y }; setDragging(true) }
+        }}
+        onTouchMove={e => {
+          if (e.touches.length === 2 && lastTouch.current) {
+            e.preventDefault(); const s = Math.min(5, Math.max(1, scale * (dist(e) / lastTouch.current.dist))); setScale(s); if (s <= 1) setPos({x:0,y:0})
+          } else if (e.touches.length === 1 && dragging && dragStart.current) {
+            setPos({ x:dragStart.current.px + e.touches[0].clientX - dragStart.current.x, y:dragStart.current.py + e.touches[0].clientY - dragStart.current.y })
+          }
+        }}
+        onTouchEnd={() => { lastTouch.current = null; dragStart.current = null; setDragging(false); if (scale <= 1) setPos({x:0,y:0}) }}
+        onDoubleClick={() => { if (scale > 1) { setScale(1); setPos({x:0,y:0}) } else setScale(2.5) }}
+        style={{ flex:1, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', touchAction:'none' }}
+      >
+        <img src={src} alt="" draggable={false} style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain', transform:`translate(${pos.x}px,${pos.y}px) scale(${scale})`, transition: dragging ? 'none' : 'transform 0.15s', userSelect:'none' }} />
+      </div>
+    </div>
   )
 }
 
@@ -1805,7 +1883,6 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
   const [repairItem, setRepairItem] = useState('')
   const [repairDetail, setRepairDetail] = useState('')
   const [repairCompany, setRepairCompany] = useState('')
-  const [source, setSource] = useState<string>('standalone')
   const [partsPhotos, setPartsPhotos] = useState<string[]>([])
   const [damagedPhotos, setDamagedPhotos] = useState<string[]>([])
   const [duringPhotos, setDuringPhotos] = useState<string[]>([])
@@ -1831,7 +1908,6 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
         repairItem: repairItem.trim(),
         repairDetail: repairDetail.trim() || undefined,
         repairCompany: repairCompany.trim() || undefined,
-        source,
         partsArrivalPhotos: partsPhotos.length ? partsPhotos.join(',') : undefined,
         damagedPartsPhotos: damagedPhotos.length ? damagedPhotos.join(',') : undefined,
         duringRepairPhotos: duringPhotos.length ? duringPhotos.join(',') : undefined,
@@ -1900,25 +1976,6 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
                 </div>
               </div>
             )}
-
-            {/* 수리 유형 */}
-            <div>
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>수리 유형</div>
-              <div style={{ display:'flex', gap:7 }}>
-                {([
-                  { key:'standalone', label:'수리' },
-                  { key:'fault', label:'고장수리' },
-                  { key:'inspect', label:'점검수리' },
-                  { key:'annual', label:'검사수리' },
-                ] as const).map(opt => (
-                  <button key={opt.key} onClick={() => setSource(opt.key)} style={{
-                    flex:1, padding:'9px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:10, fontWeight:700,
-                    background: source === opt.key ? 'var(--acl)' : 'var(--bg3)',
-                    color: source === opt.key ? '#fff' : 'var(--t3)',
-                  }}>{opt.label}</button>
-                ))}
-              </div>
-            </div>
 
             <Field label="수리 항목">
               <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" style={inputSt} />

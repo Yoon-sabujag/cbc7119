@@ -272,15 +272,16 @@ export const elevatorInspectionApi = {
 }
 
 export const elevatorRepairApi = {
-  list: (params?: { elevator_id?: string; target?: string; keyword?: string; from?: string; to?: string }) => {
+  list: (params?: { elevator_id?: string; target?: string; keyword?: string; from?: string; to?: string; ev_type?: string }) => {
     const q = new URLSearchParams()
     if (params?.elevator_id) q.set('elevator_id', params.elevator_id)
     if (params?.target) q.set('target', params.target)
     if (params?.keyword) q.set('keyword', params.keyword)
     if (params?.from) q.set('from', params.from)
     if (params?.to) q.set('to', params.to)
+    if (params?.ev_type) q.set('ev_type', params.ev_type)
     const qs = q.toString()
-    return api.get<import('../types').ElevatorRepair[]>(`/elevators/repairs${qs ? '?' + qs : ''}`)
+    return api.get<any[]>(`/elevators/repairs${qs ? '?' + qs : ''}`)
   },
   create: (body: any) =>
     api.post<{ id: string }>('/elevators/repairs', body),
