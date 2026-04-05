@@ -61,18 +61,20 @@ Source: existing `index.css` + Tailwind config. All sizes apply to desktop layou
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 14px | 400 (regular) | 1.5 |
-| Label / Heading | 12px | 500–700 (medium to bold) | 1.4 |
-| Section header (sidebar group label) | 11px | 600 (semibold) | 1.2 |
+| Label / Heading | 12px | 700 (bold) | 1.4 |
+| Section header (sidebar group label) | 11px | 700 (bold) | 1.2 |
 | KPI value (dashboard) | 28px | 700 (bold) | 1.0 |
 
+Two weights only: 400 (regular) and 700 (bold). Weight 500 and 600 are not used.
+
 Explicit assignments:
-- Sidebar nav item labels: 14px, weight 500, truncated with `text-overflow: ellipsis`
+- Sidebar nav item labels: 14px, weight 400, truncated with `text-overflow: ellipsis`
 - Desktop header page title: 12px, weight 700, `var(--t1)`
-- User card name in sidebar footer: 12px, weight 600, `var(--t1)`
+- User card name in sidebar footer: 12px, weight 700, `var(--t1)`
 - User card role label in sidebar footer: 11px, weight 400, `var(--t2)`
-- Sidebar section group labels: 11px, weight 600, `var(--t2)`, uppercase
+- Sidebar section group labels: 11px, weight 700, `var(--t2)`, uppercase
 - KPI card labels: 12px, weight 400, `var(--t2)`
-- Table header labels: 12px, weight 600, `var(--t2)`, uppercase
+- Table header labels: 12px, weight 700, `var(--t2)`, uppercase
 - Korean text only: Noto Sans KR. No mixed monospace in navigation or headers.
 
 ---
@@ -87,12 +89,13 @@ All values are the existing CSS Custom Properties from `src/index.css`. Do not i
 | Secondary (30%) | `var(--bg2)` = #161b22 | Sidebar background, desktop header background |
 | Tertiary surface | `var(--bg3)` = #1c2128 | Sidebar nav item hover state, card backgrounds |
 | Quaternary surface | `var(--bg4)` = #22272e | Active sidebar nav item background |
-| Accent (10%) | `var(--acl)` = #3b82f6 | Active sidebar nav item left border indicator (3px), active nav item label color |
+| Accent (10%) | `var(--acl)` = #3b82f6 | Active sidebar nav item left border indicator (3px), active nav item label color, active tab indicator border + label |
 | Destructive | `var(--danger)` = #ef4444 | Logout button text color only |
 
 Accent reserved for:
 1. Active sidebar nav item — 3px left border in `var(--acl)`
 2. Active sidebar nav item label text color
+3. Active tab indicator — border + label
 
 Accent is NOT used for: hover states, focus rings, badges, header elements, or any other interactive element in this phase.
 
@@ -127,8 +130,8 @@ Text tokens:
 
 **Nav sections (scrollable middle):**
 - Overflow: `auto` (scrollable if content overflows)
-- Section group label: 11px, weight 600, `var(--t2)`, uppercase, 16px left padding, 8px top + 4px bottom vertical padding
-- Section items: 36px height, 16px horizontal padding, 14px weight 500 `var(--t1)` label
+- Section group label: 11px, weight 700, `var(--t2)`, uppercase, 16px left padding, 8px top + 4px bottom vertical padding
+- Section items: 36px height, 16px horizontal padding, 14px weight 400 `var(--t1)` label
 - Item hover: background `var(--bg3)`, no transition delay (instant)
 - Item active: background `var(--bg4)`, 3px left border `var(--acl)`, label color `var(--acl)`
 - Item with `soon: true`: label color `var(--t3)`, cursor `default`, pointer-events none
@@ -164,7 +167,7 @@ Section 4: 시설 관리
 - Background: `var(--bg2)`
 - Top border: `1px solid var(--bd)`
 - Layout: 16px horizontal padding, flex row, align center
-- Left: user name 12px weight 600 `var(--t1)` + role label 11px `var(--t2)` stacked vertically
+- Left: user name 12px weight 700 `var(--t1)` + role label 11px `var(--t2)` stacked vertically
 - Right: logout icon button (LogOut from lucide-react, 16px, `var(--danger)`)
 - Logout on click: call `logout()` from authStore, no confirmation dialog (not destructive data-wise)
 
@@ -253,7 +256,7 @@ For 대시보드, 근무표, 승강기, 관리자 설정:
 
 For inspection results, floor plan tabs:
 - Tab bar: `display: flex`, `border-bottom: 1px solid var(--bd)`, `background: var(--bg2)`
-- Tab item: 14px weight 500, 16px horizontal + 8px vertical padding
+- Tab item: 14px weight 400, 16px horizontal + 8px vertical padding
 - Active tab: `border-bottom: 2px solid var(--acl)`, label color `var(--acl)`
 - Inactive tab: label color `var(--t2)`, no border
 - Floor filter tabs (B2, B1, 1F, 2F, 3F, 전체): same visual style, rendered as pill row below main tabs
@@ -261,7 +264,7 @@ For inspection results, floor plan tabs:
 ### Table Layout (D-18)
 
 - Width: `width: 100%`
-- Header row: `background: var(--bg3)`, 12px weight 600 `var(--t2)` uppercase label
+- Header row: `background: var(--bg3)`, 12px weight 700 `var(--t2)` uppercase label
 - Body row: `background: var(--bg)`, hover `background: var(--bg3)`
 - Row height: 44px minimum
 - Row border: `border-bottom: 1px solid var(--bd)`
