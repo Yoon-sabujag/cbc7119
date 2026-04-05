@@ -3,8 +3,6 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { elevatorInspectionApi } from '../utils/api'
-import { usePhotoUpload } from '../hooks/usePhotoUpload'
-import { PhotoButton } from '../components/PhotoButton'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
 function fmtDate(iso: string | null) {
@@ -54,7 +52,8 @@ export default function ElevatorFindingDetailPage() {
 
   const [memo, setMemo] = useState('')
   const [resolveDate, setResolveDate] = useState(new Date().toISOString().slice(0,10))
-  const resolutionPhoto = usePhotoUpload()
+  const [photoKeys, setPhotoKeys] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
 
   const { data: findings, isLoading, error } = useQuery({
     queryKey: ['elev-findings', iid],
@@ -64,17 +63,30 @@ export default function ElevatorFindingDetailPage() {
 
   const finding = findings?.find(f => f.id === fid)
 
+  // 사진 업로드 핸들러 (최대 5장)
+  const handlePhotoAdd = async (file: File) => {
+    if (photoKeys.length >= 5) { toast.error('사진은 최대 5장까지 가능합니다'); return }
+    setUploading(true)
+    try {
+      const { compressImage } = await import('../utils/imageUtils')
+      const compressed = await compressImage(file)
+      const fd = new FormData()
+      fd.append('file', compressed)
+      const token = (await import('../stores/authStore')).useAuthStore.getState().token
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd, headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json() as any
+      if (!json.success) throw new Error(json.error)
+      setPhotoKeys(prev => [...prev, json.data.key])
+      toast.success(`사진 ${photoKeys.length + 1}/5 업로드 완료`)
+    } catch { toast.error('업로드 실패') }
+    setUploading(false)
+  }
+
   const resolveMutation = useMutation({
     mutationFn: async () => {
-      let photoKey: string | undefined = undefined
-      if (resolutionPhoto.hasPhoto) {
-        const key = await resolutionPhoto.upload()
-        if (key === null) throw new Error('photo upload failed')
-        photoKey = key
-      }
       return elevatorInspectionApi.resolveFinding(eid, iid, fid!, {
         resolution_memo: memo.trim(),
-        resolution_photo_key: photoKey,
+        resolution_photo_key: photoKeys.length > 0 ? photoKeys.join(',') : undefined,
         resolved_date: resolveDate,
       })
     },
@@ -242,7 +254,27 @@ export default function ElevatorFindingDetailPage() {
                 }}
               />
               <div style={{ marginTop: 12 }}>
-                <PhotoButton hook={resolutionPhoto} label="조치 사진" noCapture />
+                <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 ({photoKeys.length}/5)</div>
+                {/* 업로드된 사진 썸네일 */}
+                {photoKeys.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                    {photoKeys.map((key, idx) => (
+                      <div key={key} style={{ position: 'relative', width: 64, height: 64 }}>
+                        <img src={`/api/uploads/${key}`} alt={`조치 사진 ${idx+1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)' }} />
+                        <button onClick={() => setPhotoKeys(prev => prev.filter((_, i) => i !== idx))} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* 추가 버튼 */}
+                {photoKeys.length < 5 && (
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px dashed var(--bd2)', background: 'var(--bg3)', cursor: uploading ? 'wait' : 'pointer', color: 'var(--t2)', fontSize: 12, fontWeight: 600 }}>
+                    {uploading ? '업로드 중...' : `📷 사진 추가 (${5 - photoKeys.length}장 남음)`}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }}
+                    />
+                  </label>
+                )}
               </div>
             </div>
           )}
@@ -258,21 +290,26 @@ export default function ElevatorFindingDetailPage() {
                   <span style={{ whiteSpace: 'pre-wrap' }}>{finding.resolutionMemo ?? '-'}</span>
                 </KVRow>
               </div>
-              {finding.resolutionPhotoKey && (
-                <img
-                  src={'/api/uploads/' + finding.resolutionPhotoKey}
-                  alt="조치 사진"
-                  style={{
-                    width: '100%',
-                    maxHeight: 240,
-                    objectFit: 'cover',
-                    borderRadius: 10,
-                    border: '1px solid var(--bd)',
-                    display: 'block',
-                    marginTop: 12,
-                  }}
-                />
-              )}
+              {finding.resolutionPhotoKey && (() => {
+                const keys = finding.resolutionPhotoKey!.split(',').filter(Boolean)
+                if (keys.length === 1) {
+                  return (
+                    <img src={'/api/uploads/' + keys[0]} alt="조치 사진"
+                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12 }}
+                    />
+                  )
+                }
+                return (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+                    {keys.map((key, idx) => (
+                      <img key={key} src={'/api/uploads/' + key} alt={`조치 사진 ${idx+1}`}
+                        style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)', cursor: 'pointer' }}
+                        onClick={() => window.open('/api/uploads/' + key, '_blank')}
+                      />
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           )}
         </div>

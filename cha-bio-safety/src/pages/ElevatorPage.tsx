@@ -615,8 +615,8 @@ export default function ElevatorPage() {
                         </div>
                       )}
 
-                      {/* 조건부합격/불합격 조치 패널 */}
-                      {(resultKey === 'conditional' || resultKey === 'fail') && (
+                      {/* 조건부합격/불합격 조치 패널 (합격 전환 후에도 이력 표시) */}
+                      {(resultKey === 'conditional' || resultKey === 'fail' || i.action_needed?.includes('→합격 전환')) && (
                         <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} />
                       )}
 
@@ -1446,7 +1446,7 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
                     opacity: findingDesc.trim() ? 1 : 0.5,
                   }}
                 >
-                  {findingDesc.trim() ? '↓ 지적사항 추가' : '지적 내용을 입력하세요'}
+                  {findingDesc.trim() ? '지적사항 추가' : '지적 내용을 입력하세요'}
                 </button>
                 {findings.length > 0 && (
                   <div style={{ fontSize:11, color:'var(--safe)', fontWeight:600, textAlign:'center', marginTop:6 }}>
