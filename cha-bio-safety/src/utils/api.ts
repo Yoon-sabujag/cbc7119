@@ -270,3 +270,20 @@ export const elevatorInspectionApi = {
   getNextInspection: () =>
     api.get<import('../types').ElevatorNextInspection[]>('/elevators/next-inspection'),
 }
+
+export const elevatorRepairApi = {
+  list: (params?: { elevator_id?: string; target?: string; keyword?: string; from?: string; to?: string }) => {
+    const q = new URLSearchParams()
+    if (params?.elevator_id) q.set('elevator_id', params.elevator_id)
+    if (params?.target) q.set('target', params.target)
+    if (params?.keyword) q.set('keyword', params.keyword)
+    if (params?.from) q.set('from', params.from)
+    if (params?.to) q.set('to', params.to)
+    const qs = q.toString()
+    return api.get<import('../types').ElevatorRepair[]>(`/elevators/repairs${qs ? '?' + qs : ''}`)
+  },
+  create: (body: any) =>
+    api.post<{ id: string }>('/elevators/repairs', body),
+  delete: (id: string) =>
+    api.delete<void>(`/elevators/repairs?id=${id}`),
+}

@@ -137,3 +137,27 @@ export interface ElevatorNextInspection {
   status: 'ok' | 'due_soon' | 'overdue' | 'no_record'
   daysUntil: number | null
 }
+
+export type RepairTarget = 'car' | 'hall' | 'machine_room' | 'pit' | 'escalator'
+export type RepairSource = 'standalone' | 'fault' | 'inspect' | 'annual'
+export interface ElevatorRepair {
+  id: string
+  elevatorId: string
+  elevatorNumber: number
+  elevatorLocation: string
+  elevatorType: string
+  repairDate: string
+  repairTarget: RepairTarget
+  hallFloor: string | null
+  repairItem: string
+  repairDetail: string | null
+  repairCompany: string | null
+  source: RepairSource
+  sourceId: string | null
+  partsArrivalPhotos: string | null
+  damagedPartsPhotos: string | null
+  duringRepairPhotos: string | null
+  completedPhotos: string | null
+  createdBy: string
+  createdAt: string
+}

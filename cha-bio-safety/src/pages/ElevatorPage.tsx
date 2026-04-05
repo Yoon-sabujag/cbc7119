@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { elevatorInspectionApi } from '../utils/api'
-import type { ElevatorNextInspection } from '../types'
+import { elevatorInspectionApi, elevatorRepairApi } from '../utils/api'
+import type { ElevatorNextInspection, ElevatorRepair } from '../types'
 import PdfFloorPlan from '../components/PdfFloorPlan'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -51,7 +51,7 @@ interface ElevatorInspection {
   elevator_type: string
 }
 type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual'
-type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'ev_detail'
+type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'repair_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
 // 호기 상세 이력 타입
@@ -476,27 +476,7 @@ export default function ElevatorPage() {
 
         {/* ── 수리 내역 ── */}
         {tab === 'repair' && (
-          <>
-            {faults.filter(f => f.is_resolved && f.repair_detail).length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
-            {faults.filter(f => f.is_resolved && f.repair_detail).sort((a, b) => (b.repaired_at ?? '').localeCompare(a.repaired_at ?? '')).map(f => (
-              <div key={f.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-                <div style={{ width:40, height:40, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
-                  {TYPE_ICON[f.elevator_type] ?? '🔧'}
-                </div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{f.elevator_number ? `${f.elevator_number}호기` : f.elevator_location}</span>
-                    {f.repair_company && <span style={{ fontSize:10, fontWeight:600, padding:'1px 6px', borderRadius:6, background:'rgba(34,197,94,0.1)', color:'var(--safe)' }}>{f.repair_company}</span>}
-                  </div>
-                  <div style={{ fontSize:12, color:'var(--t1)', marginTop:3, lineHeight:1.4 }}>{f.repair_detail}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
-                    고장: {f.fault_at?.slice(0,10)} → 수리: {f.repaired_at?.slice(0,10)}
-                    {f.symptoms && <span> · {f.symptoms.length > 20 ? f.symptoms.slice(0,20)+'...' : f.symptoms}</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </>
+          <RepairListSection elevators={elevators} navigate={navigate} />
         )}
 
         {/* ── 점검 기록 ── */}
@@ -666,7 +646,7 @@ export default function ElevatorPage() {
       </main>
 
       {/* ── FAB 버튼 (BottomNav 바로 위, flex 형제) ── */}
-      {(tab === 'fault' || tab === 'inspect' || tab === 'annual') && (
+      {(tab === 'fault' || tab === 'repair' || tab === 'inspect' || tab === 'annual') && (
         <div style={{ flexShrink:0, padding:'8px 12px', background:'var(--bg)' }}>
           {tab === 'fault' && (
             <button onClick={() => { setSelectedEv(null); setModal('fault_new') }}
@@ -678,6 +658,12 @@ export default function ElevatorPage() {
             <button onClick={() => { setSelectedEv(null); setModal('inspect_new') }}
               style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#1e3a5f,#3b82f6)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(59,130,246,.4)' }}>
               📋 점검 기록 입력
+            </button>
+          )}
+          {tab === 'repair' && (
+            <button onClick={() => { setSelectedEv(null); setModal('repair_new') }}
+              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#854d0e,#eab308)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(234,179,8,.4)' }}>
+              🔧 수리 기록 입력
             </button>
           )}
           {tab === 'annual' && (
@@ -708,6 +694,7 @@ export default function ElevatorPage() {
       {modal === 'fault_resolve'&& <FaultResolveModal fault={selectedFault!}                     onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
       {modal === 'inspect_new'  && <InspectModal      elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
       {modal === 'annual_new'   && <AnnualModal       elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
+      {modal === 'repair_new'  && <RepairNewModal    elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
       {modal === 'ev_detail'    && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
       {certViewerKey && <CertViewerModal certKey={certViewerKey} onClose={() => setCertViewerKey(null)} />}
     </div>
@@ -1683,4 +1670,284 @@ function smBtn(color: string): React.CSSProperties {
     padding:'5px 12px', borderRadius:8, border:`1px solid ${color}33`,
     background:`${color}15`, color, fontSize:11, fontWeight:700, cursor:'pointer',
   }
+}
+
+// ── 수리 대상 레이블 ─────────────────────────────────────────
+const REPAIR_TARGET_LABEL: Record<string, string> = {
+  car: '카', hall: '홀', machine_room: '기계실', pit: '피트', escalator: '에스컬레이터',
+}
+const SOURCE_LABEL: Record<string, string> = {
+  standalone: '수리', fault: '고장수리', inspect: '점검수리', annual: '검사수리',
+}
+
+// ── 수리 목록 섹션 (필터+검색 포함) ───────────────────────────
+function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; navigate: (to:string)=>void }) {
+  const [filterEv, setFilterEv] = useState('')
+  const [filterTarget, setFilterTarget] = useState('')
+  const [keyword, setKeyword] = useState('')
+
+  const { data: repairs = [], isLoading } = useQuery({
+    queryKey: ['elev-repairs', filterEv, filterTarget, keyword],
+    queryFn: () => elevatorRepairApi.list({
+      elevator_id: filterEv || undefined,
+      target: filterTarget || undefined,
+      keyword: keyword || undefined,
+    }),
+    staleTime: 30_000,
+  })
+
+  return (
+    <>
+      {/* 필터 바 */}
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, flexShrink:0 }}>
+        <select value={filterEv} onChange={e => setFilterEv(e.target.value)} style={{ ...inputSt, flex:'1 1 100px', fontSize:11 }}>
+          <option value="">전체 호기</option>
+          {elevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
+        </select>
+        <select value={filterTarget} onChange={e => setFilterTarget(e.target.value)} style={{ ...inputSt, flex:'1 1 80px', fontSize:11 }}>
+          <option value="">전체 대상</option>
+          <option value="car">카</option>
+          <option value="hall">홀</option>
+          <option value="machine_room">기계실</option>
+          <option value="pit">피트</option>
+          <option value="escalator">에스컬레이터</option>
+        </select>
+        <input
+          value={keyword} onChange={e => setKeyword(e.target.value)}
+          placeholder="수리 항목 검색..."
+          style={{ ...inputSt, flex:'2 1 120px', fontSize:11 }}
+        />
+      </div>
+
+      {isLoading && <EmptyState icon="⏳" text="불러오는 중..." />}
+      {!isLoading && repairs.length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
+
+      {repairs.map(r => (
+        <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', flexShrink:0, marginBottom:2 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <div style={{ width:36, height:36, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
+              {TYPE_ICON[r.elevatorType] ?? '🔧'}
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
+                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{r.elevatorNumber}호기</span>
+                <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:5, background:'rgba(234,179,8,0.12)', color:'#eab308' }}>{REPAIR_TARGET_LABEL[r.repairTarget]}{r.hallFloor ? ` ${r.hallFloor}` : ''}</span>
+                <span style={{ fontSize:9, fontWeight:600, padding:'1px 5px', borderRadius:5, background:'var(--bg3)', color:'var(--t3)' }}>{SOURCE_LABEL[r.source]}</span>
+              </div>
+              <div style={{ fontSize:12, color:'var(--t1)', marginTop:2, fontWeight:600 }}>{r.repairItem}</div>
+              {r.repairDetail && <div style={{ fontSize:11, color:'var(--t2)', marginTop:1, lineHeight:1.4 }}>{r.repairDetail.length > 60 ? r.repairDetail.slice(0,60)+'...' : r.repairDetail}</div>}
+              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                {r.repairDate}{r.repairCompany ? ` · ${r.repairCompany}` : ''}
+                {(r.partsArrivalPhotos || r.damagedPartsPhotos || r.duringRepairPhotos || r.completedPhotos) && ' · 📷'}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
+// ── 다중 사진 업로드 컴포넌트 ────────────────────────────────
+function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; keys: string[]; setKeys: (k: string[]) => void; max?: number }) {
+  const [uploading, setUploading] = useState(false)
+
+  const handleAdd = async (file: File) => {
+    if (keys.length >= max) { toast.error(`사진은 최대 ${max}장까지 가능합니다`); return }
+    setUploading(true)
+    try {
+      const { compressImage } = await import('../utils/imageUtils')
+      const compressed = await compressImage(file)
+      const fd = new FormData()
+      fd.append('file', compressed)
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd, headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json() as any
+      if (!json.success) throw new Error(json.error)
+      setKeys([...keys, json.data.key])
+    } catch { toast.error('업로드 실패') }
+    setUploading(false)
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>{label} ({keys.length}/{max})</div>
+      <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
+        {keys.length < max && (
+          <label style={{ width:64, height:64, flexShrink:0, borderRadius:8, border:'1px dashed var(--bd2)', background:'var(--bg3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor: uploading ? 'wait' : 'pointer' }}>
+            <span style={{ fontSize:18 }}>📷</span>
+            <span style={{ fontSize:8, color:'var(--t3)', fontWeight:600 }}>{uploading ? '...' : '추가'}</span>
+            <input type="file" accept="image/*" style={{ display:'none' }} disabled={uploading}
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleAdd(f); e.target.value = '' }}
+            />
+          </label>
+        )}
+        {keys.map((key, idx) => (
+          <div key={key} style={{ position:'relative', width:64, height:64, flexShrink:0 }}>
+            <img src={`/api/uploads/${key}`} alt="" style={{ width:64, height:64, objectFit:'cover', borderRadius:8, border:'1px solid var(--bd)' }} />
+            <button onClick={() => setKeys(keys.filter((_,i) => i !== idx))} style={{ position:'absolute', top:-4, right:-4, width:16, height:16, borderRadius:'50%', background:'var(--danger)', color:'#fff', border:'none', fontSize:9, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── 수리 기록 입력 모달 ──────────────────────────────────────
+function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[]; selected: Elevator | null; onClose: () => void }) {
+  const qc = useQueryClient()
+  const initKind: EvKind = selected ? (selected.type === 'escalator' ? 'escalator' : 'elevator') : ''
+  const [evKind, setEvKind] = useState<EvKind>(initKind)
+  const [elevatorId, setElevatorId] = useState(selected?.id ?? '')
+  const [repairDate, setRepairDate] = useState(new Date().toISOString().slice(0,10))
+  const [repairTarget, setRepairTarget] = useState<string>('')
+  const [hallFloor, setHallFloor] = useState('')
+  const [repairItem, setRepairItem] = useState('')
+  const [repairDetail, setRepairDetail] = useState('')
+  const [repairCompany, setRepairCompany] = useState('')
+  const [source, setSource] = useState<string>('standalone')
+  const [partsPhotos, setPartsPhotos] = useState<string[]>([])
+  const [damagedPhotos, setDamagedPhotos] = useState<string[]>([])
+  const [duringPhotos, setDuringPhotos] = useState<string[]>([])
+  const [completedPhotos, setCompletedPhotos] = useState<string[]>([])
+  const [saving, setSaving] = useState(false)
+
+  const selectedEv = elevators.find(e => e.id === elevatorId)
+  const isEscalator = evKind === 'escalator'
+  const floors = selectedEv ? (EV_FLOORS[`EV-${String(selectedEv.number).padStart(2,'0')}`] ?? []) : []
+
+  // 에스컬레이터면 자동 설정
+  useEffect(() => {
+    if (isEscalator && repairTarget !== 'escalator') setRepairTarget('escalator')
+  }, [isEscalator])
+
+  const handleSubmit = async () => {
+    if (!elevatorId || !repairTarget || !repairItem.trim()) return
+    setSaving(true)
+    try {
+      await elevatorRepairApi.create({
+        elevatorId, repairDate, repairTarget,
+        hallFloor: repairTarget === 'hall' ? hallFloor : undefined,
+        repairItem: repairItem.trim(),
+        repairDetail: repairDetail.trim() || undefined,
+        repairCompany: repairCompany.trim() || undefined,
+        source,
+        partsArrivalPhotos: partsPhotos.length ? partsPhotos.join(',') : undefined,
+        damagedPartsPhotos: damagedPhotos.length ? damagedPhotos.join(',') : undefined,
+        duringRepairPhotos: duringPhotos.length ? duringPhotos.join(',') : undefined,
+        completedPhotos: completedPhotos.length ? completedPhotos.join(',') : undefined,
+      })
+      qc.invalidateQueries({ queryKey: ['elev-repairs'] })
+      toast.success('수리 기록 저장 완료')
+      onClose()
+    } catch { toast.error('저장 실패') }
+    setSaving(false)
+  }
+
+  const canSubmit = elevatorId && repairTarget && repairItem.trim() && !saving
+
+  return (
+    <ModalWrap title="수리 기록 입력" onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <EvSelector
+          elevators={elevators} evKind={evKind}
+          setEvKind={v => { setEvKind(v); setElevatorId(''); setRepairTarget('') }}
+          elevatorId={elevatorId} setElevatorId={setElevatorId}
+          groups={EV_GROUPS_ANNUAL} esNodes={ES_NODES_ANNUAL}
+        />
+
+        {elevatorId && (
+          <>
+            <Field label="수리일">
+              <input type="date" value={repairDate} onChange={e => setRepairDate(e.target.value)} style={inputSt} />
+            </Field>
+
+            {/* 수리 대상 선택 */}
+            {!isEscalator && (
+              <div>
+                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>수리 대상</div>
+                <div style={{ display:'flex', gap:7 }}>
+                  {([
+                    { key:'car', label:'카' },
+                    { key:'hall', label:'홀' },
+                    { key:'machine_room', label:'기계실' },
+                    { key:'pit', label:'피트' },
+                  ] as const).map(opt => (
+                    <button key={opt.key} onClick={() => { setRepairTarget(opt.key); setHallFloor('') }} style={{
+                      flex:1, padding:'11px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
+                      background: repairTarget === opt.key ? '#eab30822' : 'var(--bg3)',
+                      color: repairTarget === opt.key ? '#eab308' : 'var(--t3)',
+                      outline: repairTarget === opt.key ? '2px solid #eab308' : 'none',
+                    }}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 홀 선택 시 층 선택 */}
+            {repairTarget === 'hall' && floors.length > 0 && (
+              <div>
+                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>층 선택</div>
+                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                  {floors.map(f => (
+                    <button key={f} onClick={() => setHallFloor(f)} style={{
+                      padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
+                      background: hallFloor === f ? '#eab30822' : 'var(--bg3)',
+                      color: hallFloor === f ? '#eab308' : 'var(--t3)',
+                      outline: hallFloor === f ? '2px solid #eab308' : 'none',
+                    }}>{f}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 수리 유형 */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>수리 유형</div>
+              <div style={{ display:'flex', gap:7 }}>
+                {([
+                  { key:'standalone', label:'수리' },
+                  { key:'fault', label:'고장수리' },
+                  { key:'inspect', label:'점검수리' },
+                  { key:'annual', label:'검사수리' },
+                ] as const).map(opt => (
+                  <button key={opt.key} onClick={() => setSource(opt.key)} style={{
+                    flex:1, padding:'9px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:10, fontWeight:700,
+                    background: source === opt.key ? 'var(--acl)' : 'var(--bg3)',
+                    color: source === opt.key ? '#fff' : 'var(--t3)',
+                  }}>{opt.label}</button>
+                ))}
+              </div>
+            </div>
+
+            <Field label="수리 항목">
+              <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" style={inputSt} />
+            </Field>
+
+            <Field label="수리 내용 (선택)">
+              <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 상세 내용" style={{ ...inputSt, resize:'none' }} />
+            </Field>
+
+            <Field label="수리 업체 (선택)">
+              <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} placeholder="예: TKE, 현대엘리베이터" style={inputSt} />
+            </Field>
+
+            {/* 4단계 사진 업로드 */}
+            <MultiPhotoUpload label="부품 입고 사진" keys={partsPhotos} setKeys={setPartsPhotos} />
+            <MultiPhotoUpload label="파손 부품 사진" keys={damagedPhotos} setKeys={setDamagedPhotos} />
+            <MultiPhotoUpload label="수리 중 사진" keys={duringPhotos} setKeys={setDuringPhotos} />
+            <MultiPhotoUpload label="수리 완료 사진" keys={completedPhotos} setKeys={setCompletedPhotos} />
+
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              style={{ ...primaryBtnSt, opacity: canSubmit ? 1 : 0.5 }}
+            >
+              {saving ? '저장 중...' : '수리 기록 저장'}
+            </button>
+          </>
+        )}
+      </div>
+    </ModalWrap>
+  )
 }
