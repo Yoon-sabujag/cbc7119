@@ -1,7 +1,6 @@
 import type { Env } from '../../_middleware'
 
-// ── 보수교육 기록 수정 ──────────────────────────────────────────
-// No DELETE endpoint: 이수 이력 삭제 불가 원칙 (D-09)
+// ── 보수교육 기록 수정/삭제 ──────────────────────────────────────
 
 // PUT /api/education/:id
 // Updates completed_at on an existing record; admin or owner only
@@ -45,5 +44,31 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, par
   } catch (e) {
     console.error('[education PUT]', e)
     return Response.json({ success: false, error: '보수교육 기록 수정 실패' }, { status: 500 })
+  }
+}
+
+// DELETE /api/education/:id
+export const onRequestDelete: PagesFunction<Env> = async ({ env, data, params }) => {
+  const { staffId: authStaffId, role } = data as any
+  const id = params.id as string
+
+  try {
+    const existing = await env.DB.prepare(
+      `SELECT staff_id FROM education_records WHERE id = ?`
+    ).bind(id).first<{ staff_id: string }>()
+
+    if (!existing) {
+      return Response.json({ success: false, error: '기록을 찾을 수 없습니다' }, { status: 404 })
+    }
+
+    if (role !== 'admin' && authStaffId !== existing.staff_id) {
+      return Response.json({ success: false, error: '권한이 없습니다' }, { status: 403 })
+    }
+
+    await env.DB.prepare(`DELETE FROM education_records WHERE id = ?`).bind(id).run()
+    return Response.json({ success: true })
+  } catch (e) {
+    console.error('[education DELETE]', e)
+    return Response.json({ success: false, error: '이수 기록 삭제 실패' }, { status: 500 })
   }
 }

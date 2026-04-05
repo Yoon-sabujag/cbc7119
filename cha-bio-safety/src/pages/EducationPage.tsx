@@ -229,7 +229,19 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
     },
   })
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => educationApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['education'] })
+      toast.success('이수 기록이 삭제되었습니다.')
+      onSaved()
+    },
+    onError: (e: any) => {
+      toast.error(e?.message ?? '삭제에 실패했습니다.')
+    },
+  })
+
+  const isSubmitting = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
 
   function handleStartEdit(record: EducationRecord) {
     setEditingRecord(record)
@@ -255,13 +267,17 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     background: 'var(--bg3)',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 9,
+    padding: '10px 12px',
     border: '1px solid var(--bd2)',
     color: 'var(--t1)',
-    fontSize: 14,
+    fontSize: 13,
     boxSizing: 'border-box',
     outline: 'none',
+    fontFamily: 'inherit',
+    minWidth: 0,
+    WebkitAppearance: 'none',
+    appearance: 'none',
   }
 
   return (
@@ -292,17 +308,20 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
           <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
         </div>
 
-        {/* 제목 */}
-        <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
-            {isEditMode ? '이수일 수정' : '이수 기록 등록'}
+        {/* 제목 + 닫기 */}
+        <div style={{ padding: '12px 16px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+              {isEditMode ? '이수일 수정' : '이수 기록 등록'}
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--t2)', marginTop: 4, marginBottom: 8 }}>
+              {staff.name}
+              {records.length > 0 && (
+                <span style={{ marginLeft: 6, color: 'var(--t3)' }}>이수 이력 {records.length}건</span>
+              )}
+            </div>
           </div>
-          <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--t2)', marginTop: 4, marginBottom: 8 }}>
-            {staff.name}
-            {records.length > 0 && (
-              <span style={{ marginLeft: 6, color: 'var(--t3)' }}>이수 이력 {records.length}건</span>
-            )}
-          </div>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>✕</button>
         </div>
 
         {/* 폼 */}
@@ -375,20 +394,37 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
                   <span style={{ fontSize: 13, color: 'var(--t2)' }}>
                     {fmtDate(rec.completedAt)} ({rec.educationType === 'initial' ? '실무' : '보수'})
                   </span>
-                  <button
-                    onClick={() => editingRecord?.id === rec.id ? handleCancelEdit() : handleStartEdit(rec)}
-                    style={{
-                      background: editingRecord?.id === rec.id ? 'var(--bg4)' : 'var(--bg2)',
-                      border: '1px solid var(--bd2)',
-                      borderRadius: 6,
-                      padding: '4px 10px',
-                      fontSize: 12,
-                      color: 'var(--t2)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {editingRecord?.id === rec.id ? '취소' : '수정'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      onClick={() => editingRecord?.id === rec.id ? handleCancelEdit() : handleStartEdit(rec)}
+                      style={{
+                        background: editingRecord?.id === rec.id ? 'var(--bg4)' : 'var(--bg2)',
+                        border: '1px solid var(--bd2)',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        fontSize: 12,
+                        color: 'var(--t2)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {editingRecord?.id === rec.id ? '취소' : '수정'}
+                    </button>
+                    <button
+                      onClick={() => deleteMutation.mutate(rec.id)}
+                      disabled={isSubmitting}
+                      style={{
+                        background: 'var(--bg2)',
+                        border: '1px solid var(--bd2)',
+                        borderRadius: 6,
+                        padding: '4px 10px',
+                        fontSize: 12,
+                        color: 'var(--t3)',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -396,7 +432,7 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
         )}
 
         {/* 버튼 영역 */}
-        <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '16px 16px 32px' }}>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !completedAt}
@@ -414,23 +450,6 @@ function EducationBottomSheet({ item, onClose, onSaved }: BottomSheetProps) {
             }}
           >
             {isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '이수일 기록')}
-          </button>
-          <button
-            onClick={isEditMode ? handleCancelEdit : onClose}
-            disabled={isSubmitting}
-            style={{
-              width: '100%',
-              height: 48,
-              background: 'transparent',
-              borderRadius: 10,
-              border: '1px solid var(--bd2)',
-              color: 'var(--t2)',
-              fontWeight: 400,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
-            기록 취소
           </button>
         </div>
       </div>

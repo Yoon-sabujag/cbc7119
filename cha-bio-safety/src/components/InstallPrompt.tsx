@@ -9,7 +9,10 @@ function isStandalone(): boolean {
 }
 
 function isIOS(): boolean {
-  return /iPhone|iPad|iPod/.test(navigator.userAgent)
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) return true
+  // iPadOS 13+ reports as Macintosh with touch support
+  if (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1) return true
+  return false
 }
 
 /**
