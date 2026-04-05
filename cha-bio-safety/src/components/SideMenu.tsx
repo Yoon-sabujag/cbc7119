@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
@@ -45,9 +45,13 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
 
 export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   const navigate  = useNavigate()
+  const qc = useQueryClient()
   const { staff, logout } = useAuthStore()
   const { data: staffList } = useStaffList()
   const { data: menuConfig } = useQuery({ queryKey: ['menu-config'], queryFn: () => settingsApi.getMenu(), staleTime: 300_000 })
+  const [editMode, setEditMode] = useState(false)
+  const [editConfig, setEditConfig] = useState<Record<string, { visible: boolean; order: number }> | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // 메뉴 설정 적용: hidden 항목 필터링 + 순서 반영
   const appliedMenu = useMemo(() => {
@@ -177,6 +181,76 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               })}
             </div>
           ))}
+        </div>
+
+        {/* 메뉴 편집 버튼 */}
+        <div style={{ padding:'4px 11px', flexShrink:0 }}>
+          {!editMode ? (
+            <button onClick={() => {
+              const cfg: Record<string, { visible: boolean; order: number }> = {}
+              const allItems: { path: string }[] = []
+              MENU.forEach(s => s.items.forEach(i => allItems.push(i)))
+              allItems.forEach((item, idx) => {
+                const mc = menuConfig as any
+                cfg[item.path] = mc?.[item.path] ?? { visible: true, order: idx }
+              })
+              setEditConfig(cfg)
+              setEditMode(true)
+            }} style={{ width:'100%', padding:'7px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color:'var(--t3)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+              ⚙ 메뉴 편집
+            </button>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>메뉴 편집 모드</div>
+              {(() => {
+                if (!editConfig) return null
+                const allItems: { path: string; label: string; section: string }[] = []
+                MENU.forEach(s => s.items.forEach(i => allItems.push({ path: i.path, label: i.label, section: s.section })))
+                const sorted = allItems.slice().sort((a, b) => (editConfig[a.path]?.order ?? 999) - (editConfig[b.path]?.order ?? 999))
+                return sorted.map((item, idx) => {
+                  const vis = editConfig[item.path]?.visible !== false
+                  return (
+                    <div key={item.path} style={{ display:'flex', alignItems:'center', gap:4, padding:'4px 6px', background:'var(--bg3)', borderRadius:6, opacity: vis ? 1 : 0.35 }}>
+                      <div style={{ display:'flex', flexDirection:'column', flexShrink:0 }}>
+                        <button onClick={() => {
+                          if (idx <= 0) return
+                          const prev = sorted[idx-1]
+                          setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], order: c[prev.path]?.order ?? idx-1 }, [prev.path]: { ...c[prev.path], order: c[item.path]?.order ?? idx } }) : c)
+                        }} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:10, padding:0, lineHeight:1 }}>▲</button>
+                        <button onClick={() => {
+                          if (idx >= sorted.length-1) return
+                          const next = sorted[idx+1]
+                          setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], order: c[next.path]?.order ?? idx+1 }, [next.path]: { ...c[next.path], order: c[item.path]?.order ?? idx } }) : c)
+                        }} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:10, padding:0, lineHeight:1 }}>▼</button>
+                      </div>
+                      <span style={{ flex:1, fontSize:11, color:'var(--t1)', fontWeight:500 }}>{item.label}</span>
+                      <button onClick={() => setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], visible: !vis } }) : c)} style={{
+                        width:32, height:16, borderRadius:8, border:'none', cursor:'pointer', flexShrink:0, position:'relative',
+                        background: vis ? 'var(--acl)' : 'var(--bg)',
+                      }}>
+                        <div style={{ width:12, height:12, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left: vis ? 18 : 2, transition:'left 0.15s' }} />
+                      </button>
+                    </div>
+                  )
+                })
+              })()}
+              <div style={{ display:'flex', gap:6, marginTop:4 }}>
+                <button onClick={() => { setEditMode(false); setEditConfig(null) }} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:10, fontWeight:600, cursor:'pointer' }}>취소</button>
+                <button onClick={async () => {
+                  if (!editConfig) return
+                  setSaving(true)
+                  try {
+                    await settingsApi.saveMenu(editConfig)
+                    qc.invalidateQueries({ queryKey: ['menu-config'] })
+                    setEditMode(false); setEditConfig(null)
+                  } catch {}
+                  setSaving(false)
+                }} style={{ flex:2, padding:'6px 0', borderRadius:6, border:'none', background:'var(--acl)', color:'#fff', fontSize:10, fontWeight:700, cursor:'pointer', opacity: saving ? 0.5 : 1 }}>
+                  {saving ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 로그인 사용자 */}
