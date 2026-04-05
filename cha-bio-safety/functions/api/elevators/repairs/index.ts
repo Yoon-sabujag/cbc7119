@@ -15,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     {
       let w = '1=1'; const b: string[] = []
       if (elevatorId) { w += ' AND r.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (r.repair_item LIKE ? OR r.repair_detail LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`) }
+      if (keyword) { w += ' AND (r.repair_item LIKE ? OR r.repair_detail LIKE ? OR r.repair_target LIKE ? OR r.hall_floor LIKE ? OR r.repair_company LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
@@ -41,7 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     {
       let w = 'f.is_resolved = 1 AND f.repair_detail IS NOT NULL'; const b: string[] = []
       if (elevatorId) { w += ' AND f.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (f.repair_detail LIKE ? OR f.symptoms LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`) }
+      if (keyword) { w += ' AND (f.repair_detail LIKE ? OR f.symptoms LIKE ? OR f.repair_company LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
@@ -67,7 +67,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     {
       let w = "eif.status = 'resolved'"; const b: string[] = []
       if (elevatorId) { w += ' AND ei.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (eif.description LIKE ? OR eif.resolution_memo LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`) }
+      if (keyword) { w += ' AND (eif.description LIKE ? OR eif.resolution_memo LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
@@ -88,6 +88,33 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
           photos: f.resolution_photo_key || null,
           partsArrivalPhotos: null, damagedPartsPhotos: null, duringRepairPhotos: null,
           completedPhotos: f.resolution_photo_key || null,
+        })
+      }
+    }
+
+    // ── 4. 점검 조치 (elevator_inspections type='monthly', action_needed 있는 건) ──
+    {
+      let w = "ei.type = 'monthly' AND ei.action_needed IS NOT NULL AND ei.action_needed != ''"; const b: string[] = []
+      if (elevatorId) { w += ' AND ei.elevator_id = ?'; b.push(elevatorId) }
+      if (keyword) { w += ' AND (ei.action_needed LIKE ? OR ei.memo LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
+      if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
+
+      const rows = await env.DB.prepare(`
+        SELECT ei.*, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type
+        FROM elevator_inspections ei
+        LEFT JOIN elevators e ON e.id = ei.elevator_id
+        WHERE ${w} ORDER BY ei.inspect_date DESC LIMIT 100
+      `).bind(...b).all<any>()
+
+      for (const r of rows.results ?? []) {
+        results.push({
+          id: `inspect-${r.id}`, sourceType: 'inspect', sourceId: r.id,
+          elevatorId: r.elevator_id, elevatorNumber: r.ev_num, elevatorLocation: r.ev_loc, elevatorType: r.ev_type,
+          date: r.inspect_date, target: null, hallFloor: null,
+          title: `점검조치: ${r.action_needed?.slice(0, 40) ?? ''}`,
+          detail: r.action_needed, company: null,
+          photos: null,
+          partsArrivalPhotos: null, damagedPartsPhotos: null, duringRepairPhotos: null, completedPhotos: null,
         })
       }
     }
