@@ -93,8 +93,10 @@ export interface LegalFinding {
   description: string
   location: string | null
   photoKey: string | null
+  photoKeys: string[]              // array of R2 keys (multi-photo)
   resolutionMemo: string | null
   resolutionPhotoKey: string | null
+  resolutionPhotoKeys: string[]    // array of R2 keys (multi-photo)
   status: LegalFindingStatus
   resolvedAt: string | null
   resolvedBy: string | null
