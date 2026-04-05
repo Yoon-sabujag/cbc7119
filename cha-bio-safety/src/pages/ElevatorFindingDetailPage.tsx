@@ -1,8 +1,93 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { elevatorInspectionApi } from '../utils/api'
+
+// ── 이미지 뷰어 (핀치투줌 + 패닝) ─────────────────────────────────
+function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
+  const imgRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const lastTouch = useRef<{ dist: number; cx: number; cy: number; x: number; y: number } | null>(null)
+  const dragStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null)
+
+  const getTouchDist = (t: React.TouchEvent) => {
+    if (t.touches.length < 2) return 0
+    const dx = t.touches[0].clientX - t.touches[1].clientX
+    const dy = t.touches[0].clientY - t.touches[1].clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+  const getTouchCenter = (t: React.TouchEvent) => ({
+    x: (t.touches[0].clientX + t.touches[1].clientX) / 2,
+    y: (t.touches[0].clientY + t.touches[1].clientY) / 2,
+  })
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      e.preventDefault()
+      lastTouch.current = { dist: getTouchDist(e), cx: getTouchCenter(e).x, cy: getTouchCenter(e).y, x: pos.x, y: pos.y }
+    } else if (e.touches.length === 1 && scale > 1) {
+      dragStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pos.x, py: pos.y }
+      setDragging(true)
+    }
+  }, [scale, pos])
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouch.current) {
+      e.preventDefault()
+      const newDist = getTouchDist(e)
+      const newScale = Math.min(5, Math.max(1, scale * (newDist / lastTouch.current.dist)))
+      setScale(newScale)
+      if (newScale <= 1) setPos({ x: 0, y: 0 })
+    } else if (e.touches.length === 1 && dragging && dragStart.current) {
+      const dx = e.touches[0].clientX - dragStart.current.x
+      const dy = e.touches[0].clientY - dragStart.current.y
+      setPos({ x: dragStart.current.px + dx, y: dragStart.current.py + dy })
+    }
+  }, [scale, dragging])
+
+  const onTouchEnd = useCallback(() => {
+    lastTouch.current = null
+    dragStart.current = null
+    setDragging(false)
+    if (scale <= 1) setPos({ x: 0, y: 0 })
+  }, [scale])
+
+  const handleDoubleTap = useCallback(() => {
+    if (scale > 1) { setScale(1); setPos({ x: 0, y: 0 }) }
+    else setScale(2.5)
+  }, [scale])
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.95)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'flex-end', padding: '12px 16px', paddingTop: 'calc(12px + var(--sat, 44px))' }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer' }}>✕</button>
+      </div>
+      <div
+        ref={imgRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onDoubleClick={handleDoubleTap}
+        style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'none' }}
+      >
+        <img
+          src={src}
+          alt="상세보기"
+          draggable={false}
+          style={{
+            maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
+            transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+            transition: dragging ? 'none' : 'transform 0.15s ease',
+            userSelect: 'none',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
 function fmtDate(iso: string | null) {
@@ -54,6 +139,7 @@ export default function ElevatorFindingDetailPage() {
   const [resolveDate, setResolveDate] = useState(new Date().toISOString().slice(0,10))
   const [photoKeys, setPhotoKeys] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null)
 
   const { data: findings, isLoading, error } = useQuery({
     queryKey: ['elev-findings', iid],
@@ -113,6 +199,7 @@ export default function ElevatorFindingDetailPage() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
       <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+      {viewerSrc && <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 자체 헤더 */}
       <div style={{
@@ -195,6 +282,7 @@ export default function ElevatorFindingDetailPage() {
               <img
                 src={'/api/uploads/' + finding.photoKey}
                 alt="지적 사진"
+                onClick={() => setViewerSrc('/api/uploads/' + finding.photoKey)}
                 style={{
                   width: '100%',
                   maxHeight: 240,
@@ -203,6 +291,7 @@ export default function ElevatorFindingDetailPage() {
                   border: '1px solid var(--bd)',
                   display: 'block',
                   marginTop: 12,
+                  cursor: 'pointer',
                 }}
               />
             ) : (
@@ -222,15 +311,19 @@ export default function ElevatorFindingDetailPage() {
                   onChange={e => setResolveDate(e.target.value)}
                   style={{
                     width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 9,
                     background: 'var(--bg3)',
-                    borderRadius: 8,
-                    padding: 12,
                     border: '1px solid var(--bd2)',
                     color: 'var(--t1)',
-                    fontSize: 14,
-                    boxSizing: 'border-box',
+                    fontSize: 13,
                     outline: 'none',
-                  }}
+                    fontFamily: 'inherit',
+                    boxSizing: 'border-box',
+                    minWidth: 0,
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                  } as React.CSSProperties}
                 />
               </div>
               <textarea
@@ -255,26 +348,30 @@ export default function ElevatorFindingDetailPage() {
               />
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 ({photoKeys.length}/5)</div>
-                {/* 업로드된 사진 썸네일 */}
-                {photoKeys.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {photoKeys.map((key, idx) => (
-                      <div key={key} style={{ position: 'relative', width: 64, height: 64 }}>
-                        <img src={`/api/uploads/${key}`} alt={`조치 사진 ${idx+1}`} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)' }} />
-                        <button onClick={() => setPhotoKeys(prev => prev.filter((_, i) => i !== idx))} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* 추가 버튼 */}
-                {photoKeys.length < 5 && (
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px dashed var(--bd2)', background: 'var(--bg3)', cursor: uploading ? 'wait' : 'pointer', color: 'var(--t2)', fontSize: 12, fontWeight: 600 }}>
-                    {uploading ? '업로드 중...' : `📷 사진 추가 (${5 - photoKeys.length}장 남음)`}
-                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }}
-                    />
-                  </label>
-                )}
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+                  {/* 추가 버튼 (1:1 정사각형) */}
+                  {photoKeys.length < 5 && (
+                    <label style={{
+                      width: 72, height: 72, flexShrink: 0, borderRadius: 10,
+                      border: '1px dashed var(--bd2)', background: 'var(--bg3)',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                      cursor: uploading ? 'wait' : 'pointer',
+                    }}>
+                      <span style={{ fontSize: 22 }}>📷</span>
+                      <span style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>{uploading ? '업로드 중' : `${photoKeys.length}/5`}</span>
+                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }}
+                      />
+                    </label>
+                  )}
+                  {/* 업로드된 사진 썸네일 */}
+                  {photoKeys.map((key, idx) => (
+                    <div key={key} style={{ position: 'relative', width: 72, height: 72, flexShrink: 0 }}>
+                      <img src={`/api/uploads/${key}`} alt={`조치 사진 ${idx+1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)' }} />
+                      <button onClick={() => setPhotoKeys(prev => prev.filter((_, i) => i !== idx))} style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger)', color: '#fff', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -295,7 +392,8 @@ export default function ElevatorFindingDetailPage() {
                 if (keys.length === 1) {
                   return (
                     <img src={'/api/uploads/' + keys[0]} alt="조치 사진"
-                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12 }}
+                      onClick={() => setViewerSrc('/api/uploads/' + keys[0])}
+                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12, cursor: 'pointer' }}
                     />
                   )
                 }
@@ -304,7 +402,7 @@ export default function ElevatorFindingDetailPage() {
                     {keys.map((key, idx) => (
                       <img key={key} src={'/api/uploads/' + key} alt={`조치 사진 ${idx+1}`}
                         style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--bd)', cursor: 'pointer' }}
-                        onClick={() => window.open('/api/uploads/' + key, '_blank')}
+                        onClick={() => setViewerSrc('/api/uploads/' + key)}
                       />
                     ))}
                   </div>
