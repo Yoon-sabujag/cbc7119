@@ -31,7 +31,7 @@ Plans:
 **UI hint**: yes
 
 ### Phase 12: Document Editing & Export
-**Goal**: 사용자가 데스크톱 화면에서 소방계획서와 소방훈련 자료를 작성하고 엑셀/PDF로 즉시 출력할 수 있다
+**Goal**: 사용자가 데스크톱에서 점검일지를 3분할 레이아웃으로 조회/미리보기/출력하고, 인쇄 시 사이드바가 숨겨진 상태로 A4 출력할 수 있다
 **Depends on**: Phase 11
 **Requirements**: LAYOUT-02, LAYOUT-03, DOC-01, DOC-02, DOC-03, DOC-04
 **Success Criteria** (what must be TRUE):
@@ -39,8 +39,12 @@ Plans:
   2. 사용자가 데스크톱 화면에서 소방계획서를 작성하고 편집할 수 있다
   3. 사용자가 데스크톱 화면에서 소방훈련용 자료(PPT 등)를 작성할 수 있다
   4. 사용자가 인쇄 시 사이드바가 숨겨지고 인쇄용 스타일이 적용된 상태로 출력된다
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 12-01-PLAN.md — ExcelPreview 컴포넌트 + DesktopReportsPage 3분할 레이아웃 + @media print 스타일
+- [ ] 12-02-PLAN.md — DailyReportPage 데스크톱 2분할 레이아웃 + 시각 검증
 **UI hint**: yes
+**Note**: DOC-02 (소방계획서), DOC-03 (소방훈련 자료) deferred — 관리자 상의 후 진행
 
 ### Phase 13: File System Access Auto-Save
 **Goal**: 사용자가 저장 폴더를 한 번 지정하면 이후 엑셀 출력이 해당 폴더 내 연도/월 하위 폴더에 자동 저장된다
@@ -72,6 +76,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 11. Desktop Layout Foundation | v1.1 | 2/2 | Complete    | 2026-04-05 |
-| 12. Document Editing & Export | v1.1 | 0/? | Not started | - |
+| 12. Document Editing & Export | v1.1 | 0/2 | Planning complete | - |
 | 13. File System Access Auto-Save | v1.1 | 0/? | Not started | - |
 | 14. Menu Upload & Keyboard Polish | v1.1 | 0/? | Not started | - |
