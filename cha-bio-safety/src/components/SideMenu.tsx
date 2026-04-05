@@ -42,13 +42,14 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
   ]},
   { section: '시스템', items: [
     { label: '관리자 설정', path: '/admin',      badge: 0, soon: false, role: 'admin' },
+    { label: '설정',       path: '/settings',   badge: 0, soon: false },
   ]},
 ]
 
 export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   const navigate  = useNavigate()
   const qc = useQueryClient()
-  const { staff, logout } = useAuthStore()
+  const { staff } = useAuthStore()
   const { data: staffList } = useStaffList()
   const { data: menuConfig } = useQuery({ queryKey: ['menu-config'], queryFn: () => settingsApi.getMenu(), staleTime: 300_000 })
   const [editMode, setEditMode] = useState(false)
@@ -253,12 +254,6 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               <div style={{ fontSize:11.5, fontWeight:700 }}>{staff?.name}</div>
               <div style={{ fontSize:9.5, color:'var(--t3)' }}>{staff?.title} · {todayShiftLabel}</div>
             </div>
-            <button
-              onClick={() => { logout(); go('/login') }}
-              style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:11 }}
-            >
-              로그아웃
-            </button>
           </div>
         </div>}
       </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { Settings } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { MENU, MenuItem } from './SideMenu'
 
@@ -14,13 +14,12 @@ const DESKTOP_SECTIONS = [
 
 interface DesktopSidebarProps {
   unresolvedCount: number
-  onSettingsOpen: () => void
 }
 
 export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { staff, logout } = useAuthStore()
+  const { staff } = useAuthStore()
 
   // 섹션 접힘/펼침 — 기본값 모두 열림
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -34,11 +33,6 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
   }
 
   const isActive = (path: string) => location.pathname === path
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
 
   return (
     <div data-no-print style={{
@@ -161,8 +155,8 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
           </span>
         </div>
         <button
-          onClick={handleLogout}
-          aria-label="로그아웃"
+          onClick={() => navigate('/settings')}
+          aria-label="설정"
           style={{
             background: 'transparent',
             border: 'none',
@@ -175,7 +169,7 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
           onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '0.8')}
         >
-          <LogOut size={16} color="var(--danger)" />
+          <Settings size={16} color="var(--t2)" />
         </button>
       </div>
     </div>

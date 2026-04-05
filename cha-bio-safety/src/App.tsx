@@ -6,7 +6,6 @@ import { useAuthStore } from './stores/authStore'
 import { BottomNav } from './components/BottomNav'
 import { GlobalHeader } from './components/GlobalHeader'
 import { SideMenu } from './components/SideMenu'
-import { SettingsPanel } from './components/SettingsPanel'
 import { DesktopSidebar } from './components/DesktopSidebar'
 import { useDateTime } from './hooks/useDateTime'
 import { useIsDesktop } from './hooks/useIsDesktop'
@@ -39,6 +38,7 @@ const LegalPage               = lazy(() => import('./pages/LegalPage'))
 const LegalFindingsPage       = lazy(() => import('./pages/LegalFindingsPage'))
 const LegalFindingDetailPage  = lazy(() => import('./pages/LegalFindingDetailPage'))
 const ElevatorFindingDetailPage = lazy(() => import('./pages/ElevatorFindingDetailPage'))
+const SettingsPage               = lazy(() => import('./pages/SettingsPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -82,6 +82,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/education': '보수교육',
   '/admin': '관리자 설정',
   '/legal': '소방 점검 관리',
+  '/settings': '설정',
 }
 
 function Layout() {
@@ -97,7 +98,6 @@ function Layout() {
     && !location.pathname.match(/^\/elevator\/findings\/.+/)
 
   const [sideOpen, setSideOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const { data: dashData } = useQuery({
     queryKey: ['dashboard'],
@@ -114,20 +114,7 @@ function Layout() {
 
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap' }}>차바이오컴플렉스 방재팀</span>
-      <button onClick={() => setSettingsOpen(true)} style={{
-        width: 32, height: 32, borderRadius: 7,
-        background: 'var(--bg3)', border: 'none',
-        color: 'var(--t2)', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      </button>
-    </div>
+    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap' }}>차바이오컴플렉스 방재팀</span>
   )
 
   return (
@@ -138,10 +125,7 @@ function Layout() {
     }}>
       {/* 데스크톱: 280px 고정 사이드바 */}
       {isDesktop && showNav && (
-        <DesktopSidebar
-          unresolvedCount={unresolvedCount}
-          onSettingsOpen={() => setSettingsOpen(true)}
-        />
+        <DesktopSidebar unresolvedCount={unresolvedCount} />
       )}
 
       {/* 콘텐츠 영역 */}
@@ -185,25 +169,8 @@ function Layout() {
             }}>
               {isDashboard ? '대시보드' : pageTitle}
             </span>
-            <button
-              onClick={() => setSettingsOpen(true)}
-              style={{
-                width: 32, height: 32, borderRadius: 7,
-                background: 'var(--bg3)', border: 'none',
-                color: 'var(--t2)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            </button>
           </header>
         )}
-
-        {/* 설정 패널 — 모바일/데스크톱 공통 */}
-        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isDesktop={isDesktop && showNav} />
 
         {/* 페이지 콘텐츠 */}
         <main style={{
@@ -234,6 +201,7 @@ function Layout() {
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
               <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
+              <Route path="/settings"      element={<Auth><SettingsPage /></Auth>} />
               <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
               <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
               <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
