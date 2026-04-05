@@ -19,26 +19,28 @@ export type MenuItem = { label: string; path: string; badge: number; soon: boole
 export const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '주요 기능', items: [
     { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
-    { label: '소방 점검',   path: '/inspection',     badge: 0, soon: false },
+    { label: '일반 점검',   path: '/inspection',     badge: 0, soon: false },
     { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0, soon: false },
     { label: '조치 관리',   path: '/remediation',    badge: 0, soon: false },
+    { label: '승강기 관리', path: '/elevator',       badge: 0, soon: false },
   ]},
-  { section: '점검 관리', items: [
+  { section: '시설 관리', items: [
+    { label: 'DIV 압력 관리',   path: '/div',        badge: 0, soon: false },
+    { label: '소방 시설 도면',   path: '/floorplan',  badge: 0, soon: false },
+    { label: '소방 점검 관리',   path: '/legal',      badge: 0, soon: false },
+  ]},
+  { section: '문서 관리', items: [
     { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
+    { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
+    { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
     { label: '점검 일지 출력', path: '/reports',        badge: 0, soon: false },
-    { label: '일일업무일지',   path: '/daily-report',  badge: 0, soon: false },
     { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0, soon: false },
-    { label: 'DIV 압력 관리', path: '/div',            badge: 0, soon: false },
   ]},
   { section: '근무·복지', items: [
-    { label: '근무표',      path: '/workshift',      badge: 0, soon: false },
     { label: '연차 및 식사', path: '/staff-service',  badge: 0, soon: false },
     { label: '보수교육',    path: '/education',      badge: 0, soon: false },
   ]},
   { section: '시스템', items: [
-    { label: '건물 도면',   path: '/floorplan',  badge: 0, soon: false },
-    { label: '승강기 관리', path: '/elevator',   badge: 0, soon: false },
-    { label: '법적 점검',   path: '/legal',      badge: 0, soon: false },
     { label: '관리자 설정', path: '/admin',      badge: 0, soon: false, role: 'admin' },
   ]},
 ]

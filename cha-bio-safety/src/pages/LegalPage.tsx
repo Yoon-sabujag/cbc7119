@@ -138,7 +138,7 @@ export default function LegalPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>법적 점검</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>소방 점검 관리</span>
       </div>
 
       {/* 필터 바 (sticky) */}
@@ -226,7 +226,7 @@ export default function LegalPage() {
         {/* 빈 상태 */}
         {!isLoading && !isError && filtered.length === 0 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '60px 16px' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>법적 점검 이력 없음</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>소방 점검 관리 이력 없음</div>
             <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>소방 일정 페이지에서 종합정밀 또는 작동기능 점검을 등록하면 여기에 표시됩니다.</div>
           </div>
         )}

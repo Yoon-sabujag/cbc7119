@@ -65,7 +65,7 @@ const DESKTOP_NO_NAV_PATHS = ['/', '/login']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
-  '/inspection': '소방 점검',
+  '/inspection': '일반 점검',
   '/inspection/qr': 'QR 스캔',
   '/remediation': '조치 관리',
   '/elevator': '승강기 관리',
@@ -81,7 +81,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/meal': '식사 관리',
   '/education': '보수교육',
   '/admin': '관리자 설정',
-  '/legal': '법적 점검',
+  '/legal': '소방 점검 관리',
 }
 
 function Layout() {

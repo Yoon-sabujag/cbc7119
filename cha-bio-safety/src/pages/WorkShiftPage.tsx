@@ -105,8 +105,8 @@ export default function WorkShiftPage() {
       </div>
 
       {/* 표 영역 */}
-      <div style={{ flex:1, overflowX:'hidden', overflowY:'auto' }}>
-        <div style={{ display:'flex' }}>
+      <div style={{ flex:1, overflowX:'hidden', overflowY:'auto', display:'flex', justifyContent:'center' }}>
+        <div style={{ display:'flex', maxWidth:1200, padding:'16px 24px' }}>
 
           {/* 이름 열 (고정) */}
           <div style={{ flexShrink:0 }}>
