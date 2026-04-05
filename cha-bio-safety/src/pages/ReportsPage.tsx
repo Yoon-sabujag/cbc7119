@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Download } from 'lucide-react'
 import { api } from '../utils/api'
 import { generateDivExcel, generateCheckExcel, generateMatrixExcel, generatePumpExcel } from '../utils/generateExcel'
+import { ExcelPreview } from '../components/ExcelPreview'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
 type ReportType = 'div-early' | 'div-late' | '소화전' | '청정소화약제' | '비상콘센트'
@@ -33,16 +34,6 @@ const MIN_YEAR = 2023
 
 // Annual report types — no month filter
 const ANNUAL_TYPES = new Set<ReportType>(['피난방화', '방화셔터', '제연', '자탐'])
-
-// ── 데스크톱 대카테고리 탭 ─────────────────────────────────────
-const DESKTOP_CATEGORIES = [
-  { label: '유수검지', types: ['div-early', 'div-late'] as ReportType[] },
-  { label: '소화전',   types: ['소화전', '비상콘센트', '청정소화약제'] as ReportType[] },
-  { label: '피난방화', types: ['피난방화', '방화셔터'] as ReportType[] },
-  { label: '제연',     types: ['제연'] as ReportType[] },
-  { label: '자탐',     types: ['자탐'] as ReportType[] },
-  { label: '소방펌프', types: ['소방펌프'] as ReportType[] },
-]
 
 // ── 공통 handleDownload 로직 ───────────────────────────────────
 async function downloadReport(type: ReportType, year: number): Promise<void> {
@@ -77,14 +68,6 @@ async function downloadReport(type: ReportType, year: number): Promise<void> {
     generateCheckExcel(year, data, type)
   }
 }
-
-// ── 데스크톱 섹션별 카드 그리드 레이아웃 ──────────────────────
-const DESKTOP_SECTIONS = [
-  { label: '유수검지 장치', types: ['div-early', 'div-late'] as ReportType[] },
-  { label: '소화전 · 가스 · 비상콘센트', types: ['소화전', '청정소화약제', '비상콘센트'] as ReportType[] },
-  { label: '연간 점검일지', types: ['피난방화', '방화셔터', '제연', '자탐'] as ReportType[] },
-  { label: '소방펌프', types: ['소방펌프'] as ReportType[] },
-]
 
 // ── 개별 보고서 blob 생성 (다운로드 없이) ─────────────────────
 async function generateReportBlob(type: ReportType, year: number): Promise<{ blob: Blob; filename: string } | null> {
@@ -125,7 +108,7 @@ async function generateReportBlob(type: ReportType, year: number): Promise<{ blo
 
 // ── 일괄 다운로드 (zip) ──────────────────────────────────────
 async function downloadAllAsZip(year: number, month: number, onProgress: (msg: string) => void) {
-  const { zipSync, strToU8 } = await import('fflate')
+  const { zipSync } = await import('fflate')
 
   const allTypes = REPORT_CARDS.map(c => c.type)
   const files: Record<string, Uint8Array> = {}
@@ -153,10 +136,20 @@ async function downloadAllAsZip(year: number, month: number, onProgress: (msg: s
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
+// ── 데스크톱 좌우 2분할 레이아웃 (목록 + 이미지 미리보기) ─────
+const DESKTOP_SECTIONS = [
+  { label: '유수검지 장치', types: ['div-early', 'div-late'] as ReportType[] },
+  { label: '소화전 · 가스 · 비상콘센트', types: ['소화전', '청정소화약제', '비상콘센트'] as ReportType[] },
+  { label: '연간 점검일지', types: ['피난방화', '방화셔터', '제연', '자탐'] as ReportType[] },
+  { label: '소방펌프', types: ['소방펌프'] as ReportType[] },
+]
+
 function DesktopReportsPage() {
   const [year, setYear] = useState(CURRENT_YEAR)
+  const [selectedType, setSelectedType] = useState<ReportType>('div-early')
   const [loading, setLoading] = useState<ReportType | null>(null)
   const [zipLoading, setZipLoading] = useState<string | null>(null)
+  const [hoverType, setHoverType] = useState<ReportType | null>(null)
   const month = new Date().getMonth() + 1
 
   const handleDownload = async (type: ReportType) => {
@@ -177,95 +170,132 @@ function DesktopReportsPage() {
     }
   }
 
+  const selectedCard = REPORT_CARDS.find(c => c.type === selectedType)
+
   return (
-    <div style={{ height: '100%', overflowY: 'auto', padding: '24px 32px' }}>
-      {/* 상단 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>점검 일지 출력</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <label style={{ fontSize: 12, color: 'var(--t2)' }}>연도</label>
-          <select value={year} onChange={e => setYear(Number(e.target.value))} style={SELECT_STYLE}>
-            {Array.from({ length: CURRENT_YEAR - MIN_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map(y => (
-              <option key={y} value={y}>{y}년</option>
-            ))}
-          </select>
-          <button
-            onClick={handleDownloadAll}
-            disabled={!!zipLoading}
-            style={{
-              height: 36,
-              padding: '0 16px',
-              background: zipLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              border: 'none',
-              borderRadius: 6,
-              color: zipLoading ? 'var(--t3)' : '#fff',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: zipLoading ? 'default' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <Download size={14} />
-            {zipLoading ?? '일괄 다운로드'}
-          </button>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+
+      {/* ── 상단 바 (전체 폭): 연도 + 일괄 다운로드 + 선택 정보 + 개별 다운로드 ── */}
+      <div style={{
+        padding: '8px 16px',
+        borderBottom: '1px solid var(--bd)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        flexShrink: 0,
+        background: 'var(--bg2)',
+      }}>
+        <label style={{ fontSize: 12, color: 'var(--t2)' }}>연도</label>
+        <select value={year} onChange={e => setYear(Number(e.target.value))} style={SELECT_STYLE}>
+          {Array.from({ length: CURRENT_YEAR - MIN_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map(y => (
+            <option key={y} value={y}>{y}년</option>
+          ))}
+        </select>
+        <button
+          onClick={handleDownloadAll}
+          disabled={!!zipLoading}
+          style={{
+            height: 32,
+            padding: '0 14px',
+            background: zipLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+            border: 'none',
+            borderRadius: 6,
+            color: zipLoading ? 'var(--t3)' : '#fff',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: zipLoading ? 'default' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <Download size={13} />
+          {zipLoading ?? '일괄 다운로드'}
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{selectedCard?.title}</span>
+        <button
+          onClick={() => handleDownload(selectedType)}
+          disabled={loading === selectedType}
+          style={{
+            height: 32,
+            padding: '0 14px',
+            background: 'var(--bg3)',
+            border: '1px solid var(--bd2)',
+            borderRadius: 6,
+            color: 'var(--t1)',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: loading === selectedType ? 'default' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            opacity: loading === selectedType ? 0.5 : 1,
+          }}
+        >
+          <Download size={13} />
+          {loading === selectedType ? '생성 중...' : '엑셀 다운로드'}
+        </button>
       </div>
 
-      {/* 섹션별 카드 그리드 */}
-      {DESKTOP_SECTIONS.map(section => (
-        <div key={section.label} style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-            {section.label}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {section.types.map(type => {
-              const card = REPORT_CARDS.find(c => c.type === type)
-              if (!card) return null
-              const isLoading = loading === type
-              return (
-                <div key={type} style={{
-                  background: 'var(--bg2)',
-                  border: '1px solid var(--bd)',
-                  borderRadius: 10,
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{card.title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{card.sub} · {year}년도</div>
-                  </div>
-                  <button
-                    onClick={() => handleDownload(type)}
-                    disabled={isLoading}
+      {/* ── 하단: 좌측 항목목록 + 우측 미리보기 ─────────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* 좌측 항목 목록 */}
+        <div style={{
+          width: 260,
+          flexShrink: 0,
+          borderRight: '1px solid var(--bd)',
+          overflowY: 'auto',
+          background: 'var(--bg2)',
+        }}>
+          {DESKTOP_SECTIONS.map(section => (
+            <div key={section.label}>
+              <div style={{
+                padding: '8px 16px 4px',
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--t3)',
+                letterSpacing: '0.05em',
+              }}>
+                {section.label}
+              </div>
+              {section.types.map(type => {
+                const card = REPORT_CARDS.find(c => c.type === type)
+                if (!card) return null
+                const isSelected = selectedType === type
+                const isHover = hoverType === type && !isSelected
+                return (
+                  <div
+                    key={type}
+                    onClick={() => setSelectedType(type)}
+                    onMouseEnter={() => setHoverType(type)}
+                    onMouseLeave={() => setHoverType(null)}
                     style={{
-                      height: 36,
-                      background: isLoading ? 'var(--bg3)' : 'var(--bg3)',
-                      border: '1px solid var(--bd2)',
-                      borderRadius: 6,
-                      color: isLoading ? 'var(--t3)' : 'var(--t1)',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: isLoading ? 'default' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      opacity: isLoading ? 0.5 : 1,
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      background: isSelected ? 'var(--bg3)' : isHover ? 'var(--bg3)' : 'transparent',
+                      borderLeft: isSelected ? '3px solid var(--acl)' : '3px solid transparent',
                     }}
                   >
-                    <Download size={14} />
-                    {isLoading ? '생성 중...' : '엑셀 다운로드'}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+                    <div style={{ fontSize: 13, color: isSelected ? 'var(--acl)' : 'var(--t1)', fontWeight: isSelected ? 700 : 400 }}>
+                      {card.title}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 1 }}>{card.sub}</div>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
         </div>
-      ))}
+
+        {/* 우측 이미지 미리보기 + 데이터 오버레이 */}
+        <div style={{ flex: 1, overflow: 'hidden', background: 'var(--bg)' }}>
+          <ExcelPreview reportType={selectedType} year={year} month={month} />
+        </div>
+      </div>
     </div>
   )
 }
