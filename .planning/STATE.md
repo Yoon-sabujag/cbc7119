@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: 설정 페이지
-status: executing
-stopped_at: "Completed 16-01-PLAN.md (SettingsPage core: profile API, authStore.updateStaff, SettingsPage.tsx)"
-last_updated: "2026-04-05T23:50:37.711Z"
+status: verifying
+stopped_at: Completed 16-02-PLAN.md (wire /settings route, remove SettingsPanel, deploy to production)
+last_updated: "2026-04-05T23:55:59.690Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 
 Phase: 16 (settings-page-profile) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
 
 *Updated after each plan completion*
 | Phase 16-settings-page-profile P01 | 12 | 2 tasks | 4 files |
+| Phase 16-settings-page-profile P02 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ v1.3 decisions:
 - [v1.3 Roadmap]: Phase 18(메뉴)과 Phase 19(앱 정보)는 Phase 16 이후 병렬 가능하나 순차로 계획
 - [Phase 16-settings-page-profile]: SettingsPage is a full page (not panel) — standalone route /settings, lazy-loadable default export
 - [Phase 16-settings-page-profile]: updateStaff added to authStore with Partial<Staff> for local name sync after profile API success
+- [Phase 16-settings-page-profile]: Deploy project name is cbc7119 (not cha-bio-safety) — corrected from plan's deploy command
+- [Phase 16-settings-page-profile]: SettingsPanel completely removed in favor of dedicated /settings page route — logout moved exclusively to SettingsPage
 
 ### Pending Todos
 
@@ -91,8 +94,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T23:50:37.706Z
-Stopped at: Completed 16-01-PLAN.md (SettingsPage core: profile API, authStore.updateStaff, SettingsPage.tsx)
+Last session: 2026-04-05T23:55:59.684Z
+Stopped at: Completed 16-02-PLAN.md (wire /settings route, remove SettingsPanel, deploy to production)
 Resume file: None
 
 ---
