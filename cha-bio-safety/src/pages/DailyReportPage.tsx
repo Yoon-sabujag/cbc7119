@@ -308,35 +308,66 @@ export default function DailyReportPage() {
         )}
       </div>
 
-      {/* 일별 다운로드 버튼 */}
-      <button
-        onClick={handleDailyDownload}
-        disabled={generating || queryData.isLoading}
-        style={{
-          width: '100%', padding: 11, borderRadius: 9, border: 'none',
-          background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-          color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
-          fontSize: 13, fontWeight: 700, marginBottom: 8,
-          cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
-        }}
-      >
-        {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
-      </button>
-
-      {/* 월별 다운로드 버튼 */}
-      <button
-        onClick={handleMonthlyDownload}
-        disabled={genMonthly}
-        style={{
-          width: '100%', padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
-          background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
-          color: genMonthly ? 'var(--t3)' : 'var(--t1)',
-          fontSize: 13, fontWeight: 700,
-          cursor: genMonthly ? 'default' : 'pointer',
-        }}
-      >
-        {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
-      </button>
+      {/* 다운로드 버튼 */}
+      {isDesktop ? (
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button
+            onClick={handleDailyDownload}
+            disabled={generating || queryData.isLoading}
+            style={{
+              flex: 1, padding: 11, borderRadius: 9, border: 'none',
+              background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+              color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
+              fontSize: 13, fontWeight: 700,
+              cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
+            }}
+          >
+            {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
+          </button>
+          <button
+            onClick={handleMonthlyDownload}
+            disabled={genMonthly}
+            style={{
+              flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
+              background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
+              color: genMonthly ? 'var(--t3)' : 'var(--t1)',
+              fontSize: 13, fontWeight: 700,
+              cursor: genMonthly ? 'default' : 'pointer',
+            }}
+          >
+            {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
+          </button>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={handleDailyDownload}
+            disabled={generating || queryData.isLoading}
+            style={{
+              width: '100%', padding: 11, borderRadius: 9, border: 'none',
+              background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+              color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
+              fontSize: 13, fontWeight: 700, marginBottom: 8,
+              cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
+            }}
+          >
+            {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
+          </button>
+          <button
+            onClick={handleMonthlyDownload}
+            disabled={genMonthly}
+            style={{
+              width: '100%', padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
+              background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
+              color: genMonthly ? 'var(--t3)' : 'var(--t1)',
+              fontSize: 13, fontWeight: 700,
+              cursor: genMonthly ? 'default' : 'pointer',
+            }}
+          >
+            {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
+          </button>
+        </>
+      )}
 
       <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', padding: '8px 0 20px' }}>
         수정 내용은 자동 저장됩니다 · 월별은 저장된 모든 날짜를 포함합니다
@@ -374,9 +405,10 @@ export default function DailyReportPage() {
           {formContent}
         </div>
 
-        {/* 우측 A4 세로 미리보기 패널 */}
+        {/* 우측 A4 세로 미리보기 패널 — 높이 기준으로 A4 비율 폭 계산 */}
         <div style={{
-          width: 400, flexShrink: 0,
+          aspectRatio: '210 / 297',
+          height: '100%', flexShrink: 0,
           borderLeft: '1px solid var(--bd)',
           overflow: 'hidden',
           background: 'var(--bg)',
@@ -387,7 +419,7 @@ export default function DailyReportPage() {
             position: 'absolute', top: 8, left: 0, right: 0,
             textAlign: 'center', fontSize: 11, color: 'var(--t2)',
             fontWeight: 700, textTransform: 'uppercase',
-            pointerEvents: 'none',
+            pointerEvents: 'none', zIndex: 5,
           }}>
             인쇄 미리보기
           </div>
@@ -425,7 +457,40 @@ export default function DailyReportPage() {
   )
 }
 
-// ── A4 세로 미리보기 컴포넌트 ─────────────────────────────
+// ── 캘리브레이션 설정 ─────────────────────────────────────
+const DAILY_CALIB_STEPS = [
+  { key: 'date',        label: '????년 ??월 ??일', color: '#3b82f6' },
+  { key: 'today',       label: '금일업무',         color: '#22c55e' },
+  { key: 'tomorrow',    label: '명일업무',         color: '#10b981' },
+  { key: 'notes',       label: '특이사항',         color: '#06b6d4' },
+  { key: 'pTotal',      label: '총원',             color: '#f59e0b' },
+  { key: 'pPresent',    label: '현재원',           color: '#d97706' },
+  { key: 'pDuty',       label: '당직',             color: '#ef4444' },
+  { key: 'pOff',        label: '비번',             color: '#a855f7' },
+  { key: 'pRest',       label: '휴무',             color: '#7c3aed' },
+  { key: 'pLeave',      label: '연차',             color: '#ec4899' },
+  { key: 'pHalf',       label: '반차',             color: '#f43f5e' },
+  { key: 'pTraining',   label: '교육/훈련',        color: '#14b8a6' },
+  { key: 'pAbsent',     label: '결원',             color: '#64748b' },
+  { key: 'dayWorker',   label: '주간근무자',       color: '#eab308' },
+  { key: 'dutyWorker',  label: '당직근무자',       color: '#e11d48' },
+]
+
+const DAILY_CALIB_KEY = 'calib_daily_report'
+const FINGER_OFFSET = 60
+
+interface DailyCalibData {
+  [key: string]: { x: number; y: number }
+}
+
+function loadDailyCalib(): DailyCalibData | null {
+  try { return JSON.parse(localStorage.getItem(DAILY_CALIB_KEY) ?? 'null') } catch { return null }
+}
+function saveDailyCalib(data: DailyCalibData) {
+  localStorage.setItem(DAILY_CALIB_KEY, JSON.stringify(data))
+}
+
+// ── 템플릿 이미지 오버레이 미리보기 ─────────────────────────
 function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel }: {
   date: string
   todayText: string
@@ -443,26 +508,135 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
   }
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
+  const imgRef = useRef<HTMLImageElement>(null)
+  const [imgRect, setImgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
 
-  const A4_W = 794
-  const A4_H = 1123
+  // 캘리브레이션 상태
+  const [calibMode, setCalibMode] = useState(false)
+  const [calibStep, setCalibStep] = useState(0)
+  const [calibPoints, setCalibPoints] = useState<({ x: number; y: number } | null)[]>([])
+  const [activePoint, setActivePoint] = useState<{ x: number; y: number } | null>(null)
+  const isDragging = useRef(false)
 
-  useEffect(() => {
-    if (!containerRef.current) return
-    const obs = new ResizeObserver(entries => {
-      const entry = entries[0]
-      if (!entry) return
-      const w = entry.contentRect.width
-      const h = entry.contentRect.height
-      setScale(Math.min(w / A4_W, h / A4_H) * 0.95)
-    })
-    obs.observe(containerRef.current)
-    return () => obs.disconnect()
+  const measure = useCallback(() => {
+    if (!imgRef.current || !containerRef.current) return
+    const img = imgRef.current, cont = containerRef.current
+    const ib = img.getBoundingClientRect(), cb = cont.getBoundingClientRect()
+    const nw = img.naturalWidth || 1, nh = img.naturalHeight || 1
+    const dw = img.clientWidth, dh = img.clientHeight
+    const s = Math.min(dw / nw, dh / nh)
+    const rw = nw * s, rh = nh * s
+    setImgRect({ left: (ib.left - cb.left) + (dw - rw) / 2, top: (ib.top - cb.top) + (dh - rh) / 2, width: rw, height: rh })
   }, [])
 
+  useEffect(() => {
+    measure()
+    const obs = new ResizeObserver(() => measure())
+    if (containerRef.current) obs.observe(containerRef.current)
+    return () => obs.disconnect()
+  }, [measure])
+
+  const calib = loadDailyCalib()
+  const hasCalib = !!calib
+
+  // 터치/마우스 → 이미지 % 좌표 변환
+  const clientToImgPct = useCallback((clientX: number, clientY: number, fingerOffset = 0) => {
+    if (!imgRect) return null
+    const cont = containerRef.current
+    if (!cont) return null
+    const cb = cont.getBoundingClientRect()
+    const x = ((clientX - cb.left - imgRect.left) / imgRect.width) * 100
+    const y = (((clientY - fingerOffset) - cb.top - imgRect.top) / imgRect.height) * 100
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }
+  }, [imgRect])
+
+  // 캘리브레이션 터치 핸들러
+  const onCalibTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!calibMode || e.touches.length !== 1) return
+    e.preventDefault()
+    isDragging.current = true
+    const t = e.touches[0]
+    const pt = clientToImgPct(t.clientX, t.clientY, FINGER_OFFSET)
+    if (pt) setActivePoint(pt)
+  }, [calibMode, clientToImgPct])
+
+  const onCalibTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!calibMode || !isDragging.current || e.touches.length !== 1) return
+    e.preventDefault()
+    const t = e.touches[0]
+    const pt = clientToImgPct(t.clientX, t.clientY, FINGER_OFFSET)
+    if (pt) setActivePoint(pt)
+  }, [calibMode, clientToImgPct])
+
+  const onCalibTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!calibMode || !isDragging.current) return
+    e.preventDefault()
+    isDragging.current = false
+  }, [calibMode])
+
+  // 포인트 확정 → 다음 단계
+  const advanceStep = useCallback((point: { x: number; y: number } | null) => {
+    const newPoints = [...calibPoints, point]
+    setCalibPoints(newPoints)
+    setActivePoint(null)
+
+    if (calibStep + 1 >= DAILY_CALIB_STEPS.length) {
+      // 모든 스텝 완료 → 저장
+      const data: DailyCalibData = {}
+      newPoints.forEach((pt, i) => {
+        if (pt) data[DAILY_CALIB_STEPS[i].key] = pt
+      })
+      saveDailyCalib(data)
+      setTimeout(() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]) }, 500)
+    } else {
+      setCalibStep(calibStep + 1)
+    }
+  }, [calibPoints, calibStep])
+
+  const confirmPoint = useCallback(() => {
+    if (!activePoint) return
+    advanceStep(activePoint)
+  }, [activePoint, advanceStep])
+
+  // 마우스 클릭 (PC)
+  const onCalibClick = useCallback((e: React.MouseEvent) => {
+    if (!calibMode) return
+    const pt = clientToImgPct(e.clientX, e.clientY, 0)
+    if (pt) setActivePoint(pt)
+  }, [calibMode, clientToImgPct])
+
+  // ── 오버레이 데이터 ──
   const [y, m, d] = date.split('-')
   const dateLabel = `${y}년 ${Number(m)}월 ${Number(d)}일`
+
+  const textStyle = (fontSize = 7): React.CSSProperties => ({
+    fontSize, color: '#111', fontWeight: 400,
+    whiteSpace: 'pre-wrap', lineHeight: 1.6,
+    fontFamily: "'Noto Sans KR', sans-serif",
+    overflow: 'hidden',
+  })
+
+  // 포인트 기반 오버레이 항목
+  const LARGE_KEYS = new Set(['date', 'today', 'tomorrow', 'notes'])
+  const overlayItems: { key: string; text: string; isArea?: boolean }[] = calib ? [
+    { key: 'date', text: dateLabel },
+    { key: 'today', text: todayText, isArea: true },
+    { key: 'tomorrow', text: tomorrowText, isArea: true },
+    { key: 'notes', text: notes, isArea: true },
+    ...(personnel ? [
+      { key: 'pTotal', text: String(personnel.total) },
+      { key: 'pPresent', text: String(personnel.present) },
+      { key: 'pDuty', text: personnel.onDuty ? '1' : '' },
+      { key: 'pOff', text: personnel.offDuty || '' },
+      { key: 'pRest', text: '' },
+      { key: 'pLeave', text: personnel.onLeave.length ? String(personnel.onLeave.length) : '' },
+      { key: 'pHalf', text: personnel.halfLeave.length ? String(personnel.halfLeave.length) : '' },
+      { key: 'pTraining', text: personnel.training.length ? String(personnel.training.length) : '' },
+      { key: 'pAbsent', text: '' },
+      { key: 'dayWorker', text: personnel.dayShift.join(', ') },
+      { key: 'dutyWorker', text: personnel.onDuty || '' },
+    ] : []),
+  ] : []
 
   return (
     <div
@@ -471,120 +645,157 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
         width: '100%', height: '100%',
         overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg)',
+        background: 'var(--bg)', position: 'relative',
       }}
     >
-      <div
-        className="excel-preview-inner"
+      <img
+        ref={imgRef}
+        src="/templates/preview/daily-1.png"
+        alt=""
+        onLoad={measure}
         style={{
-          width: A4_W, height: A4_H,
-          background: '#ffffff',
+          maxWidth: '100%', maxHeight: '100%',
+          objectFit: 'contain',
           boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          transformOrigin: 'center center',
-          transform: `scale(${scale})`,
-          overflow: 'hidden',
-          position: 'relative',
-          padding: 48,
-          boxSizing: 'border-box',
+          borderRadius: 4, background: '#fff',
         }}
-      >
-        {/* 제목 */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 4 }}>방재업무일지</div>
-          <div style={{ fontSize: 13, color: '#444' }}>{dateLabel}</div>
+      />
+
+      {/* 오버레이 + 캘리브레이션 영역 */}
+      {imgRect && imgRect.width > 0 && (
+        <div
+          onClick={calibMode ? onCalibClick : undefined}
+          onTouchStart={calibMode ? onCalibTouchStart : undefined}
+          onTouchMove={calibMode ? onCalibTouchMove : undefined}
+          onTouchEnd={calibMode ? onCalibTouchEnd : undefined}
+          style={{
+            position: 'absolute',
+            left: imgRect.left, top: imgRect.top,
+            width: imgRect.width, height: imgRect.height,
+            pointerEvents: calibMode ? 'auto' : 'none',
+            cursor: calibMode ? 'crosshair' : 'default',
+            touchAction: calibMode ? 'none' : 'auto',
+          }}
+        >
+          {/* 데이터 오버레이 (캘리브레이션 완료 후) */}
+          {!calibMode && calib && overlayItems.map(item => {
+            const pt = calib[item.key]
+            if (!pt || !item.text) return null
+            const isLarge = LARGE_KEYS.has(item.key)
+            if (item.isArea) {
+              return (
+                <div key={item.key} style={{
+                  position: 'absolute',
+                  left: `${pt.x}%`, top: `${pt.y}%`,
+                  width: '75%',
+                  ...textStyle(10), fontWeight: 700,
+                }}>
+                  {item.text}
+                </div>
+              )
+            }
+            return (
+              <span key={item.key} style={{
+                position: 'absolute',
+                left: `${pt.x}%`, top: `${pt.y}%`,
+                transform: 'translate(-50%,-50%)',
+                ...textStyle(isLarge ? 12 : 10), fontWeight: 700, textAlign: 'center',
+                whiteSpace: 'nowrap',
+              }}>
+                {item.text}
+              </span>
+            )
+          })}
+
+          {/* 확정된 캘리브레이션 마커 */}
+          {calibMode && calibPoints.map((pt, i) => (
+            pt && <DailyCalibMarker key={i} x={pt.x} y={pt.y} color={DAILY_CALIB_STEPS[i].color} label={`${i + 1}`} />
+          ))}
+
+          {/* 드래그 중 마커 */}
+          {calibMode && activePoint && (
+            <DailyCalibMarker x={activePoint.x} y={activePoint.y} color={DAILY_CALIB_STEPS[calibStep].color} label={`${calibStep + 1}`} active />
+          )}
         </div>
+      )}
 
-        {/* 구분선 */}
-        <hr style={{ border: 'none', borderTop: '2px solid #000', marginBottom: 20 }} />
-
-        {/* 인원현황 */}
-        {personnel && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>인원현황</div>
-            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11 }}>
-              <tbody>
-                <tr>
-                  <td style={PT}>총원</td>
-                  <td style={PD}>{personnel.total}명</td>
-                  <td style={PT}>현재원</td>
-                  <td style={PD}>{personnel.present}명</td>
-                  <td style={PT}>비번</td>
-                  <td style={PD}>{personnel.offDuty || '—'}</td>
-                </tr>
-                {(personnel.onDuty) && (
-                  <tr>
-                    <td style={PT}>당직</td>
-                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.onDuty}</td>
-                  </tr>
-                )}
-                {personnel.dayShift.length > 0 && (
-                  <tr>
-                    <td style={PT}>주간</td>
-                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.dayShift.join(', ')}</td>
-                  </tr>
-                )}
-                {personnel.onLeave.length > 0 && (
-                  <tr>
-                    <td style={PT}>연차</td>
-                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.onLeave.join(', ')}</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 금일업무 */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>금일업무</div>
-          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 60 }}>
-            {todayText || '(내용 없음)'}
-          </div>
+      {/* 캘리브레이션 안내 바 */}
+      {calibMode && (
+        <div style={{
+          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.9)', color: '#fff',
+          padding: '10px 20px', borderRadius: 10,
+          fontSize: 14, fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 16, zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{
+            width: 24, height: 24, borderRadius: '50%',
+            background: DAILY_CALIB_STEPS[calibStep].color,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, flexShrink: 0,
+          }}>{calibStep + 1}</span>
+          <span>{DAILY_CALIB_STEPS[calibStep].label}</span>
+          <span style={{ fontSize: 11, color: '#aaa' }}>
+            {activePoint ? `(${activePoint.x.toFixed(1)}, ${activePoint.y.toFixed(1)})` : '터치/클릭'}
+          </span>
+          {activePoint && (
+            <button onClick={confirmPoint} style={{
+              background: '#22c55e', border: 'none', color: '#fff',
+              padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+            }}>확인</button>
+          )}
+          <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} style={{
+            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+            padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
+          }}>취소</button>
         </div>
+      )}
 
-        {/* 명일업무 */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>명일업무</div>
-          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 40 }}>
-            {tomorrowText || '(내용 없음)'}
-          </div>
-        </div>
-
-        {/* 특이사항 */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>특이사항</div>
-          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 40 }}>
-            {notes || '(내용 없음)'}
-          </div>
-        </div>
-
-        {/* 서명란 */}
-        <div style={{ position: 'absolute', bottom: 48, left: 48, right: 48 }}>
-          <hr style={{ border: 'none', borderTop: '1px solid #ccc', marginBottom: 16 }} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 32, fontSize: 11, color: '#444' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ marginBottom: 24 }}>작성자</div>
-              <div style={{ borderTop: '1px solid #999', width: 80 }}></div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ marginBottom: 24 }}>확인자</div>
-              <div style={{ borderTop: '1px solid #999', width: 80 }}></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 위치 설정 버튼 */}
+      {!calibMode && (
+        <button
+          onClick={() => { setCalibMode(true); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
+          style={{
+            position: 'absolute', bottom: 12, right: 12,
+            background: hasCalib ? 'rgba(0,0,0,0.6)' : 'rgba(239,68,68,0.9)',
+            color: '#fff', border: 'none',
+            padding: '8px 16px', borderRadius: 8,
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', zIndex: 10,
+          }}
+        >
+          {hasCalib ? '위치 재설정' : '⚠ 위치 설정'}
+        </button>
+      )}
     </div>
   )
 }
 
-// ── A4 미리보기 셀 스타일 ──────────────────────────────────
-const PT: React.CSSProperties = {
-  border: '1px solid #ccc', padding: '3px 6px', fontWeight: 700,
-  fontSize: 11, color: '#000', background: '#f0f0f0', whiteSpace: 'nowrap',
-}
-const PD: React.CSSProperties = {
-  border: '1px solid #ccc', padding: '3px 6px',
-  fontSize: 11, color: '#000',
+// ── 캘리브레이션 마커 ───────────────────────────────────────
+function DailyCalibMarker({ x, y, color, label, active }: { x: number; y: number; color: string; label: string; active?: boolean }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      left: `${x}%`, top: `${y}%`,
+      transform: 'translate(-50%, -50%)',
+      pointerEvents: 'none',
+    }}>
+      <div style={{ position: 'absolute', left: -20, top: 0, width: 40, height: 2, background: color, opacity: 0.8 }} />
+      <div style={{ position: 'absolute', top: -20, left: 0, width: 2, height: 40, background: color, opacity: 0.8 }} />
+      <div style={{
+        width: active ? 20 : 16, height: active ? 20 : 16,
+        borderRadius: '50%', background: color,
+        border: '2px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 10, fontWeight: 900, color: '#fff',
+        transform: 'translate(-50%, -50%)',
+        position: 'absolute', left: 0, top: 0,
+      }}>
+        {label}
+      </div>
+    </div>
+  )
 }
 
 // ── 편집 가능 카드 컴포넌트 ─────────────────────────────

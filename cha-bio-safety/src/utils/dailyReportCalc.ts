@@ -171,6 +171,10 @@ function buildPersonnel(
 
   // 총원 = 4 - 결원
   // 현재원 = 주간근무자 수(반차/교육훈련 포함) + 당직자 수 (비번/연차1일/공가1일 제외)
+  // 석현민을 맨 앞으로
+  const sIdx = dayShift.indexOf('석현민')
+  if (sIdx > 0) { dayShift.splice(sIdx, 1); dayShift.unshift('석현민') }
+
   const present = dayShift.length + (onDuty ? 1 : 0)
 
   return {
