@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
+import { settingsApi } from '../utils/api'
 
 const NAV_H = 'calc(54px + var(--sab, 0px))'
 
@@ -45,6 +47,19 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   const navigate  = useNavigate()
   const { staff, logout } = useAuthStore()
   const { data: staffList } = useStaffList()
+  const { data: menuConfig } = useQuery({ queryKey: ['menu-config'], queryFn: () => settingsApi.getMenu(), staleTime: 300_000 })
+
+  // 메뉴 설정 적용: hidden 항목 필터링 + 순서 반영
+  const appliedMenu = useMemo(() => {
+    if (!menuConfig) return MENU
+    const cfg = menuConfig as Record<string, { visible: boolean; order: number }>
+    return MENU.map(section => ({
+      ...section,
+      items: section.items
+        .filter(item => cfg[item.path] === undefined || cfg[item.path].visible !== false)
+        .sort((a, b) => ((cfg[a.path]?.order ?? 999) - (cfg[b.path]?.order ?? 999))),
+    })).filter(section => section.items.length > 0)
+  }, [menuConfig])
 
   const RAW_TO_LABEL: Record<string, string> = { '당':'당직', '비':'비번', '주':'주간', '휴':'연차' }
   const [todayShiftLabel, setTodayShiftLabel] = useState('평일주간고정')
@@ -116,7 +131,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
 
         {/* 메뉴 목록 */}
         <div style={{ overflowY:'auto', flex:1, padding:'5px 0' }}>
-          {MENU.map(({ section, items }) => (
+          {appliedMenu.map(({ section, items }) => (
             <div key={section}>
               <div style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>{section}</div>
               {items.map(item => {

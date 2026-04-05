@@ -202,6 +202,8 @@ export const educationApi = {
     api.post<import('../types').EducationRecord>('/education', data),
   update: (id: string, data: { completed_at: string }) =>
     api.put<void>(`/education/${id}`, data),
+  delete: (id: string) =>
+    api.delete<void>(`/education/${id}`),
 }
 
 export const menuApi = {
@@ -287,4 +289,9 @@ export const elevatorRepairApi = {
     api.post<{ id: string }>('/elevators/repairs', body),
   delete: (id: string) =>
     api.delete<void>(`/elevators/repairs?id=${id}`),
+}
+
+export const settingsApi = {
+  getMenu: () => api.get<any>('/settings/menu'),
+  saveMenu: (config: any) => api.put<void>('/settings/menu', { config }),
 }

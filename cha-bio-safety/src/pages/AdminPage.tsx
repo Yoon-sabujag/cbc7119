@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { settingsApi } from '../utils/api'
+import { MENU } from '../components/SideMenu'
 
 // ── 인라인 SVG 아이콘 ────────────────────────────────────
 function IconChevronLeft({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
@@ -403,7 +405,7 @@ function CheckPointModal({
 }
 
 // ── 메인 페이지 ──────────────────────────────────────────
-type AdminTab = 'staff' | 'checkpoints'
+type AdminTab = 'staff' | 'checkpoints' | 'menu'
 
 export default function AdminPage() {
   const navigate = useNavigate()
@@ -447,6 +449,7 @@ export default function AdminPage() {
         {([
           { key: 'staff' as AdminTab, label: '직원 관리' },
           { key: 'checkpoints' as AdminTab, label: '개소 관리' },
+          { key: 'menu' as AdminTab, label: '메뉴 설정' },
         ]).map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             style={{
@@ -462,12 +465,13 @@ export default function AdminPage() {
 
       {/* ── 탭 콘텐츠 ────────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {activeTab === 'staff' ? (
+        {activeTab === 'staff' && (
           <StaffTabContent
             onAdd={() => setStaffModal({ open: true, mode: 'add' })}
             onEdit={s => setStaffModal({ open: true, mode: 'edit', target: s })}
           />
-        ) : (
+        )}
+        {activeTab === 'checkpoints' && (
           <CheckPointTabContent
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
@@ -475,6 +479,7 @@ export default function AdminPage() {
             onEdit={cp => setCpModal({ open: true, mode: 'edit', target: cp })}
           />
         )}
+        {activeTab === 'menu' && <MenuSettingsTab />}
       </div>
 
       {/* ── 모달 ─────────────────────────────────────── */}
@@ -696,6 +701,119 @@ function CheckPointCard({ cp, onEdit }: { cp: CheckPointFull; onEdit: () => void
       {/* 수정 버튼 */}
       <button onClick={onEdit} style={{ background: 'none', border: 'none', color: 'var(--acl)', cursor: 'pointer', fontSize: 12, fontWeight: 700, flexShrink: 0, padding: '4px 8px' }}>
         수정 ▸
+      </button>
+    </div>
+  )
+}
+
+// ── 메뉴 설정 탭 ──────────────────────────────────────
+function MenuSettingsTab() {
+  const qc = useQueryClient()
+  const { data: saved } = useQuery({ queryKey: ['menu-config'], queryFn: () => settingsApi.getMenu(), staleTime: 300_000 })
+
+  const allItems = useMemo(() => {
+    const items: { path: string; label: string; section: string }[] = []
+    MENU.forEach(s => s.items.forEach(i => items.push({ path: i.path, label: i.label, section: s.section })))
+    return items
+  }, [])
+
+  const [config, setConfig] = useState<Record<string, { visible: boolean; order: number }>>({})
+  const [initialized, setInitialized] = useState(false)
+
+  useEffect(() => {
+    if (initialized) return
+    if (saved !== undefined) {
+      const cfg: Record<string, { visible: boolean; order: number }> = {}
+      allItems.forEach((item, idx) => {
+        const s = saved as any
+        cfg[item.path] = s?.[item.path] ?? { visible: true, order: idx }
+      })
+      setConfig(cfg)
+      setInitialized(true)
+    }
+  }, [saved, allItems, initialized])
+
+  const saveMut = useMutation({
+    mutationFn: () => settingsApi.saveMenu(config),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['menu-config'] }); toast.success('메뉴 설정 저장 완료') },
+    onError: () => toast.error('저장 실패'),
+  })
+
+  const toggle = (path: string) => {
+    setConfig(prev => ({ ...prev, [path]: { ...prev[path], visible: !prev[path]?.visible } }))
+  }
+
+  const moveUp = (path: string) => {
+    const sorted = allItems.slice().sort((a, b) => (config[a.path]?.order ?? 999) - (config[b.path]?.order ?? 999))
+    const idx = sorted.findIndex(i => i.path === path)
+    if (idx <= 0) return
+    const prev = sorted[idx - 1]
+    setConfig(c => ({
+      ...c,
+      [path]: { ...c[path], order: config[prev.path]?.order ?? idx - 1 },
+      [prev.path]: { ...c[prev.path], order: config[path]?.order ?? idx },
+    }))
+  }
+
+  const moveDown = (path: string) => {
+    const sorted = allItems.slice().sort((a, b) => (config[a.path]?.order ?? 999) - (config[b.path]?.order ?? 999))
+    const idx = sorted.findIndex(i => i.path === path)
+    if (idx < 0 || idx >= sorted.length - 1) return
+    const next = sorted[idx + 1]
+    setConfig(c => ({
+      ...c,
+      [path]: { ...c[path], order: config[next.path]?.order ?? idx + 1 },
+      [next.path]: { ...c[next.path], order: config[path]?.order ?? idx },
+    }))
+  }
+
+  const sorted = allItems.slice().sort((a, b) => (config[a.path]?.order ?? 999) - (config[b.path]?.order ?? 999))
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 12 }}>
+        햄버거 메뉴 항목의 표시/숨김과 순서를 설정합니다.
+      </div>
+
+      {sorted.map((item, idx) => {
+        const isVisible = config[item.path]?.visible !== false
+        return (
+          <div key={item.path} style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+            background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10,
+            marginBottom: 6, opacity: isVisible ? 1 : 0.4,
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+              <button onClick={() => moveUp(item.path)} disabled={idx === 0}
+                style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>▲</button>
+              <button onClick={() => moveDown(item.path)} disabled={idx === sorted.length - 1}
+                style={{ background: 'none', border: 'none', color: 'var(--t3)', cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>▼</button>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{item.label}</div>
+              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{item.section}</div>
+            </div>
+            <button onClick={() => toggle(item.path)} style={{
+              width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
+              background: isVisible ? 'var(--acl)' : 'var(--bg3)', transition: 'background 0.15s', position: 'relative',
+            }}>
+              <div style={{
+                width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3,
+                left: isVisible ? 23 : 3, transition: 'left 0.15s',
+              }} />
+            </button>
+          </div>
+        )
+      })}
+
+      <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}
+        style={{
+          width: '100%', marginTop: 16, padding: '12px 0', borderRadius: 10, border: 'none',
+          background: 'var(--acl)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+          opacity: saveMut.isPending ? 0.5 : 1,
+        }}
+      >
+        {saveMut.isPending ? '저장 중...' : '설정 저장'}
       </button>
     </div>
   )
