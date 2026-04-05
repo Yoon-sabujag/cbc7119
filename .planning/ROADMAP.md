@@ -37,8 +37,8 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 **Milestone Goal:** 법적 점검·조치 관련 UX 편의성 개선 및 보고서 다운로드 기능
 
-- [ ] **Phase 12: Multi-Photo Infrastructure** - DB migration + useMultiPhotoUpload hook + PhotoGrid component (architectural blocker)
-- [ ] **Phase 13: Finding BottomSheet Restructure** - 점검항목 선택 + 위치 3단계 드롭다운 + 사진 업로드 통합
+- [x] **Phase 12: Multi-Photo Infrastructure** - DB migration + useMultiPhotoUpload hook + PhotoGrid component — completed 2026-04-06
+- [x] **Phase 13: Finding BottomSheet Restructure** - 점검항목 선택 + 위치 3단계 드롭다운 + 사진 업로드 통합 — completed 2026-04-06
 - [ ] **Phase 14: Schedule Date Range** - 시작일/종료일 범위로 연속 일정 한번에 등록
 - [ ] **Phase 15: Finding Download** - 건별 다운로드 + 일괄 ZIP + iOS PWA 지원
 
@@ -89,7 +89,10 @@ Plans:
   1. 지적사항 상세 화면에서 건별 다운로드 버튼으로 내용+사진을 내려받을 수 있다
   2. 라운드 목록에서 일괄 다운로드 버튼으로 전체 지적사항을 ZIP으로 내려받을 수 있다
   3. iOS PWA 홈 화면 모드에서 다운로드가 정상 동작한다 (window.open + 공유시트)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 15-01-PLAN.md — findingDownload.ts 유틸리티 + LegalFindingDetailPage 건별 다운로드 버튼
+- [ ] 15-02-PLAN.md — LegalFindingsPage 일괄 ZIP 다운로드 + 프로덕션 배포/검증
 **UI hint**: yes
 
 ## Progress
@@ -107,13 +110,13 @@ Plans:
 | 9. Education Management | v1.1 | 2/2 | Complete | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 2/2 | Complete | 2026-04-04 |
 | 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete | 2026-04-04 |
-| 12. Multi-Photo Infrastructure | v1.2 | 1/2 | In Progress|  |
-| 13. Finding BottomSheet Restructure | v1.2 | 0/? | Not started | - |
+| 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
+| 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | 0/? | Not started | - |
-| 15. Finding Download | v1.2 | 0/? | Not started | - |
+| 15. Finding Download | v1.2 | 0/2 | Planning | - |
 
 ---
 *Roadmap created: 2026-03-28*
 *v1.1 shipped: 2026-04-05*
 *v1.2 started: 2026-04-05*
-*Last updated: 2026-04-05*
+*Last updated: 2026-04-06*
