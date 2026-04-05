@@ -53,7 +53,10 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
   2. 업로드된 사진이 썸네일 그리드로 표시된다
   3. 썸네일을 탭하면 라이트박스로 풀스크린 확대보기된다
   4. 기존 단일 사진(photo_key) 데이터가 기존과 동일하게 표시된다 (하위 호환)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 12-01-PLAN.md — Migration + dependency + types + useMultiPhotoUpload hook + PhotoGrid component
+- [ ] 12-02-PLAN.md — API handler updates + LegalFindingDetailPage integration + deploy
 **UI hint**: yes
 
 ### Phase 13: Finding BottomSheet Restructure
@@ -104,7 +107,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 | 9. Education Management | v1.1 | 2/2 | Complete | 2026-04-02 |
 | 10. Legal Inspection | v1.1 | 2/2 | Complete | 2026-04-04 |
 | 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete | 2026-04-04 |
-| 12. Multi-Photo Infrastructure | v1.2 | 0/? | Not started | - |
+| 12. Multi-Photo Infrastructure | v1.2 | 0/2 | Not started | - |
 | 13. Finding BottomSheet Restructure | v1.2 | 0/? | Not started | - |
 | 14. Schedule Date Range | v1.2 | 0/? | Not started | - |
 | 15. Finding Download | v1.2 | 0/? | Not started | - |
