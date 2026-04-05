@@ -1900,7 +1900,7 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
   const [hallFloor, setHallFloor] = useState('')
   const [repairItem, setRepairItem] = useState('')
   const [repairDetail, setRepairDetail] = useState('')
-  const [repairCompany, setRepairCompany] = useState('')
+  const [repairCompany, setRepairCompany] = useState('TKE')
   const [partsPhotos, setPartsPhotos] = useState<string[]>([])
   const [damagedPhotos, setDamagedPhotos] = useState<string[]>([])
   const [duringPhotos, setDuringPhotos] = useState<string[]>([])
