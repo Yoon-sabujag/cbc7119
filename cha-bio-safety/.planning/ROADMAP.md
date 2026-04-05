@@ -20,12 +20,10 @@
 ### Phase 11: Desktop Layout Foundation
 **Goal**: PC(1920x1080)에서 모든 페이지가 사이드바 탐색으로 스크롤 가능하게 동작한다
 **Depends on**: Nothing (first phase of this milestone)
-**Requirements**: LAYOUT-01, LAYOUT-02, LAYOUT-03, LAYOUT-04
+**Requirements**: LAYOUT-01, LAYOUT-04
 **Success Criteria** (what must be TRUE):
   1. 사용자가 PC(1024px 이상)에서 영구 사이드바로 모든 메뉴에 접근할 수 있다
-  2. 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 스크롤하여 확인할 수 있다 (하단 공백이나 잘림 없음)
-  3. 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
-  4. 모바일(767px 이하)에서 기존 BottomNav/헤더/드로어 방식이 기존과 동일하게 동작한다
+  2. 모바일(767px 이하)에서 기존 BottomNav/헤더/드로어 방식이 기존과 동일하게 동작한다
 **Plans:** 2/2 plans complete
 Plans:
 - [x] 11-01-PLAN.md — CSS overflow 수정 + useIsDesktop 훅 + DesktopSidebar 컴포넌트 생성
@@ -35,7 +33,7 @@ Plans:
 ### Phase 12: Document Editing & Export
 **Goal**: 사용자가 데스크톱 화면에서 소방계획서와 소방훈련 자료를 작성하고 엑셀/PDF로 즉시 출력할 수 있다
 **Depends on**: Phase 11
-**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04
+**Requirements**: LAYOUT-02, LAYOUT-03, DOC-01, DOC-02, DOC-03, DOC-04
 **Success Criteria** (what must be TRUE):
   1. 사용자가 자동 생성된 점검일지를 데스크톱에서 조회하고 엑셀/PDF로 즉시 출력할 수 있다
   2. 사용자가 데스크톱 화면에서 소방계획서를 작성하고 편집할 수 있다
@@ -73,7 +71,7 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 11. Desktop Layout Foundation | v1.1 | 2/2 | Complete   | 2026-04-05 |
+| 11. Desktop Layout Foundation | v1.1 | 2/2 | Complete    | 2026-04-05 |
 | 12. Document Editing & Export | v1.1 | 0/? | Not started | - |
 | 13. File System Access Auto-Save | v1.1 | 0/? | Not started | - |
 | 14. Menu Upload & Keyboard Polish | v1.1 | 0/? | Not started | - |

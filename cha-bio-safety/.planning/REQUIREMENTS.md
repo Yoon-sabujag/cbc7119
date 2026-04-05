@@ -10,8 +10,8 @@ Requirements for PWA 데스크톱 최적화. Each maps to roadmap phases.
 ### 데스크톱 레이아웃
 
 - [x] **LAYOUT-01**: 사용자가 PC(1920x1080)에서 영구 사이드바로 모든 메뉴에 접근할 수 있다
-- [x] **LAYOUT-02**: 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 확인할 수 있다
-- [x] **LAYOUT-03**: 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
+- [ ] **LAYOUT-02**: 사용자가 PC에서 넓은 테이블/카드 레이아웃으로 데이터를 확인할 수 있다
+- [ ] **LAYOUT-03**: 사용자가 도면과 점검 목록을 나란히 볼 수 있다 (멀티 패널)
 - [x] **LAYOUT-04**: 모바일 레이아웃이 기존과 동일하게 유지된다
 
 ### 문서 작업
@@ -70,8 +70,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | LAYOUT-01 | Phase 11 | Complete |
-| LAYOUT-02 | Phase 11 | Complete |
-| LAYOUT-03 | Phase 11 | Complete |
+| LAYOUT-02 | Phase 12 | Pending |
+| LAYOUT-03 | Phase 12 | Pending |
 | LAYOUT-04 | Phase 11 | Complete |
 | DOC-01 | Phase 12 | Pending |
 | DOC-02 | Phase 12 | Pending |
