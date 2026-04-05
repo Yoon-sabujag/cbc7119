@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UX 개선 + 다운로드
 status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-04-05T17:22:45.356Z"
+stopped_at: "15-finding-download 15-02-PLAN.md — paused at checkpoint:human-verify (Task 3); production deployed at https://c2ba7414.cbc7119.pages.dev"
+last_updated: "2026-04-05T17:26:54.488Z"
 last_activity: 2026-04-05
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
 *Updated after each plan completion*
 | Phase 12 P01 | 3 | 2 tasks | 6 files |
 | Phase 15 P01 | 2m | 2 tasks | 2 files |
+| Phase 15 P02 | 15 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,7 @@ Recent decisions affecting v1.2 work:
 - [Phase 12]: No capture attribute on hidden file input — iOS does not support capture+multiple simultaneously (research D-07)
 - [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass (D-08 compliance)
 - [Phase 15]: Promise.allSettled for parallel photo fetch — partial photo failure does not block report
+- [Phase 15]: window.open(blobUrl, '_blank') not <a download> for iOS PWA ZIP download compatibility
 
 ### Pending Todos
 
@@ -88,8 +90,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T17:22:45.352Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-04-05T17:26:54.483Z
+Stopped at: 15-finding-download 15-02-PLAN.md — paused at checkpoint:human-verify (Task 3); production deployed at https://c2ba7414.cbc7119.pages.dev
 Resume file: None
 
 ---
