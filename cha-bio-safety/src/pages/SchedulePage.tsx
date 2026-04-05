@@ -412,6 +412,8 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
   }
   const [date,      setDate]      = useState(defaultDate)
   const [time,      setTime]      = useState('')
+  const [endDate,   setEndDate]   = useState(defaultDate)
+  const [endTime,   setEndTime]   = useState('')
   const [elevSub,   setElevSub]   = useState<ElevSubCat>('승강기 정기 점검')
   const [elevAgency,setElevAgency]= useState(ELEV_AGENCY['승강기 정기 점검'])
   const [fireSub,   setFireSub]   = useState<FireSubCat>('소방 상반기 종합정밀점검')
@@ -426,7 +428,13 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
     const next = localYMD(new Date(y, m - 1, d + delta))
     setDate(next)
     onDateChange(next)
+    if (!endDate || endDate < next) setEndDate(next)
   }
+
+  // 범위 일수 계산
+  const rangeDays = (date && endDate && endDate >= date)
+    ? Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 86400000) + 1
+    : 0
 
   const handleSave = async () => {
     if (!date) { toast.error('날짜를 입력하세요'); return }
@@ -451,15 +459,29 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
 
     setSaving(true)
     try {
-      await scheduleApi.create({
-        title:              finalTitle,
-        date,
-        time:               time || undefined,
-        category:           cat,
-        assigneeId:         staffId,
-        inspectionCategory: finalInsCat,
-        memo:               memo || undefined,
-      })
+      // 범위가 있으면 루프 INSERT, 없으면 단건
+      const dates: string[] = []
+      if (endDate && endDate >= date) {
+        const start = new Date(date)
+        const end = new Date(endDate)
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          dates.push(localYMD(d))
+        }
+      } else {
+        dates.push(date)
+      }
+
+      for (const d of dates) {
+        await scheduleApi.create({
+          title:              finalTitle,
+          date:               d,
+          time:               (d === date ? time : endTime) || undefined,
+          category:           cat,
+          assigneeId:         staffId,
+          inspectionCategory: finalInsCat,
+          memo:               memo || undefined,
+        })
+      }
       onSaved()
     } catch {
       toast.error('저장 실패')
@@ -606,19 +628,40 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
             </>
           )}
 
-          {/* 날짜 / 시간 — 1행 2열 */}
+          {/* 시작일 / 시작시간 */}
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>날짜</label>
-              <input type="date" value={date} onChange={e=>{ setDate(e.target.value); onDateChange(e.target.value) }}
+              <label style={lbl}>시작일</label>
+              <input type="date" value={date} onChange={e=>{ const v=e.target.value; setDate(v); onDateChange(v); if(!endDate||endDate<v) setEndDate(v) }}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
               <input type="time" value={time} onChange={e=>setTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
           </div>
+
+          {/* 종료일 / 종료시간 */}
+          <div style={{ display:'flex', gap:10 }}>
+            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
+              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date}
+                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+            </div>
+            <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
+              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}
+                style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+            </div>
+          </div>
+
+          {/* N일 미리보기 */}
+          {rangeDays > 1 && (
+            <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+              {rangeDays}일 일정이 추가됩니다
+            </div>
+          )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
             <button onClick={() => shiftDate(-1)} disabled={saving}
