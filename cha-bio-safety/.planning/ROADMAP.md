@@ -11,7 +11,7 @@
 **Milestone Goal:** 데스크톱 환경(1920x1080)에서 모든 주요 기능을 쾌적하게 사용할 수 있도록 레이아웃, 문서 작업, 파일 저장, 메뉴 업로드, UX 개선을 단계적으로 완성한다.
 
 - [x] **Phase 11: Desktop Layout Foundation** - PC 레이아웃 CSS 기반 정비 및 영구 사이드바 구현 (completed 2026-04-05)
-- [ ] **Phase 12: Document Editing & Export** - 데스크톱 화면에서 점검일지/소방계획서 작성·수정·출력
+- [x] **Phase 12: Document Editing & Export** - 데스크톱 화면에서 점검일지/소방계획서 작성·수정·출력 (completed 2026-04-05)
 - [ ] **Phase 13: File System Access Auto-Save** - 폴더 한 번 지정 후 엑셀 파일 자동 저장
 - [ ] **Phase 14: Menu Upload & Keyboard Polish** - 메뉴표 드래그앤드롭 업로드 및 키보드 단축키
 
@@ -39,7 +39,7 @@ Plans:
   2. 사용자가 데스크톱 화면에서 소방계획서를 작성하고 편집할 수 있다
   3. 사용자가 데스크톱 화면에서 소방훈련용 자료(PPT 등)를 작성할 수 있다
   4. 사용자가 인쇄 시 사이드바가 숨겨지고 인쇄용 스타일이 적용된 상태로 출력된다
-**Plans:** 1/2 plans executed
+**Plans:** 1/2 plans complete
 Plans:
 - [x] 12-01-PLAN.md — ExcelPreview 컴포넌트 + DesktopReportsPage 3분할 레이아웃 + @media print 스타일
 - [ ] 12-02-PLAN.md — DailyReportPage 데스크톱 2분할 레이아웃 + 시각 검증
@@ -76,6 +76,6 @@ Phases execute in numeric order: 11 → 12 → 13 → 14
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 11. Desktop Layout Foundation | v1.1 | 2/2 | Complete    | 2026-04-05 |
-| 12. Document Editing & Export | v1.1 | 1/2 | In Progress|  |
+| 12. Document Editing & Export | v1.1 | 1/2 | Complete    | 2026-04-05 |
 | 13. File System Access Auto-Save | v1.1 | 0/? | Not started | - |
 | 14. Menu Upload & Keyboard Polish | v1.1 | 0/? | Not started | - |
