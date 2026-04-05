@@ -54,7 +54,9 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
       <div
         onClick={() => navigate('/dashboard')}
         style={{
-          padding: '12px 16px',
+          height: 54,
+          boxSizing: 'border-box',
+          padding: '0 16px',
           background: 'var(--bg2)',
           borderBottom: '1px solid var(--bd)',
           display: 'flex',
@@ -72,7 +74,7 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
       </div>
 
       {/* ── 스크롤 가능 네비 (flex: 1) ────────────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'space-evenly' }}>
         {DESKTOP_SECTIONS.map(section => {
           const isCollapsed = collapsed[section.label] === true
           return (
