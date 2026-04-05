@@ -33,6 +33,8 @@ export const authApi = {
     api.post<{ token: string; staff: import('../types').Staff }>('/auth/login', { staffId, password }),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.post<void>('/auth/change-password', data),
+  updateProfile: (data: { name: string }) =>
+    api.put<{ name: string }>('/auth/profile', data),
 }
 
 export const dashboardApi = {
