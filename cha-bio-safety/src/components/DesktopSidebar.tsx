@@ -41,7 +41,7 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
   }
 
   return (
-    <div style={{
+    <div data-no-print style={{
       width: 280,
       flexShrink: 0,
       height: '100dvh',

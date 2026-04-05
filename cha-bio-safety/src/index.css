@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Color+Emoji&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -86,4 +86,42 @@
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.2; }
+}
+
+/* ── 인쇄 스타일 (DOC-04) ──────────────────────────────── */
+@media print {
+  /* Hide all non-print UI */
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Print-only elements shown */
+  [data-print-only] {
+    display: block !important;
+  }
+
+  /* A4 landscape for 점검일지 */
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  /* Remove scale transform, show full A4 */
+  .excel-preview-inner {
+    transform: none !important;
+    width: 210mm !important;
+    box-shadow: none !important;
+    position: fixed !important;
+    inset: 0 !important;
+  }
+
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    background: white !important;
+  }
 }

@@ -168,7 +168,7 @@ function Layout() {
 
         {/* 데스크톱: 간소화된 헤더 48px */}
         {isDesktop && showNav && (
-          <header style={{
+          <header data-no-print style={{
             height: 48,
             display: 'flex',
             alignItems: 'center',
