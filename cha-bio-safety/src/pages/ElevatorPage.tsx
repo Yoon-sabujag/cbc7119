@@ -505,7 +505,7 @@ export default function ElevatorPage() {
               const isConditional = resultKey === 'conditional'
               const typeLabel = i.inspect_type ? (INSPECT_TYPE_LABEL[i.inspect_type] ?? i.inspect_type) : '연간검사'
               return (
-                <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden' }}>
+                <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0 }}>
                   {/* 리스트 행: 탭하면 상세 펼침 */}
                   <div
                     onClick={() => setExpandedAnnual(isExpanded ? null : i.id)}
