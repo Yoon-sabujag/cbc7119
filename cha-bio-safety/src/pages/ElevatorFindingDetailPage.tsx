@@ -53,6 +53,7 @@ export default function ElevatorFindingDetailPage() {
   const queryClient = useQueryClient()
 
   const [memo, setMemo] = useState('')
+  const [resolveDate, setResolveDate] = useState(new Date().toISOString().slice(0,10))
   const resolutionPhoto = usePhotoUpload()
 
   const { data: findings, isLoading, error } = useQuery({
@@ -74,6 +75,7 @@ export default function ElevatorFindingDetailPage() {
       return elevatorInspectionApi.resolveFinding(eid, iid, fid!, {
         resolution_memo: memo.trim(),
         resolution_photo_key: photoKey,
+        resolved_date: resolveDate,
       })
     },
     onSuccess: () => {
@@ -200,6 +202,25 @@ export default function ElevatorFindingDetailPage() {
           {finding.status === 'open' && (
             <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
               <SectionHeader>조치 내용</SectionHeader>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4 }}>조치일</div>
+                <input
+                  type="date"
+                  value={resolveDate}
+                  onChange={e => setResolveDate(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg3)',
+                    borderRadius: 8,
+                    padding: 12,
+                    border: '1px solid var(--bd2)',
+                    color: 'var(--t1)',
+                    fontSize: 14,
+                    boxSizing: 'border-box',
+                    outline: 'none',
+                  }}
+                />
+              </div>
               <textarea
                 value={memo}
                 onChange={e => setMemo(e.target.value)}

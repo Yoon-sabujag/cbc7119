@@ -217,11 +217,16 @@ export default function ElevatorPage() {
 
   async function deleteRecord(type: 'fault' | 'inspection', id: string) {
     if (!confirm('삭제하시겠습니까?')) return
-    const endpoint = type === 'fault' ? '/api/elevators/faults' : '/api/elevators/inspections'
-    await fetch(`${endpoint}?id=${id}`, { method: 'DELETE', headers: authHeader() })
-    qc.invalidateQueries({ queryKey: type === 'fault' ? ['elevator_faults'] : ['elevator_annuals'] })
-    qc.invalidateQueries({ queryKey: ['elevator_inspections'] })
-    toast.success('삭제 완료')
+    try {
+      const endpoint = type === 'fault' ? '/api/elevators/faults' : '/api/elevators/inspections'
+      const res = await fetch(`${endpoint}?id=${id}`, { method: 'DELETE', headers: { Authorization:`Bearer ${useAuthStore.getState().token}` } })
+      if (!res.ok) throw new Error('삭제 요청 실패')
+      qc.invalidateQueries({ queryKey: type === 'fault' ? ['elevator_faults'] : ['elevator_annuals'] })
+      qc.invalidateQueries({ queryKey: ['elevator_inspections'] })
+      toast.success('삭제 완료')
+    } catch {
+      toast.error('삭제 실패')
+    }
   }
 
   const { data: elevators   = [] } = useQuery({ queryKey:['elevators'],            queryFn: fetchElevators })
@@ -285,9 +290,14 @@ export default function ElevatorPage() {
   })
   const submitInspect = useMutation({
     mutationFn: async (body: any) => {
-      const res = await fetch('/api/elevators/inspections', { method:'POST', headers:authHeader(), body:JSON.stringify(body) })
-      if (!res.ok) throw new Error()
+      const token = useAuthStore.getState().token
+      const res = await fetch('/api/elevators/inspections', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+        body:JSON.stringify(body),
+      })
       const json = await res.json() as any
+      if (!res.ok || !json.success) throw new Error(json.error || '저장 실패')
       // 조건부합격/불합격 시 지적사항 자동 생성
       if (body.findings?.length && json.data?.id && body.elevatorId) {
         for (const f of body.findings) {
@@ -303,7 +313,7 @@ export default function ElevatorPage() {
       qc.invalidateQueries({ queryKey: vars.type === 'annual' ? ['elevator_annuals'] : ['elevator_inspections'] })
       setModal(null); toast.success('기록 저장 완료')
     },
-    onError: () => toast.error('저장 실패'),
+    onError: (e: any) => toast.error(e?.message || '저장 실패'),
   })
 
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
@@ -1383,11 +1393,16 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
               </div>
             </div>
 
-            {/* 합격: 메모만 */}
+            {/* 합격: 검사 결과 상세 + 메모 */}
             {annualOverall === 'pass' && (
-              <Field label="메모 (선택)">
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
-              </Field>
+              <>
+                <Field label="검사 결과 상세 (선택)">
+                  <textarea value={inspectResult} onChange={e => setInspectResult(e.target.value)} rows={3} placeholder="검사 결과 상세 내용" style={{ ...inputSt, resize:'none' }} />
+                </Field>
+                <Field label="메모 (선택)">
+                  <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
+                </Field>
+              </>
             )}
 
             {/* 조건부합격/불합격: 지적사항 입력 */}
@@ -1424,15 +1439,30 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
                     setFindingDesc(''); setFindingLoc('')
                   }}
                   disabled={!findingDesc.trim()}
-                  style={{ marginTop:8, width:'100%', padding:'8px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color: findingDesc.trim() ? 'var(--acl)' : 'var(--t3)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  style={{
+                    marginTop:8, width:'100%', padding:'10px 0', borderRadius:8, border:'none', fontSize:12, fontWeight:700, cursor:'pointer',
+                    background: findingDesc.trim() ? 'var(--acl)' : 'var(--bg)',
+                    color: findingDesc.trim() ? '#fff' : 'var(--t3)',
+                    opacity: findingDesc.trim() ? 1 : 0.5,
+                  }}
                 >
-                  + 지적사항 추가 {findings.length > 0 && `(${findings.length}건 등록됨)`}
+                  {findingDesc.trim() ? '↓ 지적사항 추가' : '지적 내용을 입력하세요'}
                 </button>
+                {findings.length > 0 && (
+                  <div style={{ fontSize:11, color:'var(--safe)', fontWeight:600, textAlign:'center', marginTop:6 }}>
+                    ✓ {findings.length}건 등록됨
+                  </div>
+                )}
+                {findings.length === 0 && (
+                  <div style={{ fontSize:10, color:'var(--danger)', textAlign:'center', marginTop:6 }}>
+                    * 지적사항을 1건 이상 추가해야 저장할 수 있습니다
+                  </div>
+                )}
               </div>
             )}
 
             <button
-              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', inspect_type:inspectType, result:annualOverall, overall:annualOverall, actionNeeded:inspectResult, memo, findings: needsFindings ? findings : undefined })}
+              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', inspect_type:inspectType, result:annualOverall, overall:annualOverall, actionNeeded:inspectResult || undefined, memo: memo || undefined, findings: needsFindings ? findings : undefined })}
               disabled={!elevatorId || !annualOverall || loading || (needsFindings && findings.length === 0)}
               style={{ ...primaryBtnSt, opacity:(!elevatorId||!annualOverall||loading||(needsFindings && findings.length === 0))?0.5:1 }}
             >
