@@ -287,6 +287,16 @@ export default function ElevatorPage() {
     mutationFn: async (body: any) => {
       const res = await fetch('/api/elevators/inspections', { method:'POST', headers:authHeader(), body:JSON.stringify(body) })
       if (!res.ok) throw new Error()
+      const json = await res.json() as any
+      // 조건부합격/불합격 시 지적사항 자동 생성
+      if (body.findings?.length && json.data?.id && body.elevatorId) {
+        for (const f of body.findings) {
+          await elevatorInspectionApi.createFinding(body.elevatorId, json.data.id, {
+            description: f.description,
+            location: f.location || undefined,
+          })
+        }
+      }
     },
     onSuccess: (_,vars:any) => {
       qc.invalidateQueries({ queryKey:['elevators'] })
@@ -595,9 +605,9 @@ export default function ElevatorPage() {
                         </div>
                       )}
 
-                      {/* 조건부합격 지적사항 패널 */}
-                      {isConditional && (
-                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} navigate={navigate} />
+                      {/* 조건부합격/불합격 조치 패널 */}
+                      {(resultKey === 'conditional' || resultKey === 'fail') && (
+                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} />
                       )}
 
                       {isAdmin && (
@@ -1315,7 +1325,12 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
   const [annualOverall, setAnnualOverall] = useState<'pass'|'conditional'|'fail'|''>('')
   const [inspectResult, setInspectResult] = useState('')
   const [memo,          setMemo]          = useState('')
+  // 지적사항 입력 (조건부합격/불합격 시)
+  const [findings, setFindings] = useState<{description:string; location:string}[]>([])
+  const [findingDesc, setFindingDesc] = useState('')
+  const [findingLoc,  setFindingLoc]  = useState('')
 
+  const needsFindings = annualOverall === 'conditional' || annualOverall === 'fail'
 
   return (
     <ModalWrap title="검사 기록 입력" onClose={onClose}>
@@ -1368,18 +1383,58 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
               </div>
             </div>
 
-            <Field label="검사 결과 상세">
-              <textarea value={inspectResult} onChange={e => setInspectResult(e.target.value)} rows={3} placeholder="검사 결과 상세 내용" style={{ ...inputSt, resize:'none' }} />
-            </Field>
+            {/* 합격: 메모만 */}
+            {annualOverall === 'pass' && (
+              <Field label="메모 (선택)">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
+              </Field>
+            )}
 
-            <Field label="메모 (선택)">
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
-            </Field>
+            {/* 조건부합격/불합격: 지적사항 입력 */}
+            {needsFindings && (
+              <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px' }}>
+                <div style={{ fontSize:11, fontWeight:700, color: annualOverall === 'fail' ? 'var(--danger)' : 'var(--warn)', marginBottom:8 }}>
+                  {annualOverall === 'fail' ? '불합격 지적사항' : '조건부합격 지적사항'}
+                </div>
+
+                {/* 등록된 지적사항 목록 */}
+                {findings.map((f, idx) => (
+                  <div key={idx} style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 8px', background:'var(--bg2)', borderRadius:8, marginBottom:6 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{f.description}</div>
+                      {f.location && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{f.location}</div>}
+                    </div>
+                    <button onClick={() => setFindings(prev => prev.filter((_, i) => i !== idx))} style={{ background:'none', border:'none', color:'var(--danger)', fontSize:14, cursor:'pointer', flexShrink:0 }}>✕</button>
+                  </div>
+                ))}
+
+                {/* 지적사항 추가 폼 */}
+                <Field label="지적 내용">
+                  <textarea value={findingDesc} onChange={e => setFindingDesc(e.target.value)} rows={2} placeholder="지적 내용을 입력하세요" style={{ ...inputSt, resize:'none', fontSize:12 }} />
+                </Field>
+                <div style={{ marginTop:6 }}>
+                  <Field label="위치 (선택)">
+                    <input value={findingLoc} onChange={e => setFindingLoc(e.target.value)} placeholder="예: B1층 주차장" style={{ ...inputSt, fontSize:12 }} />
+                  </Field>
+                </div>
+                <button
+                  onClick={() => {
+                    if (!findingDesc.trim()) return
+                    setFindings(prev => [...prev, { description: findingDesc.trim(), location: findingLoc.trim() }])
+                    setFindingDesc(''); setFindingLoc('')
+                  }}
+                  disabled={!findingDesc.trim()}
+                  style={{ marginTop:8, width:'100%', padding:'8px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color: findingDesc.trim() ? 'var(--acl)' : 'var(--t3)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                >
+                  + 지적사항 추가 {findings.length > 0 && `(${findings.length}건 등록됨)`}
+                </button>
+              </div>
+            )}
 
             <button
-              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', inspect_type:inspectType, result:annualOverall, overall:annualOverall, actionNeeded:inspectResult, memo })}
-              disabled={!elevatorId || !annualOverall || loading}
-              style={{ ...primaryBtnSt, opacity:(!elevatorId||!annualOverall||loading)?0.5:1 }}
+              onClick={() => onSubmit({ elevatorId, inspectDate, type:'annual', inspect_type:inspectType, result:annualOverall, overall:annualOverall, actionNeeded:inspectResult, memo, findings: needsFindings ? findings : undefined })}
+              disabled={!elevatorId || !annualOverall || loading || (needsFindings && findings.length === 0)}
+              style={{ ...primaryBtnSt, opacity:(!elevatorId||!annualOverall||loading||(needsFindings && findings.length === 0))?0.5:1 }}
             >
               {loading ? '저장 중...' : '검사 기록 저장'}
             </button>
@@ -1439,12 +1494,10 @@ function FindingCountBadge({ elevatorId, inspectionId, isConditional }: { elevat
 }
 
 // ── 조건부합격 지적사항 패널 ─────────────────────────────
-function FindingsPanel({ elevatorId, inspectionId, navigate }: { elevatorId:string; inspectionId:string; navigate:(to:string)=>void }) {
+function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate }: { elevatorId:string; inspectionId:string; inspectionResult:string; navigate:(to:string)=>void }) {
   const qc = useQueryClient()
-  const [showAdd, setShowAdd] = useState(false)
-  const [desc, setDesc]       = useState('')
-  const [loc,  setLoc]        = useState('')
-  const photo = usePhotoUpload()
+  const { staff: fpStaff } = useAuthStore()
+  const isAdmin = fpStaff?.role === 'admin'
 
   const { data: findings = [], isLoading } = useQuery({
     queryKey: ['elev-findings', inspectionId],
@@ -1452,26 +1505,37 @@ function FindingsPanel({ elevatorId, inspectionId, navigate }: { elevatorId:stri
     staleTime: 60_000,
   })
 
-  const createMutation = useMutation({
+  const allResolved = findings.length > 0 && findings.every(f => f.status === 'resolved')
+
+  // 합격 전환 mutation
+  const convertToPass = useMutation({
     mutationFn: async () => {
-      let photoKey: string | undefined
-      if (photo.hasPhoto) {
-        const k = await photo.upload()
-        if (k) photoKey = k
-      }
-      return elevatorInspectionApi.createFinding(elevatorId, inspectionId, { description: desc.trim(), location: loc.trim() || undefined, photo_key: photoKey })
+      await fetch(`/api/elevators/${elevatorId}/inspections/${inspectionId}/cert`, {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json', Authorization:`Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ result: 'pass' }),
+      })
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['elevator_annuals'] })
       qc.invalidateQueries({ queryKey: ['elev-findings', inspectionId] })
-      toast.success('등록 완료')
-      setDesc(''); setLoc(''); photo.reset(); setShowAdd(false)
+      toast.success('합격으로 전환되었습니다')
     },
-    onError: () => toast.error('등록 실패'),
+    onError: () => toast.error('전환 실패'),
   })
 
   return (
     <div style={{ marginTop:12, borderTop:'1px solid var(--bd)', paddingTop:10 }}>
-      <div style={{ fontSize:11, fontWeight:700, color:'var(--warn)', marginBottom:8 }}>조건부합격 지적사항</div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <div style={{ fontSize:11, fontWeight:700, color: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)' }}>
+          지적사항 및 조치
+        </div>
+        {findings.length > 0 && (
+          <span style={{ fontSize:10, color:'var(--t3)' }}>
+            조치완료 {findings.filter(f => f.status === 'resolved').length}/{findings.length}건
+          </span>
+        )}
+      </div>
 
       {isLoading && <div style={{ fontSize:11, color:'var(--t3)' }}>불러오는 중...</div>}
 
@@ -1493,33 +1557,18 @@ function FindingsPanel({ elevatorId, inspectionId, navigate }: { elevatorId:stri
         </div>
       ))}
 
-      {/* 등록 폼 */}
-      {showAdd && (
-        <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px', marginBottom:8 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>지적사항 등록</div>
-          <Field label="지적 내용">
-            <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="지적 내용을 입력하세요" style={{ ...inputSt, resize:'none', fontSize:12 }} />
-          </Field>
-          <div style={{ marginTop:8 }}>
-            <Field label="위치 (선택)">
-              <input value={loc} onChange={e => setLoc(e.target.value)} placeholder="예: B1층 주차장" style={{ ...inputSt, fontSize:12 }} />
-            </Field>
-          </div>
-          <div style={{ marginTop:8 }}>
-            <PhotoButton hook={photo} label="지적 사진 (선택)" noCapture />
-          </div>
-          <div style={{ display:'flex', gap:8, marginTop:10 }}>
-            <button onClick={() => { setShowAdd(false); setDesc(''); setLoc(''); photo.reset() }} style={{ flex:1, padding:'8px 0', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>취소</button>
-            <button onClick={() => createMutation.mutate()} disabled={!desc.trim() || createMutation.isPending} style={{ flex:2, padding:'8px 0', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity:(!desc.trim()||createMutation.isPending)?0.5:1 }}>
-              {createMutation.isPending ? '등록 중...' : '등록'}
-            </button>
-          </div>
-        </div>
+      {findings.length === 0 && !isLoading && (
+        <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', padding:'8px 0' }}>등록된 지적사항이 없습니다</div>
       )}
 
-      {!showAdd && (
-        <button onClick={() => setShowAdd(true)} style={{ width:'100%', padding:'8px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color:'var(--t3)', fontSize:11, fontWeight:600, cursor:'pointer', marginTop:4 }}>
-          + 지적사항 등록
+      {/* 합격 전환 버튼 — 모든 지적사항이 조치완료된 경우에만 표시 */}
+      {allResolved && isAdmin && inspectionResult !== 'pass' && (
+        <button
+          onClick={() => { if (confirm('모든 조치가 완료되었습니다. 합격으로 전환하시겠습니까?')) convertToPass.mutate() }}
+          disabled={convertToPass.isPending}
+          style={{ width:'100%', marginTop:8, padding:'10px 0', borderRadius:8, border:'none', background:'rgba(34,197,94,0.15)', color:'var(--safe)', fontSize:12, fontWeight:700, cursor:'pointer' }}
+        >
+          {convertToPass.isPending ? '전환 중...' : '✓ 합격으로 전환'}
         </button>
       )}
     </div>
