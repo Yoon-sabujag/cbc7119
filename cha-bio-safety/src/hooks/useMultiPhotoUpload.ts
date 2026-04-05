@@ -26,12 +26,15 @@ async function uploadBlob(blob: Blob, token: string | null): Promise<string> {
 
 export function useMultiPhotoUpload() {
   const [slots, setSlots] = useState<PhotoSlot[]>([])
+  const slotsRef = useRef<PhotoSlot[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  // Mutex: serialize handleFiles calls to prevent race conditions
+  const processingRef = useRef<Promise<void>>(Promise.resolve())
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      slots.forEach(s => URL.revokeObjectURL(s.preview))
+      slotsRef.current.forEach(s => URL.revokeObjectURL(s.preview))
     }
   }, [])
 
@@ -41,45 +44,53 @@ export function useMultiPhotoUpload() {
     inputRef.current?.click()
   }, [])
 
-  const handleFiles = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFiles = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
     e.target.value = ''
     if (!files.length) return
 
-    const newSlots: PhotoSlot[] = []
-    for (const file of files) {
-      if (newSlots.length >= MAX_PHOTOS) break
-      try {
-        const blob = await compressImage(file)
-        const preview = URL.createObjectURL(blob)
-        newSlots.push({ blob, preview, uploading: false, key: null, error: null })
-      } catch {
-        // skip
+    // Chain onto previous handleFiles to serialize
+    processingRef.current = processingRef.current.then(async () => {
+      const remaining = MAX_PHOTOS - slotsRef.current.length
+      if (remaining <= 0) return
+
+      const newSlots: PhotoSlot[] = []
+      for (const file of files.slice(0, remaining)) {
+        try {
+          const blob = await compressImage(file)
+          const preview = URL.createObjectURL(blob)
+          newSlots.push({ blob, preview, uploading: false, key: null, error: null })
+        } catch {
+          // skip
+        }
       }
-    }
 
-    if (newSlots.length > 0) {
-      setSlots(prev => [...prev, ...newSlots].slice(0, MAX_PHOTOS))
-    }
-  }, [])
-
-  const removeSlot = useCallback((idx: number) => {
-    setSlots(prev => {
-      const slot = prev[idx]
-      if (slot) URL.revokeObjectURL(slot.preview)
-      return prev.filter((_, i) => i !== idx)
+      if (newSlots.length > 0) {
+        const merged = [...slotsRef.current, ...newSlots].slice(0, MAX_PHOTOS)
+        slotsRef.current = merged
+        setSlots(merged)
+      }
     })
   }, [])
 
-  // Upload all blobs and return R2 keys
-  // Takes explicit slot array to avoid ANY closure issues
-  const uploadAll = useCallback(async (explicitSlots: PhotoSlot[]): Promise<string[]> => {
-    if (explicitSlots.length === 0) return []
+  const removeSlot = useCallback((idx: number) => {
+    const slot = slotsRef.current[idx]
+    if (slot) URL.revokeObjectURL(slot.preview)
+    const next = slotsRef.current.filter((_, i) => i !== idx)
+    slotsRef.current = next
+    setSlots(next)
+  }, [])
+
+  const uploadAll = useCallback(async (): Promise<string[]> => {
+    // Wait for any pending handleFiles to finish
+    await processingRef.current
+    const current = slotsRef.current
+    if (current.length === 0) return []
     const token = useAuthStore.getState().token
     const keys: string[] = []
 
-    for (let i = 0; i < explicitSlots.length; i++) {
-      const slot = explicitSlots[i]
+    for (let i = 0; i < current.length; i++) {
+      const slot = current[i]
       if (slot.key) {
         keys.push(slot.key)
         continue
@@ -95,10 +106,9 @@ export function useMultiPhotoUpload() {
   }, [])
 
   const reset = useCallback(() => {
-    setSlots(prev => {
-      prev.forEach(s => URL.revokeObjectURL(s.preview))
-      return []
-    })
+    slotsRef.current.forEach(s => URL.revokeObjectURL(s.preview))
+    slotsRef.current = []
+    setSlots([])
   }, [])
 
   const isUploading = slots.some(s => s.uploading)

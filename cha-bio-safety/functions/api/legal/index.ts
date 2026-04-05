@@ -17,6 +17,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
         si.id,
         si.title,
         si.date,
+        si.end_date,
         si.inspection_category,
         si.status,
         si.result,
@@ -31,7 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       GROUP BY si.id
       ORDER BY si.date DESC
     `).bind(...binds).all<{
-      id: string; title: string; date: string; inspection_category: string;
+      id: string; title: string; date: string; end_date: string | null; inspection_category: string;
       status: string; result: string | null; report_file_key: string | null;
       finding_count: number; resolved_count: number
     }>()
@@ -40,6 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       id: r.id,
       title: r.title,
       date: r.date,
+      endDate: r.end_date ?? null,
       inspectionCategory: r.inspection_category,
       status: r.status,
       result: r.result ?? null,

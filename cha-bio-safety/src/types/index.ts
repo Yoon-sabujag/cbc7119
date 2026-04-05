@@ -11,7 +11,7 @@ export interface CheckRecord { id:string; sessionId:string; checkpointId:string;
 
 export type ScheduleStatus   = 'pending'|'in_progress'|'done'|'overdue'
 export type ScheduleCategory = 'inspect'|'task'|'event'|'elevator'|'fire'
-export interface ScheduleItem { id:string; title:string; date:string; time?:string; assigneeId?:string; category:ScheduleCategory; status:ScheduleStatus; inspectionCategory?:string; memo?:string }
+export interface ScheduleItem { id:string; title:string; date:string; endDate?:string; time?:string; assigneeId?:string; category:ScheduleCategory; status:ScheduleStatus; inspectionCategory?:string; memo?:string }
 
 export interface DashboardStats { inspectTotal:number; inspectDone:number; scheduleCount:number; unresolved:number; elevatorFault:number; streakDays:number; elevInspDueSoon:number }
 export interface DashboardScheduleItem { id:string; title:string; date:string; time?:string; category:ScheduleCategory; status:ScheduleStatus; completed:boolean; memo?:string }
@@ -79,6 +79,7 @@ export interface LegalRound {
   id: string
   title: string
   date: string
+  endDate: string | null
   inspectionCategory: string
   status: string
   result: LegalInspectionResult | null

@@ -82,16 +82,16 @@ export function buildReportHtml(finding: LegalFinding, photosHtml: string): stri
   .photos-wrap { display: flex; flex-wrap: wrap; gap: 16px }
   figure { margin: 0; text-align: center }
   figcaption { font-size: 12px; color: #666; margin-top: 4px }
-  .print-btn { text-align: center; margin-top: 24px }
-  .print-btn button {
+  .action-btns { display: flex; justify-content: center; gap: 10px; margin-top: 24px }
+  .action-btns button {
     padding: 10px 28px;
     font-size: 14px;
-    background: #1a1a1a;
-    color: #fff;
     border: none;
     border-radius: 6px;
     cursor: pointer;
   }
+  .btn-print { background: #1a1a1a; color: #fff }
+  .btn-close { background: #e5e5e5; color: #333 }
 </style>
 </head>
 <body>
@@ -105,7 +105,7 @@ export function buildReportHtml(finding: LegalFinding, photosHtml: string): stri
   ${resolvedRows}
 </table>
 ${photosHtml ? `<div class="photos-section"><h2>사진</h2><div class="photos-wrap">${photosHtml}</div></div>` : ''}
-<div class="print-btn"><button onclick="window.print()">인쇄</button></div>
+<div class="action-btns"><button class="btn-print" onclick="window.print()">PDF 저장 / 인쇄</button><button class="btn-close" onclick="window.close()">닫기</button></div>
 </body>
 </html>`
 }

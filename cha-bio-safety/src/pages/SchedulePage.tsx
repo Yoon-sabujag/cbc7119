@@ -170,17 +170,28 @@ export default function SchedulePage() {
     staleTime: 10_000,
   })
 
+  // 범위 일정: 시작일~종료일 사이 모든 날짜에 표시
+  const matchesDate = (item: ScheduleItem, d: string) =>
+    d >= item.date && d <= (item.endDate ?? item.date)
+
   const dayItems = useMemo(
-    () => [...monthItems.filter(i => i.date === selDate)]
+    () => [...monthItems.filter(i => matchesDate(i, selDate))]
             .sort((a,b) => (a.time??'99:99').localeCompare(b.time??'99:99')),
     [monthItems, selDate]
   )
 
   const dotMap = useMemo(() => {
     const m: Record<string, ScheduleCategory[]> = {}
-    monthItems.forEach(i => { (m[i.date] ??= []).push(i.category) })
+    const [y, mo] = curMonth.split('-').map(Number)
+    const daysInMonth = new Date(y, mo, 0).getDate()
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dd = `${curMonth}-${String(d).padStart(2, '0')}`
+      monthItems.forEach(i => {
+        if (matchesDate(i, dd)) (m[dd] ??= []).push(i.category)
+      })
+    }
     return m
-  }, [monthItems])
+  }, [monthItems, curMonth])
 
   const calDays = useMemo(() => {
     const [y, mo] = curMonth.split('-').map(Number)
@@ -459,29 +470,17 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
 
     setSaving(true)
     try {
-      // 범위가 있으면 루프 INSERT, 없으면 단건
-      const dates: string[] = []
-      if (endDate && endDate >= date) {
-        const start = new Date(date)
-        const end = new Date(endDate)
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          dates.push(localYMD(d))
-        }
-      } else {
-        dates.push(date)
-      }
-
-      for (const d of dates) {
-        await scheduleApi.create({
-          title:              finalTitle,
-          date:               d,
-          time:               (d === date ? time : endTime) || undefined,
-          category:           cat,
-          assigneeId:         staffId,
-          inspectionCategory: finalInsCat,
-          memo:               memo || undefined,
-        })
-      }
+      const hasRange = endDate && endDate > date
+      await scheduleApi.create({
+        title:              finalTitle,
+        date,
+        time:               time || undefined,
+        category:           cat,
+        assigneeId:         staffId,
+        inspectionCategory: finalInsCat,
+        memo:               memo || undefined,
+        ...(hasRange ? { end_date: endDate } : {}),
+      })
       onSaved()
     } catch {
       toast.error('저장 실패')

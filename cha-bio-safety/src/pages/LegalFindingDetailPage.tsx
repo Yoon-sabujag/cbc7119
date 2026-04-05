@@ -6,7 +6,7 @@ import { legalApi } from '../utils/api'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { useAuthStore } from '../stores/authStore'
-import { openFindingReport } from '../utils/findingDownload'
+import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
 
 // ── 날짜 포매터 ──────────────────────────────────────────────────
@@ -64,7 +64,7 @@ export default function LegalFindingDetailPage() {
 
   const resolveMutation = useMutation({
     mutationFn: async () => {
-      const photoKeys = await resolutionPhotos.uploadAll(resolutionPhotos.slots)
+      const photoKeys = await resolutionPhotos.uploadAll()
       return legalApi.resolveFinding(id!, fid!, {
         resolution_memo: memo.trim(),
         resolution_photo_keys: photoKeys.length > 0 ? photoKeys : undefined,
@@ -88,7 +88,40 @@ export default function LegalFindingDetailPage() {
     if (!finding) return
     setDownloading(true)
     try {
-      await openFindingReport(finding)
+      const { zipSync } = await import('fflate')
+      const files: Record<string, Uint8Array> = {}
+      const encoder = new TextEncoder()
+      const name = (finding.location ?? '위치없음').replace(/[\/\\:*?"<>|]/g, '_')
+
+      files['내용.txt'] = encoder.encode(buildMetaTxt(finding))
+
+      const photoResults = await Promise.allSettled(
+        finding.photoKeys.map(k => fetch('/api/uploads/' + k).then(r => r.arrayBuffer()))
+      )
+      photoResults.forEach((r, j) => {
+        if (r.status === 'fulfilled') files[`지적사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+      })
+
+      const resResults = await Promise.allSettled(
+        finding.resolutionPhotoKeys.map(k => fetch('/api/uploads/' + k).then(r => r.arrayBuffer()))
+      )
+      resResults.forEach((r, j) => {
+        if (r.status === 'fulfilled') files[`조치사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+      })
+
+      const zipped = zipSync(files, { level: 6 })
+      const blob = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `지적사항_${name}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 3000)
+      toast.success('다운로드 완료')
+    } catch {
+      toast.error('다운로드 실패')
     } finally {
       setDownloading(false)
     }

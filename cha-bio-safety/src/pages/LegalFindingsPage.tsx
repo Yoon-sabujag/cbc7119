@@ -79,7 +79,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const photoKeys = await photos.uploadAll(photos.slots)
+      const photoKeys = await photos.uploadAll()
       const loc = [
         ZONES.find(z => z.key === zone)?.label,
         floor,
@@ -490,9 +490,14 @@ export default function LegalFindingsPage() {
       const blob = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
 
-      // Per D-08, D-10: window.open only, NO <a download>
-      window.open(url, '_blank')
-      setTimeout(() => URL.revokeObjectURL(url), 2000)
+      // iOS PWA: <a download> 방식이 가장 안정적으로 파일 앱 저장 다이얼로그 트리거
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `지적사항_${round?.title ?? 'report'}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 3000)
       toast.success('다운로드 완료')
     } catch (e) {
       console.error('ZIP download failed:', e)

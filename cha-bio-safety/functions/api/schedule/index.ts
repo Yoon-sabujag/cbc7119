@@ -12,15 +12,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const binds: string[] = []
 
   if (date) {
-    sql += ' AND date=?'; binds.push(date)
+    sql += ' AND (date=? OR (end_date IS NOT NULL AND date<=? AND end_date>=?))'; binds.push(date, date, date)
   } else if (month) {
-    sql += ' AND date LIKE ?'; binds.push(`${month}%`)
+    // 시작일이 해당 월이거나, 범위가 해당 월에 걸치는 일정 포함
+    sql += ' AND (date LIKE ? OR (end_date IS NOT NULL AND date<=? AND end_date>=?))'; binds.push(`${month}%`, `${month}-31`, `${month}-01`)
   }
   sql += ' ORDER BY date ASC, CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC'
 
   let stmt = env.DB.prepare(sql)
-  if (binds.length === 1) stmt = stmt.bind(binds[0])
-  else if (binds.length === 2) stmt = stmt.bind(binds[0], binds[1])
+  if (binds.length > 0) stmt = stmt.bind(...binds)
 
   const CATEGORY_ALIAS: Record<string, string> = { '방화문': '특별피난계단', '컴프레셔': 'DIV' }
 
@@ -52,6 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       id:                  r.id,
       title:               r.title,
       date:                r.date,
+      endDate:             r.end_date ?? undefined,
       time:                r.time ?? undefined,
       assigneeId:          r.assignee_id,
       category:            r.category,
@@ -75,6 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     assigneeId?: string
     inspectionCategory?: string
     memo?: string
+    end_date?: string
   }>()
 
   if (!body.title?.trim() || !body.date || !body.category) {
@@ -83,8 +85,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   const id = 'SCH-' + nanoid(8)
   await env.DB.prepare(`
-    INSERT INTO schedule_items (id, title, date, time, assignee_id, category, status, inspection_category, memo)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    INSERT INTO schedule_items (id, title, date, time, assignee_id, category, status, inspection_category, memo, end_date)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
   `).bind(
     id,
     body.title.trim(),
@@ -94,6 +96,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     body.category,
     body.inspectionCategory ?? null,
     body.memo ?? null,
+    body.end_date ?? null,
   ).run()
 
   return Response.json({ success: true, data: { id } }, { status: 201 })

@@ -34,9 +34,9 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
 
   return (
     <div>
-      <div style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 8, paddingBottom: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'row', overflowX: 'auto', gap: 8, padding: '6px 2px 4px' }}>
         {thumbnails.map(({ url, uploading, error, isSlot, idx }) => (
-          <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+          <div key={url} style={{ position: 'relative', flexShrink: 0 }}>
             <img
               src={url}
               alt={`사진 ${idx + 1}`}

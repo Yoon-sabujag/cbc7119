@@ -89,6 +89,11 @@ function toDateStr(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
+// 범위 일정 매칭: date~endDate 사이에 target이 포함되는지
+function scheduleMatchesDate(s: any, target: string): boolean {
+  return target >= s.date && target <= (s.endDate ?? s.end_date ?? s.date)
+}
+
 // ── 인원현황 계산 ─────────────────────────────────────────
 
 function buildPersonnel(
@@ -290,7 +295,7 @@ function buildTasks(
 
   // 월점검 (schedule_items에서 inspect 카테고리 — 작성법 기재번호 사용)
   const inspectItems = (schedules ?? []).filter((s: any) =>
-    s.date === dateStr && s.category === 'inspect'
+    scheduleMatchesDate(s, dateStr) && s.category === 'inspect'
   )
   for (const s of inspectItems) {
     const cat = s.inspection_category ?? ''
@@ -305,7 +310,7 @@ function buildTasks(
 
   // 업무 일정 (제목 + 내용)
   const taskItems = (schedules ?? []).filter((s: any) =>
-    s.date === dateStr && s.category === 'task'
+    scheduleMatchesDate(s, dateStr) && s.category === 'task'
   )
   for (const s of taskItems) {
     const memo = s.memo ? `\n  - ${s.memo}` : ''
@@ -325,7 +330,7 @@ function buildTasks(
   // 승강기 정기 점검 / 검사 (제목 - 업체및기관 + 메모)
   // inspection_category에 업체명이 저장됨
   const elevatorItems = (schedules ?? []).filter((s: any) =>
-    s.date === dateStr && s.category === 'elevator'
+    scheduleMatchesDate(s, dateStr) && s.category === 'elevator'
   )
   for (const s of elevatorItems) {
     const agency = s.inspection_category ?? ''
@@ -336,7 +341,7 @@ function buildTasks(
 
   // 소방 일정 (제목 - 업체및기관 + 내용)
   const fireItems = (schedules ?? []).filter((s: any) =>
-    s.date === dateStr && s.category === 'fire'
+    scheduleMatchesDate(s, dateStr) && s.category === 'fire'
   )
   for (const s of fireItems) {
     const agency = s.inspection_category ?? ''
@@ -366,7 +371,7 @@ function buildTomorrowTasks(
 
   // 명일 월점검 일정 (작성법 Sheet4 기재번호 사용)
   const tomorrowInspect = (schedules ?? []).filter((s: any) =>
-    s.date === tomorrowStr && s.category === 'inspect'
+    scheduleMatchesDate(s, tomorrowStr) && s.category === 'inspect'
   )
   const seen = new Set<string>()
   for (const s of tomorrowInspect) {
@@ -383,7 +388,7 @@ function buildTomorrowTasks(
 
   // 명일 업무 일정 (제목 + 내용)
   const tomorrowTask = (schedules ?? []).filter((s: any) =>
-    s.date === tomorrowStr && s.category === 'task'
+    scheduleMatchesDate(s, tomorrowStr) && s.category === 'task'
   )
   for (const s of tomorrowTask) {
     const memoStr = s.memo ? `\n  - ${s.memo}` : ''
@@ -392,7 +397,7 @@ function buildTomorrowTasks(
 
   // 명일 승강기 일정 (제목 - 업체및기관 + 내용)
   const tomorrowElev = (schedules ?? []).filter((s: any) =>
-    s.date === tomorrowStr && s.category === 'elevator'
+    scheduleMatchesDate(s, tomorrowStr) && s.category === 'elevator'
   )
   for (const s of tomorrowElev) {
     const agency = s.inspection_category ?? ''
@@ -403,7 +408,7 @@ function buildTomorrowTasks(
 
   // 명일 소방 일정 (제목 - 업체및기관 + 내용)
   const tomorrowFire = (schedules ?? []).filter((s: any) =>
-    s.date === tomorrowStr && s.category === 'fire'
+    scheduleMatchesDate(s, tomorrowStr) && s.category === 'fire'
   )
   for (const s of tomorrowFire) {
     const agency = s.inspection_category ?? ''

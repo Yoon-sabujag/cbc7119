@@ -258,7 +258,7 @@ export default function LegalPage() {
 
             {/* Line 2: 날짜 + 지적 요약 */}
             <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-              {fmtDate(round.date)} · 지적 {round.findingCount}건 · 완료 {round.resolvedCount}건
+              {fmtDate(round.date)}{round.endDate ? ` ~ ${fmtDate(round.endDate)}` : ''} · 지적 {round.findingCount}건 · 완료 {round.resolvedCount}건
             </div>
           </div>
         ))}
