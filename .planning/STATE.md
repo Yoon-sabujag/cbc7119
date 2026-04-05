@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: UX 개선 + 다운로드
-status: planning
-stopped_at: Phase 12 UI-SPEC approved
-last_updated: "2026-04-05T10:15:19.206Z"
-last_activity: 2026-04-05 — v1.2 roadmap created (phases 12-15), requirements mapped
+status: executing
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-04-05T11:14:09.244Z"
+last_activity: 2026-04-05
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -26,14 +26,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-05)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
-**Current focus:** Phase 12 — Multi-Photo Infrastructure
+**Current focus:** Phase 12 — multi-photo-infrastructure
 
 ## Current Position
 
-Phase: 12 of 15 (Multi-Photo Infrastructure)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-04-05 — v1.2 roadmap created (phases 12-15), requirements mapped
+Phase: 12 (multi-photo-infrastructure) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-05
 
 Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0% (v1.2, 0/4 phases)
 | 15. Finding Download | — | — | — |
 
 *Updated after each plan completion*
+| Phase 12 P01 | 3 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Recent decisions affecting v1.2 work:
 - [v1.2 Research]: 일정 범위 등록은 1일 1행 모델로 구현 — group_id 모델 금지 (법적점검 목록 쿼리 중복 방지)
 - [v1.2 Research]: 클라이언트 ZIP (fflate.zipSync) 사용 — Worker 128MB 제한 + 4인 팀 규모에 서버사이드 불필요
 - [v1.2 Research]: yet-another-react-lightbox ^3.25.0 신규 의존성 추가 (~25 kB gzip, React 18 호환)
+- [Phase 12]: Blob URL cleanup uses previewUrls ref (updated via useEffect) rather than closure over slots to avoid stale state at unmount
+- [Phase 12]: Promise.allSettled for parallel upload — partial failure does not block successful keys from being returned
+- [Phase 12]: No capture attribute on hidden file input — iOS does not support capture+multiple simultaneously (research D-07)
 
 ### Pending Todos
 
@@ -81,9 +85,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-05T10:15:19.201Z
-Stopped at: Phase 12 UI-SPEC approved
-Resume file: .planning/phases/12-multi-photo-infrastructure/12-UI-SPEC.md
+Last session: 2026-04-05T11:14:09.240Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: None
 
 ---
 *State initialized: 2026-03-28*

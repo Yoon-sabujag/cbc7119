@@ -19,9 +19,9 @@ Requirements for v1.2 release. Each maps to roadmap phases.
 
 ### 다중 사진
 
-- [ ] **PHOTO-01**: 지적사항·조치 사진을 최대 5장까지 업로드할 수 있다
-- [ ] **PHOTO-02**: 첨부된 사진을 썸네일 그리드로 미리볼 수 있다
-- [ ] **PHOTO-03**: 썸네일을 탭하면 라이트박스로 풀스크린 확대보기할 수 있다
+- [x] **PHOTO-01**: 지적사항·조치 사진을 최대 5장까지 업로드할 수 있다
+- [x] **PHOTO-02**: 첨부된 사진을 썸네일 그리드로 미리볼 수 있다
+- [x] **PHOTO-03**: 썸네일을 탭하면 라이트박스로 풀스크린 확대보기할 수 있다
 
 ### 다운로드
 
@@ -57,9 +57,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SCHED-02 | Phase 14 | Pending |
 | FIND-01 | Phase 13 | Pending |
 | FIND-02 | Phase 13 | Pending |
-| PHOTO-01 | Phase 12 | Pending |
-| PHOTO-02 | Phase 12 | Pending |
-| PHOTO-03 | Phase 12 | Pending |
+| PHOTO-01 | Phase 12 | Complete |
+| PHOTO-02 | Phase 12 | Complete |
+| PHOTO-03 | Phase 12 | Complete |
 | DL-01 | Phase 15 | Pending |
 | DL-02 | Phase 15 | Pending |
 | DL-03 | Phase 15 | Pending |
