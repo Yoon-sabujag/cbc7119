@@ -3634,7 +3634,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   }
 
   const lbl: React.CSSProperties = { fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:6, display:'block' }
-  const inp: React.CSSProperties = { width:'100%', boxSizing:'border-box' as const, padding:'10px 12px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, outline:'none' }
+  const inp: React.CSSProperties = { width:'100%', boxSizing:'border-box' as const, padding:'10px 12px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit', minWidth:0, WebkitAppearance:'none', appearance:'none' }
 
   return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -3669,9 +3669,9 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           <div>
             <label style={lbl}>발생일시</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ ...inp, display:'block', WebkitAppearance:'none', marginBottom:6, height:44 }} />
+              style={{ ...inp, display:'block', marginBottom:6, height:44 }} />
             <input type="time" value={time} onChange={e => setTime(e.target.value)}
-              style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
+              style={{ ...inp, display:'block', height:44 }} />
           </div>
 
           {/* 발생장소 */}

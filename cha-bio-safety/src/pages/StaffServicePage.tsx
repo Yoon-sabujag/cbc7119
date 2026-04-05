@@ -9,7 +9,7 @@ import { getRawShift, SHIFT_COLOR, DOW_KO, type RawShift } from '../utils/shiftC
 import { calcProvidedMeals, calcWeekendAllowance } from '../utils/mealCalc'
 import * as pdfjsLib from 'pdfjs-dist'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
 const HIRE_DATES: Record<string, string> = {
   '2018042451': '2018-04-24',
@@ -217,10 +217,19 @@ export default function StaffServicePage() {
       const leftHeaders = sectionItems.filter((i: any) => i.x < weekdayCols[0].x)
 
       const findY = (label: string) => leftHeaders.find(i => i.text === label)?.y
+      // "중식" 헤더가 2개 — 첫 번째(높은 y)가 A영역 상단, 두 번째(낮은 y)가 B영역 상단
+      const lunchHeaders = leftHeaders.filter(i => i.text === '중식').sort((a: any, b: any) => b.y - a.y)
+      const lunchTopY = lunchHeaders[0]?.y  // 중식A 대표메뉴 포함 상한
+      const lunchBTopY = lunchHeaders[1]?.y // 중식B 대표메뉴 포함 상한
       const lunchAY = findY('A')
       const lunchBY = findY('B')
-      const dinnerY = findY('석식')
       const plusY = findY('PLUS')
+      // "석식" 헤더가 2개일 수 있음 (석식 SALAD 라벨 포함) — 가장 높은 y가 석식 본문
+      const dinnerHeaders = leftHeaders.filter(i => i.text === '석식').sort((a: any, b: any) => b.y - a.y)
+      const dinnerY = dinnerHeaders[0]?.y
+      // 석식 SALAD 찾기 — "석식 SALAD" 또는 "SALAD"가 석식 아래에 위치
+      const saladItems = items.filter((i: any) => i.text.includes('SALAD') && i.x < weekdayCols[0].x).sort((a: any, b: any) => b.y - a.y)
+      const dinnerSaladY = saladItems.find((i: any) => i.y < (dinnerY ?? 0))?.y
       const snackY = findY('SNACK')
 
       if (!lunchAY || !lunchBY || !dinnerY) throw new Error('메뉴 섹션을 찾을 수 없습니다')
@@ -233,25 +242,28 @@ export default function StaffServicePage() {
 
       // 5) 영역별 텍스트 수집
       function collectTexts(xMin: number, xMax: number, yMin: number, yMax: number): string {
-        // PDF 좌표: y 큰 값 = 위 → yMin/yMax 반전 주의
+        // PDF 좌표: y 큰 값 = 위 → yMin+2 여유로 같은 줄 헤더의 메뉴 포함
         const inRange = items.filter((i: any) =>
           i.x >= xMin && i.x < xMax &&
-          i.y <= yMin && i.y > yMax  // y가 작을수록 아래
+          i.y <= yMin + 2 && i.y > yMax  // y가 작을수록 아래
         )
         // 김치류, 밥 제외 (주요 메뉴만)
         const filtered = inRange
-          .filter((i: any) => !/(포기김치|깍두기|쌀밥|귀리밥|흑미밥)/.test(i.text) && !/</.test(i.text))
+          .filter((i: any) => !/^(포기김치|깍두기|볶음김치|쌀밥|귀리밥|귀리기장밥|흑미밥)$/.test(i.text) && !/</.test(i.text))
           .sort((a: any, b: any) => b.y - a.y) // 위→아래 순서
           .map((i: any) => i.text)
         return filtered.slice(0, 5).join(' / ')
       }
 
       // 6) 각 날짜별 메뉴 조합
+      // 중식A: "중식" 헤더 ~ 중식B "중식" 헤더 (PLUS/CORNER/SALAD/SNACK 제외)
+      // 중식B: 중식B "중식" 헤더 ~ PLUS 시작 (PLUS 이하 제외)
+      // 석식: "석식" 헤더 ~ 석식 SALAD 시작 (석식SALAD/SNACK 제외)
       const menus = colRanges.map(col => ({
         date: col.ymd,
-        lunch_a: collectTexts(col.xMin, col.xMax, lunchAY, lunchBY),
-        lunch_b: collectTexts(col.xMin, col.xMax, lunchBY, plusY ?? dinnerY),
-        dinner: collectTexts(col.xMin, col.xMax, dinnerY, snackY ?? dinnerY - 200),
+        lunch_a: collectTexts(col.xMin, col.xMax, lunchTopY ?? lunchAY, lunchBTopY ?? lunchBY),
+        lunch_b: collectTexts(col.xMin, col.xMax, lunchBTopY ?? lunchBY, plusY ?? dinnerY!),
+        dinner: collectTexts(col.xMin, col.xMax, dinnerY!, dinnerSaladY ?? snackY ?? dinnerY! - 200),
       }))
 
       // 7) R2에 PDF 업로드

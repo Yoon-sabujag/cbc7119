@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Noto Sans KR', 'system-ui', 'sans-serif'],
+        sans: ['Noto Sans KR', 'system-ui', 'sans-serif', 'Noto Color Emoji'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
