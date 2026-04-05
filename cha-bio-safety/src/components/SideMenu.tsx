@@ -81,17 +81,21 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
     }
   }, [staff])
 
-  // 메뉴 열림 시 뒤쪽 스크롤 방지 (iOS safe-area 깨짐 없이)
+  // 메뉴 열림 시 뒤쪽 스크롤 방지
   useEffect(() => {
     if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const prevent = (e: TouchEvent) => {
-      // 패널 내부 스크롤은 허용
       const panel = document.getElementById('side-menu-panel')
       if (panel && panel.contains(e.target as Node)) return
       e.preventDefault()
     }
     document.addEventListener('touchmove', prevent, { passive: false })
-    return () => document.removeEventListener('touchmove', prevent)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('touchmove', prevent)
+    }
   }, [open])
 
   const go = (path: string) => { navigate(path); onClose() }
@@ -133,75 +137,60 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           <button onClick={onClose} style={{ marginLeft:'auto', width:28, height:28, borderRadius:7, background:'var(--bg3)', border:'none', color:'var(--t2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>✕</button>
         </div>
 
-        {/* 메뉴 목록 */}
-        <div style={{ overflowY:'auto', flex:1, padding:'5px 0' }}>
-          {appliedMenu.map(({ section, items }) => (
-            <div key={section}>
-              <div style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>{section}</div>
-              {items.map(item => {
-                // role 기반 노출 제어: item.role 지정 시 해당 role만 표시
-                if (item.role && staff?.role !== item.role) return null
-                return item.soon ? (
-                <div
-                  key={item.path}
-                  style={{
-                    display:'flex', alignItems:'center', gap:10,
-                    padding:'9px 13px', margin:'1px 7px', borderRadius:8,
-                    color:'var(--t3)', opacity: 0.5,
-                    cursor:'default', pointerEvents:'none',
-                  }}
-                >
-                  <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
-                  <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg3)', borderRadius:6, padding:'2px 7px' }}>준비중</span>
+        {/* 메뉴 목록 또는 편집 모드 (전체 영역) */}
+        {!editMode ? (
+          <>
+            <div style={{ overflowY:'auto', flex:1, padding:'5px 0' }}>
+              {appliedMenu.map(({ section, items }) => (
+                <div key={section}>
+                  <div style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>{section}</div>
+                  {items.map(item => {
+                    if (item.role && staff?.role !== item.role) return null
+                    return item.soon ? (
+                    <div key={item.path} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 13px', margin:'1px 7px', borderRadius:8, color:'var(--t3)', opacity:0.5, cursor:'default', pointerEvents:'none' }}>
+                      <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
+                      <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg3)', borderRadius:6, padding:'2px 7px' }}>준비중</span>
+                    </div>
+                  ) : (
+                    <div key={item.path} onClick={() => go(item.path)}
+                      style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 13px', margin:'1px 7px', borderRadius:8, cursor:'pointer', color:'var(--t1)', transition:'background 0.13s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background='var(--bg4)')}
+                      onMouseLeave={e => (e.currentTarget.style.background='transparent')}
+                    >
+                      <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
+                      {(() => {
+                        const badgeCount = item.path === '/remediation' ? unresolvedCount : item.badge
+                        return badgeCount > 0 ? (
+                          <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, fontWeight:700, fontFamily:'JetBrains Mono', padding:'2px 4px', borderRadius:9, minWidth:16, textAlign:'center' }}>
+                            {badgeCount > 99 ? '99+' : badgeCount}
+                          </span>
+                        ) : null
+                      })()}
+                    </div>
+                  )
+                  })}
                 </div>
-              ) : (
-                <div
-                  key={item.path}
-                  onClick={() => go(item.path)}
-                  style={{
-                    display:'flex', alignItems:'center', gap:10,
-                    padding:'9px 13px', margin:'1px 7px', borderRadius:8,
-                    cursor:'pointer', color:'var(--t1)',
-                    transition:'background 0.13s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background='var(--bg4)')}
-                  onMouseLeave={e => (e.currentTarget.style.background='transparent')}
-                >
-                  <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{item.label}</span>
-                  {(() => {
-                    const badgeCount = item.path === '/remediation' ? unresolvedCount : item.badge
-                    return badgeCount > 0 ? (
-                      <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, fontWeight:700, fontFamily:'JetBrains Mono', padding:'2px 4px', borderRadius:9, minWidth:16, textAlign:'center' }}>
-                        {badgeCount > 99 ? '99+' : badgeCount}
-                      </span>
-                    ) : null
-                  })()}
-                </div>
-              )
-              })}
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* 메뉴 편집 버튼 */}
-        <div style={{ padding:'4px 11px', flexShrink:0 }}>
-          {!editMode ? (
-            <button onClick={() => {
-              const cfg: Record<string, { visible: boolean; order: number }> = {}
-              const allItems: { path: string }[] = []
-              MENU.forEach(s => s.items.forEach(i => allItems.push(i)))
-              allItems.forEach((item, idx) => {
-                const mc = menuConfig as any
-                cfg[item.path] = mc?.[item.path] ?? { visible: true, order: idx }
-              })
-              setEditConfig(cfg)
-              setEditMode(true)
-            }} style={{ width:'100%', padding:'7px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color:'var(--t3)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
-              ⚙ 메뉴 편집
-            </button>
-          ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--t2)', marginBottom:2 }}>메뉴 편집 모드</div>
+            <div style={{ padding:'4px 11px', flexShrink:0 }}>
+              <button onClick={() => {
+                const cfg: Record<string, { visible: boolean; order: number }> = {}
+                const allItems: { path: string }[] = []
+                MENU.forEach(s => s.items.forEach(i => allItems.push(i)))
+                allItems.forEach((item, idx) => { const mc = menuConfig as any; cfg[item.path] = mc?.[item.path] ?? { visible: true, order: idx } })
+                setEditConfig(cfg); setEditMode(true)
+              }} style={{ width:'100%', padding:'7px 0', borderRadius:8, border:'1px dashed var(--bd2)', background:'transparent', color:'var(--t3)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+                ⚙ 메뉴 편집
+              </button>
+            </div>
+          </>
+        ) : (
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+            <div style={{ padding:'12px 13px 8px', flexShrink:0, borderBottom:'1px solid var(--bd)' }}>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>메뉴 편집</div>
+              <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>표시할 항목과 순서를 설정하세요</div>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'8px 11px' }}>
               {(() => {
                 if (!editConfig) return null
                 const allItems: { path: string; label: string; section: string }[] = []
@@ -210,48 +199,41 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
                 return sorted.map((item, idx) => {
                   const vis = editConfig[item.path]?.visible !== false
                   return (
-                    <div key={item.path} style={{ display:'flex', alignItems:'center', gap:4, padding:'4px 6px', background:'var(--bg3)', borderRadius:6, opacity: vis ? 1 : 0.35 }}>
-                      <div style={{ display:'flex', flexDirection:'column', flexShrink:0 }}>
-                        <button onClick={() => {
-                          if (idx <= 0) return
-                          const prev = sorted[idx-1]
-                          setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], order: c[prev.path]?.order ?? idx-1 }, [prev.path]: { ...c[prev.path], order: c[item.path]?.order ?? idx } }) : c)
-                        }} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:10, padding:0, lineHeight:1 }}>▲</button>
-                        <button onClick={() => {
-                          if (idx >= sorted.length-1) return
-                          const next = sorted[idx+1]
-                          setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], order: c[next.path]?.order ?? idx+1 }, [next.path]: { ...c[next.path], order: c[item.path]?.order ?? idx } }) : c)
-                        }} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:10, padding:0, lineHeight:1 }}>▼</button>
+                    <div key={item.path} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, marginBottom:5, opacity: vis ? 1 : 0.35 }}>
+                      <div style={{ display:'flex', flexDirection:'column', gap:2, flexShrink:0 }}>
+                        <button onClick={() => { if (idx<=0) return; const p=sorted[idx-1]; setEditConfig(c=>c?({...c,[item.path]:{...c[item.path],order:c[p.path]?.order??idx-1},[p.path]:{...c[p.path],order:c[item.path]?.order??idx}}):c) }}
+                          style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:14, padding:0, lineHeight:1 }}>▲</button>
+                        <button onClick={() => { if (idx>=sorted.length-1) return; const n=sorted[idx+1]; setEditConfig(c=>c?({...c,[item.path]:{...c[item.path],order:c[n.path]?.order??idx+1},[n.path]:{...c[n.path],order:c[item.path]?.order??idx}}):c) }}
+                          style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:14, padding:0, lineHeight:1 }}>▼</button>
                       </div>
-                      <span style={{ flex:1, fontSize:11, color:'var(--t1)', fontWeight:500 }}>{item.label}</span>
-                      <button onClick={() => setEditConfig(c => c ? ({ ...c, [item.path]: { ...c[item.path], visible: !vis } }) : c)} style={{
-                        width:32, height:16, borderRadius:8, border:'none', cursor:'pointer', flexShrink:0, position:'relative',
-                        background: vis ? 'var(--acl)' : 'var(--bg)',
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)' }}>{item.label}</div>
+                        <div style={{ fontSize:9, color:'var(--t3)' }}>{item.section}</div>
+                      </div>
+                      <button onClick={() => setEditConfig(c=>c?({...c,[item.path]:{...c[item.path],visible:!vis}}):c)} style={{
+                        width:44, height:24, borderRadius:12, border:'none', cursor:'pointer', flexShrink:0, position:'relative',
+                        background: vis ? 'var(--acl)' : 'var(--bg3)', transition:'background 0.15s',
                       }}>
-                        <div style={{ width:12, height:12, borderRadius:'50%', background:'#fff', position:'absolute', top:2, left: vis ? 18 : 2, transition:'left 0.15s' }} />
+                        <div style={{ width:18, height:18, borderRadius:'50%', background:'#fff', position:'absolute', top:3, left: vis ? 23 : 3, transition:'left 0.15s' }} />
                       </button>
                     </div>
                   )
                 })
               })()}
-              <div style={{ display:'flex', gap:6, marginTop:4 }}>
-                <button onClick={() => { setEditMode(false); setEditConfig(null) }} style={{ flex:1, padding:'6px 0', borderRadius:6, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:10, fontWeight:600, cursor:'pointer' }}>취소</button>
-                <button onClick={async () => {
-                  if (!editConfig) return
-                  setSaving(true)
-                  try {
-                    await settingsApi.saveMenu(editConfig)
-                    qc.invalidateQueries({ queryKey: ['menu-config'] })
-                    setEditMode(false); setEditConfig(null)
-                  } catch {}
-                  setSaving(false)
-                }} style={{ flex:2, padding:'6px 0', borderRadius:6, border:'none', background:'var(--acl)', color:'#fff', fontSize:10, fontWeight:700, cursor:'pointer', opacity: saving ? 0.5 : 1 }}>
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+            <div style={{ padding:'8px 11px 4px', flexShrink:0, display:'flex', gap:8 }}>
+              <button onClick={() => { setEditMode(false); setEditConfig(null) }}
+                style={{ flex:1, padding:'10px 0', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>취소</button>
+              <button onClick={async () => {
+                if (!editConfig) return; setSaving(true)
+                try { await settingsApi.saveMenu(editConfig); qc.invalidateQueries({ queryKey:['menu-config'] }); setEditMode(false); setEditConfig(null) } catch {}
+                setSaving(false)
+              }} style={{ flex:2, padding:'10px 0', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', opacity:saving?0.5:1 }}>
+                {saving ? '저장 중...' : '설정 저장'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 로그인 사용자 */}
         <div style={{ padding:'9px 11px', borderTop:'1px solid var(--bd)', flexShrink:0 }}>
