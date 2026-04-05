@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Download, Printer } from 'lucide-react'
 import { api } from '../utils/api'
 import { generateDivExcel, generateCheckExcel, generateMatrixExcel, generatePumpExcel } from '../utils/generateExcel'
+import { useIsDesktop } from '../hooks/useIsDesktop'
+import { ExcelPreview } from '../components/ExcelPreview'
 
 type ReportType = 'div-early' | 'div-late' | '소화전' | '청정소화약제' | '비상콘센트'
   | '피난방화' | '방화셔터' | '제연' | '자탐' | '소방펌프'
@@ -29,45 +32,309 @@ const MATRIX_CONFIG: Record<string, { category: string; sheetIndex: number; item
 const CURRENT_YEAR = new Date().getFullYear()
 const MIN_YEAR = 2023
 
-export default function ReportsPage() {
-  const navigate  = useNavigate()
+// Annual report types — no month filter
+const ANNUAL_TYPES = new Set<ReportType>(['피난방화', '방화셔터', '제연', '자탐'])
+
+// ── 데스크톱 대카테고리 탭 ─────────────────────────────────────
+const DESKTOP_CATEGORIES = [
+  { label: '유수검지', types: ['div-early', 'div-late'] as ReportType[] },
+  { label: '소화전',   types: ['소화전', '비상콘센트', '청정소화약제'] as ReportType[] },
+  { label: '피난방화', types: ['피난방화', '방화셔터'] as ReportType[] },
+  { label: '제연',     types: ['제연'] as ReportType[] },
+  { label: '자탐',     types: ['자탐'] as ReportType[] },
+  { label: '소방펌프', types: ['소방펌프'] as ReportType[] },
+]
+
+// ── 공통 handleDownload 로직 ───────────────────────────────────
+async function downloadReport(type: ReportType, year: number): Promise<void> {
+  if (type === 'div-early' || type === 'div-late') {
+    const data = await api.get<any[]>(`/reports/div?year=${year}`)
+    generateDivExcel(year, data, type === 'div-early' ? '월초' : '월말')
+  } else if (type in MATRIX_CONFIG) {
+    const cfg = MATRIX_CONFIG[type]
+    const data = await api.get<any[]>(
+      `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.category)}`
+    )
+    if (['자탐', '방화셔터', '제연'].includes(type) && data.length > 0) {
+      const ASSISTANTS = ['석현민', '김병조', '박보융']
+      for (const cp of data) {
+        for (const m of Object.keys(cp.months ?? {})) {
+          if (!cp.months[m].inspector) {
+            cp.months[m].inspector = ASSISTANTS[Math.floor(Math.random() * ASSISTANTS.length)]
+          }
+        }
+      }
+    }
+    await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow)
+  } else if (type === '소방펌프') {
+    const data = await api.get<any[]>(
+      `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
+    )
+    await generatePumpExcel(year, data)
+  } else {
+    const data = await api.get<any[]>(
+      `/reports/check-monthly?year=${year}&category=${encodeURIComponent(type)}`
+    )
+    generateCheckExcel(year, data, type)
+  }
+}
+
+// ── 데스크톱 3분할 레이아웃 ───────────────────────────────────
+function DesktopReportsPage() {
+  const [activeTab, setActiveTab] = useState(0)
+  const [selectedType, setSelectedType] = useState<ReportType>(DESKTOP_CATEGORIES[0].types[0])
+  const [year, setYear] = useState(CURRENT_YEAR)
+  const [month, setMonth] = useState(new Date().getMonth() + 1)
+  const [downloading, setDownloading] = useState(false)
+  const [tabHover, setTabHover] = useState<number | null>(null)
+  const [itemHover, setItemHover] = useState<ReportType | null>(null)
+  const [dlHover, setDlHover] = useState(false)
+  const [prHover, setPrHover] = useState(false)
+
+  const handleTabChange = (idx: number) => {
+    setActiveTab(idx)
+    setSelectedType(DESKTOP_CATEGORIES[idx].types[0])
+  }
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      await downloadReport(selectedType, year)
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const showMonthFilter = !ANNUAL_TYPES.has(selectedType)
+
+  const currentTypes = DESKTOP_CATEGORIES[activeTab].types
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+      {/* ── 대카테고리 탭 행 ───────────────────────────────────── */}
+      <div
+        data-no-print
+        style={{
+          display: 'flex',
+          borderBottom: '1px solid var(--bd)',
+          background: 'var(--bg2)',
+          flexShrink: 0,
+          height: 44,
+          alignItems: 'stretch',
+        }}
+      >
+        {DESKTOP_CATEGORIES.map((cat, idx) => {
+          const isActive = idx === activeTab
+          const isHover = tabHover === idx && !isActive
+          return (
+            <button
+              key={cat.label}
+              onClick={() => handleTabChange(idx)}
+              onMouseEnter={() => setTabHover(idx)}
+              onMouseLeave={() => setTabHover(null)}
+              style={{
+                padding: '0 20px',
+                fontSize: 14,
+                color: isActive ? 'var(--acl)' : isHover ? 'var(--t1)' : 'var(--t2)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: isActive ? '2px solid var(--acl)' : '2px solid transparent',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              {cat.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── 바디 행 ───────────────────────────────────────────── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* ── 좌측 패널 ──────────────────────────────────────── */}
+        <div
+          data-no-print
+          style={{
+            width: 280,
+            flexShrink: 0,
+            borderRight: '1px solid var(--bd)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--bg2)',
+          }}
+        >
+          {/* 연도/월 필터 */}
+          <div style={{
+            padding: '12px 16px',
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            borderBottom: '1px solid var(--bd)',
+            flexShrink: 0,
+            flexWrap: 'wrap',
+          }}>
+            <label style={{ fontSize: 12, color: 'var(--t2)' }}>연도</label>
+            <select
+              value={year}
+              onChange={e => setYear(Number(e.target.value))}
+              style={SELECT_STYLE}
+            >
+              {Array.from({ length: CURRENT_YEAR - MIN_YEAR + 1 }, (_, i) => CURRENT_YEAR - i).map(y => (
+                <option key={y} value={y}>{y}년</option>
+              ))}
+            </select>
+
+            {showMonthFilter && (
+              <>
+                <label style={{ fontSize: 12, color: 'var(--t2)' }}>월</label>
+                <select
+                  value={month}
+                  onChange={e => setMonth(Number(e.target.value))}
+                  style={SELECT_STYLE}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                    <option key={m} value={m}>{m}월</option>
+                  ))}
+                </select>
+              </>
+            )}
+          </div>
+
+          {/* 항목 목록 */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {currentTypes.map(type => {
+              const card = REPORT_CARDS.find(c => c.type === type)
+              if (!card) return null
+              const isSelected = selectedType === type
+              const isHover = itemHover === type && !isSelected
+              return (
+                <div
+                  key={type}
+                  onClick={() => setSelectedType(type)}
+                  onMouseEnter={() => setItemHover(type)}
+                  onMouseLeave={() => setItemHover(null)}
+                  style={{
+                    height: 44,
+                    padding: '0 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    borderBottom: '1px solid var(--bd)',
+                    background: (isSelected || isHover) ? 'var(--bg3)' : 'var(--bg2)',
+                    borderLeft: isSelected ? '3px solid var(--acl)' : '3px solid transparent',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{
+                    fontSize: 14,
+                    color: 'var(--t1)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    width: '100%',
+                  }}>
+                    {card.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--t2)', width: '100%' }}>
+                    {card.sub}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* 액션 버튼 */}
+          <div
+            data-no-print
+            style={{
+              padding: '12px 16px',
+              display: 'flex',
+              gap: 8,
+              flexShrink: 0,
+              borderTop: '1px solid var(--bd)',
+            }}
+          >
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              onMouseEnter={() => setDlHover(true)}
+              onMouseLeave={() => setDlHover(false)}
+              style={{
+                flex: 1,
+                height: 36,
+                background: (dlHover && !downloading) ? 'var(--bg4)' : 'var(--bg3)',
+                border: '1px solid var(--bd2)',
+                borderRadius: 6,
+                color: 'var(--t1)',
+                fontSize: 14,
+                cursor: downloading ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                opacity: downloading ? 0.5 : 1,
+              }}
+            >
+              <Download size={16} />
+              엑셀 다운로드
+            </button>
+            <button
+              onClick={() => window.print()}
+              onMouseEnter={() => setPrHover(true)}
+              onMouseLeave={() => setPrHover(false)}
+              style={{
+                flex: 1,
+                height: 36,
+                background: prHover ? 'var(--bg4)' : 'var(--bg3)',
+                border: '1px solid var(--bd2)',
+                borderRadius: 6,
+                color: 'var(--t1)',
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+              }}
+            >
+              <Printer size={16} />
+              인쇄
+            </button>
+          </div>
+        </div>
+
+        {/* ── 우측 A4 미리보기 ────────────────────────────────── */}
+        <div style={{ flex: 1, overflow: 'hidden', background: 'var(--bg)' }}>
+          <ExcelPreview reportType={selectedType} year={year} month={month} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const SELECT_STYLE: React.CSSProperties = {
+  background: 'var(--bg3)',
+  color: 'var(--t1)',
+  border: '1px solid var(--bd2)',
+  borderRadius: 4,
+  padding: '4px 8px',
+  fontSize: 12,
+}
+
+// ── 모바일 기존 레이아웃 ───────────────────────────────────────
+function MobileReportsPage() {
+  const navigate = useNavigate()
   const [year, setYear] = useState(CURRENT_YEAR)
   const [loading, setLoading] = useState<ReportType | null>(null)
 
   const handleDownload = async (type: ReportType) => {
     setLoading(type)
     try {
-      if (type === 'div-early' || type === 'div-late') {
-        const data = await api.get<any[]>(`/reports/div?year=${year}`)
-        generateDivExcel(year, data, type === 'div-early' ? '월초' : '월말')
-      } else if (type in MATRIX_CONFIG) {
-        const cfg = MATRIX_CONFIG[type]
-        const data = await api.get<any[]>(
-          `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cfg.category)}`
-        )
-        // 점검자 랜덤 배정 (자탐/방화셔터/제연: 우리 단독 점검이 아니거나 랜덤 기입 요청)
-        if (['자탐','방화셔터','제연'].includes(type) && data.length > 0) {
-          const ASSISTANTS = ['석현민','김병조','박보융']
-          for (const cp of data) {
-            for (const m of Object.keys(cp.months ?? {})) {
-              if (!cp.months[m].inspector) {
-                cp.months[m].inspector = ASSISTANTS[Math.floor(Math.random() * ASSISTANTS.length)]
-              }
-            }
-          }
-        }
-        await generateMatrixExcel(year, data, cfg.sheetIndex, cfg.itemCount, cfg.name, cfg.inspectorRow)
-      } else if (type === '소방펌프') {
-        const data = await api.get<any[]>(
-          `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
-        )
-        await generatePumpExcel(year, data)
-      } else {
-        const data = await api.get<any[]>(
-          `/reports/check-monthly?year=${year}&category=${encodeURIComponent(type)}`
-        )
-        generateCheckExcel(year, data, type)
-      }
+      await downloadReport(type, year)
     } finally {
       setLoading(null)
     }
@@ -142,4 +409,11 @@ const navBtn: React.CSSProperties = {
   background: 'var(--bg3)', color: 'var(--t1)', fontSize: 16, fontWeight: 700,
   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
   lineHeight: 1,
+}
+
+// ── 기본 export: 데스크톱/모바일 분기 ─────────────────────────
+export default function ReportsPage() {
+  const isDesktop = useIsDesktop()
+  if (isDesktop) return <DesktopReportsPage />
+  return <MobileReportsPage />
 }
