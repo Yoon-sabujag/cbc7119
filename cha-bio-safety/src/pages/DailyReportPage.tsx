@@ -7,6 +7,7 @@ import { dailyReportApi } from '../utils/api'
 import { buildDailyReportData } from '../utils/dailyReportCalc'
 import { generateDailyExcel } from '../utils/generateExcel'
 import { useStaffList } from '../hooks/useStaffList'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 // ── 날짜 유틸 ──────────────────────────────────────────────
 function todayKST(): string {
@@ -60,6 +61,7 @@ const smallBtn: React.CSSProperties = {
 export default function DailyReportPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const isDesktop = useIsDesktop()
   const { data: staffList } = useStaffList()
   const staffData = staffList?.map(s => ({ id: s.id, name: s.name, title: s.title ?? '' }))
 
@@ -256,7 +258,152 @@ export default function DailyReportPage() {
   // ── 인원현황 데이터 ────────────────────────────────────
   const preview = auto
 
-  // ── 렌더 ──────────────────────────────────────────────
+  // ── 공통 본문 컨텐츠 ──────────────────────────────────
+  const formContent = (
+    <>
+      {/* 금일업무 카드 */}
+      <EditableCard
+        label="금일업무" field="today"
+        value={todayText} onChange={handleTodayChange}
+        onSave={handleManualSave} onReset={handleReset}
+        saving={saving['today']} rows={10}
+      />
+
+      {/* 명일업무 카드 */}
+      <EditableCard
+        label="명일업무" field="tomorrow"
+        value={tomorrowText} onChange={handleTomorrowChange}
+        onSave={handleManualSave} onReset={handleReset}
+        saving={saving['tomorrow']} rows={5}
+      />
+
+      {/* 특이사항 카드 */}
+      <EditableCard
+        label="특이사항" field="notes"
+        value={notes} onChange={handleNotesChange}
+        onSave={handleManualSave} onReset={handleReset}
+        saving={saving['notes']} rows={4}
+        placeholder="오늘 특이사항을 입력하세요"
+      />
+
+      {/* 인원현황 요약 */}
+      <div style={card}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>인원현황</div>
+        {queryData.isLoading ? (
+          <div style={{ background: 'var(--bg4)', borderRadius: 4, height: 12, width: '70%', animation: 'blink 2s ease-in-out infinite' }}/>
+        ) : queryData.isError ? (
+          <div style={{ fontSize: 11, color: 'var(--danger)' }}>데이터 불러오기 실패 — 다시 시도해 주세요</div>
+        ) : preview ? (
+          <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6 }}>
+            총원 {preview.personnel.total} · 현재원 {preview.personnel.present}
+            {preview.personnel.offDuty ? ` · 비번 ${preview.personnel.offDuty}` : ''}
+            {preview.personnel.onLeave.length > 0 ? ` · 연차 ${preview.personnel.onLeave.join(', ')}` : ''}
+            {preview.personnel.halfLeave.length > 0 ? ` · 반차 ${preview.personnel.halfLeave.join(', ')}` : ''}
+            {preview.personnel.training.length > 0 ? ` · 교육/훈련 ${preview.personnel.training.join(', ')}` : ''}
+            {preview.personnel.dayShift.length > 0 ? ` · 주간근무자 ${preview.personnel.dayShift.join(', ')}` : ''}
+            {preview.personnel.onDuty ? ` · 당직근무자 ${preview.personnel.onDuty}` : ''}
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: 'var(--t3)' }}>해당 날짜 데이터 없음</div>
+        )}
+      </div>
+
+      {/* 일별 다운로드 버튼 */}
+      <button
+        onClick={handleDailyDownload}
+        disabled={generating || queryData.isLoading}
+        style={{
+          width: '100%', padding: 11, borderRadius: 9, border: 'none',
+          background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
+          color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
+          fontSize: 13, fontWeight: 700, marginBottom: 8,
+          cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
+        }}
+      >
+        {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
+      </button>
+
+      {/* 월별 다운로드 버튼 */}
+      <button
+        onClick={handleMonthlyDownload}
+        disabled={genMonthly}
+        style={{
+          width: '100%', padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
+          background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
+          color: genMonthly ? 'var(--t3)' : 'var(--t1)',
+          fontSize: 13, fontWeight: 700,
+          cursor: genMonthly ? 'default' : 'pointer',
+        }}
+      >
+        {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
+      </button>
+
+      <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', padding: '8px 0 20px' }}>
+        수정 내용은 자동 저장됩니다 · 월별은 저장된 모든 날짜를 포함합니다
+      </div>
+    </>
+  )
+
+  // ── 날짜 네비게이터 (공통) ─────────────────────────────
+  const dateNav = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <button onClick={goBack} style={navBtn}>‹</button>
+      <span style={{ width: 90, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+        {date}
+      </span>
+      <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>
+        {canForward
+          ? <button onClick={goForward} style={navBtn}>›</button>
+          : <span style={{ width: 28 }}/>
+        }
+      </div>
+    </div>
+  )
+
+  // ── 렌더 — 데스크톱 ────────────────────────────────────
+  if (isDesktop) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+        {/* 좌측 편집 패널 */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
+          {/* 데스크톱 날짜 네비게이터 */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>일일업무일지</span>
+            {dateNav}
+          </div>
+          {formContent}
+        </div>
+
+        {/* 우측 A4 세로 미리보기 패널 */}
+        <div style={{
+          width: 400, flexShrink: 0,
+          borderLeft: '1px solid var(--bd)',
+          overflow: 'hidden',
+          background: 'var(--bg)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          position: 'relative',
+        }}>
+          <div style={{
+            position: 'absolute', top: 8, left: 0, right: 0,
+            textAlign: 'center', fontSize: 11, color: 'var(--t2)',
+            fontWeight: 700, textTransform: 'uppercase',
+            pointerEvents: 'none',
+          }}>
+            인쇄 미리보기
+          </div>
+          <DailyPortraitPreview
+            date={date}
+            todayText={todayText}
+            tomorrowText={tomorrowText}
+            notes={notes}
+            personnel={preview?.personnel}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── 렌더 — 모바일 ──────────────────────────────────────
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
       {/* 헤더 */}
@@ -267,108 +414,177 @@ export default function DailyReportPage() {
           </svg>
         </button>
         <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>일일업무일지</span>
-
-        {/* 날짜 네비게이터 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <button onClick={goBack} style={navBtn}>‹</button>
-          <span style={{ width: 90, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
-            {date}
-          </span>
-          <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>
-            {canForward
-              ? <button onClick={goForward} style={navBtn}>›</button>
-              : <span style={{ width: 28 }}/>
-            }
-          </div>
-        </div>
+        {dateNav}
       </header>
 
       {/* 스크롤 본문 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+        {formContent}
+      </div>
+    </div>
+  )
+}
 
-        {/* 금일업무 카드 */}
-        <EditableCard
-          label="금일업무" field="today"
-          value={todayText} onChange={handleTodayChange}
-          onSave={handleManualSave} onReset={handleReset}
-          saving={saving['today']} rows={10}
-        />
+// ── A4 세로 미리보기 컴포넌트 ─────────────────────────────
+function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel }: {
+  date: string
+  todayText: string
+  tomorrowText: string
+  notes: string
+  personnel?: {
+    total: number
+    present: number
+    offDuty: string
+    onLeave: string[]
+    halfLeave: string[]
+    training: string[]
+    dayShift: string[]
+    onDuty: string
+  }
+}) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
 
-        {/* 명일업무 카드 */}
-        <EditableCard
-          label="명일업무" field="tomorrow"
-          value={tomorrowText} onChange={handleTomorrowChange}
-          onSave={handleManualSave} onReset={handleReset}
-          saving={saving['tomorrow']} rows={5}
-        />
+  const A4_W = 794
+  const A4_H = 1123
 
-        {/* 특이사항 카드 */}
-        <EditableCard
-          label="특이사항" field="notes"
-          value={notes} onChange={handleNotesChange}
-          onSave={handleManualSave} onReset={handleReset}
-          saving={saving['notes']} rows={4}
-          placeholder="오늘 특이사항을 입력하세요"
-        />
+  useEffect(() => {
+    if (!containerRef.current) return
+    const obs = new ResizeObserver(entries => {
+      const entry = entries[0]
+      if (!entry) return
+      const w = entry.contentRect.width
+      const h = entry.contentRect.height
+      setScale(Math.min(w / A4_W, h / A4_H) * 0.95)
+    })
+    obs.observe(containerRef.current)
+    return () => obs.disconnect()
+  }, [])
 
-        {/* 인원현황 요약 */}
-        <div style={card}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>인원현황</div>
-          {queryData.isLoading ? (
-            <div style={{ background: 'var(--bg4)', borderRadius: 4, height: 12, width: '70%', animation: 'blink 2s ease-in-out infinite' }}/>
-          ) : queryData.isError ? (
-            <div style={{ fontSize: 11, color: 'var(--danger)' }}>데이터 불러오기 실패 — 다시 시도해 주세요</div>
-          ) : preview ? (
-            <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6 }}>
-              총원 {preview.personnel.total} · 현재원 {preview.personnel.present}
-              {preview.personnel.offDuty ? ` · 비번 ${preview.personnel.offDuty}` : ''}
-              {preview.personnel.onLeave.length > 0 ? ` · 연차 ${preview.personnel.onLeave.join(', ')}` : ''}
-              {preview.personnel.halfLeave.length > 0 ? ` · 반차 ${preview.personnel.halfLeave.join(', ')}` : ''}
-              {preview.personnel.training.length > 0 ? ` · 교육/훈련 ${preview.personnel.training.join(', ')}` : ''}
-              {preview.personnel.dayShift.length > 0 ? ` · 주간근무자 ${preview.personnel.dayShift.join(', ')}` : ''}
-              {preview.personnel.onDuty ? ` · 당직근무자 ${preview.personnel.onDuty}` : ''}
-            </div>
-          ) : (
-            <div style={{ fontSize: 11, color: 'var(--t3)' }}>해당 날짜 데이터 없음</div>
-          )}
+  const [y, m, d] = date.split('-')
+  const dateLabel = `${y}년 ${Number(m)}월 ${Number(d)}일`
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        width: '100%', height: '100%',
+        overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg)',
+      }}
+    >
+      <div
+        className="excel-preview-inner"
+        style={{
+          width: A4_W, height: A4_H,
+          background: '#ffffff',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+          transformOrigin: 'center center',
+          transform: `scale(${scale})`,
+          overflow: 'hidden',
+          position: 'relative',
+          padding: 48,
+          boxSizing: 'border-box',
+        }}
+      >
+        {/* 제목 */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 4 }}>방재업무일지</div>
+          <div style={{ fontSize: 13, color: '#444' }}>{dateLabel}</div>
         </div>
 
-        {/* 일별 다운로드 버튼 */}
-        <button
-          onClick={handleDailyDownload}
-          disabled={generating || queryData.isLoading}
-          style={{
-            width: '100%', padding: 11, borderRadius: 9, border: 'none',
-            background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-            color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
-            fontSize: 13, fontWeight: 700, marginBottom: 8,
-            cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
-          }}
-        >
-          {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
-        </button>
+        {/* 구분선 */}
+        <hr style={{ border: 'none', borderTop: '2px solid #000', marginBottom: 20 }} />
 
-        {/* 월별 다운로드 버튼 */}
-        <button
-          onClick={handleMonthlyDownload}
-          disabled={genMonthly}
-          style={{
-            width: '100%', padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
-            background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
-            color: genMonthly ? 'var(--t3)' : 'var(--t1)',
-            fontSize: 13, fontWeight: 700,
-            cursor: genMonthly ? 'default' : 'pointer',
-          }}
-        >
-          {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
-        </button>
+        {/* 인원현황 */}
+        {personnel && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>인원현황</div>
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11 }}>
+              <tbody>
+                <tr>
+                  <td style={PT}>총원</td>
+                  <td style={PD}>{personnel.total}명</td>
+                  <td style={PT}>현재원</td>
+                  <td style={PD}>{personnel.present}명</td>
+                  <td style={PT}>비번</td>
+                  <td style={PD}>{personnel.offDuty || '—'}</td>
+                </tr>
+                {(personnel.onDuty) && (
+                  <tr>
+                    <td style={PT}>당직</td>
+                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.onDuty}</td>
+                  </tr>
+                )}
+                {personnel.dayShift.length > 0 && (
+                  <tr>
+                    <td style={PT}>주간</td>
+                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.dayShift.join(', ')}</td>
+                  </tr>
+                )}
+                {personnel.onLeave.length > 0 && (
+                  <tr>
+                    <td style={PT}>연차</td>
+                    <td style={{ ...PD, colSpan: 5 } as any}>{personnel.onLeave.join(', ')}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-        <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', padding: '8px 0 20px' }}>
-          수정 내용은 자동 저장됩니다 · 월별은 저장된 모든 날짜를 포함합니다
+        {/* 금일업무 */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>금일업무</div>
+          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 60 }}>
+            {todayText || '(내용 없음)'}
+          </div>
+        </div>
+
+        {/* 명일업무 */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>명일업무</div>
+          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 40 }}>
+            {tomorrowText || '(내용 없음)'}
+          </div>
+        </div>
+
+        {/* 특이사항 */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#000', marginBottom: 6, borderBottom: '1px solid #ccc', paddingBottom: 4 }}>특이사항</div>
+          <div style={{ fontSize: 11, color: '#222', lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 40 }}>
+            {notes || '(내용 없음)'}
+          </div>
+        </div>
+
+        {/* 서명란 */}
+        <div style={{ position: 'absolute', bottom: 48, left: 48, right: 48 }}>
+          <hr style={{ border: 'none', borderTop: '1px solid #ccc', marginBottom: 16 }} />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 32, fontSize: 11, color: '#444' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: 24 }}>작성자</div>
+              <div style={{ borderTop: '1px solid #999', width: 80 }}></div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: 24 }}>확인자</div>
+              <div style={{ borderTop: '1px solid #999', width: 80 }}></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   )
+}
+
+// ── A4 미리보기 셀 스타일 ──────────────────────────────────
+const PT: React.CSSProperties = {
+  border: '1px solid #ccc', padding: '3px 6px', fontWeight: 700,
+  fontSize: 11, color: '#000', background: '#f0f0f0', whiteSpace: 'nowrap',
+}
+const PD: React.CSSProperties = {
+  border: '1px solid #ccc', padding: '3px 6px',
+  fontSize: 11, color: '#000',
 }
 
 // ── 편집 가능 카드 컴포넌트 ─────────────────────────────
