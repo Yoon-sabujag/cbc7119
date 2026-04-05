@@ -14,8 +14,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         lf.description,
         lf.location,
         lf.photo_key,
+        lf.photo_keys,
         lf.resolution_memo,
         lf.resolution_photo_key,
+        lf.resolution_photo_keys,
         lf.status,
         lf.resolved_at,
         lf.resolved_by,
@@ -30,8 +32,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       ORDER BY CASE WHEN lf.status = 'open' THEN 0 ELSE 1 END, lf.created_at DESC
     `).bind(scheduleItemId).all<{
       id: string; schedule_item_id: string; description: string; location: string | null;
-      photo_key: string | null; resolution_memo: string | null;
-      resolution_photo_key: string | null; status: string;
+      photo_key: string | null; photo_keys: string; resolution_memo: string | null;
+      resolution_photo_key: string | null; resolution_photo_keys: string; status: string;
       resolved_at: string | null; resolved_by: string | null;
       created_by: string; created_at: string;
       created_by_name: string | null; resolved_by_name: string | null
@@ -43,8 +45,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       description: r.description,
       location: r.location,
       photoKey: r.photo_key,
+      photoKeys: JSON.parse(r.photo_keys || '[]') as string[],
       resolutionMemo: r.resolution_memo,
       resolutionPhotoKey: r.resolution_photo_key,
+      resolutionPhotoKeys: JSON.parse(r.resolution_photo_keys || '[]') as string[],
       status: r.status,
       resolvedAt: r.resolved_at,
       resolvedBy: r.resolved_by,
@@ -67,17 +71,23 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
   const { staffId } = data as any
   const scheduleItemId = params.id as string
 
-  let body: { description: string; location?: string; photo_key?: string }
+  let body: { description: string; location?: string; photo_keys?: string[] }
   try {
     body = await request.json()
   } catch {
     return Response.json({ success: false, error: '요청 본문 파싱 실패' }, { status: 400 })
   }
 
-  const { description, location, photo_key } = body
+  const { description, location, photo_keys } = body
 
   if (!description?.trim()) {
     return Response.json({ success: false, error: 'description이 필요합니다' }, { status: 400 })
+  }
+
+  if (photo_keys !== undefined) {
+    if (!Array.isArray(photo_keys) || photo_keys.length > 5) {
+      return Response.json({ success: false, error: 'photo_keys는 0-5개 배열이어야 합니다' }, { status: 400 })
+    }
   }
 
   try {
@@ -91,10 +101,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
     }
 
     const row = await env.DB.prepare(`
-      INSERT INTO legal_findings (schedule_item_id, description, location, photo_key, created_by)
+      INSERT INTO legal_findings (schedule_item_id, description, location, photo_keys, created_by)
       VALUES (?, ?, ?, ?, ?)
       RETURNING id
-    `).bind(scheduleItemId, description, location ?? null, photo_key ?? null, staffId)
+    `).bind(scheduleItemId, description, location ?? null, JSON.stringify(photo_keys ?? []), staffId)
       .first<{ id: string }>()
 
     if (!row) throw new Error('insert returned no row')

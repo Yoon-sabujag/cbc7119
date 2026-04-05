@@ -7,7 +7,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
   const fid = params.fid as string
   const scheduleItemId = params.id as string
 
-  let body: { resolution_memo: string; resolution_photo_key?: string }
+  let body: { resolution_memo: string; resolution_photo_keys?: string[] }
   try {
     body = await request.json()
   } catch {
@@ -16,6 +16,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
 
   if (!body.resolution_memo?.trim()) {
     return Response.json({ success: false, error: 'resolution_memo가 필요합니다' }, { status: 400 })
+  }
+
+  if (body.resolution_photo_keys !== undefined) {
+    if (!Array.isArray(body.resolution_photo_keys) || body.resolution_photo_keys.length > 5) {
+      return Response.json({ success: false, error: 'resolution_photo_keys는 0-5개 배열이어야 합니다' }, { status: 400 })
+    }
   }
 
   try {
@@ -34,15 +40,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
     const result = await env.DB.prepare(`
       UPDATE legal_findings
       SET
-        resolution_memo      = ?,
-        resolution_photo_key = ?,
-        status               = 'resolved',
-        resolved_at          = datetime('now','+9 hours'),
-        resolved_by          = ?
+        resolution_memo       = ?,
+        resolution_photo_keys = ?,
+        status                = 'resolved',
+        resolved_at           = datetime('now','+9 hours'),
+        resolved_by           = ?
       WHERE id = ? AND schedule_item_id = ?
     `).bind(
       body.resolution_memo,
-      body.resolution_photo_key ?? null,
+      JSON.stringify(body.resolution_photo_keys ?? []),
       staffId,
       fid,
       scheduleItemId,

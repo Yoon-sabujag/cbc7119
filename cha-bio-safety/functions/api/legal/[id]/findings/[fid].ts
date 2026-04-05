@@ -15,8 +15,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         lf.description,
         lf.location,
         lf.photo_key,
+        lf.photo_keys,
         lf.resolution_memo,
         lf.resolution_photo_key,
+        lf.resolution_photo_keys,
         lf.status,
         lf.resolved_at,
         lf.resolved_by,
@@ -30,8 +32,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
       WHERE lf.id = ? AND lf.schedule_item_id = ?
     `).bind(fid, scheduleItemId).first<{
       id: string; schedule_item_id: string; description: string; location: string | null;
-      photo_key: string | null; resolution_memo: string | null;
-      resolution_photo_key: string | null; status: string;
+      photo_key: string | null; photo_keys: string; resolution_memo: string | null;
+      resolution_photo_key: string | null; resolution_photo_keys: string; status: string;
       resolved_at: string | null; resolved_by: string | null;
       created_by: string; created_at: string;
       created_by_name: string | null; resolved_by_name: string | null
@@ -49,8 +51,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         description: row.description,
         location: row.location,
         photoKey: row.photo_key,
+        photoKeys: JSON.parse(row.photo_keys || '[]') as string[],
         resolutionMemo: row.resolution_memo,
         resolutionPhotoKey: row.resolution_photo_key,
+        resolutionPhotoKeys: JSON.parse(row.resolution_photo_keys || '[]') as string[],
         status: row.status,
         resolvedAt: row.resolved_at,
         resolvedBy: row.resolved_by,
@@ -93,20 +97,34 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, par
       return Response.json({ success: false, error: '지적사항을 찾을 수 없습니다' }, { status: 404 })
     }
 
-    await env.DB.prepare(`
-      UPDATE legal_findings
-      SET
-        description = COALESCE(?, description),
-        location    = COALESCE(?, location),
-        photo_key   = COALESCE(?, photo_key)
-      WHERE id = ? AND schedule_item_id = ?
-    `).bind(
-      body.description ?? null,
-      body.location ?? null,
-      body.photo_key ?? null,
-      fid,
-      scheduleItemId,
-    ).run()
+    const sets: string[] = []
+    const binds: any[] = []
+
+    if (body.description !== undefined) {
+      sets.push('description = COALESCE(?, description)')
+      binds.push(body.description ?? null)
+    }
+    if (body.location !== undefined) {
+      sets.push('location = COALESCE(?, location)')
+      binds.push(body.location ?? null)
+    }
+    if (body.photo_keys !== undefined) {
+      if (!Array.isArray(body.photo_keys) || body.photo_keys.length > 5) {
+        return Response.json({ success: false, error: 'photo_keys는 0-5개 배열이어야 합니다' }, { status: 400 })
+      }
+      sets.push('photo_keys = ?')
+      binds.push(JSON.stringify(body.photo_keys))
+    }
+
+    if (sets.length === 0) {
+      return Response.json({ success: false, error: '수정할 필드가 없습니다' }, { status: 400 })
+    }
+
+    binds.push(fid, scheduleItemId)
+
+    await env.DB.prepare(
+      `UPDATE legal_findings SET ${sets.join(', ')} WHERE id = ? AND schedule_item_id = ?`
+    ).bind(...binds).run()
 
     return Response.json({ success: true })
   } catch (e) {
