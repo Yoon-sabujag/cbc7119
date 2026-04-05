@@ -9,13 +9,13 @@ Requirements for v1.2 release. Each maps to roadmap phases.
 
 ### 일정 관리
 
-- [ ] **SCHED-01**: 법적 점검 일정 등록 시 시작일/종료일 범위로 연속일정을 한번에 등록할 수 있다
-- [ ] **SCHED-02**: 범위 입력 시 등록될 N일을 미리보기로 확인할 수 있다
+- [x] **SCHED-01**: 법적 점검 일정 등록 시 시작일/종료일 범위로 연속일정을 한번에 등록할 수 있다
+- [x] **SCHED-02**: 범위 입력 시 등록될 N일을 미리보기로 확인할 수 있다
 
 ### 지적사항 등록
 
-- [ ] **FIND-01**: 지적사항 등록 시 공통 점검 항목 목록에서 선택하거나 직접 입력할 수 있다
-- [ ] **FIND-02**: 지적사항 위치를 구역→층→상세위치 3단계 드롭다운으로 입력할 수 있다
+- [x] **FIND-01**: 지적사항 등록 시 공통 점검 항목 목록에서 선택하거나 직접 입력할 수 있다
+- [x] **FIND-02**: 지적사항 위치를 구역→층→상세위치 3단계 드롭다운으로 입력할 수 있다
 
 ### 다중 사진
 
@@ -53,8 +53,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | Phase 14 | Pending |
-| SCHED-02 | Phase 14 | Pending |
+| SCHED-01 | Phase 14 | Complete |
+| SCHED-02 | Phase 14 | Complete |
 | FIND-01 | Phase 13 | Complete |
 | FIND-02 | Phase 13 | Complete |
 | PHOTO-01 | Phase 12 | Complete |

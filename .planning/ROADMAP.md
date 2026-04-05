@@ -39,7 +39,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 - [x] **Phase 12: Multi-Photo Infrastructure** - DB migration + useMultiPhotoUpload hook + PhotoGrid component — completed 2026-04-06
 - [x] **Phase 13: Finding BottomSheet Restructure** - 점검항목 선택 + 위치 3단계 드롭다운 + 사진 업로드 통합 — completed 2026-04-06
-- [ ] **Phase 14: Schedule Date Range** - 시작일/종료일 범위로 연속 일정 한번에 등록
+- [x] **Phase 14: Schedule Date Range** - 시작일/종료일 범위로 연속 일정 한번에 등록 — completed 2026-04-06
 - [x] **Phase 15: Finding Download** - 건별 다운로드 + 일괄 ZIP + iOS PWA 지원 (completed 2026-04-05)
 
 ## Phase Details
@@ -112,8 +112,17 @@ Plans:
 | 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete | 2026-04-04 |
 | 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
 | 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
-| 14. Schedule Date Range | v1.2 | 0/? | Not started | - |
+| 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
 | 15. Finding Download | v1.2 | 2/2 | Complete   | 2026-04-05 |
+
+## Backlog
+
+### 월간 방재업무계획 엑셀 생성 (BACKLOG)
+
+**Goal:** SchedulePage 점검 일정 데이터 기반으로 월간 방재업무계획 엑셀 시트 자동 생성
+**Reference:** `작업용/3월_중요업무추진계획(방재).xlsx` 2번째 시트 (N월 방재업무계획)
+**구조:** NO | 내용 | 1~31일 셀(점검 여부) | 비고 — 기존 양식과 동일 포맷
+**Requirements:** TBD
 
 ---
 *Roadmap created: 2026-03-28*
