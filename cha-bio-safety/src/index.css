@@ -88,6 +88,21 @@
   50%       { opacity: 0.2; }
 }
 
+/* ── sheet_to_html 테이블 스타일 ──────────────────────── */
+#excel-preview-table {
+  border-collapse: collapse;
+  font-size: 10px;
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+  color: #000;
+  background: #fff;
+}
+#excel-preview-table td,
+#excel-preview-table th {
+  border: 1px solid #999;
+  padding: 1px 3px;
+  white-space: nowrap;
+}
+
 /* ── 인쇄 스타일 (DOC-04) ──────────────────────────────── */
 @media print {
   /* Hide all non-print UI */

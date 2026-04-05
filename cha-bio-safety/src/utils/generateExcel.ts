@@ -103,8 +103,24 @@ function patchCellStyled(
   return xml.slice(0, start) + newCell + xml.slice(end)
 }
 
+// ── 공통: blob 생성 + 다운로드 헬퍼 ──────────────────────────
+function createExcelBlob(buffer: ArrayBuffer): Blob {
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a   = document.createElement('a')
+  a.href     = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 // ── DIV 점검표 (템플릿 기반, 34개 시트) ──────────────────────
-export async function generateDivExcel(year: number, divRaw: any[], timing: '월초' | '월말' = '월초') {
+export async function generateDivExcel(year: number, divRaw: any[], timing: '월초' | '월말' = '월초', returnBlob = false): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/annual_matrix_template.xlsx')
@@ -236,15 +252,9 @@ export async function generateDivExcel(year: number, divRaw: any[], timing: '월
   )
 
   const zipped = zipSync(newFiles, { level: 6 })
-  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url    = URL.createObjectURL(blob)
-  const a      = document.createElement('a')
-  a.href       = url
-  a.download   = `${year}년도_DIV점검표_${timing}.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  if (returnBlob) return blob
+  downloadBlob(blob, `${year}년도_DIV점검표_${timing}.xlsx`)
 }
 
 // ── 소화전/비상콘센트/청정소화약제 (템플릿 기반) ──────────────
@@ -258,7 +268,7 @@ const CHECK_MARK_ROWS: Record<string, number[]> = {
   '청정소화약제': [11,13,15,17,19,21,23,25,27,29],
 }
 
-export async function generateCheckExcel(year: number, checkRaw: any[], category: string) {
+export async function generateCheckExcel(year: number, checkRaw: any[], category: string, returnBlob = false): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res   = await fetch('/templates/annual_matrix_template.xlsx')
@@ -383,15 +393,9 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
   )
 
   const zipped = zipSync(newFiles, { level: 6 })
-  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url    = URL.createObjectURL(blob)
-  const a      = document.createElement('a')
-  a.href       = url
-  a.download   = `${year}년도_${category}_점검일지.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  if (returnBlob) return blob
+  downloadBlob(blob, `${year}년도_${category}_점검일지.xlsx`)
 }
 
 // ── 연간 매트릭스 점검일지 (sheets 6-9: 피난방화/방화셔터/제연/자탐) ──────
@@ -409,8 +413,9 @@ export async function generateMatrixExcel(
   sheetIndex: number,
   itemCount: number,
   reportName: string,
-  inspectorRow?: number
-) {
+  inspectorRow?: number,
+  returnBlob = false
+): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/annual_matrix_template.xlsx')
@@ -498,15 +503,9 @@ export async function generateMatrixExcel(
   )
 
   const zipped = zipSync(newFiles, { level: 6 })
-  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url    = URL.createObjectURL(blob)
-  const a      = document.createElement('a')
-  a.href       = url
-  a.download   = `${year}년도_${reportName}_점검일지.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  if (returnBlob) return blob
+  downloadBlob(blob, `${year}년도_${reportName}_점검일지.xlsx`)
 }
 
 // ── 소방펌프 점검일지 (sheet 10: 월별 단일 출력) ─────────────────────────
@@ -520,8 +519,9 @@ const PUMP_RESULT_ROWS = [9, 11, 13, 15, 17, 19, 21, 23, 25, 27]
  */
 export async function generatePumpExcel(
   year: number,
-  data: any[]
-) {
+  data: any[],
+  returnBlob = false
+): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/annual_matrix_template.xlsx')
@@ -610,19 +610,13 @@ export async function generatePumpExcel(
   )
 
   const zipped = zipSync(newFiles, { level: 6 })
-  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url    = URL.createObjectURL(blob)
-  const a      = document.createElement('a')
-  a.href       = url
-  a.download   = `${year}년도_소방펌프_점검일지.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  if (returnBlob) return blob
+  downloadBlob(blob, `${year}년도_소방펌프_점검일지.xlsx`)
 }
 
 // ── 근무표 (fflate zip 직접 패치 → 원본 서식/이미지 완전 보존) ─
-export async function generateShiftExcel(year: number, month: number, staffData?: { id: string; name: string; title: string }[]) {
+export async function generateShiftExcel(year: number, month: number, staffData?: { id: string; name: string; title: string }[], returnBlob = false): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/shift_template.xlsx')
@@ -708,15 +702,9 @@ export async function generateShiftExcel(year: number, month: number, staffData?
 
   // 다운로드
   const zipped = zipSync(files, { level: 6 })
-  const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-  const url    = URL.createObjectURL(blob)
-  const a      = document.createElement('a')
-  a.href = url
-  a.download = `${year}년_${month}월_근무표.xlsx`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  if (returnBlob) return blob
+  downloadBlob(blob, `${year}년_${month}월_근무표.xlsx`)
 }
 
 // ── 일일업무일지 (방재업무일지) 엑셀 생성 ─────────────────────────────
@@ -812,8 +800,9 @@ export async function generateDailyExcel(
   year: number,
   month: number,
   dayDataMap: Record<number, DailyReportData>,
-  todayDay: number
-): Promise<void> {
+  todayDay: number,
+  returnBlob = false
+): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   const res = await fetch('/templates/daily_report_template.xlsx')
@@ -838,15 +827,9 @@ export async function generateDailyExcel(
     files['xl/worksheets/sheet1.xml'] = strToU8(xml)
 
     const zipped = zipSync(files, { level: 6 })
-    const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url    = URL.createObjectURL(blob)
-    const a      = document.createElement('a')
-    a.href       = url
-    a.download   = `${month}월${String(todayDay).padStart(2, '0')}일 방재업무일지.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+    if (returnBlob) return blob
+    downloadBlob(blob, `${month}월${String(todayDay).padStart(2, '0')}일 방재업무일지.xlsx`)
 
   } else {
     // ── 월별 누적 다운로드: N개 시트 (1일 ~ todayDay) ────
@@ -903,14 +886,8 @@ export async function generateDailyExcel(
     )
 
     const zipped = zipSync(newFiles, { level: 6 })
-    const blob   = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url    = URL.createObjectURL(blob)
-    const a      = document.createElement('a')
-    a.href       = url
-    a.download   = `일일업무일지(${String(month).padStart(2, '0')}월).xlsx`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+    if (returnBlob) return blob
+    downloadBlob(blob, `일일업무일지(${String(month).padStart(2, '0')}월).xlsx`)
   }
 }

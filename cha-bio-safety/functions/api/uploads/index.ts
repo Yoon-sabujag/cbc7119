@@ -14,6 +14,7 @@ const MIME_MAP: Record<string, { ext: string; dir: string }> = {
   'image/gif':       { ext: '.gif',  dir: 'inspections' },
   'image/webp':      { ext: '.webp', dir: 'inspections' },
   'application/pdf': { ext: '.pdf',  dir: 'documents' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { ext: '.xlsx', dir: 'preview' },
 }
 
 function resolveFileInfo(file: File): { ext: string; dir: string; contentType: string } {

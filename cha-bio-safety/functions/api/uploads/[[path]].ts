@@ -9,6 +9,7 @@ const EXT_MIME: Record<string, string> = {
   '.webp': 'image/webp',
   '.pdf':  'application/pdf',
   '.svg':  'image/svg+xml',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 }
 
 function contentTypeFromKey(key: string): string {
