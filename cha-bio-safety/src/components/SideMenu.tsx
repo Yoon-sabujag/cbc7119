@@ -127,17 +127,27 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           borderRadius: '0 16px 16px 0',
         }}
       >
-        {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <img src="/icons/icon-192.png" alt="" style={{ width:30, height:30, borderRadius:8, flexShrink:0 }} />
-          <div>
-            <div style={{ fontSize:13, fontWeight:700 }}>차바이오컴플렉스</div>
-            <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:1 }}>소방안전 통합관리</div>
+        {/* 헤더 — 일반 모드 vs 편집 모드 */}
+        {!editMode ? (
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+            <img src="/icons/icon-192.png" alt="" style={{ width:30, height:30, borderRadius:8, flexShrink:0 }} />
+            <div>
+              <div style={{ fontSize:13, fontWeight:700 }}>차바이오컴플렉스</div>
+              <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:1 }}>소방안전 통합관리</div>
+            </div>
+            <button onClick={onClose} style={{ marginLeft:'auto', width:28, height:28, borderRadius:7, background:'var(--bg3)', border:'none', color:'var(--t2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>✕</button>
           </div>
-          <button onClick={onClose} style={{ marginLeft:'auto', width:28, height:28, borderRadius:7, background:'var(--bg3)', border:'none', color:'var(--t2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>✕</button>
-        </div>
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>메뉴 편집</div>
+              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>표시할 항목과 순서를 설정하세요</div>
+            </div>
+            <button onClick={() => { setEditMode(false); setEditConfig(null) }} style={{ width:28, height:28, borderRadius:7, background:'var(--bg3)', border:'none', color:'var(--t2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>✕</button>
+          </div>
+        )}
 
-        {/* 메뉴 목록 또는 편집 모드 (전체 영역) */}
+        {/* 메뉴 목록 또는 편집 모드 본문 */}
         {!editMode ? (
           <>
             <div style={{ overflowY:'auto', flex:1, padding:'5px 0' }}>
@@ -186,10 +196,6 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           </>
         ) : (
           <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-            <div style={{ padding:'12px 13px 8px', flexShrink:0, borderBottom:'1px solid var(--bd)' }}>
-              <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>메뉴 편집</div>
-              <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>표시할 항목과 순서를 설정하세요</div>
-            </div>
             <div style={{ flex:1, overflowY:'auto', padding:'8px 11px' }}>
               {(() => {
                 if (!editConfig) return null
@@ -235,8 +241,8 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
           </div>
         )}
 
-        {/* 로그인 사용자 */}
-        <div style={{ padding:'9px 11px', borderTop:'1px solid var(--bd)', flexShrink:0 }}>
+        {/* 로그인 사용자 (편집 모드에서는 숨김) */}
+        {!editMode && <div style={{ padding:'9px 11px', borderTop:'1px solid var(--bd)', flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', background:'var(--bg3)', borderRadius:9 }}>
             <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff', flexShrink:0 }}>
               {staff?.name?.[0] ?? '?'}
@@ -252,7 +258,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
               로그아웃
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </>
   )
