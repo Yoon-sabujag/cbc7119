@@ -7,7 +7,9 @@ import { BottomNav } from './components/BottomNav'
 import { GlobalHeader } from './components/GlobalHeader'
 import { SideMenu } from './components/SideMenu'
 import { SettingsPanel } from './components/SettingsPanel'
+import { DesktopSidebar } from './components/DesktopSidebar'
 import { useDateTime } from './hooks/useDateTime'
+import { useIsDesktop } from './hooks/useIsDesktop'
 import { dashboardApi } from './utils/api'
 // Safe area 초기화는 index.html 인라인 스크립트에서 처리 (React 마운트 전 실행)
 
@@ -55,7 +57,11 @@ function Loader() {
   )
 }
 
-const NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal', '/elevator/findings']
+// 모바일: 자체 헤더가 있는 페이지는 nav 숨김
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal', '/elevator/findings']
+
+// 데스크톱: 로그인/스플래시만 nav 숨김 — 나머지는 모두 사이드바 표시
+const DESKTOP_NO_NAV_PATHS = ['/', '/login']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
@@ -63,17 +69,33 @@ const PAGE_TITLES: Record<string, string> = {
   '/inspection/qr': 'QR 스캔',
   '/remediation': '조치 관리',
   '/elevator': '승강기 관리',
-  '/staff-service': '직원 서비스',
+  '/staff-service': '연차 및 식사',
+  '/schedule': '월간 점검 계획',
+  '/reports': '점검 일지 출력',
+  '/daily-report': '일일업무일지',
+  '/workshift': '근무표',
+  '/leave': '연차 관리',
+  '/floorplan': '건물 도면',
+  '/div': 'DIV 압력 관리',
+  '/qr-print': 'QR 코드 출력',
+  '/meal': '식사 관리',
+  '/education': '보수교육',
+  '/admin': '관리자 설정',
+  '/legal': '법적 점검',
 }
 
 function Layout() {
+  const isDesktop = useIsDesktop()
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
+
+  const noNavPaths = isDesktop ? DESKTOP_NO_NAV_PATHS : MOBILE_NO_NAV_PATHS
   const showNav = isAuthenticated
-    && !NO_NAV_PATHS.includes(location.pathname)
+    && !noNavPaths.includes(location.pathname)
     && !location.pathname.match(/^\/remediation\/.+/)
     && !location.pathname.match(/^\/legal\/.+/)
     && !location.pathname.match(/^\/elevator\/findings\/.+/)
+
   const [sideOpen, setSideOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -90,6 +112,7 @@ function Layout() {
   const pageTitle = PAGE_TITLES[location.pathname] || ''
   const isDashboard = location.pathname === '/dashboard'
 
+  // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
       <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap' }}>차바이오컴플렉스 방재팀</span>
@@ -109,51 +132,122 @@ function Layout() {
 
   return (
     <div style={{
-      width: '100%',
-      flex: 1,
-      minHeight: 0,
       display: 'flex',
-      flexDirection: 'column',
+      height: '100dvh',
       overflow: 'hidden',
-      paddingTop: 'var(--sat, 0px)',
     }}>
-      {showNav && <GlobalHeader title={isDashboard ? dateOnly : pageTitle} onMenuOpen={() => setSideOpen(true)} rightSlot={isDashboard ? dashboardRightSlot : undefined} />}
-      {showNav && <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} unresolvedCount={unresolvedCount} />}
-      {isDashboard && showNav && <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', paddingBottom: showNav ? 'calc(54px + var(--sab, 34px))' : 0 }}>
-        <Suspense fallback={<Loader />}>
-          <Routes>
-            <Route path="/"              element={<SplashScreen />} />
-            <Route path="/login"         element={<LoginPage />} />
-            <Route path="/dashboard"     element={<Auth><DashboardPage /></Auth>} />
-            <Route path="/inspection"    element={<Auth><InspectionPage /></Auth>} />
-            <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
-            <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
-            <Route path="/elevator/findings/:fid" element={<Auth><ElevatorFindingDetailPage /></Auth>} />
-            <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
-            <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
-            <Route path="/staff-service" element={<Auth><StaffServicePage /></Auth>} />
-            <Route path="/more"          element={<Navigate to="/staff-service" replace />} />
-            <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
-            <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
-            <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
-            <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
-            <Route path="/leave"         element={<Auth><LeavePage /></Auth>} />
-            <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
-            <Route path="/div"           element={<Auth><DivPage /></Auth>} />
-            <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
-            <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
-            <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
-            <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
-            <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
-            <Route path="/legal/:id"                  element={<Auth><LegalFindingsPage /></Auth>} />
-            <Route path="/legal/:id/finding/:fid"     element={<Auth><LegalFindingDetailPage /></Auth>} />
-            <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
-            <Route path="*"              element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+      {/* 데스크톱: 280px 고정 사이드바 */}
+      {isDesktop && showNav && (
+        <DesktopSidebar
+          unresolvedCount={unresolvedCount}
+          onSettingsOpen={() => setSettingsOpen(true)}
+        />
+      )}
+
+      {/* 콘텐츠 영역 */}
+      <div style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        paddingTop: (!isDesktop) ? 'var(--sat, 0px)' : 0,
+      }}>
+        {/* 모바일 전용: GlobalHeader */}
+        {!isDesktop && showNav && (
+          <GlobalHeader
+            title={isDashboard ? dateOnly : pageTitle}
+            onMenuOpen={() => setSideOpen(true)}
+            rightSlot={isDashboard ? dashboardRightSlot : undefined}
+          />
+        )}
+        {/* 모바일 전용: SideMenu 드로어 */}
+        {!isDesktop && showNav && (
+          <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} unresolvedCount={unresolvedCount} />
+        )}
+
+        {/* 데스크톱: 간소화된 헤더 48px */}
+        {isDesktop && showNav && (
+          <header style={{
+            height: 48,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 16px',
+            background: 'var(--bg2)',
+            borderBottom: '1px solid var(--bd)',
+            flexShrink: 0,
+          }}>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--t1)',
+              flex: 1,
+            }}>
+              {isDashboard ? '대시보드' : pageTitle}
+            </span>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              style={{
+                width: 32, height: 32, borderRadius: 7,
+                background: 'var(--bg3)', border: 'none',
+                color: 'var(--t2)', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </header>
+        )}
+
+        {/* 설정 패널 — 모바일/데스크톱 공통 */}
+        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isDesktop={isDesktop && showNav} />
+
+        {/* 페이지 콘텐츠 */}
+        <main style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          paddingBottom: (!isDesktop && showNav) ? 'calc(54px + var(--sab, 34px))' : 0,
+        }}>
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/"              element={<SplashScreen />} />
+              <Route path="/login"         element={<LoginPage />} />
+              <Route path="/dashboard"     element={<Auth><DashboardPage /></Auth>} />
+              <Route path="/inspection"    element={<Auth><InspectionPage /></Auth>} />
+              <Route path="/inspection/qr" element={<Auth><QRScanPage /></Auth>} />
+              <Route path="/elevator"      element={<Auth><ElevatorPage /></Auth>} />
+              <Route path="/elevator/findings/:fid" element={<Auth><ElevatorFindingDetailPage /></Auth>} />
+              <Route path="/remediation"   element={<Auth><RemediationPage /></Auth>} />
+              <Route path="/remediation/:recordId" element={<Auth><RemediationDetailPage /></Auth>} />
+              <Route path="/staff-service" element={<Auth><StaffServicePage /></Auth>} />
+              <Route path="/more"          element={<Navigate to="/staff-service" replace />} />
+              <Route path="/schedule"      element={<Auth><SchedulePage /></Auth>} />
+              <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
+              <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
+              <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
+              <Route path="/leave"         element={<Auth><LeavePage /></Auth>} />
+              <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
+              <Route path="/div"           element={<Auth><DivPage /></Auth>} />
+              <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
+              <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
+              <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
+              <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
+              <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
+              <Route path="/legal/:id"                  element={<Auth><LegalFindingsPage /></Auth>} />
+              <Route path="/legal/:id/finding/:fid"     element={<Auth><LegalFindingDetailPage /></Auth>} />
+              <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
+              <Route path="*"              element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </main>
+
+        {/* 모바일 전용: BottomNav */}
+        {!isDesktop && showNav && <BottomNav unresolvedCount={unresolvedCount} />}
       </div>
-      {showNav && <BottomNav unresolvedCount={unresolvedCount} />}
     </div>
   )
 }
