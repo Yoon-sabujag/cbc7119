@@ -78,7 +78,9 @@ Plans:
   1. 지적사항 등록 화면에서 공통 점검항목 목록에서 선택하거나 직접 입력할 수 있다
   2. 위치를 구역→층→상세위치 3단계 드롭다운으로 입력할 수 있다
   3. 지적사항 등록 시 사진을 최대 5장까지 첨부할 수 있다 (Phase 12 PhotoGrid 활용)
-**Plans**: TBD
+**Plans:** 1/1 plan
+Plans:
+- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ### Phase 14: Schedule Date Range
@@ -89,7 +91,9 @@ Plans:
   1. 일정 추가 시 종료일 입력 필드가 나타나고 날짜 범위를 선택할 수 있다
   2. 범위 선택 시 "N일 일정이 추가됩니다" 미리보기가 실시간으로 표시된다
   3. 확인 후 해당 기간의 각 날짜에 일정이 개별적으로 등록된다
-**Plans**: TBD
+**Plans:** 1/1 plan
+Plans:
+- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ### Phase 15: Finding Download
@@ -130,7 +134,9 @@ Plans:
   2. 점검 일정 알림을 개별적으로 켜고 끌 수 있다
   3. 미조치 이슈 알림을 개별적으로 켜고 끌 수 있다
   4. 알림 구독 상태(허용/차단/미설정)가 설정 화면에 시각적으로 표시된다
-**Plans**: TBD
+**Plans:** 1/1 plan
+Plans:
+- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ### Phase 18: Menu Customization
@@ -141,7 +147,9 @@ Plans:
   1. 설정 페이지에서 BottomNav 메뉴 항목을 드래그 또는 버튼으로 순서 변경할 수 있다
   2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
   3. 변경한 메뉴 설정이 앱을 닫고 다시 열어도 유지된다 (로컬 퍼시스턴스)
-**Plans**: TBD
+**Plans:** 1/1 plan
+Plans:
+- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ### Phase 19: App Info & Cache
@@ -152,7 +160,9 @@ Plans:
   1. 설정 페이지에서 현재 앱 빌드 버전을 확인할 수 있다
   2. 캐시 초기화 버튼을 탭하면 서비스워커 캐시가 삭제되고 완료 메시지가 표시된다
   3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
-**Plans**: TBD
+**Plans:** 1/1 plan
+Plans:
+- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ## Progress
