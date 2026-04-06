@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { authApi } from '../utils/api'
+import { authApi, pushApi, NotificationPreferences } from '../utils/api'
 
 interface Props {
   open: boolean
@@ -12,15 +12,16 @@ interface Props {
 }
 
 // ── 토글 ─────────────────────────────────────────────
-function Toggle({ defaultOn = true }: { defaultOn?: boolean }) {
-  const [on, setOn] = useState(defaultOn)
+function Toggle({ on, onChange, disabled }: { on: boolean; onChange?: (v: boolean) => void; disabled?: boolean }) {
   return (
     <button
-      onClick={() => setOn(v => !v)}
+      onClick={() => !disabled && onChange?.(!on)}
       style={{
-        width: 38, height: 21, borderRadius: 11, border: 'none', cursor: 'pointer',
+        width: 38, height: 21, borderRadius: 11, border: 'none',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         background: on ? '#2563eb' : 'var(--bg4)',
         position: 'relative', transition: 'background 0.18s', flexShrink: 0,
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <span style={{
@@ -30,6 +31,22 @@ function Toggle({ defaultOn = true }: { defaultOn?: boolean }) {
         display: 'block',
       }} />
     </button>
+  )
+}
+
+// ── 알림 권한 상태 배지 ───────────────────────────────
+function PermBadge({ perm }: { perm: NotificationPermission }) {
+  const map: Record<string, { text: string; color: string }> = {
+    granted: { text: '허용됨', color: 'var(--safe, #22c55e)' },
+    denied:  { text: '차단됨', color: 'var(--danger, #ef4444)' },
+    default: { text: '권한 미설정', color: 'var(--t3, #6e7681)' },
+  }
+  const { text, color } = map[perm] || map.default
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10,
+      background: `${color}22`, color,
+    }}>{text}</span>
   )
 }
 
@@ -128,6 +145,88 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const displayTitle = staff?.title ?? ''
   const avatarChar = displayName ? displayName.charAt(0) : '?'
 
+  // ── 알림 상태 ─────────────────────────────────────
+  const [permState, setPermState] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+  )
+  const [subscribed, setSubscribed] = useState(false)
+  const [prefs, setPrefs] = useState<NotificationPreferences>({
+    daily_schedule: true, incomplete_schedule: true,
+    unresolved_issue: true, education_reminder: true,
+    event_15min: true, event_5min: true,
+  })
+
+  // 패널 열릴 때 구독 상태 로드
+  useEffect(() => {
+    if (!open) return
+    pushApi.getStatus()
+      .then(data => {
+        setSubscribed(data.subscribed)
+        if (data.subscribed && data.preferences) setPrefs(data.preferences)
+      })
+      .catch(() => {})
+  }, [open])
+
+  function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4)
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const rawData = atob(base64)
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)))
+  }
+
+  async function handleSubscribe() {
+    try {
+      if (permState === 'denied') {
+        toast('브라우저 설정에서 알림을 허용해 주세요.')
+        return
+      }
+      const result = await Notification.requestPermission()
+      setPermState(result)
+      if (result !== 'granted') {
+        toast('알림 권한이 차단되었습니다. 브라우저 설정에서 허용해주세요.')
+        return
+      }
+      const reg = await navigator.serviceWorker.ready
+      const vapidKey = await pushApi.getVapidKey()
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey) as unknown as ArrayBuffer,
+      })
+      await pushApi.subscribe(sub)
+      setSubscribed(true)
+      toast.success('푸시 알림이 활성화되었습니다.')
+    } catch (e) {
+      console.error('Push subscribe error:', e)
+      toast.error('알림 구독에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+
+  async function handleUnsubscribe() {
+    try {
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.getSubscription()
+      if (sub) {
+        await pushApi.unsubscribe(sub.endpoint)
+        await sub.unsubscribe()
+      }
+      setSubscribed(false)
+    } catch (e) {
+      console.error('Push unsubscribe error:', e)
+      toast.error('알림 해제에 실패했습니다.')
+    }
+  }
+
+  async function handlePrefToggle(key: keyof NotificationPreferences) {
+    const next = { ...prefs, [key]: !prefs[key] }
+    setPrefs(next)
+    try {
+      await pushApi.updatePreferences(next)
+    } catch {
+      setPrefs(prefs)
+      toast.error('설정 저장에 실패했습니다. 다시 시도해주세요.')
+    }
+  }
+
   useEffect(() => {
     if (!open) return
     const prevent = (e: TouchEvent) => {
@@ -211,9 +310,42 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         {/* 알림 */}
         <div style={{ padding: '12px 13px 5px' }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>알림</div>
-          <Row label="점검 미완료 알림" sub="마감 1시간 전"><Toggle defaultOn /></Row>
-          <Row label="미조치 항목 알림" sub="매일 09:00"><Toggle defaultOn /></Row>
-          <Row label="승강기 점검 D-7 알림"><Toggle defaultOn={false} /></Row>
+
+          {/* 권한 상태 + 구독 토글 */}
+          <Row label="푸시 알림" sub={permState === 'denied' ? '브라우저 설정에서 알림을 허용해주세요' : subscribed ? '구독 중' : '구독하려면 토글을 켜세요'}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <PermBadge perm={permState} />
+              <Toggle
+                on={subscribed}
+                onChange={v => v ? handleSubscribe() : handleUnsubscribe()}
+                disabled={permState === 'denied'}
+              />
+            </div>
+          </Row>
+
+          {/* 점검 그룹 */}
+          <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>점검</div>
+          <Row label="금일 점검 일정" sub="매일 08:45">
+            <Toggle on={prefs.daily_schedule} onChange={() => handlePrefToggle('daily_schedule')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
+          <Row label="전일 미완료 점검" sub="매일 08:45">
+            <Toggle on={prefs.incomplete_schedule} onChange={() => handlePrefToggle('incomplete_schedule')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
+          <Row label="미조치 항목" sub="매일 08:45">
+            <Toggle on={prefs.unresolved_issue} onChange={() => handlePrefToggle('unresolved_issue')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
+
+          {/* 일정 그룹 */}
+          <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>일정</div>
+          <Row label="행사 15분 전 알림" sub="행사 시작 15분 전">
+            <Toggle on={prefs.event_15min} onChange={() => handlePrefToggle('event_15min')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
+          <Row label="행사 5분 전 알림" sub="행사 시작 5분 전">
+            <Toggle on={prefs.event_5min} onChange={() => handlePrefToggle('event_5min')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
+          <Row label="교육 D-30 알림" sub="교육일 30일 전">
+            <Toggle on={prefs.education_reminder} onChange={() => handlePrefToggle('education_reminder')} disabled={!subscribed || permState === 'denied'} />
+          </Row>
         </div>
 
         {/* 화면 */}
@@ -229,7 +361,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
               <option>이번 주</option><option>최근 7일</option>
             </select>
           </Row>
-          <Row label="결과 즉시 저장"><Toggle defaultOn /></Row>
+          <Row label="결과 즉시 저장"><Toggle on={true} /></Row>
         </div>
 
         {/* 계정 */}

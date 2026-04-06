@@ -298,3 +298,33 @@ export const settingsApi = {
   getMenu: () => api.get<any>('/settings/menu'),
   saveMenu: (config: any) => api.put<void>('/settings/menu', { config }),
 }
+
+export interface NotificationPreferences {
+  daily_schedule: boolean
+  incomplete_schedule: boolean
+  unresolved_issue: boolean
+  education_reminder: boolean
+  event_15min: boolean
+  event_5min: boolean
+}
+
+export const pushApi = {
+  getVapidKey: () =>
+    fetch(`${BASE}/push/vapid-public-key`).then(r => r.text()),
+  getStatus: () =>
+    api.get<{ subscribed: boolean; preferences: NotificationPreferences }>('/push/subscribe'),
+  subscribe: (subscription: PushSubscription) => {
+    const p256dh = btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+    const auth = btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+    return api.post<void>('/push/subscribe', {
+      endpoint: subscription.endpoint,
+      keys: { p256dh, auth },
+    })
+  },
+  unsubscribe: (endpoint: string) =>
+    api.post<void>('/push/unsubscribe', { endpoint }),
+  updatePreferences: (prefs: NotificationPreferences) =>
+    api.patch<void>('/push/preferences', prefs),
+}
