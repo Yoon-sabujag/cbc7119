@@ -30,10 +30,10 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: '소방 점검 관리',   path: '/legal',      badge: 0, soon: false },
   ]},
   { section: '문서 관리', items: [
-    { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0, soon: false },
+    { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
     { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
     { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
-    { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
+    { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0, soon: false },
     { label: '점검 일지 출력', path: '/reports',        badge: 0, soon: false },
     { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0, soon: false },
   ]},

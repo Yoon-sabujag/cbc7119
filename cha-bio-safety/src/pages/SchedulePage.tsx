@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { ScheduleItem, ScheduleCategory } from '../types'
 
 // ── 날짜 헬퍼 (로컬 시간 기준) ──────────────────────────────
@@ -145,11 +146,37 @@ const STATUS_LABEL: Record<string,{label:string;color:string}> = {
 
 const WEEK_DAYS = ['일','월','화','수','목','금','토']
 
+// ── 미리보기 행 정의 ──────────────────────────────────────────
+const PLAN_PREVIEW_ROWS: { label: string; daily?: boolean; cats?: string[]; cl?: Record<string,string>; note?: string }[] = [
+  { label: '소화설비 점검(소화기, 소화전)', cats: ['소화기','소화전'], cl: {'소화기':'기','소화전':'전'} },
+  { label: '경보설비 점검(자탐설비, 비상방송설비)', daily: true, note: '일상점검' },
+  { label: '피난설비(유도등 및 완강기) 점검', daily: true, note: '일상점검' },
+  { label: '더블인터록밸브 점검(콤프레셔포함)', cats: ['DIV','컴프레셔','유도등','배연창','완강기'], cl: {'유도등':'유도등','배연창':'배연창','완강기':'완강기'}, note: '격주' },
+  { label: '소화 활동설비(전실제연댐퍼,연결송수관)', cats: ['전실제연댐퍼','연결송수관'] },
+  { label: '특별피난계단 점검', cats: ['특별피난계단'] },
+  { label: '소방펌프 주변 점검(MCC, 지하수조)', daily: true, note: '일상점검' },
+  { label: '청정소화약제 점검', cats: ['청정소화약제','소방펌프'], cl: {'소방펌프':'펌프'}, note: '펌프' },
+  { label: '배연창 관리상태 점검', daily: true, note: '일상점검' },
+  { label: '화재수신반 점검', daily: true, note: '일상점검' },
+  { label: '방화셔터 연동제어기 점검', cats: ['방화셔터'] },
+  { label: '피난,방화시설 집중점검(비파라치)', cats: ['방화문'] },
+  { label: '옥상 및 취약지구 순찰점검', daily: true, note: '일상점검' },
+  { label: '전층 방화문 점검', cats: ['방화문'], note: '방화문' },
+  { label: '비상콘센트 설비 점검', cats: ['비상콘센트'], note: '소화전' },
+  { label: '소방용 전원공급반 점검', cats: ['소방용전원공급반'] },
+  { label: '승강기 점검(운행상태, AS신청)', daily: true, note: '일상점검' },
+  { label: '출입통제 시스템 및 CCTV 점검', daily: true, note: '상황발생시 현장점검' },
+  { label: '주차장비 시스템', cats: ['주차장비','CCTV'], cl: {'CCTV':'cctv'} },
+  { label: '회전문 점검', cats: ['회전문'] },
+  { label: '전관방송 시스템 점검', daily: true, note: '일상점검' },
+]
+
 // ── 메인 컴포넌트 ─────────────────────────────────────────────
 export default function SchedulePage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
   const qc        = useQueryClient()
+  const isDesktop = useIsDesktop()
 
   const today    = localYMD(new Date())
   const [curMonth, setCurMonth] = useState(() => localYM(new Date()))
@@ -249,7 +276,205 @@ export default function SchedulePage() {
     }
   }
 
+  // ── 공통 요소 ──────────────────────────────────────────────
+  const calendarEl = (
+    <>
+      {/* 월 이동 */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+        <button onClick={() => shiftMonth(-1)} style={arrowBtn}>‹</button>
+        <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>
+          {curMonth.split('-')[0]}년 {parseInt(curMonth.split('-')[1])}월
+        </span>
+        <button onClick={() => shiftMonth(1)} style={arrowBtn}>›</button>
+      </div>
 
+      {/* 캘린더 */}
+      <div style={{ background:'var(--bg2)', borderRadius:14, border:'1px solid var(--bd)', overflow:'hidden', marginBottom:16 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--bd)' }}>
+          {WEEK_DAYS.map((d,i) => (
+            <div key={d} style={{ textAlign:'center', padding:'7px 0', fontSize:10, fontWeight:600,
+              color: i===0 ? '#ef4444' : i===6 ? 'var(--acl)' : 'var(--t3)' }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+          {calDays.map((date, idx) => {
+            if (!date) return <div key={idx} />
+            const isToday   = date === today
+            const isSel     = date === selDate
+            const dow       = idx % 7
+            const isHoliday = !!holidays[date]
+            const dots      = dotMap[date] ?? []
+            const isRed     = dow === 0 || isHoliday
+
+            return (
+              <button key={idx} onClick={() => setSelDate(date)}
+                style={{ padding:'5px 0 7px', cursor:'pointer',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                  borderRadius: isSel ? 8 : 0,
+                  background: isSel ? 'rgba(59,130,246,0.15)' : 'transparent',
+                  border: isSel ? '2px solid #3b82f6' : '2px solid transparent',
+                  boxSizing: 'border-box' }}>
+                <span style={{
+                  fontSize:12, fontWeight: isToday||isSel ? 700:400,
+                  color: isSel ? 'var(--acl)' : isToday ? '#fff' : isRed ? '#ef4444' : dow===6 ? 'var(--acl)' : 'var(--t1)',
+                  width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
+                  borderRadius:'50%', background: isToday&&!isSel ? 'var(--acl)':'transparent',
+                }}>
+                  {parseInt(date.slice(8))}
+                </span>
+                <div style={{ display:'flex', gap:2, height:4 }}>
+                  {dots.slice(0,3).map((cat,ci) => (
+                    <span key={ci} style={{ width:4, height:4, borderRadius:'50%', background: catInfo(cat)?.color??'var(--t3)' }} />
+                  ))}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 공휴일 표시 */}
+      {holidays[selDate] && (
+        <div style={{ marginBottom:8, fontSize:11, color:'#ef4444', fontWeight:600, paddingLeft:2 }}>
+          {holidays[selDate]}
+        </div>
+      )}
+    </>
+  )
+
+  const scheduleListEl = (
+    <>
+      <div style={{ display:'flex', alignItems:'center', marginBottom:8, gap:6 }}>
+        <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>
+          {selDate === today ? '오늘' : `${selDate.slice(5).replace('-','/')}`} 일정
+        </span>
+        <span style={{ fontSize:11, color:'var(--t3)' }}>{dayItems.length}건</span>
+        <span style={{ flex:1 }}/>
+        {isDesktop && (
+          <button onClick={() => setShowAdd(true)}
+            style={{ padding:'5px 12px', borderRadius:7, border:'none', background:'var(--acl)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+            + 추가
+          </button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div style={{ textAlign:'center', padding:32, color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
+      ) : dayItems.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'28px 0', color:'var(--t3)', fontSize:12 }}>
+          등록된 일정이 없습니다<br/>
+          <button onClick={() => setShowAdd(true)}
+            style={{ marginTop:12, padding:'8px 16px', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg2)', color:'var(--t2)', fontSize:12, cursor:'pointer' }}>
+            + 일정 추가
+          </button>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {dayItems.map(item => {
+            const cat = catInfo(item.category)
+            const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+            return (
+              <div key={item.id} style={{ background:'var(--bg2)', borderRadius:12, border:'1px solid var(--bd)', padding:'12px 14px' }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
+                        {cat?.label}
+                      </span>
+                      {item.inspectionCategory && (
+                        <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 7px' }}>
+                          {item.inspectionCategory}
+                        </span>
+                      )}
+                      <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
+                    </div>
+                    <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time)?4:0 }}>{item.title}</div>
+                    {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time?4:0 }}>{item.memo}</div>}
+                    {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
+                  </div>
+                  <div style={{ display:'flex', gap:4, flexShrink:0 }}>
+                    {item.status !== 'done' && (
+                      <button onClick={() => handleStatus(item,'done')}
+                        style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                        완료
+                      </button>
+                    )}
+                    <button onClick={() => setEditItem(item)}
+                      style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
+                      수정
+                    </button>
+                    <button onClick={() => handleDelete(item)}
+                      style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+
+  const modalsEl = (
+    <>
+      {showAdd && (
+        <AddModal
+          defaultDate={selDate}
+          staffId={staff?.id ?? '2018042451'}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => { invalidate(); toast.success('일정 추가됨') }}
+          onDateChange={setSelDate}
+        />
+      )}
+      {editItem && (
+        <EditModal
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={() => { invalidate(); setEditItem(null); toast.success('수정됐습니다') }}
+        />
+      )}
+    </>
+  )
+
+  // ── 렌더 — 데스크톱 ────────────────────────────────────────
+  if (isDesktop) {
+    return (
+      <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)' }}>
+        {/* 상단 헤더 */}
+        <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:8, flexShrink:0, background:'var(--bg2)' }}>
+          <span style={{ flex:1, fontSize:15, fontWeight:700, color:'var(--t1)' }}>점검 계획 관리</span>
+          <button onClick={handlePlanDownload} disabled={planLoading}
+            style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
+            <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+            {planLoading ? '생성 중...' : '엑셀 다운로드'}
+          </button>
+        </div>
+
+        {/* 상단: 월간 점검 계획 테이블 */}
+        <div style={{ flexShrink:0, overflow:'hidden', borderBottom:'1px solid var(--bd)' }}>
+          <MonthlyPlanPreview curMonth={curMonth} items={monthItems} holidays={holidays} />
+        </div>
+
+        {/* 하단: 좌=달력, 우=일정 */}
+        <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+          {/* 달력 */}
+          <div style={{ width:380, flexShrink:0, overflowY:'auto', padding:'16px 20px', borderRight:'1px solid var(--bd)' }}>
+            {calendarEl}
+          </div>
+          {/* 일정 리스트 */}
+          <div style={{ flex:1, overflowY:'auto', padding:'16px 24px' }}>
+            {scheduleListEl}
+          </div>
+        </div>
+
+        {modalsEl}
+      </div>
+    )
+  }
+
+  // ── 렌더 — 모바일 ──────────────────────────────────────────
   return (
     <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
 
@@ -272,151 +497,139 @@ export default function SchedulePage() {
       </header>
 
       <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 24px' }}>
-
-        {/* 월 이동 */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-          <button onClick={() => shiftMonth(-1)} style={arrowBtn}>‹</button>
-          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>
-            {curMonth.split('-')[0]}년 {parseInt(curMonth.split('-')[1])}월
-          </span>
-          <button onClick={() => shiftMonth(1)} style={arrowBtn}>›</button>
-        </div>
-
-        {/* 캘린더 */}
-        <div style={{ background:'var(--bg2)', borderRadius:14, border:'1px solid var(--bd)', overflow:'hidden', marginBottom:16 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--bd)' }}>
-            {WEEK_DAYS.map((d,i) => (
-              <div key={d} style={{ textAlign:'center', padding:'7px 0', fontSize:10, fontWeight:600,
-                color: i===0 ? '#ef4444' : i===6 ? 'var(--acl)' : 'var(--t3)' }}>{d}</div>
-            ))}
-          </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
-            {calDays.map((date, idx) => {
-              if (!date) return <div key={idx} />
-              const isToday   = date === today
-              const isSel     = date === selDate
-              const dow       = idx % 7
-              const isHoliday = !!holidays[date]
-              const dots      = dotMap[date] ?? []
-              const isRed     = dow === 0 || isHoliday
-
-              return (
-                <button key={idx} onClick={() => setSelDate(date)}
-                  style={{ padding:'5px 0 7px', cursor:'pointer',
-                    display:'flex', flexDirection:'column', alignItems:'center', gap:2,
-                    borderRadius: isSel ? 8 : 0,
-                    background: isSel ? 'rgba(59,130,246,0.15)' : 'transparent',
-                    border: isSel ? '2px solid #3b82f6' : '2px solid transparent',
-                    boxSizing: 'border-box' }}>
-                  <span style={{
-                    fontSize:12, fontWeight: isToday||isSel ? 700:400,
-                    color: isSel ? 'var(--acl)' : isToday ? '#fff' : isRed ? '#ef4444' : dow===6 ? 'var(--acl)' : 'var(--t1)',
-                    width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
-                    borderRadius:'50%', background: isToday&&!isSel ? 'var(--acl)':'transparent',
-                  }}>
-                    {parseInt(date.slice(8))}
-                  </span>
-                  <div style={{ display:'flex', gap:2, height:4 }}>
-                    {dots.slice(0,3).map((cat,ci) => (
-                      <span key={ci} style={{ width:4, height:4, borderRadius:'50%', background: catInfo(cat)?.color??'var(--t3)' }} />
-                    ))}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 공휴일 표시 */}
-        {holidays[selDate] && (
-          <div style={{ marginBottom:8, fontSize:11, color:'#ef4444', fontWeight:600, paddingLeft:2 }}>
-            🇰🇷 {holidays[selDate]}
-          </div>
-        )}
-
-        {/* 선택 날짜 일정 */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-          <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>
-            {selDate === today ? '오늘' : `${selDate.slice(5).replace('-','/')}`} 일정
-          </span>
-          <span style={{ fontSize:11, color:'var(--t3)' }}>{dayItems.length}건</span>
-        </div>
-
-        {isLoading ? (
-          <div style={{ textAlign:'center', padding:32, color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
-        ) : dayItems.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'28px 0', color:'var(--t3)', fontSize:12 }}>
-            등록된 일정이 없습니다<br/>
-            <button onClick={() => setShowAdd(true)}
-              style={{ marginTop:12, padding:'8px 16px', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg2)', color:'var(--t2)', fontSize:12, cursor:'pointer' }}>
-              + 일정 추가
-            </button>
-          </div>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {dayItems.map(item => {
-              const cat = catInfo(item.category)
-              const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
-              return (
-                <div key={item.id} style={{ background:'var(--bg2)', borderRadius:12, border:'1px solid var(--bd)', padding:'12px 14px' }}>
-                  <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
-                          {cat?.label}
-                        </span>
-                        {item.inspectionCategory && (
-                          <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 7px' }}>
-                            {item.inspectionCategory}
-                          </span>
-                        )}
-                        <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
-                      </div>
-                      <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time)?4:0 }}>{item.title}</div>
-                      {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time?4:0 }}>{item.memo}</div>}
-                      {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
-                    </div>
-                    <div style={{ display:'flex', gap:4, flexShrink:0 }}>
-                      {item.status !== 'done' && (
-                        <button onClick={() => handleStatus(item,'done')}
-                          style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
-                          완료
-                        </button>
-                      )}
-                      <button onClick={() => setEditItem(item)}
-                        style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
-                        수정
-                      </button>
-                      <button onClick={() => handleDelete(item)}
-                        style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
-                        삭제
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+        {calendarEl}
+        {scheduleListEl}
       </div>
 
-      {showAdd && (
-        <AddModal
-          defaultDate={selDate}
-          staffId={staff?.id ?? '2018042451'}
-          onClose={() => setShowAdd(false)}
-          onSaved={() => { invalidate(); toast.success('일정 추가됨') }}
-          onDateChange={setSelDate}
-        />
-      )}
+      {modalsEl}
+    </div>
+  )
+}
 
-      {editItem && (
-        <EditModal
-          item={editItem}
-          onClose={() => setEditItem(null)}
-          onSaved={() => { invalidate(); setEditItem(null); toast.success('수정됐습니다') }}
-        />
-      )}
+// ── 월간 점검 계획 테이블 ──────────────────────────────────────
+function MonthlyPlanPreview({ curMonth, items, holidays }: {
+  curMonth: string; items: ScheduleItem[]; holidays: Record<string, string>
+}) {
+  const [y, mo] = curMonth.split('-').map(Number)
+  const daysInMonth = new Date(y, mo, 0).getDate()
+  const firstDow = new Date(y, mo - 1, 1).getDay()
+  const DOW = ['일','월','화','수','목','금','토']
+
+  // 날짜별 카테고리 매핑
+  const dayCatMap = useMemo(() => {
+    const m: Record<number, Set<string>> = {}
+    for (const item of items) {
+      if (item.category !== 'inspect' || !item.inspectionCategory) continue
+      const sd = parseInt(item.date.split('-')[2])
+      const ed = item.endDate ? parseInt(item.endDate.split('-')[2]) : sd
+      for (let d = sd; d <= ed; d++) {
+        if (!m[d]) m[d] = new Set()
+        m[d].add(item.inspectionCategory)
+      }
+    }
+    return m
+  }, [items])
+
+  const cellStyle: React.CSSProperties = {
+    border: '1px solid var(--bd)', padding: '3px 1px', textAlign: 'center',
+    fontSize: 11, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--t1)',
+  }
+  const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--bg3)', color: 'var(--t1)' }
+
+  return (
+    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--bg2)' }}>
+      {/* 타이틀 */}
+      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--t1)' }}>
+        {mo}월 중요업무추진계획(방재)
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <thead>
+          {/* 날짜 행 */}
+          <tr>
+            <th style={{ ...headCell, width: '2%' }}></th>
+            <th style={{ ...headCell, width: '20%' }}>시행일자</th>
+            {Array.from({ length: daysInMonth }, (_, i) => {
+              const dow = (firstDow + i) % 7
+              const dateStr = `${curMonth}-${String(i + 1).padStart(2, '0')}`
+              const isHol = !!holidays[dateStr]
+              return (
+                <th key={i} style={{
+                  ...headCell,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
+                  background: dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--bg3)',
+                }}>
+                  {i + 1}
+                </th>
+              )
+            })}
+            <th style={{ ...headCell, width: '6%' }}>비고</th>
+          </tr>
+          {/* 요일 행 */}
+          <tr>
+            <th style={{ ...headCell, width: '2%' }}>NO.</th>
+            <th style={{ ...headCell, textAlign: 'left', paddingLeft: 6 }}>내 &nbsp; 용</th>
+            {Array.from({ length: daysInMonth }, (_, i) => {
+              const dow = (firstDow + i) % 7
+              const dateStr = `${curMonth}-${String(i + 1).padStart(2, '0')}`
+              const isHol = !!holidays[dateStr]
+              return (
+                <th key={i} style={{
+                  ...headCell, fontWeight: 600,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
+                }}>
+                  {DOW[dow]}
+                </th>
+              )
+            })}
+            <th style={headCell} />
+          </tr>
+        </thead>
+        <tbody>
+          {PLAN_PREVIEW_ROWS.map((row, ri) => (
+            <tr key={ri}>
+              <td style={{ ...cellStyle, fontWeight: 600 }}>{ri + 1}</td>
+              <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 6, fontSize: 10 }}>{row.label}</td>
+              {Array.from({ length: daysInMonth }, (_, i) => {
+                const d = i + 1
+                const dow = (firstDow + i) % 7
+                const dateStr = `${curMonth}-${String(d).padStart(2, '0')}`
+                const isHol = !!holidays[dateStr]
+                const isWeekend = dow === 0 || dow === 6 || isHol
+
+                let text = ''
+                if (row.daily) {
+                  text = '점검'
+                } else if (row.cats) {
+                  const dayCats = dayCatMap[d]
+                  if (dayCats) {
+                    for (const cat of row.cats) {
+                      if (dayCats.has(cat)) {
+                        text = row.cl?.[cat] ?? '점검'
+                        break
+                      }
+                    }
+                  }
+                }
+
+                return (
+                  <td key={i} style={{
+                    ...cellStyle, fontSize: 10,
+                    color: text ? 'var(--t1)' : 'transparent',
+                    background: isWeekend ? (dow === 0 || isHol ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)')
+                      : text && !row.daily ? 'rgba(34,197,94,0.1)' : 'transparent',
+                  }}>
+                    {text || '.'}
+                  </td>
+                )
+              })}
+              <td style={{ ...cellStyle, fontSize: 9, color: 'var(--t3)', whiteSpace: 'normal', lineHeight: 1.2 }}>
+                {row.note ?? ''}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
