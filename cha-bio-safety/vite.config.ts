@@ -6,7 +6,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — 고해상도 도면 PNG
+        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
+        globIgnores: ['**/floorplans/**'], // 도면은 런타임 캐시 사용
+      },
       manifest: {
         name: 'CBC 방재',
         short_name: 'CBC 방재',
@@ -19,25 +27,6 @@ export default defineConfig({
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-        ],
-      },
-      workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB — 고해상도 도면 PNG
-        globPatterns: ['**/*.{js,css,html,ico,png,woff2}'],
-        globIgnores: ['**/floorplans/**'], // 도면은 런타임 캐시 사용
-        runtimeCaching: [
-          {
-            urlPattern: /\/floorplans\/.+\.(svg|png|pdf)$/,
-            handler: 'CacheFirst',
-            options: { cacheName: 'floorplan-cache', expiration: { maxEntries: 30, maxAgeSeconds: 30 * 24 * 3600 } },
-          },
-          {
-            urlPattern: ({ request }) => request.method === 'GET' && /\/api\//.test(request.url),
-            handler: 'NetworkFirst',
-            options: { cacheName:'api-cache', expiration:{ maxEntries:50, maxAgeSeconds:300 } },
-          },
         ],
       },
     }),
