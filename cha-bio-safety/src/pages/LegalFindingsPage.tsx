@@ -61,22 +61,6 @@ const FINDING_ITEMS = [
   '전실제연댐퍼','청정소화약제',
 ]
 
-const ZONE_FLOOR_DETAILS = [
-  '직접입력',
-  '복도',
-  '계단실',
-  '화장실',
-  'EPS',
-  'TPS',
-  '기계실',
-  '전기실',
-  '주차장',
-  '로비',
-  '회의실',
-  '실험실',
-  '옥상',
-] as const
-
 // ── 지적사항 등록 BottomSheet ─────────────────────────────────────
 interface BottomSheetProps {
   scheduleItemId: string
@@ -87,8 +71,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
   const queryClient = useQueryClient()
   const [zone, setZone] = useState('')
   const [floor, setFloor] = useState('')
-  const [locationDetail, setLocationDetail] = useState('직접입력')
-  const [customLocationDetail, setCustomLocationDetail] = useState('')
+  const [locationDetail, setLocationDetail] = useState('')
   const [inspectionItem, setInspectionItem] = useState('')
   const [customItem, setCustomItem] = useState('')
   const [description, setDescription] = useState('')
@@ -97,11 +80,10 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
   const mutation = useMutation({
     mutationFn: async () => {
       const photoKeys = await photos.uploadAll()
-      const detailValue = locationDetail === '직접입력' ? customLocationDetail.trim() : locationDetail
       const loc = [
         ZONES.find(z => z.key === zone)?.label,
         floor,
-        detailValue || undefined,
+        locationDetail.trim(),
       ].filter(Boolean).join(' ')
       const item = inspectionItem === '직접입력' ? customItem.trim() : inspectionItem
       return legalApi.createFinding(scheduleItemId, {
@@ -240,40 +222,16 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
             </div>
           )}
 
-          {/* 위치 상세 */}
+          {/* 상세 위치 */}
           <div>
             <div style={lblStyle}>위치 상세</div>
-            <select
+            <input
+              type="text"
               value={locationDetail}
-              onChange={e => { setLocationDetail(e.target.value); setCustomLocationDetail('') }}
-              style={{
-                background: 'var(--bg3)',
-                borderRadius: 9,
-                padding: '8px 12px',
-                border: '1px solid var(--bd2)',
-                width: '100%',
-                color: 'var(--t1)',
-                fontSize: 13,
-                boxSizing: 'border-box',
-                outline: 'none',
-                fontFamily: 'inherit',
-                appearance: 'none',
-                WebkitAppearance: 'none',
-              }}
-            >
-              {ZONE_FLOOR_DETAILS.map(item => (
-                <option key={item} value={item}>{item}</option>
-              ))}
-            </select>
-            {locationDetail === '직접입력' && (
-              <input
-                type="text"
-                value={customLocationDetail}
-                onChange={e => setCustomLocationDetail(e.target.value)}
-                placeholder="직접 입력"
-                style={{ ...inputStyle, marginTop: 8 }}
-              />
-            )}
+              onChange={e => setLocationDetail(e.target.value)}
+              placeholder="예: 복도, 계단실, 전기실"
+              style={inputStyle}
+            />
           </div>
 
           {/* 지적 항목 (리스트 선택) */}
@@ -368,7 +326,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
               opacity: isSubmitting ? 0.6 : 1,
             }}
           >
-            {isSubmitting ? '처리 중...' : '지적사항 등록'}
+            {isSubmitting ? '처리 중...' : '등록'}
           </button>
           <button
             onClick={onClose}
@@ -384,7 +342,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
               cursor: 'pointer',
             }}
           >
-            닫기
+            취소
           </button>
         </div>
       </div>
