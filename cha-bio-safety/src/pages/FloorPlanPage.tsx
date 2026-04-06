@@ -6,6 +6,7 @@ import { floorPlanMarkerApi, inspectionApi, type FloorPlanMarker } from '../util
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 // import PdfFloorPlan from '../components/PdfFloorPlan'
 // import SvgFloorPlan from '../components/SvgFloorPlan'
 
@@ -179,8 +180,10 @@ export default function FloorPlanPage() {
   const qc = useQueryClient()
   const { staff } = useAuthStore()
   const canEditMarker = !!staff
+  const isDesktop = useIsDesktop()
 
   const [planType, setPlanType] = useState<PlanType>('guidelamp')
+  const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
   const [floor, setFloor] = useState('8-1F')
   const [selected, setSelected] = useState<FloorPlanMarker | null>(null)
   const [editMode, setEditMode] = useState(false)
@@ -452,11 +455,9 @@ export default function FloorPlanPage() {
   // ── 마커 클릭 ─────────────────────────────────────────
   function onMarkerClick(m: FloorPlanMarker, e: React.MouseEvent | React.TouchEvent) {
     e.stopPropagation()
-    if (editMode) {
-      setSelected(m)
-    } else {
-      setSelected(m)
-    }
+    // 데스크톱 편집 모드에서는 mouseUp에서 선택 처리 (드래그 충돌 방지)
+    if (isDesktop && editMode) return
+    setSelected(m)
   }
 
   function onMarkerTouchStart(m: FloorPlanMarker, e: React.TouchEvent) {
@@ -465,6 +466,118 @@ export default function FloorPlanPage() {
       setDragId(m.id)
       setSelected(m)
     }
+  }
+
+  // ── 데스크톱: 마우스 드래그로 마커 이동 ───────────────────
+  const mouseDragRef = useRef(false)
+  const mouseMovedRef = useRef(false)
+  const mousePanRef = useRef(false)
+  const mouseLastRef = useRef({ x: 0, y: 0 })
+  const mouseDragMarkerRef = useRef<FloorPlanMarker | null>(null)
+
+  function onMarkerMouseDown(m: FloorPlanMarker, e: React.MouseEvent) {
+    if (!editMode || !isDesktop) return
+    e.preventDefault()
+    e.stopPropagation()
+    setDragId(m.id)
+    mouseDragRef.current = true
+    mouseMovedRef.current = false
+    mouseDragMarkerRef.current = m
+  }
+
+  const onCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isDesktop) return
+    mouseLastRef.current = { x: e.clientX, y: e.clientY }
+    mousePanRef.current = true
+  }, [isDesktop])
+
+  const onCanvasMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDesktop) return
+    // 마커 드래그
+    if (mouseDragRef.current && dragId) {
+      const el = containerRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const s = scaleRef.current
+      const t = translateRef.current
+      const wx = (e.clientX - rect.left - rect.width / 2 - t.x) / s + rect.width / 2
+      const wy = (e.clientY - rect.top - rect.height / 2 - t.y) / s + rect.height / 2
+      const xPct = ((wx - imgRect.offX) / imgRect.w) * 100
+      const yPct = ((wy - imgRect.offY) / imgRect.h) * 100
+      if (xPct >= 0 && xPct <= 100 && yPct >= 0 && yPct <= 100) {
+        setDragPos({ x_pct: Math.round(xPct * 100) / 100, y_pct: Math.round(yPct * 100) / 100 })
+        mouseMovedRef.current = true
+      }
+      return
+    }
+    // 캔버스 패닝
+    if (mousePanRef.current) {
+      const dx = e.clientX - mouseLastRef.current.x
+      const dy = e.clientY - mouseLastRef.current.y
+      mouseLastRef.current = { x: e.clientX, y: e.clientY }
+      const s = scaleRef.current
+      const t = translateRef.current
+      const clamped = clampTranslate(t.x + dx, t.y + dy, s)
+      setTranslate(clamped)
+    }
+  }, [isDesktop, dragId])
+
+  const onCanvasMouseUp = useCallback(() => {
+    if (!isDesktop) return
+    if (mouseDragRef.current) {
+      if (mouseMovedRef.current && dragId && dragPos) {
+        // 실제 드래그 발생 → DB에 위치 저장
+        updateMutation.mutate({ id: dragId, body: { x_pct: dragPos.x_pct, y_pct: dragPos.y_pct } })
+      } else if (!mouseMovedRef.current && mouseDragMarkerRef.current) {
+        // 클릭만 한 경우 → 마커 선택
+        setSelected(mouseDragMarkerRef.current)
+      }
+    }
+    mouseDragRef.current = false
+    mouseMovedRef.current = false
+    mousePanRef.current = false
+    mouseDragMarkerRef.current = null
+    setDragId(null)
+    setDragPos(null)
+  }, [isDesktop, dragId, dragPos])
+
+  // ── 데스크톱: 더블클릭으로 마커 추가 ─────────────────────
+  const onCanvasDblClick = useCallback((e: React.MouseEvent) => {
+    if (!isDesktop || !editMode) return
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const s = scaleRef.current
+    const t = translateRef.current
+    const wx = (e.clientX - rect.left - rect.width / 2 - t.x) / s + rect.width / 2
+    const wy = (e.clientY - rect.top - rect.height / 2 - t.y) / s + rect.height / 2
+    const xPct = ((wx - imgRect.offX) / imgRect.w) * 100
+    const yPct = ((wy - imgRect.offY) / imgRect.h) * 100
+    if (xPct >= 0 && xPct <= 100 && yPct >= 0 && yPct <= 100) {
+      setAddModal({ x_pct: Math.round(xPct * 100) / 100, y_pct: Math.round(yPct * 100) / 100 })
+      setAddLabel('')
+      const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
+      setAddMarkerType(firstType as MarkerType)
+      setAddCheckpointId(null)
+      loadAddCheckpoints(firstType)
+    }
+  }, [isDesktop, editMode, currentMarkerTypes])
+
+  // ── 데스크톱: 말풍선 위치 계산 ────────────────────────────
+  function getBalloonPos(m: FloorPlanMarker) {
+    const el = containerRef.current
+    if (!el) return { left: 0, top: 0, arrowDir: 'bottom' as const }
+    const rect = el.getBoundingClientRect()
+    const s = scaleRef.current
+    const t = translateRef.current
+    const px = imgRect.offX + (m.x_pct / 100) * imgRect.w
+    const py = imgRect.offY + (m.y_pct / 100) * imgRect.h
+    // 변환된 화면 좌표
+    const screenX = (px - rect.width / 2) * s + t.x + rect.width / 2
+    const screenY = (py - rect.height / 2) * s + t.y + rect.height / 2
+    // 말풍선 방향 결정 (마커가 상단이면 아래로, 하단이면 위로)
+    const arrowDir = screenY > rect.height * 0.5 ? 'top' : 'bottom'
+    return { left: screenX, top: screenY, arrowDir }
   }
 
   // ── 추가 모달: 마커 타입 변경 시 개소 로드 (소화기·소화전) ──
@@ -495,7 +608,6 @@ export default function FloorPlanPage() {
   // ── 도면 URL & 현재 마커 타입 목록 ─────────────────────
   const floorPlanUrl = getFloorPlanUrl(planType, floor)
   const planReady = PLAN_TYPES.find(p => p.key === planType)?.ready
-  const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
@@ -576,12 +688,17 @@ export default function FloorPlanPage() {
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         onWheel={onWheel}
-        onClick={() => { if (!editMode) setSelected(null) }}
+        onMouseDown={onCanvasMouseDown}
+        onMouseMove={onCanvasMouseMove}
+        onMouseUp={onCanvasMouseUp}
+        onMouseLeave={onCanvasMouseUp}
+        onDoubleClick={onCanvasDblClick}
+        onClick={() => { if (!editMode && !mousePanRef.current) setSelected(null) }}
       >
         {/* ── 편집모드 안내 (absolute — 레이아웃 영향 없음) ── */}
         {editMode && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '6px 12px', background: 'rgba(59,130,246,0.85)', fontSize: 11, color: '#fff', fontWeight: 600, textAlign: 'center', pointerEvents: 'none' }}>
-            길게 누르면 마커 추가 · 마커를 터치하여 선택/삭제
+            {isDesktop ? '더블클릭으로 마커 추가 · 마커를 드래그하여 이동 · 클릭하여 선택' : '길게 누르면 마커 추가 · 마커를 터치하여 선택/삭제'}
           </div>
         )}
 
@@ -626,11 +743,12 @@ export default function FloorPlanPage() {
                   key={m.id}
                   onClick={(e) => onMarkerClick(m, e)}
                   onTouchStart={(e) => onMarkerTouchStart(m, e)}
+                  onMouseDown={(e) => onMarkerMouseDown(m, e)}
                   style={{
                     position: 'absolute',
                     left: px,
                     top: py,
-                    transform: `translate(-50%, -50%) scale(${1/scale})`,
+                    transform: `translate(-50%, -50%) scale(${Math.max(0.5, 1 / Math.sqrt(scale))})`,
                     cursor: 'pointer',
                     zIndex: isDragging ? 50 : selected?.id === m.id ? 10 : 1,
                     outline: (isDragging || selected?.id === m.id) ? '2.5px solid #3b82f6' : 'none',
@@ -669,53 +787,33 @@ export default function FloorPlanPage() {
         <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
       </div>
 
-      {/* ── 마커 상세 바텀시트 ────────────────────────── */}
-      {selected && !addModal && !editMarker && (
-        <div
-          style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0,
-            background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
-            borderRadius: '16px 16px 0 0', padding: '16px 16px 28px', zIndex: 30,
-            boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-          <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd2)', margin: '0 auto 14px' }} />
+      {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
+      {selected && !addModal && !editMarker && (() => {
+        const statusColor = STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal
+        const markerLabel = selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
+        const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량' }[getMarkerStatus(selected)] ?? '미점검'
 
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-              background: (STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal) + '22',
-              border: `1.5px solid ${(STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal)}55`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <MarkerIcon markerType={selected.marker_type} color={STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal} size={22} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>
-                {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'}
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
-                {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
-                <span style={{ fontSize: 11, fontWeight: 700, color: STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal }}>
-                  {{ normal: '정상', caution: '주의', fault: '불량', bad: '불량' }[getMarkerStatus(selected)] ?? '미점검'}
-                </span>
-                {selected.last_inspected_at && (
-                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>
-                )}
-              </div>
-            </div>
-            <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}>
-              ✕
-            </button>
-          </div>
+        const openEditMarkerModal = () => {
+          setEditLabel(selected.label ?? '')
+          setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
+          setEditCheckpointId(selected.check_point_id)
+          if (planType === 'extinguisher') {
+            const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
+            const markerCat = markerCatMap[selected.marker_type ?? ''] ?? '소화기'
+            inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === markerCat))).catch(() => setCheckpoints([]))
+          } else {
+            const cat = { detector: '자동화재탐지설비', sprinkler: '스프링클러설비', guidelamp: '유도등' }[planType] ?? '유도등'
+            inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === cat))).catch(() => setCheckpoints([]))
+          }
+          setEditMarker(true)
+        }
 
+        const actionButtons = (
           <div style={{ display: 'flex', gap: 8 }}>
             {selected.check_point_id && (
               <button
                 onClick={() => { setInspectResult('normal'); setInspectMemo(''); inspectPhoto.reset(); setInspectModal(true) }}
-                style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                style={{ flex: 1, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: isDesktop ? 13 : 14, fontWeight: 700, cursor: 'pointer' }}
               >
                 점검 기록 입력
               </button>
@@ -723,37 +821,116 @@ export default function FloorPlanPage() {
             {editMode && (
               <>
                 <button
-                  onClick={() => {
-                    setEditLabel(selected.label ?? '')
-                    setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
-                    setEditCheckpointId(selected.check_point_id)
-                    // 현재 층 해당 카테고리 개소 로딩
-                    if (planType === 'extinguisher') {
-                      // 소화기·소화전: 마커 타입별로 점검 개소 카테고리 매핑
-                      const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
-                      const markerCat = markerCatMap[selected.marker_type ?? ''] ?? '소화기'
-                      inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === markerCat))).catch(() => setCheckpoints([]))
-                    } else {
-                      const cat = { detector: '자동화재탐지설비', sprinkler: '스프링클러설비', guidelamp: '유도등' }[planType] ?? '유도등'
-                      inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === cat))).catch(() => setCheckpoints([]))
-                    }
-                    setEditMarker(true)
-                  }}
-                  style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+                  onClick={openEditMarkerModal}
+                  style={{ flex: 1, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: isDesktop ? 13 : 14, fontWeight: 600, cursor: 'pointer' }}
                 >
                   수정
                 </button>
                 <button
                   onClick={() => { if (confirm('마커를 삭제하시겠습니까?')) deleteMutation.mutate(selected.id) }}
-                  style={{ width: 46, height: 46, borderRadius: 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: isDesktop ? 38 : 46, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                 >
                   <svg width={18} height={18} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               </>
             )}
           </div>
-        </div>
-      )}
+        )
+
+        // ── 데스크톱: 말풍선 ──
+        if (isDesktop) {
+          const bp = getBalloonPos(selected)
+          const BALLOON_W = 320
+          const BALLOON_GAP = 16
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                left: Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)),
+                top: bp.arrowDir === 'bottom' ? bp.top + BALLOON_GAP : undefined,
+                bottom: bp.arrowDir === 'top' ? (containerRef.current?.clientHeight ?? 600) - bp.top + BALLOON_GAP : undefined,
+                width: BALLOON_W,
+                background: 'var(--bg2)',
+                border: '1px solid var(--bd2)',
+                borderRadius: 14,
+                padding: '14px 16px 16px',
+                zIndex: 30,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* 화살표 */}
+              <div style={{
+                position: 'absolute',
+                left: Math.max(16, Math.min(bp.left - Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)), BALLOON_W - 16)),
+                ...(bp.arrowDir === 'bottom'
+                  ? { top: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid var(--bg2)' }
+                  : { bottom: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid var(--bg2)' }
+                ),
+                width: 0, height: 0, transform: 'translateX(-8px)',
+              }} />
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                  background: statusColor + '22',
+                  border: `1.5px solid ${statusColor}55`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <MarkerIcon markerType={selected.marker_type} color={statusColor} size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{markerLabel}</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
+                    {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
+                    <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
+                    {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+                  </div>
+                </div>
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 16, cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}>✕</button>
+              </div>
+              {actionButtons}
+            </div>
+          )
+        }
+
+        // ── 모바일: 바텀시트 ──
+        return (
+          <div
+            style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
+              borderRadius: '16px 16px 0 0', padding: '16px 16px 28px', zIndex: 30,
+              boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd2)', margin: '0 auto 14px' }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                background: statusColor + '22',
+                border: `1.5px solid ${statusColor}55`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <MarkerIcon markerType={selected.marker_type} color={statusColor} size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>{markerLabel}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
+                  {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
+                  <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
+                  {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+                </div>
+              </div>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}>✕</button>
+            </div>
+            {actionButtons}
+          </div>
+        )
+      })()}
 
       {/* ── 마커 수정 모달 ───────────────────────────── */}
       {editMarker && selected && (
