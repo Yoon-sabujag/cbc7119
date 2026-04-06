@@ -78,9 +78,9 @@ Plans:
   1. 지적사항 등록 화면에서 공통 점검항목 목록에서 선택하거나 직접 입력할 수 있다
   2. 위치를 구역→층→상세위치 3단계 드롭다운으로 입력할 수 있다
   3. 지적사항 등록 시 사진을 최대 5장까지 첨부할 수 있다 (Phase 12 PhotoGrid 활용)
-**Plans:** 1/1 plan
+**Plans:** 1/1 plans complete
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [x] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
 **UI hint**: yes
 
 ### Phase 14: Schedule Date Range
@@ -134,9 +134,11 @@ Plans:
   2. 점검 일정 알림을 개별적으로 켜고 끌 수 있다
   3. 미조치 이슈 알림을 개별적으로 켜고 끌 수 있다
   4. 알림 구독 상태(허용/차단/미설정)가 설정 화면에 시각적으로 표시된다
-**Plans:** 1/1 plan
+**Plans:** 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [ ] 17-01-PLAN.md — D1 migration + API endpoints + VitePWA injectManifest + custom service worker
+- [ ] 17-02-PLAN.md — pushApi client + SettingsPanel notification toggles with permission flow
+- [ ] 17-03-PLAN.md — Cron Worker project + VAPID keys + production deploy + E2E verification
 **UI hint**: yes
 
 ### Phase 18: Menu Customization
@@ -181,11 +183,11 @@ Plans:
 | 10. Legal Inspection | v1.1 | 2/2 | Complete | 2026-04-04 |
 | 11. Elevator Inspection Certs | v1.1 | 3/3 | Complete | 2026-04-04 |
 | 12. Multi-Photo Infrastructure | v1.2 | 2/2 | Complete | 2026-04-06 |
-| 13. Finding BottomSheet Restructure | v1.2 | — | Complete | 2026-04-06 |
+| 13. Finding BottomSheet Restructure | v1.2 | 1/1 | Complete   | 2026-04-06 |
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
-| 17. Push Notification Settings | v1.3 | 0/? | Not started | - |
+| 17. Push Notification Settings | v1.3 | 0/3 | Planned | - |
 | 18. Menu Customization | v1.3 | 0/? | Not started | - |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
 
@@ -203,4 +205,4 @@ Plans:
 *v1.1 shipped: 2026-04-05*
 *v1.2 shipped: 2026-04-06*
 *v1.3 started: 2026-04-06*
-*Last updated: 2026-04-06*
+*Last updated: 2026-04-07*
