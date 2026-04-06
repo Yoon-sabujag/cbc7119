@@ -178,9 +178,7 @@ export default function FloorPlanPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { staff } = useAuthStore()
-  const MARKER_EDITORS = ['admin'] as const
-  const MARKER_EDITOR_IDS = ['2022051052'] // 윤종엽
-  const canEditMarker = MARKER_EDITORS.includes(staff?.role as any) || MARKER_EDITOR_IDS.includes(staff?.id ?? '')
+  const canEditMarker = !!staff
 
   const [planType, setPlanType] = useState<PlanType>('guidelamp')
   const [floor, setFloor] = useState('8-1F')
@@ -231,6 +229,7 @@ export default function FloorPlanPage() {
     queryKey: ['floorplan-markers', floor, planType],
     queryFn: () => floorPlanMarkerApi.list(floor, planType),
     staleTime: 30_000,
+    refetchInterval: 10_000,
   })
   const markers = markersQuery.data ?? []
 
