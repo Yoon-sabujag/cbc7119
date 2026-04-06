@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getMonthlySchedule, DOW_KO, SHIFT_COLOR } from '../utils/shiftCalc'
 import type { RawShift } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 const SHIFT_LABEL: Record<RawShift, string> = { '당':'당직','비':'비번','주':'주간','휴':'휴무' }
 const HDR_H = 52
@@ -11,6 +12,7 @@ const ROW_H = 46
 
 export default function WorkShiftPage() {
   const navigate = useNavigate()
+  const isDesktop = useIsDesktop()
   const today = new Date()
   const [year,  setYear]  = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
@@ -105,96 +107,103 @@ export default function WorkShiftPage() {
       </div>
 
       {/* 표 영역 */}
-      <div style={{ flex:1, overflowX:'hidden', overflowY:'auto', display:'flex', justifyContent:'center' }}>
-        <div style={{ display:'flex', maxWidth:1200, padding:'16px 24px' }}>
-
-          {/* 이름 열 (고정) */}
-          <div style={{ flexShrink:0 }}>
-            <table style={{ borderCollapse:'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={{ height:HDR_H, width:82, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t2)', fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
-                    이름
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {staffRows.map(s => (
-                  <tr key={s.id}>
-                    <td style={{ height:ROW_H, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg2)', whiteSpace:'nowrap' }}>
-                      <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{s.name}</div>
-                      <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{s.title}</div>
-                    </td>
+      <div style={{
+        flex:1, overflow:'auto',
+        display:'flex', flexDirection:'column',
+        alignItems:'center',
+        justifyContent: isDesktop ? 'center' : 'flex-start',
+        paddingTop: isDesktop ? '8vh' : 0,
+      }}>
+        <div style={{ display:'inline-flex', flexDirection:'column', padding: isDesktop ? '0 32px' : '16px 24px' }}>
+          <div style={{ display:'flex' }}>
+            {/* 이름 열 (고정) */}
+            <div style={{ flexShrink:0 }}>
+              <table style={{ borderCollapse:'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ height:HDR_H, width:82, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t2)', fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
+                      이름
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {staffRows.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ height:ROW_H, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg2)', whiteSpace:'nowrap' }}>
+                        <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{s.name}</div>
+                        <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{s.title}</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          {/* 날짜 열 (가로 스크롤) */}
-          <div ref={scrollRef} style={{ flex:1, overflowX:'auto' }}>
-            <table style={{ borderCollapse:'collapse' }}>
-              <thead>
-                <tr>
-                  {Array.from({length:daysInMonth},(_,i) => {
-                    const d   = i + 1
-                    const dow = new Date(year, month-1, d).getDay()
-                    const red = isRed(d)
-                    const tdy = isToday(d)
-                    return (
-                      <th
-                        key={d}
-                        ref={tdy ? todayRef : undefined}
-                        style={{
-                          height: HDR_H, minWidth: 40, padding: '4px 2px',
-                          border: tdy ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                          background: tdy ? 'rgba(59,130,246,0.15)' : 'var(--bg3)',
-                          color: red ? '#ef4444' : 'var(--t2)',
-                          textAlign:'center',
-                        }}
-                      >
-                        <div style={{ fontWeight:700, fontSize:13 }}>{d}</div>
-                        <div style={{ fontSize:10 }}>{DOW_KO[dow]}</div>
-                      </th>
-                    )
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {staffRows.map(s => (
-                  <tr key={s.id}>
-                    {s.shifts.map((sh, i) => {
+            {/* 날짜 열 (가로 스크롤) */}
+            <div ref={scrollRef} style={{ flex:1, overflowX:'auto' }}>
+              <table style={{ borderCollapse:'collapse' }}>
+                <thead>
+                  <tr>
+                    {Array.from({length:daysInMonth},(_,i) => {
                       const d   = i + 1
+                      const dow = new Date(year, month-1, d).getDay()
+                      const red = isRed(d)
                       const tdy = isToday(d)
                       return (
-                        <td
-                          key={i}
+                        <th
+                          key={d}
+                          ref={tdy ? todayRef : undefined}
                           style={{
-                            height: ROW_H, minWidth: 40, padding: '0 2px',
+                            height: HDR_H, minWidth: 40, padding: '4px 2px',
                             border: tdy ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                            textAlign:'center', fontWeight:700, fontSize:15,
-                            color: SHIFT_COLOR[sh], background: SHIFT_COLOR[sh]+'22',
+                            background: tdy ? 'rgba(59,130,246,0.15)' : 'var(--bg3)',
+                            color: red ? '#ef4444' : 'var(--t2)',
+                            textAlign:'center',
                           }}
                         >
-                          {sh}
-                        </td>
+                          <div style={{ fontWeight:700, fontSize:13 }}>{d}</div>
+                          <div style={{ fontSize:10 }}>{DOW_KO[dow]}</div>
+                        </th>
                       )
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 범례 */}
-        <div style={{ display:'flex', gap:14, padding:'14px 12px 28px', flexWrap:'wrap' }}>
-          {(['당','비','주','휴'] as RawShift[]).map(sh => (
-            <div key={sh} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12 }}>
-              <div style={{ width:24, height:24, borderRadius:5, background:SHIFT_COLOR[sh]+'22', border:`1.5px solid ${SHIFT_COLOR[sh]}`, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:13, color:SHIFT_COLOR[sh] }}>{sh}</div>
-              <span style={{ color:'var(--t2)' }}>{SHIFT_LABEL[sh]}</span>
+                </thead>
+                <tbody>
+                  {staffRows.map(s => (
+                    <tr key={s.id}>
+                      {s.shifts.map((sh, i) => {
+                        const d   = i + 1
+                        const tdy = isToday(d)
+                        return (
+                          <td
+                            key={i}
+                            style={{
+                              height: ROW_H, minWidth: 40, padding: '0 2px',
+                              border: tdy ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                              textAlign:'center', fontWeight:700, fontSize:15,
+                              color: SHIFT_COLOR[sh], background: SHIFT_COLOR[sh]+'22',
+                            }}
+                          >
+                            {sh}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
+          </div>
+
+          {/* 범례 — 테이블 바로 아래 정렬 */}
+          <div style={{ display:'flex', gap:14, padding:'10px 0 28px', flexWrap:'wrap', justifyContent:'center' }}>
+            {(['당','비','주','휴'] as RawShift[]).map(sh => (
+              <div key={sh} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12 }}>
+                <div style={{ width:24, height:24, borderRadius:5, background:SHIFT_COLOR[sh]+'22', border:`1.5px solid ${SHIFT_COLOR[sh]}`, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:13, color:SHIFT_COLOR[sh] }}>{sh}</div>
+                <span style={{ color:'var(--t2)' }}>{SHIFT_LABEL[sh]}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

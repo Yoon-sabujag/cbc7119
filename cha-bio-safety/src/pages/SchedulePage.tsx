@@ -342,6 +342,50 @@ export default function SchedulePage() {
     </>
   )
 
+  // ── 일정 카드 1개 렌더 ────────────────────────────────────
+  const renderCard = (item: ScheduleItem, grouped?: boolean) => {
+    const cat = catInfo(item.category)
+    const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+    return (
+      <div key={item.id} style={{ background:'var(--bg2)', borderRadius:10, border:'1px solid var(--bd)', padding:'10px 12px', ...(grouped ? { height: 130, display:'flex', flexDirection:'column' as const } : {}) }}>
+        <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4, flexWrap:'wrap' }}>
+          {!grouped && (
+            <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
+              {cat?.label}
+            </span>
+          )}
+          {item.inspectionCategory && (
+            <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 6px' }}>
+              {item.inspectionCategory}
+            </span>
+          )}
+          <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
+        </div>
+        <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time) ? 3 : 0 }}>{item.title}</div>
+        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow:'hidden' }}>
+          {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time ? 3 : 0, display:'-webkit-box', WebkitLineClamp: grouped ? 2 : 3, WebkitBoxOrient:'vertical' as any, overflow:'hidden' }}>{item.memo}</div>}
+          {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
+        </div>
+        <div style={{ display:'flex', gap:4, marginTop: grouped ? 'auto' : 5, paddingTop: grouped ? 4 : 0 }}>
+          {item.status !== 'done' && (
+            <button onClick={() => handleStatus(item,'done')}
+              style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
+              완료
+            </button>
+          )}
+          <button onClick={() => setEditItem(item)}
+            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
+            수정
+          </button>
+          <button onClick={() => handleDelete(item)}
+            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
+            삭제
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const scheduleListEl = (
     <>
       <div style={{ display:'flex', alignItems:'center', marginBottom:8, gap:6 }}>
@@ -368,50 +412,35 @@ export default function SchedulePage() {
             + 일정 추가
           </button>
         </div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {dayItems.map(item => {
-            const cat = catInfo(item.category)
-            const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
-            return (
-              <div key={item.id} style={{ background:'var(--bg2)', borderRadius:12, border:'1px solid var(--bd)', padding:'12px 14px' }}>
-                <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5, flexWrap:'wrap' }}>
-                      <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
-                        {cat?.label}
-                      </span>
-                      {item.inspectionCategory && (
-                        <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 7px' }}>
-                          {item.inspectionCategory}
-                        </span>
-                      )}
-                      <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
-                    </div>
-                    <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time)?4:0 }}>{item.title}</div>
-                    {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time?4:0 }}>{item.memo}</div>}
-                    {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
+      ) : isDesktop ? (
+        /* 데스크톱: 카테고리별 컬럼 */
+        <div style={{ display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap' }}>
+          {(() => {
+            // 카테고리별 그룹핑
+            const groups: Record<string, ScheduleItem[]> = {}
+            for (const item of dayItems) {
+              const key = item.category
+              if (!groups[key]) groups[key] = []
+              groups[key].push(item)
+            }
+            return Object.entries(groups).map(([catKey, items]) => {
+              const cat = catInfo(catKey)
+              return (
+                <div key={catKey} style={{ flex:'0 0 auto', width: 300, minWidth: 0 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color: cat?.color, marginBottom:5, padding:'3px 0', borderBottom:`2px solid ${cat?.color}44` }}>
+                    {cat?.label} ({items.length})
                   </div>
-                  <div style={{ display:'flex', gap:4, flexShrink:0 }}>
-                    {item.status !== 'done' && (
-                      <button onClick={() => handleStatus(item,'done')}
-                        style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
-                        완료
-                      </button>
-                    )}
-                    <button onClick={() => setEditItem(item)}
-                      style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
-                      수정
-                    </button>
-                    <button onClick={() => handleDelete(item)}
-                      style={{ padding:'5px 8px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
-                      삭제
-                    </button>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {items.map(item => renderCard(item, true))}
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          })()}
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {dayItems.map(item => renderCard(item))}
         </div>
       )}
     </>
@@ -426,6 +455,7 @@ export default function SchedulePage() {
           onClose={() => setShowAdd(false)}
           onSaved={() => { invalidate(); toast.success('일정 추가됨') }}
           onDateChange={setSelDate}
+          isDesktop={isDesktop}
         />
       )}
       {editItem && (
@@ -433,6 +463,7 @@ export default function SchedulePage() {
           item={editItem}
           onClose={() => setEditItem(null)}
           onSaved={() => { invalidate(); setEditItem(null); toast.success('수정됐습니다') }}
+          isDesktop={isDesktop}
         />
       )}
     </>
@@ -454,7 +485,7 @@ export default function SchedulePage() {
 
         {/* 상단: 월간 점검 계획 테이블 */}
         <div style={{ flexShrink:0, overflow:'hidden', borderBottom:'1px solid var(--bd)' }}>
-          <MonthlyPlanPreview curMonth={curMonth} items={monthItems} holidays={holidays} />
+          <MonthlyPlanPreview curMonth={curMonth} items={monthItems} holidays={holidays} todayStr={today} />
         </div>
 
         {/* 하단: 좌=달력, 우=일정 */}
@@ -507,8 +538,8 @@ export default function SchedulePage() {
 }
 
 // ── 월간 점검 계획 테이블 ──────────────────────────────────────
-function MonthlyPlanPreview({ curMonth, items, holidays }: {
-  curMonth: string; items: ScheduleItem[]; holidays: Record<string, string>
+function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
+  curMonth: string; items: ScheduleItem[]; holidays: Record<string, string>; todayStr: string
 }) {
   const [y, mo] = curMonth.split('-').map(Number)
   const daysInMonth = new Date(y, mo, 0).getDate()
@@ -553,11 +584,15 @@ function MonthlyPlanPreview({ curMonth, items, holidays }: {
               const dow = (firstDow + i) % 7
               const dateStr = `${curMonth}-${String(i + 1).padStart(2, '0')}`
               const isHol = !!holidays[dateStr]
+              const isTdy = dateStr === todayStr
               return (
                 <th key={i} style={{
                   ...headCell,
                   color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
-                  background: dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--bg3)',
+                  background: isTdy ? 'rgba(59,130,246,0.18)' : dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--bg3)',
+                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
+                  borderTop: isTdy ? '2px solid var(--acl)' : undefined,
                 }}>
                   {i + 1}
                 </th>
@@ -573,10 +608,13 @@ function MonthlyPlanPreview({ curMonth, items, holidays }: {
               const dow = (firstDow + i) % 7
               const dateStr = `${curMonth}-${String(i + 1).padStart(2, '0')}`
               const isHol = !!holidays[dateStr]
+              const isTdy = dateStr === todayStr
               return (
                 <th key={i} style={{
                   ...headCell, fontWeight: 600,
                   color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
+                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
                 }}>
                   {DOW[dow]}
                 </th>
@@ -596,6 +634,7 @@ function MonthlyPlanPreview({ curMonth, items, holidays }: {
                 const dateStr = `${curMonth}-${String(d).padStart(2, '0')}`
                 const isHol = !!holidays[dateStr]
                 const isWeekend = dow === 0 || dow === 6 || isHol
+                const isTdy = dateStr === todayStr
 
                 let text = ''
                 if (row.daily) {
@@ -612,12 +651,17 @@ function MonthlyPlanPreview({ curMonth, items, holidays }: {
                   }
                 }
 
+                const isLastRow = ri === PLAN_PREVIEW_ROWS.length - 1
+
                 return (
                   <td key={i} style={{
                     ...cellStyle, fontSize: 10,
                     color: text ? 'var(--t1)' : 'transparent',
                     background: isWeekend ? (dow === 0 || isHol ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)')
                       : text && !row.daily ? 'rgba(34,197,94,0.1)' : 'transparent',
+                    borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
+                    borderRight: isTdy ? '2px solid var(--acl)' : undefined,
+                    borderBottom: isTdy && isLastRow ? '2px solid var(--acl)' : undefined,
                   }}>
                     {text || '.'}
                   </td>
@@ -635,8 +679,8 @@ function MonthlyPlanPreview({ curMonth, items, holidays }: {
 }
 
 // ── 추가 모달 ────────────────────────────────────────────────
-function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
-  defaultDate: string; staffId: string; onClose: ()=>void; onSaved: ()=>void; onDateChange: (d: string) => void
+function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesktop }: {
+  defaultDate: string; staffId: string; onClose: ()=>void; onSaved: ()=>void; onDateChange: (d: string) => void; isDesktop?: boolean
 }) {
   const [cat,        setCat]       = useState<ScheduleCategory>('inspect')
   const [insCat,     setInsCat]   = useState('')
@@ -724,10 +768,16 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
       onClick={onClose}>
       <div onClick={e => e.stopPropagation()}
-        style={{ background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'20px 16px 40px', maxHeight:'90dvh', overflowY:'auto' }}>
+        style={{
+          background:'var(--bg2)',
+          borderRadius: isDesktop ? 16 : '20px 20px 0 0',
+          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:'90dvh', overflowY:'auto',
+          ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
+        }}>
 
         {/* 헤더 */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
@@ -924,8 +974,8 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange }: {
 }
 
 // ── 수정 모달 ────────────────────────────────────────────────
-function EditModal({ item, onClose, onSaved }: {
-  item: ScheduleItem; onClose: () => void; onSaved: () => void
+function EditModal({ item, onClose, onSaved, isDesktop }: {
+  item: ScheduleItem; onClose: () => void; onSaved: () => void; isDesktop?: boolean
 }) {
   const [title,  setTitle]  = useState(item.title)
   const [date,   setDate]   = useState(item.date)
@@ -947,10 +997,16 @@ function EditModal({ item, onClose, onSaved }: {
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent:'flex-end' }}
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
       onClick={onClose}>
       <div onClick={e => e.stopPropagation()}
-        style={{ background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'20px 16px 40px', maxHeight:'90dvh', overflowY:'auto' }}>
+        style={{
+          background:'var(--bg2)',
+          borderRadius: isDesktop ? 16 : '20px 20px 0 0',
+          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:'90dvh', overflowY:'auto',
+          ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
+        }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
           <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 수정</span>
           <button onClick={onClose}
