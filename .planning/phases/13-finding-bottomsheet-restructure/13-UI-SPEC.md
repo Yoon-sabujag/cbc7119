@@ -35,16 +35,17 @@ Declared values (multiples of 4 only):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Drag-handle internal padding, badge padding vertical |
-| sm | 8px | Between chips in a row, between photo thumbnails, gap between buttons |
-| md | 16px | BottomSheet horizontal padding, form field gap default |
+| sm | 8px | Between chips in a row, between photo thumbnails, gap between buttons, zone chip gap, floor chip gap, chip vertical padding |
+| sm-plus | 12px | Drag handle top padding, title row padding-top — declared as explicit token; matches existing AdminPage pattern throughout codebase |
+| md | 16px | BottomSheet horizontal padding, form field gap between groups |
 | lg | 24px | BottomSheet title-to-form gap, section separators |
 | xl | 32px | BottomSheet drag-handle top clearance |
 | 2xl | 48px | CTA button height, safe-area bottom padding base |
 | 3xl | 64px | Not used in this phase |
 
 Exceptions:
-- Touch targets (chips, buttons): minimum 44px tall on mobile — zone chips use `padding: 9px 0` which resolves to ~38px; floor chips use `padding: 7px 0`. These are acceptable because the containing row flex allows wider tap zones. Do not reduce further.
-- BottomSheet drag handle: 4px tall × 32px wide, centered at top with 12px top padding — matches existing AdminPage pattern.
+- Touch targets (chips, buttons): minimum 44px tall on mobile — zone chips use `padding: 8px 0`, floor chips use `padding: 8px 0`. The containing row flex allows adequate tap zone width.
+- BottomSheet drag handle: 4px tall × 32px wide, centered at top with 12px top padding (sm-plus token) — matches existing AdminPage pattern.
 - Photo thumbnail: 72px × 72px fixed — matches Phase 12 PhotoGrid contract.
 
 ---
@@ -82,7 +83,7 @@ Accent reserved for:
 - Active floor chip: same pattern, smaller padding
 - Active FINDING_ITEMS list row: `background: rgba(59,130,246,.1)`, `color: var(--acl)`
 - Primary CTA button fill: `background: var(--acl)`
-- Do NOT apply accent to cancel button, input borders, or labels.
+- Do NOT apply accent to close button, input borders, or labels.
 
 Overlay backdrop: `rgba(0,0,0,0.6)` — fixed over full viewport, zIndex 50. Tap outside to dismiss.
 
@@ -91,6 +92,8 @@ Borders:
 - Input / list container border: `1px solid var(--bd2)`
 - Card separator line (inside list): `1px solid var(--bd)` = `rgba(255,255,255,0.07)`
 
+Focal point declaration: Primary focal point is the CTA button row at the bottom — accent fill draws the eye after form completion. All other interactive elements (chips, list rows) use the accent sparingly only when selected, ensuring the submit CTA remains the dominant call to action.
+
 ---
 
 ## Component Inventory
@@ -98,13 +101,13 @@ Borders:
 ### FindingBottomSheet (modified from existing inline component in LegalFindingsPage.tsx)
 
 Structure (top to bottom):
-1. Drag handle — 32px × 4px pill, `var(--bd2)`, centered, 12px top padding
-2. Title row — "지적사항 등록", 16px/700, `var(--t1)`, padding `12px 16px 0`
-3. Form area — padding `12px 16px`, `gap: 14px` between fields
-4. Button area — padding `4px 16px 32px`, `gap: 8px`
+1. Drag handle — 32px × 4px pill, `var(--bd2)`, centered, 12px top padding (sm-plus token)
+2. Title row — "지적사항 등록", 16px/700, `var(--t1)`, padding `12px 16px 0` (sm-plus md token)
+3. Form area — padding `12px 16px`, `gap: 16px` between fields (md token)
+4. Button area — padding `4px 16px 32px`, `gap: 8px` (sm token)
 
 Form field order (matches decisions D-01, D-02, D-03):
-1. **구역** — chip row, 4 chips (연구동/사무동/브릿지/지하), `gap: 6px`, flex-wrap
+1. **구역** — chip row, 4 chips (연구동/사무동/브릿지/지하), `gap: 8px` (sm token), flex-wrap
 2. **층** — chip row, conditionally shown when zone selected, `gap: 4px`, no wrap (horizontal scroll if needed)
 3. **위치 상세** — combo dropdown (NEW — replaces free-text input). Renders as native `<select>` with preset options per floor, plus '직접입력' option. When '직접입력' selected, show text input below. See "상세위치 프리셋" section.
 4. **지적 항목** — scrollable list (max-height 123px), 19 rows + '직접입력' at top. When '직접입력' selected, show text input below (existing pattern).
@@ -112,8 +115,8 @@ Form field order (matches decisions D-01, D-02, D-03):
 6. **지적 사진** — horizontal scroll row, 72×72 thumbnails + add button (existing PhotoGrid inline pattern from Phase 12)
 
 Button area (bottom):
-- Primary: "등록" — full-width, 48px height, `var(--acl)` fill, white text, 700, 14px, borderRadius 10
-- Secondary: "취소" — full-width, 48px height, transparent bg, `var(--bd2)` border, `var(--t2)` text, 14px, borderRadius 10
+- Primary: "지적사항 등록" — full-width, 48px height, `var(--acl)` fill, white text, 700, 14px, borderRadius 10
+- Secondary: "닫기" — full-width, 48px height, transparent bg, `var(--bd2)` border, `var(--t2)` text, 14px, borderRadius 10
 
 Loading state (isSubmitting):
 - Both buttons: `opacity: 0.6`, `cursor: not-allowed`
@@ -146,7 +149,7 @@ Select element style (matches existing `select` in LegalFindingsPage admin subhe
 background: var(--bg3)
 border: 1px solid var(--bd2)
 borderRadius: 9px
-padding: 10px 12px
+padding: 8px 12px
 color: var(--t1)
 fontSize: 13px
 width: 100%
@@ -165,10 +168,10 @@ Text input shown below select when '직접입력' active:
 
 | State | Visual |
 |-------|--------|
-| Zone chip — unselected | `bg3` fill, `bd2` border, `t2` text, 13px/400 |
-| Zone chip — selected | `rgba(59,130,246,.12)` fill, `acl` border 1.5px, `acl` text, 13px/700 |
-| Floor chip — unselected | `bg3` fill, `bd2` border, `t2` text, 12px/400 |
-| Floor chip — selected | `rgba(59,130,246,.12)` fill, `acl` border 1.5px, `acl` text, 12px/700 |
+| Zone chip — unselected | `bg3` fill, `bd2` border, `t2` text, 13px/400, `padding: 8px 0` |
+| Zone chip — selected | `rgba(59,130,246,.12)` fill, `acl` border 1.5px, `acl` text, 13px/700, `padding: 8px 0` |
+| Floor chip — unselected | `bg3` fill, `bd2` border, `t2` text, 12px/400, `padding: 8px 0` |
+| Floor chip — selected | `rgba(59,130,246,.12)` fill, `acl` border 1.5px, `acl` text, 12px/700, `padding: 8px 0` |
 | Floor row — hidden | Rendered as `null` when no zone selected |
 | 상세위치 select — '직접입력' | Text input appears below with `marginTop: 8px` |
 | FINDING_ITEMS row — unselected | `bg3` fill, `t1` text, 13px/400 |
@@ -185,9 +188,9 @@ Text input shown below select when '직접입력' active:
 | Element | Copy |
 |---------|------|
 | BottomSheet title | 지적사항 등록 |
-| Primary CTA | 등록 |
+| Primary CTA | 지적사항 등록 |
 | Loading CTA | 처리 중... |
-| Cancel button | 취소 |
+| Close button | 닫기 |
 | Section label — 구역 | 구역 |
 | Section label — 층 | 층 |
 | Section label — 위치 상세 | 위치 상세 |
@@ -215,7 +218,7 @@ Destructive actions: None in this phase. The existing "삭제" button on finding
 
 - BottomSheet max-height: 90vh — scrollable internally
 - BottomSheet animation: `slideUp 0.28s ease-out both`
-- Form gap: 14px between field groups (not 16px — matches existing)
+- Form gap: 16px between field groups (md token)
 - FINDING_ITEMS list max-height: 123px, overflowY auto
 - Photo row: horizontal scroll (`overflowX: auto`), no wrap
 - BottomSheet border-radius: `16px 16px 0 0` (top corners only)
