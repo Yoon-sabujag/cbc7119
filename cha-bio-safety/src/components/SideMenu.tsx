@@ -42,7 +42,6 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
   ]},
   { section: '시스템', items: [
     { label: '관리자 설정', path: '/admin',      badge: 0, soon: false, role: 'admin' },
-    { label: '설정',       path: '/settings',   badge: 0, soon: false },
   ]},
 ]
 

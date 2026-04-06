@@ -289,6 +289,7 @@ function DesktopReportsPage() {
               })}
             </div>
           ))}
+
         </div>
 
         {/* 우측 이미지 미리보기 + 데이터 오버레이 */}
@@ -314,7 +315,6 @@ function MobileReportsPage() {
   const navigate = useNavigate()
   const [year, setYear] = useState(CURRENT_YEAR)
   const [loading, setLoading] = useState<ReportType | null>(null)
-
   const handleDownload = async (type: ReportType) => {
     setLoading(type)
     try {

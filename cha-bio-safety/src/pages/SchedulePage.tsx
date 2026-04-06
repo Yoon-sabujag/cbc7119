@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
+import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
 import type { ScheduleItem, ScheduleCategory } from '../types'
 
 // ── 날짜 헬퍼 (로컬 시간 기준) ──────────────────────────────
@@ -155,6 +156,7 @@ export default function SchedulePage() {
   const [selDate,  setSelDate]  = useState(today)
   const [showAdd,  setShowAdd]  = useState(false)
   const [editItem, setEditItem] = useState<ScheduleItem | null>(null)
+  const [planLoading, setPlanLoading] = useState(false)
 
   const { data: fetchedHolidays } = useQuery({
     queryKey: ['holidays'],
@@ -234,6 +236,19 @@ export default function SchedulePage() {
 
   const catInfo = (c: string) => SCHED_CATEGORIES.find(x => x.value === c)
 
+  const handlePlanDownload = async () => {
+    const [y, mo] = curMonth.split('-').map(Number)
+    setPlanLoading(true)
+    try {
+      await generateMonthlyPlan(y, mo)
+      toast.success('엑셀이 다운로드됐습니다')
+    } catch (e: any) {
+      toast.error(e?.message ?? '생성 중 오류')
+    } finally {
+      setPlanLoading(false)
+    }
+  }
+
   return (
     <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
 
@@ -244,6 +259,11 @@ export default function SchedulePage() {
           </svg>
         </button>
         <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>점검 계획 관리</span>
+        <button onClick={handlePlanDownload} disabled={planLoading}
+          style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
+          <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+          {planLoading ? '생성 중...' : '엑셀 다운로드'}
+        </button>
         <button onClick={() => setShowAdd(true)}
           style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
           + 추가

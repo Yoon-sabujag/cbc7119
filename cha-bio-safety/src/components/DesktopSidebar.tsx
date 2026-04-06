@@ -14,9 +14,10 @@ const DESKTOP_SECTIONS = [
 
 interface DesktopSidebarProps {
   unresolvedCount: number
+  onSettingsOpen: () => void
 }
 
-export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
+export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { staff } = useAuthStore()
@@ -155,7 +156,7 @@ export function DesktopSidebar({ unresolvedCount }: DesktopSidebarProps) {
           </span>
         </div>
         <button
-          onClick={() => navigate('/settings')}
+          onClick={onSettingsOpen}
           aria-label="설정"
           style={{
             background: 'transparent',
