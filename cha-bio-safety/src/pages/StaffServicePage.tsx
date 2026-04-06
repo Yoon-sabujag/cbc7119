@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { leaveApi, scheduleApi, mealApi, menuApi, holidayApi, type LeaveItem } from '../utils/api'
@@ -107,6 +108,8 @@ export default function StaffServicePage() {
   const qc = useQueryClient()
   const { staff } = useAuthStore()
   const { data: staffList = [] } = useStaffList()
+  const isDesktop = useIsDesktop()
+  const dropRef = useRef<HTMLLabelElement>(null)
 
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
@@ -510,224 +513,396 @@ export default function StaffServicePage() {
     return m
   }, [staffList, teamLeaves])
 
-  // ── Render ────────────────────────────────────────────────
+  // ── 공유 렌더 조각 ─────────────────────────────────────────
+  const calendarGrid = (
+    <div style={{ padding: '0 8px' }}>
+      {/* 연도/월 선택 + 요일 헤더 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center', marginBottom: 2, padding: '8px 0 4px' }}>
+        <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&lsaquo;</button>
+          <span style={{ fontSize: isDesktop ? 18 : 15, fontWeight: 800, color: 'var(--t1)', minWidth: 50, textAlign: 'center' }}>{year}년</span>
+          <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&rsaquo;</button>
+        </div>
+        <div />
+        <div style={{ gridColumn: '5 / 8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          <button onClick={prevMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&lsaquo;</button>
+          <span style={{ fontSize: isDesktop ? 18 : 15, fontWeight: 800, color: 'var(--t1)', minWidth: 28, textAlign: 'center' }}>{MONTH_NAMES[month]}</span>
+          <button onClick={nextMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&rsaquo;</button>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 2 }}>
+        {DOW_KO.map((d, i) => (
+          <div key={d} style={{ textAlign: 'center', fontSize: isDesktop ? 13 : 10, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : 'var(--t3)', padding: '4px 0' }}>{d}</div>
+        ))}
+      </div>
+
+      {leaveLoading ? (
+        <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 24, height: 24, border: '2px solid var(--bd)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+          <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+          {calendarDays.map((cell, idx) => {
+            if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
+
+            const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
+            const isSel = cell.ymd === selDate
+            const lt = myLeave?.type
+            const isClickable = rawShift !== '비' && rawShift !== '휴'
+            const isFullLeave = lt === 'full' || lt === 'official_full'
+            const isHalf = lt === 'half_am' || lt === 'half_pm' || lt === 'official_half_am' || lt === 'official_half_pm'
+            const isAm = lt === 'half_am' || lt === 'official_half_am'
+            const blocked = isBlocked(cell.ymd)
+
+            const shiftBg = SHIFT_BG[rawShift]
+            const leaveBgColor = lt ? LEAVE_BG[lt] : ''
+            let cellBg: string
+            if (isFullLeave) cellBg = leaveBgColor
+            else if (isHalf) cellBg = isAm ? `linear-gradient(135deg, ${leaveBgColor} 50%, ${shiftBg} 50%)` : `linear-gradient(135deg, ${shiftBg} 50%, ${leaveBgColor} 50%)`
+            else cellBg = shiftBg
+
+            const dateColor = (dow === 0 || isHoliday) ? '#7f1d1d' : dow === 6 ? '#1e3a5f' : 'var(--t1)'
+            const infoText = getCellInfo(cell)
+
+            return (
+              <div
+                key={cell.ymd}
+                onClick={() => isClickable && handleDayClick(cell.ymd)}
+                style={{
+                  aspectRatio: '1',
+                  borderRadius: 8,
+                  background: cellBg,
+                  border: isSel ? '2.5px solid var(--acl)' : isToday ? '2px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
+                  cursor: isClickable ? 'pointer' : 'default',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  padding: 2,
+                }}
+              >
+                {blocked && !myLeave && (
+                  <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.25)', borderRadius:8, pointerEvents:'none' }} />
+                )}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                  <span style={{ fontSize: isDesktop ? 10 : 8, fontWeight:800, color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', lineHeight:1 }}>
+                    {isFullLeave ? (lt === 'full' ? '연차' : '공가') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
+                  </span>
+                  <span style={{ fontSize: isDesktop ? 14 : 11, fontWeight:700, color: dateColor, lineHeight:1 }}>
+                    {cell.day}
+                  </span>
+                </div>
+                <div style={{ flex:1 }} />
+                {(cell.holidayName || infoText) && (
+                  <div style={{ fontSize: isDesktop ? 8 : 6, fontWeight:700, color:'rgba(255,255,255,0.85)', lineHeight:1.2, textAlign:'right', wordBreak:'break-all' }}>
+                    {cell.holidayName && <div style={{ color:'#fca5a5' }}>{cell.holidayName}</div>}
+                    {infoText}
+                  </div>
+                )}
+                {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
+                  <div style={{ fontSize: isDesktop ? 9 : 7, color:'#fbbf24', fontWeight:800, lineHeight:1, textAlign:'right' }}>
+                    미{skipped}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
+  const legendRow = (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 12px 0', alignItems: 'center' }}>
+      {([
+        { label: '당직', bg: 'var(--c-night)' },
+        { label: '비번', bg: 'var(--c-off)' },
+        { label: '주간', bg: 'var(--c-day)' },
+        { label: '휴무', bg: 'var(--c-leave)' },
+        { label: '연차', bg: '#22c55e' },
+        { label: '공가', bg: '#a855f7' },
+      ]).map(l => (
+        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ display: 'inline-block', width: isDesktop ? 14 : 12, height: isDesktop ? 14 : 12, borderRadius: '50%', background: l.bg }} />
+          <span style={{ fontSize: isDesktop ? 13 : 10, color: 'var(--t3)' }}>{l.label}</span>
+        </div>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <span style={{ width: isDesktop ? 14 : 12, height: isDesktop ? 14 : 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
+        <span style={{ fontSize: isDesktop ? 13 : 10, color: 'var(--t3)' }}>반차</span>
+      </div>
+    </div>
+  )
+
+  const summaryCards = (
+    <div style={{ display: 'flex', gap: 8, padding: '14px 12px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      {[
+        { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', bd: 'rgba(34,197,94,0.25)' },
+        { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6,182,212,0.1)', bd: 'rgba(6,182,212,0.25)' },
+        { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#ec4899', bg: 'rgba(236,72,153,0.1)', bd: 'rgba(236,72,153,0.25)' },
+        { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#f97316', bg: 'rgba(249,115,22,0.1)', bd: 'rgba(249,115,22,0.25)' },
+      ].map(c => (
+        <div key={c.label} style={{ flex: '1 0 0', minWidth: 72, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
+          <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600, marginBottom: 4 }}>{c.label}</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: c.color, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{c.value}</div>
+        </div>
+      ))}
+    </div>
+  )
+
+  const menuSection = (() => {
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    const h = now.getHours()
+    const m = now.getMinutes()
+    const hm = h * 60 + m
+    const menu = menuData
+
+    if (!menu) return null
+    const isLunch = hm >= 480 && hm < 780
+    const isDinner = hm >= 780 && hm < 1110
+    if (!isLunch && !isDinner) return null
+
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 12px 0' }}>
+        {isLunch && menu.lunch_a && (
+          <>
+            <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#06b6d4', marginBottom: 6 }}>중식 A코너</div>
+              <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                {menu.lunch_a.split(' / ').join('\n')}
+              </div>
+            </div>
+            {menu.lunch_b && (
+              <div style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>중식 B코너</div>
+                <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                  {menu.lunch_b.split(' / ').join('\n')}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {isDinner && menu.dinner && (
+          <div style={{ gridColumn: '1 / 3', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 12, padding: '10px 12px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>석식 메뉴</div>
+            <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+              {menu.dinner.split(' / ').join('\n')}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  })()
+
+  const detailPanel = selCell?.date ? (
+    <div style={{ padding: 16 }}>
+      {/* 날짜 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>
+          {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
+        </span>
+        <span style={{
+          fontSize: 12, fontWeight: 700, color: '#fff',
+          background: SHIFT_COLOR[selCell.rawShift],
+          borderRadius: 6, padding: '3px 10px',
+        }}>
+          {selCell.rawShift === '당' ? '당직근무' : selCell.rawShift === '비' ? '비번' : selCell.rawShift === '주' ? '주간근무' : '휴무'}
+        </span>
+        {selCell.isHoliday && (
+          <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
+        )}
+      </div>
+
+      {/* 연차 */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>연차</div>
+        {(selCell.isWeekend || selCell.isHoliday) ? (
+          <div style={{ fontSize: 12, color: 'var(--t3)', padding: '10px 14px', background: 'var(--bg3)', borderRadius: 8 }}>
+            {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 연차 등록이 불가합니다
+          </div>
+        ) : (
+          <>
+            {selCell.hasInspect && (
+              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 8, padding: '6px 10px', background: 'rgba(245,158,11,0.1)', borderRadius: 6 }}>
+                소방 점검일 - 연차 등록 주의
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {LEAVE_TYPES.map(btn => {
+                const isActive = selMyLeave?.type === btn.type
+                return (
+                  <button
+                    key={btn.type}
+                    onClick={() => handleTypeBtn(btn.type)}
+                    style={{
+                      padding: '10px 4px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer',
+                      background: isActive ? `rgba(${btn.rgb},0.25)` : `rgba(${btn.rgb},0.08)`,
+                      border: isActive ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      color: isActive ? 'var(--t1)' : 'var(--t2)',
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 식사 */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>
+          식사 (제공 {selCell.provided}끼)
+        </div>
+        {selCell.provided === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--t3)', padding: '10px 14px', background: 'var(--bg3)', borderRadius: 8 }}>
+            식사 미제공
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 13, color: 'var(--t2)' }}>미사용:</span>
+            <button
+              onClick={handleMealCycle}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '10px 20px', borderRadius: 10,
+                background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
+                border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
+                cursor: 'pointer', fontSize: 16, fontWeight: 700,
+                color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t2)',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{selCell.skipped}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--t3)' }}>끼</span>
+            </button>
+            <span style={{ fontSize: 11, color: 'var(--t3)' }}>클릭하여 변경</span>
+          </div>
+        )}
+      </div>
+
+      {/* 팀원 연차 */}
+      {selCell.teamLeaveList.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>팀원 연차</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {selCell.teamLeaveList.map(tl => (
+              <span key={tl.id} style={{
+                fontSize: 12, fontWeight: 600, color: 'var(--t1)',
+                background: 'var(--bg3)', borderRadius: 8, padding: '5px 12px',
+                border: '1px solid var(--bd)',
+              }}>
+                {teamNameMap[tl.staffId] ?? tl.staffId.slice(-4)}
+                <span style={{ marginLeft: 4, fontSize: 11, color: tl.type.startsWith('official') ? '#f97316' : '#22c55e', fontWeight: 700 }}>
+                  ({LEAVE_LABEL[tl.type] ?? tl.type})
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 주말 식대 */}
+      {(() => {
+        const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow)
+        if (allow > 0) return (
+          <div style={{ padding: '10px 14px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
+            <span style={{ fontSize: 12, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
+          </div>
+        )
+        return null
+      })()}
+    </div>
+  ) : (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>
+      날짜를 선택하세요
+    </div>
+  )
+
+  const uploadSection = (
+    <div style={{ padding: '0 12px 14px' }}>
+      <label
+        ref={dropRef}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--acl)' }}
+        onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)' }}
+        onDrop={e => {
+          e.preventDefault()
+          e.currentTarget.style.borderColor = 'var(--bd)'
+          const file = e.dataTransfer.files[0]
+          if (file && file.type === 'application/pdf') {
+            const dt = new DataTransfer()
+            dt.items.add(file)
+            const inp = e.currentTarget.querySelector('input') as HTMLInputElement
+            if (inp) { inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true })) }
+          } else {
+            toast.error('PDF 파일만 업로드 가능합니다')
+          }
+        }}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: isDesktop ? '48px 0' : '12px 0', borderRadius: 12,
+          background: 'var(--bg2)',
+          border: isDesktop ? '2px dashed var(--bd)' : '1px solid var(--bd)',
+          color: 'var(--t2)', fontSize: 12, fontWeight: 600,
+          textAlign: 'center', cursor: 'pointer',
+          transition: 'border-color 0.15s',
+        }}
+      >
+        {isDesktop ? '식단표 PDF 드래그앤드롭 또는 클릭하여 업로드' : '식단표 PDF 업로드'}
+        <input type="file" accept=".pdf" style={{ display: 'none' }}
+          onChange={handleMenuUpload} />
+      </label>
+    </div>
+  )
+
+  // ── Desktop ──────────────────────────────────────────────
+  if (isDesktop) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+        {/* 헤더 */}
+        <div style={{ height: 48, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>연차 및 식사</span>
+        </div>
+
+        {/* 2분할 본문 */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* 좌측: 달력 + 범례 + 요약 */}
+          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '0 0 16px' }}>
+            {calendarGrid}
+            {legendRow}
+            {summaryCards}
+          </div>
+
+          {/* 우측: 상세 + 메뉴 + 업로드 */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {detailPanel}
+            <div style={{ borderTop: '1px solid var(--bd)', margin: '0 16px' }} />
+            <div style={{ padding: '12px 4px 0' }}>
+              {menuSection}
+            </div>
+            <div style={{ flex: 1 }} />
+            {uploadSection}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Mobile ───────────────────────────────────────────────
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
 
       {/* Scrollable content */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 20px' }}>
-
-        {/* Calendar */}
-        <div style={{ padding: '0 8px' }}>
-          {/* 연도/월 선택 + 요일 헤더 (7열 그리드 내 배치) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center', marginBottom: 2, padding: '8px 0 4px' }}>
-            {/* 연도: 일~화 열 (col 1-3) */}
-            <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&lsaquo;</button>
-              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', minWidth: 50, textAlign: 'center' }}>{year}년</span>
-              <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&rsaquo;</button>
-            </div>
-            {/* 빈 수요일 열 */}
-            <div />
-            {/* 월: 목~토 열 (col 5-7) */}
-            <div style={{ gridColumn: '5 / 8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <button onClick={prevMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&lsaquo;</button>
-              <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', minWidth: 28, textAlign: 'center' }}>{MONTH_NAMES[month]}</span>
-              <button onClick={nextMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: 13, fontWeight: 700 }}>&rsaquo;</button>
-            </div>
-          </div>
-          {/* 요일 헤더 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 2 }}>
-            {DOW_KO.map((d, i) => (
-              <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : 'var(--t3)', padding: '4px 0' }}>{d}</div>
-            ))}
-          </div>
-
-          {leaveLoading ? (
-            <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
-              <div style={{ width: 24, height: 24, border: '2px solid var(--bd)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-              <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-              {calendarDays.map((cell, idx) => {
-                if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
-
-                const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
-                const isSel = cell.ymd === selDate
-                const lt = myLeave?.type
-                const isClickable = rawShift !== '비' && rawShift !== '휴'
-                const isFullLeave = lt === 'full' || lt === 'official_full'
-                const isHalf = lt === 'half_am' || lt === 'half_pm' || lt === 'official_half_am' || lt === 'official_half_pm'
-                const isAm = lt === 'half_am' || lt === 'official_half_am'
-                const blocked = isBlocked(cell.ymd)
-
-                const shiftBg = SHIFT_BG[rawShift]
-                const leaveBgColor = lt ? LEAVE_BG[lt] : ''
-                let cellBg: string
-                if (isFullLeave) cellBg = leaveBgColor
-                else if (isHalf) cellBg = isAm ? `linear-gradient(135deg, ${leaveBgColor} 50%, ${shiftBg} 50%)` : `linear-gradient(135deg, ${shiftBg} 50%, ${leaveBgColor} 50%)`
-                else cellBg = shiftBg
-
-                // 일요일/공휴일: 진한 빨강, 토요일: 진한 파랑 — 어떤 배경에서도 보이게
-                const dateColor = (dow === 0 || isHoliday) ? '#7f1d1d' : dow === 6 ? '#1e3a5f' : 'var(--t1)'
-                const infoText = getCellInfo(cell)
-
-                return (
-                  <div
-                    key={cell.ymd}
-                    onClick={() => isClickable && handleDayClick(cell.ymd)}
-                    style={{
-                      aspectRatio: '1',
-                      borderRadius: 8,
-                      background: cellBg,
-                      border: isSel ? '2.5px solid var(--acl)' : isToday ? '2px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
-                      cursor: isClickable ? 'pointer' : 'default',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      overflow: 'hidden',
-                      position: 'relative',
-                      userSelect: 'none',
-                      WebkitTapHighlightColor: 'transparent',
-                      padding: 2,
-                    }}
-                  >
-                    {/* 차단 음영 */}
-                    {blocked && !myLeave && (
-                      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.25)', borderRadius:8, pointerEvents:'none' }} />
-                    )}
-
-                    {/* 좌상단: 근무 타입 */}
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                      <span style={{ fontSize:8, fontWeight:800, color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', lineHeight:1 }}>
-                        {isFullLeave ? (lt === 'full' ? '연차' : '공가') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
-                      </span>
-                      {/* 날짜 우상단 */}
-                      <span style={{ fontSize:11, fontWeight:700, color: dateColor, lineHeight:1 }}>
-                        {cell.day}
-                      </span>
-                    </div>
-
-                    {/* 중간 여백 */}
-                    <div style={{ flex:1 }} />
-
-                    {/* 우하단: 공휴일명 + 팀원 연차/소검/승검 */}
-                    {(cell.holidayName || infoText) && (
-                      <div style={{ fontSize:6, fontWeight:700, color:'rgba(255,255,255,0.85)', lineHeight:1.2, textAlign:'right', wordBreak:'break-all' }}>
-                        {cell.holidayName && <div style={{ color:'#fca5a5' }}>{cell.holidayName}</div>}
-                        {infoText}
-                      </div>
-                    )}
-
-                    {/* 식사 미사용 */}
-                    {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
-                      <div style={{ fontSize:7, color:'#fbbf24', fontWeight:800, lineHeight:1, textAlign:'right' }}>
-                        미{skipped}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 12px 0', alignItems: 'center' }}>
-          {([
-            { label: '당직', bg: 'var(--c-night)' },
-            { label: '비번', bg: 'var(--c-off)' },
-            { label: '주간', bg: 'var(--c-day)' },
-            { label: '휴무', bg: 'var(--c-leave)' },
-            { label: '연차', bg: '#22c55e' },
-            { label: '공가', bg: '#a855f7' },
-          ]).map(l => (
-            <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: '50%', background: l.bg }} />
-              <span style={{ fontSize: 10, color: 'var(--t3)' }}>{l.label}</span>
-            </div>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-            <span style={{ width: 12, height: 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
-            <span style={{ fontSize: 10, color: 'var(--t3)' }}>반차</span>
-          </div>
-        </div>
-
-        {/* Summary cards — 1행 4열 */}
-        <div style={{ display: 'flex', gap: 8, padding: '14px 12px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-          {[
-            { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', bd: 'rgba(34,197,94,0.25)' },
-            { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6,182,212,0.1)', bd: 'rgba(6,182,212,0.25)' },
-            { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#ec4899', bg: 'rgba(236,72,153,0.1)', bd: 'rgba(236,72,153,0.25)' },
-            { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#f97316', bg: 'rgba(249,115,22,0.1)', bd: 'rgba(249,115,22,0.25)' },
-          ].map(c => (
-            <div key={c.label} style={{ flex: '1 0 0', minWidth: 72, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600, marginBottom: 4 }}>{c.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: c.color, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{c.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* 당일 메뉴표 — 시간대별 표시 */}
-        {(() => {
-          const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-          const h = now.getHours()
-          const m = now.getMinutes()
-          const hm = h * 60 + m // 분 단위
-          const menu = menuData
-
-          if (!menu) return null
-          // 08:00(480)~13:00(780): 중식, 13:00(780)~18:30(1110): 석식, 그 외: 없음
-          const isLunch = hm >= 480 && hm < 780
-          const isDinner = hm >= 780 && hm < 1110
-          if (!isLunch && !isDinner) return null
-
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 12px 0' }}>
-              {isLunch && menu.lunch_a && (
-                <>
-                  <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#06b6d4', marginBottom: 6 }}>중식 A코너</div>
-                    <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                      {menu.lunch_a.split(' / ').join('\n')}
-                    </div>
-                  </div>
-                  {menu.lunch_b && (
-                    <div style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>중식 B코너</div>
-                      <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                        {menu.lunch_b.split(' / ').join('\n')}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-              {isDinner && menu.dinner && (
-                <div style={{ gridColumn: '1 / 3', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>석식 메뉴</div>
-                  <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                    {menu.dinner.split(' / ').join('\n')}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })()}
-
-        {/* 식단표 PDF 업로드 */}
-        <div style={{ padding: '14px 12px' }}>
-          <label style={{
-            display: 'block', padding: '12px 0', borderRadius: 12,
-            background: 'var(--bg2)', border: '1px solid var(--bd)',
-            color: 'var(--t2)', fontSize: 12, fontWeight: 600,
-            textAlign: 'center', cursor: 'pointer',
-          }}>
-            식단표 PDF 업로드
-            <input type="file" accept=".pdf" style={{ display: 'none' }}
-              onChange={handleMenuUpload} />
-          </label>
-        </div>
-
+        {calendarGrid}
+        {legendRow}
+        {summaryCards}
+        {menuSection}
+        {uploadSection}
       </div>
 
       {/* Bottom Sheet Overlay */}
