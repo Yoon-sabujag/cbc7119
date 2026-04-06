@@ -36,15 +36,14 @@ Declared values (must be multiples of 4):
 | xs | 4px | Icon gaps, toggle thumb margin, between sub-labels |
 | sm | 8px | Gap between rows within a group, form field gap |
 | md | 12px | Row internal padding (horizontal 12px, vertical 10px — matches existing Row component) |
-| lg | 16px | N/A (not used as primary spacing in this panel style) |
-| section | 13px | Section container horizontal padding (matches existing SettingsPanel pattern) |
 | section-top | 12px | Section container top padding |
-| section-bottom | 5px | Section container bottom padding |
 
-Exceptions:
-- Row component uses `padding: 10px 12px` (vertical 10px, horizontal 12px) — carried from SettingsPanel.tsx Row primitive, do not change
+Exceptions (carried from existing codebase — do not change):
+- `section` horizontal padding = 13px — carried from SettingsPanel.tsx `padding: '12px 13px'`, do not change
+- `section-bottom` = 5px — carried from SettingsPanel.tsx `marginBottom: 5`, do not change
+- Section label `marginBottom: 6px` after the uppercase category label — carried from SettingsPanel.tsx `marginBottom: 6`, do not change
+- Row component uses `padding: 10px 12px` (vertical 10px is not a multiple of 4) — carried from SettingsPanel.tsx Row primitive, do not change
 - Toggle dimensions: 38px wide × 21px tall, 17px thumb, thumb margin 2px — exact match to existing Toggle in SettingsPanel.tsx
-- Section label uses `marginBottom: 6px` after the uppercase category label
 
 Source: `cha-bio-safety/src/components/SettingsPanel.tsx` lines 39, 213 — pre-populated from codebase scan.
 
@@ -52,14 +51,19 @@ Source: `cha-bio-safety/src/components/SettingsPanel.tsx` lines 39, 213 — pre-
 
 ## Typography
 
+Declared contract (2 weights maximum):
+
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Row label | 12px | 500 | 1.3 |
-| Row sub-label | 10px | 400 | 1.3 |
 | Section heading | 9px | 700 | 1.0 |
 | Toast / feedback text | 13px | 400 | 1.5 |
 
 All text in Korean. Section headings use `letterSpacing: '.08em'` and `textTransform: 'uppercase'` — matches existing SettingsPanel.tsx section header pattern.
+
+Exceptions (carried from existing codebase — do not change):
+- Row label: 12px, weight **500** — carried from SettingsPanel.tsx Row component, do not change
+- Row sub-label: 10px, weight **400**, line-height 1.3 — carried from SettingsPanel.tsx Row sub prop
+- Permission status badge: 10px, weight **600** — carried from SettingsPanel.tsx badge pattern, do not change
 
 Source: `cha-bio-safety/src/components/SettingsPanel.tsx` lines 38–46, 64–66, 213 — pre-populated from codebase scan.
 
@@ -87,6 +91,8 @@ Permission status badge colors:
 - 허용 (Granted): `var(--safe)` = `#22c55e`
 - 차단 (Denied): `var(--danger)` = `#ef4444`
 - 미설정 (Default/Prompt): `var(--t3)` = `#6e7681`
+
+Primary visual focal point: permission status row with colored badge. This row communicates the system-level notification permission state and anchors the entire section's enabled/disabled context.
 
 Source: `cha-bio-safety/src/index.css` lines 14–28 — pre-populated from codebase scan. Decisions D-11, D-13 from CONTEXT.md.
 
@@ -187,7 +193,7 @@ When user taps a notification toggle to turn it ON:
 
 When user taps a notification toggle to turn it OFF:
 - Immediately update `notification_preferences` via PATCH API (no permission check needed)
-- Toggle flips to OFF state optimistically, reverts on API error with toast "설정 저장에 실패했습니다."
+- Toggle flips to OFF state optimistically, reverts on API error with toast "설정 저장에 실패했습니다. 다시 시도해주세요."
 
 ### Blocked permission state
 
@@ -226,7 +232,7 @@ When `Notification.permission === 'denied'`:
 | Permission status: denied | 차단됨 |
 | Permission status: default | 권한 미설정 |
 | Toast: permission denied (on toggle tap) | 브라우저 설정에서 알림을 허용해 주세요. |
-| Toast: save failed | 설정 저장에 실패했습니다. |
+| Toast: save failed | 설정 저장에 실패했습니다. 다시 시도해주세요. |
 | Toast: subscription success | 푸시 알림이 활성화되었습니다. |
 | Toast: subscription failed | 알림 구독에 실패했습니다. 다시 시도해주세요. |
 | Empty state | not applicable — toggles always render |
