@@ -137,6 +137,20 @@ function buildPersonnel(
     const shift = shifts[staff.id]
     const leaveType = leaveMap[staff.id]
 
+    // 당직자는 연차/반차와 관계없이 당직 근무 유지
+    // (당직 = 주간 8h + 당직 15h, 연차는 주간 8h에만 적용)
+    if (shift === '당') {
+      onDuty = staff.name
+      if (leaveType === 'full' || leaveType === 'official_full') {
+        onLeave.push(staff.name)
+      } else if (leaveType === 'half_am' || leaveType === 'half_pm') {
+        halfLeave.push(staff.name)
+      } else if (leaveType === 'official_half_am' || leaveType === 'official_half_pm') {
+        training.push(staff.name)
+      }
+      continue
+    }
+
     // 연차 1일 → 현재원에서 제외
     if (leaveType === 'full') {
       onLeave.push(staff.name)
@@ -163,9 +177,7 @@ function buildPersonnel(
       continue
     }
 
-    if (shift === '당') {
-      onDuty = staff.name
-    } else if (shift === '비') {
+    if (shift === '비') {
       offDuty = staff.name
     } else if (shift === '주') {
       dayShift.push(staff.name)
