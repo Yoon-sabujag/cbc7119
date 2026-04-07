@@ -46,8 +46,8 @@ Requirements for v1.3 release. Each maps to roadmap phases.
 
 ### 메뉴 편집
 
-- [ ] **MENU-01**: BottomNav 메뉴 순서를 변경할 수 있다
-- [ ] **MENU-02**: SideMenu 항목 표시/숨김을 설정할 수 있다
+- [x] **MENU-01**: BottomNav 메뉴 순서를 변경할 수 있다
+- [x] **MENU-02**: SideMenu 항목 표시/숨김을 설정할 수 있다
 
 ### 앱 정보
 
@@ -95,8 +95,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTI-01 | Phase 17 | Pending |
 | NOTI-02 | Phase 17 | Pending |
 | NOTI-03 | Phase 17 | Pending |
-| MENU-01 | Phase 18 | Pending |
-| MENU-02 | Phase 18 | Pending |
+| MENU-01 | Phase 18 | Complete |
+| MENU-02 | Phase 18 | Complete |
 | APP-01 | Phase 19 | Pending |
 | APP-02 | Phase 19 | Pending |
 

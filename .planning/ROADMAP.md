@@ -149,9 +149,11 @@ Plans:
   1. 설정 페이지에서 BottomNav 메뉴 항목을 드래그 또는 버튼으로 순서 변경할 수 있다
   2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
   3. 변경한 메뉴 설정이 앱을 닫고 다시 열어도 유지된다 (로컬 퍼시스턴스)
-**Plans:** 1/1 plan
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [x] 18-01-PLAN.md — MenuConfig types + migration utility + typed settingsApi
+- [ ] 18-02-PLAN.md — BottomNav configurable + SideMenu editMode removal (read-only)
+- [ ] 18-03-PLAN.md — MenuSettingsSection (BottomNav + SideMenu editor) + SettingsPanel mount + deploy
 **UI hint**: yes
 
 ### Phase 19: App Info & Cache
@@ -188,7 +190,7 @@ Plans:
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
-| 18. Menu Customization | v1.3 | 0/? | Not started | - |
+| 18. Menu Customization | v1.3 | 1/3 | In Progress|  |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
 
 ## Backlog
