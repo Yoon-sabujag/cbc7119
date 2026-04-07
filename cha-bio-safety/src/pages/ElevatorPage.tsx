@@ -16,6 +16,7 @@ const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 interface Elevator {
   id: string
   number: number
+  public_number?: number
   type: 'passenger' | 'cargo' | 'dumbwaiter' | 'escalator'
   location: string
   status: 'normal' | 'fault' | 'maintenance' | 'out_of_service'
@@ -112,25 +113,25 @@ const EV_GROUPS_ANNUAL = [
   { title:'덤웨이터',          ids:['EV-11'] },
 ]
 
-// 고장·점검용 에스컬 노선 (1·2호기 제외)
-// 3층→2층: 5,6호기 / 2층→B1층: 3,4호기
+// 고장·점검용 에스컬 노선 (3·4호기 제외)
+// 3층→2층: 1,2호기 / 2층→B1층: 5,6호기
 const ES_NODES_FAULT: EsNode[] = [
   { floor:'3층' },
-  { left:{ id:'ES-05', label:'5호기', dir:'하행' }, right:{ id:'ES-06', label:'6호기', dir:'상행' } },
+  { left:{ id:'ES-05', label:'1호기', dir:'하행' }, right:{ id:'ES-06', label:'2호기', dir:'상행' } },
   { floor:'2층' },
-  { left:{ id:'ES-03', label:'3호기', dir:'하행' }, right:{ id:'ES-04', label:'4호기', dir:'상행' } },
+  { left:{ id:'ES-03', label:'5호기', dir:'하행' }, right:{ id:'ES-04', label:'6호기', dir:'상행' } },
   { floor:'B1층', isBottom:true },
 ]
 
 // 검사용 에스컬 노선 (전체 6대)
-// 3층→2층: 5,6호기 / 2층→B1층: 3,4호기 / B1층→M층: 1,2호기
+// 3층→2층: 1,2호기 / 2층→B1층: 5,6호기 / B1층→M층: 3,4호기
 const ES_NODES_ANNUAL: EsNode[] = [
   { floor:'3층' },
-  { left:{ id:'ES-05', label:'5호기', dir:'하행' }, right:{ id:'ES-06', label:'6호기', dir:'상행' } },
+  { left:{ id:'ES-05', label:'1호기', dir:'하행' }, right:{ id:'ES-06', label:'2호기', dir:'상행' } },
   { floor:'2층' },
-  { left:{ id:'ES-03', label:'3호기', dir:'하행' }, right:{ id:'ES-04', label:'4호기', dir:'상행' } },
+  { left:{ id:'ES-03', label:'5호기', dir:'하행' }, right:{ id:'ES-04', label:'6호기', dir:'상행' } },
   { floor:'B1층' },
-  { left:{ id:'ES-01', label:'1호기', dir:'하행' }, right:{ id:'ES-02', label:'2호기', dir:'상행' } },
+  { left:{ id:'ES-01', label:'3호기', dir:'하행' }, right:{ id:'ES-02', label:'4호기', dir:'상행' } },
   { floor:'M층', isBottom:true },
 ]
 
@@ -367,7 +368,12 @@ export default function ElevatorPage() {
         >
           <div style={{ fontSize: 22, lineHeight: 1 }}>{TYPE_ICON[ev.type]}</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{ev.number}호기</div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.25, wordBreak: 'keep-all', maxWidth: '100%' }}>{ev.location}</div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.25, wordBreak: 'keep-all', maxWidth: '100%' }}>
+            {ev.location}
+            {ev.type === 'escalator' && ev.public_number != null && (
+              <div style={{ marginTop: 2, fontSize: 9, color: 'var(--t3)' }}>공단 {ev.public_number}호기</div>
+            )}
+          </div>
           <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 6px', borderRadius: 12, marginTop: 'auto' }}>{st.label}</span>
           {(ev.active_faults ?? 0) > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--danger)' }}>미해결 {ev.active_faults}</span>}
         </div>
@@ -653,6 +659,9 @@ export default function ElevatorPage() {
                           <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
                             {ev.number}호기
                             <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>{ev.location}</span>
+                            {ev.type === 'escalator' && ev.public_number != null && (
+                              <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>(공단 {ev.public_number}호기)</span>
+                            )}
                           </div>
                           <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
                             {ev.last_inspect_date ? `최근 점검: ${ev.last_inspect_date}` : '점검 기록 없음'}
