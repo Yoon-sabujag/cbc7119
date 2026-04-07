@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: 설정 페이지
 status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-04-07T08:20:29.304Z"
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-04-07T08:24:53.652Z"
 last_activity: 2026-04-07
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-04-06)
 ## Current Position
 
 Phase: 18 (Menu Customization) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-07
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
 | Phase 16-settings-page-profile P01 | 12 | 2 tasks | 4 files |
 | Phase 16-settings-page-profile P02 | 3 | 3 tasks | 3 files |
 | Phase 18 P01 | 175 | 3 tasks | 5 files |
+| Phase 18 P02 | 4 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ v1.3 decisions:
 - [Phase 16-settings-page-profile]: SettingsPanel completely removed in favor of dedicated /settings page route — logout moved exclusively to SettingsPage
 - [Phase 18]: LegacyMenuConfig migration preserves visibility only (legacy order is global, new order is per-section)
 - [Phase 18]: SideMenu+AdminPage legacy cast shim (unknown intermediate) bridges Plan 01 typing to Plan 02 full refactor
+- [Phase 18]: BottomNav uses ITEMS as static registry; MenuConfig provides order/visible only — icons/labels stay in ITEMS
+- [Phase 18]: SideMenu appliedSections useMemo joins MenuConfig.sideMenu x MENU by path — orphan paths silently skipped
 
 ### Pending Todos
 
@@ -98,8 +101,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-07T08:20:29.299Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-04-07T08:24:53.648Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
 
 ---
