@@ -334,7 +334,7 @@ export default function DashboardPage() {
 
   // ── 모바일 레이아웃 ──────────────────────────────────────
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
       {/* ══ 근무자 칩 바 ══ */}
       <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'6px 12px' }}>

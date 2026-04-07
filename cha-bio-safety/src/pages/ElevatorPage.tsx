@@ -8,6 +8,7 @@ import type { ElevatorNextInspection, ElevatorRepair } from '../types'
 import PdfFloorPlan from '../components/PdfFloorPlan'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -208,12 +209,14 @@ export default function ElevatorPage() {
   const qc = useQueryClient()
   const { staff } = useAuthStore()
   const isAdmin = staff?.role === 'admin'
+  const isDesktop = useIsDesktop()
   const [tab,           setTab]           = useState<Tab>('list')
   const [modal,         setModal]         = useState<Modal>(null)
   const [selectedEv,    setSelectedEv]    = useState<Elevator | null>(null)
   const [selectedFault, setSelectedFault] = useState<ElevatorFault | null>(null)
   const [expandedAnnual, setExpandedAnnual] = useState<string | null>(null)
   const [certViewerKey,  setCertViewerKey]  = useState<string | null>(null)
+  const [desktopRightTab, setDesktopRightTab] = useState<'fault' | 'repair' | 'inspect' | 'annual'>('fault')
 
   async function deleteRecord(type: 'fault' | 'inspection', id: string) {
     if (!confirm('삭제하시겠습니까?')) return
@@ -326,8 +329,280 @@ export default function ElevatorPage() {
     { key:'annual',  label:'검사 기록' },
   ]
 
+  // ── 데스크톱: 좌=배치도 / 우=호기별 이력 탭 ─────────────────
+  if (isDesktop) {
+    const evs = elevators.filter(e => e.type !== 'escalator').sort((a, b) => a.number - b.number)
+    const ess = elevators.filter(e => e.type === 'escalator').sort((a, b) => a.number - b.number)
+    const evGroups = [
+      evs.filter(e => e.number >= 1 && e.number <= 3),
+      evs.filter(e => e.number >= 4 && e.number <= 6),
+      evs.filter(e => e.number >= 7 && e.number <= 8),
+      evs.filter(e => e.number >= 9 && e.number <= 11),
+    ].filter(g => g.length > 0)
+    const esRow1Left  = ess.filter(e => e.number === 3 || e.number === 4)
+    const esRow1Right = ess.filter(e => e.number === 5 || e.number === 6)
+    const esRow2      = ess.filter(e => e.number === 1 || e.number === 2)
+
+    const selectedDesktopEv = detailEv ?? evs[0] ?? ess[0] ?? null
+    const evFaults      = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id) : []
+    const evRepairs     = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id && f.is_resolved && f.repair_detail) : []
+    const evInspections = selectedDesktopEv ? inspections.filter((i: any) => i.elevator_id === selectedDesktopEv.id) : []
+    const evAnnuals     = selectedDesktopEv ? annuals.filter((a: any) => a.elevator_id === selectedDesktopEv.id) : []
+
+    const renderEvCard = (ev: Elevator) => {
+      const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
+      const isSel = selectedDesktopEv?.id === ev.id
+      return (
+        <div
+          key={ev.id}
+          onClick={() => setDetailEv(ev)}
+          style={{
+            background: isSel ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+            border: '2px solid ' + (isSel ? 'var(--acl)' : (ev.status === 'fault' ? 'rgba(239,68,68,.3)' : 'var(--bd)')),
+            borderRadius: 10, padding: '10px 6px', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+            width: '100%', height: 130, boxSizing: 'border-box', overflow: 'hidden',
+            transition: 'background-color .12s',
+          }}
+        >
+          <div style={{ fontSize: 22, lineHeight: 1 }}>{TYPE_ICON[ev.type]}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{ev.number}호기</div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.25, wordBreak: 'keep-all', maxWidth: '100%' }}>{ev.location}</div>
+          <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 6px', borderRadius: 12, marginTop: 'auto' }}>{st.label}</span>
+          {(ev.active_faults ?? 0) > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--danger)' }}>미해결 {ev.active_faults}</span>}
+        </div>
+      )
+    }
+
+    const RIGHT_TABS: { key:'fault'|'repair'|'inspect'|'annual'; label:string; count:number }[] = [
+      { key:'fault',   label:'고장 이력', count: evFaults.length },
+      { key:'repair',  label:'수리 이력', count: evRepairs.length },
+      { key:'inspect', label:'점검 기록', count: evInspections.length },
+      { key:'annual',  label:'검사 기록', count: evAnnuals.length },
+    ]
+
+    return (
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* 헤더 */}
+        <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>승강기 관리</span>
+          {unresolvedCount > 0 && (
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', background: 'rgba(239,68,68,.13)', border: '1px solid rgba(239,68,68,.25)', padding: '3px 10px', borderRadius: 20 }}>
+              미해결 고장 {unresolvedCount}건
+            </span>
+          )}
+          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            🚨 고장 접수
+          </button>
+          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('inspect_new') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            📋 점검 기록
+          </button>
+          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('annual_new') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#14532d,#22c55e)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            🔍 검사 기록
+          </button>
+          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            🔧 수리 기록
+          </button>
+        </header>
+
+        {/* 본문: 좌 50% / 우 50% */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+          {/* ── 좌측: 승강기 배치도 ── */}
+          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>🛗 엘리베이터</div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              {evGroups.map((group, gi) => (
+                <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 0', minWidth: 0 }}>
+                  {group.map(ev => renderEvCard(ev))}
+                </div>
+              ))}
+            </div>
+
+            {ess.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>↕️ 에스컬레이터</div>
+                {/* E/V와 동일한 4컬럼 그리드 — 카드 너비 통일 */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, rowGap: 8 }}>
+                  {/* Row 1: ES 3,4 (col 1-2) | ES 5,6 (col 3-4) */}
+                  {esRow1Left[0]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[0])}</div>}
+                  {esRow1Left[1]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[1])}</div>}
+                  {esRow1Right[0] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[0])}</div>}
+                  {esRow1Right[1] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[1])}</div>}
+                  {/* Row 2: ES 1,2 (col 1-2) — 빈 col 3,4 */}
+                  {esRow2[0] && <div style={{ gridColumn: '1', minWidth: 0 }}>{renderEvCard(esRow2[0])}</div>}
+                  {esRow2[1] && <div style={{ gridColumn: '2', minWidth: 0 }}>{renderEvCard(esRow2[1])}</div>}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── 우측: 호기별 이력 ── */}
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            {selectedDesktopEv ? (
+              <>
+                {/* 호기 정보 헤더 */}
+                <div style={{ flexShrink: 0, padding: '16px 24px 12px', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ fontSize: 28 }}>{TYPE_ICON[selectedDesktopEv.type]}</div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{selectedDesktopEv.number}호기</div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>{selectedDesktopEv.location}</div>
+                  </div>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).color, background: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).bg, padding: '4px 10px', borderRadius: 20 }}>
+                    {(STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).label}
+                  </span>
+                </div>
+
+                {/* 탭 버튼 */}
+                <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '10px 24px 0', borderBottom: '1px solid var(--bd)' }}>
+                  {RIGHT_TABS.map(t => (
+                    <button key={t.key} onClick={() => setDesktopRightTab(t.key)}
+                      style={{
+                        padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
+                        fontSize: 12, fontWeight: 700,
+                        color: desktopRightTab === t.key ? 'var(--acl)' : 'var(--t3)',
+                        borderBottom: desktopRightTab === t.key ? '2px solid var(--acl)' : '2px solid transparent',
+                        marginBottom: -1,
+                      }}>
+                      {t.label} {t.count > 0 && <span style={{ fontSize:10, opacity:0.7 }}>({t.count})</span>}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 탭 콘텐츠 */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
+
+                  {desktopRightTab === 'fault' && (
+                    evFaults.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>고장 이력이 없습니다</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {evFaults.map(f => {
+                          const pure = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
+                          const floorMatch = f.symptoms.match(/^\[([^\]]+)\]/)
+                          return (
+                            <div key={f.id} style={{ background:'var(--bg2)', border: `1px solid ${f.is_resolved ? 'var(--bd)' : 'rgba(239,68,68,.3)'}`, borderRadius: 10, padding: '10px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{pure}</span>
+                                {floorMatch && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--info)', background: 'rgba(14,165,233,.12)', padding: '2px 6px', borderRadius: 6 }}>{floorMatch[1]}</span>}
+                                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: f.is_resolved ? 'var(--safe)' : 'var(--danger)' }}>
+                                  {f.is_resolved ? '✅ 수리완료' : '🚨 미해결'}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.fault_at.slice(0, 16).replace('T', ' ')} · {f.reporter_name}</div>
+                              {!f.is_resolved && (
+                                <button onClick={() => { setSelectedFault(f); setModal('fault_resolve') }}
+                                  style={{ marginTop: 6, padding: '5px 10px', borderRadius: 7, border: '1px solid var(--safe)', background: 'rgba(34,197,94,.1)', color: 'var(--safe)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                                  수리 입력
+                                </button>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  )}
+
+                  {desktopRightTab === 'repair' && (
+                    evRepairs.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>수리 이력이 없습니다</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {evRepairs.map(f => {
+                          const pure = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
+                          return (
+                            <div key={f.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{pure}</span>
+                                <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--safe)', fontWeight: 700 }}>✅ 완료</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--safe)', fontWeight: 600, marginBottom: 4 }}>{f.repair_detail}</div>
+                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>
+                                고장: {f.fault_at.slice(0, 10)} → 수리: {f.repaired_at?.slice(0, 10) ?? '-'}
+                                {f.repair_company && ` · ${f.repair_company}`}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  )}
+
+                  {desktopRightTab === 'inspect' && (
+                    evInspections.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>점검 기록이 없습니다</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {evInspections.map((i: any) => {
+                          const ov = OVERALL_STYLE[i.overall] ?? OVERALL_STYLE.normal
+                          return (
+                            <div key={i.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{i.inspect_date}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: ov.color, background: `${ov.color}22`, padding: '1px 6px', borderRadius: 6 }}>{ov.label}</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--t2)' }}>{i.action_needed?.replace(/^\[[^\]]+\]\s*/, '') || '조치 사항 없음'}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  )}
+
+                  {desktopRightTab === 'annual' && (
+                    evAnnuals.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>검사 기록이 없습니다</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {evAnnuals.map((a: any) => {
+                          const ov = OVERALL_STYLE[a.overall] ?? OVERALL_STYLE.normal
+                          return (
+                            <div key={a.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{a.inspect_date}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: ov.color, background: `${ov.color}22`, padding: '1px 6px', borderRadius: 6 }}>{ov.label}</span>
+                                <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>연간검사</span>
+                              </div>
+                              <div style={{ fontSize: 12, color: 'var(--t2)' }}>{a.action_needed || '검사 결과 없음'}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>
+                좌측에서 호기를 선택하세요
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 모달 */}
+        {modal === 'fault_new' && (
+          fromDashboard
+            ? <FaultNewFullscreen elevators={elevators} onClose={() => { setModal(null); setFromDashboard(false); navigate('/elevator', { replace:true }) }} onSubmit={b => submitFault.mutate(b)} loading={submitFault.isPending} />
+            : <FaultNewModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitFault.mutate(b)} loading={submitFault.isPending} />
+        )}
+        {modal === 'fault_resolve' && <FaultResolveModal fault={selectedFault!} onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
+        {modal === 'inspect_new' && <InspectModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
+        {modal === 'annual_new' && <AnnualModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
+        {modal === 'repair_new' && <RepairNewModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
+        {modal === 'ev_detail' && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
+        {certViewerKey && <CertViewerModal certKey={certViewerKey} onClose={() => setCertViewerKey(null)} />}
+      </div>
+    )
+  }
+
+  // ── 모바일 ─────────────────────────────────────────────────
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
       {/* 헤더 */}
       <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 8px' }}>
         {unresolvedCount > 0 && (
@@ -721,6 +996,7 @@ const HISTORY_TABS: { key:HistoryTab; label:string }[] = [
 ]
 
 function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
+  const isDesktop = useIsDesktop()
   useEffect(() => {
     const scrollY = window.scrollY
     document.body.style.overflow = 'hidden'
@@ -778,7 +1054,11 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={{ position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', display:'flex', flexDirection:'column', overflowX:'hidden' }}>
+      <div style={
+        isDesktop
+          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, width:720, maxWidth:'92vw', maxHeight:'88vh', display:'flex', flexDirection:'column', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', display:'flex', flexDirection:'column', overflowX:'hidden' }
+      }>
 
         {/* 헤더 */}
         <div style={{ flexShrink:0, padding:'14px 16px 12px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10 }}>
@@ -1621,12 +1901,16 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate }:
 
 // ── 공용 컴포넌트 ─────────────────────────────────────────
 function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>void; children:React.ReactNode }) {
-
+  const isDesktop = useIsDesktop()
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={{ position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'0 16px 32px', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', overflowY:'auto', overflowX:'hidden' }}>
-        <div style={{ display:'flex', alignItems:'center', padding:'14px 0 12px', borderBottom:'1px solid var(--bd)', marginBottom:14 }}>
+      <div style={
+        isDesktop
+          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, padding:'0 24px 24px', width:540, maxWidth:'90vw', maxHeight:'85vh', overflowY:'auto', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'0 16px 32px', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', overflowY:'auto', overflowX:'hidden' }
+      }>
+        <div style={{ display:'flex', alignItems:'center', padding:'14px 0 12px', borderBottom:'1px solid var(--bd)', marginBottom:14, position: isDesktop ? 'sticky' : 'static', top:0, background:'var(--bg2)', zIndex:1 }}>
           <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>{title}</span>
           <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
         </div>

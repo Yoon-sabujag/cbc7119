@@ -777,8 +777,8 @@ const DIV_PTS = [
   { floor: -4, pos: 1, id: '-4-1', floorLabel: 'B4층',  loc: '지) B4층 팬룸'       },
   { floor: -4, pos: 2, id: '-4-2', floorLabel: 'B4층',  loc: '지) B4층 기계실'     },
   { floor: -4, pos: 3, id: '-4-3', floorLabel: 'B4층',  loc: '지) B4층 창고'       },
-  { floor: -5, pos: 2, id: '-5-2', floorLabel: 'B5층',  loc: '지) B5층 1번팬룸'    },
-  { floor: -5, pos: 3, id: '-5-3', floorLabel: 'B5층',  loc: '지) B5층 2번팬룸'    },
+  { floor: -5, pos: 2, id: '-5-2', floorLabel: 'B5층',  loc: '지) B5층 2번팬룸'    },
+  { floor: -5, pos: 3, id: '-5-3', floorLabel: 'B5층',  loc: '지) B5층 1번팬룸'    },
 ] as const
 
 const DIV_LINE_SEQ: Record<number, number[]> = {
@@ -3329,7 +3329,7 @@ export default function InspectionPage() {
   const selectedGroup = selectedGroupIdx !== null ? CATEGORY_GROUPS[selectedGroupIdx] : null
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
 
       <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', paddingBottom:80 }}>
         {syncedAt && (

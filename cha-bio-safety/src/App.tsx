@@ -194,7 +194,9 @@ function Layout() {
         <main style={{
           flex: 1,
           minHeight: 0,
-          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
           paddingBottom: (!isDesktop && showNav) ? 'calc(54px + var(--sab, 34px))' : 0,
         }}>
           <Suspense fallback={<Loader />}>
