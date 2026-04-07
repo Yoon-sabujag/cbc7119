@@ -49,7 +49,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 **Milestone Goal:** 사용자별 앱 설정을 관리할 수 있는 설정 페이지 구축
 
 - [x] **Phase 16: Settings Page + Profile** - 설정 페이지 진입점 + 비밀번호·이름 변경 + 로그아웃 (completed 2026-04-05)
-- [ ] **Phase 17: Push Notification Settings** - PWA 푸시 알림 구독/해제 + 알림 유형별 토글
+- [x] **Phase 17: Push Notification Settings** - PWA 푸시 알림 구독/해제 + 알림 유형별 토글 (completed 2026-04-06)
 - [ ] **Phase 18: Menu Customization** - BottomNav 순서 변경 + SideMenu 항목 표시/숨김 설정
 - [ ] **Phase 19: App Info & Cache** - 빌드 버전 표시 + 서비스워커 캐시 초기화
 
@@ -134,11 +134,11 @@ Plans:
   2. 점검 일정 알림을 개별적으로 켜고 끌 수 있다
   3. 미조치 이슈 알림을 개별적으로 켜고 끌 수 있다
   4. 알림 구독 상태(허용/차단/미설정)가 설정 화면에 시각적으로 표시된다
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 17-01-PLAN.md — D1 migration + API endpoints + VitePWA injectManifest + custom service worker
-- [ ] 17-02-PLAN.md — pushApi client + SettingsPanel notification toggles with permission flow
-- [ ] 17-03-PLAN.md — Cron Worker project + VAPID keys + production deploy + E2E verification
+- [x] 17-01-PLAN.md — D1 migration + API endpoints + VitePWA injectManifest + custom service worker
+- [x] 17-02-PLAN.md — pushApi client + SettingsPanel notification toggles with permission flow
+- [x] 17-03-PLAN.md — Cron Worker project + VAPID keys + production deploy + E2E verification
 **UI hint**: yes
 
 ### Phase 18: Menu Customization
@@ -187,7 +187,7 @@ Plans:
 | 14. Schedule Date Range | v1.2 | — | Complete | 2026-04-06 |
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
-| 17. Push Notification Settings | v1.3 | 0/3 | Planned | - |
+| 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
 | 18. Menu Customization | v1.3 | 0/? | Not started | - |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
 
