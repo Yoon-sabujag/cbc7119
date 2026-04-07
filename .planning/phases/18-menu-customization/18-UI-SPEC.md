@@ -32,7 +32,7 @@ No shadcn gate required — project uses hand-crafted inline-style components th
 
 ## Spacing Scale
 
-Declared values (multiples of 4 only):
+All NEW spacing introduced by Phase 18 (section rows, footer, card, inputs) uses ONLY multiples-of-4 values from the scale below. No exceptions for new-build code.
 
 | Token | Value | Usage |
 |-------|-------|-------|
@@ -42,17 +42,16 @@ Declared values (multiples of 4 only):
 | lg | 16px | Section outer padding |
 | xl | 24px | Major section vertical breaks |
 
-Source: Row primitive in `SettingsPanel.tsx` line 56 uses `padding: '10px 12px'`. SideMenu edit rows in `SideMenu.tsx` line 211 use `padding: '8px 10px'`.
+### Frozen Legacy Measurements — Existing Code, Not Part of Phase 18 New-Build Contract
 
-Exceptions:
-- Row primitive inner padding: 10px vertical × 12px horizontal — non-multiple-of-4 vertical (10px). Inherited from existing Row primitive; do NOT change to preserve visual consistency across settings sections.
-  Citation: `SettingsPanel.tsx:56` — `padding: '10px 12px'`
-- SideMenu edit row padding: 8px vertical × 10px horizontal — horizontal 10px is non-multiple-of-4.
-  Citation: `SideMenu.tsx:211` — `padding: '8px 10px'`
-- BottomNav height: 54px fixed — not a multiple of 4. Locked by PWA safe-area formula.
-  Citation: `BottomNav.tsx:43` — `height: 'calc(54px + var(--sab, 34px))'`
-- SideMenu edit toggle: 44px wide × 24px tall — 44px is non-multiple-of-4 horizontal. Inherited pattern; do NOT change.
-  Citation: `SideMenu.tsx:223` — `width:44, height:24`
+The following measurements exist in pre-Phase-18 code and are preserved exactly as-is. Phase 18 executor must NOT modify these values. They are NOT available as spacing choices for any new UI elements added in this phase.
+
+| Measurement | Value | Location | Reason frozen |
+|-------------|-------|----------|---------------|
+| Row primitive inner padding vertical | 10px | `SettingsPanel.tsx:56` — `padding: '10px 12px'` | Non-multiple-of-4; inherited; do not change to preserve cross-section visual consistency |
+| SideMenu edit row padding horizontal | 10px | `SideMenu.tsx:211` — `padding: '8px 10px'` | Non-multiple-of-4; inherited; do not change |
+| BottomNav height | 54px | `BottomNav.tsx:43` — `height: 'calc(54px + var(--sab, 34px))'` | Non-multiple-of-4; locked by PWA safe-area formula |
+| SideMenu edit toggle width | 44px | `SideMenu.tsx:223` — `width:44, height:24` | Non-multiple-of-4; inherited pattern; do not change |
 
 ---
 
@@ -71,19 +70,17 @@ Source: `SettingsPanel.tsx` lines 82, 56–58, 312, 277; `SideMenu.tsx` lines 15
 
 Weights used: 500 (medium) and 700 (bold). These are the two permitted weights.
 
-Exceptions (codebase citations, do not change):
-- SideMenu menu item label: 12.5px weight 500 — half-pixel inherited from existing SideMenu.
-  Citation: `SideMenu.tsx:173` — `fontSize:12.5, fontWeight:500`
-- SideMenu edit item label: 13px weight 600 — weight 600 used as a third weight for drag-handle items.
-  Citation: `SideMenu.tsx:219` — `fontSize:13, fontWeight:600`
-- SideMenu panel header: 14px weight 700 — used only in editMode header.
-  Citation: `SideMenu.tsx:146` — `fontSize:14, fontWeight:700`
-- QR label in BottomNav: 9.5px weight 700 accent color.
-  Citation: `BottomNav.tsx:79` — `fontSize: 9.5, fontWeight: 700`
-- BottomNav regular item label: 9.5px weight 500.
-  Citation: `BottomNav.tsx:111` — `fontSize: 9.5, fontWeight: 500`
+### Frozen Legacy Typography — Existing Code, Not Part of Phase 18 New-Build Contract
 
-For all new UI built in Phase 18 (the menu settings section inside SettingsPanel), use only the primary contract sizes: 9px section labels, 12px row labels, 10px sub-labels.
+| Exception | Value | Location |
+|-----------|-------|----------|
+| SideMenu menu item label | 12.5px weight 500 | `SideMenu.tsx:173` — half-pixel inherited from existing SideMenu |
+| SideMenu edit item label | 13px weight 600 | `SideMenu.tsx:219` — weight 600 used as third weight for drag-handle items |
+| SideMenu panel header | 14px weight 700 | `SideMenu.tsx:146` — used only in editMode header |
+| QR label in BottomNav | 9.5px weight 700 | `BottomNav.tsx:79` — accent color label |
+| BottomNav regular item label | 9.5px weight 500 | `BottomNav.tsx:111` |
+
+For all new UI built in Phase 18 (the menu settings section inside SettingsPanel), use only the primary contract sizes (9px, 10px, 12px, 13px) and weights (500, 700). Do not introduce weight 600 or any size outside the primary contract in any new Phase 18 code.
 
 ---
 
@@ -232,6 +229,8 @@ The section renders inline within the settings page scroll — no modal overlay.
 | Save error toast | 저장 실패. 다시 시도해주세요. |
 | Load error toast | 메뉴 설정을 불러오지 못했습니다. 페이지를 새로고침해주세요. |
 | BottomNav min-visible warning | 하단 내비게이션은 최소 2개가 표시되어야 합니다 (shown inline below toggle if user tries to hide below minimum, no toast) |
+
+Note: "취소" is a single-word label. This is intentional Korean UX convention — "취소" (cancel) is universally understood as a standalone action label in Korean-language interfaces and requires no additional context word.
 
 No destructive-action confirmation dialogs in this phase except empty-section delete, which uses inline confirmation text (not a modal).
 
