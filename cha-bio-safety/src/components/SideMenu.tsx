@@ -59,7 +59,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
   // 메뉴 설정 적용: hidden 항목 필터링 + 순서 반영
   const appliedMenu = useMemo(() => {
     if (!menuConfig) return MENU
-    const cfg = menuConfig as Record<string, { visible: boolean; order: number }>
+    const cfg = menuConfig as unknown as Record<string, { visible: boolean; order: number }>
     return MENU.map(section => ({
       ...section,
       items: section.items
@@ -235,7 +235,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
                 style={{ flex:1, padding:'10px 0', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>취소</button>
               <button onClick={async () => {
                 if (!editConfig) return; setSaving(true)
-                try { await settingsApi.saveMenu(editConfig); qc.invalidateQueries({ queryKey:['menu-config'] }); setEditMode(false); setEditConfig(null) } catch {}
+                try { await settingsApi.saveMenu(editConfig as unknown as import('../types/menuConfig').MenuConfig); qc.invalidateQueries({ queryKey:['menu-config'] }); setEditMode(false); setEditConfig(null) } catch {}
                 setSaving(false)
               }} style={{ flex:2, padding:'10px 0', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', opacity:saving?0.5:1 }}>
                 {saving ? '저장 중...' : '설정 저장'}
