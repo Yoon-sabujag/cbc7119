@@ -114,23 +114,32 @@ export default function DailyReportPage() {
     if (prevDateRef.current === date && loaded === date) return
     prevDateRef.current = date
     const saved = queryNotes.data as any
-    if (saved && (saved.today_text || saved.tomorrow_text || saved.content)) {
-      // D1에 저장된 내용 있으면 복원
+    const isAutoSaved = saved && Number(saved.is_auto) === 1
+    if (saved && !isAutoSaved && (saved.today_text || saved.tomorrow_text || saved.content)) {
+      // D1에 사용자 편집 내용 있으면 복원
       setTodayText(saved.today_text ?? auto.todayText)
       setTomorrowText(saved.tomorrow_text ?? auto.tomorrowText)
       setNotes(saved.content ?? '')
+    } else if (isAutoSaved) {
+      // 자동 저장본은 항상 최신 자동 생성 내용으로 갱신
+      setTodayText(auto.todayText)
+      setTomorrowText(auto.tomorrowText)
+      setNotes(auto.notes ?? '')
+      dailyReportApi.saveNotes({
+        date, today_text: auto.todayText, tomorrow_text: auto.tomorrowText, content: auto.notes ?? '', is_auto: 1,
+      }).catch(() => {})
     } else {
       // D1 비어있음 — 자동 생성 내용 표시
       setTodayText(auto.todayText)
       setTomorrowText(auto.tomorrowText)
-      setNotes('')
+      setNotes(auto.notes ?? '')
 
       // Lazy auto-save: 과거 날짜이거나 오늘 17:00 이후이면 자동 저장
       const isPast = date < today
       const isAfter17 = date === today && nowKSTHour() >= 17
       if (isPast || isAfter17) {
         dailyReportApi.saveNotes({
-          date, today_text: auto.todayText, tomorrow_text: auto.tomorrowText, content: '', is_auto: 1,
+          date, today_text: auto.todayText, tomorrow_text: auto.tomorrowText, content: auto.notes ?? '', is_auto: 1,
         }).catch(() => {})
       }
     }
@@ -243,7 +252,7 @@ export default function DailyReportPage() {
             dayDataMap[day] = autoGen
             // lazy save
             await dailyReportApi.saveNotes({
-              date: dayStr, today_text: autoGen.todayText, tomorrow_text: autoGen.tomorrowText, content: '', is_auto: 1,
+              date: dayStr, today_text: autoGen.todayText, tomorrow_text: autoGen.tomorrowText, content: autoGen.notes ?? '', is_auto: 1,
             }).catch(() => {})
           } catch {
             dayDataMap[day] = buildDailyReportData(dayStr, { schedules: [], leaves: [], elevatorFaults: [] }, '', staffData)

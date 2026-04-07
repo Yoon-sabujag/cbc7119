@@ -288,7 +288,8 @@ function buildTasks(
   date: Date,
   patrol: PatrolEntry[],
   schedules: any[],
-  elevatorFaults: any[]
+  elevatorFaults: any[],
+  remediations: any[] = []
 ): TaskEntry[] {
   const dateStr = toDateStr(date)
   const tasks: TaskEntry[] = []
@@ -360,6 +361,16 @@ function buildTasks(
     const agencyStr = agency ? ` - ${agency}` : ''
     const memoStr = s.memo ? `\n  - ${s.memo}` : ''
     tasks.push({ number: num++, content: `${s.title ?? ''}${agencyStr}${memoStr}` })
+  }
+
+  // 오늘 조치 완료된 점검 항목 (불량/주의)
+  for (const r of (remediations ?? [])) {
+    const floor = r.floor ?? ''
+    const cat = r.category ?? ''
+    const loc = r.location ?? ''
+    const reso = r.resolution_memo ?? ''
+    const parts = [floor, loc, cat, reso].filter(Boolean).join(' ')
+    tasks.push({ number: num++, content: parts })
   }
 
   return tasks
@@ -436,7 +447,7 @@ function buildTomorrowTasks(
 
 export function buildDailyReportData(
   date: string,
-  apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[] },
+  apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations?: any[] },
   notes: string,
   staffData?: { id: string; name: string; title?: string }[]
 ): DailyReportData {
@@ -445,12 +456,20 @@ export function buildDailyReportData(
 
   const personnel = buildPersonnel(dateObj, apiData.leaves ?? [], apiData.schedules ?? [], staffData)
   const patrol = buildPatrol(dateObj, personnel.onDuty)
-  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [])
+  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [], apiData.remediations ?? [])
   const tomorrowTasks = buildTomorrowTasks(dateObj, patrol, apiData.schedules ?? [])
 
   // 텍스트 조합 (엑셀 병합셀용)
   const todayText = todayTasks.map(t => `${t.number}. ${t.content}`).join('\n')
   const tomorrowText = tomorrowTasks.map(t => `${t.number}. ${t.content}`).join('\n')
+
+  // 특이사항 자동 생성: 조치 시 입력된 소모 자재
+  const autoMaterials = (apiData.remediations ?? [])
+    .map((r: any) => r.materials_used)
+    .filter((m: any) => m && String(m).trim())
+    .map((m: string) => `- ${String(m).trim()}`)
+    .join('\n')
+  const autoNotes = autoMaterials ? `[소모 자재]\n${autoMaterials}` : ''
 
   return {
     date,
@@ -461,6 +480,6 @@ export function buildDailyReportData(
     tomorrowTasks,
     todayText,
     tomorrowText,
-    notes,
+    notes: notes || autoNotes,
   }
 }

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { remediationApi, api } from '../utils/api'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
+import { useAuthStore } from '../stores/authStore'
 import toast from 'react-hot-toast'
 
 const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
@@ -36,14 +37,43 @@ export default function RemediationDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [memo, setMemo] = useState('')
+  const [materialsUsed, setMaterialsUsed] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const photo = usePhotoUpload()
+  const isAdmin = useAuthStore(s => s.staff?.role === 'admin')
 
   const { data: record, isLoading, error } = useQuery({
     queryKey: ['remediation-detail', recordId],
     queryFn: () => remediationApi.get(recordId!),
     enabled: !!recordId,
   })
+
+  const handleDelete = async () => {
+    if (!confirm('이 점검 기록을 영구 삭제합니다. 되돌릴 수 없습니다. 진행할까요?')) return
+    try {
+      await api.delete('/inspections/records/' + recordId)
+      queryClient.invalidateQueries({ queryKey: ['remediation'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('삭제 완료')
+      navigate(-1)
+    } catch {
+      toast.error('삭제 실패')
+    }
+  }
+
+  const handleUnresolve = async () => {
+    if (!confirm('조치를 취소하고 미조치 상태로 되돌립니다. 조치 메모/사진/소모 자재가 삭제됩니다. 진행할까요?')) return
+    try {
+      await api.post('/inspections/records/' + recordId + '/unresolve', {})
+      queryClient.invalidateQueries({ queryKey: ['remediation'] })
+      queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      toast.success('조치 취소됨')
+      navigate(-1)
+    } catch {
+      toast.error('조치 취소 실패')
+    }
+  }
 
   const handleResolve = async () => {
     if (!memo.trim()) { toast.error('조치 내용을 입력하세요'); return }
@@ -57,6 +87,7 @@ export default function RemediationDetailPage() {
       await api.post('/inspections/records/' + recordId + '/resolve', {
         resolution_memo: memo.trim(),
         resolution_photo_key: photoKey,
+        materials_used: materialsUsed.trim() || null,
       })
       queryClient.invalidateQueries({ queryKey: ['remediation'] })
       queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
@@ -178,6 +209,9 @@ export default function RemediationDetailPage() {
                 <KVRow label="조치 메모">
                   <span style={{ whiteSpace: 'pre-wrap' }}>{record.resolutionMemo ?? '-'}</span>
                 </KVRow>
+                <KVRow label="소모 자재">
+                  <span style={{ whiteSpace: 'pre-wrap' }}>{record.materialsUsed ?? '-'}</span>
+                </KVRow>
               </div>
               {record.resolutionPhotoKey && (
                 <img
@@ -186,6 +220,28 @@ export default function RemediationDetailPage() {
                   style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12 }}
                 />
               )}
+            </div>
+          )}
+
+          {/* Admin 액션 영역 */}
+          {isAdmin && (
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bd)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {record.status === 'resolved' && (
+                <button
+                  onClick={handleUnresolve}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: '1px solid var(--warn)',
+                    background: 'transparent', color: 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >조치 취소</button>
+              )}
+              <button
+                onClick={handleDelete}
+                style={{
+                  padding: '8px 14px', borderRadius: 8, border: '1px solid var(--danger)',
+                  background: 'transparent', color: 'var(--danger)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+              >점검 기록 삭제</button>
             </div>
           )}
 
@@ -210,6 +266,24 @@ export default function RemediationDetailPage() {
                   boxSizing: 'border-box',
                   fontFamily: 'Noto Sans KR, sans-serif',
                   lineHeight: 1.5,
+                }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 12, marginBottom: 4 }}>소모 자재 (선택)</div>
+              <input
+                type="text"
+                value={materialsUsed}
+                onChange={e => setMaterialsUsed(e.target.value)}
+                placeholder="자재명 개수ea"
+                style={{
+                  width: '100%',
+                  background: 'var(--bg3)',
+                  border: '1px solid var(--bd2)',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  color: 'var(--t1)',
+                  padding: '10px 12px',
+                  boxSizing: 'border-box',
+                  fontFamily: 'Noto Sans KR, sans-serif',
                 }}
               />
               <div style={{ marginTop: 12 }}>

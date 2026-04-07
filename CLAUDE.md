@@ -12,7 +12,7 @@
 - **Tech stack:** Cloudflare 생태계 고정 (Pages + D1 + R2 + Workers) — 이미 유료 플랜 구독 중, 추가 비용 $0 목표
 - **Users:** 4인 내부 팀 전용 — 트래픽 매우 낮음, 복잡한 스케일링 불필요
 - **Compatibility:** PWA, iOS 16.3.1+ / Android 15+ / PC (1920x1080)
-- **Data integrity:** 점검 기록 삭제 불가 원칙 (수정 이력 보존)
+- **Data integrity:** 점검 기록 삭제 불가 원칙 (수정 이력 보존) — 단, 관리자(admin) 권한에 한해 예외적으로 점검 기록 삭제 및 조치 취소 가능
 - **Excel output:** 기존 양식 파일과 호환되는 형태로 출력 필수
 <!-- GSD:project-end -->
 

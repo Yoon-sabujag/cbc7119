@@ -32,12 +32,25 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
        WHERE date(fault_at) <= ? AND (is_resolved = 0 OR date(repaired_at) >= ?)`
     ).bind(date, date).all()
 
+    // ── 해당 날짜에 조치 완료된 점검 항목 (불량/주의) ──────
+    const remediations = await ctx.env.DB.prepare(
+      `SELECT r.id, r.result, r.memo, r.resolution_memo, r.materials_used, r.resolved_at,
+              cp.category, cp.location, cp.floor
+       FROM check_records r
+       JOIN check_points cp ON cp.id = r.checkpoint_id
+       WHERE r.status = 'resolved'
+         AND r.result IN ('bad','caution')
+         AND date(r.resolved_at) = ?
+       ORDER BY r.resolved_at ASC`
+    ).bind(date).all()
+
     return Response.json({
       success: true,
       data: {
         schedules: schedules.results ?? [],
         leaves: leaves.results ?? [],
         elevatorFaults: elevatorFaults.results ?? [],
+        remediations: remediations.results ?? [],
       }
     })
   } catch (e) {

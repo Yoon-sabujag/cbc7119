@@ -8,7 +8,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
     const record = await env.DB.prepare(`
       SELECT r.id, r.result, r.memo, r.photo_key,
              COALESCE(r.status, 'open') as status,
-             r.resolution_memo, r.resolution_photo_key,
+             r.resolution_memo, r.resolution_photo_key, r.materials_used,
              r.resolved_at, r.resolved_by, r.checked_at, r.staff_id,
              cp.category, cp.location, cp.floor, cp.zone,
              s.name AS staff_name,
@@ -34,6 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         status:               record.status,
         resolutionMemo:       record.resolution_memo,
         resolutionPhotoKey:   record.resolution_photo_key,
+        materialsUsed:        record.materials_used,
         resolvedAt:           record.resolved_at,
         resolvedBy:           record.resolved_by_name ?? record.resolved_by,
         checkedAt:            record.checked_at,

@@ -60,6 +60,7 @@ export interface RemediationRecord {
   status: 'open' | 'resolved'
   resolutionMemo: string | null
   resolutionPhotoKey: string | null
+  materialsUsed: string | null
   resolvedAt: string | null
   resolvedBy: string | null
   checkedAt: string
