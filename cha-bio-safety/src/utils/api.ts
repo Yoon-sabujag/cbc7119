@@ -321,6 +321,7 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/floorplan',  visible: true },
   { type: 'item', path: '/legal',      visible: true },
   { type: 'divider', id: 'd-docs',     title: '문서 관리' },
+  { type: 'item', path: '/documents',    visible: true },
   { type: 'item', path: '/daily-report', visible: true },
   { type: 'item', path: '/schedule',     visible: true },
   { type: 'item', path: '/workshift',    visible: true },
@@ -340,9 +341,19 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
 export function migrateLegacyMenuConfig(
   raw: unknown
 ): MenuConfig {
-  // 이미 신규 스키마
+  // 이미 신규 스키마 — 누락된 DEFAULT_SIDE_MENU item을 forward-merge (Phase 21 /documents 등)
   if (raw && typeof raw === 'object' && Array.isArray((raw as any).sideMenu)) {
-    return raw as MenuConfig
+    const existing = (raw as MenuConfig).sideMenu
+    const existingPaths = new Set(
+      existing
+        .filter((e): e is Extract<SideMenuEntry, { type: 'item' }> => e.type === 'item')
+        .map(e => e.path),
+    )
+    const missing: SideMenuEntry[] = DEFAULT_SIDE_MENU.filter(
+      e => e.type === 'item' && !existingPaths.has((e as Extract<SideMenuEntry, { type: 'item' }>).path),
+    )
+    if (missing.length === 0) return raw as MenuConfig
+    return { sideMenu: [...existing, ...missing] }
   }
   // 레거시 또는 빈 객체
   if (!raw || typeof raw !== 'object') {
