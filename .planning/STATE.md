@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
 status: executing
-stopped_at: Completed 20-01-PLAN.md
-last_updated: "2026-04-08T19:08:45.467Z"
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-04-08T19:15:08.821Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 11
   completed_phases: 7
   total_plans: 17
-  completed_plans: 15
-  percent: 88
+  completed_plans: 16
+  percent: 94
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 ## Current Position
 
 Phase: 20 (document-storage) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-08
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
 *Updated after each plan completion*
 | Phase 20 P01 | 4 | 2 tasks | 2 files |
+| Phase 20 P02 | 12 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ v1.4 roadmap decisions:
 - [v1.4 Roadmap]: DOC-07(메타 테이블)은 스키마가 land하는 Phase 20에 anchor, DOC-01..06은 사용자 가시 동작이 완성되는 Phase 21에 anchor
 - [Phase 20]: requireAdmin returns Response (not throws) to allow early-return in handlers
 - [Phase 20]: D1 documents table locked to D-02 schema; CHECK constraint enforces plan|drill enum at DB level
+- [Phase 20]: upload-part reads params from URL query string to keep body as raw ReadableStream (no buffering)
+- [Phase 20]: complete.ts sorts parts ascending before R2 complete() — R2 requires ordered parts
+- [Phase 20]: Both DB failure paths call STORAGE.delete(key) per D-25 to prevent R2 orphan objects
 
 ### Pending Todos
 
@@ -90,8 +94,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T19:08:45.462Z
-Stopped at: Completed 20-01-PLAN.md
+Last session: 2026-04-08T19:15:08.816Z
+Stopped at: Completed 20-02-PLAN.md
 Resume file: None
 
 ---
