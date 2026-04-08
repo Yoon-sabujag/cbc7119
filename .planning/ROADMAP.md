@@ -83,9 +83,9 @@ See milestone archives:
   2. admin 권한 staff만 호출 가능한 R2 presigned upload URL 발급 API가 존재하여, 클라이언트가 ~130MB 소방훈련자료를 Workers 100MB request 제한을 우회해 직접 R2에 PUT할 수 있다
   3. 업로드 완료 후 메타데이터를 등록하는 commit API가 admin 권한으로 동작하고, 일반 staff는 401/403을 받는다
   4. 모든 staff가 호출 가능한 list API가 type별·연도별 정렬된 문서 목록을 반환하고, download API가 R2에서 파일을 스트리밍 또는 presigned download URL로 제공한다
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
-- [ ] 20-01-PLAN.md — Migration 0046_documents.sql + shared helpers (_helpers.ts)
+- [x] 20-01-PLAN.md — Migration 0046_documents.sql + shared helpers (_helpers.ts)
 - [ ] 20-02-PLAN.md — R2 multipart upload endpoints (create/upload-part/complete/abort)
 - [ ] 20-03-PLAN.md — List + download endpoints + production deploy + smoke test
 
@@ -255,7 +255,7 @@ ARCHIVED_PHASES_END -->
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
 | 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
 | 19. App Info & Cache | v1.3 | 1/1 | Complete   | 2026-04-08 |
-| 20. Document Storage Infrastructure | v1.4 | 0/— | Not started | — |
+| 20. Document Storage Infrastructure | v1.4 | 1/3 | In Progress|  |
 | 21. Documents Page UI | v1.4 | 0/— | Not started | — |
 | 22. 업무수행기록표 Form + Excel | v1.4 | 0/— | Not started | — |
 
