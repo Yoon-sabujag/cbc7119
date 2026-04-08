@@ -50,7 +50,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 - [x] **Phase 16: Settings Page + Profile** - 설정 페이지 진입점 + 비밀번호·이름 변경 + 로그아웃 (completed 2026-04-05)
 - [x] **Phase 17: Push Notification Settings** - PWA 푸시 알림 구독/해제 + 알림 유형별 토글 (completed 2026-04-06)
-- [ ] **Phase 18: Menu Customization** - BottomNav 순서 변경 + SideMenu 항목 표시/숨김 설정
+- [x] **Phase 18: Menu Customization** - BottomNav 순서 변경 + SideMenu 항목 표시/숨김 설정 (completed 2026-04-08)
 - [ ] **Phase 19: App Info & Cache** - 빌드 버전 표시 + 서비스워커 캐시 초기화
 
 ## Phase Details
@@ -149,11 +149,11 @@ Plans:
   1. 설정 페이지의 MenuSettingsSection에서 SideMenu 항목 순서를 위/아래 버튼으로 변경하고 divider(그룹 구분선)를 추가/편집/삭제할 수 있다
   2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
   3. "설정 저장" 버튼으로 저장한 메뉴 설정이 서버에 퍼시스트되어 앱을 닫고 다시 열어도 유지된다
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans complete
 Plans:
 - [x] 18-01-PLAN.md — MenuConfig types (divider model) + DEFAULT_SIDE_MENU + legacy migration + SideMenu read-only refactor
 - [x] 18-02-PLAN.md — MenuSettingsSection editor component (move/toggle/rename/add/delete/reset/save)
-- [ ] 18-03-PLAN.md — Mount in SettingsPanel + production deploy + human verification
+- [x] 18-03-PLAN.md — Mount in SettingsPanel + production deploy + human verification
 **UI hint**: yes
 
 ### Phase 19: App Info & Cache
@@ -190,7 +190,7 @@ Plans:
 | 15. Finding Download | v1.2 | 2/2 | Complete | 2026-04-05 |
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
-| 18. Menu Customization | v1.3 | 2/3 | In Progress|  |
+| 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
 | 19. App Info & Cache | v1.3 | 0/? | Not started | - |
 
 ## Backlog
