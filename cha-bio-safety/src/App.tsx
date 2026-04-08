@@ -166,7 +166,9 @@ function Layout() {
           <SideMenu open={sideOpen} onClose={() => setSideOpen(false)} unresolvedCount={unresolvedCount} />
         )}
 
-        <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isDesktop={isDesktop && showNav} />
+        {isAuthenticated && (
+          <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isDesktop={isDesktop && showNav} />
+        )}
 
         {/* 데스크톱: 간소화된 헤더 — 사이드바 로고와 높이 일치 */}
         {isDesktop && showNav && (

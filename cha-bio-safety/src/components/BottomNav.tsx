@@ -1,10 +1,8 @@
-import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { settingsApi } from '../utils/api'
-import type { BottomNavKey } from '../types/menuConfig'
 
-export const BOTTOM_NAV_ITEMS: { key: BottomNavKey; label: string; path: string; icon: React.ReactNode }[] = [
+type NavKey = 'dashboard' | 'inspection' | 'qr' | 'remediation' | 'elevator'
+
+const ITEMS: { key: NavKey; label: string; path: string; icon: React.ReactNode }[] = [
   {
     key: 'dashboard', label: '대시보드', path: '/dashboard',
     icon: <svg fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>,
@@ -33,24 +31,7 @@ export const BOTTOM_NAV_ITEMS: { key: BottomNavKey; label: string; path: string;
 export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { data: menuConfig } = useQuery({ queryKey: ['menu-config'], queryFn: () => settingsApi.getMenu(), staleTime: 300_000 })
-
-  const orderedItems = useMemo(() => {
-    if (!menuConfig) return BOTTOM_NAV_ITEMS
-    const cfgByKey = new Map(menuConfig.bottomNav.map(b => [b.key, b]))
-    // Always force qr visible (D-13) — defensive, normalizeMenuConfig already enforces
-    const visible = BOTTOM_NAV_ITEMS.filter(item => {
-      if (item.key === 'qr') return true
-      return cfgByKey.get(item.key)?.visible !== false
-    })
-    return visible.sort((a, b) => {
-      const oa = cfgByKey.get(a.key)?.order ?? 999
-      const ob = cfgByKey.get(b.key)?.order ?? 999
-      return oa - ob
-    })
-  }, [menuConfig])
-
-  const active = orderedItems.find(i => i.path !== '/' && pathname.startsWith(i.path))?.key ?? 'dashboard'
+  const active = ITEMS.find(i => i.path !== '/' && pathname.startsWith(i.path))?.key ?? 'dashboard'
 
   return (
     <nav
@@ -70,7 +51,7 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
         zIndex: 100,
       }}
     >
-      {orderedItems.map(item => {
+      {ITEMS.map(item => {
         if (item.key === 'qr') {
           return (
             <button

@@ -1,6 +1,4 @@
 import { useAuthStore } from '../stores/authStore'
-import type { MenuConfig } from '../types/menuConfig'
-import { normalizeMenuConfig } from './menuConfig'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
@@ -100,7 +98,7 @@ export const leaveApi = {
 }
 
 export const dailyReportApi = {
-  getData: (date: string) => req<{ schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations: any[] }>(`/daily-report?date=${date}`),
+  getData: (date: string) => req<{ schedules: any[]; leaves: any[]; elevatorFaults: any[] }>(`/daily-report?date=${date}`),
   getNotes: (date: string) => req<any>(`/daily-report/notes?date=${date}`),
   getMonthNotes: (year: number, month: number) => req<any[]>(`/daily-report/notes?year=${year}&month=${String(month).padStart(2, '0')}`),
   saveNotes: (data: { date: string; today_text?: string; tomorrow_text?: string; content?: string; is_auto?: number }) =>
@@ -297,11 +295,8 @@ export const elevatorRepairApi = {
 }
 
 export const settingsApi = {
-  getMenu: async (): Promise<MenuConfig> => {
-    const raw = await api.get<unknown>('/settings/menu')
-    return normalizeMenuConfig(raw)
-  },
-  saveMenu: (config: MenuConfig) => api.put<void>('/settings/menu', { config }),
+  getMenu: () => api.get<any>('/settings/menu'),
+  saveMenu: (config: any) => api.put<void>('/settings/menu', { config }),
 }
 
 export interface NotificationPreferences {

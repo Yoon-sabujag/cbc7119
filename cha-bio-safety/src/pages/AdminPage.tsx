@@ -734,7 +734,7 @@ function MenuSettingsTab() {
   }, [saved, allItems, initialized])
 
   const saveMut = useMutation({
-    mutationFn: () => settingsApi.saveMenu(config as unknown as import('../types/menuConfig').MenuConfig),
+    mutationFn: () => settingsApi.saveMenu(config),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['menu-config'] }); toast.success('메뉴 설정 저장 완료') },
     onError: () => toast.error('저장 실패'),
   })

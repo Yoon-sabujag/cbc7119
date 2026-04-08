@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { authApi, pushApi, NotificationPreferences } from '../utils/api'
-import { MenuSettingsSection } from './MenuSettingsSection'
 
 interface Props {
   open: boolean
@@ -364,8 +363,6 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           </Row>
           <Row label="결과 즉시 저장"><Toggle on={true} /></Row>
         </div>
-
-        <MenuSettingsSection />
 
         {/* 계정 */}
         {showPwChange ? (
