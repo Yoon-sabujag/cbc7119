@@ -1,4 +1,43 @@
 import { useState, useEffect } from 'react'
+import { ChevronRight } from 'lucide-react'
+
+// ── Collapsible section header ────────────────────────
+function SectionHeader({ label, collapsed, onToggle }: { label: string; collapsed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        width: '100%', marginBottom: collapsed ? 0 : 6,
+        padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+      }}
+    >
+      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        {label}
+      </span>
+      <ChevronRight
+        size={14}
+        color="var(--t3)"
+        style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+      />
+    </button>
+  )
+}
+
+function usePersistedCollapse(key: string, defaultCollapsed = true): [boolean, (v: boolean | ((c: boolean) => boolean)) => void] {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem(key)
+      if (v === null) return defaultCollapsed
+      return v !== 'false'
+    } catch { return defaultCollapsed }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(key, String(collapsed)) } catch {}
+  }, [key, collapsed])
+  return [collapsed, setCollapsed]
+}
 import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -140,6 +179,9 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const { staff, logout, updateStaff } = useAuthStore()
   const [showPwChange, setShowPwChange] = useState(false)
   const [showNameEdit, setShowNameEdit] = useState(false)
+  const [notifCollapsed, setNotifCollapsed] = usePersistedCollapse('settings.notif.collapsed', true)
+  const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
+  const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
 
   const displayName = staff?.name ?? ''
   const displayRole = staff?.role === 'admin' ? '관리자' : '보조자'
@@ -310,9 +352,9 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
 
         {/* 알림 */}
         <div style={{ padding: '12px 13px 5px' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>알림</div>
+          <SectionHeader label="알림" collapsed={notifCollapsed} onToggle={() => setNotifCollapsed(c => !c)} />
 
-          {/* 권한 상태 + 구독 토글 */}
+          {/* 권한 상태 + 구독 토글 (항상 표시) */}
           <Row label="푸시 알림" sub={permState === 'denied' ? '브라우저 설정에서 알림을 허용해주세요' : subscribed ? '구독 중' : '구독하려면 토글을 켜세요'}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <PermBadge perm={permState} />
@@ -324,29 +366,33 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
             </div>
           </Row>
 
-          {/* 점검 그룹 */}
-          <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>점검</div>
-          <Row label="금일 점검 일정" sub="매일 08:45">
-            <Toggle on={prefs.daily_schedule} onChange={() => handlePrefToggle('daily_schedule')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
-          <Row label="전일 미완료 점검" sub="매일 08:45">
-            <Toggle on={prefs.incomplete_schedule} onChange={() => handlePrefToggle('incomplete_schedule')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
-          <Row label="미조치 항목" sub="매일 08:45">
-            <Toggle on={prefs.unresolved_issue} onChange={() => handlePrefToggle('unresolved_issue')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
+          {!notifCollapsed && (
+            <div style={{ marginTop: 8, padding: '8px 10px 4px', background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 9 }}>
+              {/* 점검 그룹 */}
+              <div style={{ fontSize: 9, color: 'var(--t3)', marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>점검</div>
+              <Row label="금일 점검 일정" sub="매일 08:45">
+                <Toggle on={prefs.daily_schedule} onChange={() => handlePrefToggle('daily_schedule')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
+              <Row label="전일 미완료 점검" sub="매일 08:45">
+                <Toggle on={prefs.incomplete_schedule} onChange={() => handlePrefToggle('incomplete_schedule')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
+              <Row label="미조치 항목" sub="매일 08:45">
+                <Toggle on={prefs.unresolved_issue} onChange={() => handlePrefToggle('unresolved_issue')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
 
-          {/* 일정 그룹 */}
-          <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>일정</div>
-          <Row label="행사 15분 전 알림" sub="행사 시작 15분 전">
-            <Toggle on={prefs.event_15min} onChange={() => handlePrefToggle('event_15min')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
-          <Row label="행사 5분 전 알림" sub="행사 시작 5분 전">
-            <Toggle on={prefs.event_5min} onChange={() => handlePrefToggle('event_5min')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
-          <Row label="교육 D-30 알림" sub="교육일 30일 전">
-            <Toggle on={prefs.education_reminder} onChange={() => handlePrefToggle('education_reminder')} disabled={!subscribed || permState === 'denied'} />
-          </Row>
+              {/* 일정 그룹 */}
+              <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>일정</div>
+              <Row label="행사 15분 전 알림" sub="행사 시작 15분 전">
+                <Toggle on={prefs.event_15min} onChange={() => handlePrefToggle('event_15min')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
+              <Row label="행사 5분 전 알림" sub="행사 시작 5분 전">
+                <Toggle on={prefs.event_5min} onChange={() => handlePrefToggle('event_5min')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
+              <Row label="교육 D-30 알림" sub="교육일 30일 전">
+                <Toggle on={prefs.education_reminder} onChange={() => handlePrefToggle('education_reminder')} disabled={!subscribed || permState === 'denied'} />
+              </Row>
+            </div>
+          )}
         </div>
 
         {/* 메뉴 설정 (Phase 18) */}
@@ -354,18 +400,20 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
 
         {/* 화면 */}
         <div style={{ padding: '12px 13px 5px' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>화면</div>
-          <Row label="테마">
-            <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
-              <option>다크</option><option>라이트</option><option>시스템</option>
-            </select>
-          </Row>
-          <Row label="주간 현황 기준">
-            <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
-              <option>이번 주</option><option>최근 7일</option>
-            </select>
-          </Row>
-          <Row label="결과 즉시 저장"><Toggle on={true} /></Row>
+          <SectionHeader label="화면" collapsed={displayCollapsed} onToggle={() => setDisplayCollapsed(c => !c)} />
+          {!displayCollapsed && <>
+            <Row label="테마">
+              <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
+                <option>다크</option><option>라이트</option><option>시스템</option>
+              </select>
+            </Row>
+            <Row label="주간 현황 기준">
+              <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
+                <option>이번 주</option><option>최근 7일</option>
+              </select>
+            </Row>
+            <Row label="결과 즉시 저장"><Toggle on={true} /></Row>
+          </>}
         </div>
 
         {/* 계정 */}
@@ -373,10 +421,12 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           <ChangePasswordForm onDone={() => setShowPwChange(false)} />
         ) : (
           <div style={{ padding: '12px 13px 5px' }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>계정</div>
-            <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
-              <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </Row>
+            <SectionHeader label="계정" collapsed={accountCollapsed} onToggle={() => setAccountCollapsed(c => !c)} />
+            {!accountCollapsed && (
+              <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
+                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </Row>
+            )}
           </div>
         )}
 
