@@ -91,9 +91,9 @@ Plans:
   1. 일정 추가 시 종료일 입력 필드가 나타나고 날짜 범위를 선택할 수 있다
   2. 범위 선택 시 "N일 일정이 추가됩니다" 미리보기가 실시간으로 표시된다
   3. 확인 후 해당 기간의 각 날짜에 일정이 개별적으로 등록된다
-**Plans:** 1/1 plan
+**Plans:** 1 plan
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [ ] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
 **UI hint**: yes
 
 ### Phase 15: Finding Download
@@ -166,7 +166,7 @@ Plans:
   3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
 **Plans:** 1/1 plan
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [ ] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
 **UI hint**: yes
 
 ## Progress
@@ -191,7 +191,7 @@ Plans:
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
 | 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
-| 19. App Info & Cache | v1.3 | 0/? | Not started | - |
+| 19. App Info & Cache | v1.3 | 0/1 | Planned | - |
 
 ## Backlog
 
