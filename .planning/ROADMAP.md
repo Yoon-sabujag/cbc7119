@@ -59,8 +59,8 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 ### 🚧 v1.4 문서 관리 (Phases 20-22)
 
-- [ ] **Phase 20: Document Storage Infrastructure** — D1 `documents` 테이블 + R2 presigned URL 업로드/다운로드 API (admin gated, 130MB 대용량 대응)
-- [ ] **Phase 21: Documents Page UI** — DocumentsPage 라우트로 소방계획서·소방훈련자료 업로드(admin)/다운로드(전체)/연도별 이력 조회
+- [x] **Phase 20: Document Storage Infrastructure** — D1 `documents` 테이블 + R2 presigned URL 업로드/다운로드 API (admin gated, 130MB 대용량 대응)
+- [x] **Phase 21: Documents Page UI** — DocumentsPage 라우트로 소방계획서·소방훈련자료 업로드(admin)/다운로드(전체)/연도별 이력 조회
 - [ ] **Phase 22: 업무수행기록표 Form + Excel Output** — `work_logs` 테이블 + 폼 입력 페이지 + 기존 양식 호환 xlsx-js-style 출력 + 월별 재출력
 
 ## Phase Details
