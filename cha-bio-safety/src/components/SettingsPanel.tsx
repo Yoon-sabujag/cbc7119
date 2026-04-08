@@ -182,6 +182,8 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const [notifCollapsed, setNotifCollapsed] = usePersistedCollapse('settings.notif.collapsed', true)
   const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
   const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
+  const [appInfoCollapsed, setAppInfoCollapsed] = usePersistedCollapse('settings.appinfo.collapsed', true)
+  const [cacheClearing, setCacheClearing] = useState(false)
 
   const displayName = staff?.name ?? ''
   const displayRole = staff?.role === 'admin' ? '관리자' : '보조자'
@@ -280,6 +282,27 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
     document.addEventListener('touchmove', prevent, { passive: false })
     return () => document.removeEventListener('touchmove', prevent)
   }, [open])
+
+  async function handleClearCache() {
+    if (!('caches' in window)) {
+      toast.error('이 브라우저는 캐시 초기화를 지원하지 않습니다')
+      return
+    }
+    setCacheClearing(true)
+    try {
+      const names = await caches.keys()
+      await Promise.all(names.map(n => caches.delete(n)))
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration()
+        if (reg) await reg.update()
+      }
+      window.location.reload()
+    } catch (e) {
+      console.error('Cache clear error:', e)
+      toast.error('캐시 초기화에 실패했습니다')
+      setCacheClearing(false)
+    }
+  }
 
   function handleLogout() {
     logout()
@@ -430,6 +453,24 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           </div>
         )}
 
+        {/* 앱 정보 */}
+        <div style={{ padding: '12px 13px 5px' }}>
+          <SectionHeader label="앱 정보" collapsed={appInfoCollapsed} onToggle={() => setAppInfoCollapsed(c => !c)} />
+          {!appInfoCollapsed && (
+            <>
+              <Row label="버전" sub={`v${__APP_VERSION__} (${__BUILD_TIME__})`} />
+              <Row
+                label={cacheClearing ? '초기화 중…' : '캐시 초기화'}
+                sub="최신 리소스로 새로고침"
+                onClick={cacheClearing ? undefined : handleClearCache}
+              >
+                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </Row>
+              <Row label="차바이오컴플렉스 방재" sub="경기도 성남시 분당구 판교로 335" />
+            </>
+          )}
+        </div>
+
         {/* 로그아웃 */}
         <div style={{ padding: '12px 13px' }}>
           <button
@@ -442,12 +483,6 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           >
             로그아웃
           </button>
-        </div>
-
-        {/* 앱 정보 */}
-        <div style={{ padding: 13, textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: 'var(--t3)' }}>차바이오컴플렉스 방재 v1.0.0</div>
-          <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 2 }}>경기도 성남시 분당구 판교로 335</div>
         </div>
       </div>
 
