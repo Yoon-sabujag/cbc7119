@@ -5,9 +5,9 @@
 // + admin-only upload button. Download wiring via downloadDocument().
 
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { FileText, Plus, Loader2 } from 'lucide-react'
+import { FileText, Plus, Loader2, Trash2 } from 'lucide-react'
 import { documentsApi, type DocumentListItem } from '../utils/api'
 import { downloadDocument } from '../utils/downloadBlob'
 import { formatBytes } from '../utils/multipartUpload'
@@ -39,6 +39,7 @@ const typeLabel = (t: 'plan' | 'drill') => (t === 'plan' ? '소방계획서' : '
 export default function DocumentSection({ type, onUploadClick }: Props) {
   const isAdmin = useAuthStore((s) => s.staff?.role === 'admin')
   const isDesktop = useIsDesktop()
+  const queryClient = useQueryClient()
 
   const query = useQuery({
     queryKey: ['documents', type],
@@ -47,6 +48,7 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
   })
 
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set())
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set())
 
   // Error toast (one-shot per error change)
   useEffect(() => {
@@ -72,6 +74,34 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
       toast.error('다운로드에 실패했습니다. 네트워크를 확인해주세요.')
     } finally {
       setDownloadingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(item.id)
+        return next
+      })
+    }
+  }
+
+  async function handleDelete(item: DocumentListItem, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (deletingIds.has(item.id)) return
+    const confirmed = window.confirm(
+      `"${item.title}"\n(${item.filename})\n\n정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+    )
+    if (!confirmed) return
+    setDeletingIds((prev) => {
+      const next = new Set(prev)
+      next.add(item.id)
+      return next
+    })
+    try {
+      await documentsApi.remove(item.id)
+      toast.success('문서를 삭제했습니다')
+      await queryClient.invalidateQueries({ queryKey: ['documents', type] })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '문서 삭제에 실패했습니다'
+      toast.error(msg)
+    } finally {
+      setDeletingIds((prev) => {
         const next = new Set(prev)
         next.delete(item.id)
         return next
@@ -231,10 +261,12 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
 
       {/* Hero card (latest) */}
       {!query.isLoading && !query.error && latest && (
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => handleDownload(latest)}
-          disabled={downloadingIds.has(latest.id)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDownload(latest) } }}
+          aria-disabled={downloadingIds.has(latest.id) || deletingIds.has(latest.id)}
           style={{
             position: 'relative',
             width: '100%',
@@ -246,9 +278,9 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
             display: 'flex',
             alignItems: 'center',
             gap: 16,
-            cursor: downloadingIds.has(latest.id) ? 'wait' : 'pointer',
+            cursor: downloadingIds.has(latest.id) || deletingIds.has(latest.id) ? 'wait' : 'pointer',
             textAlign: 'left',
-            opacity: downloadingIds.has(latest.id) ? 0.7 : 1,
+            opacity: downloadingIds.has(latest.id) || deletingIds.has(latest.id) ? 0.7 : 1,
           }}
         >
           {/* Latest pill */}
@@ -328,7 +360,37 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
               style={{ animation: 'docsec-spin 1s linear infinite', color: 'var(--t2)', flexShrink: 0 }}
             />
           )}
-        </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={(e) => handleDelete(latest, e)}
+              disabled={deletingIds.has(latest.id)}
+              aria-label={`${latest.title} 삭제`}
+              style={{
+                position: 'absolute',
+                bottom: 12,
+                right: 12,
+                width: 32,
+                height: 32,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                color: 'var(--danger)',
+                border: '1px solid var(--bd)',
+                borderRadius: 8,
+                cursor: deletingIds.has(latest.id) ? 'wait' : 'pointer',
+              }}
+            >
+              {deletingIds.has(latest.id) ? (
+                <Loader2 size={16} style={{ animation: 'docsec-spin 1s linear infinite' }} />
+              ) : (
+                <Trash2 size={16} />
+              )}
+            </button>
+          )}
+        </div>
       )}
 
       {/* Past history */}
@@ -350,12 +412,15 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
               const isFirst = idx === 0
               const isLast = idx === history.length - 1
               const isDownloading = downloadingIds.has(row.id)
+              const isDeleting = deletingIds.has(row.id)
               return (
-                <button
+                <div
                   key={row.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleDownload(row)}
-                  disabled={isDownloading}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDownload(row) } }}
+                  aria-disabled={isDownloading || isDeleting}
                   style={{
                     width: '100%',
                     minHeight: 56,
@@ -372,9 +437,9 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 12,
-                    cursor: isDownloading ? 'wait' : 'pointer',
+                    cursor: isDownloading || isDeleting ? 'wait' : 'pointer',
                     textAlign: 'left',
-                    opacity: isDownloading ? 0.7 : 1,
+                    opacity: isDownloading || isDeleting ? 0.7 : 1,
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -414,7 +479,34 @@ export default function DocumentSection({ type, onUploadClick }: Props) {
                       }}
                     />
                   )}
-                </button>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDelete(row, e)}
+                      disabled={isDeleting}
+                      aria-label={`${row.title} 삭제`}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'transparent',
+                        color: 'var(--danger)',
+                        border: '1px solid var(--bd)',
+                        borderRadius: 8,
+                        cursor: isDeleting ? 'wait' : 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isDeleting ? (
+                        <Loader2 size={16} style={{ animation: 'docsec-spin 1s linear infinite' }} />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                    </button>
+                  )}
+                </div>
               )
             })}
           </div>

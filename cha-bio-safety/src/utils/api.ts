@@ -454,6 +454,9 @@ export const documentsApi = {
 
   multipartAbort: (body: { uploadId: string; key: string }) =>
     api.post<{ aborted: true }>('/documents/multipart/abort', body),
+
+  remove: (id: number) =>
+    api.delete<{ id: number }>(`/documents/${id}`),
 }
 
 // Raw-body part upload — bypasses the JSON wrapper so we can send a Blob directly.

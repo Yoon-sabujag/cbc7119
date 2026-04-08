@@ -1,4 +1,4 @@
-import { jsonError, type Env } from './_helpers'
+import { jsonError, requireAdmin, type Env } from './_helpers'
 
 // GET /api/documents/{id}
 // Auth: any authenticated staff
@@ -37,5 +37,43 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   } catch (e) {
     console.error('DOCUMENT_DOWNLOAD_FAILED', e)
     return jsonError(500, '문서 다운로드에 실패했습니다')
+  }
+}
+
+// DELETE /api/documents/{id}
+// Auth: admin only
+// Behavior: soft-delete (set deleted_at) AND hard-delete the R2 object to reclaim storage
+export const onRequestDelete: PagesFunction<Env> = async (ctx) => {
+  const denial = requireAdmin(ctx)
+  if (denial) return denial
+
+  const idRaw = ctx.params.id as string
+  const id = Number(idRaw)
+  if (!Number.isInteger(id) || id <= 0) {
+    return jsonError(400, '문서 id가 유효하지 않습니다')
+  }
+
+  try {
+    const row = await ctx.env.DB.prepare(
+      `SELECT id, r2_key FROM documents WHERE id = ? AND deleted_at IS NULL`
+    ).bind(id).first<{ id: number; r2_key: string }>()
+
+    if (!row) return jsonError(404, '문서를 찾을 수 없습니다')
+
+    await ctx.env.DB.prepare(
+      `UPDATE documents SET deleted_at = datetime('now') WHERE id = ?`
+    ).bind(id).run()
+
+    // Hard-delete R2 object to reclaim storage. Best-effort — don't fail the request if R2 is flaky.
+    try {
+      await ctx.env.STORAGE.delete(row.r2_key)
+    } catch (e) {
+      console.error('DOCUMENT_R2_DELETE_FAILED', row.r2_key, e)
+    }
+
+    return Response.json({ success: true, data: { id } })
+  } catch (e) {
+    console.error('DOCUMENT_DELETE_FAILED', e)
+    return jsonError(500, '문서 삭제에 실패했습니다')
   }
 }
