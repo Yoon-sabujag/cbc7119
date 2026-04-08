@@ -99,10 +99,10 @@ Plans:
   3. admin staff에게만 업로드 버튼이 노출되며, 연도·제목 입력 후 R2 presigned URL을 통해 직접 업로드(진행률 표시)되고 완료 시 목록에 즉시 반영된다
   4. 연도별 이력 섹션에서 과거 버전을 선택해 다운로드할 수 있다 (소방계획서·소방훈련자료 각각)
   5. 일반 staff가 업로드 API를 직접 호출해도 권한 거부로 차단된다
-**Plans:** 6 plans
+**Plans:** 2/6 plans executed
 Plans:
-- [ ] 21-01-PLAN.md — documentsApi namespace + uploadPartRaw in api.ts
-- [ ] 21-02-PLAN.md — downloadBlob.ts authenticated Blob download utility
+- [x] 21-01-PLAN.md — documentsApi namespace + uploadPartRaw in api.ts
+- [x] 21-02-PLAN.md — downloadBlob.ts authenticated Blob download utility
 - [ ] 21-03-PLAN.md — multipartUpload.ts orchestrator (create/parts/complete/abort + progress)
 - [ ] 21-04-PLAN.md — Menu integration (SideMenu + DesktopSidebar + DEFAULT_SIDE_MENU + migrate fix + App.tsx route)
 - [ ] 21-05-PLAN.md — DocumentsPage + DocumentSection + DocumentUploadForm UI
@@ -263,7 +263,7 @@ ARCHIVED_PHASES_END -->
 | 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
 | 19. App Info & Cache | v1.3 | 1/1 | Complete   | 2026-04-08 |
 | 20. Document Storage Infrastructure | v1.4 | 3/3 | Complete   | 2026-04-08 |
-| 21. Documents Page UI | v1.4 | 0/— | Not started | — |
+| 21. Documents Page UI | v1.4 | 2/6 | In Progress|  |
 | 22. 업무수행기록표 Form + Excel | v1.4 | 0/— | Not started | — |
 
 ## Backlog
