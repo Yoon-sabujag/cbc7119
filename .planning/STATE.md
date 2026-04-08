@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
 status: executing
-stopped_at: Phase 21 plans created (6 plans, 4 waves)
-last_updated: "2026-04-08T21:32:56.778Z"
+stopped_at: Completed 21-04-PLAN.md
+last_updated: "2026-04-08T21:38:04.725Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 11
   completed_phases: 8
   total_plans: 23
-  completed_plans: 20
-  percent: 87
+  completed_plans: 21
+  percent: 91
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 ## Current Position
 
 Phase: 21 (documents-page-ui) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
 Last activity: 2026-04-08
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 | Phase 20 P02 | 12 | 3 tasks | 4 files |
 | Phase 20 P03 | 6 | 3 tasks | 2 files |
 | Phase 21 P03 | 2 | 1 tasks | 1 files |
+| Phase 21 P04 | 4 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,7 @@ v1.4 roadmap decisions:
 - [Phase 20]: Both DB failure paths call STORAGE.delete(key) per D-25 to prevent R2 orphan objects
 - [Phase 20]: No admin gate on list/download per D-19 — all authenticated staff can read documents
 - [Phase 20]: Migration 0046 applied to production D1 before deploy — documents table live at cha-bio-db
+- [Phase 21]: migrateLegacyMenuConfig forward-merges missing DEFAULT_SIDE_MENU items (Phase 18 bug fix)
 
 ### Pending Todos
 
@@ -98,9 +100,9 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T21:08:45.193Z
-Stopped at: Phase 21 plans created (6 plans, 4 waves)
-Resume file: .planning/phases/21-documents-page-ui/21-01-PLAN.md
+Last session: 2026-04-08T21:38:04.721Z
+Stopped at: Completed 21-04-PLAN.md
+Resume file: None
 
 ---
 *State initialized: 2026-03-28*
