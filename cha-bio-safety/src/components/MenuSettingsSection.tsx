@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronUp, ChevronDown, Trash2 } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'
 import {
   settingsApi,
   type SideMenuEntry,
@@ -50,6 +50,12 @@ export function MenuSettingsSection() {
   const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const confirmTimerRef = useRef<number | null>(null)
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem('menuSettings.collapsed') !== 'false' } catch { return true }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('menuSettings.collapsed', String(collapsed)) } catch {}
+  }, [collapsed])
 
   // Initialize draft on first server response (or refetch)
   useEffect(() => {
@@ -142,9 +148,26 @@ export function MenuSettingsSection() {
   // ── Render ────────────────────────────────────────
   return (
     <div style={{ padding: '12px 13px 5px' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>
-        메뉴 설정
-      </div>
+      <button
+        onClick={() => setCollapsed(c => !c)}
+        aria-expanded={!collapsed}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          width: '100%', marginBottom: collapsed ? 0 : 6,
+          padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+          메뉴 설정
+        </span>
+        <ChevronRight
+          size={14}
+          color="var(--t3)"
+          style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+        />
+      </button>
+
+      {!collapsed && <>
 
       {/* Entry list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -284,6 +307,8 @@ export function MenuSettingsSection() {
       >
         {saveMutation.isPending ? '저장 중…' : '설정 저장'}
       </button>
+
+      </>}
     </div>
   )
 }
