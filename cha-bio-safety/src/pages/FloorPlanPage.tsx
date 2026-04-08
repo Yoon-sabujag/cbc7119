@@ -183,6 +183,7 @@ export default function FloorPlanPage() {
   const { staff } = useAuthStore()
   const canEditMarker = !!staff
   const isDesktop = useIsDesktop()
+  const isAdmin = staff?.role === 'admin'
 
   const [planType, setPlanType] = useState<PlanType>('guidelamp')
   const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
@@ -471,6 +472,8 @@ export default function FloorPlanPage() {
 
   function startLongPress(clientX: number, clientY: number) {
     if (!editMode) return
+    // 유도등 마커 추가는 관리자 데스크톱에서만 허용
+    if (planType === 'guidelamp' && !(isDesktop && isAdmin)) return
     cancelLongPress()
     longPressPos.current = { x: clientX, y: clientY }
     longPressTimer.current = setTimeout(() => {
@@ -588,6 +591,8 @@ export default function FloorPlanPage() {
   // ── 데스크톱: 더블클릭으로 마커 추가 ─────────────────────
   const onCanvasDblClick = useCallback((e: React.MouseEvent) => {
     if (!isDesktop || !editMode) return
+    // 유도등 마커 추가는 관리자만 가능
+    if (planType === 'guidelamp' && !isAdmin) return
     const el = containerRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -818,7 +823,7 @@ export default function FloorPlanPage() {
       <div style={{ flexShrink: 0, padding: '7px 12px', background: 'var(--bg2)', borderTop: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         {currentMarkerTypes.map(mt => (
           <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MarkerIcon markerType={mt.key} color="#22c55e" size={14} />
+            <MarkerIcon markerType={mt.key} color="#888" size={14} />
             <span style={{ fontSize: 10, color: 'var(--t3)' }}>{mt.label.join('')}</span>
           </div>
         ))}
