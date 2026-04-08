@@ -51,8 +51,8 @@ Requirements for v1.3 release. Each maps to roadmap phases.
 
 ### 앱 정보
 
-- [ ] **APP-01**: 빌드 버전과 앱 정보를 확인할 수 있다
-- [ ] **APP-02**: 서비스워커 캐시를 초기화할 수 있다
+- [x] **APP-01**: 빌드 버전과 앱 정보를 확인할 수 있다
+- [x] **APP-02**: 서비스워커 캐시를 초기화할 수 있다
 - [x] **APP-03**: 로그아웃할 수 있다
 
 ## Future Requirements
@@ -97,8 +97,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTI-03 | Phase 17 | Pending |
 | MENU-01 | Phase 18 | Complete |
 | MENU-02 | Phase 18 | Complete |
-| APP-01 | Phase 19 | Pending |
-| APP-02 | Phase 19 | Pending |
+| APP-01 | Phase 19 | Complete |
+| APP-02 | Phase 19 | Complete |
 
 **Coverage:**
 - v1.2 requirements: 10 total

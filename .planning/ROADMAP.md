@@ -51,7 +51,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 16: Settings Page + Profile** - 설정 페이지 진입점 + 비밀번호·이름 변경 + 로그아웃 (completed 2026-04-05)
 - [x] **Phase 17: Push Notification Settings** - PWA 푸시 알림 구독/해제 + 알림 유형별 토글 (completed 2026-04-06)
 - [x] **Phase 18: Menu Customization** - BottomNav 순서 변경 + SideMenu 항목 표시/숨김 설정 (completed 2026-04-08)
-- [ ] **Phase 19: App Info & Cache** - 빌드 버전 표시 + 서비스워커 캐시 초기화
+- [x] **Phase 19: App Info & Cache** - 빌드 버전 표시 + 서비스워커 캐시 초기화 (completed 2026-04-08)
 
 ## Phase Details
 
@@ -93,7 +93,7 @@ Plans:
   3. 확인 후 해당 기간의 각 날짜에 일정이 개별적으로 등록된다
 **Plans:** 1 plan
 Plans:
-- [ ] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
+- [x] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
 **UI hint**: yes
 
 ### Phase 15: Finding Download
@@ -164,7 +164,7 @@ Plans:
   1. 설정 페이지에서 현재 앱 빌드 버전을 확인할 수 있다
   2. 캐시 초기화 버튼을 탭하면 서비스워커 캐시가 삭제되고 완료 메시지가 표시된다
   3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
-**Plans:** 1/1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
 **UI hint**: yes
@@ -191,7 +191,7 @@ Plans:
 | 16. Settings Page + Profile | v1.3 | 2/2 | Complete    | 2026-04-05 |
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
 | 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
-| 19. App Info & Cache | v1.3 | 0/1 | Planned | - |
+| 19. App Info & Cache | v1.3 | 1/1 | Complete   | 2026-04-08 |
 
 ## Backlog
 
