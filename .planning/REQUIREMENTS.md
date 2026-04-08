@@ -8,12 +8,12 @@
 
 ### 문서 중앙 관리 (업로드/다운로드)
 
-- [ ] **DOC-01**: 사용자가 문서 관리 페이지에서 소방계획서 최신본을 다운로드할 수 있다 (전체 staff)
+- [x] **DOC-01**: 사용자가 문서 관리 페이지에서 소방계획서 최신본을 다운로드할 수 있다 (전체 staff)
 - [x] **DOC-02**: 관리자(admin)가 문서 관리 페이지에서 소방계획서 파일을 업로드할 수 있다 (업로드 시 연도/제목 입력)
-- [ ] **DOC-03**: 사용자가 소방계획서의 과거 연도 버전을 선택해 다운로드할 수 있다 (연도별 이력)
-- [ ] **DOC-04**: 사용자가 문서 관리 페이지에서 소방훈련자료 최신본을 다운로드할 수 있다 (전체 staff)
+- [x] **DOC-03**: 사용자가 소방계획서의 과거 연도 버전을 선택해 다운로드할 수 있다 (연도별 이력)
+- [x] **DOC-04**: 사용자가 문서 관리 페이지에서 소방훈련자료 최신본을 다운로드할 수 있다 (전체 staff)
 - [x] **DOC-05**: 관리자(admin)가 소방훈련자료 파일을 업로드할 수 있다 (대용량 ~130MB 대응 — R2 direct upload presigned URL)
-- [ ] **DOC-06**: 사용자가 소방훈련자료의 과거 연도 버전을 선택해 다운로드할 수 있다
+- [x] **DOC-06**: 사용자가 소방훈련자료의 과거 연도 버전을 선택해 다운로드할 수 있다
 - [x] **DOC-07**: 업로드된 문서는 R2에 저장되고 D1 `documents` 테이블에 메타데이터(유형, 연도, 파일명, 업로더, 업로드일시, R2 key, 크기)가 기록된다
 
 ### 업무수행기록표 작성
@@ -43,12 +43,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOC-01 | Phase 21 | Pending |
+| DOC-01 | Phase 21 | Complete |
 | DOC-02 | Phase 21 | Complete |
-| DOC-03 | Phase 21 | Pending |
-| DOC-04 | Phase 21 | Pending |
+| DOC-03 | Phase 21 | Complete |
+| DOC-04 | Phase 21 | Complete |
 | DOC-05 | Phase 21 | Complete |
-| DOC-06 | Phase 21 | Pending |
+| DOC-06 | Phase 21 | Complete |
 | DOC-07 | Phase 20 | Complete |
 | WORKLOG-01 | Phase 22 | Pending |
 | WORKLOG-02 | Phase 22 | Pending |

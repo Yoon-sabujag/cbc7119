@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
-status: executing
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-04-08T19:15:08.821Z"
+status: verifying
+stopped_at: "Checkpoint: Task 4 smoke test — awaiting human verify for 20-03"
+last_updated: "2026-04-08T19:22:33.697Z"
 last_activity: 2026-04-08
 progress:
   total_phases: 11
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 17
-  completed_plans: 16
-  percent: 94
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 
 Phase: 20 (document-storage) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-08
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 *Updated after each plan completion*
 | Phase 20 P01 | 4 | 2 tasks | 2 files |
 | Phase 20 P02 | 12 | 3 tasks | 4 files |
+| Phase 20 P03 | 6 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ v1.4 roadmap decisions:
 - [Phase 20]: upload-part reads params from URL query string to keep body as raw ReadableStream (no buffering)
 - [Phase 20]: complete.ts sorts parts ascending before R2 complete() — R2 requires ordered parts
 - [Phase 20]: Both DB failure paths call STORAGE.delete(key) per D-25 to prevent R2 orphan objects
+- [Phase 20]: No admin gate on list/download per D-19 — all authenticated staff can read documents
+- [Phase 20]: Migration 0046 applied to production D1 before deploy — documents table live at cha-bio-db
 
 ### Pending Todos
 
@@ -94,8 +97,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-08T19:15:08.816Z
-Stopped at: Completed 20-02-PLAN.md
+Last session: 2026-04-08T19:22:33.692Z
+Stopped at: Checkpoint: Task 4 smoke test — awaiting human verify for 20-03
 Resume file: None
 
 ---
