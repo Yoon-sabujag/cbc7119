@@ -166,7 +166,7 @@ Plans:
   3. 캐시 초기화 후 앱이 최신 리소스로 새로고침된다
 **Plans:** 1/1 plans complete
 Plans:
-- [ ] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
+- [x] 19-01-PLAN.md — vite define version injection + SettingsPanel 앱 정보 section + cache clear + deploy
 **UI hint**: yes
 
 ## Progress
