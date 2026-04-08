@@ -7,6 +7,7 @@ export const ALLOWED_FILE_TYPES: Array<{ ext: string; mimes: string[] }> = [
   { ext: '.pdf',  mimes: ['application/pdf'] },
   { ext: '.xlsx', mimes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] },
   { ext: '.docx', mimes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] },
+  { ext: '.pptx', mimes: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'] },
   { ext: '.hwp',  mimes: ['application/x-hwp', 'application/vnd.hancom.hwp', 'application/haansofthwp'] },
   { ext: '.zip',  mimes: ['application/zip', 'application/x-zip-compressed'] },
 ]
@@ -25,7 +26,7 @@ export function nanoid(n = 21): string {
 export function validateFileType(contentType: string, filename: string): { ok: true } | { ok: false; error: string } {
   const lower = filename.toLowerCase()
   const entry = ALLOWED_FILE_TYPES.find(e => lower.endsWith(e.ext))
-  if (!entry) return { ok: false, error: '허용되지 않은 파일 형식입니다 (pdf, xlsx, docx, hwp, zip만 가능)' }
+  if (!entry) return { ok: false, error: '허용되지 않은 파일 형식입니다 (pdf, xlsx, docx, pptx, hwp, zip만 가능)' }
   if (!entry.mimes.includes(contentType)) return { ok: false, error: '파일 확장자와 콘텐츠 타입이 일치하지 않습니다' }
   return { ok: true }
 }

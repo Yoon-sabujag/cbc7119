@@ -24,6 +24,7 @@ const ALLOWED = [
   { ext: '.pdf', mimes: ['application/pdf'] },
   { ext: '.xlsx', mimes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] },
   { ext: '.docx', mimes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] },
+  { ext: '.pptx', mimes: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'] },
   { ext: '.hwp', mimes: ['application/x-hwp', 'application/vnd.hancom.hwp', 'application/haansofthwp', ''] },
   { ext: '.zip', mimes: ['application/zip', 'application/x-zip-compressed', ''] },
 ] as const
@@ -32,6 +33,7 @@ const EXT_TO_MIME: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   '.hwp': 'application/x-hwp',
   '.zip': 'application/zip',
 }
@@ -87,12 +89,12 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
     }
     const entry = findAllowed(f.name)
     if (!entry) {
-      toast.error('지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, HWP, ZIP)')
+      toast.error('지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, PPTX, HWP, ZIP)')
       return
     }
     // If file.type is non-empty, it must match. Empty MIME is OK (iOS .hwp/.zip fallback).
     if (f.type && !(entry.mimes as readonly string[]).includes(f.type)) {
-      toast.error('지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, HWP, ZIP)')
+      toast.error('지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, PPTX, HWP, ZIP)')
       return
     }
     setFile(f)
@@ -237,7 +239,7 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.xlsx,.docx,.hwp,.zip"
+          accept=".pdf,.xlsx,.docx,.pptx,.hwp,.zip"
           onChange={handleFileChange}
           disabled={isUploading}
           style={{ display: 'none' }}
