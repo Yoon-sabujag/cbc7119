@@ -8,7 +8,7 @@ import { MENU, MenuItem } from './SideMenu'
 const DESKTOP_SECTIONS = [
   { label: '점검 현황', paths: ['/dashboard', '/inspection', '/remediation', '/floorplan'] },
   { label: '시설 관리', paths: ['/div', '/legal', '/elevator', '/inspection/qr', '/admin'] },
-  { label: '문서 관리', paths: ['/daily-report', '/schedule', '/workshift', '/annual-plan', '/reports', '/qr-print'] },
+  { label: '문서 관리', paths: ['/documents', '/daily-report', '/schedule', '/workshift', '/annual-plan', '/reports', '/qr-print'] },
   { label: '직원 관리', paths: ['/staff-service', '/education'] },
 ]
 

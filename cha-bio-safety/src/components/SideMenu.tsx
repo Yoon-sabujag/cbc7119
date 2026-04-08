@@ -30,6 +30,7 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: '소방 점검 관리',   path: '/legal',      badge: 0, soon: false },
   ]},
   { section: '문서 관리', items: [
+    { label: '소방계획서/훈련자료', path: '/documents', badge: 0, soon: false },
     { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
     { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
     { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
