@@ -46,8 +46,8 @@ Requirements for v1.3 release. Each maps to roadmap phases.
 
 ### 메뉴 편집
 
-- [ ] **MENU-01**: BottomNav 메뉴 순서를 변경할 수 있다
-- [ ] **MENU-02**: SideMenu 항목 표시/숨김을 설정할 수 있다
+- [ ] **MENU-01**: SideMenu 항목 순서를 divider 모델로 변경할 수 있다 (BottomNav는 Phase 18에서 5개 고정)
+- [ ] **MENU-02**: SideMenu 항목별 표시/숨김을 설정할 수 있다
 
 ### 앱 정보
 

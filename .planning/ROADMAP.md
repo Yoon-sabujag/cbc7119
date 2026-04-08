@@ -142,16 +142,18 @@ Plans:
 **UI hint**: yes
 
 ### Phase 18: Menu Customization
-**Goal**: 사용자가 BottomNav 순서와 SideMenu 표시 항목을 직접 커스터마이징할 수 있다
+**Goal**: 사용자가 SideMenu 항목 순서와 표시/숨김을 divider 모델로 커스터마이징할 수 있다 (BottomNav는 Phase 18에서 5개 고정)
 **Depends on**: Phase 16
 **Requirements**: MENU-01, MENU-02
 **Success Criteria** (what must be TRUE):
-  1. 설정 페이지에서 BottomNav 메뉴 항목을 드래그 또는 버튼으로 순서 변경할 수 있다
+  1. 설정 페이지의 MenuSettingsSection에서 SideMenu 항목 순서를 위/아래 버튼으로 변경하고 divider(그룹 구분선)를 추가/편집/삭제할 수 있다
   2. 설정 페이지에서 SideMenu 항목별 표시/숨김 토글을 켜고 끌 수 있다
-  3. 변경한 메뉴 설정이 앱을 닫고 다시 열어도 유지된다 (로컬 퍼시스턴스)
-**Plans:** 1/1 plan
+  3. "설정 저장" 버튼으로 저장한 메뉴 설정이 서버에 퍼시스트되어 앱을 닫고 다시 열어도 유지된다
+**Plans:** 3 plans
 Plans:
-- [ ] 13-01-PLAN.md — ZONE_FLOOR_DETAILS constant + combo select for location detail + deploy
+- [ ] 18-01-PLAN.md — MenuConfig types (divider model) + DEFAULT_SIDE_MENU + legacy migration + SideMenu read-only refactor
+- [ ] 18-02-PLAN.md — MenuSettingsSection editor component (move/toggle/rename/add/delete/reset/save)
+- [ ] 18-03-PLAN.md — Mount in SettingsPanel + production deploy + human verification
 **UI hint**: yes
 
 ### Phase 19: App Info & Cache
