@@ -1,95 +1,79 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: 설정 페이지
-status: verifying
-stopped_at: Phase 19 complete — v1.3 milestone done
-last_updated: "2026-04-08T07:41:53.851Z"
+milestone: v1.4
+milestone_name: 문서 관리
+status: defining
+stopped_at: Phase 20 — defining context
+last_updated: "2026-04-08T00:00:00.000Z"
 last_activity: 2026-04-08
 progress:
-  total_phases: 8
-  completed_phases: 7
-  total_plans: 14
-  completed_plans: 14
-  percent: 100
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
 
-**Last updated:** 2026-04-06
-**Milestone:** v1.3 — 설정 페이지
+**Last updated:** 2026-04-08
+**Milestone:** v1.4 — 문서 관리
 
 ---
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-06)
+See: .planning/PROJECT.md (updated 2026-04-08)
 
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
-**Current focus:** Phase 19 — app-info-cache
+**Current focus:** Phase 20 — Document Storage Infrastructure (defining context)
 
 ## Current Position
 
-Phase: 19 (app-info-cache) — EXECUTING
-Plan: 1 of 1
-Status: Phase complete — ready for verification
+Phase: 20 (document-storage-infrastructure) — DEFINING CONTEXT
+Plan: — of —
+Status: Roadmap created, awaiting `/gsd-plan-phase 20`
 Last activity: 2026-04-08
 
-Progress: [░░░░░░░░░░] 0% (v1.3, 0/4 phases)
+Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed (v1.3): 0
+- Total plans completed (v1.4): 0
 - Average duration: —
 - Total execution time: —
 
-**By Phase (v1.3):**
+**By Phase (v1.4):**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 16. Settings Page + Profile | — | — | — |
-| 17. Push Notification Settings | — | — | — |
-| 18. Menu Customization | — | — | — |
-| 19. App Info & Cache | — | — | — |
-| 17 | 3 | - | - |
+| 20. Document Storage Infrastructure | — | — | — |
+| 21. Documents Page UI | — | — | — |
+| 22. 업무수행기록표 Form + Excel | — | — | — |
 
 *Updated after each plan completion*
-| Phase 16-settings-page-profile P01 | 12 | 2 tasks | 4 files |
-| Phase 16-settings-page-profile P02 | 3 | 3 tasks | 3 files |
-| Phase 18 P01 | 4 | 2 tasks | 3 files |
-| Phase 18 P02 | 5 | 1 tasks | 1 files |
-| Phase 19-app-info-cache P01 | 2725 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Carried from v1.2:
+Carried from prior milestones:
 
-- [v1.2 Research]: photo_keys migration은 additive — photo_key 컬럼 유지, photo_keys TEXT DEFAULT '[]' 추가, API fallback read 적용 (migration 0043)
 - [v1.2 Research]: iOS PWA에서 `<a download>` 미동작 (WebKit bug 167341) — window.open() + 공유시트 사용
-- [v1.2 Research]: multi-photo에서 capture + multiple 동시 사용 불가 (iOS) — 카메라/갤러리 버튼 분리
 - [v1.2 Research]: 클라이언트 ZIP (fflate.zipSync) 사용 — Worker 128MB 제한 + 4인 팀 규모에 서버사이드 불필요
-- [Phase 12]: Promise.allSettled for parallel upload — partial failure does not block successful keys
 - [Phase 15]: window.open synchronously before async ops — iOS PWA popup bypass
+- [Deploy]: wrangler deploy에 `--branch=production` 필수 (안 붙이면 Preview)
+- [Deploy]: 프로덕션 배포 후 테스트 (로컬 서버 X)
 
-v1.3 decisions:
+v1.4 roadmap decisions:
 
-- [v1.3 Roadmap]: 개인별 메뉴 설정은 로컬 퍼시스턴스 (Zustand persist) — 서버 저장 불필요 (4인 고정 기기)
-- [v1.3 Roadmap]: APP-03 로그아웃은 Phase 16(설정 페이지 Shell)에 포함 — 설정 진입점과 함께 구축
-- [v1.3 Roadmap]: Phase 17(알림)은 Phase 16 이후 — 설정 페이지 라우트가 먼저 존재해야 함
-- [v1.3 Roadmap]: Phase 18(메뉴)과 Phase 19(앱 정보)는 Phase 16 이후 병렬 가능하나 순차로 계획
-- [Phase 16-settings-page-profile]: SettingsPage is a full page (not panel) — standalone route /settings, lazy-loadable default export
-- [Phase 16-settings-page-profile]: updateStaff added to authStore with Partial<Staff> for local name sync after profile API success
-- [Phase 16-settings-page-profile]: Deploy project name is cbc7119 (not cha-bio-safety) — corrected from plan's deploy command
-- [Phase 16-settings-page-profile]: SettingsPanel completely removed in favor of dedicated /settings page route — logout moved exclusively to SettingsPage
-- [Phase 18]: DEFAULT_SIDE_MENU mirrors existing MENU sections as flat divider+item list (D-15); migrateLegacyMenuConfig uses DEFAULT backbone for legacy config conversion (D-16)
-- [Phase 18]: Draft state local until explicit 설정 저장 press — no auto-save (D-19)
-- [Phase 18]: Arrow buttons instead of drag-and-drop for mobile stability (D-18)
-- [Phase 19-app-info-cache]: Used Intl.DateTimeFormat sv-SE Asia/Seoul for KST build timestamp — no date-fns-tz dep needed
-- [Phase 19-app-info-cache]: 앱 정보 section above 로그아웃, default collapsed, localStorage key settings.appinfo.collapsed
+- [v1.4 Roadmap]: 3-phase 구조 — Phase 20 백엔드(스키마+R2 API), Phase 21 UI 통합, Phase 22 업무수행기록표 (독립 워크스트림)
+- [v1.4 Roadmap]: 소방훈련자료 ~130MB는 Workers 100MB request body 제한 초과 → R2 presigned upload URL 필수 (multipart 대신 direct PUT)
+- [v1.4 Roadmap]: 업로드 권한은 기존 `role === 'admin'` 미들웨어 패턴 재사용 — 새 권한 시스템 도입 안 함
+- [v1.4 Roadmap]: Excel 출력은 기존 `xlsx-js-style` + `src/utils/generateExcel.ts` 패턴 재사용 — 신규 라이브러리 추가 금지
+- [v1.4 Roadmap]: DOC-07(메타 테이블)은 스키마가 land하는 Phase 20에 anchor, DOC-01..06은 사용자 가시 동작이 완성되는 Phase 21에 anchor
 
 ### Pending Todos
 
@@ -97,18 +81,19 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 17: PWA 푸시 알림은 Cloudflare Workers + Web Push (VAPID) 구현 필요 — 연구 단계에서 확인 필요
-- Phase 17: iOS Safari PWA 푸시 알림은 iOS 16.4+ 필요 — iOS 16.3.1 타겟과 충돌 가능성 확인 필요
-- Phase 18: 메뉴 커스터마이징 상태를 사용자별로 저장할 위치 결정 필요 (localStorage vs D1)
+- Phase 20: R2 presigned URL 발급 방식 — Workers에서 AWS SigV4 서명 직접 구현 vs `aws4fetch` 등 경량 라이브러리 사용 검토 필요
+- Phase 20: 업로드 완료 confirm API 흐름 — presigned PUT 성공 후 클라이언트가 metadata commit API 호출하는 2단계 vs Workers가 R2 binding으로 검증하는 단일 단계 검토
+- Phase 22: 기존 업무수행기록표 양식 파일(.xlsx) 위치 및 셀 매핑 사양 확보 필요 — 작성자 요청
 
 ## Session Continuity
 
-Last session: 2026-04-08T07:03:33.445Z
-Stopped at: Phase 19 complete — v1.3 milestone done
+Last session: 2026-04-08
+Stopped at: Phase 20 — defining context (roadmap created)
 Resume file: None
 
 ---
 *State initialized: 2026-03-28*
 *Milestone v1.1 shipped: 2026-04-05*
 *Milestone v1.2 shipped: 2026-04-06*
-*Milestone v1.3 roadmap created: 2026-04-06*
+*Milestone v1.3 shipped: 2026-04-08*
+*Milestone v1.4 roadmap created: 2026-04-08*

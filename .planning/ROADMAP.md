@@ -6,6 +6,7 @@
 - ✅ **v1.1 UI 재편 + 기능 확장** — Phases 5-11 (shipped 2026-04-05)
 - ✅ **v1.2 UX 개선 + 다운로드** — Phases 12-15 (shipped 2026-04-06)
 - ✅ **v1.3 설정 페이지** — Phases 16-19 (shipped 2026-04-08)
+- 🚧 **v1.4 문서 관리** — Phases 20-22 (started 2026-04-08)
 
 ## Phases
 
@@ -56,9 +57,11 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
 </details>
 
-### 📋 Next Milestone (Planning)
+### 🚧 v1.4 문서 관리 (Phases 20-22)
 
-Run `/gsd-new-milestone` to start.
+- [ ] **Phase 20: Document Storage Infrastructure** — D1 `documents` 테이블 + R2 presigned URL 업로드/다운로드 API (admin gated, 130MB 대용량 대응)
+- [ ] **Phase 21: Documents Page UI** — DocumentsPage 라우트로 소방계획서·소방훈련자료 업로드(admin)/다운로드(전체)/연도별 이력 조회
+- [ ] **Phase 22: 업무수행기록표 Form + Excel Output** — `work_logs` 테이블 + 폼 입력 페이지 + 기존 양식 호환 xlsx-js-style 출력 + 월별 재출력
 
 ## Phase Details
 
@@ -70,6 +73,42 @@ See milestone archives:
 - `.planning/milestones/v1.3-ROADMAP.md` (Phases 16-19)
 
 </details>
+
+### Phase 20: Document Storage Infrastructure
+**Goal**: 소방 문서를 R2에 안전하게 업로드/다운로드하고 메타데이터를 D1에서 조회할 수 있는 백엔드 인프라가 존재한다
+**Depends on**: Phase 19 (v1.3 complete)
+**Requirements**: DOC-07 (부분), DOC-02·DOC-05 백엔드 (admin 업로드), DOC-01·DOC-03·DOC-04·DOC-06 백엔드 (다운로드/이력)
+**Success Criteria** (what must be TRUE):
+  1. D1 `documents` 테이블이 존재하고 (id, type, year, title, filename, r2_key, size, uploaded_by, uploaded_at) 구조로 메타데이터를 보존한다
+  2. admin 권한 staff만 호출 가능한 R2 presigned upload URL 발급 API가 존재하여, 클라이언트가 ~130MB 소방훈련자료를 Workers 100MB request 제한을 우회해 직접 R2에 PUT할 수 있다
+  3. 업로드 완료 후 메타데이터를 등록하는 commit API가 admin 권한으로 동작하고, 일반 staff는 401/403을 받는다
+  4. 모든 staff가 호출 가능한 list API가 type별·연도별 정렬된 문서 목록을 반환하고, download API가 R2에서 파일을 스트리밍 또는 presigned download URL로 제공한다
+**Plans**: TBD
+
+### Phase 21: Documents Page UI
+**Goal**: 사용자가 문서 관리 페이지에서 소방계획서·소방훈련자료를 업로드(admin)·다운로드(전체)·연도별로 조회할 수 있다
+**Depends on**: Phase 20
+**Requirements**: DOC-01, DOC-02, DOC-03, DOC-04, DOC-05, DOC-06, DOC-07 (UI/wire 부분)
+**Success Criteria** (what must be TRUE):
+  1. SideMenu에서 "문서 관리" 항목으로 진입하는 DocumentsPage 라우트가 존재한다
+  2. 모든 staff가 소방계획서/소방훈련자료의 최신본을 탭 한 번으로 다운로드할 수 있다 (iOS PWA 호환 — window.open 패턴 재사용)
+  3. admin staff에게만 업로드 버튼이 노출되며, 연도·제목 입력 후 R2 presigned URL을 통해 직접 업로드(진행률 표시)되고 완료 시 목록에 즉시 반영된다
+  4. 연도별 이력 섹션에서 과거 버전을 선택해 다운로드할 수 있다 (소방계획서·소방훈련자료 각각)
+  5. 일반 staff가 업로드 API를 직접 호출해도 권한 거부로 차단된다
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 22: 업무수행기록표 Form + Excel Output
+**Goal**: 사용자가 소방안전관리자 업무수행기록표를 앱에서 작성·저장하고 기존 양식과 동일한 .xlsx로 출력할 수 있다
+**Depends on**: Phase 21
+**Requirements**: WORKLOG-01, WORKLOG-02, WORKLOG-03
+**Success Criteria** (what must be TRUE):
+  1. D1 `work_logs` 테이블이 존재하여 월(year_month)·작성자·필드별 본문을 저장한다
+  2. 사용자가 업무수행기록표 작성 페이지에서 대상 월과 각 항목 필드를 입력하고 저장할 수 있다
+  3. 저장한 월의 기록을 다시 열어 수정하고 재저장할 수 있다 (월별 단일 레코드)
+  4. "엑셀 출력" 버튼 탭 시 기존 양식 파일과 동일한 셀 구조·서식의 .xlsx 파일이 xlsx-js-style 기반으로 즉시 다운로드된다 (기존 `src/utils/generateExcel.ts` 패턴 재사용, 신규 라이브러리 추가 금지)
+**Plans**: TBD
+**UI hint**: yes
 
 <!-- ARCHIVED_PHASES_START
 
@@ -212,6 +251,9 @@ ARCHIVED_PHASES_END -->
 | 17. Push Notification Settings | v1.3 | 3/3 | Complete    | 2026-04-07 |
 | 18. Menu Customization | v1.3 | 3/3 | Complete   | 2026-04-08 |
 | 19. App Info & Cache | v1.3 | 1/1 | Complete   | 2026-04-08 |
+| 20. Document Storage Infrastructure | v1.4 | 0/— | Not started | — |
+| 21. Documents Page UI | v1.4 | 0/— | Not started | — |
+| 22. 업무수행기록표 Form + Excel | v1.4 | 0/— | Not started | — |
 
 ## Backlog
 
@@ -226,5 +268,6 @@ ARCHIVED_PHASES_END -->
 *Roadmap created: 2026-03-28*
 *v1.1 shipped: 2026-04-05*
 *v1.2 shipped: 2026-04-06*
-*v1.3 started: 2026-04-06*
-*Last updated: 2026-04-07*
+*v1.3 shipped: 2026-04-08*
+*v1.4 started: 2026-04-08*
+*Last updated: 2026-04-08*
