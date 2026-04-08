@@ -267,7 +267,7 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
           {file ? `${file.name} · ${formatBytes(file.size)}` : '파일 선택'}
         </button>
         <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t2)', marginTop: 8 }}>
-          PDF, XLSX, DOCX, HWP, ZIP · 최대 200MB
+          PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 200MB
         </div>
       </div>
 
