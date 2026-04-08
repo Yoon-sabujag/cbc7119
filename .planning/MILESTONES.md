@@ -1,5 +1,28 @@
 # Milestones
 
+## v1.3 설정 페이지 (Shipped: 2026-04-08)
+
+**Phases completed:** 8 phases, 14 plans, 21 tasks
+
+**Key accomplishments:**
+
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+- Admin-only bulk ZIP download added to LegalFindingsPage: fflate client-side ZIP with finding-NNN_위치/내용.txt + photos structure, opened via window.open for iOS PWA compatibility — production verified.
+- SettingsPage with profile name edit, migrated password change form, notification/display placeholders, and logout — backed by PUT /api/auth/profile and authStore.updateStaff
+- SettingsPage wired at /settings via lazy route, SettingsPanel removed, navigation updated in SideMenu and DesktopSidebar, deployed to production
+- D1 Schema
+- Task 1: pushApi namespace in api.ts
+- Files created:
+- One-liner:
+- One-liner:
+- One-liner:
+- One-liner:
+
+---
+
 ## v1.1 UI 재편 + 기능 확장 (Shipped: 2026-04-05)
 
 **Phases completed:** 11 phases, 15 plans, 23 tasks
