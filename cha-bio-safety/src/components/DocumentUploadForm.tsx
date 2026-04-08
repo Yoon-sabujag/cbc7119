@@ -38,7 +38,7 @@ const EXT_TO_MIME: Record<string, string> = {
   '.zip': 'application/zip',
 }
 
-const MAX_SIZE = 200 * 1024 * 1024
+const MAX_SIZE = 500 * 1024 * 1024
 
 // Auto-prefill title format (D-19): `${year}년 소방계획서` or `${year}년 소방훈련자료`
 const typeLabel = (t: 'plan' | 'drill') => (t === 'plan' ? '소방계획서' : '소방훈련자료')
@@ -84,7 +84,7 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
     e.target.value = ''
     if (!f) return
     if (f.size > MAX_SIZE) {
-      toast.error('파일 크기가 200MB를 초과합니다.')
+      toast.error('파일 크기가 500MB를 초과합니다.')
       return
     }
     const entry = findAllowed(f.name)
@@ -267,7 +267,7 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
           {file ? `${file.name} · ${formatBytes(file.size)}` : '파일 선택'}
         </button>
         <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t2)', marginTop: 8 }}>
-          PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 200MB
+          PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB
         </div>
       </div>
 

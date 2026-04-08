@@ -12,8 +12,8 @@ export const ALLOWED_FILE_TYPES: Array<{ ext: string; mimes: string[] }> = [
   { ext: '.zip',  mimes: ['application/zip', 'application/x-zip-compressed'] },
 ]
 
-// D-23: 200MB hard cap
-export const MAX_DOC_SIZE = 200 * 1024 * 1024
+// D-23: 500MB hard cap (raised from 200MB for large 소방훈련자료)
+export const MAX_DOC_SIZE = 500 * 1024 * 1024
 
 // nanoid — reused from functions/api/uploads/index.ts
 export function nanoid(n = 21): string {
