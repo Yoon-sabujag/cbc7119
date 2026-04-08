@@ -21,8 +21,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0) return jsonError(400, 'size가 유효하지 않습니다')
   if (size > MAX_DOC_SIZE) return jsonError(400, `파일 크기가 최대 허용치(${MAX_DOC_SIZE} bytes)를 초과했습니다`)
 
-  const v = validateFileType(contentType, filename)
-  if (!v.ok) return jsonError(400, v.error)
+  const vt = validateFileType(contentType, filename)
+  if (!vt.ok) return jsonError(400, (vt as { ok: false; error: string }).error)
 
   const key = buildR2Key(type as DocType, year, filename)
 

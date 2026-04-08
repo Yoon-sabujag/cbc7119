@@ -39,8 +39,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0 || size > MAX_DOC_SIZE) return jsonError(400, 'size가 유효하지 않습니다')
   if (typeof contentType !== 'string') return jsonError(400, 'contentType이 없습니다')
 
-  const v = validateFileType(contentType, filename)
-  if (!v.ok) return jsonError(400, v.error)
+  const vt = validateFileType(contentType, filename)
+  if (!vt.ok) return jsonError(400, (vt as { ok: false; error: string }).error)
 
   // Step 1: complete the R2 multipart upload
   try {
