@@ -10,6 +10,14 @@ import { fmtKstDate as fmtDate, fmtKstDateTime as fmtDateTime } from '../utils/d
 const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
 const zoneLabel = (zone: string) => ZONE_LABEL[zone] ?? zone
 
+// 기록 위치 표시 — 유도등이면 locationDetail/markerLabel 우선
+function recordPlace(rec: any): string {
+  const zk = zoneLabel(rec.zone ?? '')
+  const spot = rec.locationDetail || rec.markerLabel
+  if (rec.category === '유도등' && spot) return `${zk} ${rec.floor} ${spot}`
+  return `${zk} ${rec.floor}${rec.location ? ' · ' + rec.location : ''}`
+}
+
 // ── 사진 다운로드 헬퍼 ────────────────────────────────────
 async function downloadPhoto(photoKey: string, filename: string) {
   try {
@@ -65,7 +73,7 @@ th{background:#f0f0f0;width:120px}
 <h1>점검 조치 보고서</h1>
 <table>
   <tr><th>카테고리</th><td>${record.category}</td></tr>
-  <tr><th>위치</th><td>${zoneLabel(record.zone)} ${record.floor}${record.location ? ' · ' + record.location : ''}</td></tr>
+  <tr><th>위치</th><td>${recordPlace(record)}</td></tr>
   <tr><th>점검일시</th><td>${fmtDateTime(record.checkedAt)}</td></tr>
   <tr><th>점검자</th><td>${record.staffName ?? '-'}</td></tr>
   <tr><th>판정결과</th><td><span class="badge ${record.result === 'bad' ? 'bad' : 'cau'}">${record.result === 'bad' ? '불량' : '주의'}</span></td></tr>
@@ -181,7 +189,7 @@ export default function RemediationPage() {
           </span>
         </div>
         <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-          {zoneLabel(record.zone)} {record.floor}{record.location ? ` · ${record.location}` : ''}
+          {recordPlace(record)}
         </div>
         <div style={{ fontSize: 12, color: record.memo ? 'var(--t2)' : 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {record.memo ? record.memo.split('\n')[0] : '메모 없음'}
@@ -272,7 +280,7 @@ export default function RemediationPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{detail.category}</div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{zoneLabel(detail.zone)} {detail.floor}{detail.location ? ` · ${detail.location}` : ''}</div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{recordPlace(detail)}</div>
                   </div>
                   <button onClick={() => downloadReport(detail)}
                     style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1d4ed8,#2563eb)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
@@ -285,7 +293,7 @@ export default function RemediationPage() {
                   <tbody>
                     {[
                       ['카테고리', detail.category],
-                      ['위치', `${zoneLabel(detail.zone)} ${detail.floor}${detail.location ? ' · ' + detail.location : ''}`],
+                      ['위치', recordPlace(detail)],
                       ['점검일시', fmtDateTime(detail.checkedAt)],
                       ['점검자', detail.staffName ?? '-'],
                       ['판정결과', null],
@@ -519,7 +527,7 @@ export default function RemediationPage() {
 
               {/* Line 2: 위치 (동→층) + 개소명 */}
               <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                {zoneLabel(record.zone)} {record.floor}{record.location ? ` · ${record.location}` : ''}
+                {recordPlace(record)}
               </div>
 
               {/* Line 3: 메모 미리보기 */}

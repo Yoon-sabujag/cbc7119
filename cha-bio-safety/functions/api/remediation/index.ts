@@ -41,10 +41,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
              r.resolution_memo, r.resolution_photo_key, r.materials_used,
              r.resolved_at, r.resolved_by, r.checked_at, r.staff_id,
              cp.category, cp.location, cp.floor, cp.zone,
-             s.name AS staff_name
+             s.name AS staff_name,
+             fpm.label AS marker_label
       FROM check_records r
       JOIN check_points cp ON cp.id = r.checkpoint_id
       LEFT JOIN staff s ON s.id = r.staff_id
+      LEFT JOIN floor_plan_markers fpm ON fpm.id = r.floor_plan_marker_id
       WHERE ${where}
       ORDER BY r.checked_at DESC
     `).bind(...binds).all<Record<string, string | null>>()
@@ -73,6 +75,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       location:             r.location,
       floor:                r.floor,
       zone:                 r.zone,
+      markerLabel:          r.marker_label,
     }))
 
     return Response.json({

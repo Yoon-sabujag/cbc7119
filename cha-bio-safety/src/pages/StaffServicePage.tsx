@@ -824,7 +824,7 @@ export default function StaffServicePage() {
   )
 
   const uploadSection = (
-    <div style={{ padding: '0 12px 14px' }}>
+    <div style={{ padding: '14px 12px' }}>
       <label
         ref={dropRef}
         onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--acl)' }}

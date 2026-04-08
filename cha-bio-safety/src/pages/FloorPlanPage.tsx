@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { floorPlanMarkerApi, inspectionApi, type FloorPlanMarker } from '../utils/api'
+import { floorPlanMarkerApi, inspectionApi, api, type FloorPlanMarker } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -70,14 +70,16 @@ const MARKER_TYPES_MAP: Record<PlanType, { key: string; label: [string, string] 
 
 // ── 상태별 색상 ─────────────────────────────────────────
 const STATUS_COLOR: Record<string, string> = {
-  normal:  '#22c55e',
-  caution: '#eab308',
-  bad:     '#ef4444',
-  fault:   '#ef4444',
+  uninspected: '#9ca3af',
+  normal:      '#22c55e',
+  caution:     '#eab308',
+  bad:         '#ef4444',
+  fault:       '#ef4444',
 }
 
 function getMarkerStatus(m: FloorPlanMarker): string {
-  return m.last_result && STATUS_COLOR[m.last_result] ? m.last_result : 'normal'
+  if (!m.last_result) return 'uninspected'
+  return STATUS_COLOR[m.last_result] ? m.last_result : 'uninspected'
 }
 
 // ── 마커 SVG 렌더링 ────────────────────────────────────
@@ -189,6 +191,7 @@ export default function FloorPlanPage() {
   const [editMode, setEditMode] = useState(false)
   const [addModal, setAddModal] = useState<{ x_pct: number; y_pct: number } | null>(null)
   const [addMarkerType, setAddMarkerType] = useState<MarkerType>('wall_exit')
+  const [addZone, setAddZone] = useState<'research' | 'office' | 'common'>('research')
   const [addLabel, setAddLabel] = useState('')
   const [addCheckpointId, setAddCheckpointId] = useState<string | null>(null)
   const [addCheckpoints, setAddCheckpoints] = useState<any[]>([])
@@ -198,12 +201,53 @@ export default function FloorPlanPage() {
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectMemo, setInspectMemo] = useState('')
+  const [inspectSymptomPick, setInspectSymptomPick] = useState<string>('점등 이상')
+  const [inspectSymptomCustom, setInspectSymptomCustom] = useState('')
   const [inspectSubmitting, setInspectSubmitting] = useState(false)
   const inspectPhoto = usePhotoUpload()
+  const [resolveModal, setResolveModal] = useState(false)
+  const [resolveMemo, setResolveMemo] = useState('')
+  const [resolveActionPick, setResolveActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
+  const [resolveMaterialName, setResolveMaterialName] = useState('')
+  const [resolveMaterialCount, setResolveMaterialCount] = useState<string>('1')
+  const [resolveSubmitting, setResolveSubmitting] = useState(false)
+  const resolvePhoto = usePhotoUpload()
   const [editLabel, setEditLabel] = useState('')
   const [editMarkerType, setEditMarkerType] = useState<MarkerType>('wall_exit')
+  const [editZone, setEditZone] = useState<'research' | 'office' | 'common'>('research')
   const [editCheckpointId, setEditCheckpointId] = useState<string | null>(null)
   const [checkpoints, setCheckpoints] = useState<any[]>([]) // 현재 층 개소 목록
+
+  const MARKER_TYPE_KO: Record<string,string> = {
+    ceiling_exit: '천장피난구',
+    wall_exit: '벽부피난구',
+    room_corridor: '거실통로',
+    hallway_corridor: '복도통로',
+    stair_corridor: '계단통로',
+  }
+
+  // 조치 모달 열릴 때 증상에 따라 기본 조치 선택
+  useEffect(() => {
+    if (!resolveModal || planType !== 'guidelamp' || !selected) return
+    const sym = selected.last_memo ?? ''
+    if (sym === '점등 이상') setResolveActionPick('본체 교체')
+    else if (sym === '예비전원 이상') setResolveActionPick('예비전원 교체')
+    else setResolveActionPick('직접 입력')
+  }, [resolveModal, selected?.id])
+
+  useEffect(() => {
+    if (!resolveModal || planType !== 'guidelamp' || !selected) return
+    if (resolveActionPick === '본체 교체') {
+      setResolveMaterialName(MARKER_TYPE_KO[selected.marker_type ?? ''] ?? '')
+      setResolveMaterialCount('1')
+    } else if (resolveActionPick === '예비전원 교체') {
+      setResolveMaterialName('예비전원')
+      setResolveMaterialCount('1')
+    } else {
+      setResolveMaterialName('')
+      setResolveMaterialCount('')
+    }
+  }, [resolveActionPick, resolveModal, planType, selected])
 
   // ── 핀치줌 상태 ───────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null)
@@ -601,6 +645,7 @@ export default function FloorPlanPage() {
       y_pct: addModal.y_pct,
       label: addLabel || undefined,
       check_point_id: addCheckpointId || undefined,
+      zone: planType === 'guidelamp' ? addZone : undefined,
     })
     setAddModal(null)
   }
@@ -757,7 +802,7 @@ export default function FloorPlanPage() {
                     pointerEvents: 'auto',
                   }}
                 >
-                  <MarkerIcon markerType={m.marker_type} color={color} size={20} />
+                  <MarkerIcon markerType={m.marker_type} color={color} size={13} />
                 </div>
               )
             })}
@@ -796,6 +841,7 @@ export default function FloorPlanPage() {
         const openEditMarkerModal = () => {
           setEditLabel(selected.label ?? '')
           setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
+          setEditZone(((selected as any).zone as 'research' | 'office' | 'common') ?? 'research')
           setEditCheckpointId(selected.check_point_id)
           if (planType === 'extinguisher') {
             const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
@@ -808,14 +854,24 @@ export default function FloorPlanPage() {
           setEditMarker(true)
         }
 
+        const canInspect = !isDesktop && (planType === 'guidelamp' || !!selected.check_point_id)
+        const canResolve = !isDesktop && !!selected.last_record_id && (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
         const actionButtons = (
           <div style={{ display: 'flex', gap: 8 }}>
-            {selected.check_point_id && (
+            {canInspect && (
               <button
-                onClick={() => { setInspectResult('normal'); setInspectMemo(''); inspectPhoto.reset(); setInspectModal(true) }}
-                style={{ flex: 1, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: isDesktop ? 13 : 14, fontWeight: 700, cursor: 'pointer' }}
+                onClick={() => { setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom(''); inspectPhoto.reset(); setInspectModal(true) }}
+                style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
               >
                 점검 기록 입력
+              </button>
+            )}
+            {canResolve && (
+              <button
+                onClick={() => { setResolveMemo(''); resolvePhoto.reset(); setResolveModal(true) }}
+                style={{ flex: 1, height: 46, borderRadius: 12, background: 'linear-gradient(135deg,#f59e0b,#ef4444)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+              >
+                조치
               </button>
             )}
             {editMode && (
@@ -938,6 +994,30 @@ export default function FloorPlanPage() {
           <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>마커 수정</div>
 
+            {planType === 'guidelamp' && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역</div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {([
+                    { key: 'research', label: '연구동' },
+                    { key: 'office',   label: '사무동' },
+                    { key: 'common',   label: '지하'   },
+                  ] as const).map(z => (
+                    <button
+                      key={z.key}
+                      onClick={() => setEditZone(z.key)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        background: editZone === z.key ? 'var(--acl)' : 'var(--bg3)',
+                        color: editZone === z.key ? '#fff' : 'var(--t2)',
+                        border: editZone === z.key ? 'none' : '1px solid var(--bd)',
+                      }}
+                    >{z.label}</button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '소화기 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
               {currentMarkerTypes.map(mt => (
@@ -966,18 +1046,22 @@ export default function FloorPlanPage() {
               style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
             />
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
-            <select
-              value={editCheckpointId ?? ''}
-              onChange={e => setEditCheckpointId(e.target.value || null)}
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
-            >
-              <option value="">연결 안 함</option>
-              {checkpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id) || cp.id === editCheckpointId).map((cp: any) => (
-                <option key={cp.id} value={cp.id}>{cp.location_no ?? cp.id} — {cp.location} ({cp.category})</option>
-              ))}
-            </select>
-            <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
+            {planType !== 'guidelamp' && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
+                <select
+                  value={editCheckpointId ?? ''}
+                  onChange={e => setEditCheckpointId(e.target.value || null)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+                >
+                  <option value="">연결 안 함</option>
+                  {checkpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id) || cp.id === editCheckpointId).map((cp: any) => (
+                    <option key={cp.id} value={cp.id}>{cp.location_no ?? cp.id} — {cp.location} ({cp.category})</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setEditMarker(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -991,6 +1075,7 @@ export default function FloorPlanPage() {
                       label: editLabel || undefined,
                       marker_type: editMarkerType,
                       check_point_id: editCheckpointId,
+                      zone: planType === 'guidelamp' ? editZone : undefined,
                     }
                   }, {
                     onSuccess: () => { setEditMarker(false); setSelected(null); toast.success('마커 수정됨') }
@@ -1010,6 +1095,30 @@ export default function FloorPlanPage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddModal(null)}>
           <div style={{ width: '85%', maxWidth: 320, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>마커 추가</div>
+
+            {planType === 'guidelamp' && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역</div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {([
+                    { key: 'research', label: '연구동' },
+                    { key: 'office',   label: '사무동' },
+                    { key: 'common',   label: '지하'   },
+                  ] as const).map(z => (
+                    <button
+                      key={z.key}
+                      onClick={() => setAddZone(z.key)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
+                        color: addZone === z.key ? '#fff' : 'var(--t2)',
+                        border: addZone === z.key ? 'none' : '1px solid var(--bd)',
+                      }}
+                    >{z.label}</button>
+                  ))}
+                </div>
+              </>
+            )}
 
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '소화기 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
@@ -1069,9 +1178,16 @@ export default function FloorPlanPage() {
       )}
 
       {/* ── 인라인 점검 기록 모달 ────────────────────── */}
-      {inspectModal && selected?.check_point_id && (
+      {inspectModal && selected && (planType === 'guidelamp' || selected.check_point_id) && (() => {
+        const MARKER_TO_GL: Record<string,string> = {
+          ceiling_exit:'ceiling_exit', wall_exit:'wall_exit',
+          room_corridor:'room_passage', hallway_corridor:'corridor_passage', stair_corridor:'stair_passage',
+        }
+        const glType = planType === 'guidelamp' ? (MARKER_TO_GL[selected.marker_type ?? ''] ?? '') : ''
+        const needSymptom = planType === 'guidelamp' && inspectResult !== 'normal' && glType !== 'audience_passage' && glType !== ''
+        return (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
               {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
@@ -1085,14 +1201,30 @@ export default function FloorPlanPage() {
                   background: inspectResult === val ? color + '22' : 'var(--bg3)',
                   color: inspectResult === val ? color : 'var(--t3)',
                   border: inspectResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
-                }}>
-                  {label}
-                </button>
+                }}>{label}</button>
               ))}
             </div>
 
+            {needSymptom && (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>증상</div>
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {['점등 이상','예비전원 이상','직접 입력'].map(s => (
+                    <button key={s} onClick={() => setInspectSymptomPick(s)} style={{
+                      flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer',
+                      border: inspectSymptomPick === s ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: inspectSymptomPick === s ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
+                      fontSize: 11, fontWeight: 700, color: inspectSymptomPick === s ? 'var(--acl)' : 'var(--t2)',
+                    }}>{s}</button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>특이사항 (선택)</label>
+              <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>
+                {needSymptom && inspectSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
+              </label>
               <span style={{ fontSize: 10, color: 'var(--t3)' }}>점검 사진 (선택)</span>
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14 }}>
@@ -1115,26 +1247,39 @@ export default function FloorPlanPage() {
                   setInspectSubmitting(true)
                   try {
                     const today = new Date().toISOString().slice(0, 10)
-                    // 오늘 세션 조회 또는 생성
                     let sessions = await inspectionApi.getSessions(today)
                     let sid: string
-                    if (sessions.length > 0) {
-                      sid = sessions[0].id
-                    } else {
-                      const s = await inspectionApi.createSession({ date: today })
-                      sid = s.id
-                    }
+                    if (sessions.length > 0) sid = sessions[0].id
+                    else { const s = await inspectionApi.createSession({ date: today }); sid = s.id }
                     const photoKey = await inspectPhoto.upload()
+
+                    let cpId = selected.check_point_id ?? ''
+                    let finalMemo = inspectMemo
+                    const extra: any = {}
+                    if (planType === 'guidelamp') {
+                      // 유도등: 마커 floor+zone으로 check_point 조회
+                      const all = await inspectionApi.getCheckpoints(selected.floor)
+                      const gl = (all as any[]).find(cp => cp.category === '유도등' && cp.zone === (selected as any).zone)
+                      if (!gl) { toast.error('유도등 개소를 찾을 수 없습니다'); setInspectSubmitting(false); return }
+                      cpId = gl.id
+                      extra.floor_plan_marker_id = selected.id
+                      extra.guide_light_type = glType
+                      if (needSymptom) {
+                        finalMemo = inspectSymptomPick === '직접 입력' ? inspectMemo.trim() : inspectSymptomPick
+                      } else {
+                        finalMemo = inspectMemo.trim()
+                      }
+                    }
                     await inspectionApi.submitRecord(sid, {
-                      checkpoint_id: selected.check_point_id,
+                      checkpointId: cpId,
                       result: inspectResult,
-                      memo: inspectMemo || null,
-                      photo_key: photoKey ?? undefined,
+                      memo: finalMemo || undefined,
+                      photoKey: photoKey ?? undefined,
+                      ...extra,
                     })
                     toast.success('점검 기록 저장됨')
                     setInspectModal(false)
                     setSelected(null)
-                    // 마커 상태 새로고침
                     qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
                   } catch (e: any) {
                     toast.error(e.message ?? '저장 실패')
@@ -1145,6 +1290,134 @@ export default function FloorPlanPage() {
                 style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading) ? 'default' : 'pointer' }}
               >
                 {inspectPhoto.uploading ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+        )
+      })()}
+
+      {/* ── 인라인 조치 모달 ────────────────────── */}
+      {resolveModal && selected?.last_record_id && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setResolveModal(false)}>
+          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>조치 입력</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{selected.label || '마커'} · {floor}</div>
+            {selected.last_memo && (
+              <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 12, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 8, padding: '6px 10px' }}>
+                지적: {selected.last_memo}
+              </div>
+            )}
+            {planType === 'guidelamp' ? (
+              <>
+                {/* 조치 피커 */}
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {(['본체 교체','예비전원 교체','직접 입력'] as const).map(opt => (
+                    <button key={opt} onClick={() => setResolveActionPick(opt)} style={{
+                      flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer',
+                      border: resolveActionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: resolveActionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
+                      fontSize: 11, fontWeight: 700, color: resolveActionPick === opt ? 'var(--acl)' : 'var(--t2)',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+
+                {/* 직접 입력일 때만 textarea */}
+                {resolveActionPick === '직접 입력' && (
+                  <textarea
+                    value={resolveMemo}
+                    onChange={e => setResolveMemo(e.target.value)}
+                    placeholder="조치 내용을 입력하세요 (필수)"
+                    style={{ width: '100%', height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+                  />
+                )}
+
+                {/* 소모 자재 라벨 */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>소모 자재</label>
+                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+                </div>
+
+                {/* 자재명 + 개수 + 사진 — 한 줄 */}
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14, maxWidth: '100%' }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
+                    <input
+                      type="text"
+                      value={resolveMaterialName}
+                      onChange={e => setResolveMaterialName(e.target.value)}
+                      placeholder="자재명"
+                      style={{ flex: 1, minHeight: 0, minWidth: 0, width: '100%', padding: '0 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                    <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+                      <input
+                        type="number"
+                        min={0}
+                        value={resolveMaterialCount}
+                        onChange={e => setResolveMaterialCount(e.target.value)}
+                        placeholder="0"
+                        style={{ width: '100%', height: '100%', minWidth: 0, padding: '0 28px 0 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      />
+                      <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
+                    </div>
+                  </div>
+                  <PhotoButton hook={resolvePhoto} label="촬영" noCapture />
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>조치 내용 (필수)</label>
+                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14 }}>
+                  <textarea
+                    value={resolveMemo}
+                    onChange={e => setResolveMemo(e.target.value)}
+                    placeholder="조치 내용을 입력하세요"
+                    style={{ flex: 1, height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  <PhotoButton hook={resolvePhoto} label="촬영" noCapture />
+                </div>
+              </>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setResolveModal(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                취소
+              </button>
+              <button
+                disabled={resolveSubmitting || resolvePhoto.uploading}
+                onClick={async () => {
+                  let finalMemo = ''
+                  let materialsString: string | null = null
+                  if (planType === 'guidelamp') {
+                    finalMemo = resolveActionPick === '직접 입력' ? resolveMemo.trim() : resolveActionPick
+                    if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+                    materialsString = resolveMaterialName.trim() ? `${resolveMaterialName.trim()} ${resolveMaterialCount || 1}ea` : null
+                  } else {
+                    finalMemo = resolveMemo.trim()
+                    if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+                  }
+                  setResolveSubmitting(true)
+                  try {
+                    const photoKey = await resolvePhoto.upload()
+                    await api.post(`/inspections/records/${selected.last_record_id}/resolve`, {
+                      resolution_memo: finalMemo,
+                      resolution_photo_key: photoKey,
+                      materials_used: materialsString,
+                    })
+                    toast.success('조치 완료')
+                    setResolveModal(false)
+                    setSelected(null)
+                    qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+                  } catch (e: any) {
+                    toast.error(e.message ?? '조치 실패')
+                  } finally {
+                    setResolveSubmitting(false)
+                  }
+                }}
+                style={{ flex: 1, height: 42, borderRadius: 10, background: (resolveSubmitting || resolvePhoto.uploading) ? 'var(--bd2)' : 'linear-gradient(135deg,#f59e0b,#ef4444)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (resolveSubmitting || resolvePhoto.uploading) ? 'default' : 'pointer' }}
+              >
+                {resolvePhoto.uploading ? '사진 업로드 중...' : resolveSubmitting ? '저장 중...' : '조치 완료'}
               </button>
             </div>
           </div>

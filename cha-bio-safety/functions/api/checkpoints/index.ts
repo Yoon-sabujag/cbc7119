@@ -38,6 +38,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     description:   r.description ?? undefined,
     locationNo:    r.location_no ?? undefined,
     defaultResult: r.default_result ?? undefined,
+    ceiling_exit:     r.category === '유도등' ? Number(r.ceiling_exit ?? 0) : undefined,
+    wall_exit:        r.category === '유도등' ? Number(r.wall_exit ?? 0) : undefined,
+    room_passage:     r.category === '유도등' ? Number(r.room_passage ?? 0) : undefined,
+    corridor_passage: r.category === '유도등' ? Number(r.corridor_passage ?? 0) : undefined,
+    stair_passage:    r.category === '유도등' ? Number(r.stair_passage ?? 0) : undefined,
+    audience_passage: r.category === '유도등' ? Number(r.audience_passage ?? 0) : undefined,
+    guideLightTotal: r.category === '유도등'
+      ? (Number(r.ceiling_exit ?? 0) + Number(r.wall_exit ?? 0) + Number(r.room_passage ?? 0) + Number(r.corridor_passage ?? 0) + Number(r.stair_passage ?? 0) + Number(r.audience_passage ?? 0))
+      : undefined,
   }))
   return Response.json({ success:true, data:rows })
 }

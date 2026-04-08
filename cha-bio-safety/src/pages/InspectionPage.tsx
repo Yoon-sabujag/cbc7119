@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery } from '@tanstack/react-query'
-import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, type ExtinguisherDetail, type ExtinguisherListResponse } from '../utils/api'
+import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, floorPlanMarkerApi, type ExtinguisherDetail, type ExtinguisherListResponse, type FloorPlanMarker } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -2274,14 +2274,18 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialC
 }
 
 // ── Inspection Modal (전체화면) ────────────────────────
-function InspectionModal({ group, allCheckpoints, records, onClose, onSave, initialCpId }: {
+function InspectionModal({ group, allCheckpoints, records, recordCounts, markerRecords, onClose, onSave, initialCpId }: {
   group:          typeof CATEGORY_GROUPS[0]
   allCheckpoints: CheckPoint[]
   records:        Record<string, CheckResult>
+  recordCounts?:  Record<string, number>
+  markerRecords?: Record<string, CheckResult>
   onClose:        () => void
-  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
+  onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string }) => Promise<void>
   initialCpId?:   string
 }) {
+  const isGuideLight = group.categories.includes('유도등')
+  const [glMarkers, setGlMarkers] = useState<FloorPlanMarker[]>([])
   const photo   = usePhotoUpload()
   const bcPhoto = usePhotoUpload()
   // ▶ groupCPs memoize — 이 참조가 안정돼야 피커가 리셋 안 됨
@@ -2300,6 +2304,8 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
   const [visible,       setVisible]       = useState(false)
   const [bcResult,      setBcResult]      = useState<CheckResult>('normal')
   const [bcMemo,        setBcMemo]        = useState('')
+  const [symptomPick,   setSymptomPick]   = useState<string>('점등 이상')
+  const [symptomCustom, setSymptomCustom] = useState('')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -2333,6 +2339,12 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
     }
   }, [availableFloors])
 
+  // 유도등: 선택된 층의 마커 로드
+  useEffect(() => {
+    if (!isGuideLight || !selectedFloor) { setGlMarkers([]); return }
+    floorPlanMarkerApi.list(selectedFloor, 'guidelamp').then(setGlMarkers).catch(() => setGlMarkers([]))
+  }, [isGuideLight, selectedFloor])
+
   const initialCpAppliedRef = useRef(false)
 
   // ▶ floorCPs memoize — pickerIdx 변경에는 재계산 안 됨
@@ -2343,15 +2355,61 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
     [groupCPs, selectedZone, selectedFloor]
   )
 
+  // 유도등: 마커 → synthetic CheckPoint 매핑
+  const MARKER_TO_GL_COL: Record<string, string> = {
+    ceiling_exit: 'ceiling_exit',
+    wall_exit: 'wall_exit',
+    room_corridor: 'room_passage',
+    hallway_corridor: 'corridor_passage',
+    stair_corridor: 'stair_passage',
+  }
+  const GL_COL_LABEL: Record<string, string> = {
+    ceiling_exit: '천장피난구',
+    wall_exit: '벽부피난구',
+    room_passage: '거실통로',
+    corridor_passage: '복도통로',
+    stair_passage: '계단통로',
+    audience_passage: '객석통로',
+  }
+
   // 소화전/비상콘센트 혼합 그룹 피커 소스:
   // 소화전이 있는 층 → 소화전만, 소화전 없는 층(지하 등) → 비상콘센트 직접 표시
   const pickerSourceCPs = useMemo(() => {
+    if (isGuideLight) {
+      if (!selectedZone) return []
+      const zoneMatch = (mzone: string | null | undefined): boolean => {
+        if (selectedZone === 'underground') return mzone === 'common'
+        if (selectedZone === 'office')      return mzone === 'office'
+        // research
+        return mzone === 'research' || mzone === 'common'
+      }
+      return glMarkers
+        .filter(m => zoneMatch((m as any).zone))
+        .map((m, idx) => ({
+          id: 'MARKER:' + m.id,
+          qrCode: '',
+          floor: m.floor as any,
+          zone: m.zone as any,
+          location: m.label || `${GL_COL_LABEL[MARKER_TO_GL_COL[m.marker_type ?? ''] ?? ''] ?? '유도등'} #${idx + 1}`,
+          category: '유도등',
+          description: GL_COL_LABEL[MARKER_TO_GL_COL[m.marker_type ?? ''] ?? ''] ?? '',
+          locationNo: MARKER_TO_GL_COL[m.marker_type ?? ''] ?? '',
+        } as any as CheckPoint))
+    }
     if (!isSohwaGroup) return floorCPs
     const sohwaCPs = floorCPs.filter(cp => cp.category === '소화전')
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
-  }, [isSohwaGroup, floorCPs])
+  }, [isGuideLight, glMarkers, selectedZone, isSohwaGroup, floorCPs])
   // 미완료 항목만 피커에 표시
-  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id] && !cp.defaultResult && !cp.description?.includes('[접근���가]')), [pickerSourceCPs, records])
+  const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => {
+    if (cp.defaultResult) return false
+    if (cp.description?.includes('[접근���가]')) return false
+    if (isGuideLight) {
+      const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
+      return !markerRecords?.[mid]
+    }
+    return !records[cp.id]
+  }), [pickerSourceCPs, records, markerRecords, isGuideLight])
 
   // QR 체크포인트로 pickerIdx 자동 매칭 (첫 렌더 시 1회만)
   useEffect(() => {
@@ -2365,7 +2423,12 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
-  const doneCount    = totalCount - pendingCPs.length
+  const doneCount    = isGuideLight
+    ? pickerSourceCPs.filter(cp => {
+        const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
+        return !!markerRecords?.[mid]
+      }).length
+    : totalCount - pendingCPs.length
 
   // 선택된 소화전과 같은 location_no를 가진 비상콘센트 (소화전인 경우에만)
   const pairedBC = useMemo(() =>
@@ -2419,7 +2482,24 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
     setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      await onSave(selectedCP.id, result, memo, photoKey ?? undefined)
+      let finalMemo = memo
+      let extra: { guide_light_type?: string; floor_plan_marker_id?: string } | undefined
+      let cpIdToSave = selectedCP.id
+      if (isGuideLight && selectedCP.id.startsWith('MARKER:')) {
+        const markerId = selectedCP.id.slice(7)
+        const glTypeFromMarker = (selectedCP as any).locationNo ?? ''
+        // 실제 checkpoint 조회 (floor + zone)
+        const realCp = groupCPs.find(cp => cp.floor === selectedFloor && matchZone(cp, selectedZone!))
+        if (!realCp) { setSubmitError('유도등 개소를 찾을 수 없습니다'); setSubmitting(false); return }
+        cpIdToSave = realCp.id
+        extra = { floor_plan_marker_id: markerId, guide_light_type: glTypeFromMarker }
+        if (result !== 'normal' && glTypeFromMarker !== 'audience_passage') {
+          finalMemo = symptomPick === '직접 입력' ? memo.trim() : symptomPick
+        } else {
+          finalMemo = memo.trim()
+        }
+      }
+      await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
       if (pairedBC) {
         const bcPhotoKey = await bcPhoto.upload()
         await onSave(pairedBC.id, bcResult, bcMemo, bcPhotoKey ?? undefined)
@@ -2429,6 +2509,8 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
       setJustSaved(true)
       // #14: 저장 후 다음 항목/층/구역 자동 이동
       setTimeout(() => {
+        // 유도등은 층당 여러 건 기록 가능 — 자동 층 이동 스킵 (사용자가 직접 이동)
+        if (isGuideLight) return
         // pendingCPs는 현재 렌더 기준이므로 저장 후 1개 줄어듦
         const remainingAfterSave = pendingCPs.length - 1
         if (remainingAfterSave > 0) {
@@ -2530,7 +2612,7 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
       )}
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
-      {selectedFloor && floorCPs.length > 1 && (
+      {selectedFloor && (isGuideLight ? pickerSourceCPs.length > 1 : floorCPs.length > 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
           {pendingCPs.length === 0 ? (
             <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
@@ -2578,8 +2660,8 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
             접근불가 구역 — 자동 정상 처리
           </div>
         )}
-        {/* 개소가 1개인 경우 정보 표시 */}
-        {selectedCP && floorCPs.length <= 1 && !isExtinguisher && (
+        {/* 개소가 1개인 경우 정보 표시 (유도등 제외 — 유도등은 마커 기반 피커) */}
+        {selectedCP && floorCPs.length <= 1 && !isExtinguisher && !isGuideLight && (
           <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
             <div style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</div>
             <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{selectedCP.location}</div>
@@ -2653,11 +2735,30 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
           </div>
         )}
 
+        {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
+        {isGuideLight && selectedCP && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
+          <div>
+            <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
+            <div style={{ display:'flex', gap:5 }}>
+              {['점등 이상','예비전원 이상','직접 입력'].map(s => (
+                <button key={s} onClick={() => setSymptomPick(s)} style={{
+                  flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
+                  border: symptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                  background: symptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                  fontSize:11, fontWeight:700, color: symptomPick===s ? 'var(--acl)' : 'var(--t2)',
+                }}>{s}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* 특이사항 + 증빙사진 (한 행) */}
         {selectedCP && (
           <div>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-              <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
+              <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>
+                {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
+              </label>
               <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
             </div>
             <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
@@ -3163,6 +3264,8 @@ export default function InspectionPage() {
   const [loading,          setLoading]          = useState(true)
   const [selectedGroupIdx, setSelectedGroupIdx] = useState<number | null>(null)
   const [records,          setRecords]          = useState<Record<string, CheckResult>>({})
+  const [recordCounts,     setRecordCounts]     = useState<Record<string, number>>({})
+  const [markerRecords,    setMarkerRecords]    = useState<Record<string, CheckResult>>({})
   const [recordMeta,       setRecordMeta]       = useState<Record<string, RecordMeta>>({})
   const [showTodayDetail,  setShowTodayDetail]  = useState(false)
   const [showFireAlarm,    setShowFireAlarm]    = useState(false)
@@ -3177,10 +3280,15 @@ export default function InspectionPage() {
     try {
       const today = new Date().toISOString().slice(0, 10)
       const data  = await inspectionApi.getTodayRecords(today)
-      const map:  Record<string, CheckResult> = {}
-      const meta: Record<string, RecordMeta>  = {}
+      const map:        Record<string, CheckResult> = {}
+      const counts:     Record<string, number>      = {}
+      const markerMap:  Record<string, CheckResult> = {}
+      const meta:       Record<string, RecordMeta>  = {}
       for (const r of data) {
         map[r.checkpointId]  = r.result as CheckResult
+        counts[r.checkpointId] = (counts[r.checkpointId] ?? 0) + 1
+        const mid = (r as any).floorPlanMarkerId as string | null
+        if (mid) markerMap[mid] = r.result as CheckResult
         meta[r.checkpointId] = {
           recordId:            r.id,
           status:              (r.status ?? 'open') as 'open' | 'resolved',
@@ -3194,6 +3302,8 @@ export default function InspectionPage() {
         }
       }
       setRecords(map)
+      setRecordCounts(counts)
+      setMarkerRecords(markerMap)
       setRecordMeta(meta)
       setSyncedAt(new Date())
     } catch { /* 실패해도 로컬 상태 유지 */ }
@@ -3261,11 +3371,15 @@ export default function InspectionPage() {
     return sess.id
   }
 
-  const handleSave = async (cpId: string, result: CheckResult, memo: string, photoKey?: string) => {
+  const handleSave = async (cpId: string, result: CheckResult, memo: string, photoKey?: string, extra?: { guide_light_type?: string; floor_plan_marker_id?: string }) => {
     const sid = await ensureSession()
-    await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey })
+    await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey, ...(extra ?? {}) })
     // 로컬 즉시 반영 + DB와 동기화
     setRecords(prev => ({ ...prev, [cpId]: result }))
+    setRecordCounts(prev => ({ ...prev, [cpId]: (prev[cpId] ?? 0) + 1 }))
+    if (extra?.floor_plan_marker_id) {
+      setMarkerRecords(prev => ({ ...prev, [extra.floor_plan_marker_id!]: result }))
+    }
     loadTodayRecords()
   }
 
@@ -3608,6 +3722,8 @@ export default function InspectionPage() {
             group={selectedGroup}
             allCheckpoints={allCheckpoints}
             records={records}
+            recordCounts={recordCounts}
+            markerRecords={markerRecords}
             onClose={() => setSelectedGroupIdx(null)}
             onSave={handleSave}
             initialCpId={qrCheckpoint?.id}

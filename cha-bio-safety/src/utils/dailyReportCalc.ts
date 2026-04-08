@@ -364,12 +364,22 @@ function buildTasks(
   }
 
   // 오늘 조치 완료된 점검 항목 (불량/주의)
+  const ZONE_KO: Record<string,string> = { office: '사무동', research: '연구동', common: '공용' }
   for (const r of (remediations ?? [])) {
     const floor = r.floor ?? ''
     const cat = r.category ?? ''
     const loc = r.location ?? ''
+    const markerLabel = r.marker_label ?? ''
+    const locationDetail = r.location_detail ?? ''
+    const zoneKo = ZONE_KO[r.zone ?? ''] ?? ''
     const reso = r.resolution_memo ?? ''
-    const parts = [floor, loc, cat, reso].filter(Boolean).join(' ')
+    // 유도등: location_detail > marker_label > loc 우선순위
+    const isGL = cat === '유도등'
+    const spot = locationDetail || markerLabel || loc
+    const place = isGL
+      ? [zoneKo, floor, spot].filter(Boolean).join(' ')
+      : [floor, loc].filter(Boolean).join(' ')
+    const parts = [place, cat, reso].filter(Boolean).join(' ')
     tasks.push({ number: num++, content: parts })
   }
 

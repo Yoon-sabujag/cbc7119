@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { remediationApi, api } from '../utils/api'
@@ -33,16 +33,52 @@ export default function RemediationDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [memo, setMemo] = useState('')
-  const [materialsUsed, setMaterialsUsed] = useState('')
+  const [actionPick, setActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
+  const [materialName, setMaterialName] = useState('')
+  const [materialCount, setMaterialCount] = useState<string>('1')
   const [submitting, setSubmitting] = useState(false)
   const photo = usePhotoUpload()
   const isAdmin = useAuthStore(s => s.staff?.role === 'admin')
+
+  const GL_TYPE_LABEL: Record<string, string> = {
+    ceiling_exit: '천장피난구',
+    wall_exit: '벽부피난구',
+    room_passage: '거실통로',
+    corridor_passage: '복도통로',
+    stair_passage: '계단통로',
+    audience_passage: '객석통로',
+  }
 
   const { data: record, isLoading, error } = useQuery({
     queryKey: ['remediation-detail', recordId],
     queryFn: () => remediationApi.get(recordId!),
     enabled: !!recordId,
   })
+
+  const isGuideLight = record?.category === '유도등'
+
+  // 점검 시 증상에 따라 기본 조치 선택
+  useEffect(() => {
+    if (!isGuideLight || !record) return
+    const sym = record.memo ?? ''
+    if (sym === '점등 이상') setActionPick('본체 교체')
+    else if (sym === '예비전원 이상') setActionPick('예비전원 교체')
+    else setActionPick('직접 입력')
+  }, [isGuideLight, record?.id])
+
+  useEffect(() => {
+    if (!isGuideLight) return
+    if (actionPick === '본체 교체') {
+      setMaterialName(GL_TYPE_LABEL[record?.guideLightType ?? ''] ?? '')
+      setMaterialCount('1')
+    } else if (actionPick === '예비전원 교체') {
+      setMaterialName('예비전원')
+      setMaterialCount('1')
+    } else {
+      setMaterialName('')
+      setMaterialCount('')
+    }
+  }, [actionPick, isGuideLight, record?.guideLightType])
 
   const handleDelete = async () => {
     if (!confirm('이 점검 기록을 영구 삭제합니다. 되돌릴 수 없습니다. 진행할까요?')) return
@@ -72,7 +108,15 @@ export default function RemediationDetailPage() {
   }
 
   const handleResolve = async () => {
-    if (!memo.trim()) { toast.error('조치 내용을 입력하세요'); return }
+    // 유도등이면 피커, 아니면 직접 입력 메모 사용
+    let finalMemo = ''
+    if (isGuideLight) {
+      finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
+      if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+    } else {
+      finalMemo = memo.trim()
+      if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+    }
     try {
       setSubmitting(true)
       let photoKey: string | null = null
@@ -80,10 +124,13 @@ export default function RemediationDetailPage() {
         photoKey = await photo.upload()
         if (photoKey === null) { toast.error('사진 업로드 실패'); return }
       }
+      const materialsString = isGuideLight
+        ? (materialName.trim() ? `${materialName.trim()} ${materialCount || 1}ea` : null)
+        : null
       await api.post('/inspections/records/' + recordId + '/resolve', {
-        resolution_memo: memo.trim(),
+        resolution_memo: finalMemo,
         resolution_photo_key: photoKey,
-        materials_used: materialsUsed.trim() || null,
+        materials_used: materialsString,
       })
       queryClient.invalidateQueries({ queryKey: ['remediation'] })
       queryClient.invalidateQueries({ queryKey: ['remediation-detail'] })
@@ -161,7 +208,14 @@ export default function RemediationDetailPage() {
             <SectionHeader>점검 정보</SectionHeader>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <KVRow label="카테고리">{record.category}</KVRow>
-              <KVRow label="위치">{(ZONE_LABEL[record.zone] ?? record.zone)} {record.floor}{record.location ? ` · ${record.location}` : ''}</KVRow>
+              <KVRow label="위치">
+                {(() => {
+                  const zk = ZONE_LABEL[record.zone] ?? record.zone
+                  const spot = record.locationDetail || record.markerLabel
+                  if (record.category === '유도등' && spot) return `${zk} ${record.floor} ${spot}`
+                  return `${zk} ${record.floor}${record.location ? ` · ${record.location}` : ''}`
+                })()}
+              </KVRow>
               <KVRow label="점검일">{fmtDate(record.checkedAt)}</KVRow>
               <KVRow label="점검자">{record.staffName ?? '-'}</KVRow>
               <KVRow label="판정결과">
@@ -245,46 +299,90 @@ export default function RemediationDetailPage() {
           {record.status !== 'resolved' && (
             <div style={{ padding: '20px 16px' }}>
               <SectionHeader>조치 내용 입력</SectionHeader>
-              <textarea
-                value={memo}
-                onChange={e => setMemo(e.target.value)}
-                placeholder="조치 내용을 입력하세요 (필수)"
-                style={{
-                  width: '100%',
-                  minHeight: 96,
-                  background: 'var(--bg3)',
-                  border: '1px solid var(--bd2)',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  color: 'var(--t1)',
-                  padding: 12,
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                  fontFamily: 'Noto Sans KR, sans-serif',
-                  lineHeight: 1.5,
-                }}
-              />
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 12, marginBottom: 4 }}>소모 자재 (선택)</div>
-              <input
-                type="text"
-                value={materialsUsed}
-                onChange={e => setMaterialsUsed(e.target.value)}
-                placeholder="자재명 개수ea"
-                style={{
-                  width: '100%',
-                  background: 'var(--bg3)',
-                  border: '1px solid var(--bd2)',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  color: 'var(--t1)',
-                  padding: '10px 12px',
-                  boxSizing: 'border-box',
-                  fontFamily: 'Noto Sans KR, sans-serif',
-                }}
-              />
-              <div style={{ marginTop: 12 }}>
-                <PhotoButton hook={photo} noCapture />
-              </div>
+
+              {/* 유도등: 조치 피커 */}
+              {isGuideLight && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {(['본체 교체', '예비전원 교체', '직접 입력'] as const).map(opt => (
+                    <button key={opt} onClick={() => setActionPick(opt)} style={{
+                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
+                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+              )}
+
+              {/* 직접 입력 textarea — 비유도등 항상 / 유도등에서 직접입력일 때만 */}
+              {(!isGuideLight || actionPick === '직접 입력') && (
+                <textarea
+                  value={memo}
+                  onChange={e => setMemo(e.target.value)}
+                  placeholder="조치 내용을 입력하세요 (필수)"
+                  style={{
+                    width: '100%',
+                    minHeight: 96,
+                    background: 'var(--bg3)',
+                    border: '1px solid var(--bd2)',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    color: 'var(--t1)',
+                    padding: 12,
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                    fontFamily: 'Noto Sans KR, sans-serif',
+                    lineHeight: 1.5,
+                  }}
+                />
+              )}
+
+              {/* 유도등 전용: 자재 + 개수 + 사진 (한 줄) */}
+              {isGuideLight ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>소모 자재</span>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
+                      <input
+                        type="text"
+                        value={materialName}
+                        onChange={e => setMaterialName(e.target.value)}
+                        placeholder="자재명"
+                        style={{
+                          flex: 1, minHeight: 0, minWidth: 0, width: '100%',
+                          background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
+                          fontSize: 13, color: 'var(--t1)', padding: '0 10px',
+                          boxSizing: 'border-box', fontFamily: 'inherit',
+                        }}
+                      />
+                      <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+                        <input
+                          type="number"
+                          min={0}
+                          value={materialCount}
+                          onChange={e => setMaterialCount(e.target.value)}
+                          placeholder="0"
+                          style={{
+                            width: '100%', height: '100%', minWidth: 0,
+                            background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
+                            fontSize: 13, color: 'var(--t1)', padding: '0 28px 0 10px',
+                            boxSizing: 'border-box', fontFamily: 'inherit',
+                          }}
+                        />
+                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
+                      </div>
+                    </div>
+                    <PhotoButton hook={photo} label="촬영" noCapture />
+                  </div>
+                </>
+              ) : (
+                <div style={{ marginTop: 12 }}>
+                  <PhotoButton hook={photo} noCapture />
+                </div>
+              )}
             </div>
           )}
         </div>
