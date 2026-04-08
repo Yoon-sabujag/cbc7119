@@ -510,6 +510,8 @@ export default function FloorPlanPage() {
   function onMarkerTouchStart(m: FloorPlanMarker, e: React.TouchEvent) {
     e.stopPropagation()
     if (editMode) {
+      // 유도등 마커 이동은 관리자 데스크톱에서만 허용
+      if (planType === 'guidelamp' && !(isDesktop && isAdmin)) { setSelected(m); return }
       setDragId(m.id)
       setSelected(m)
     }
@@ -524,6 +526,8 @@ export default function FloorPlanPage() {
 
   function onMarkerMouseDown(m: FloorPlanMarker, e: React.MouseEvent) {
     if (!editMode || !isDesktop) return
+    // 유도등 마커 이동은 관리자만 가능
+    if (planType === 'guidelamp' && !isAdmin) return
     e.preventDefault()
     e.stopPropagation()
     setDragId(m.id)
