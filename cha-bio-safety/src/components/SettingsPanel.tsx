@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { authApi, pushApi, NotificationPreferences } from '../utils/api'
+import { MenuSettingsSection } from './MenuSettingsSection'
 
 interface Props {
   open: boolean
@@ -347,6 +348,9 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
             <Toggle on={prefs.education_reminder} onChange={() => handlePrefToggle('education_reminder')} disabled={!subscribed || permState === 'denied'} />
           </Row>
         </div>
+
+        {/* 메뉴 설정 (Phase 18) */}
+        <MenuSettingsSection />
 
         {/* 화면 */}
         <div style={{ padding: '12px 13px 5px' }}>
