@@ -127,14 +127,18 @@ export interface FloorPlanMarker {
   updated_at: string
   last_result: string | null
   last_inspected_at: string | null
+  last_record_id?: string | null
+  last_status?: string | null
+  last_memo?: string | null
+  zone?: string | null
 }
 
 export const floorPlanMarkerApi = {
   list: (floor: string, planType: string) =>
     api.get<FloorPlanMarker[]>(`/floorplan-markers?floor=${floor}&plan_type=${planType}`),
-  create: (body: { floor: string; plan_type: string; marker_type?: string; x_pct: number; y_pct: number; label?: string; check_point_id?: string }) =>
+  create: (body: { floor: string; plan_type: string; marker_type?: string; x_pct: number; y_pct: number; label?: string; check_point_id?: string; zone?: string }) =>
     api.post<{ id: string }>('/floorplan-markers', body),
-  update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null }) =>
+  update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null; zone?: string | null }) =>
     api.put<void>(`/floorplan-markers/${id}`, body),
   delete: (id: string) =>
     api.delete<void>(`/floorplan-markers/${id}`),
@@ -389,4 +393,93 @@ export const pushApi = {
     api.post<void>('/push/unsubscribe', { endpoint }),
   updatePreferences: (prefs: NotificationPreferences) =>
     api.patch<void>('/push/preferences', prefs),
+}
+
+// ── Phase 21: Documents (소방계획서 / 소방훈련자료) ─────────────
+export interface DocumentListItem {
+  id: number
+  type: 'plan' | 'drill'
+  year: number
+  title: string
+  filename: string
+  size: number
+  content_type: string
+  uploaded_at: string
+  uploaded_by_name: string | null
+}
+
+export const documentsApi = {
+  list: (type: 'plan' | 'drill') =>
+    api.get<DocumentListItem[]>(`/documents?type=${type}`),
+
+  multipartCreate: (body: {
+    type: 'plan' | 'drill'
+    year: number
+    title: string
+    filename: string
+    contentType: string
+    size: number
+  }) =>
+    api.post<{ uploadId: string; key: string; partSize: number }>(
+      '/documents/multipart/create',
+      body,
+    ),
+
+  multipartComplete: (body: {
+    uploadId: string
+    key: string
+    parts: Array<{ partNumber: number; etag: string }>
+    type: 'plan' | 'drill'
+    year: number
+    title: string
+    filename: string
+    size: number
+    contentType: string
+  }) =>
+    api.post<{ id: number; key: string }>(
+      '/documents/multipart/complete',
+      body,
+    ),
+
+  multipartAbort: (body: { uploadId: string; key: string }) =>
+    api.post<{ aborted: true }>('/documents/multipart/abort', body),
+}
+
+// Raw-body part upload — bypasses the JSON wrapper so we can send a Blob directly.
+// Injects Authorization manually and mirrors req<T>'s 401 auto-logout behavior.
+export async function uploadPartRaw(
+  uploadId: string,
+  key: string,
+  partNumber: number,
+  body: Blob,
+  signal?: AbortSignal,
+): Promise<{ partNumber: number; etag: string }> {
+  const { token } = useAuthStore.getState()
+  const qs = new URLSearchParams({
+    uploadId,
+    key,
+    partNumber: String(partNumber),
+  })
+  const res = await fetch(`${BASE}/documents/multipart/upload-part?${qs}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body,
+    signal,
+  })
+  const json = (await res.json()) as {
+    success: boolean
+    data?: { partNumber: number; etag: string }
+    error?: string
+  }
+  if (!res.ok || !json.success) {
+    if (res.status === 401) {
+      useAuthStore.getState().logout()
+      window.location.href = '/login'
+    }
+    throw new ApiError(res.status, json.error ?? 'part upload failed')
+  }
+  return json.data!
 }
