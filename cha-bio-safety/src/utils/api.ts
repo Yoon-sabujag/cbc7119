@@ -294,9 +294,70 @@ export const elevatorRepairApi = {
     api.delete<void>(`/elevators/repairs?id=${id}`),
 }
 
+// ── Phase 18: Menu customization (divider model) ──────────────
+export type SideMenuEntry =
+  | { type: 'item'; path: string; visible: boolean }
+  | { type: 'divider'; id: string; title: string }
+
+export interface MenuConfig {
+  sideMenu: SideMenuEntry[]
+}
+
+// 기본 SideMenu 배치 (D-15) — 신규 사용자 또는 reset 시 사용
+export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
+  { type: 'divider', id: 'd-main',     title: '주요 기능' },
+  { type: 'item', path: '/dashboard',     visible: true },
+  { type: 'item', path: '/inspection',    visible: true },
+  { type: 'item', path: '/inspection/qr', visible: true },
+  { type: 'item', path: '/remediation',   visible: true },
+  { type: 'item', path: '/elevator',      visible: true },
+  { type: 'divider', id: 'd-facility', title: '시설 관리' },
+  { type: 'item', path: '/div',        visible: true },
+  { type: 'item', path: '/floorplan',  visible: true },
+  { type: 'item', path: '/legal',      visible: true },
+  { type: 'divider', id: 'd-docs',     title: '문서 관리' },
+  { type: 'item', path: '/daily-report', visible: true },
+  { type: 'item', path: '/schedule',     visible: true },
+  { type: 'item', path: '/workshift',    visible: true },
+  { type: 'item', path: '/annual-plan',  visible: true },
+  { type: 'item', path: '/reports',      visible: true },
+  { type: 'item', path: '/qr-print',     visible: true },
+  { type: 'divider', id: 'd-welfare',  title: '근무·복지' },
+  { type: 'item', path: '/staff-service', visible: true },
+  { type: 'item', path: '/education',     visible: true },
+  { type: 'divider', id: 'd-system',   title: '시스템' },
+  { type: 'item', path: '/admin',         visible: true },
+]
+
+// 레거시 Record<path,{visible,order}> → 평면 리스트 (D-16)
+// 1) 알려진 path는 사용자 visible 적용 (order는 무시 — divider 구조 우선)
+// 2) DEFAULT_SIDE_MENU에 없는 신규 path가 있어도 무시 (스키마 정리)
+export function migrateLegacyMenuConfig(
+  raw: unknown
+): MenuConfig {
+  // 이미 신규 스키마
+  if (raw && typeof raw === 'object' && Array.isArray((raw as any).sideMenu)) {
+    return raw as MenuConfig
+  }
+  // 레거시 또는 빈 객체
+  if (!raw || typeof raw !== 'object') {
+    return { sideMenu: DEFAULT_SIDE_MENU.map(e => ({ ...e })) }
+  }
+  const legacy = raw as Record<string, { visible?: boolean; order?: number }>
+  const merged: SideMenuEntry[] = DEFAULT_SIDE_MENU.map(entry => {
+    if (entry.type === 'divider') return { ...entry }
+    const userPref = legacy[entry.path]
+    return { type: 'item', path: entry.path, visible: userPref?.visible !== false }
+  })
+  return { sideMenu: merged }
+}
+
 export const settingsApi = {
-  getMenu: () => api.get<any>('/settings/menu'),
-  saveMenu: (config: any) => api.put<void>('/settings/menu', { config }),
+  getMenu: async (): Promise<MenuConfig> => {
+    const raw = await api.get<unknown>('/settings/menu')
+    return migrateLegacyMenuConfig(raw)
+  },
+  saveMenu: (config: MenuConfig) => api.put<void>('/settings/menu', { config }),
 }
 
 export interface NotificationPreferences {
