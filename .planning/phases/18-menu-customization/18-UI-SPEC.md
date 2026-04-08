@@ -22,7 +22,7 @@ created: 2026-04-08
 | Preset | not applicable |
 | Component library | none (custom Row, Toggle primitives in SettingsPanel.tsx) |
 | Icon library | lucide-react (already used across project) |
-| Font | Noto Sans KR (400, 500, 600, 700) via Google Fonts |
+| Font | Noto Sans KR (400, 700) via Google Fonts |
 
 Source: CLAUDE.md, tailwind.config.js, index.css, SettingsPanel.tsx
 
@@ -44,12 +44,16 @@ Declared values (must be multiples of 4):
 | 2xl | 32px | — |
 | 3xl | 48px | — |
 
-Exceptions:
-- Row height: 10px top/bottom padding (existing Row primitive — do not change)
-- Touch targets for arrow buttons: minimum 32x32px (mobile tap safety; not 44px because arrows appear in a dense list)
+Exceptions (Phase 18 owned):
+- Touch targets for arrow buttons: minimum 32×32px (mobile tap safety; not 44px because arrows appear in a dense list)
 - Divider title input height: 40px (matches existing ChangePasswordForm inputs)
 - Save button height: 40px (matches existing button height convention)
-- Section label bottom margin: 6px (matches existing SettingsPanel section heading convention)
+
+Inherited spacing (not owned or changed by this phase — executor must preserve as-is):
+- Row primitive top/bottom padding: 10px (defined in SettingsPanel.tsx Row component — do not modify)
+- Section label bottom margin: 6px (defined by existing SettingsPanel section heading convention — do not modify)
+
+These inherited values are not on the 4-point scale but must not be changed because they belong to shared primitives outside Phase 18 scope.
 
 ---
 
@@ -57,17 +61,18 @@ Exceptions:
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Body / Row label | 12px | 500 | 1.4 |
+| Body / Row label | 12px | 400 | 1.4 |
 | Sub / Row secondary | 10px | 400 | 1.4 |
 | Section heading (uppercase label) | 9px | 700 | 1.0 |
 | Input / Divider title text | 13px | 400 | 1.5 |
 
-Source: Extracted directly from SettingsPanel.tsx Row label (12px/500), sub (10px), section uppercase heading (9px/700), and input fields (13px).
+Source: Extracted directly from SettingsPanel.tsx Row label (12px), sub (10px), section uppercase heading (9px/700), and input fields (13px).
 
 Notes:
 - All Korean text. No display-size heading (28px+) appears in the settings panel.
-- Divider title in the editor list: rendered at 12px/500 when read-only, switches to a 13px/400 input on tap (matches the ChangePasswordForm input pattern).
+- Divider title in the editor list: rendered at 12px/400 when read-only, switches to a 13px/400 input on tap (matches the ChangePasswordForm input pattern).
 - "설정 저장" button label: 12px/700 (matches existing action button pattern in SettingsPanel).
+- Two weights only: 400 (body, sub, input, row labels) and 700 (section headings, CTAs, danger confirmations).
 
 ---
 
@@ -81,6 +86,8 @@ Notes:
 | Destructive | `var(--danger)` → #ef4444 | Divider delete trash icon, delete confirmation inline text |
 
 Source: index.css CSS variable definitions, SettingsPanel.tsx inline styles.
+
+**Visual Hierarchy:** Primary visual anchor: '설정 저장' button (full-width, accent background). Entry list is the content area. Add/Reset controls are secondary.
 
 Accent reserved for:
 1. Toggle ON state background (`#2563eb` in existing Toggle — maintain this value)
@@ -149,7 +156,7 @@ This section is consumed by gsd-planner and gsd-executor.
 
 **Item row controls (left to right):**
 1. Drag handle area (reserved space 16px wide, no drag behavior in Phase 18 — deferred)
-2. Item label (12px/500, `var(--t1)`) — truncated at 1 line with `overflow: hidden; textOverflow: ellipsis`
+2. Item label (12px/400, `var(--t1)`) — truncated at 1 line with `overflow: hidden; textOverflow: ellipsis`
 3. "숨김" badge (9px, `var(--t3)`) — shown only when `visible: false`
 4. ChevronUp + ChevronDown (move)
 5. Toggle (38×21, ON = visible, OFF = hidden)
@@ -175,7 +182,7 @@ This section is consumed by gsd-planner and gsd-executor.
 **Add divider button:**
 - Position: bottom of the entry list, full-width, height 36px
 - Style: dashed border `1px dashed var(--bd2)`, background `transparent`, color `var(--t2)`, radius 8
-- Label: `+ 구분선 추가` (12px/500)
+- Label: `+ 구분선 추가` (12px/400)
 - Behavior: appends `{ type: 'divider', id: nanoid(), title: '새 구분선' }` to end of draft list; new entry immediately enters inline edit (autofocus)
 
 **Reset to defaults button:**
