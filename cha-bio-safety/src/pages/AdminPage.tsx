@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { settingsApi } from '../utils/api'
+import { settingsApi, migrateLegacyMenuConfig } from '../utils/api'
 import { MENU } from '../components/SideMenu'
 
 // ── 인라인 SVG 아이콘 ────────────────────────────────────
@@ -734,7 +734,7 @@ function MenuSettingsTab() {
   }, [saved, allItems, initialized])
 
   const saveMut = useMutation({
-    mutationFn: () => settingsApi.saveMenu(config),
+    mutationFn: () => settingsApi.saveMenu(migrateLegacyMenuConfig(config)),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['menu-config'] }); toast.success('메뉴 설정 저장 완료') },
     onError: () => toast.error('저장 실패'),
   })
