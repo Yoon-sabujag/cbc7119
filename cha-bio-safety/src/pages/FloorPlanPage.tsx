@@ -473,7 +473,7 @@ export default function FloorPlanPage() {
   function startLongPress(clientX: number, clientY: number) {
     if (!editMode) return
     // 유도등 마커 추가는 관리자 데스크톱에서만 허용
-    if (planType === 'guidelamp' && !(isDesktop && isAdmin)) return
+    if (planType === 'guidelamp' && !isAdmin) return
     cancelLongPress()
     longPressPos.current = { x: clientX, y: clientY }
     longPressTimer.current = setTimeout(() => {
@@ -511,7 +511,7 @@ export default function FloorPlanPage() {
     e.stopPropagation()
     if (editMode) {
       // 유도등 마커 이동은 관리자 데스크톱에서만 허용
-      if (planType === 'guidelamp' && !(isDesktop && isAdmin)) { setSelected(m); return }
+      if (planType === 'guidelamp' && !isAdmin) { setSelected(m); return }
       setDragId(m.id)
       setSelected(m)
     }
