@@ -30,7 +30,7 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env, d
     return Response.json({ success: false, error: '수정할 항목이 없습니다' }, { status: 400 })
   }
 
-  sets.push("updated_at=datetime('now')")
+  sets.push("updated_at=datetime('now','+9 hours')")
   binds.push(id)
 
   await env.DB.prepare(

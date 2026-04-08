@@ -51,13 +51,13 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const id = crypto.randomUUID()
     await ctx.env.DB.prepare(
       `INSERT INTO daily_notes (id, date, today_text, tomorrow_text, content, is_auto, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'), datetime('now','+9 hours'))
        ON CONFLICT(date) DO UPDATE SET
          today_text=COALESCE(excluded.today_text, today_text),
          tomorrow_text=COALESCE(excluded.tomorrow_text, tomorrow_text),
          content=CASE WHEN excluded.content IS NOT NULL THEN excluded.content ELSE content END,
          is_auto=excluded.is_auto,
-         updated_at=datetime('now')`
+         updated_at=datetime('now','+9 hours')`
     ).bind(id, date, today_text ?? null, tomorrow_text ?? null, content ?? '', is_auto ?? 0, staffId).run()
 
     const row = await ctx.env.DB.prepare(

@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { nowKstSql } from '../../utils/kst'
 
 async function verifyPassword(plain: string, hash: string): Promise<boolean> {
   if (hash.startsWith('plain:')) return plain === hash.slice(6)
@@ -45,7 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       return Response.json({ success: false, error: '현재 비밀번호가 올바르지 않습니다' }, { status: 403 })
 
     const newHash = await hashPassword(newPassword)
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare('UPDATE staff SET password_hash = ?1, updated_at = ?2 WHERE id = ?3')
       .bind(newHash, now, staffId).run()

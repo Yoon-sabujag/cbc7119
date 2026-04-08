@@ -29,7 +29,7 @@ export const onRequestPatch: PagesFunction<Env> = async (ctx) => {
 
     await ctx.env.DB.prepare(
       `UPDATE push_subscriptions
-       SET notification_preferences = ?, updated_at = datetime('now')
+       SET notification_preferences = ?, updated_at = datetime('now','+9 hours')
        WHERE staff_id = ?`
     ).bind(JSON.stringify(prefs), staffId).run()
 

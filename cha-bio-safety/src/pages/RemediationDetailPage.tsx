@@ -9,11 +9,7 @@ import toast from 'react-hot-toast'
 
 const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
 
-function fmtDate(iso: string | null) {
-  if (!iso) return '-'
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-}
+import { fmtKstDateTime as fmtDate } from '../utils/datetime'
 
 function KVRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (

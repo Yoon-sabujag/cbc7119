@@ -33,7 +33,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
        ON CONFLICT(staff_id, endpoint) DO UPDATE SET
          p256dh = excluded.p256dh,
          auth   = excluded.auth,
-         updated_at = datetime('now')`
+         updated_at = datetime('now','+9 hours')`
     ).bind(id, staffId, endpoint.trim(), keys.p256dh.trim(), keys.auth.trim(), defaultPrefs).run()
 
     return Response.json({ success: true })

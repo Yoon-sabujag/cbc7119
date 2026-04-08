@@ -49,11 +49,12 @@ export const dashboardApi = {
 }
 
 export const remediationApi = {
-  list: (params: { status?: string; category?: string; days?: number }) => {
+  list: (params: { status?: string; category?: string; days?: number; includeNormal?: boolean }) => {
     const q = new URLSearchParams()
     if (params.status && params.status !== 'all') q.set('status', params.status)
     if (params.category) q.set('category', params.category)
     if (params.days !== undefined) q.set('days', String(params.days))
+    if (params.includeNormal) q.set('include_normal', '1')
     const qs = q.toString()
     return api.get<{ records: import('../types').RemediationRecord[]; categories: string[] }>(
       `/remediation${qs ? '?' + qs : ''}`

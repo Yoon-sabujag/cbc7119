@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { nowKstSql } from '../../utils/kst'
 
 // ── Staff 목록 조회 / 신규 등록 ──────────────────────────────
 
@@ -47,7 +48,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     // 기본 비밀번호: 사번 뒷 4자리 (plain: prefix)
     const passwordHash = 'plain:' + body.id.slice(-4)
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare(
       `INSERT INTO staff (id, name, role, title, password_hash, phone, email, appointed_at, active, created_at, updated_at)

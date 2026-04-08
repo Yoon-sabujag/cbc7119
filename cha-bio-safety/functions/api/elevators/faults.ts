@@ -42,8 +42,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
   const id = nanoid()
   await env.DB.prepare(`
     INSERT INTO elevator_faults
-      (id, elevator_id, reported_by, fault_at, symptoms, repair_company, repaired_at, repair_detail, is_resolved)
-    VALUES (?,?,?,?,?,?,?,?,?)
+      (id, elevator_id, reported_by, fault_at, symptoms, repair_company, repaired_at, repair_detail, is_resolved, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,datetime('now','+9 hours'))
   `).bind(
     id, body.elevatorId, staffId, body.faultAt, body.symptoms,
     body.repairCompany ?? null, body.repairedAt ?? null, body.repairDetail ?? null,

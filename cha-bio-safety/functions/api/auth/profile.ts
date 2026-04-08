@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { nowKstSql } from '../../utils/kst'
 
 export const onRequestPut: PagesFunction<Env> = async (ctx) => {
   const { env } = ctx
@@ -18,7 +19,7 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     if (trimmedName.length > 20)
       return Response.json({ success: false, error: '이름은 20자 이내로 입력하세요' }, { status: 400 })
 
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare('UPDATE staff SET name = ?1, updated_at = ?2 WHERE id = ?3')
       .bind(trimmedName, now, staffId).run()

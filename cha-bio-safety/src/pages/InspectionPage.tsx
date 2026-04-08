@@ -1,11 +1,14 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { inspectionApi, fireAlarmApi, extinguisherApi, type ExtinguisherDetail, type ExtinguisherListResponse } from '../utils/api'
+import { useQuery } from '@tanstack/react-query'
+import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, type ExtinguisherDetail, type ExtinguisherListResponse } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
+import { useIsDesktop } from '../hooks/useIsDesktop'
+import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime } from '../utils/datetime'
 
 const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -2330,6 +2333,8 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
     }
   }, [availableFloors])
 
+  const initialCpAppliedRef = useRef(false)
+
   // ▶ floorCPs memoize — pickerIdx 변경에는 재계산 안 됨
   const floorCPs = useMemo(() =>
     selectedZone && selectedFloor
@@ -2347,6 +2352,16 @@ function InspectionModal({ group, allCheckpoints, records, onClose, onSave, init
   }, [isSohwaGroup, floorCPs])
   // 미완료 항목만 피커에 표시
   const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => !records[cp.id] && !cp.defaultResult && !cp.description?.includes('[접근���가]')), [pickerSourceCPs, records])
+
+  // QR 체크포인트로 pickerIdx 자동 매칭 (첫 렌더 시 1회만)
+  useEffect(() => {
+    if (initialCpAppliedRef.current || !initialCpId || pendingCPs.length === 0) return
+    const idx = pendingCPs.findIndex(cp => cp.id === initialCpId)
+    if (idx >= 0) {
+      setPickerIdx(idx)
+      initialCpAppliedRef.current = true
+    }
+  }, [initialCpId, pendingCPs])
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
@@ -2955,7 +2970,7 @@ function ResolutionDetailModal({ item, allCheckpoints, onClose }: {
               <div style={{ background:'var(--bg2)', borderRadius:8, padding:'7px 9px', border:'1px solid var(--bd)', fontSize:11 }}>
                 <div style={{ color:'var(--t3)', marginBottom:2, fontSize:10 }}>특이사항</div>
                 <div style={{ color: item.memo ? 'var(--t1)' : 'var(--t3)' }}>{item.memo || '없음'}</div>
-                {item.checkedAt && <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:4 }}>{new Date(item.checkedAt).toLocaleString('ko-KR')}</div>}
+                {item.checkedAt && <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:4 }}>{fmtKstLocaleString(item.checkedAt)}</div>}
               </div>
             </div>
             {/* 조치 후 */}
@@ -2973,7 +2988,7 @@ function ResolutionDetailModal({ item, allCheckpoints, onClose }: {
               <div style={{ background:'var(--bg2)', borderRadius:8, padding:'7px 9px', border:'1px solid var(--bd)', fontSize:11 }}>
                 <div style={{ color:'var(--t3)', marginBottom:2, fontSize:10 }}>조치 내용</div>
                 <div style={{ color:'var(--t1)', marginBottom:4 }}>{item.resolutionMemo || '없음'}</div>
-                {item.resolvedAt && <div style={{ fontSize:9.5, color:'var(--t3)' }}>{new Date(item.resolvedAt).toLocaleString('ko-KR')}</div>}
+                {item.resolvedAt && <div style={{ fontSize:9.5, color:'var(--t3)' }}>{fmtKstLocaleString(item.resolvedAt)}</div>}
               </div>
             </div>
           </div>
@@ -3135,8 +3150,14 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
 // ── Main Page ─────────────────────────────────────────
 export default function InspectionPage() {
   const { staff } = useAuthStore()
+  const isDesktop = useIsDesktop()
   const routeLocation = useLocation()
   const qrCheckpoint = (routeLocation.state as any)?.qrCheckpoint as CheckPoint | undefined
+
+  // 데스크톱 전용 상태
+  const [desktopCategoryIdx, setDesktopCategoryIdx] = useState<number | null>(null)
+  const [desktopRecordId,    setDesktopRecordId]    = useState<string | null>(null)
+  const [desktopDateFilter,  setDesktopDateFilter]  = useState<number>(-1) // -1=이번달, 0=전체, N=일
 
   const [allCheckpoints,   setAllCheckpoints]   = useState<CheckPoint[]>([])
   const [loading,          setLoading]          = useState(true)
@@ -3327,6 +3348,18 @@ export default function InspectionPage() {
   )
 
   const selectedGroup = selectedGroupIdx !== null ? CATEGORY_GROUPS[selectedGroupIdx] : null
+
+  // ── 데스크톱 전용 렌더 ───────────────────────────────
+  if (isDesktop) {
+    return <DesktopInspectionView
+      categoryIdx={desktopCategoryIdx}
+      setCategoryIdx={setDesktopCategoryIdx}
+      recordId={desktopRecordId}
+      setRecordId={setDesktopRecordId}
+      dateFilter={desktopDateFilter}
+      setDateFilter={setDesktopDateFilter}
+    />
+  }
 
   return (
     <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
@@ -3708,6 +3741,306 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
           style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 2px 8px rgba(37,99,235,0.3)' }}>
           {saving ? '저장 중...' : '점검 기록 저장'}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── 데스크톱 점검 관리 뷰 (좌=카테고리 카드 / 우=내역 또는 상세) ─────
+function DesktopInspectionView({
+  categoryIdx, setCategoryIdx, recordId, setRecordId, dateFilter, setDateFilter,
+}: {
+  categoryIdx: number | null
+  setCategoryIdx: (idx: number | null) => void
+  recordId: string | null
+  setRecordId: (id: string | null) => void
+  dateFilter: number
+  setDateFilter: (d: number) => void
+}) {
+  const navigate = useNavigate()
+
+  // 정상 제외 필터 (우측 리스트용)
+  const [excludeNormal, setExcludeNormal] = useState(false)
+
+  // 월간 전체 점검 데이터 (정상 포함)
+  // dateFilter: -1=이번달(현재 월의 1일~오늘), 0=전체, N=N일
+  const effectiveDays = dateFilter === -1 ? Math.max(1, new Date().getDate() - 1) : dateFilter
+  const { data: remediationData, isLoading } = useQuery({
+    queryKey: ['inspection-monthly-all', dateFilter, effectiveDays],
+    queryFn: () => remediationApi.list({ days: effectiveDays, includeNormal: true }),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+  })
+  const allRecords = (remediationData?.records ?? []) as any[]
+
+  // 카테고리 그룹별 카운트 (점검 완료 + 이슈)
+  const groupCounts = useMemo(() => {
+    return CATEGORY_GROUPS.map(g => {
+      const matches = allRecords.filter(r => g.categories.includes(r.category))
+      // 점검 완료 개소 = 고유 checkpoint 개수 (location+floor+category 조합)
+      const uniqueSites = new Set(matches.map(r => `${r.zone}|${r.floor}|${r.location}|${r.category}`))
+      return {
+        total:    matches.length,
+        completed: uniqueSites.size,
+        bad:      matches.filter(r => r.result === 'bad').length,
+        caution:  matches.filter(r => r.result === 'caution').length,
+        open:     matches.filter(r => r.status === 'open').length,
+      }
+    })
+  }, [allRecords])
+
+  // 선택된 카테고리의 레코드 (정상 제외 필터 적용)
+  const categoryRecords = useMemo(() => {
+    if (categoryIdx === null) return []
+    const cats = CATEGORY_GROUPS[categoryIdx].categories
+    return allRecords
+      .filter(r => cats.includes(r.category))
+      .filter(r => !excludeNormal || r.result !== 'normal')
+      .sort((a, b) => (b.checkedAt ?? '').localeCompare(a.checkedAt ?? ''))
+  }, [allRecords, categoryIdx, excludeNormal])
+
+  // 선택된 레코드의 상세 (조치 관리 페이지 데이터)
+  const { data: detail } = useQuery({
+    queryKey: ['remediation-detail', recordId],
+    queryFn: () => remediationApi.get(recordId!),
+    enabled: !!recordId,
+    staleTime: 30_000,
+  })
+
+  const PERIOD_BUTTONS = [
+    { value: -1, label: '이번달' },
+    { value: 7,  label: '7일' },
+    { value: 30, label: '30일' },
+    { value: 90, label: '90일' },
+    { value: 0,  label: '전체' },
+  ]
+
+  const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+  const fmtDate = fmtKstDate
+  const fmtDateTime = fmtKstDateTime
+
+  return (
+    <div style={{ flex:1, minHeight:0, display:'flex', overflow:'hidden', background:'var(--bg)' }}>
+
+      {/* ── 좌측: 카테고리 카드 ── */}
+      <div style={{ width:'50%', flexShrink:0, minWidth:0, borderRight:'1px solid var(--bd)', display:'flex', flexDirection:'column' }}>
+        <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>점검 항목</span>
+          <span style={{ fontSize:11, color:'var(--t3)' }}>{dateFilter === -1 ? '이번달' : dateFilter === 0 ? '전체' : `최근 ${dateFilter}일`}</span>
+          <div style={{ display:'flex', gap:4 }}>
+            {PERIOD_BUTTONS.map(b => (
+              <button key={b.value} onClick={() => setDateFilter(b.value)}
+                style={{ padding:'4px 10px', borderRadius:6, border:'none',
+                  background: dateFilter === b.value ? 'var(--acl)' : 'var(--bg3)',
+                  color: dateFilter === b.value ? '#fff' : 'var(--t3)',
+                  fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                {b.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ flex:1, overflowY:'auto', padding:'14px 18px' }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(170px, 1fr))', gap:10 }}>
+            {CATEGORY_GROUPS.map((g, idx) => {
+              const c = groupCounts[idx]
+              const isSel = categoryIdx === idx
+              return (
+                <div key={idx}
+                  onClick={() => { setCategoryIdx(idx); setRecordId(null) }}
+                  style={{
+                    background: isSel ? 'rgba(59,130,246,.18)' : g.color,
+                    border: '2px solid ' + (isSel ? 'var(--acl)' : g.border),
+                    borderRadius: 12, padding: '12px 10px', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', gap: 6, minHeight: 100,
+                    transition: 'background-color .12s',
+                  }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:18, lineHeight:1 }}>{g.icon}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      {g.labels.map(l => <div key={l} style={{ fontSize:11, fontWeight:700, color:'var(--t1)', lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</div>)}
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:4, marginTop:'auto' }}>
+                    {/* 좌하단: 이슈 없음 또는 불량/주의 */}
+                    <div style={{ display:'flex', gap:3, flexWrap:'wrap', flex:1, minWidth:0 }}>
+                      {c.bad === 0 && c.caution === 0 ? (
+                        <span style={{ fontSize:10, color:'var(--t3)' }}>이슈 없음</span>
+                      ) : (
+                        <>
+                          {c.bad > 0 && <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.13)', padding:'2px 6px', borderRadius:5 }}>불량 {c.bad}</span>}
+                          {c.caution > 0 && <span style={{ fontSize:10, fontWeight:700, color:'var(--warn)', background:'rgba(245,158,11,.13)', padding:'2px 6px', borderRadius:5 }}>주의 {c.caution}</span>}
+                        </>
+                      )}
+                    </div>
+                    {/* 우하단: 점검 완료 개소 수 */}
+                    {c.completed > 0 && (
+                      <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.10)', padding:'2px 6px', borderRadius:5, flexShrink:0 }}>
+                        ✓ 점검완료 {c.completed}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 우측: 내역 목록 또는 상세 ── */}
+      <div style={{ width:'50%', flexShrink:0, minWidth:0, display:'flex', flexDirection:'column' }}>
+        {recordId && detail ? (
+          // ── 상세 보기 ──
+          <>
+            <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
+              <button onClick={() => setRecordId(null)}
+                style={{ width:32, height:32, borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>조치 상세</span>
+              <button onClick={() => navigate('/remediation/' + recordId)}
+                style={{ padding:'5px 12px', borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+                전체 화면 열기
+              </button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
+              <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)', marginBottom:4 }}>{(detail as any).category}</div>
+              <div style={{ fontSize:11, color:'var(--t3)', marginBottom:14 }}>{ZONE_LABEL[(detail as any).zone] ?? (detail as any).zone} {(detail as any).floor}{(detail as any).location ? ` · ${(detail as any).location}` : ''}</div>
+
+              <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:18 }}>
+                <tbody>
+                  {[
+                    ['점검일시', fmtDateTime((detail as any).checkedAt)],
+                    ['점검자',   (detail as any).staffName ?? '-'],
+                    ['판정',     null],
+                    ['상태',     null],
+                    ['메모',     (detail as any).memo ?? '-'],
+                  ].map(([label, value], i) => (
+                    <tr key={i}>
+                      <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left', verticalAlign:'top' }}>{label}</th>
+                      <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)', whiteSpace:'pre-wrap', verticalAlign:'top' }}>
+                        {label === '판정' ? (
+                          <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5,
+                            background: (detail as any).result === 'bad' ? 'rgba(239,68,68,.13)' : 'rgba(245,158,11,.13)',
+                            color: (detail as any).result === 'bad' ? 'var(--danger)' : 'var(--warn)' }}>
+                            {(detail as any).result === 'bad' ? '불량' : '주의'}
+                          </span>
+                        ) : label === '상태' ? (
+                          <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5,
+                            background: (detail as any).status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(34,197,94,.13)',
+                            color: (detail as any).status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>
+                            {(detail as any).status === 'open' ? '미조치' : '조치완료'}
+                          </span>
+                        ) : value as string}
+                      </td>
+                    </tr>
+                  ))}
+                  {(detail as any).status === 'resolved' && (
+                    <>
+                      <tr>
+                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치일시</th>
+                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)' }}>{fmtDateTime((detail as any).resolvedAt)}</td>
+                      </tr>
+                      <tr>
+                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치자</th>
+                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)' }}>{(detail as any).resolvedBy ?? '-'}</td>
+                      </tr>
+                      <tr>
+                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치 내용</th>
+                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)', whiteSpace:'pre-wrap' }}>{(detail as any).resolutionMemo ?? '-'}</td>
+                      </tr>
+                    </>
+                  )}
+                </tbody>
+              </table>
+
+              {/* 사진 */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <div style={{ border:'1px solid var(--bd)', borderRadius:10, padding:10, background:'var(--bg2)' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>📷 조치 전</div>
+                  {(detail as any).photoKey ? (
+                    <img src={'/api/uploads/' + (detail as any).photoKey} alt="조치 전" style={{ width:'100%', maxHeight:240, objectFit:'contain', borderRadius:6, background:'#000' }} />
+                  ) : (
+                    <div style={{ height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:11 }}>사진 없음</div>
+                  )}
+                </div>
+                <div style={{ border:'1px solid var(--bd)', borderRadius:10, padding:10, background:'var(--bg2)' }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>📷 조치 후</div>
+                  {(detail as any).resolutionPhotoKey ? (
+                    <img src={'/api/uploads/' + (detail as any).resolutionPhotoKey} alt="조치 후" style={{ width:'100%', maxHeight:240, objectFit:'contain', borderRadius:6, background:'#000' }} />
+                  ) : (
+                    <div style={{ height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:11 }}>{(detail as any).status === 'open' ? '아직 조치 전' : '사진 없음'}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : categoryIdx !== null ? (
+          // ── 카테고리 내역 목록 ──
+          <>
+            <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:18, lineHeight:1 }}>{CATEGORY_GROUPS[categoryIdx].icon}</span>
+              <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>{CATEGORY_GROUPS[categoryIdx].labels.join(', ')}</span>
+              <button onClick={() => setExcludeNormal(!excludeNormal)}
+                style={{ padding:'4px 10px', borderRadius:6, border:'1px solid ' + (excludeNormal ? 'var(--acl)' : 'var(--bd)'),
+                  background: excludeNormal ? 'rgba(59,130,246,.13)' : 'var(--bg3)',
+                  color: excludeNormal ? 'var(--acl)' : 'var(--t3)',
+                  fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                {excludeNormal ? '✓ 정상 제외' : '정상 제외'}
+              </button>
+              <span style={{ fontSize:11, color:'var(--t3)' }}>{categoryRecords.length}건</span>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'14px 18px' }}>
+              {isLoading ? (
+                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
+              ) : categoryRecords.length === 0 ? (
+                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>점검 내역이 없습니다</div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {categoryRecords.map(r => {
+                    const isIssue = r.result === 'bad' || r.result === 'caution'
+                    const borderColor = r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)'
+                    return (
+                    <div key={r.id}
+                      onClick={() => isIssue && setRecordId(r.id)}
+                      style={{
+                        background:'var(--bg2)',
+                        border:'1px solid var(--bd)',
+                        borderLeft: `4px solid ${borderColor}`,
+                        borderRadius:10, padding:'10px 12px', cursor: isIssue ? 'pointer' : 'default',
+                        display:'flex', flexDirection:'column', gap:3,
+                      }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', flex:1 }}>{r.category}</span>
+                        <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
+                          background: r.result === 'bad' ? 'rgba(239,68,68,.13)' : r.result === 'caution' ? 'rgba(245,158,11,.13)' : 'rgba(34,197,94,.13)',
+                          color: r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)' }}>
+                          {r.result === 'bad' ? '불량' : r.result === 'caution' ? '주의' : '정상'}
+                        </span>
+                        {isIssue && (
+                          <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
+                            background: r.status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(34,197,94,.13)',
+                            color: r.status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>
+                            {r.status === 'open' ? '미조치' : '완료'}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize:11, color:'var(--t2)' }}>
+                        {(ZONE_LABEL[r.zone] ?? r.zone)} {r.floor}{r.location ? ` · ${r.location}` : ''}
+                      </div>
+                      {r.memo && <div style={{ fontSize:11, color:'var(--t3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.memo.split('\n')[0]}</div>}
+                      <div style={{ fontSize:10, color:'var(--t3)' }}>{fmtDate(r.checkedAt)}</div>
+                    </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>
+            좌측에서 점검 항목을 선택하세요
+          </div>
+        )}
       </div>
     </div>
   )

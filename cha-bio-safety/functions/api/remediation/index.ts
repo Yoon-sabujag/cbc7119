@@ -8,9 +8,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const category = url.searchParams.get('category') // string | null
     const daysStr  = url.searchParams.get('days')
     const days     = daysStr !== null ? Number(daysStr) : 30  // 기본 30일, 0=전체
+    const includeNormal = url.searchParams.get('include_normal') === '1'
 
     // ── WHERE 절 동적 빌드 ─────────────────────────────
-    const conditions: string[] = [`r.result IN ('bad','caution')`]
+    const conditions: string[] = []
+    if (!includeNormal) {
+      conditions.push(`r.result IN ('bad','caution')`)
+    }
     const binds: (string | number)[] = []
 
     if (status === 'open') {
@@ -29,7 +33,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       conditions.push(`date(r.checked_at) >= date('now','+9 hours','-${days} days')`)
     }
 
-    const where = conditions.join(' AND ')
+    const where = conditions.length > 0 ? conditions.join(' AND ') : '1=1'
 
     const records = await env.DB.prepare(`
       SELECT r.id, r.result, r.memo, r.photo_key,

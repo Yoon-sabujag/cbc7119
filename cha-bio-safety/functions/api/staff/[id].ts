@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { nowKstSql } from '../../utils/kst'
 
 // ── Staff 단건 조회 / 수정 ────────────────────────────────
 
@@ -52,7 +53,7 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     if (!existing)
       return Response.json({ success: false, error: '직원을 찾을 수 없습니다' }, { status: 404 })
 
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare(
       `UPDATE staff SET

@@ -59,7 +59,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
       await env.DB.prepare(
         `INSERT INTO meal_records (staff_id, date, skipped_meals)
          VALUES (?, ?, ?)
-         ON CONFLICT(staff_id, date) DO UPDATE SET skipped_meals = excluded.skipped_meals, updated_at = datetime('now')`
+         ON CONFLICT(staff_id, date) DO UPDATE SET skipped_meals = excluded.skipped_meals, updated_at = datetime('now','+9 hours')`
       ).bind(staffId, date, skippedMeals).run()
     }
 

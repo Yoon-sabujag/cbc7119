@@ -9,6 +9,7 @@ import PdfFloorPlan from '../components/PdfFloorPlan'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -499,7 +500,7 @@ export default function ElevatorPage() {
                                   {f.is_resolved ? '✅ 수리완료' : '🚨 미해결'}
                                 </span>
                               </div>
-                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.fault_at.slice(0, 16).replace('T', ' ')} · {f.reporter_name}</div>
+                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtKstDateTime(f.fault_at)} · {f.reporter_name}</div>
                               {!f.is_resolved && (
                                 <button onClick={() => { setSelectedFault(f); setModal('fault_resolve') }}
                                   style={{ marginTop: 6, padding: '5px 10px', borderRadius: 7, border: '1px solid var(--safe)', background: 'rgba(34,197,94,.1)', color: 'var(--safe)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
@@ -528,7 +529,7 @@ export default function ElevatorPage() {
                               </div>
                               <div style={{ fontSize: 12, color: 'var(--safe)', fontWeight: 600, marginBottom: 4 }}>{f.repair_detail}</div>
                               <div style={{ fontSize: 10, color: 'var(--t3)' }}>
-                                고장: {f.fault_at.slice(0, 10)} → 수리: {f.repaired_at?.slice(0, 10) ?? '-'}
+                                고장: {fmtKstDate(f.fault_at)} → 수리: {fmtKstDate(f.repaired_at)}
                                 {f.repair_company && ` · ${f.repair_company}`}
                               </div>
                             </div>
@@ -727,7 +728,7 @@ export default function ElevatorPage() {
                       )}
                     </div>
                     <div style={{ fontSize:13, color:'var(--t2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{pureSymptoms}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)' }}>{f.fault_at.slice(0,16).replace('T',' ')}</div>
+                    <div style={{ fontSize:10, color:'var(--t3)' }}>{fmtKstDateTime(f.fault_at)}</div>
                   </div>
 
                   {/* 수리내역 or "고장 수리 중" */}
@@ -1309,7 +1310,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
   const initKind: EvKind = selected ? (selected.type==='escalator'?'escalator':'elevator') : ''
   const [evKind,       setEvKind]       = useState<EvKind>(initKind)
   const [elevatorId,   setElevatorId]   = useState(selected?.id ?? '')
-  const [faultAt,      setFaultAt]      = useState(new Date().toISOString().slice(0,16))
+  const [faultAt,      setFaultAt]      = useState(nowKstLocal())
   const [faultFloor,   setFaultFloor]   = useState('')
   const [hasPassenger, setHasPassenger] = useState(false)
   const [symptoms,     setSymptoms]     = useState('')
@@ -1319,7 +1320,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
 
   const handleSelectEv = (id: string) => {
     setElevatorId(id)
-    setFaultAt(new Date().toISOString().slice(0,16))
+    setFaultAt(nowKstLocal())
     setFaultFloor('')
   }
 
@@ -1395,7 +1396,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
 }) {
   const [evKind,       setEvKind]       = useState<EvKind>('')
   const [elevatorId,   setElevatorId]   = useState('')
-  const [faultAt,      setFaultAt]      = useState(new Date().toISOString().slice(0,16))
+  const [faultAt,      setFaultAt]      = useState(nowKstLocal())
   const [faultFloor,   setFaultFloor]   = useState('')
   const [hasPassenger, setHasPassenger] = useState(false)
   const [symptoms,     setSymptoms]     = useState('')
@@ -1405,7 +1406,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
 
   const handleSelectEv = (id: string) => {
     setElevatorId(id)
-    setFaultAt(new Date().toISOString().slice(0,16))
+    setFaultAt(nowKstLocal())
     setFaultFloor('')
   }
   const handleSubmit = () => {
@@ -1495,7 +1496,7 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
   fault:ElevatorFault; onClose:()=>void; onSubmit:(b:any)=>void; loading:boolean
 }) {
   const [repairCompany, setRepairCompany] = useState('TKE')
-  const [repairedAt,    setRepairedAt]    = useState(new Date().toISOString().slice(0,16))
+  const [repairedAt,    setRepairedAt]    = useState(nowKstLocal())
   const [repairDetail,  setRepairDetail]  = useState('')
 
   const pureSymptoms = fault.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')

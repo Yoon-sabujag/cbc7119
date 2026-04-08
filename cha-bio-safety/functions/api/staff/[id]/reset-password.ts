@@ -1,4 +1,5 @@
 import type { Env } from '../../../_middleware'
+import { nowKstSql } from '../../../utils/kst'
 
 // ── 비밀번호 초기화 (admin only) ──────────────────────────
 
@@ -18,7 +19,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     // 비밀번호 초기화: 사번 뒷 4자리로 설정
     const newHash = 'plain:' + staffId.slice(-4)
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare(
       'UPDATE staff SET password_hash = ?1, updated_at = ?2 WHERE id = ?3'

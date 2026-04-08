@@ -1,4 +1,5 @@
 import type { Env } from '../../_middleware'
+import { nowKstSql } from '../../utils/kst'
 
 // ── CheckPoint 목록 조회 / 등록 ──────────────────────────────
 
@@ -60,7 +61,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!body.id?.trim() || !body.qrCode?.trim() || !body.floor || !body.zone || !body.location?.trim() || !body.category?.trim())
       return Response.json({ success: false, error: '필수 항목을 모두 입력하세요' }, { status: 400 })
 
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
+    const now = nowKstSql()
 
     await env.DB.prepare(
       `INSERT INTO check_points (id, qr_code, floor, zone, location, category, description, location_no, is_active, created_at)
