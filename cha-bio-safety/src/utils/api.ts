@@ -1,4 +1,5 @@
 import { useAuthStore } from '../stores/authStore'
+import type { WorkLog, WorkLogPayload, WorkLogPreview, WorkLogListItem } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
@@ -496,4 +497,12 @@ export async function uploadPartRaw(
     throw new ApiError(res.status, json.error ?? 'part upload failed')
   }
   return json.data!
+}
+
+// ── Work Log (업무수행기록표) ──
+export const workLogApi = {
+  list:    () => api.get<WorkLogListItem[]>('/work-logs'),
+  get:     (ym: string) => api.get<WorkLog | null>(`/work-logs/${ym}`),
+  preview: (ym: string) => api.get<WorkLogPreview>(`/work-logs/${ym}/preview`),
+  save:    (ym: string, body: WorkLogPayload) => api.put<WorkLog>(`/work-logs/${ym}`, body),
 }

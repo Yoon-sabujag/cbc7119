@@ -168,3 +168,30 @@ export interface ElevatorRepair {
   createdBy: string
   createdAt: string
 }
+
+// ── Work Log (업무수행기록표) ──
+export interface WorkLog {
+  id: number
+  year_month: string
+  year: number
+  month: number
+  manager_name: string
+  fire_content: string
+  fire_result: 'ok' | 'bad'
+  fire_action: string
+  escape_content: string
+  escape_result: 'ok' | 'bad'
+  escape_action: string
+  gas_content: string
+  etc_content: string
+  updated_by: number
+  updated_at: string
+}
+export type WorkLogPayload = Omit<WorkLog, 'id' | 'updated_by' | 'updated_at' | 'year' | 'month' | 'year_month'>
+export interface WorkLogPreview extends WorkLogPayload {}
+export interface WorkLogListItem {
+  id: number
+  year_month: string
+  updated_at: string
+  updated_by_name: string | null
+}
