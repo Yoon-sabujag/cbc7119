@@ -219,11 +219,18 @@ export default function StaffServicePage() {
     return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }
   }, [leaveImgRect])
 
+  const SNAP_THRESHOLD = 1.5 // Y 좌표 차이 1.5% 이내면 스냅
   const leaveCalibClick = useCallback((e: React.MouseEvent) => {
     if (!leaveCalibMode) return
     const pt = leaveClientToPct(e.clientX, e.clientY)
-    if (pt) setLeaveActivePoint(pt)
-  }, [leaveCalibMode, leaveClientToPct])
+    if (!pt) return
+    // 기존 확정된 포인트들의 Y에 스냅
+    const allYs = leaveCalibPoints.filter(Boolean).map(p => p!.y)
+    for (const y of allYs) {
+      if (Math.abs(pt.y - y) < SNAP_THRESHOLD) { pt.y = y; break }
+    }
+    setLeaveActivePoint(pt)
+  }, [leaveCalibMode, leaveClientToPct, leaveCalibPoints])
 
   const leaveCalibConfirm = useCallback(() => {
     if (!leaveActivePoint) return
