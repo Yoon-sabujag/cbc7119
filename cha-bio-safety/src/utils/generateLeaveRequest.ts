@@ -11,7 +11,8 @@ export interface LeaveRequestData {
   reason?: string        // 연차 외 사유 (기타사항 란)
   startDate: string      // 'YYYY-MM-DD'
   endDate: string        // 'YYYY-MM-DD'
-  totalDays: number
+  totalDays: number      // 순수 기간 일수
+  workDays?: number      // 근무일수 (연차 신청일수)
 }
 
 // ── 헬퍼 ──────────────────────────────────────────────────────
@@ -239,9 +240,9 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
     sheetXml = patchCell(sheetXml, 'AC21', data.otherReason)
   }
 
-  // ── 연차 선택 시 신청일수 (U36) ────────────────────────────
-  if (data.leaveType === 'annual') {
-    sheetXml = patchCell(sheetXml, 'U36', data.totalDays)
+  // ── 연차 선택 시 신청일수 (U36) — 근무일수 사용 ─────────────
+  if (data.leaveType === 'annual' && data.workDays != null) {
+    sheetXml = patchCell(sheetXml, 'U36', data.workDays)
   }
 
   // ── 연차 외 선택시 사유 (H39 — 기타사항 란) ──────────────────

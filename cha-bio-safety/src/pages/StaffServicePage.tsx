@@ -159,7 +159,15 @@ export default function StaffServicePage() {
     if (staffFull?.phone && !docPhone) setDocPhone(staffFull.phone)
   }, [staffFull?.phone])
 
-  const docTotalDays = useMemo(() => {
+  // 순수 기간 일수 (달력 일수)
+  const docPeriodDays = useMemo(() => {
+    if (!docStartDate || !docEndDate) return 0
+    const s = new Date(docStartDate), e = new Date(docEndDate)
+    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1)
+  }, [docStartDate, docEndDate])
+
+  // 근무일수 (주말+공휴일 제외) — 연차 신청일수용
+  const docWorkDays = useMemo(() => {
     if (!docStartDate || !docEndDate) return 0
     const s = new Date(docStartDate), e = new Date(docEndDate)
     let count = 0
@@ -170,7 +178,7 @@ export default function StaffServicePage() {
       if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) count++
       cur.setDate(cur.getDate() + 1)
     }
-    return Math.max(count, 0)
+    return count
   }, [docStartDate, docEndDate])
 
   const handleLeaveDownload = useCallback(async () => {
@@ -196,13 +204,14 @@ export default function StaffServicePage() {
         reason: docReason,
         startDate: docStartDate,
         endDate: docEndDate,
-        totalDays: docTotalDays,
+        totalDays: docPeriodDays,
+        workDays: docWorkDays,
       })
       toast.success('휴가신청서 다운로드 완료', { id: toastId })
     } catch (err: any) {
       toast.error(err?.message ?? '생성 실패', { id: toastId })
     }
-  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docReason, docTotalDays])
+  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docReason, docPeriodDays, docWorkDays])
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
   const staffId = staff?.id ?? ''
@@ -543,18 +552,18 @@ export default function StaffServicePage() {
   function handleDayClick(ymd: string) {
     setSelDate(ymd)
     setSheetOpen(true)
-    // 데스크톱: 달력 클릭 → 휴가기간 자동 입력 (첫 클릭=시작일, 둘째 클릭=종료일)
+    // 데스크톱: 달력 클릭 → 휴가기간 자동 입력
+    // 첫 클릭: 시작일=종료일=같은 날 / 둘째 클릭: 종료일 변경
     if (isDesktop) {
-      if (!docStartDate || (docStartDate && docEndDate)) {
-        // 시작일 미설정 또는 둘 다 설정된 상태 → 새 시작일
+      if (!docStartDate || docStartDate !== docEndDate) {
+        // 첫 선택 또는 이미 기간이 다른 상태 → 새로 시작
         setDocStartDate(ymd)
-        setDocEndDate('')
+        setDocEndDate(ymd)
       } else {
-        // 시작일만 설정된 상태 → 종료일
+        // 시작일=종료일 상태 → 종료일 변경
         if (ymd >= docStartDate) {
           setDocEndDate(ymd)
         } else {
-          // 시작일보다 이전 날짜 선택 시 → 시작일로 교체
           setDocEndDate(docStartDate)
           setDocStartDate(ymd)
         }
@@ -1106,9 +1115,9 @@ export default function StaffServicePage() {
                   }}
                 />
               </div>
-              {docTotalDays > 0 && (
+              {docPeriodDays > 0 && (
                 <div style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 3 }}>
-                  {docTotalDays}일간
+                  {docPeriodDays}일간{ANNUAL_TYPES.has(docLeaveType) && docWorkDays !== docPeriodDays ? ` (근무일 ${docWorkDays}일)` : ''}
                 </div>
               )}
             </div>
@@ -1194,7 +1203,7 @@ export default function StaffServicePage() {
                       <span style={ovStyle('36.5%', '55%')}>{String(parseInt(ep[1]))}</span>
                       <span style={ovStyle('36.5%', '63%')}>{String(parseInt(ep[2]))}</span>
                     </>}
-                    {docTotalDays > 0 && <span style={ovStyle('36.5%', '75%')}>{docTotalDays}</span>}
+                    {docPeriodDays > 0 && <span style={ovStyle('36.5%', '75%')}>{docPeriodDays}</span>}
                     {/* 체크박스 마크 */}
                     {cp && <div style={{ position: 'absolute', top: cp.top, left: cp.left, width: '3.5%', aspectRatio: '1', background: '#000' }} />}
                     {/* 기타특별 사유 */}
@@ -1204,8 +1213,8 @@ export default function StaffServicePage() {
                     {/* 연락처 */}
                     {docPhone && <span style={ovStyle('57.5%', '20%')}>{docPhone}</span>}
                     {/* 신청일수 */}
-                    {docTotalDays > 0 && ANNUAL_TYPES.has(docLeaveType) && (
-                      <span style={ovStyle('63.5%', '60%')}>{docTotalDays}</span>
+                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && (
+                      <span style={ovStyle('63.5%', '60%')}>{docWorkDays}</span>
                     )}
                     {/* 사유 (기타사항) */}
                     {!ANNUAL_TYPES.has(docLeaveType) && docReason && (
