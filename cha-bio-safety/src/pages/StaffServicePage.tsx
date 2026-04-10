@@ -594,10 +594,8 @@ export default function StaffServicePage() {
     // 팀원 연차
     ;(cell.teamLeaveList as LeaveItem[]).forEach(tl => {
       const name = (teamNameMap[tl.staffId] ?? '').slice(0, 1) // 성
-      if (tl.type === 'full') parts.push(`${name}연`)
-      else if (tl.type === 'half_am' || tl.type === 'official_half_am') parts.push(`${name}전반`)
-      else if (tl.type === 'half_pm' || tl.type === 'official_half_pm') parts.push(`${name}후반`)
-      else if (tl.type === 'official_full') parts.push(`${name}공가`)
+      const short = LEAVE_LABEL[tl.type] ?? tl.type
+      parts.push(`${name}${short}`)
     })
     if (cell.hasInspect) parts.push('소검')
     if (elevInspectDates.has(cell.ymd)) parts.push('승검')
@@ -736,8 +734,8 @@ export default function StaffServicePage() {
       toast.error(err?.message ?? '오류가 발생했습니다')
       return
     }
-    qc.invalidateQueries({ queryKey: ['leaves'] })
-    qc.invalidateQueries({ queryKey: ['leaves-year'] })
+    await qc.invalidateQueries({ queryKey: ['leaves'] })
+    await qc.invalidateQueries({ queryKey: ['leaves-year'] })
   }, [selDate, selMyLeave, selCell, qc])
 
   const handleMealCycle = useCallback(async () => {
@@ -1127,10 +1125,12 @@ export default function StaffServicePage() {
                     return (
                       <button
                         key={lt.type}
-                        onClick={() => {
+                        onClick={async () => {
                           setDocLeaveType(lt.type)
                           // API 연동 타입이면 달력에 등록/취소
-                          if (apiType && selDate) handleTypeBtn(apiType)
+                          if (apiType && selDate) {
+                            await handleTypeBtn(apiType)
+                          }
                         }}
                         style={{
                           gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
