@@ -1529,8 +1529,9 @@ export default function StaffServicePage() {
                         { type: 'official_half_pm', label: '오후공가', api: 'official_half_pm' },
                       ],
                     ]
-                    const registerRange = async (apiType: string, label: string) => {
+                    const registerRange = async (apiType: string, label: string, docType: string) => {
                       if (!docStartDate) return
+                      setDocLeaveType(docType)
                       const end = docEndDate || docStartDate
                       const toastId = toast.loading('등록 중...')
                       try {
@@ -1566,7 +1567,7 @@ export default function StaffServicePage() {
                             {row.map(b => {
                               const isReg = selMyLeave?.type === b.api
                               return (
-                                <button key={b.type} onClick={() => registerRange(b.api, b.label)}
+                                <button key={b.type} onClick={() => registerRange(b.api, b.label, b.type)}
                                   style={{
                                     padding: '8px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
                                     background: isReg ? 'rgba(34,197,94,0.25)' : 'var(--bg3)',
@@ -1627,7 +1628,7 @@ export default function StaffServicePage() {
                     return (
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <select value={mobileOtherType} onChange={e => setMobileOtherType(e.target.value)}
+                          <select value={mobileOtherType} onChange={e => { setMobileOtherType(e.target.value); if (e.target.value) setDocLeaveType(e.target.value) }}
                             style={{ flex: 1, height: 34, borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, padding: '0 8px' }}>
                             <option value="">기타 휴가 선택...</option>
                             {OTHER_TYPES.map(o => <option key={o.api} value={o.api}>{o.label}</option>)}
@@ -1647,10 +1648,10 @@ export default function StaffServicePage() {
                     )
                   })()}
 
-                  {/* 프린트 버튼 */}
-                  <button onClick={() => window.print()}
-                    style={{ width: '100%', padding: '8px 0', borderRadius: 8, background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-                    휴가신청서 인쇄
+                  {/* 엑셀 다운로드 */}
+                  <button onClick={handleLeaveDownload}
+                    style={{ width: '100%', padding: '8px 0', borderRadius: 8, background: 'var(--ac)', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    휴가신청서 다운로드
                   </button>
                 </>
               )}
