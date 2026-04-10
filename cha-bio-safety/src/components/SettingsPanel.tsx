@@ -193,7 +193,7 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
   }, [staffFull])
 
   const mutation = useMutation({
-    mutationFn: () => authApi.updateProfile({ name: name.trim(), phone, email }),
+    mutationFn: () => authApi.updateProfile({ phone, email }),
     onSuccess: (data) => {
       updateStaff({ name: data.name })
       toast.success('개인정보가 수정되었습니다')
@@ -202,7 +202,7 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
     onError: (e: any) => toast.error(e?.message || '수정에 실패했습니다'),
   })
 
-  const canSave = name.trim() !== '' && name.trim().length <= 20
+  const canSave = true
 
   const INPUT_STYLE: React.CSSProperties = {
     height: 38, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8,
@@ -216,7 +216,7 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이름</div>
-          <input value={name} onChange={e => setName(e.target.value)} maxLength={20} style={INPUT_STYLE} />
+          <input value={name} readOnly style={READONLY_STYLE} />
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>사번</div>
@@ -523,7 +523,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           <div style={{ padding: '12px 13px 5px' }}>
             <SectionHeader label="계정" collapsed={accountCollapsed} onToggle={() => setAccountCollapsed(c => !c)} />
             {!accountCollapsed && (<>
-              <Row label="개인정보 수정" sub="이름, 연락처, 이메일" onClick={() => setShowProfileEdit(true)}>
+              <Row label="개인정보 수정" sub="연락처, 이메일" onClick={() => setShowProfileEdit(true)}>
                 <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
               </Row>
               <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
