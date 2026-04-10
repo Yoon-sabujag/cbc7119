@@ -197,7 +197,7 @@ export default function StaffServicePage() {
       await generateLeaveRequest({
         staffName: staff.name,
         staffId: staff.id,
-        hireDate: HIRE_DATES[staff.id] ?? '',
+        hireDate: `${staff.id.slice(0,4)}-${staff.id.slice(4,6)}-${staff.id.slice(6,8)}`,
         phone: docPhone,
         leaveType: excelType,
         otherReason: docOtherReason,
@@ -1157,8 +1157,8 @@ export default function StaffServicePage() {
               />
               {/* 오버레이 값 표시 */}
               {(() => {
-                const hd = HIRE_DATES[staff?.id ?? '']
-                const hp = hd ? hd.split('-') : null
+                const sid = staff?.id ?? ''
+                const hp = sid.length >= 8 ? [`${sid.slice(0,4)}`, `${sid.slice(4,6)}`, `${sid.slice(6,8)}`] : null
                 const sp = docStartDate ? docStartDate.split('-') : null
                 const ep = docEndDate ? docEndDate.split('-') : null
                 const docLabel: Record<string, string> = {
