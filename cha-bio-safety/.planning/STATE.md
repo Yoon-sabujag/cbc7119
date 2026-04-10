@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-05
+Last activity: 2026-04-10 - Completed quick task 260410-h2u: StaffServicePage 휴가신청서 출력 기능 추가
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -83,6 +83,12 @@ Recent decisions affecting current work:
 - Phase 11 시작 전 반드시 `html { overflow: hidden }` 글로벌 CSS를 모바일 전용으로 범위 제한 필요 (미수정 시 모든 데스크톱 페이지 스크롤 불가)
 - Phase 11 시작 전 BottomNav 데스크톱 숨김 시 페이지별 `paddingBottom` 인라인 스타일 감사 필요 (phantom gap 방지)
 - Phase 13 구현 전 `queryPermission()` / `requestPermission()` 플로우를 Chrome 122+ 실제 동작에 맞게 검증 필요
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260410-h2u | StaffServicePage 휴가신청서 출력 기능 추가 - 3분할 레이아웃, 새 휴가종류, 엑셀/프린트 | 2026-04-10 | 8db68d9 | [260410-h2u-staffservicepage-3](./quick/260410-h2u-staffservicepage-3/) |
 
 ## Session Continuity
 
