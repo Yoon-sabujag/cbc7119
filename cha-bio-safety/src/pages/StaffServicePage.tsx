@@ -130,7 +130,7 @@ export default function StaffServicePage() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   // ── 휴가신청서 폼 state (desktop only) ──────────────────────
-  const staffFull = staffList.find(s => s.id === staffId) as StaffFull | undefined
+  const staffFull = staffList.find(s => s.id === (staff?.id ?? '')) as StaffFull | undefined
   const [docLeaveType, setDocLeaveType] = useState<string>('annual')
   const [docPhone, setDocPhone] = useState<string>('')
   const [docStartDate, setDocStartDate] = useState<string>('')
