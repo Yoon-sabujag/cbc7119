@@ -891,3 +891,139 @@ export async function generateDailyExcel(
     downloadBlob(blob, `일일업무일지(${String(month).padStart(2, '0')}월).xlsx`)
   }
 }
+
+// ── 소방안전관리자 업무수행기록표 (worklog_template.xlsx) ──────────────────
+export async function generateWorkLogExcel(yearMonth: string, data: import('../types').WorkLogPayload): Promise<void> {
+  const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
+  const [year, month] = yearMonth.split('-').map(Number)
+  const lastDay = new Date(year, month, 0).getDate()
+
+  const res   = await fetch('/templates/worklog_template.xlsx')
+  const ab    = await res.arrayBuffer()
+  const files = unzipSync(new Uint8Array(ab))
+
+  function esc(s: string) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
+  function patchCell(xml: string, addr: string, value: string | number | null): string {
+    const tag   = `<c r="${addr}"`
+    const start = xml.indexOf(tag)
+    if (start === -1) return xml
+    const selfEnd  = xml.indexOf('/>', start)
+    const closeEnd = xml.indexOf('</c>', start)
+    let end: number
+    if (selfEnd !== -1 && (closeEnd === -1 || selfEnd < closeEnd)) {
+      end = selfEnd + 2
+    } else {
+      end = closeEnd + 4
+    }
+    const orig  = xml.slice(start, end)
+    const sAttr = (orig.match(/\ss="([^"]*)"/) ?? [])[1]
+    const s     = sAttr !== undefined ? ` s="${sAttr}"` : ''
+    const newCell = value === null
+      ? `<c r="${addr}"${s}/>`
+      : typeof value === 'number'
+        ? `<c r="${addr}"${s}><v>${value}</v></c>`
+        : `<c r="${addr}"${s} t="str"><v>${esc(value)}</v></c>`
+    return xml.slice(0, start) + newCell + xml.slice(end)
+  }
+
+  /**
+   * styles.xml에 origIdx 스타일을 복제하고 wrapText="1" 을 추가해 새 인덱스를 반환.
+   * addShrinkStyle 과 동일한 구조, shrinkToFit 대신 wrapText 추가.
+   */
+  function addWrapStyle(stylesXml: string, origIdx: number): [string, number] {
+    const cfStart = stylesXml.indexOf('<cellXfs')
+    const cfEnd   = stylesXml.indexOf('</cellXfs>')
+    if (cfStart === -1 || cfEnd === -1) return [stylesXml, origIdx]
+
+    let pos = cfStart, cnt = 0, xfStart = -1
+    while (true) {
+      const nx = stylesXml.indexOf('<xf', pos)
+      if (nx === -1 || nx >= cfEnd) break
+      if (cnt === origIdx) { xfStart = nx; break }
+      cnt++; pos = nx + 1
+    }
+    if (xfStart === -1) return [stylesXml, origIdx]
+
+    const se = stylesXml.indexOf('/>', xfStart)
+    const ce = stylesXml.indexOf('</xf>', xfStart)
+    let xfEnd: number, xfXml: string
+    if (se !== -1 && (ce === -1 || se < ce)) {
+      xfEnd = se + 2; xfXml = stylesXml.slice(xfStart, xfEnd)
+      xfXml = xfXml.slice(0, -2) + '><alignment wrapText="1"/></xf>'
+    } else {
+      xfEnd = ce + 5; xfXml = stylesXml.slice(xfStart, xfEnd)
+      if (xfXml.includes('<alignment')) {
+        xfXml = xfXml.replace('<alignment', '<alignment wrapText="1"')
+      } else {
+        xfXml = xfXml.replace('</xf>', '<alignment wrapText="1"/></xf>')
+      }
+    }
+
+    const total = (stylesXml.slice(cfStart, cfEnd).match(/<xf[\s>]/g) ?? []).length
+    const newStylesXml = stylesXml.slice(0, cfEnd) + xfXml + stylesXml.slice(cfEnd)
+    return [newStylesXml, total]
+  }
+
+  /** patchCell + 스타일 인덱스 강제 지정 (wrapText 스타일 적용용) */
+  function patchCellWrap(xml: string, addr: string, value: string, styleIdx: number): string {
+    const tag   = `<c r="${addr}"`
+    const start = xml.indexOf(tag)
+    if (start === -1) return xml
+    const selfEnd  = xml.indexOf('/>', start)
+    const closeEnd = xml.indexOf('</c>', start)
+    const end = (selfEnd !== -1 && (closeEnd === -1 || selfEnd < closeEnd)) ? selfEnd + 2 : closeEnd + 4
+    const newCell = `<c r="${addr}" s="${styleIdx}" t="str"><v>${esc(value)}</v></c>`
+    return xml.slice(0, start) + newCell + xml.slice(end)
+  }
+
+  let stylesXml = strFromU8(files['xl/styles.xml'])
+  let xml = strFromU8(files['xl/worksheets/sheet1.xml'])
+  xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
+
+  // -- AA10 (fire_action) 에 wrapText 스타일 추가 (원본 style 63 = no wrapText) --
+  const [newStylesXml, wrapStyleIdx] = addWrapStyle(stylesXml, 63)
+  stylesXml = newStylesXml
+
+  // -- 헤더: year / month / lastDay (D-25) --
+  xml = patchCell(xml, 'C4', year)
+  xml = patchCell(xml, 'E4', month)
+  xml = patchCell(xml, 'G4', lastDay)
+  xml = patchCell(xml, 'K4', lastDay)
+  xml = patchCell(xml, 'M4', lastDay)
+
+  // -- 관리자 이름 (D-25) --
+  xml = patchCell(xml, 'U4', data.manager_name || '')
+
+  // -- 확인내용 필드 (D-25) --
+  xml = patchCell(xml, 'C10', data.fire_content)
+  xml = patchCell(xml, 'C14', data.escape_content)
+  xml = patchCell(xml, 'C17', data.gas_content)
+  xml = patchCell(xml, 'C24', data.etc_content)
+
+  // -- 결과 체크마크 (√ = U+221A) (D-25, D-26) --
+  xml = patchCell(xml, 'Y12', data.fire_result === 'ok'  ? '\u221A' : '')
+  xml = patchCell(xml, 'Y14', data.fire_result === 'bad' ? '\u221A' : '')
+  xml = patchCell(xml, 'Y19', data.escape_result === 'ok'  ? '\u221A' : '')
+  xml = patchCell(xml, 'Y21', data.escape_result === 'bad' ? '\u221A' : '')
+
+  // -- 조치내역 (다중 라인, wrapText 스타일 적용) (D-25, D-28) --
+  xml = patchCellWrap(xml, 'AA10', data.fire_action.replace(/\n/g, '&#10;'), wrapStyleIdx)
+  xml = patchCell(xml, 'AA14', data.escape_action.replace(/\n/g, '&#10;'))
+
+  // -- 항상 빈 값 (D-25) --
+  xml = patchCell(xml, 'Y26', '')
+  xml = patchCell(xml, 'Y28', '')
+  xml = patchCell(xml, 'Y33', '')
+  xml = patchCell(xml, 'Y35', '')
+  xml = patchCell(xml, 'AA17', '')
+  xml = patchCell(xml, 'AA24', '')
+
+  files['xl/worksheets/sheet1.xml'] = strToU8(xml)
+  files['xl/styles.xml'] = strToU8(stylesXml)
+  const zipped = zipSync(files, { level: 6 })
+  const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
+  downloadBlob(blob, `소방안전관리자_업무수행기록표_${year}년_${month}월.xlsx`)
+}
