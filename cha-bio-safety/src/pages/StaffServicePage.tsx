@@ -1118,6 +1118,39 @@ export default function StaffServicePage() {
               </div>
             )}
 
+            {/* 휴가기간 */}
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>휴가기간 <span style={{ fontSize: 10, color: 'var(--t3)' }}>(달력에서 클릭)</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input
+                  type="date"
+                  value={docStartDate}
+                  onChange={e => setDocStartDate(e.target.value)}
+                  style={{
+                    flex: 1, padding: '5px 6px', borderRadius: 6,
+                    border: '1px solid var(--bd)', background: 'var(--bg)',
+                    color: 'var(--t1)', fontSize: 11,
+                  }}
+                />
+                <span style={{ color: 'var(--t3)', fontSize: 11 }}>~</span>
+                <input
+                  type="date"
+                  value={docEndDate}
+                  onChange={e => setDocEndDate(e.target.value)}
+                  style={{
+                    flex: 1, padding: '5px 6px', borderRadius: 6,
+                    border: '1px solid var(--bd)', background: 'var(--bg)',
+                    color: 'var(--t1)', fontSize: 11,
+                  }}
+                />
+              </div>
+              {docDays > 0 && (
+                <div style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 3 }}>
+                  {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일간
+                </div>
+              )}
+            </div>
+
             {/* 휴가 종류 버튼 그리드 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {DOC_LEAVE_GRID.map((row, ri) => (
@@ -1235,39 +1268,6 @@ export default function StaffServicePage() {
                   color: 'var(--t1)', fontSize: 12,
                 }}
               />
-            </div>
-
-            {/* 휴가기간 */}
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>휴가기간 <span style={{ fontSize: 10, color: 'var(--t3)' }}>(달력에서 클릭)</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <input
-                  type="date"
-                  value={docStartDate}
-                  onChange={e => setDocStartDate(e.target.value)}
-                  style={{
-                    flex: 1, padding: '5px 6px', borderRadius: 6,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 11,
-                  }}
-                />
-                <span style={{ color: 'var(--t3)', fontSize: 11 }}>~</span>
-                <input
-                  type="date"
-                  value={docEndDate}
-                  onChange={e => setDocEndDate(e.target.value)}
-                  style={{
-                    flex: 1, padding: '5px 6px', borderRadius: 6,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 11,
-                  }}
-                />
-              </div>
-              {docDays > 0 && (
-                <div style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 3 }}>
-                  {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일간
-                </div>
-              )}
             </div>
 
             <div style={{ flex: 1 }} />
