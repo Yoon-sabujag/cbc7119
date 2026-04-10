@@ -1479,16 +1479,19 @@ export default function StaffServicePage() {
                 <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
               )}
               {selCell.provided > 0 && (
-                <button onClick={handleMealCycle} style={{
-                  marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '4px 10px', borderRadius: 8,
-                  background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
-                  border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
-                  cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                  color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t3)',
-                }}>
-                  미사용 {selCell.skipped}끼
-                </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>식사 미사용</span>
+                  <button onClick={handleMealCycle} style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
+                    border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
+                    cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                    color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t3)',
+                  }}>
+                    {selCell.skipped}<span style={{ fontSize: 10, fontWeight: 500 }}>끼</span>
+                  </button>
+                </div>
               )}
             </div>
 
