@@ -1463,7 +1463,7 @@ export default function StaffServicePage() {
               <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd)' }} />
             </div>
 
-            {/* Sheet header */}
+            {/* Sheet header + 식사 미사용 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
                 {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
@@ -1477,6 +1477,18 @@ export default function StaffServicePage() {
               </span>
               {selCell.isHoliday && (
                 <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
+              )}
+              {selCell.provided > 0 && (
+                <button onClick={handleMealCycle} style={{
+                  marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '4px 10px', borderRadius: 8,
+                  background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
+                  border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
+                  cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                  color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t3)',
+                }}>
+                  미사용 {selCell.skipped}끼
+                </button>
               )}
             </div>
 
@@ -1657,36 +1669,6 @@ export default function StaffServicePage() {
               )}
             </div>
 
-            {/* Meal section */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>
-                식사 (제공 {selCell.provided}끼)
-              </div>
-              {selCell.provided === 0 ? (
-                <div style={{ fontSize: 11, color: 'var(--t3)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                  식사 미제공
-                </div>
-              ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 12, color: 'var(--t2)' }}>미사용:</span>
-                  <button
-                    onClick={handleMealCycle}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '8px 16px', borderRadius: 10,
-                      background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
-                      border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
-                      cursor: 'pointer', fontSize: 14, fontWeight: 700,
-                      color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t2)',
-                    }}
-                  >
-                    <span style={{ fontSize: 16 }}>{selCell.skipped}</span>
-                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>끼</span>
-                  </button>
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>탭하여 변경</span>
-                </div>
-              )}
-            </div>
 
             {/* Team leave */}
             {selCell.teamLeaveList.length > 0 && (
