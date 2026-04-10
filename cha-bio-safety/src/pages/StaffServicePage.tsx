@@ -1480,7 +1480,7 @@ export default function StaffServicePage() {
               )}
               {selCell.provided > 0 && (
                 <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>식사 미사용</span>
+                  <span style={{ fontSize: 9, color: 'var(--t3)', lineHeight: 1.2, textAlign: 'right' }}>식사 미사용<br/>눌러서 표기</span>
                   <button onClick={handleMealCycle} style={{
                     display: 'flex', alignItems: 'center', gap: 3,
                     padding: '4px 10px', borderRadius: 8,
