@@ -174,6 +174,8 @@ export default function StaffServicePage() {
   const [docEndDate, setDocEndDate] = useState<string>('')
   const [docOtherReason, setDocOtherReason] = useState<string>('')
   const [docReason, setDocReason] = useState<string>('')  // 연차 외 사유
+  const [mobileOtherType, setMobileOtherType] = useState('')  // 모바일 기타 휴가
+  const [mobileReason, setMobileReason] = useState('')  // 모바일 사유
 
   // ── 휴가신청서 미리보기 캘리브레이션 ───────────────────────
   // 마커: 0=입사일yy, 1=입사일dd, 2=성명, 3=기간시작yy, 4=기간시작dd,
@@ -692,15 +694,13 @@ export default function StaffServicePage() {
   function handleDayClick(ymd: string) {
     setSelDate(ymd)
     setSheetOpen(true)
-    // 데스크톱: 달력 클릭 → 휴가기간 자동 입력
-    // 첫 클릭: 시작일=종료일=같은 날 / 둘째 클릭: 종료일 변경
+    // 달력 클릭 → 휴가기간 자동 입력
     if (isDesktop) {
+      // 데스크톱: 첫 클릭=시작일=종료일, 둘째 클릭=종료일 변경
       if (!docStartDate || docStartDate !== docEndDate) {
-        // 첫 선택 또는 이미 기간이 다른 상태 → 새로 시작
         setDocStartDate(ymd)
         setDocEndDate(ymd)
       } else {
-        // 시작일=종료일 상태 → 종료일 변경
         if (ymd >= docStartDate) {
           setDocEndDate(ymd)
         } else {
@@ -708,6 +708,10 @@ export default function StaffServicePage() {
           setDocStartDate(ymd)
         }
       }
+    } else {
+      // 모바일: 항상 시작일=종료일=클릭 날짜 (종료일은 date picker로 변경)
+      setDocStartDate(ymd)
+      setDocEndDate(ymd)
     }
   }
 
@@ -1490,56 +1494,162 @@ export default function StaffServicePage() {
                       소방 점검일 - 휴가 등록 주의
                     </div>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {DOC_LEAVE_GRID.map((row, ri) => (
-                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: row.length === 1 ? '1fr' : 'repeat(3, 1fr)', gap: 4 }}>
-                        {row.map(lt => {
-                          const apiType = DOC_TO_API_TYPE[lt.type]
-                          const isRegistered = apiType && selMyLeave?.type === apiType
-                          return (
-                            <button
-                              key={lt.type}
-                              onClick={async () => {
-                                if (!apiType || !selDate) return
-                                try {
-                                  const existing = myLeaveMap[selDate]
-                                  if (existing?.type === apiType) {
-                                    await leaveApi.delete(existing.id)
-                                    toast.success('취소')
-                                  } else {
-                                    if (existing) await leaveApi.delete(existing.id)
-                                    await leaveApi.create(selDate, apiType as any)
-                                    toast.success(`${lt.label} 등록`)
-                                  }
-                                } catch (err: any) { toast.error(err?.message ?? '오류') }
-                                await qc.invalidateQueries({ queryKey: ['leaves'] })
-                                await qc.invalidateQueries({ queryKey: ['leaves-year'] })
-                              }}
-                              style={{
-                                gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
-                                padding: '7px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                                cursor: 'pointer', textAlign: 'center',
-                                background: isRegistered ? 'rgba(34,197,94,0.25)' : 'var(--bg3)',
-                                color: isRegistered ? '#22c55e' : 'var(--t2)',
-                                border: isRegistered ? '2px solid #22c55e' : '1px solid var(--bd)',
-                              }}
-                            >
-                              {lt.label}{isRegistered ? ' ✓' : ''}
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ))}
+
+                  {/* 기간 선택 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>시작일</div>
+                      <input type="date" value={docStartDate} readOnly
+                        style={{ width: '100%', padding: '5px 6px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11 }} />
+                    </div>
+                    <span style={{ color: 'var(--t3)', fontSize: 11, marginTop: 14 }}>~</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>종료일</div>
+                      <input type="date" value={docEndDate} onChange={e => { if (e.target.value >= docStartDate) setDocEndDate(e.target.value) }}
+                        style={{ width: '100%', padding: '5px 6px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11 }} />
+                    </div>
+                    {docDays > 0 && (
+                      <span style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 14, whiteSpace: 'nowrap' }}>
+                        {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일
+                      </span>
+                    )}
                   </div>
+
+                  {/* 주요 버튼: 연차/반차/공가 (2행 3열) */}
+                  {(() => {
+                    const MOBILE_BTNS = [
+                      [
+                        { type: 'annual', label: '연차', api: 'full' },
+                        { type: 'half_am', label: '오전반차', api: 'half_am' },
+                        { type: 'half_pm', label: '오후반차', api: 'half_pm' },
+                      ],
+                      [
+                        { type: 'official', label: '공가', api: 'official_full' },
+                        { type: 'official_half_am', label: '오전공가', api: 'official_half_am' },
+                        { type: 'official_half_pm', label: '오후공가', api: 'official_half_pm' },
+                      ],
+                    ]
+                    const registerRange = async (apiType: string, label: string) => {
+                      if (!docStartDate) return
+                      const end = docEndDate || docStartDate
+                      const toastId = toast.loading('등록 중...')
+                      try {
+                        const workDates: string[] = []
+                        const cur = new Date(docStartDate); const endD = new Date(end)
+                        while (cur <= endD) {
+                          const ymd = localYMD(cur); const dow = cur.getDay()
+                          if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) workDates.push(ymd)
+                          cur.setDate(cur.getDate() + 1)
+                        }
+                        const allReg = workDates.every(ymd => myLeaveMap[ymd]?.type === apiType)
+                        if (allReg) {
+                          for (const ymd of workDates) { const ex = myLeaveMap[ymd]; if (ex) await leaveApi.delete(ex.id) }
+                          toast.success(`${workDates.length}일 취소`, { id: toastId })
+                        } else {
+                          let cnt = 0
+                          for (const ymd of workDates) {
+                            const ex = myLeaveMap[ymd]
+                            if (ex?.type === apiType) continue
+                            if (ex) await leaveApi.delete(ex.id)
+                            await leaveApi.create(ymd, apiType as any); cnt++
+                          }
+                          toast.success(`${cnt}일 ${label} 등록`, { id: toastId })
+                        }
+                      } catch (err: any) { toast.error(err?.message ?? '오류', { id: toastId }) }
+                      await qc.invalidateQueries({ queryKey: ['leaves'] })
+                      await qc.invalidateQueries({ queryKey: ['leaves-year'] })
+                    }
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                        {MOBILE_BTNS.map((row, ri) => (
+                          <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                            {row.map(b => {
+                              const isReg = selMyLeave?.type === b.api
+                              return (
+                                <button key={b.type} onClick={() => registerRange(b.api, b.label)}
+                                  style={{
+                                    padding: '8px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
+                                    background: isReg ? 'rgba(34,197,94,0.25)' : 'var(--bg3)',
+                                    color: isReg ? '#22c55e' : 'var(--t2)',
+                                    border: isReg ? '2px solid #22c55e' : '1px solid var(--bd)',
+                                  }}>
+                                  {b.label}{isReg ? ' ✓' : ''}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })()}
+
+                  {/* 기타 휴가종류 (셀렉트) */}
+                  {(() => {
+                    const OTHER_TYPES = [
+                      { type: 'condolence', label: '경조휴가', api: 'condolence' },
+                      { type: 'sick_work', label: '병가(공상)', api: 'sick_work' },
+                      { type: 'sick_personal', label: '병가(사상)', api: 'sick_personal' },
+                      { type: 'health', label: '보건휴가', api: 'health' },
+                      { type: 'other_special', label: '기타특별휴가', api: 'other_special' },
+                    ]
+                    const registerOther = async () => {
+                      if (!mobileOtherType || !docStartDate) return
+                      const end = docEndDate || docStartDate
+                      const toastId = toast.loading('등록 중...')
+                      try {
+                        const workDates: string[] = []
+                        const cur = new Date(docStartDate); const endD = new Date(end)
+                        while (cur <= endD) {
+                          const ymd = localYMD(cur); const dow = cur.getDay()
+                          if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) workDates.push(ymd)
+                          cur.setDate(cur.getDate() + 1)
+                        }
+                        const allReg = workDates.every(ymd => myLeaveMap[ymd]?.type === mobileOtherType)
+                        if (allReg) {
+                          for (const ymd of workDates) { const ex = myLeaveMap[ymd]; if (ex) await leaveApi.delete(ex.id) }
+                          toast.success(`${workDates.length}일 취소`, { id: toastId })
+                        } else {
+                          let cnt = 0
+                          for (const ymd of workDates) {
+                            const ex = myLeaveMap[ymd]
+                            if (ex?.type === mobileOtherType) continue
+                            if (ex) await leaveApi.delete(ex.id)
+                            await leaveApi.create(ymd, mobileOtherType as any); cnt++
+                          }
+                          const lbl = OTHER_TYPES.find(o => o.api === mobileOtherType)?.label ?? ''
+                          toast.success(`${cnt}일 ${lbl} 등록`, { id: toastId })
+                        }
+                      } catch (err: any) { toast.error(err?.message ?? '오류', { id: toastId }) }
+                      await qc.invalidateQueries({ queryKey: ['leaves'] })
+                      await qc.invalidateQueries({ queryKey: ['leaves-year'] })
+                    }
+                    const needsReason = ['official_full', 'official_half_am', 'official_half_pm'].includes(selMyLeave?.type ?? '') || !!mobileOtherType
+                    return (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <select value={mobileOtherType} onChange={e => setMobileOtherType(e.target.value)}
+                            style={{ flex: 1, height: 34, borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, padding: '0 8px' }}>
+                            <option value="">기타 휴가 선택...</option>
+                            {OTHER_TYPES.map(o => <option key={o.api} value={o.api}>{o.label}</option>)}
+                          </select>
+                          {mobileOtherType && (
+                            <button onClick={registerOther}
+                              style={{ height: 34, padding: '0 14px', borderRadius: 6, background: 'var(--ac)', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              등록
+                            </button>
+                          )}
+                        </div>
+                        {needsReason && (
+                          <input value={mobileReason} onChange={e => setMobileReason(e.target.value)} placeholder="사유 입력"
+                            style={{ width: '100%', marginTop: 6, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   {/* 프린트 버튼 */}
-                  <button
-                    onClick={() => window.print()}
-                    style={{
-                      width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 8,
-                      background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)',
-                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
+                  <button onClick={() => window.print()}
+                    style={{ width: '100%', padding: '8px 0', borderRadius: 8, background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                     휴가신청서 인쇄
                   </button>
                 </>
