@@ -1135,30 +1135,35 @@ export default function StaffServicePage() {
                           const end = docEndDate || docStartDate
                           const toastId = toast.loading('등록 중...')
                           try {
+                            // 범위 내 근무일 목록 수집
+                            const workDates: string[] = []
                             const cur = new Date(docStartDate)
                             const endD = new Date(end)
-                            let registered = 0, cancelled = 0
                             while (cur <= endD) {
                               const ymd = localYMD(cur)
                               const dow = cur.getDay()
-                              // 주말/공휴일 건너뛰기
-                              if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) {
-                                // 해당 날짜에 이미 같은 타입이 있으면 취소, 아니면 등록
-                                const existing = myLeaveMap[ymd]
-                                if (existing && existing.type === apiType) {
-                                  await leaveApi.delete(existing.id)
-                                  cancelled++
-                                } else {
-                                  // 다른 타입이 있으면 먼저 삭제
-                                  if (existing) await leaveApi.delete(existing.id)
-                                  await leaveApi.create(ymd, apiType as any)
-                                  registered++
-                                }
-                              }
+                              if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) workDates.push(ymd)
                               cur.setDate(cur.getDate() + 1)
                             }
-                            if (cancelled > 0 && registered === 0) toast.success(`${cancelled}일 취소`, { id: toastId })
-                            else toast.success(`${registered}일 등록`, { id: toastId })
+                            // 전부 같은 타입이면 전체 취소, 아니면 전체 등록
+                            const allRegistered = workDates.every(ymd => myLeaveMap[ymd]?.type === apiType)
+                            if (allRegistered) {
+                              for (const ymd of workDates) {
+                                const existing = myLeaveMap[ymd]
+                                if (existing) await leaveApi.delete(existing.id)
+                              }
+                              toast.success(`${workDates.length}일 취소`, { id: toastId })
+                            } else {
+                              let count = 0
+                              for (const ymd of workDates) {
+                                const existing = myLeaveMap[ymd]
+                                if (existing?.type === apiType) continue // 이미 같은 타입 → 건너뛰기
+                                if (existing) await leaveApi.delete(existing.id) // 다른 타입 삭제
+                                await leaveApi.create(ymd, apiType as any)
+                                count++
+                              }
+                              toast.success(`${count}일 등록`, { id: toastId })
+                            }
                           } catch (err: any) {
                             toast.error(err?.message ?? '오류 발생', { id: toastId })
                           }
