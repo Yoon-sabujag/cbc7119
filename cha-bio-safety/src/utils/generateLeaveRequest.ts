@@ -259,6 +259,27 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
   // Based on template, the application date is typically near the bottom
   // We don't have a dedicated cell from the mapping, skip for now
 
+  // ── '작성법' 시트 제거 ─────────────────────────────────────
+  delete files['xl/worksheets/sheet2.xml']
+  // workbook.xml에서 작성법 시트 참조 제거
+  if (files['xl/workbook.xml']) {
+    let wbXml = strFromU8(files['xl/workbook.xml'])
+    wbXml = wbXml.replace(/<sheet[^>]*name="작성법"[^>]*\/>/g, '')
+    files['xl/workbook.xml'] = strToU8(wbXml)
+  }
+  // [Content_Types].xml에서 sheet2 참조 제거
+  if (files['[Content_Types].xml']) {
+    let ctXml = strFromU8(files['[Content_Types].xml'])
+    ctXml = ctXml.replace(/<Override[^>]*sheet2\.xml[^>]*\/>/g, '')
+    files['[Content_Types].xml'] = strToU8(ctXml)
+  }
+  // xl/_rels/workbook.xml.rels에서 sheet2 참조 제거
+  if (files['xl/_rels/workbook.xml.rels']) {
+    let relsXml = strFromU8(files['xl/_rels/workbook.xml.rels'])
+    relsXml = relsXml.replace(/<Relationship[^>]*sheet2\.xml[^>]*\/>/g, '')
+    files['xl/_rels/workbook.xml.rels'] = strToU8(relsXml)
+  }
+
   // ── 파일 재패킹 ───────────────────────────────────────────
   files['xl/worksheets/sheet1.xml'] = strToU8(sheetXml)
   files['xl/styles.xml'] = strToU8(stylesXml)
