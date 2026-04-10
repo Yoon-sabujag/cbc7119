@@ -1496,20 +1496,20 @@ export default function StaffServicePage() {
                   )}
 
                   {/* 기간 선택 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>시작일</div>
                       <input type="date" value={docStartDate} readOnly
-                        style={{ width: '100%', padding: '5px 6px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11 }} />
+                        style={{ width: '100%', padding: '5px 4px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
                     </div>
-                    <span style={{ color: 'var(--t3)', fontSize: 11, marginTop: 14 }}>~</span>
-                    <div style={{ flex: 1 }}>
+                    <span style={{ color: 'var(--t3)', fontSize: 11, paddingBottom: 6 }}>~</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>종료일</div>
                       <input type="date" value={docEndDate} onChange={e => { if (e.target.value >= docStartDate) setDocEndDate(e.target.value) }}
-                        style={{ width: '100%', padding: '5px 6px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11 }} />
+                        style={{ width: '100%', padding: '5px 4px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
                     </div>
                     {docDays > 0 && (
-                      <span style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 14, whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 13, color: '#facc15', fontWeight: 700, paddingBottom: 4, whiteSpace: 'nowrap' }}>
                         {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일
                       </span>
                     )}
