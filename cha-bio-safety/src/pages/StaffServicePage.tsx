@@ -1496,23 +1496,23 @@ export default function StaffServicePage() {
                   )}
 
                   {/* 기간 선택 */}
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, marginBottom: 8 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 4, alignItems: 'end', marginBottom: 8 }}>
+                    <div>
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>시작일</div>
                       <input type="date" value={docStartDate} readOnly
-                        style={{ width: '100%', padding: '5px 4px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
+                        style={{ display: 'block', width: '100%', padding: '6px 2px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'none' } as any} />
                     </div>
-                    <span style={{ color: 'var(--t3)', fontSize: 11, paddingBottom: 6 }}>~</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ color: 'var(--t3)', fontSize: 11, paddingBottom: 8 }}>~</span>
+                    <div>
                       <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>종료일</div>
                       <input type="date" value={docEndDate} onChange={e => { if (e.target.value >= docStartDate) setDocEndDate(e.target.value) }}
-                        style={{ width: '100%', padding: '5px 4px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
+                        style={{ display: 'block', width: '100%', padding: '6px 2px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'none' } as any} />
                     </div>
-                    {docDays > 0 && (
-                      <span style={{ fontSize: 13, color: '#facc15', fontWeight: 700, paddingBottom: 4, whiteSpace: 'nowrap' }}>
+                    {docDays > 0 ? (
+                      <span style={{ fontSize: 13, color: '#facc15', fontWeight: 700, paddingBottom: 6, whiteSpace: 'nowrap' }}>
                         {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일
                       </span>
-                    )}
+                    ) : <span />}
                   </div>
 
                   {/* 주요 버튼: 연차/반차/공가 (2행 3열) */}
