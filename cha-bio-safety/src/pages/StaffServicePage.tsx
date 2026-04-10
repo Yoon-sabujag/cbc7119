@@ -178,8 +178,9 @@ export default function StaffServicePage() {
   // ── 휴가신청서 미리보기 캘리브레이션 ───────────────────────
   // 마커: 0=입사일yy, 1=입사일dd, 2=성명, 3=기간시작yy, 4=기간시작dd,
   //       5=기간종료yy, 6=기간종료dd, 7=기간일수,
-  //       8=체크_연차, 9=체크_병가사상, 10=체크_보건, 11=체크_기타특별,
-  //       12=기타특별사유, 13=연락처, 14=신청일수, 15=사유기타사항
+  //       8=체크_연차, 9=체크_경조, 10=체크_병가공상, 11=체크_병가사상,
+  //       12=체크_보건, 13=체크_공가, 14=체크_기타특별,
+  //       15=기타특별사유, 16=연락처, 17=신청일수, 18=사유기타사항
   const LEAVE_CALIB_STEPS = [
     { label: '입사일 년', color: '#ef4444' },
     { label: '입사일 일', color: '#ef4444' },
@@ -190,8 +191,11 @@ export default function StaffServicePage() {
     { label: '기간종료 일', color: '#f59e0b' },
     { label: '기간 일수', color: '#a855f7' },
     { label: '체크 연차', color: '#000' },
+    { label: '체크 경조', color: '#000' },
+    { label: '체크 병가공상', color: '#000' },
     { label: '체크 병가사상', color: '#000' },
     { label: '체크 보건', color: '#000' },
+    { label: '체크 공가', color: '#000' },
     { label: '체크 기타특별', color: '#000' },
     { label: '기타특별 사유', color: '#6366f1' },
     { label: '연락처', color: '#ec4899' },
@@ -1336,17 +1340,15 @@ export default function StaffServicePage() {
                 const endMm = lp[5] && lp[6] ? { x: lp[5].x + (lp[6].x - lp[5].x) * 0.5, y: lp[5].y } : undefined
 
                 // 체크박스: 8=연차, 9=병가사상 → 경조/병가공상 보간, 10=보건, 11=기타특별 → 공가 보간
-                const chk8 = lp[8], chk9 = lp[9], chk10 = lp[10], chk11 = lp[11]
+                // 8=연차, 9=경조, 10=병가공상, 11=병가사상, 12=보건, 13=공가, 14=기타특별
                 const checkMap: Record<string, { x: number; y: number } | undefined> = {
-                  annual: chk8, half_am: chk8, half_pm: chk8,
-                  condolence: chk8 && chk9 ? { x: chk8.x + (chk9.x - chk8.x) * 0.333, y: chk8.y } : undefined,
-                  sick_work: chk8 && chk9 ? { x: chk8.x + (chk9.x - chk8.x) * 0.667, y: chk8.y } : undefined,
-                  sick_personal: chk9,
-                  health: chk10,
-                  official: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
-                  official_half_am: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
-                  official_half_pm: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
-                  other_special: chk11,
+                  annual: lp[8], half_am: lp[8], half_pm: lp[8],
+                  condolence: lp[9],
+                  sick_work: lp[10],
+                  sick_personal: lp[11],
+                  health: lp[12],
+                  official: lp[13], official_half_am: lp[13], official_half_pm: lp[13],
+                  other_special: lp[14],
                 }
                 const cp = checkMap[docLeaveType]
 
@@ -1370,10 +1372,10 @@ export default function StaffServicePage() {
                     </>}
                     {docPeriodDays > 0 && ovAt(lp[7], String(docPeriodDays))}
                     {cp && <div style={{ position: 'absolute', left: `${cp.x}%`, top: `${cp.y}%`, transform: 'translate(-50%, -50%)', width: 12, height: 12, background: '#000' }} />}
-                    {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[12], docOtherReason)}
-                    {docPhone && ovAt(lp[13], docPhone)}
-                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && ovAt(lp[14], String(docWorkDays))}
-                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[15], docReason)}
+                    {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[15], docOtherReason)}
+                    {docPhone && ovAt(lp[16], docPhone)}
+                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && ovAt(lp[17], String(docWorkDays))}
+                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[18], docReason)}
                   </>
                 )
               })()}
