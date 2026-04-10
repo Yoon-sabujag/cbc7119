@@ -8,6 +8,7 @@ export interface LeaveRequestData {
   phone: string
   leaveType: string      // 'annual'|'condolence'|'sick_work'|'sick_personal'|'health'|'official'|'other_special'
   otherReason?: string   // free text for 기타특별휴가
+  reason?: string        // 연차 외 사유 (기타사항 란)
   startDate: string      // 'YYYY-MM-DD'
   endDate: string        // 'YYYY-MM-DD'
   totalDays: number
@@ -243,17 +244,9 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
     sheetXml = patchCell(sheetXml, 'U36', data.totalDays)
   }
 
-  // ── 연차 외 선택시 사유 (H39) ──────────────────────────────
-  if (data.leaveType !== 'annual') {
-    // 사유 텍스트: 기타특별은 otherReason 사용, 나머지는 휴가종류명 사용
-    const LEAVE_LABELS: Record<string, string> = {
-      condolence: '경조휴가', sick_work: '병가(공상)', sick_personal: '병가(사상)',
-      health: '보건휴가', official: '공가', other_special: '기타특별휴가',
-    }
-    const reason = data.leaveType === 'other_special'
-      ? (data.otherReason || '기타특별휴가')
-      : (LEAVE_LABELS[data.leaveType] ?? '')
-    sheetXml = patchCell(sheetXml, 'H39', reason)
+  // ── 연차 외 선택시 사유 (H39 — 기타사항 란) ──────────────────
+  if (data.leaveType !== 'annual' && data.reason) {
+    sheetXml = patchCell(sheetXml, 'H39', data.reason)
   }
 
   // ── 휴가중 연락처 (J32) ───────────────────────────────────
