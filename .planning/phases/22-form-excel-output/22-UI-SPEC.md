@@ -45,35 +45,46 @@ All colour, spacing, and radius values MUST use existing CSS custom properties. 
 | `var(--t1)` | `#e6edf3` | Primary text |
 | `var(--t2)` | `#8b949e` | Secondary / label text |
 | `var(--t3)` | `#6e7681` | Muted / placeholder text |
-| `var(--acl)` | `#3b82f6` | Accent — interactive elements, focus rings |
+| `var(--acl)` | `#3b82f6` | Accent — save button gradient base only |
 | `var(--safe)` | `#22c55e` | 양호 (ok) result badge |
 | `var(--danger)` | `#ef4444` | 불량 (bad) result badge + destructive |
 | `var(--warn)` | `#f59e0b` | Warning / unsaved indicator |
 
 **Source:** `src/index.css` `:root` block — confirmed in codebase.
 
+Note: `var(--acl)` is NOT used for focus rings in this phase. Textarea/input focus uses `var(--bd2)` for the border — consistent with the existing `DailyReportPage` pattern (see Component #3 and #5 below).
+
 ---
 
 ## Spacing Scale
 
-Declared values (must be multiples of 4). Sourced from DailyReportPage.tsx inline style patterns:
+Standard scale (multiples of 4):
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline padding between tight elements |
 | sm | 8px | Gap between nav arrows and date label; button row gap |
-| md | 14px | Card internal padding (matches `DailyReportPage` `card.padding: 14`) |
-| lg | 20px | Section margin-bottom between cards; desktop header margin |
+| md | 16px | Standard section spacing (multiples-of-4 baseline) |
 | xl | 24px | Desktop left-panel top/bottom padding |
 | 2xl | 32px | Desktop left-panel horizontal padding |
 | footer | 56px | Fixed footer height (2 buttons + safe-area bottom) |
 
-Exceptions:
-- Nav arrow buttons: 28×28px (7px border-radius) — matches `navBtn` in DailyReportPage
-- Icon-action buttons: 34×34px (8px border-radius) — matches `iconBtn` in DailyReportPage
-- Card border-radius: 14px — matches existing `card` style constant
-- Textarea border-radius: 9px — matches existing `textareaStyle`
-- Footer button border-radius: 9px
+### Component Continuity Exceptions
+
+The following values are inherited unchanged from `DailyReportPage.tsx` style constants to maintain visual consistency with the existing daily report UI. They are NOT new design decisions and are NOT subject to the spacing contract.
+
+| Value | Where Used | Source Constant |
+|-------|-----------|-----------------|
+| `padding: 14` | Section card internal padding | `DailyReportPage` `card.padding` |
+| `marginBottom: 10` | Section card bottom margin | `DailyReportPage` `card.marginBottom` |
+| `padding: '10px 16px'` | Fixed footer top/bottom padding | `DailyReportPage` footer style |
+| `34×34px` | Icon-action button size | `DailyReportPage` `iconBtn` |
+| `borderRadius: 14` | Card border-radius | `DailyReportPage` `card.borderRadius` |
+| `borderRadius: 9` | Textarea and footer button border-radius | `DailyReportPage` `textareaStyle.borderRadius` |
+| `gap: 6` | Toggle button container gap | `DailyReportPage` toggle row pattern |
+| `20px` | `lg` token used for desktop header margin (not in standard 4-pt set) | `DailyReportPage` section margin pattern |
+
+These values are locked to match `DailyReportPage`. Do NOT "correct" them to the nearest 4px multiple.
 
 ---
 
@@ -94,6 +105,8 @@ Exceptions:
 - "수정됨" dirty indicator: 11px, weight 400, color `var(--warn)` — placed inline next to save button
 - Toggle button labels (양호/불량): 12px, weight 700
 
+**Inherited constraint note:** The 11/12/13px range is tight by choice — it mirrors `DailyReportPage` exactly. Weight differentiation (400 vs 700) provides the hierarchy signal that size alone cannot. This is a known inherited constraint, not a design error.
+
 **Source:** `DailyReportPage.tsx` style constants (`textareaStyle`, `card`, inline button styles).
 
 ---
@@ -104,12 +117,14 @@ Exceptions:
 |------|-------|-------|
 | Dominant (60%) | `var(--bg)` = `#0d1117` | Page background |
 | Secondary (30%) | `var(--bg2)` = `#161b22` | All section cards |
-| Accent (10%) | `var(--acl)` = `#3b82f6` | Save button primary gradient endpoint, focus ring on active textarea |
+| Accent (10%) | `var(--acl)` = `#3b82f6` | Save button primary gradient endpoint only |
 | Destructive | `var(--danger)` = `#ef4444` | 불량 toggle active state; destructive toast |
+
+**Primary focal point:** Fixed footer 저장 button via accent gradient (`linear-gradient(135deg,#1d4ed8,#2563eb)`). This is the only element using blue-range accent on the page, drawing the eye to the primary action.
 
 Accent reserved for:
 1. Primary "저장" button (background gradient `linear-gradient(135deg,#1d4ed8,#2563eb)` — same pattern as DailyReportPage download button)
-2. Focus outline on textarea (`outline: 1px solid var(--acl)` when focused)
+2. Accent is NOT used for textarea/input focus borders. Focused textarea/input uses `border: '1px solid var(--bd2)'` — consistent with DailyReportPage and existing project conventions.
 3. Active/selected state on 양호 toggle button is `var(--safe)` (#22c55e), active 불량 toggle is `var(--danger)` (#ef4444) — these are semantic, not accent
 
 Secondary semantic:
@@ -160,7 +175,7 @@ Reuses `DailyReportPage` `textareaStyle` constant verbatim:
 }
 ```
 
-On focus: add `border: '1px solid var(--bd2)'` (no custom outline — matches project pattern).
+On focus: add `border: '1px solid var(--bd2)'` (no custom outline — matches project pattern). Focus border uses `var(--bd2)`, NOT `var(--acl)`.
 
 Rows:
 - 소방시설 확인내용 (fire_content): `rows={4}`, read-prefilled static text, editable by admin only
@@ -205,7 +220,7 @@ Style:
 }
 ```
 
-On focus: `border: '1px solid var(--bd2)'`.
+On focus: `border: '1px solid var(--bd2)'`. Focus border uses `var(--bd2)`, NOT `var(--acl)`.
 Non-admin: `readOnly`, `background: var(--bg2)`, `color: var(--t2)`.
 
 ### 6. "수정됨" Dirty Indicator
@@ -309,15 +324,24 @@ Form max-width: none (fills available space).
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline padding |
 | sm | 8px | Gap between nav buttons and date label |
-| md | 14px | Card internal padding |
-| lg | 20px | Margin between cards (marginBottom: 10 per card + scroll rhythm) |
 | xl | 24px | Desktop top/bottom panel padding |
 | 2xl | 32px | Desktop left/right panel padding |
 | 3xl | 64px | Not used in this phase |
 
-Exceptions:
-- `marginBottom: 10` per card (not 16) — matches DailyReportPage card constant exactly
-- Fixed footer bottom padding: `calc(10px + var(--sab))` for iOS safe area
+### Component Continuity Exceptions
+
+The following spacing values are inherited verbatim from `DailyReportPage.tsx` style constants. They do not conform to the 4pt grid but are locked for visual consistency with the existing daily report page. Executor MUST NOT adjust them to the nearest multiple of 4.
+
+| Value | Source | Used In |
+|-------|--------|---------|
+| `padding: 14` | `card.padding` in DailyReportPage | All section cards |
+| `marginBottom: 10` | `card.marginBottom` in DailyReportPage | All section cards |
+| `padding: '10px 16px'` | Footer style in DailyReportPage | Fixed footer container |
+| `34×34px` | `iconBtn` in DailyReportPage | Icon-action buttons |
+| `20px` | Desktop section margin pattern in DailyReportPage | Desktop header margin (`lg` token) |
+| `border-radius: 14px` | `card.borderRadius` in DailyReportPage | Card corners |
+| `border-radius: 9px` | `textareaStyle.borderRadius` in DailyReportPage | Textarea and footer button corners |
+| `gap: 6` | Toggle row pattern in DailyReportPage | 양호/불량 toggle container |
 
 ---
 
@@ -330,6 +354,8 @@ Exceptions:
 | Page / nav date | 15px | 700 | 1.2 |
 | Metadata / hint / dirty | 11px | 400 | 1.6 |
 
+**Inherited constraint note:** The 11/12/13px range is tight and intentional — inherited directly from `DailyReportPage`. Weight differentiation (400 vs 700) provides the hierarchy signal that size difference alone cannot across this compressed range. This is a known constraint, not a design error.
+
 ---
 
 ## Color
@@ -338,12 +364,15 @@ Exceptions:
 |------|-------|-------|
 | Dominant (60%) | `var(--bg)` #0d1117 | Page background, all surfaces |
 | Secondary (30%) | `var(--bg2)` #161b22 | All section cards, footer bar |
-| Accent (10%) | `var(--acl)` #3b82f6 | Save button gradient base, focused textarea border |
+| Accent (10%) | `var(--acl)` #3b82f6 | Save button gradient base only |
 | Destructive | `var(--danger)` #ef4444 | 불량 active toggle, error toast, error text |
 
-Accent reserved for:
+**Primary focal point:** Fixed footer 저장 button via accent gradient (`linear-gradient(135deg,#1d4ed8,#2563eb)`). This is the only blue-range element on the page.
+
+Accent (`var(--acl)`) reserved for:
 1. Primary save button background gradient only
-2. Focused textarea/input border (via `var(--bd2)`)
+
+Textarea and input focus state uses `var(--bd2)` for the border — NOT `var(--acl)`. This is consistent with existing DailyReportPage behavior.
 
 Semantic extras (not accent):
 - `var(--safe)` #22c55e — 양호 active toggle only
@@ -365,8 +394,8 @@ Semantic extras (not accent):
 | Empty state heading | `이번 달 기록이 없습니다` |
 | Empty state body | `자동 집계된 내용을 확인하고 저장해 주세요` |
 | Error state (fetch) | `데이터 불러오기 실패 — 다시 시도해 주세요` |
-| Error state (save fail) | `저장 실패` (toast error) |
-| Error state (excel fail) | `엑셀 생성 중 오류가 발생했습니다` (toast error) |
+| Error state (save fail) | `저장 실패 — 다시 시도해 주세요` (toast error) |
+| Error state (excel fail) | `엑셀 생성 실패 — 다시 시도해 주세요` (toast error) |
 | Save success toast | `저장되었습니다` |
 | Unsaved export confirmation title | `저장되지 않은 변경사항이 있습니다` |
 | Unsaved export confirmation body | `저장 후 엑셀을 출력하시겠습니까?` |
@@ -405,7 +434,7 @@ Destructive actions in Phase 22: none. No delete UI is provided (deferred per D-
 2. Button becomes `저장 중...`, disabled
 3. `workLogApi.save(ym, payload)` fires (PUT upsert)
 4. Success: toast `저장되었습니다`, dirty indicator clears, loaded state refreshes
-5. Failure: toast `저장 실패`, button re-enables
+5. Failure: toast `저장 실패 — 다시 시도해 주세요`, button re-enables
 
 ### Flow 4: Excel Export (clean state)
 1. User taps `엑셀 출력`
