@@ -9,6 +9,8 @@ import { useStaffList } from '../hooks/useStaffList'
 import { getRawShift, SHIFT_COLOR, DOW_KO, type RawShift } from '../utils/shiftCalc'
 import { calcProvidedMeals, calcWeekendAllowance } from '../utils/mealCalc'
 import * as pdfjsLib from 'pdfjs-dist'
+import { generateLeaveRequest } from '../utils/generateLeaveRequest'
+import type { StaffFull } from '../types'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
 
@@ -98,6 +100,16 @@ const LEAVE_BG: Record<string, string> = {
   official_half_pm: '#a855f7',
 }
 
+const DOC_LEAVE_TYPES = [
+  { type: 'annual', label: '연차휴가' },
+  { type: 'condolence', label: '경조휴가' },
+  { type: 'sick_work', label: '병가(공상)' },
+  { type: 'sick_personal', label: '병가(사상)' },
+  { type: 'health', label: '보건휴가' },
+  { type: 'official', label: '공가' },
+  { type: 'other_special', label: '기타특별휴가' },
+] as const
+
 const LEAVE_LABEL: Record<string, string> = {
   full: '연차', half_am: '오전반차', half_pm: '오후반차',
   official_full: '공가', official_half_am: '공가오전', official_half_pm: '공가오후',
@@ -116,6 +128,49 @@ export default function StaffServicePage() {
   const [month, setMonth] = useState(today.getMonth())
   const [selDate, setSelDate] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+
+  // ── 휴가신청서 폼 state (desktop only) ──────────────────────
+  const staffFull = staffList.find(s => s.id === staffId) as StaffFull | undefined
+  const [docLeaveType, setDocLeaveType] = useState<string>('annual')
+  const [docPhone, setDocPhone] = useState<string>('')
+  const [docStartDate, setDocStartDate] = useState<string>('')
+  const [docEndDate, setDocEndDate] = useState<string>('')
+  const [docOtherReason, setDocOtherReason] = useState<string>('')
+
+  // staffFull.phone이 로드되면 docPhone 초기화
+  useEffect(() => {
+    if (staffFull?.phone && !docPhone) setDocPhone(staffFull.phone)
+  }, [staffFull?.phone])
+
+  const docTotalDays = useMemo(() => {
+    if (!docStartDate || !docEndDate) return 0
+    const s = new Date(docStartDate), e = new Date(docEndDate)
+    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1)
+  }, [docStartDate, docEndDate])
+
+  const handleLeaveDownload = useCallback(async () => {
+    if (!staff || !docStartDate || !docEndDate) {
+      toast.error('기간을 입력하세요')
+      return
+    }
+    const toastId = toast.loading('휴가신청서 생성 중...')
+    try {
+      await generateLeaveRequest({
+        staffName: staff.name,
+        staffId: staff.id,
+        hireDate: HIRE_DATES[staff.id] ?? '',
+        phone: docPhone,
+        leaveType: docLeaveType,
+        otherReason: docOtherReason,
+        startDate: docStartDate,
+        endDate: docEndDate,
+        totalDays: docTotalDays,
+      })
+      toast.success('휴가신청서 다운로드 완료', { id: toastId })
+    } catch (err: any) {
+      toast.error(err?.message ?? '생성 실패', { id: toastId })
+    }
+  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docTotalDays])
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
   const staffId = staff?.id ?? ''
@@ -865,27 +920,145 @@ export default function StaffServicePage() {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
         {/* 헤더 */}
         <div style={{ height: 48, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>연차 및 식사</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>연차 및 식사 / 휴가신청서</span>
         </div>
 
-        {/* 2분할 본문 */}
+        {/* 3분할 본문 */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-          {/* 좌측: 달력 + 범례 + 요약 */}
+          {/* 좌측: 달력 + 범례 + 요약 + 메뉴 + 업로드 */}
           <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '0 0 16px' }}>
             {calendarGrid}
             {legendRow}
             {summaryCards}
-          </div>
-
-          {/* 우측: 상세 + 메뉴 + 업로드 */}
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
             {detailPanel}
             <div style={{ borderTop: '1px solid var(--bd)', margin: '0 16px' }} />
             <div style={{ padding: '12px 4px 0' }}>
               {menuSection}
             </div>
-            <div style={{ flex: 1 }} />
             {uploadSection}
+          </div>
+
+          {/* 중앙: 휴가신청서 폼 */}
+          <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>휴가신청서</div>
+
+            {/* 휴가 종류 버튼 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {DOC_LEAVE_TYPES.map(lt => (
+                <button
+                  key={lt.type}
+                  onClick={() => setDocLeaveType(lt.type)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', textAlign: 'left',
+                    background: docLeaveType === lt.type ? 'var(--ac)' : 'var(--bg3)',
+                    color: docLeaveType === lt.type ? '#fff' : 'var(--t2)',
+                    border: docLeaveType === lt.type ? '1px solid var(--ac)' : '1px solid var(--bd)',
+                  }}
+                >
+                  {lt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 기타특별휴가 사유 */}
+            {docLeaveType === 'other_special' && (
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 4 }}>사유 직접입력</div>
+                <textarea
+                  value={docOtherReason}
+                  onChange={e => setDocOtherReason(e.target.value)}
+                  placeholder="사유를 입력하세요"
+                  style={{
+                    width: '100%', minHeight: 60, padding: 8, borderRadius: 8,
+                    border: '1px solid var(--bd)', background: 'var(--bg)',
+                    color: 'var(--t1)', fontSize: 12, resize: 'vertical',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* 휴대전화번호 */}
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 4 }}>휴대전화번호</div>
+              <input
+                type="tel"
+                value={docPhone}
+                onChange={e => setDocPhone(e.target.value)}
+                placeholder="010-0000-0000"
+                style={{
+                  width: '100%', padding: '8px 10px', borderRadius: 8,
+                  border: '1px solid var(--bd)', background: 'var(--bg)',
+                  color: 'var(--t1)', fontSize: 13,
+                }}
+              />
+            </div>
+
+            {/* 휴가기간 */}
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--t2)', marginBottom: 4 }}>휴가기간</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="date"
+                  value={docStartDate}
+                  onChange={e => setDocStartDate(e.target.value)}
+                  style={{
+                    flex: 1, padding: '6px 8px', borderRadius: 8,
+                    border: '1px solid var(--bd)', background: 'var(--bg)',
+                    color: 'var(--t1)', fontSize: 12,
+                  }}
+                />
+                <span style={{ color: 'var(--t3)', fontSize: 12 }}>~</span>
+                <input
+                  type="date"
+                  value={docEndDate}
+                  onChange={e => setDocEndDate(e.target.value)}
+                  style={{
+                    flex: 1, padding: '6px 8px', borderRadius: 8,
+                    border: '1px solid var(--bd)', background: 'var(--bg)',
+                    color: 'var(--t1)', fontSize: 12,
+                  }}
+                />
+              </div>
+              {docTotalDays > 0 && (
+                <div style={{ fontSize: 12, color: 'var(--ac)', fontWeight: 600, marginTop: 4 }}>
+                  {docTotalDays}일간
+                </div>
+              )}
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            {/* 액션 버튼 */}
+            <button
+              onClick={handleLeaveDownload}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 8,
+                background: 'var(--ac)', color: '#fff', border: 'none',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              엑셀 다운로드
+            </button>
+            <button
+              onClick={() => window.print()}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 8,
+                background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              인쇄
+            </button>
+          </div>
+
+          {/* 우측: A4 미리보기 */}
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16 }}>
+            <img
+              src="/templates/leave_request_preview.png"
+              alt="휴가신청서 미리보기"
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+            />
           </div>
         </div>
       </div>
