@@ -154,6 +154,116 @@ export default function StaffServicePage() {
   const [docOtherReason, setDocOtherReason] = useState<string>('')
   const [docReason, setDocReason] = useState<string>('')  // 연차 외 사유
 
+  // ── 휴가신청서 미리보기 캘리브레이션 ───────────────────────
+  // 마커: 0=입사일yy, 1=입사일dd, 2=성명, 3=기간시작yy, 4=기간시작dd,
+  //       5=기간종료yy, 6=기간종료dd, 7=기간일수,
+  //       8=체크_연차, 9=체크_병가사상, 10=체크_보건, 11=체크_기타특별,
+  //       12=기타특별사유, 13=연락처, 14=신청일수, 15=사유기타사항
+  const LEAVE_CALIB_STEPS = [
+    { label: '입사일 년', color: '#ef4444' },
+    { label: '입사일 일', color: '#ef4444' },
+    { label: '성명', color: '#3b82f6' },
+    { label: '기간시작 년', color: '#22c55e' },
+    { label: '기간시작 일', color: '#22c55e' },
+    { label: '기간종료 년', color: '#f59e0b' },
+    { label: '기간종료 일', color: '#f59e0b' },
+    { label: '기간 일수', color: '#a855f7' },
+    { label: '체크 연차', color: '#000' },
+    { label: '체크 병가사상', color: '#000' },
+    { label: '체크 보건', color: '#000' },
+    { label: '체크 기타특별', color: '#000' },
+    { label: '기타특별 사유', color: '#6366f1' },
+    { label: '연락처', color: '#ec4899' },
+    { label: '신청일수', color: '#14b8a6' },
+    { label: '사유 기타사항', color: '#f97316' },
+  ] as const
+
+  type LeaveCalibData = Record<number, { x: number; y: number }>
+  const LEAVE_CALIB_KEY = 'calib_leave_request'
+  const [leaveCalibMode, setLeaveCalibMode] = useState(false)
+  const [leaveCalibStep, setLeaveCalibStep] = useState(0)
+  const [leaveCalibPoints, setLeaveCalibPoints] = useState<(null | { x: number; y: number })[]>([])
+  const [leaveActivePoint, setLeaveActivePoint] = useState<{ x: number; y: number } | null>(null)
+  const leavePreviewRef = useRef<HTMLDivElement>(null)
+  const [leaveImgRect, setLeaveImgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+
+  const loadLeaveCalib = (): LeaveCalibData => {
+    try { return JSON.parse(localStorage.getItem(LEAVE_CALIB_KEY) ?? '{}') } catch { return {} }
+  }
+  const [leaveCalib, setLeaveCalib] = useState<LeaveCalibData>(loadLeaveCalib)
+
+  const measureLeaveImg = useCallback(() => {
+    const cont = leavePreviewRef.current
+    if (!cont) return
+    const img = cont.querySelector('img')
+    if (!img) return
+    const cr = cont.getBoundingClientRect()
+    const ir = img.getBoundingClientRect()
+    setLeaveImgRect({ left: ir.left - cr.left, top: ir.top - cr.top, width: ir.width, height: ir.height })
+  }, [])
+
+  useEffect(() => {
+    measureLeaveImg()
+    const obs = new ResizeObserver(() => measureLeaveImg())
+    if (leavePreviewRef.current) obs.observe(leavePreviewRef.current)
+    return () => obs.disconnect()
+  }, [measureLeaveImg])
+
+  const leaveClientToPct = useCallback((clientX: number, clientY: number) => {
+    if (!leaveImgRect) return null
+    const cont = leavePreviewRef.current
+    if (!cont) return null
+    const cb = cont.getBoundingClientRect()
+    const x = ((clientX - cb.left - leaveImgRect.left) / leaveImgRect.width) * 100
+    const y = ((clientY - cb.top - leaveImgRect.top) / leaveImgRect.height) * 100
+    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }
+  }, [leaveImgRect])
+
+  const leaveCalibClick = useCallback((e: React.MouseEvent) => {
+    if (!leaveCalibMode) return
+    const pt = leaveClientToPct(e.clientX, e.clientY)
+    if (pt) setLeaveActivePoint(pt)
+  }, [leaveCalibMode, leaveClientToPct])
+
+  const leaveCalibConfirm = useCallback(() => {
+    if (!leaveActivePoint) return
+    const newPoints = [...leaveCalibPoints, leaveActivePoint]
+    setLeaveCalibPoints(newPoints)
+    setLeaveActivePoint(null)
+    if (leaveCalibStep + 1 >= LEAVE_CALIB_STEPS.length) {
+      const data: LeaveCalibData = {}
+      newPoints.forEach((pt, i) => { if (pt) data[i] = pt })
+      localStorage.setItem(LEAVE_CALIB_KEY, JSON.stringify(data))
+      setLeaveCalib(data)
+      setLeaveCalibMode(false); setLeaveCalibStep(0); setLeaveCalibPoints([])
+    } else {
+      setLeaveCalibStep(leaveCalibStep + 1)
+    }
+  }, [leaveActivePoint, leaveCalibPoints, leaveCalibStep])
+
+  const leaveCalibSkip = useCallback(() => {
+    const newPoints = [...leaveCalibPoints, null]
+    setLeaveCalibPoints(newPoints)
+    setLeaveActivePoint(null)
+    if (leaveCalibStep + 1 >= LEAVE_CALIB_STEPS.length) {
+      const data: LeaveCalibData = {}
+      newPoints.forEach((pt, i) => { if (pt) data[i] = pt })
+      localStorage.setItem(LEAVE_CALIB_KEY, JSON.stringify(data))
+      setLeaveCalib(data)
+      setLeaveCalibMode(false); setLeaveCalibStep(0); setLeaveCalibPoints([])
+    } else {
+      setLeaveCalibStep(leaveCalibStep + 1)
+    }
+  }, [leaveCalibPoints, leaveCalibStep])
+
+  // 캘리브 포인트로부터 보간 계산
+  const lp = leaveCalib
+  const interp = (a: number, b: number, idx: number, frac: number) => {
+    const pa = lp[a], pb = lp[b]
+    if (!pa || !pb) return null
+    return { x: pa.x + (pb.x - pa.x) * frac, y: pa.y }
+  }
+
   // staffFull.phone이 로드되면 docPhone 초기화
   useEffect(() => {
     if (staffFull?.phone && !docPhone) setDocPhone(staffFull.phone)
@@ -1147,79 +1257,128 @@ export default function StaffServicePage() {
             </button>
           </div>
 
-          {/* 우측: A4 미리보기 + 값 오버레이 */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16 }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 595, aspectRatio: '210/297' }}>
+          {/* 우측: A4 미리보기 + 캘리브레이션 기반 오버레이 */}
+          <div
+            ref={leavePreviewRef}
+            onClick={leaveCalibClick}
+            style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 16, position: 'relative', cursor: leaveCalibMode ? 'crosshair' : 'default' }}
+          >
+            {/* 캘리브레이션 버튼 */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexShrink: 0 }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setLeaveCalibMode(!leaveCalibMode); setLeaveCalibStep(0); setLeaveCalibPoints([]); setLeaveActivePoint(null) }}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  background: leaveCalibMode ? '#ef4444' : 'var(--bg3)', color: leaveCalibMode ? '#fff' : 'var(--t2)',
+                  border: leaveCalibMode ? 'none' : '1px solid var(--bd)',
+                }}
+              >
+                {leaveCalibMode ? '캘리브 취소' : '위치 보정'}
+              </button>
+              {leaveCalibMode && (
+                <span style={{ fontSize: 11, color: 'var(--t1)', alignSelf: 'center', fontWeight: 600 }}>
+                  [{leaveCalibStep + 1}/{LEAVE_CALIB_STEPS.length}] {LEAVE_CALIB_STEPS[leaveCalibStep].label}
+                </span>
+              )}
+            </div>
+
+            {/* 캘리브 확인/건너뛰기 버튼 */}
+            {leaveCalibMode && (
+              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexShrink: 0 }}>
+                <button onClick={(e) => { e.stopPropagation(); leaveCalibConfirm() }} disabled={!leaveActivePoint}
+                  style={{ padding: '4px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: leaveActivePoint ? '#22c55e' : 'var(--bg3)', color: leaveActivePoint ? '#fff' : 'var(--t3)', border: 'none' }}>
+                  확인
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); leaveCalibSkip() }}
+                  style={{ padding: '4px 16px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)' }}>
+                  건너뛰기
+                </button>
+              </div>
+            )}
+
+            <div style={{ position: 'relative', width: '100%', maxWidth: 595 }}>
               <img
                 src="/templates/leave_request_preview.png"
                 alt="휴가신청서 미리보기"
-                style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                onLoad={measureLeaveImg}
+                style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
               />
-              {/* 오버레이 값 표시 */}
-              {(() => {
+
+              {/* 캘리브 모드: 활성 마커 + 기존 마커 */}
+              {leaveCalibMode && (
+                <>
+                  {leaveActivePoint && (
+                    <div style={{ position: 'absolute', left: `${leaveActivePoint.x}%`, top: `${leaveActivePoint.y}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 10 }}>
+                      <div style={{ position: 'absolute', left: -15, top: 0, width: 30, height: 2, background: LEAVE_CALIB_STEPS[leaveCalibStep].color, opacity: 0.8 }} />
+                      <div style={{ position: 'absolute', top: -15, left: 0, width: 2, height: 30, background: LEAVE_CALIB_STEPS[leaveCalibStep].color, opacity: 0.8 }} />
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: LEAVE_CALIB_STEPS[leaveCalibStep].color, border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', transform: 'translate(-50%, -50%)', position: 'absolute' }} />
+                    </div>
+                  )}
+                  {leaveCalibPoints.map((pt, i) => pt && (
+                    <div key={i} style={{ position: 'absolute', left: `${pt.x}%`, top: `${pt.y}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: LEAVE_CALIB_STEPS[i].color, border: '1px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)', position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: '#fff', fontWeight: 900 }}>
+                        {i + 1}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* 값 오버레이 (캘리브 모드가 아닐 때) */}
+              {!leaveCalibMode && (() => {
                 const sid = staff?.id ?? ''
-                const hp = sid.length >= 8 ? [`${sid.slice(0,4)}`, `${sid.slice(4,6)}`, `${sid.slice(6,8)}`] : null
+                const hp = sid.length >= 8 ? [sid.slice(0,4), sid.slice(4,6), sid.slice(6,8)] : null
                 const sp = docStartDate ? docStartDate.split('-') : null
                 const ep = docEndDate ? docEndDate.split('-') : null
-                const docLabel: Record<string, string> = {
-                  annual: '연차휴가', half_am: '오전반차', half_pm: '오후반차',
-                  condolence: '경조휴가', sick_work: '병가(공상)', sick_personal: '병가(사상)',
-                  health: '보건휴가', official: '공가', official_half_am: '오전공가', official_half_pm: '오후공가',
-                  other_special: '기타특별휴가',
+                const ovAt = (p: { x: number; y: number } | undefined, text: string, extra?: React.CSSProperties) =>
+                  p ? <span key={`${p.x}-${p.y}-${text}`} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)', fontSize: 10, fontWeight: 700, color: '#111', whiteSpace: 'nowrap', fontFamily: "'Noto Sans KR', sans-serif", ...extra }}>{text}</span> : null
+
+                // 입사일: 0=yy, 1=dd → mm 보간
+                const hireMm = lp[0] && lp[1] ? { x: lp[0].x + (lp[1].x - lp[0].x) * 0.5, y: lp[0].y } : undefined
+                // 기간시작: 3=yy, 4=dd → mm 보간
+                const startMm = lp[3] && lp[4] ? { x: lp[3].x + (lp[4].x - lp[3].x) * 0.5, y: lp[3].y } : undefined
+                // 기간종료: 5=yy, 6=dd → mm 보간
+                const endMm = lp[5] && lp[6] ? { x: lp[5].x + (lp[6].x - lp[5].x) * 0.5, y: lp[5].y } : undefined
+
+                // 체크박스: 8=연차, 9=병가사상 → 경조/병가공상 보간, 10=보건, 11=기타특별 → 공가 보간
+                const chk8 = lp[8], chk9 = lp[9], chk10 = lp[10], chk11 = lp[11]
+                const checkMap: Record<string, { x: number; y: number } | undefined> = {
+                  annual: chk8, half_am: chk8, half_pm: chk8,
+                  condolence: chk8 && chk9 ? { x: chk8.x + (chk9.x - chk8.x) * 0.333, y: chk8.y } : undefined,
+                  sick_work: chk8 && chk9 ? { x: chk8.x + (chk9.x - chk8.x) * 0.667, y: chk8.y } : undefined,
+                  sick_personal: chk9,
+                  health: chk10,
+                  official: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
+                  official_half_am: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
+                  official_half_pm: chk10 && chk11 ? { x: chk10.x + (chk11.x - chk10.x) * 0.5, y: chk10.y } : undefined,
+                  other_special: chk11,
                 }
-                // 체크박스 위치 (% 기준)
-                const checkPos: Record<string, { top: string; left: string }> = {
-                  annual: { top: '44.2%', left: '9%' }, half_am: { top: '44.2%', left: '9%' }, half_pm: { top: '44.2%', left: '9%' },
-                  condolence: { top: '44.2%', left: '32%' },
-                  sick_work: { top: '44.2%', left: '56%' },
-                  sick_personal: { top: '44.2%', left: '78%' },
-                  health: { top: '48.5%', left: '9%' },
-                  official: { top: '48.5%', left: '32%' }, official_half_am: { top: '48.5%', left: '32%' }, official_half_pm: { top: '48.5%', left: '32%' },
-                  other_special: { top: '48.5%', left: '56%' },
-                }
-                const cp = checkPos[docLeaveType]
-                const ovStyle = (top: string, left: string, w?: string): React.CSSProperties => ({
-                  position: 'absolute', top, left, fontSize: '1.1cqw', fontWeight: 700, color: '#111', whiteSpace: 'nowrap',
-                  ...(w ? { width: w } : {}),
-                })
+                const cp = checkMap[docLeaveType]
+
                 return (
                   <>
-                    {/* 입사일 */}
                     {hp && <>
-                      <span style={ovStyle('26.5%', '68%')}>{hp[0].slice(2)}</span>
-                      <span style={ovStyle('26.5%', '75%')}>{String(parseInt(hp[1]))}</span>
-                      <span style={ovStyle('26.5%', '82%')}>{String(parseInt(hp[2]))}</span>
+                      {ovAt(lp[0], hp[0].slice(2))}
+                      {ovAt(hireMm, String(parseInt(hp[1])))}
+                      {ovAt(lp[1], String(parseInt(hp[2])))}
                     </>}
-                    {/* 성명 */}
-                    {staff && <span style={ovStyle('30.2%', '26%')}>{staff.name}</span>}
-                    {/* 기간 */}
+                    {staff && ovAt(lp[2], staff.name)}
                     {sp && <>
-                      <span style={ovStyle('36.5%', '14%')}>{sp[0].slice(2)}</span>
-                      <span style={ovStyle('36.5%', '22%')}>{String(parseInt(sp[1]))}</span>
-                      <span style={ovStyle('36.5%', '30%')}>{String(parseInt(sp[2]))}</span>
+                      {ovAt(lp[3], sp[0].slice(2))}
+                      {ovAt(startMm, String(parseInt(sp[1])))}
+                      {ovAt(lp[4], String(parseInt(sp[2])))}
                     </>}
                     {ep && <>
-                      <span style={ovStyle('36.5%', '48%')}>{ep[0].slice(2)}</span>
-                      <span style={ovStyle('36.5%', '55%')}>{String(parseInt(ep[1]))}</span>
-                      <span style={ovStyle('36.5%', '63%')}>{String(parseInt(ep[2]))}</span>
+                      {ovAt(lp[5], ep[0].slice(2))}
+                      {ovAt(endMm, String(parseInt(ep[1])))}
+                      {ovAt(lp[6], String(parseInt(ep[2])))}
                     </>}
-                    {docPeriodDays > 0 && <span style={ovStyle('36.5%', '75%')}>{docPeriodDays}</span>}
-                    {/* 체크박스 마크 */}
-                    {cp && <div style={{ position: 'absolute', top: cp.top, left: cp.left, width: '3.5%', aspectRatio: '1', background: '#000' }} />}
-                    {/* 기타특별 사유 */}
-                    {docLeaveType === 'other_special' && docOtherReason && (
-                      <span style={ovStyle('48.5%', '72%')}>{docOtherReason}</span>
-                    )}
-                    {/* 연락처 */}
-                    {docPhone && <span style={ovStyle('57.5%', '20%')}>{docPhone}</span>}
-                    {/* 신청일수 */}
-                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && (
-                      <span style={ovStyle('63.5%', '60%')}>{docWorkDays}</span>
-                    )}
-                    {/* 사유 (기타사항) */}
-                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && (
-                      <span style={ovStyle('68%', '20%', '60%')}>{docReason}</span>
-                    )}
+                    {docPeriodDays > 0 && ovAt(lp[7], String(docPeriodDays))}
+                    {cp && <div style={{ position: 'absolute', left: `${cp.x}%`, top: `${cp.y}%`, transform: 'translate(-50%, -50%)', width: 12, height: 12, background: '#000' }} />}
+                    {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[12], docOtherReason)}
+                    {docPhone && ovAt(lp[13], docPhone)}
+                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && ovAt(lp[14], String(docWorkDays))}
+                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[15], docReason)}
                   </>
                 )
               })()}
