@@ -126,6 +126,17 @@ const DOC_LEAVE_GRID: { type: string; label: string; cols?: number }[][] = [
 // 연차 계열 타입 (사유 불필요)
 const ANNUAL_TYPES = new Set(['annual', 'half_am', 'half_pm'])
 
+// 중앙 패널 버튼 → API leave type 매핑 (달력 등록용)
+const DOC_TO_API_TYPE: Record<string, string> = {
+  annual: 'full', half_am: 'half_am', half_pm: 'half_pm',
+  official: 'official_full', official_half_am: 'official_half_am', official_half_pm: 'official_half_pm',
+}
+// 역방향: API type → doc type (달력에서 현재 선택 표시용)
+const API_TO_DOC_TYPE: Record<string, string> = {
+  full: 'annual', half_am: 'half_am', half_pm: 'half_pm',
+  official_full: 'official', official_half_am: 'official_half_am', official_half_pm: 'official_half_pm',
+}
+
 const LEAVE_LABEL: Record<string, string> = {
   full: '연차', half_am: '오전반차', half_pm: '오후반차',
   official_full: '공가', official_half_am: '공가오전', official_half_pm: '공가오후',
@@ -946,44 +957,6 @@ export default function StaffServicePage() {
         )}
       </div>
 
-      {/* 연차 */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>연차</div>
-        {(selCell.isWeekend || selCell.isHoliday) ? (
-          <div style={{ fontSize: 12, color: 'var(--t3)', padding: '10px 14px', background: 'var(--bg3)', borderRadius: 8 }}>
-            {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 연차 등록이 불가합니다
-          </div>
-        ) : (
-          <>
-            {selCell.hasInspect && (
-              <div style={{ fontSize: 12, color: '#f59e0b', marginBottom: 8, padding: '6px 10px', background: 'rgba(245,158,11,0.1)', borderRadius: 6 }}>
-                소방 점검일 - 연차 등록 주의
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              {LEAVE_TYPES.map(btn => {
-                const isActive = selMyLeave?.type === btn.type
-                return (
-                  <button
-                    key={btn.type}
-                    onClick={() => handleTypeBtn(btn.type)}
-                    style={{
-                      padding: '10px 4px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                      cursor: 'pointer',
-                      background: isActive ? `rgba(${btn.rgb},0.25)` : `rgba(${btn.rgb},0.08)`,
-                      border: isActive ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      color: isActive ? 'var(--t1)' : 'var(--t2)',
-                    }}
-                  >
-                    {btn.label}
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </div>
-
       {/* 식사 */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>
@@ -1135,20 +1108,26 @@ export default function StaffServicePage() {
                 <div key={ri} style={{ display: 'grid', gridTemplateColumns: row.length === 1 ? '1fr' : 'repeat(3, 1fr)', gap: 4 }}>
                   {row.map(lt => {
                     const active = docLeaveType === lt.type
+                    const apiType = DOC_TO_API_TYPE[lt.type]
+                    const isRegistered = apiType && selMyLeave?.type === apiType
                     return (
                       <button
                         key={lt.type}
-                        onClick={() => setDocLeaveType(lt.type)}
+                        onClick={() => {
+                          setDocLeaveType(lt.type)
+                          // API 연동 타입이면 달력에 등록/취소
+                          if (apiType && selDate) handleTypeBtn(apiType)
+                        }}
                         style={{
                           gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
                           padding: '7px 4px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                           cursor: 'pointer', textAlign: 'center',
-                          background: active ? 'var(--ac)' : 'var(--bg3)',
-                          color: active ? '#fff' : 'var(--t2)',
-                          border: active ? '1px solid var(--ac)' : '1px solid var(--bd)',
+                          background: isRegistered ? 'rgba(34,197,94,0.25)' : active ? 'var(--ac)' : 'var(--bg3)',
+                          color: isRegistered ? '#22c55e' : active ? '#fff' : 'var(--t2)',
+                          border: isRegistered ? '2px solid #22c55e' : active ? '1px solid var(--ac)' : '1px solid var(--bd)',
                         }}
                       >
-                        {lt.label}
+                        {lt.label}{isRegistered ? ' ✓' : ''}
                       </button>
                     )
                   })}
@@ -1268,42 +1247,37 @@ export default function StaffServicePage() {
           <div
             ref={leavePreviewRef}
             onClick={leaveCalibClick}
-            style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 16, position: 'relative', cursor: leaveCalibMode ? 'crosshair' : 'default' }}
+            style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, position: 'relative', cursor: leaveCalibMode ? 'crosshair' : 'default' }}
           >
-            {/* 캘리브레이션 버튼 */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexShrink: 0 }}>
-              <button
-                onClick={(e) => { e.stopPropagation(); setLeaveCalibMode(!leaveCalibMode); setLeaveCalibStep(0); setLeaveCalibPoints([]); setLeaveActivePoint(null) }}
-                style={{
-                  padding: '4px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  background: leaveCalibMode ? '#ef4444' : 'var(--bg3)', color: leaveCalibMode ? '#fff' : 'var(--t2)',
-                  border: leaveCalibMode ? 'none' : '1px solid var(--bd)',
-                }}
-              >
-                {leaveCalibMode ? '캘리브 취소' : '위치 보정'}
-              </button>
-              {leaveCalibMode && (
-                <span style={{ fontSize: 11, color: 'var(--t1)', alignSelf: 'center', fontWeight: 600 }}>
-                  [{leaveCalibStep + 1}/{LEAVE_CALIB_STEPS.length}] {LEAVE_CALIB_STEPS[leaveCalibStep].label}
-                </span>
-              )}
-            </div>
-
-            {/* 캘리브 확인/건너뛰기 버튼 */}
-            {leaveCalibMode && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexShrink: 0 }}>
-                <button onClick={(e) => { e.stopPropagation(); leaveCalibConfirm() }} disabled={!leaveActivePoint}
-                  style={{ padding: '4px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', background: leaveActivePoint ? '#22c55e' : 'var(--bg3)', color: leaveActivePoint ? '#fff' : 'var(--t3)', border: 'none' }}>
-                  확인
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); leaveCalibSkip() }}
-                  style={{ padding: '4px 16px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)' }}>
-                  건너뛰기
-                </button>
-              </div>
-            )}
-
             <div style={{ position: 'relative', width: '100%', maxWidth: 595 }}>
+              {/* 캘리브레이션 버튼 (미리보기 안 상단) */}
+              <div style={{ position: 'absolute', top: 4, right: 4, zIndex: 20, display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLeaveCalibMode(!leaveCalibMode); setLeaveCalibStep(0); setLeaveCalibPoints([]); setLeaveActivePoint(null) }}
+                  style={{
+                    padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                    background: leaveCalibMode ? '#ef4444' : 'rgba(0,0,0,0.5)', color: '#fff',
+                    border: 'none', backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  {leaveCalibMode ? '취소' : '위치 보정'}
+                </button>
+                {leaveCalibMode && (
+                  <>
+                    <span style={{ fontSize: 10, color: '#fff', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+                      [{leaveCalibStep + 1}/{LEAVE_CALIB_STEPS.length}] {LEAVE_CALIB_STEPS[leaveCalibStep].label}
+                    </span>
+                    <button onClick={(e) => { e.stopPropagation(); leaveCalibConfirm() }} disabled={!leaveActivePoint}
+                      style={{ padding: '3px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: leaveActivePoint ? '#22c55e' : 'rgba(0,0,0,0.3)', color: '#fff', border: 'none' }}>
+                      확인
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); leaveCalibSkip() }}
+                      style={{ padding: '3px 12px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', background: 'rgba(0,0,0,0.3)', color: '#fff', border: 'none' }}>
+                      건너뛰기
+                    </button>
+                  </>
+                )}
+              </div>
               <img
                 src="/templates/leave_request_preview.png"
                 alt="휴가신청서 미리보기"
