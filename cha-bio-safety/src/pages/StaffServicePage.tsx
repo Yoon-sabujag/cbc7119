@@ -1131,10 +1131,39 @@ export default function StaffServicePage() {
                         key={lt.type}
                         onClick={async () => {
                           setDocLeaveType(lt.type)
-                          // API 연동 타입이면 달력에 등록/취소
-                          if (apiType && selDate) {
-                            await handleTypeBtn(apiType)
+                          if (!apiType || !docStartDate) return
+                          const end = docEndDate || docStartDate
+                          const toastId = toast.loading('등록 중...')
+                          try {
+                            const cur = new Date(docStartDate)
+                            const endD = new Date(end)
+                            let registered = 0, cancelled = 0
+                            while (cur <= endD) {
+                              const ymd = localYMD(cur)
+                              const dow = cur.getDay()
+                              // 주말/공휴일 건너뛰기
+                              if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) {
+                                // 해당 날짜에 이미 같은 타입이 있으면 취소, 아니면 등록
+                                const existing = myLeaveMap[ymd]
+                                if (existing && existing.type === apiType) {
+                                  await leaveApi.delete(existing.id)
+                                  cancelled++
+                                } else {
+                                  // 다른 타입이 있으면 먼저 삭제
+                                  if (existing) await leaveApi.delete(existing.id)
+                                  await leaveApi.create(ymd, apiType as any)
+                                  registered++
+                                }
+                              }
+                              cur.setDate(cur.getDate() + 1)
+                            }
+                            if (cancelled > 0 && registered === 0) toast.success(`${cancelled}일 취소`, { id: toastId })
+                            else toast.success(`${registered}일 등록`, { id: toastId })
+                          } catch (err: any) {
+                            toast.error(err?.message ?? '오류 발생', { id: toastId })
                           }
+                          await qc.invalidateQueries({ queryKey: ['leaves'] })
+                          await qc.invalidateQueries({ queryKey: ['leaves-year'] })
                         }}
                         style={{
                           gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
