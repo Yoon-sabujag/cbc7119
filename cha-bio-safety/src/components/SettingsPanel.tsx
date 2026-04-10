@@ -42,7 +42,8 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { authApi, pushApi, NotificationPreferences } from '../utils/api'
+import { authApi, pushApi, staffApi, NotificationPreferences } from '../utils/api'
+import { useStaffList } from '../hooks/useStaffList'
 import { MenuSettingsSection } from './MenuSettingsSection'
 
 interface Props {
@@ -173,12 +174,92 @@ function NameEditModal({ currentName, onClose, onSave }: { currentName: string; 
   )
 }
 
+// ── 개인정보 수정 폼 ─────────────────────────────────
+function ProfileEditForm({ onDone }: { onDone: () => void }) {
+  const { staff, updateStaff } = useAuthStore()
+  const { data: staffList = [] } = useStaffList()
+  const staffFull = staffList.find(s => s.id === staff?.id)
+
+  const [name, setName] = useState(staff?.name ?? '')
+  const [phone, setPhone] = useState(staffFull?.phone ?? '')
+  const [email, setEmail] = useState(staffFull?.email ?? '')
+
+  // staffFull 로드 후 초기값 반영
+  useEffect(() => {
+    if (staffFull) {
+      setPhone(staffFull.phone ?? '')
+      setEmail(staffFull.email ?? '')
+    }
+  }, [staffFull])
+
+  const mutation = useMutation({
+    mutationFn: () => authApi.updateProfile({ name: name.trim(), phone, email }),
+    onSuccess: (data) => {
+      updateStaff({ name: data.name })
+      toast.success('개인정보가 수정되었습니다')
+      onDone()
+    },
+    onError: (e: any) => toast.error(e?.message || '수정에 실패했습니다'),
+  })
+
+  const canSave = name.trim() !== '' && name.trim().length <= 20
+
+  const INPUT_STYLE: React.CSSProperties = {
+    height: 38, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8,
+    padding: '0 12px', fontSize: 12, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' as const,
+  }
+  const READONLY_STYLE: React.CSSProperties = { ...INPUT_STYLE, color: 'var(--t3)', background: 'var(--bg)' }
+
+  return (
+    <div style={{ padding: '12px 13px' }}>
+      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>개인정보 수정</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이름</div>
+          <input value={name} onChange={e => setName(e.target.value)} maxLength={20} style={INPUT_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>사번</div>
+          <input value={staff?.id ?? ''} readOnly style={READONLY_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>연락처</div>
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" style={INPUT_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이메일</div>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={INPUT_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>입사일</div>
+          <input value={staffFull?.appointedAt ?? '-'} readOnly style={READONLY_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>직책</div>
+          <input value={staff?.title ?? '-'} readOnly style={READONLY_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>역할</div>
+          <input value={staff?.role === 'admin' ? '관리자' : '보조자'} readOnly style={READONLY_STYLE} />
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onDone} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
+          <button onClick={() => mutation.mutate()} disabled={!canSave || mutation.isPending}
+            style={{ flex: 1, height: 36, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !mutation.isPending ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: canSave && !mutation.isPending ? 1 : 0.4 }}>
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── SettingsPanel ────────────────────────────────────
 export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const navigate = useNavigate()
   const { staff, logout, updateStaff } = useAuthStore()
   const [showPwChange, setShowPwChange] = useState(false)
-  const [showNameEdit, setShowNameEdit] = useState(false)
+  const [showProfileEdit, setShowProfileEdit] = useState(false)
   const [notifCollapsed, setNotifCollapsed] = usePersistedCollapse('settings.notif.collapsed', true)
   const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
   const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
@@ -361,13 +442,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
               {avatarChar}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div onClick={() => setShowNameEdit(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{displayName}</span>
-                <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="var(--t3)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{displayName}</span>
               <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>{displayTitle} · {displayRole}</div>
             </div>
           </div>
@@ -442,14 +517,19 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         {/* 계정 */}
         {showPwChange ? (
           <ChangePasswordForm onDone={() => setShowPwChange(false)} />
+        ) : showProfileEdit ? (
+          <ProfileEditForm onDone={() => setShowProfileEdit(false)} />
         ) : (
           <div style={{ padding: '12px 13px 5px' }}>
             <SectionHeader label="계정" collapsed={accountCollapsed} onToggle={() => setAccountCollapsed(c => !c)} />
-            {!accountCollapsed && (
+            {!accountCollapsed && (<>
+              <Row label="개인정보 수정" sub="이름, 연락처, 이메일" onClick={() => setShowProfileEdit(true)}>
+                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              </Row>
               <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
                 <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
               </Row>
-            )}
+            </>)}
           </div>
         )}
 
@@ -486,14 +566,6 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         </div>
       </div>
 
-      {/* 이름 변경 모달 */}
-      {showNameEdit && (
-        <NameEditModal
-          currentName={displayName}
-          onClose={() => setShowNameEdit(false)}
-          onSave={handleNameSaved}
-        />
-      )}
     </>
   )
 }
