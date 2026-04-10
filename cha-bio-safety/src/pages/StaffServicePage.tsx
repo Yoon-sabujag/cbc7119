@@ -1478,38 +1478,70 @@ export default function StaffServicePage() {
 
             {/* Leave section */}
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>연차</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>휴가</div>
               {(selCell.isWeekend || selCell.isHoliday) ? (
                 <div style={{ fontSize: 11, color: 'var(--t3)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
-                  {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 연차 등록이 불가합니다
+                  {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 휴가 등록이 불가합니다
                 </div>
               ) : (
                 <>
                   {selCell.hasInspect && (
                     <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 6, padding: '4px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 6 }}>
-                      소방 점검일 - 연차 등록 주의
+                      소방 점검일 - 휴가 등록 주의
                     </div>
                   )}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                    {LEAVE_TYPES.map(btn => {
-                      const isActive = selMyLeave?.type === btn.type
-                      return (
-                        <button
-                          key={btn.type}
-                          onClick={() => handleTypeBtn(btn.type)}
-                          style={{
-                            padding: '8px 2px', borderRadius: 8, fontSize: 11, fontWeight: 700,
-                            cursor: 'pointer',
-                            background: isActive ? `rgba(${btn.rgb},0.25)` : `rgba(${btn.rgb},0.08)`,
-                            border: isActive ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                            color: isActive ? 'var(--t1)' : 'var(--t2)',
-                          }}
-                        >
-                          {btn.label}
-                        </button>
-                      )
-                    })}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {DOC_LEAVE_GRID.map((row, ri) => (
+                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: row.length === 1 ? '1fr' : 'repeat(3, 1fr)', gap: 4 }}>
+                        {row.map(lt => {
+                          const apiType = DOC_TO_API_TYPE[lt.type]
+                          const isRegistered = apiType && selMyLeave?.type === apiType
+                          return (
+                            <button
+                              key={lt.type}
+                              onClick={async () => {
+                                if (!apiType || !selDate) return
+                                try {
+                                  const existing = myLeaveMap[selDate]
+                                  if (existing?.type === apiType) {
+                                    await leaveApi.delete(existing.id)
+                                    toast.success('취소')
+                                  } else {
+                                    if (existing) await leaveApi.delete(existing.id)
+                                    await leaveApi.create(selDate, apiType as any)
+                                    toast.success(`${lt.label} 등록`)
+                                  }
+                                } catch (err: any) { toast.error(err?.message ?? '오류') }
+                                await qc.invalidateQueries({ queryKey: ['leaves'] })
+                                await qc.invalidateQueries({ queryKey: ['leaves-year'] })
+                              }}
+                              style={{
+                                gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
+                                padding: '7px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                cursor: 'pointer', textAlign: 'center',
+                                background: isRegistered ? 'rgba(34,197,94,0.25)' : 'var(--bg3)',
+                                color: isRegistered ? '#22c55e' : 'var(--t2)',
+                                border: isRegistered ? '2px solid #22c55e' : '1px solid var(--bd)',
+                              }}
+                            >
+                              {lt.label}{isRegistered ? ' ✓' : ''}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    ))}
                   </div>
+                  {/* 프린트 버튼 */}
+                  <button
+                    onClick={() => window.print()}
+                    style={{
+                      width: '100%', marginTop: 8, padding: '8px 0', borderRadius: 8,
+                      background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    휴가신청서 인쇄
+                  </button>
                 </>
               )}
             </div>
