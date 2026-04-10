@@ -162,7 +162,15 @@ export default function StaffServicePage() {
   const docTotalDays = useMemo(() => {
     if (!docStartDate || !docEndDate) return 0
     const s = new Date(docStartDate), e = new Date(docEndDate)
-    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1)
+    let count = 0
+    const cur = new Date(s)
+    while (cur <= e) {
+      const dow = cur.getDay()
+      const ymd = localYMD(cur)
+      if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) count++
+      cur.setDate(cur.getDate() + 1)
+    }
+    return Math.max(count, 0)
   }, [docStartDate, docEndDate])
 
   const handleLeaveDownload = useCallback(async () => {
