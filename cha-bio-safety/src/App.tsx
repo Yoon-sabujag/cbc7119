@@ -41,6 +41,7 @@ const LegalFindingDetailPage  = lazy(() => import('./pages/LegalFindingDetailPag
 const ElevatorFindingDetailPage = lazy(() => import('./pages/ElevatorFindingDetailPage'))
 const AnnualPlanPage            = lazy(() => import('./pages/AnnualPlanPage'))
 const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
+const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -60,7 +61,7 @@ function Loader() {
 }
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
-const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/meal', '/education', '/admin', '/legal', '/elevator/findings', '/annual-plan']
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/admin', '/legal', '/elevator/findings', '/annual-plan']
 
 // 데스크톱: 로그인/스플래시만 nav 숨김 — 나머지는 모두 사이드바 표시
 const DESKTOP_NO_NAV_PATHS = ['/', '/login']
@@ -86,6 +87,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
+  '/worklog': '업무수행기록표',
 }
 
 function Layout() {
@@ -232,6 +234,7 @@ function Layout() {
               <Route path="/legal/:id/finding/:fid"     element={<Auth><LegalFindingDetailPage /></Auth>} />
               <Route path="/annual-plan"    element={<Auth><AnnualPlanPage /></Auth>} />
               <Route path="/documents"      element={<Auth><DocumentsPage /></Auth>} />
+              <Route path="/worklog"        element={<Auth><WorkLogPage /></Auth>} />
               <Route path="/e/:checkpointId" element={<ExtinguisherPublicPage />} />
               <Route path="*"              element={<NotFoundPage />} />
             </Routes>

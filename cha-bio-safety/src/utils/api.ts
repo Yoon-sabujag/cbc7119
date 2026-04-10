@@ -323,6 +323,7 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/legal',      visible: true },
   { type: 'divider', id: 'd-docs',     title: '문서 관리' },
   { type: 'item', path: '/documents',    visible: true },
+  { type: 'item', path: '/worklog',      visible: true },
   { type: 'item', path: '/daily-report', visible: true },
   { type: 'item', path: '/schedule',     visible: true },
   { type: 'item', path: '/workshift',    visible: true },
