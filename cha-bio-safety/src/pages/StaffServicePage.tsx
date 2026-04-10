@@ -1650,7 +1650,7 @@ export default function StaffServicePage() {
 
                   {/* 엑셀 다운로드 */}
                   <button onClick={handleLeaveDownload}
-                    style={{ width: '100%', padding: '8px 0', borderRadius: 8, background: 'var(--ac)', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                    style={{ width: '100%', marginTop: 4, padding: '10px 0', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     휴가신청서 다운로드
                   </button>
                 </>
