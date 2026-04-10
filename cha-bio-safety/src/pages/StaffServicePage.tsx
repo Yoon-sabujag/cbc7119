@@ -301,15 +301,12 @@ export default function StaffServicePage() {
     if (staffFull?.phone && !docPhone) setDocPhone(staffFull.phone)
   }, [staffFull?.phone])
 
-  // 순수 기간 일수 (달력 일수)
-  const docPeriodDays = useMemo(() => {
-    if (!docStartDate || !docEndDate) return 0
-    const s = new Date(docStartDate), e = new Date(docEndDate)
-    return Math.max(1, Math.round((e.getTime() - s.getTime()) / 86400000) + 1)
-  }, [docStartDate, docEndDate])
+  // 반차 타입 판별
+  const HALF_TYPES = new Set(['half_am', 'half_pm', 'official_half_am', 'official_half_pm'])
+  const isHalfType = HALF_TYPES.has(docLeaveType)
 
-  // 근무일수 (주말+공휴일 제외) — 연차 신청일수용
-  const docWorkDays = useMemo(() => {
+  // 근무일수 (주말+공휴일 제외)
+  const docRawWorkDays = useMemo(() => {
     if (!docStartDate || !docEndDate) return 0
     const s = new Date(docStartDate), e = new Date(docEndDate)
     let count = 0
@@ -322,6 +319,9 @@ export default function StaffServicePage() {
     }
     return count
   }, [docStartDate, docEndDate])
+
+  // 기간 일수 = 신청일수 = 근무일수 (반차는 0.5 적용)
+  const docDays = isHalfType ? docRawWorkDays * 0.5 : docRawWorkDays
 
   const handleLeaveDownload = useCallback(async () => {
     if (!staff || !docStartDate || !docEndDate) {
@@ -346,14 +346,14 @@ export default function StaffServicePage() {
         reason: docReason,
         startDate: docStartDate,
         endDate: docEndDate,
-        totalDays: docPeriodDays,
-        workDays: docWorkDays,
+        totalDays: docDays,
+        workDays: docDays,
       })
       toast.success('휴가신청서 다운로드 완료', { id: toastId })
     } catch (err: any) {
       toast.error(err?.message ?? '생성 실패', { id: toastId })
     }
-  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docReason, docPeriodDays, docWorkDays])
+  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docReason, docDays])
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
   const staffId = staff?.id ?? ''
@@ -1229,9 +1229,9 @@ export default function StaffServicePage() {
                   }}
                 />
               </div>
-              {docPeriodDays > 0 && (
+              {docDays > 0 && (
                 <div style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 3 }}>
-                  {docPeriodDays}일간{ANNUAL_TYPES.has(docLeaveType) && docWorkDays !== docPeriodDays ? ` (근무일 ${docWorkDays}일)` : ''}
+                  {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일간
                 </div>
               )}
             </div>
@@ -1370,11 +1370,11 @@ export default function StaffServicePage() {
                       {ovAt(endMm, String(parseInt(ep[1])))}
                       {ovAt(lp[6], String(parseInt(ep[2])))}
                     </>}
-                    {docPeriodDays > 0 && ovAt(lp[7], String(docPeriodDays))}
+                    {docDays > 0 && ovAt(lp[7], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
                     {cp && <div style={{ position: 'absolute', left: `${cp.x}%`, top: `${cp.y}%`, transform: 'translate(-50%, -50%)', width: 12, height: 12, background: '#000' }} />}
                     {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[15], docOtherReason)}
                     {docPhone && ovAt(lp[16], docPhone)}
-                    {docWorkDays > 0 && ANNUAL_TYPES.has(docLeaveType) && ovAt(lp[17], String(docWorkDays))}
+                    {docDays > 0 && ovAt(lp[17], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
                     {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[18], docReason)}
                   </>
                 )

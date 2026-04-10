@@ -223,8 +223,9 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
   sheetXml = patchCell(sheetXml, 'W15', e.mm)
   sheetXml = patchCell(sheetXml, 'Z15', e.dd)
 
-  // ── 일수 (AC15) ───────────────────────────────────────────
-  sheetXml = patchCell(sheetXml, 'AC15', data.totalDays)
+  // ── 일수 (AC15) — 근무일수 (반차 0.5 적용) ────────────────
+  const displayDays = data.totalDays % 1 === 0 ? data.totalDays : Number(data.totalDays.toFixed(1))
+  sheetXml = patchCell(sheetXml, 'AC15', displayDays)
 
   // ── 휴가 종류 체크박스 (black fill) ────────────────────────
   const checkAddr = CHECKBOX_CELLS[data.leaveType]
@@ -240,9 +241,9 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
     sheetXml = patchCell(sheetXml, 'AC21', data.otherReason)
   }
 
-  // ── 연차 선택 시 신청일수 (U36) — 근무일수 사용 ─────────────
-  if (data.leaveType === 'annual' && data.workDays != null) {
-    sheetXml = patchCell(sheetXml, 'U36', data.workDays)
+  // ── 신청일수 (U36) — 모든 휴가종류 ─────────────────────────
+  if (data.workDays != null && data.workDays > 0) {
+    sheetXml = patchCell(sheetXml, 'U36', data.workDays % 1 === 0 ? data.workDays : Number(data.workDays.toFixed(1)))
   }
 
   // ── 연차 외 선택시 사유 (H39 — 기타사항 란) ──────────────────
