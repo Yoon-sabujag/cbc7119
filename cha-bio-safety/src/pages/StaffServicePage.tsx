@@ -168,7 +168,7 @@ export default function StaffServicePage() {
 
   // ── 휴가신청서 폼 state (desktop only) ──────────────────────
   const staffFull = staffList.find(s => s.id === (staff?.id ?? '')) as StaffFull | undefined
-  const [docLeaveType, setDocLeaveType] = useState<string>('annual')
+  const [docLeaveType, setDocLeaveType] = useState<string>('')
   const [docPhone, setDocPhone] = useState<string>('')
   const [docStartDate, setDocStartDate] = useState<string>('')
   const [docEndDate, setDocEndDate] = useState<string>('')
@@ -793,7 +793,7 @@ export default function StaffServicePage() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isDesktop ? 2 : 3 }}>
           {calendarDays.map((cell, idx) => {
-            if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
+            if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: isDesktop ? '1.2' : '1' }} />
 
             const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
             const isSel = cell.ymd === selDate
@@ -820,7 +820,7 @@ export default function StaffServicePage() {
                 key={cell.ymd}
                 onClick={() => isClickable && handleDayClick(cell.ymd)}
                 style={{
-                  aspectRatio: '1',
+                  aspectRatio: isDesktop ? '1.2' : '1',
                   borderRadius: 8,
                   background: cellBg,
                   border: isSel ? '2.5px solid #facc15' : isToday ? '2px solid rgba(59,130,246,0.5)' : '1px solid rgba(255,255,255,0.04)',
