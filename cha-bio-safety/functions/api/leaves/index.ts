@@ -72,7 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   const body = await request.json<{ date: string; type: string }>()
 
-  if (!body.date || !body.type || !['full', 'half_am', 'half_pm', 'official_full', 'official_half_am', 'official_half_pm'].includes(body.type)) {
+  if (!body.date || !body.type || !['full', 'half_am', 'half_pm', 'official_full', 'official_half_am', 'official_half_pm', 'condolence', 'sick_work', 'sick_personal', 'health', 'other_special'].includes(body.type)) {
     return Response.json({ success: false, error: '필수 항목 누락 또는 형식 오류' }, { status: 400 })
   }
 

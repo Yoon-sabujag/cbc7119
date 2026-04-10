@@ -98,6 +98,11 @@ const LEAVE_BG: Record<string, string> = {
   official_full: '#a855f7',
   official_half_am: '#a855f7',
   official_half_pm: '#a855f7',
+  condolence: '#f97316',
+  sick_work: '#ef4444',
+  sick_personal: '#ef4444',
+  health: '#ec4899',
+  other_special: '#6366f1',
 }
 
 // 중앙 패널 휴가종류 버튼 구성
@@ -130,16 +135,21 @@ const ANNUAL_TYPES = new Set(['annual', 'half_am', 'half_pm'])
 const DOC_TO_API_TYPE: Record<string, string> = {
   annual: 'full', half_am: 'half_am', half_pm: 'half_pm',
   official: 'official_full', official_half_am: 'official_half_am', official_half_pm: 'official_half_pm',
+  condolence: 'condolence', sick_work: 'sick_work', sick_personal: 'sick_personal',
+  health: 'health', other_special: 'other_special',
 }
 // 역방향: API type → doc type (달력에서 현재 선택 표시용)
 const API_TO_DOC_TYPE: Record<string, string> = {
   full: 'annual', half_am: 'half_am', half_pm: 'half_pm',
   official_full: 'official', official_half_am: 'official_half_am', official_half_pm: 'official_half_pm',
+  condolence: 'condolence', sick_work: 'sick_work', sick_personal: 'sick_personal',
+  health: 'health', other_special: 'other_special',
 }
 
 const LEAVE_LABEL: Record<string, string> = {
   full: '연차', half_am: '오전반차', half_pm: '오후반차',
   official_full: '공가', official_half_am: '공가오전', official_half_pm: '공가오후',
+  condolence: '경조', sick_work: '병가(공)', sick_personal: '병가(사)', health: '보건', other_special: '기타특별',
 }
 
 export default function StaffServicePage() {
@@ -783,7 +793,7 @@ export default function StaffServicePage() {
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isDesktop ? 2 : 3 }}>
           {calendarDays.map((cell, idx) => {
             if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
 
@@ -791,7 +801,8 @@ export default function StaffServicePage() {
             const isSel = cell.ymd === selDate
             const lt = myLeave?.type
             const isClickable = rawShift !== '비' && rawShift !== '휴'
-            const isFullLeave = lt === 'full' || lt === 'official_full'
+            const FULL_LEAVE_TYPES = new Set(['full', 'official_full', 'condolence', 'sick_work', 'sick_personal', 'health', 'other_special'])
+            const isFullLeave = lt ? FULL_LEAVE_TYPES.has(lt) : false
             const isHalf = lt === 'half_am' || lt === 'half_pm' || lt === 'official_half_am' || lt === 'official_half_pm'
             const isAm = lt === 'half_am' || lt === 'official_half_am'
             const blocked = isBlocked(cell.ymd)
@@ -830,7 +841,7 @@ export default function StaffServicePage() {
                 )}
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                   <span style={{ fontSize: isDesktop ? 10 : 8, fontWeight:800, color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', lineHeight:1 }}>
-                    {isFullLeave ? (lt === 'full' ? '연차' : '공가') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
+                    {isFullLeave ? (LEAVE_LABEL[lt!] ?? '연차') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
                   </span>
                   <span style={{ fontSize: isDesktop ? 14 : 11, fontWeight:700, color: dateColor, lineHeight:1 }}>
                     {cell.day}
@@ -857,7 +868,7 @@ export default function StaffServicePage() {
   )
 
   const legendRow = (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '10px 12px 0', alignItems: 'center' }}>
+    <div style={{ display: 'flex', gap: isDesktop ? 6 : 8, flexWrap: 'wrap', padding: '6px 12px 0', alignItems: 'center' }}>
       {([
         { label: '당직', bg: 'var(--c-night)' },
         { label: '비번', bg: 'var(--c-off)' },
@@ -865,15 +876,19 @@ export default function StaffServicePage() {
         { label: '휴무', bg: 'var(--c-leave)' },
         { label: '연차', bg: '#22c55e' },
         { label: '공가', bg: '#a855f7' },
+        { label: '경조', bg: '#f97316' },
+        { label: '병가', bg: '#ef4444' },
+        { label: '보건', bg: '#ec4899' },
+        { label: '기타', bg: '#6366f1' },
       ]).map(l => (
-        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <span style={{ display: 'inline-block', width: isDesktop ? 14 : 12, height: isDesktop ? 14 : 12, borderRadius: '50%', background: l.bg }} />
-          <span style={{ fontSize: isDesktop ? 13 : 10, color: 'var(--t3)' }}>{l.label}</span>
+        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <span style={{ display: 'inline-block', width: isDesktop ? 10 : 12, height: isDesktop ? 10 : 12, borderRadius: '50%', background: l.bg }} />
+          <span style={{ fontSize: isDesktop ? 10 : 10, color: 'var(--t3)' }}>{l.label}</span>
         </div>
       ))}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-        <span style={{ width: isDesktop ? 14 : 12, height: isDesktop ? 14 : 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
-        <span style={{ fontSize: isDesktop ? 13 : 10, color: 'var(--t3)' }}>반차</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <span style={{ width: isDesktop ? 10 : 12, height: isDesktop ? 10 : 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
+        <span style={{ fontSize: isDesktop ? 10 : 10, color: 'var(--t3)' }}>반차</span>
       </div>
     </div>
   )
@@ -1074,13 +1089,12 @@ export default function StaffServicePage() {
         {/* 3분할 본문 */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {/* 좌측: 달력 + 범례 + 요약 + 메뉴 + 업로드 */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '0 0 16px' }}>
+          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '0 0 8px' }}>
             {calendarGrid}
             {legendRow}
             {summaryCards}
-            {detailPanel}
-            <div style={{ borderTop: '1px solid var(--bd)', margin: '0 16px' }} />
-            <div style={{ padding: '12px 4px 0' }}>
+            <div style={{ borderTop: '1px solid var(--bd)', margin: '4px 12px 0' }} />
+            <div style={{ padding: '8px 4px 0' }}>
               {menuSection}
             </div>
             {uploadSection}
