@@ -1036,7 +1036,7 @@ function WorkLogPortraitPreview({
     { key: 'fixRemove', text: fixMethod === 'remove' ? '\u221A' : '' },
     { key: 'fixRepair', text: fixMethod === 'repair' ? '\u221A' : '' },
     { key: 'fixOther', text: fixMethod === 'other' ? '\u221A' : '' },
-    { key: 'fixOtherText', text: fixOtherText, align: 'left' },
+    { key: 'fixOtherText', text: fixMethod === 'other' ? fixOtherText : '', align: 'left' },
   ] : []
 
   return (

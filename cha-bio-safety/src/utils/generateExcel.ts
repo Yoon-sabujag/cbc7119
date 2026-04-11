@@ -1055,7 +1055,7 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCell(xml, 'U41', data.fix_method === 'repair' ? '\u221A' : '')
   xml = patchCell(xml, 'Y41', data.fix_method === 'other' ? '\u221A' : '')
   // 기타 내역: AA41
-  xml = patchCell(xml, 'AA41', data.fix_other_text || '')
+  xml = patchCell(xml, 'AA41', data.fix_method === 'other' ? (data.fix_other_text || '') : '')
 
   files['xl/worksheets/sheet1.xml'] = strToU8(xml)
   const zipped = zipSync(files, { level: 6 })
