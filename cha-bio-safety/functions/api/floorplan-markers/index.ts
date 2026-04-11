@@ -8,12 +8,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const floor = url.searchParams.get('floor')
   const planType = url.searchParams.get('plan_type')
 
-  if (!floor || !planType) {
-    return Response.json({ success: false, error: 'floor, plan_type 필수' }, { status: 400 })
+  if (!planType) {
+    return Response.json({ success: false, error: 'plan_type 필수' }, { status: 400 })
   }
 
   // 마커 목록 + 연결된 최근 점검 기록 메타
-  const rows = await env.DB.prepare(`
+  const whereClause = floor ? 'WHERE m.floor = ? AND m.plan_type = ?' : 'WHERE m.plan_type = ?'
+  const binds = floor ? [floor, planType] : [planType]
+  let stmt = env.DB.prepare(`
     SELECT m.*,
       latest.result       as last_result,
       latest.checked_at   as last_inspected_at,
@@ -30,9 +32,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         ORDER BY cr2.checked_at DESC LIMIT 1
       )
     ) latest ON latest.floor_plan_marker_id = m.id
-    WHERE m.floor = ? AND m.plan_type = ?
-    ORDER BY m.created_at ASC
-  `).bind(floor, planType).all<Record<string,unknown>>()
+    ${whereClause}
+    ORDER BY m.floor ASC, m.created_at ASC
+  `)
+  for (let i = 0; i < binds.length; i++) stmt = stmt.bind(binds[i])
+  const rows = await stmt.all<Record<string,unknown>>()
 
   return Response.json({ success: true, data: rows.results ?? [] })
 }

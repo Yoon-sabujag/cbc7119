@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { checkPointApi } from '../utils/api'
+import { checkPointApi, floorPlanMarkerApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { CheckPointFull, CheckPointUpdatePayload, BuildingZone } from '../types'
 
@@ -311,13 +311,29 @@ export default function CheckpointsPage() {
     staleTime: 60_000,
   })
 
-  const { data: checkPoints, isLoading, isError } = useQuery({
+  const isGuidelamp = selectedCategory === '유도등'
+  const { data: checkPoints, isLoading: cpLoading, isError } = useQuery({
     queryKey: ['check-points', selectedCategory],
     queryFn: () => checkPointApi.list(selectedCategory || undefined),
-    enabled: selectedCategory !== '',
+    enabled: selectedCategory !== '' && !isGuidelamp,
     staleTime: 30_000,
   })
-  const cpListRaw = checkPoints ?? []
+  // 유도등: floor_plan_markers에서 가져와서 CheckPointFull 형태로 변환
+  const { data: guidelampMarkers, isLoading: glLoading } = useQuery({
+    queryKey: ['floorplan-markers-all', 'guidelamp'],
+    queryFn: () => floorPlanMarkerApi.listAll('guidelamp'),
+    enabled: isGuidelamp,
+    staleTime: 30_000,
+  })
+  const MARKER_TYPE_LABEL: Record<string, string> = {
+    ceiling_exit: '천장피난구', wall_exit: '벽부피난구', room_corridor: '거실통로', hallway_corridor: '복도통로', stair_corridor: '계단통로', seat_corridor: '객석통로',
+  }
+  const guidelampAsCp: CheckPointFull[] = (guidelampMarkers ?? []).map(m => ({
+    id: m.id, qrCode: '', floor: m.floor, zone: (m as any).zone ?? 'common', location: m.label || MARKER_TYPE_LABEL[(m as any).marker_type] || '유도등',
+    category: '유도등', description: MARKER_TYPE_LABEL[(m as any).marker_type] ?? '', locationNo: null, isActive: 1,
+  }))
+  const isLoading = isGuidelamp ? glLoading : cpLoading
+  const cpListRaw = isGuidelamp ? guidelampAsCp : (checkPoints ?? [])
   const cpList = cpListRaw.filter(cp => {
     if (filterZone && cp.zone !== filterZone) return false
     if (filterFloor && cp.floor !== filterFloor) return false

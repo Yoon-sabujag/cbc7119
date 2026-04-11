@@ -137,6 +137,8 @@ export interface FloorPlanMarker {
 export const floorPlanMarkerApi = {
   list: (floor: string, planType: string) =>
     api.get<FloorPlanMarker[]>(`/floorplan-markers?floor=${floor}&plan_type=${planType}`),
+  listAll: (planType: string) =>
+    api.get<FloorPlanMarker[]>(`/floorplan-markers?plan_type=${planType}`),
   create: (body: { floor: string; plan_type: string; marker_type?: string; x_pct: number; y_pct: number; label?: string; check_point_id?: string; zone?: string }) =>
     api.post<{ id: string }>('/floorplan-markers', body),
   update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null; zone?: string | null }) =>
