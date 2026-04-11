@@ -4,14 +4,14 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$script:WEB_APP_URL = "https://cbc7119.pages.dev"
-$script:CONFIG_DIR = Join-Path $env:USERPROFILE ".cha-bio-watchdog"
-$script:CONFIG_FILE = Join-Path $script:CONFIG_DIR "config.txt"
-$script:watcher = $null
-$script:notifyIcon = $null
+$global:WEB_APP_URL = "https://cbc7119.pages.dev"
+$global:CONFIG_DIR = Join-Path $env:USERPROFILE ".cha-bio-watchdog"
+$global:CONFIG_FILE = Join-Path $global:CONFIG_DIR "config.txt"
+$global:watcher = $null
+$global:notifyIcon = $null
 
 # ── File Patterns (grouped) ────────────────────────────
-$script:GROUPS = @(
+$global:GROUPS = @(
     @{ name="업무 계획 및 일지"; items=@(
         @{ key="daily_single";  label="일별업무일지";       pattern='^(\d{1,2})월(\d{2})일 방재업무일지\.xlsx$';                       yearG=0; monthG=1 }
         @{ key="daily_monthly"; label="월별업무일지";       pattern='^일일업무일지\((\d{2})월\)\.xlsx$';                               yearG=0; monthG=1 }
@@ -52,14 +52,14 @@ $script:GROUPS = @(
     )}
 )
 
-$script:ALL_PATTERNS = @()
-foreach ($g in $script:GROUPS) { foreach ($item in $g.items) { $script:ALL_PATTERNS += $item } }
+$global:ALL_PATTERNS = @()
+foreach ($g in $global:GROUPS) { foreach ($item in $g.items) { $global:ALL_PATTERNS += $item } }
 
 # Build lookup: key → (groupName, label)
-$script:KEY_INFO = @{}
-foreach ($g in $script:GROUPS) {
+$global:KEY_INFO = @{}
+foreach ($g in $global:GROUPS) {
     foreach ($item in $g.items) {
-        $script:KEY_INFO[$item.key] = @{ group=$g.name; label=$item.label }
+        $global:KEY_INFO[$item.key] = @{ group=$g.name; label=$item.label }
     }
 }
 
@@ -70,8 +70,8 @@ function Load-Config {
     $cfg["open_webapp_on_start"] = "true"
     $cfg["mode"] = "simple"
     $cfg["root_folder"] = ""
-    if (Test-Path $script:CONFIG_FILE) {
-        $lines = [System.IO.File]::ReadAllLines($script:CONFIG_FILE, [System.Text.Encoding]::UTF8)
+    if (Test-Path $global:CONFIG_FILE) {
+        $lines = [System.IO.File]::ReadAllLines($global:CONFIG_FILE, [System.Text.Encoding]::UTF8)
         foreach ($line in $lines) {
             $line = $line.Trim()
             if ($line -eq "" -or $line.StartsWith("#")) { continue }
@@ -87,7 +87,7 @@ function Load-Config {
 }
 
 function Save-Config($cfg) {
-    if (-not (Test-Path $script:CONFIG_DIR)) { New-Item -ItemType Directory -Path $script:CONFIG_DIR -Force | Out-Null }
+    if (-not (Test-Path $global:CONFIG_DIR)) { New-Item -ItemType Directory -Path $global:CONFIG_DIR -Force | Out-Null }
     $lines = New-Object System.Collections.ArrayList
     $lines.Add("# CHA Bio File Organizer Config") | Out-Null
     $lines.Add("download_folder=" + $cfg["download_folder"]) | Out-Null
@@ -95,12 +95,12 @@ function Save-Config($cfg) {
     $lines.Add("mode=" + $cfg["mode"]) | Out-Null
     $lines.Add("root_folder=" + $cfg["root_folder"]) | Out-Null
     $lines.Add("") | Out-Null
-    foreach ($pat in $script:ALL_PATTERNS) {
+    foreach ($pat in $global:ALL_PATTERNS) {
         if ($cfg.ContainsKey($pat.key) -and $cfg[$pat.key] -ne "") {
             $lines.Add($pat.key + "=" + $cfg[$pat.key]) | Out-Null
         }
     }
-    [System.IO.File]::WriteAllLines($script:CONFIG_FILE, $lines.ToArray(), [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllLines($global:CONFIG_FILE, $lines.ToArray(), [System.Text.Encoding]::UTF8)
 }
 
 # ── Open Chrome (app mode) ──────────────────────────────
@@ -112,11 +112,11 @@ function Open-WebApp {
     )
     foreach ($p in $chromePaths) {
         if (Test-Path $p) {
-            Start-Process $p -ArgumentList ("--app=" + $script:WEB_APP_URL)
+            Start-Process $p -ArgumentList ("--app=" + $global:WEB_APP_URL)
             return
         }
     }
-    Start-Process $script:WEB_APP_URL
+    Start-Process $global:WEB_APP_URL
 }
 
 # ── File Move ───────────────────────────────────────────
@@ -130,7 +130,7 @@ function Get-DestFolder($cfg, $patKey, $year, $month) {
     if ($cfg["mode"] -eq "simple") {
         $root = $cfg["root_folder"]
         if (-not $root -or $root -eq "") { return $null }
-        $info = $script:KEY_INFO[$patKey]
+        $info = $global:KEY_INFO[$patKey]
         $dest = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yearFolder $monthFolder)))
     } else {
         if (-not $cfg.ContainsKey($patKey) -or $cfg[$patKey] -eq "") { return $null }
@@ -152,7 +152,7 @@ function Process-File($filePath) {
     $cfg = Load-Config
     $fileName = Split-Path $filePath -Leaf
     if ($fileName -match '\.(crdownload|tmp|part)$') { return }
-    foreach ($pat in $script:ALL_PATTERNS) {
+    foreach ($pat in $global:ALL_PATTERNS) {
         $m = [regex]::Match($fileName, $pat.pattern)
         if ($m.Success) {
             $year = $null; $month = $null
@@ -181,11 +181,11 @@ function Process-File($filePath) {
 
 # ── Balloon ─────────────────────────────────────────────
 function Show-Balloon($title, $text) {
-    if ($script:notifyIcon) {
-        $script:notifyIcon.BalloonTipTitle = $title
-        $script:notifyIcon.BalloonTipText = $text
-        $script:notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-        $script:notifyIcon.ShowBalloonTip(3000)
+    if ($global:notifyIcon) {
+        $global:notifyIcon.BalloonTipTitle = $title
+        $global:notifyIcon.BalloonTipText = $text
+        $global:notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+        $global:notifyIcon.ShowBalloonTip(3000)
     }
 }
 
@@ -317,7 +317,7 @@ function Show-Settings {
     $ruleTexts = @{}
     $dpy = 5
 
-    foreach ($group in $script:GROUPS) {
+    foreach ($group in $global:GROUPS) {
         $gh = New-Object System.Windows.Forms.Label
         $gh.Text = ([char]0x25A0) + " " + $group.name
         $gh.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
@@ -412,12 +412,12 @@ function Show-Settings {
 }
 
 # ── Watcher (timer-based polling) ───────────────────────
-$script:knownFiles = @{}
-$script:fileSizes = @{}
-$script:pollTimer = $null
+$global:knownFiles = @{}
+$global:fileSizes = @{}
+$global:pollTimer = $null
 
 function Start-Watcher {
-    if ($script:pollTimer) { return }
+    if ($global:pollTimer) { return }
     $timer = New-Object System.Windows.Forms.Timer
     $timer.Interval = 4000
     $timer.Add_Tick({
@@ -446,24 +446,24 @@ function Start-Watcher {
                 $fp = $f.FullName
                 $fname = $f.Name
                 if ($fname -match '\.(crdownload|tmp|part)$') { continue }
-                if ($script:knownFiles.ContainsKey($fp)) { continue }
+                if ($global:knownFiles.ContainsKey($fp)) { continue }
 
                 # File size stability: skip if size changed since last tick
                 $curSize = $f.Length
                 if ($curSize -eq 0) { continue }
-                if ($script:fileSizes.ContainsKey($fp)) {
-                    if ($script:fileSizes[$fp] -ne $curSize) {
-                        $script:fileSizes[$fp] = $curSize
+                if ($global:fileSizes.ContainsKey($fp)) {
+                    if ($global:fileSizes[$fp] -ne $curSize) {
+                        $global:fileSizes[$fp] = $curSize
                         continue
                     }
                 } else {
-                    $script:fileSizes[$fp] = $curSize
+                    $global:fileSizes[$fp] = $curSize
                     continue
                 }
 
                 # Match patterns
                 $didMatch = $false
-                foreach ($pat in $script:ALL_PATTERNS) {
+                foreach ($pat in $global:ALL_PATTERNS) {
                     $rm = [regex]::Match($fname, $pat.pattern)
                     if ($rm.Success) {
                         $didMatch = $true
@@ -483,7 +483,7 @@ function Start-Watcher {
                         if ($tcfg["mode"] -eq "simple") {
                             $root = $tcfg["root_folder"]
                             if ($root -and $root -ne "") {
-                                $info = $script:KEY_INFO[$pkey]
+                                $info = $global:KEY_INFO[$pkey]
                                 $destDir = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yrF $moF)))
                             }
                         } else {
@@ -500,29 +500,29 @@ function Start-Watcher {
                             $destFile = Join-Path $destDir $fname
                             if (Test-Path $destFile) { Remove-Item $destFile -Force }
                             Move-Item -Path $fp -Destination $destFile -Force
-                            $script:knownFiles[$fp] = $true
-                            if ($script:notifyIcon) {
-                                $script:notifyIcon.BalloonTipTitle = $fname
-                                $script:notifyIcon.BalloonTipText = "이동 완료"
-                                $script:notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-                                $script:notifyIcon.ShowBalloonTip(3000)
+                            $global:knownFiles[$fp] = $true
+                            if ($global:notifyIcon) {
+                                $global:notifyIcon.BalloonTipTitle = $fname
+                                $global:notifyIcon.BalloonTipText = "이동 완료"
+                                $global:notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
+                                $global:notifyIcon.ShowBalloonTip(3000)
                             }
                         } catch {}
                         break
                     }
                 }
-                if (-not $didMatch) { $script:knownFiles[$fp] = $true }
+                if (-not $didMatch) { $global:knownFiles[$fp] = $true }
             }
         } catch {}
     })
     $timer.Start()
-    $script:pollTimer = $timer
+    $global:pollTimer = $timer
 }
 
 function Restart-Watcher {
-    if ($script:pollTimer) { $script:pollTimer.Stop(); $script:pollTimer.Dispose(); $script:pollTimer = $null }
-    $script:knownFiles = @{}
-    $script:fileSizes = @{}
+    if ($global:pollTimer) { $global:pollTimer.Stop(); $global:pollTimer.Dispose(); $global:pollTimer = $null }
+    $global:knownFiles = @{}
+    $global:fileSizes = @{}
     Start-Watcher
 }
 
@@ -538,7 +538,7 @@ function Start-TrayApp {
 
     $icon = New-Object System.Windows.Forms.NotifyIcon
     $icon.Text = "CHA Bio 파일 분류"; $icon.Visible = $true
-    $script:notifyIcon = $icon
+    $global:notifyIcon = $icon
 
     $bmp = New-Object System.Drawing.Bitmap(32, 32)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
@@ -558,8 +558,8 @@ function Start-TrayApp {
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
     $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem; $miQuit.Text = "종료"
     $miQuit.Add_Click({
-        if ($script:pollTimer) { $script:pollTimer.Stop(); $script:pollTimer.Dispose() }
-        $script:notifyIcon.Visible = $false; $script:notifyIcon.Dispose()
+        if ($global:pollTimer) { $global:pollTimer.Stop(); $global:pollTimer.Dispose() }
+        $global:notifyIcon.Visible = $false; $global:notifyIcon.Dispose()
         [System.Windows.Forms.Application]::Exit()
     }); $menu.Items.Add($miQuit) | Out-Null
 
