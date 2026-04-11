@@ -411,22 +411,60 @@ function Show-Settings {
     $form.ShowDialog()
 }
 
-# ── Watcher ─────────────────────────────────────────────
+# ── Watcher (timer-based polling) ───────────────────────
+$script:knownFiles = @{}
+$script:pollTimer = $null
+
 function Start-Watcher {
-    $cfg = Load-Config
-    $dlFolder = $cfg["download_folder"]
-    if (-not (Test-Path $dlFolder)) { return }
-    $w = New-Object System.IO.FileSystemWatcher
-    $w.Path = $dlFolder; $w.Filter = "*.*"
-    $w.IncludeSubdirectories = $false; $w.EnableRaisingEvents = $true
-    Register-ObjectEvent -InputObject $w -EventName Created -Action { Start-Sleep -Seconds 2; Process-File $Event.SourceEventArgs.FullPath } | Out-Null
-    Register-ObjectEvent -InputObject $w -EventName Renamed -Action { Start-Sleep -Seconds 1; Process-File $Event.SourceEventArgs.FullPath } | Out-Null
-    $script:watcher = $w
+    if ($script:pollTimer) { return }
+    $timer = New-Object System.Windows.Forms.Timer
+    $timer.Interval = 3000
+    $timer.Add_Tick({
+        $cfg = Load-Config
+        $dlFolder = $cfg["download_folder"]
+        if (-not $dlFolder -or -not (Test-Path $dlFolder)) { return }
+        $files = Get-ChildItem -Path $dlFolder -File -ErrorAction SilentlyContinue
+        foreach ($f in $files) {
+            $fp = $f.FullName
+            $fname = $f.Name
+            if ($fname -match '\.(crdownload|tmp|part)$') { continue }
+            # Skip already processed
+            if ($script:knownFiles.ContainsKey($fp)) { continue }
+            # Check if file matches any pattern
+            $matched = $false
+            foreach ($pat in $script:ALL_PATTERNS) {
+                $m = [regex]::Match($fname, $pat.pattern)
+                if ($m.Success) {
+                    $matched = $true
+                    $year = $null; $month = $null
+                    if ($pat.yearG -gt 0 -and $m.Groups[$pat.yearG].Success) { $year = $m.Groups[$pat.yearG].Value }
+                    if ($pat.monthG -gt 0 -and $m.Groups[$pat.monthG].Success) { $month = $m.Groups[$pat.monthG].Value.PadLeft(2, '0') }
+                    $destDir = Get-DestFolder $cfg $pat.key $year $month
+                    if (-not $destDir) { break }
+                    # Wait for stable file size
+                    $sz1 = $f.Length
+                    Start-Sleep -Milliseconds 1000
+                    if (-not (Test-Path $fp)) { break }
+                    $sz2 = (Get-Item $fp).Length
+                    if ($sz2 -ne $sz1 -or $sz2 -eq 0) { break }
+                    try {
+                        Move-ToFolder $fp $destDir
+                        $script:knownFiles[$fp] = $true
+                        Show-Balloon $fname "이동 완료"
+                    } catch {}
+                    break
+                }
+            }
+            if (-not $matched) { $script:knownFiles[$fp] = $true }
+        }
+    })
+    $timer.Start()
+    $script:pollTimer = $timer
 }
 
 function Restart-Watcher {
-    if ($script:watcher) { $script:watcher.EnableRaisingEvents = $false; $script:watcher.Dispose(); $script:watcher = $null }
-    Get-EventSubscriber | Unregister-Event -Force 2>$null
+    if ($script:pollTimer) { $script:pollTimer.Stop(); $script:pollTimer.Dispose(); $script:pollTimer = $null }
+    $script:knownFiles = @{}
     Start-Watcher
 }
 
@@ -462,7 +500,7 @@ function Start-TrayApp {
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
     $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem; $miQuit.Text = "종료"
     $miQuit.Add_Click({
-        if ($script:watcher) { $script:watcher.Dispose() }
+        if ($script:pollTimer) { $script:pollTimer.Stop(); $script:pollTimer.Dispose() }
         $script:notifyIcon.Visible = $false; $script:notifyIcon.Dispose()
         [System.Windows.Forms.Application]::Exit()
     }); $menu.Items.Add($miQuit) | Out-Null
