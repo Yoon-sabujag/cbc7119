@@ -325,7 +325,9 @@ export default function CheckpointsPage() {
   })
 
   // 현재 데이터에서 사용 가능한 층 목록 (필터용)
-  const availableFloors = [...new Set(cpListRaw.filter(cp => !filterZone || cp.zone === filterZone).map(cp => cp.floor).filter(Boolean))].sort()
+  const FLOOR_ORDER = ['8-1F','8F','7F','6F','5F','3F','2F','1F','LOBBY','M','B1','B1F','B2','B2F','B3','B3F','B4','B4F','B5','B5F']
+  const availableFloors = [...new Set(cpListRaw.filter(cp => !filterZone || cp.zone === filterZone).map(cp => cp.floor).filter(Boolean))]
+    .sort((a, b) => (FLOOR_ORDER.indexOf(a) === -1 ? 99 : FLOOR_ORDER.indexOf(a)) - (FLOOR_ORDER.indexOf(b) === -1 ? 99 : FLOOR_ORDER.indexOf(b)))
 
   if (me?.role !== 'admin') return null
 
