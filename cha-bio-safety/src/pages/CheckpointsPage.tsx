@@ -296,6 +296,8 @@ export default function CheckpointsPage() {
   const { staff: me } = useAuthStore()
   const isDesktop = useIsDesktop()
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [filterZone, setFilterZone] = useState('')
+  const [filterFloor, setFilterFloor] = useState('')
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; target?: CheckPointFull }>({ open: false, mode: 'add' })
 
   // Role guard
@@ -315,7 +317,15 @@ export default function CheckpointsPage() {
     enabled: selectedCategory !== '',
     staleTime: 30_000,
   })
-  const cpList = checkPoints ?? []
+  const cpListRaw = checkPoints ?? []
+  const cpList = cpListRaw.filter(cp => {
+    if (filterZone && cp.zone !== filterZone) return false
+    if (filterFloor && cp.floor !== filterFloor) return false
+    return true
+  })
+
+  // 현재 데이터에서 사용 가능한 층 목록 (필터용)
+  const availableFloors = [...new Set(cpListRaw.filter(cp => !filterZone || cp.zone === filterZone).map(cp => cp.floor).filter(Boolean))].sort()
 
   if (me?.role !== 'admin') return null
 
@@ -347,6 +357,18 @@ export default function CheckpointsPage() {
               <IconChevronDown size={14} color="var(--t2)" />
             </div>
           </div>
+          <select value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
+            style={{ height: 36, fontSize: 12, padding: '0 10px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer', appearance: 'none' as any }}>
+            <option value="">전체 구역</option>
+            <option value="office">사무동</option>
+            <option value="research">연구동</option>
+            <option value="common">지하</option>
+          </select>
+          <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
+            style={{ height: 36, fontSize: 12, padding: '0 10px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer', appearance: 'none' as any }}>
+            <option value="">전체 층</option>
+            {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
           <span style={{ flex: 1, fontSize: 12, color: 'var(--t3)' }}>
             {selectedCategory && !isLoading ? `${cpList.length}개 개소` : ''}
           </span>
@@ -357,20 +379,34 @@ export default function CheckpointsPage() {
           </button>
         </div>
       ) : (
-        <div style={{ padding: 16, flexShrink: 0 }}>
+        <div style={{ padding: '12px 16px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ position: 'relative' }}>
-            <select
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer', paddingRight: 36 }}
-            >
+            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+              style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer', paddingRight: 36 }}>
               <option value="">전체 (카테고리 선택)</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--t2)' }}>
+            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
               <IconChevronDown size={16} color="var(--t2)" />
             </div>
           </div>
+          {selectedCategory && (
+            <div style={{ display: 'flex', gap: 6 }}>
+              <select value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
+                style={{ flex: 1, height: 36, fontSize: 11, padding: '0 8px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer' }}>
+                <option value="">전체 구역</option>
+                <option value="office">사무동</option>
+                <option value="research">연구동</option>
+                <option value="common">지하</option>
+              </select>
+              <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
+                style={{ flex: 1, height: 36, fontSize: 11, padding: '0 8px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer' }}>
+                <option value="">전체 층</option>
+                {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
+              <span style={{ fontSize: 11, color: 'var(--t3)', alignSelf: 'center', whiteSpace: 'nowrap' }}>{cpList.length}개</span>
+            </div>
+          )}
         </div>
       )}
 
