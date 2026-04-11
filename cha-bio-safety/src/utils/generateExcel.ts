@@ -902,18 +902,17 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   const ab    = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
-  // -- 작성법 시트(sheet2) 제거: 관련 파일·참조 모두 삭제 --
+  // -- 작성법 시트(sheet2.xml, name="작성법", sheetId="3") 제거 --
   delete files['xl/worksheets/sheet2.xml']
 
-  // workbook.xml: <sheet> for sheet2 제거
+  // workbook.xml: <sheet name="작성법" ...> 제거
   let wbXml = strFromU8(files['xl/workbook.xml'])
-  wbXml = wbXml.replace(/<sheet[^>]*name="작성요령"[^>]*\/>/g, '')
-  wbXml = wbXml.replace(/<sheet[^>]*name="작성요령"[^>]*>[^<]*<\/sheet>/g, '')
-  // fallback: sheet2 by sheetId
-  wbXml = wbXml.replace(/<sheet[^>]*sheetId="2"[^>]*\/>/g, '')
+  wbXml = wbXml.replace(/<sheet[^>]*name="작성법"[^>]*\/>/g, '')
+  // activeTab="1" → activeTab="0" (작성법 시트 삭제 후 탭 인덱스 보정)
+  wbXml = wbXml.replace(/activeTab="1"/, 'activeTab="0"')
   files['xl/workbook.xml'] = strToU8(wbXml)
 
-  // workbook.xml.rels: sheet2 relationship 제거
+  // workbook.xml.rels: sheet2.xml relationship (rId2) 제거
   let wbRels = strFromU8(files['xl/_rels/workbook.xml.rels'])
   wbRels = wbRels.replace(/<Relationship[^>]*Target="worksheets\/sheet2\.xml"[^>]*\/>/g, '')
   files['xl/_rels/workbook.xml.rels'] = strToU8(wbRels)
