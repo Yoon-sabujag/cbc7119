@@ -118,10 +118,10 @@ Plans:
   2. 사용자가 업무수행기록표 작성 페이지에서 대상 월과 각 항목 필드를 입력하고 저장할 수 있다
   3. 저장한 월의 기록을 다시 열어 수정하고 재저장할 수 있다 (월별 단일 레코드)
   4. "엑셀 출력" 버튼 탭 시 기존 양식 파일과 동일한 셀 구조·서식의 .xlsx 파일이 xlsx-js-style 기반으로 즉시 다운로드된다 (기존 `src/utils/generateExcel.ts` 패턴 재사용, 신규 라이브러리 추가 금지)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 22-01-PLAN.md — Migration + types + workLogApi + API route handlers (list/read/upsert/preview)
-- [ ] 22-02-PLAN.md — Template + generateWorkLogExcel + WorkLogPage UI + menu wiring + deploy
+- [x] 22-01-PLAN.md — Migration + types + workLogApi + API route handlers (list/read/upsert/preview)
+- [x] 22-02-PLAN.md — Template + generateWorkLogExcel + WorkLogPage UI + menu wiring + deploy
 **UI hint**: yes
 
 <!-- ARCHIVED_PHASES_START
@@ -267,7 +267,7 @@ ARCHIVED_PHASES_END -->
 | 19. App Info & Cache | v1.3 | 1/1 | Complete   | 2026-04-08 |
 | 20. Document Storage Infrastructure | v1.4 | 3/3 | Complete   | 2026-04-08 |
 | 21. Documents Page UI | v1.4 | 5/6 | In Progress|  |
-| 22. 업무수행기록표 Form + Excel | v1.4 | 0/2 | Not started | — |
+| 22. 업무수행기록표 Form + Excel | v1.4 | 2/2 | Complete    | 2026-04-11 |
 
 ## Backlog
 
