@@ -980,7 +980,7 @@ function WorkLogPortraitPreview({
   const [year, month] = yearMonth.split('-').map(Number)
   const lastDay = new Date(year, month, 0).getDate()
 
-  const overlayItems: { key: string; text: string; isArea?: boolean }[] = calib ? [
+  const overlayItems: { key: string; text: string; isArea?: boolean; width?: string }[] = calib ? [
     { key: 'perfYear', text: String(year) },
     { key: 'perfMonth1', text: String(month) },
     { key: 'perfDay1', text: '1' },
@@ -990,19 +990,19 @@ function WorkLogPortraitPreview({
     { key: 'fireContent', text: fireContent, isArea: true },
     { key: 'fireOk', text: fireResult === 'ok' ? '\u221A' : '' },
     { key: 'fireBad', text: fireResult === 'bad' ? '\u221A' : '' },
-    { key: 'fireAction', text: fireAction, isArea: true },
+    { key: 'fireAction', text: fireAction, isArea: true, width: '22%' },
     { key: 'escapeContent', text: escapeContent, isArea: true },
     { key: 'escapeOk', text: escapeResult === 'ok' ? '\u221A' : '' },
     { key: 'escapeBad', text: escapeResult === 'bad' ? '\u221A' : '' },
-    { key: 'escapeAction', text: escapeAction, isArea: true },
+    { key: 'escapeAction', text: escapeAction, isArea: true, width: '22%' },
     { key: 'gasContent', text: gasContent, isArea: true },
     { key: 'gasOk', text: gasResult === 'ok' ? '\u221A' : '' },
     { key: 'gasBad', text: gasResult === 'bad' ? '\u221A' : '' },
-    { key: 'gasAction', text: gasAction, isArea: true },
+    { key: 'gasAction', text: gasAction, isArea: true, width: '22%' },
     { key: 'etcContent', text: etcContent, isArea: true },
     { key: 'etcOk', text: etcResult === 'ok' ? '\u221A' : '' },
     { key: 'etcBad', text: etcResult === 'bad' ? '\u221A' : '' },
-    { key: 'etcAction', text: etcAction, isArea: true },
+    { key: 'etcAction', text: etcAction, isArea: true, width: '22%' },
     { key: 'rptYear', text: reportYear },
     { key: 'rptMonth', text: reportMonth },
     { key: 'rptDay', text: reportDay },
@@ -1063,7 +1063,7 @@ function WorkLogPortraitPreview({
                 <div key={item.key} style={{
                   position: 'absolute',
                   left: `${pt.x}%`, top: `${pt.y}%`,
-                  width: '75%',
+                  width: item.width || '75%',
                   ...textStyle(10), fontWeight: 700,
                 }}>
                   {item.text}
