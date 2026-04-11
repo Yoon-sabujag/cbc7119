@@ -1004,21 +1004,22 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   let xml = strFromU8(files['xl/worksheets/sheet1.xml'])
   xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
-  // -- 헤더: year / month / lastDay (D-25) --
-  xml = patchCell(xml, 'C4', year)
-  xml = patchCell(xml, 'E4', month)
-  xml = patchCell(xml, 'G4', lastDay)
-  xml = patchCell(xml, 'K4', lastDay)
-  xml = patchCell(xml, 'M4', lastDay)
+  // -- 헤더 (작성법 기준) --
+  const yy = String(year).slice(-2)
+  xml = patchCell(xml, 'C4', yy)           // 현재 년 yy
+  xml = patchCell(xml, 'E4', month)        // 현재 월 m
+  xml = patchCell(xml, 'G4', 1)            // 시작일 1
+  xml = patchCell(xml, 'K4', month)        // 현재 월 m
+  xml = patchCell(xml, 'M4', lastDay)      // 현재 월의 말일 d
 
-  // -- 관리자 이름 (D-25) --
+  // -- 관리자 이름 --
   xml = patchCell(xml, 'U4', data.manager_name || '')
 
-  // -- 확인내용 필드 (D-25) --
-  xml = patchCell(xml, 'C10', data.fire_content)
-  xml = patchCell(xml, 'C14', data.escape_content)
-  xml = patchCell(xml, 'C17', data.gas_content)
-  xml = patchCell(xml, 'C24', data.etc_content)
+  // -- 확인내용 필드 (작성법 기준) --
+  xml = patchCell(xml, 'C10', data.fire_content)     // 소방시설
+  xml = patchCell(xml, 'C17', data.escape_content)   // 피난방화시설 (작성법: C17)
+  xml = patchCell(xml, 'C24', data.gas_content)      // 화기취급감독 (작성법: C24)
+  xml = patchCell(xml, 'C31', data.etc_content)      // 기타사항 (작성법: C31)
 
   // -- 결과 체크마크 (√ = U+221A) (D-25, D-26) --
   xml = patchCell(xml, 'Y12', data.fire_result === 'ok'  ? '\u221A' : '')
@@ -1040,20 +1041,22 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCell(xml, 'Y35', data.etc_result === 'bad' ? '\u221A' : '')
   xml = patchCell(xml, 'AA24', (data.etc_action ?? '').replace(/\n/g, '&#10;'))
 
-  // -- 불량사항 개선보고 --
-  // 보고일시: C40(연), F40(월), H40(일)
+  // -- 불량사항 개선보고 (작성법 기준) --
+  // 보고일시: C40(연), E40(월), G40(일)
   xml = patchCell(xml, 'C40', data.report_year || null)
-  xml = patchCell(xml, 'F40', data.report_month || null)
-  xml = patchCell(xml, 'H40', data.report_day || null)
-  // 보고방법: √ in bracket cells — I40(대면), N40(서면), T40(정보통신)
-  xml = patchCell(xml, 'I40', data.report_method === 'face' ? '\u221A' : '')
-  xml = patchCell(xml, 'N40', data.report_method === 'written' ? '\u221A' : '')
-  xml = patchCell(xml, 'T40', data.report_method === 'telecom' ? '\u221A' : '')
-  // 조치방법: √ in bracket cells — D41(이전), N41(제거), T41(수리·교체), X41(기타)
-  xml = patchCell(xml, 'D41', data.fix_method === 'relocate' ? '\u221A' : '')
-  xml = patchCell(xml, 'N41', data.fix_method === 'remove' ? '\u221A' : '')
-  xml = patchCell(xml, 'T41', data.fix_method === 'repair' ? '\u221A' : '')
-  xml = patchCell(xml, 'X41', data.fix_method === 'other' ? '\u221A' : '')
+  xml = patchCell(xml, 'E40', data.report_month || null)
+  xml = patchCell(xml, 'G40', data.report_day || null)
+  // 보고방법: K40(대면), Q40(서면), U40(정보통신)
+  xml = patchCell(xml, 'K40', data.report_method === 'face' ? '\u221A' : '')
+  xml = patchCell(xml, 'Q40', data.report_method === 'written' ? '\u221A' : '')
+  xml = patchCell(xml, 'U40', data.report_method === 'telecom' ? '\u221A' : '')
+  // 조치방법: K41(이전), Q41(제거), U41(수리·교체), Y41(기타)
+  xml = patchCell(xml, 'K41', data.fix_method === 'relocate' ? '\u221A' : '')
+  xml = patchCell(xml, 'Q41', data.fix_method === 'remove' ? '\u221A' : '')
+  xml = patchCell(xml, 'U41', data.fix_method === 'repair' ? '\u221A' : '')
+  xml = patchCell(xml, 'Y41', data.fix_method === 'other' ? '\u221A' : '')
+  // 기타 내역: AA41
+  xml = patchCell(xml, 'AA41', data.fix_other_text || '')
 
   files['xl/worksheets/sheet1.xml'] = strToU8(xml)
   const zipped = zipSync(files, { level: 6 })
