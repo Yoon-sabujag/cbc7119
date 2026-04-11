@@ -328,10 +328,19 @@ export default function CheckpointsPage() {
   const MARKER_TYPE_LABEL: Record<string, string> = {
     ceiling_exit: '천장피난구', wall_exit: '벽부피난구', room_corridor: '거실통로', hallway_corridor: '복도통로', stair_corridor: '계단통로', seat_corridor: '객석통로',
   }
-  const guidelampAsCp = (guidelampMarkers ?? []).map(m => ({
-    id: m.id, qrCode: '', floor: m.floor, zone: (m as any).zone ?? 'common', location: m.label || MARKER_TYPE_LABEL[(m as any).marker_type] || '유도등',
-    category: '유도등', description: MARKER_TYPE_LABEL[(m as any).marker_type] ?? '', locationNo: null, isActive: 1, createdAt: (m as any).created_at ?? '',
-  })) as any as CheckPointFull[]
+  const FLOOR_CODE: Record<string, string> = { '8-1F': '9', '8F': '8', '7F': '7', '6F': '6', '5F': '5', '3F': '3', '2F': '2', '1F': '1' }
+  const guidelampAsCp = (guidelampMarkers ?? []).map(m => {
+    const fc = FLOOR_CODE[m.floor] ?? m.floor
+    const x = Math.round((m as any).x_pct ?? 0)
+    const y = Math.round((m as any).y_pct ?? 0)
+    const locNo = `${fc}-${x}-${y}`
+    return {
+      id: m.id, qrCode: '', floor: m.floor, zone: (m as any).zone ?? 'common',
+      location: m.label || MARKER_TYPE_LABEL[(m as any).marker_type] || '유도등',
+      category: '유도등', description: MARKER_TYPE_LABEL[(m as any).marker_type] ?? '',
+      locationNo: locNo, isActive: 1, createdAt: (m as any).created_at ?? '',
+    }
+  }) as any as CheckPointFull[]
   const isLoading = isGuidelamp ? glLoading : cpLoading
   const cpListRaw = isGuidelamp ? guidelampAsCp : (checkPoints ?? [])
   const cpList = cpListRaw.filter(cp => {
