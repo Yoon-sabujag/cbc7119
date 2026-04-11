@@ -24,9 +24,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     ).first<{ name: string }>()
     const manager_name = managerRow?.name ?? ''
 
-    // D-17: fire_content — 소화설비 점검 항목 (정적)
+    // fire_content — 소화설비 점검 항목 (작성법 기준)
     const fire_content =
-      '소화기 - 압력, 약제 상태\n소화전 - 호스, 관창 상태, 표시등 상태\nS/P - 밸브 개폐 상태, 압력 상태\n소방 펌프 - 수동 기동 점검'
+      '소화기 - 압력 및 약제 상태\n소화전 - 경종, 표시등 상태, 호스 및 관창 이상유무\nS/P - 1,2차 압력 상태, 밸브 개폐 상태, 컴프레셔 작동 상태\n소방 펌프 - 수동 작동 점검, 밸브 개폐 상태, 배관 내 압력 상태'
 
     // D-17/D-22: fire_action — 소화설비 카테고리 조치 완료 이력
     const fireRows = await ctx.env.DB.prepare(
@@ -46,9 +46,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     // D-17: fire_result
     const fire_result: 'ok' | 'bad' = fire_action === '' ? 'ok' : 'bad'
 
-    // D-18: escape_content — 피난설비 점검 항목 (정적)
+    // escape_content — 피난방화시설 점검 항목 (작성법 기준)
     const escape_content =
-      '방화셔터 - 작동 상태 점검\n방화문 - 닫힘상태, 도어 체크 상태\n유도등 - 점등 상태, 전원 상태'
+      '방화셔터 - 수동 조작 상태, 연동제어기 상태, 장애물 유무 점검\n방화문 - 닫힘상태, 도어 릴리즈 상태\n완강기 - 설치 상태, 구성품 상태, 청결 상태\n배연창 - 작동 상태, 틈새 누수 유무\n유도등 - 점등 상태, 상용 전원 및 예비 전원 상태'
 
     // D-18/D-22: escape_action — 피난설비 카테고리 조치 완료 이력
     // '방화문' → '특별피난계단' mapping (actual DB category, see RESEARCH D-22)
@@ -72,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     // D-19: gas_content — 가스시설 위치 (정적)
     const gas_content = 'B1F - 직원식당\nB4F - 보일러'
 
-    // D-20: etc_content — 해당 월 소방 일정 제목 목록
+    // etc_content — 수신기 상태 + 해당 월 소방 일정 (작성법 기준: C31)
     const lastDay = String(new Date(year, month, 0).getDate()).padStart(2, '0')
     const scheduleRows = await ctx.env.DB.prepare(
       `SELECT title FROM schedule_items
@@ -80,9 +80,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
          AND date >= ? AND date <= ?
        ORDER BY date ASC`
     ).bind(`${ym}-01`, `${ym}-${lastDay}`).all()
-    const etc_content = (scheduleRows.results ?? [])
+    const scheduleList = (scheduleRows.results ?? [])
       .map((r: any) => r.title)
       .join('\n')
+    const etc_content = '수신기 정상 작동 유지' + (scheduleList ? '\n' + scheduleList : '')
 
     return jsonOk({
       manager_name,
