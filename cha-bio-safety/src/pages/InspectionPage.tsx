@@ -3280,6 +3280,7 @@ export default function InspectionPage() {
   const [desktopDateFilter,  setDesktopDateFilter]  = useState<number>(-1) // -1=이번달, 0=전체, N=일
 
   const [allCheckpoints,   setAllCheckpoints]   = useState<CheckPoint[]>([])
+  const [glMarkerCount,    setGlMarkerCount]    = useState(0)
   const [loading,          setLoading]          = useState(true)
   const [selectedGroupIdx, setSelectedGroupIdx] = useState<number | null>(null)
   const [records,          setRecords]          = useState<Record<string, CheckResult>>({})
@@ -3333,6 +3334,7 @@ export default function InspectionPage() {
     Promise.all([
       inspectionApi.getCheckpoints(),
       loadTodayRecords(),
+      floorPlanMarkerApi.listAll('guidelamp').then(m => setGlMarkerCount(m.length)).catch(() => {}),
     ]).then(([cps]) => {
       setAllCheckpoints(cps); setLoading(false)
       // QR 스캔에서 넘어온 경우 해당 카테고리 자동 선택
@@ -3661,19 +3663,24 @@ export default function InspectionPage() {
             <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, letterSpacing:'0.05em' }}>점검 항목 선택</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
               {CATEGORY_GROUPS.map((g, idx) => {
+                const isGL    = g.categories.includes('유도등')
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
-                const doneCnt = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
-                const allDone = cps.length > 0 && doneCnt === cps.length
+                const total   = isGL ? glMarkerCount : cps.length
+                const doneCnt = isGL
+                  ? Object.keys(markerRecords).length
+                  : cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
+                const allDone = total > 0 && doneCnt >= total
+                const hasItems = total > 0 || g.categories.includes('화재수신반')
                 return (
                   <div key={idx} onClick={() => {
                     if (g.categories.includes('화재수신반')) { setShowFireAlarm(true); return }
-                    if (cps.length > 0) setSelectedGroupIdx(idx)
-                  }} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: (cps.length > 0 || g.categories.includes('화재수신반')) ? 'pointer' : 'default', opacity: (cps.length > 0 || g.categories.includes('화재수신반')) ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
+                    if (hasItems) setSelectedGroupIdx(idx)
+                  }} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: hasItems ? 'pointer' : 'default', opacity: hasItems ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
                     <span style={{ fontSize:16, lineHeight:1.3, flexShrink:0 }}>{g.icon}</span>
                     <div style={{ flex:1, minWidth:0 }}>
                       {g.labels.map(l => <div key={l} style={{ fontSize:10, fontWeight:600, color:'var(--t1)', lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</div>)}
                       <div style={{ fontSize:10, marginTop:2, color: allDone ? 'var(--safe)' : doneCnt > 0 ? 'var(--warn)' : 'var(--t3)' }}>
-                        {g.categories.includes('화재수신반') ? '기록' : cps.length === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${cps.length}` : `${cps.length}개`}
+                        {g.categories.includes('화재수신반') ? '기록' : total === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${total}` : `${total}개`}
                       </div>
                     </div>
                   </div>

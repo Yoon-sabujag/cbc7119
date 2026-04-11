@@ -12,33 +12,42 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ success: false, error: 'plan_type 필수' }, { status: 400 })
   }
 
-  // 마커 목록 + 연결된 최근 점검 기록 메타
-  const whereClause = floor ? 'WHERE m.floor = ? AND m.plan_type = ?' : 'WHERE m.plan_type = ?'
-  const binds = floor ? [floor, planType] : [planType]
-  let stmt = env.DB.prepare(`
-    SELECT m.*,
-      latest.result       as last_result,
-      latest.checked_at   as last_inspected_at,
-      latest.id           as last_record_id,
-      latest.status       as last_status,
-      latest.memo         as last_memo
-    FROM floor_plan_markers m
-    LEFT JOIN (
-      SELECT cr.*
-      FROM check_records cr
-      WHERE cr.id = (
-        SELECT cr2.id FROM check_records cr2
-        WHERE (cr2.floor_plan_marker_id = cr.floor_plan_marker_id)
-        ORDER BY cr2.checked_at DESC LIMIT 1
-      )
-    ) latest ON latest.floor_plan_marker_id = m.id
-    ${whereClause}
-    ORDER BY m.floor ASC, m.created_at ASC
-  `)
-  for (let i = 0; i < binds.length; i++) stmt = stmt.bind(binds[i])
-  const rows = await stmt.all<Record<string,unknown>>()
+  try {
+    // 1) 마커 목록
+    const mWhere = floor ? 'WHERE floor = ? AND plan_type = ?' : 'WHERE plan_type = ?'
+    const mBinds = floor ? [floor, planType] : [planType]
+    const mRows = await env.DB.prepare(
+      `SELECT * FROM floor_plan_markers ${mWhere} ORDER BY floor ASC, created_at ASC`
+    ).bind(...mBinds).all<Record<string, unknown>>()
+    const data = mRows.results ?? []
 
-  return Response.json({ success: true, data: rows.results ?? [] })
+    // 2) 최근 점검 기록 (marker_id 있는 것만 — 소량)
+    const recRows = await env.DB.prepare(`
+      SELECT floor_plan_marker_id, result, checked_at, id, status, memo
+      FROM check_records
+      WHERE floor_plan_marker_id IS NOT NULL
+      ORDER BY checked_at DESC
+    `).all<Record<string, unknown>>()
+    const recMap: Record<string, Record<string, unknown>> = {}
+    for (const r of (recRows.results ?? [])) {
+      const mid = r.floor_plan_marker_id as string
+      if (!recMap[mid]) recMap[mid] = r
+    }
+
+    // 3) 합치기
+    const merged = data.map(m => ({
+      ...m,
+      last_result: recMap[m.id as string]?.result ?? null,
+      last_inspected_at: recMap[m.id as string]?.checked_at ?? null,
+      last_record_id: recMap[m.id as string]?.id ?? null,
+      last_status: recMap[m.id as string]?.status ?? null,
+      last_memo: recMap[m.id as string]?.memo ?? null,
+    }))
+
+    return Response.json({ success: true, data: merged })
+  } catch (e: any) {
+    return Response.json({ success: false, error: e.message ?? 'unknown error' }, { status: 500 })
+  }
 }
 
 // POST /api/floorplan-markers — 마커 추가 (로그인한 전체 스태프)
