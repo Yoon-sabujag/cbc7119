@@ -12,22 +12,22 @@ $global:notifyIcon = $null
 
 # ── File Patterns (grouped) ────────────────────────────
 $global:GROUPS = @(
-    @{ name="업무 계획 및 일지"; items=@(
+    @{ name="1. 업무 계획 및 일지"; items=@(
         @{ key="daily_single";  label="일별업무일지";       pattern='^(\d{1,2})월(\d{2})일 방재업무일지\.xlsx$';                       yearG=0; monthG=1 }
         @{ key="daily_monthly"; label="월별업무일지";       pattern='^일일업무일지\((\d{2})월\)\.xlsx$';                               yearG=0; monthG=1 }
         @{ key="work_log";      label="수행기록표";         pattern='^소방안전관리자_업무수행기록표_(\d{4})년_(\d{1,2})월\.xlsx$';       yearG=1; monthG=2 }
         @{ key="monthly_plan";  label="월간업무추진계획";    pattern='^(\d{4})년_(\d{1,2})월_중요업무추진계획\(방재\)\.xlsx$';           yearG=1; monthG=2 }
         @{ key="annual_plan";   label="연간업무추진계획";    pattern='^(\d{4})년 연간 업무 추진 계획\.xlsx$';                           yearG=1; monthG=0 }
     )}
-    @{ name="각종 운영 문서"; items=@(
+    @{ name="2. 각종 운영 문서"; items=@(
         @{ key="shift";         label="월별근무표";         pattern='^(\d{4})년_(\d{1,2})월_근무표\.xlsx$';                            yearG=1; monthG=2 }
         @{ key="leave";         label="휴가신청서";         pattern='^휴가신청서_.+_(\d{4})(\d{2})\d{2}\.xlsx$';                      yearG=1; monthG=2 }
     )}
-    @{ name="점검 및 조치"; items=@(
+    @{ name="3. 점검 및 조치"; items=@(
         @{ key="remed";         label="일상점검조치";       pattern='^조치보고서_.+_(\d{4})(\d{2})\d{2}\.html$';                      yearG=1; monthG=2 }
         @{ key="legal";         label="소방점검조치";       pattern='^지적사항_.+\.zip$';                                             yearG=0; monthG=0 }
     )}
-    @{ name="소방설비점검일지"; items=@(
+    @{ name="4. 소방설비점검일지"; items=@(
         @{ key="div_early";     label="유수검지장치(월초)";  pattern='^(\d{4})년도_DIV점검표_월초\.xlsx$';                              yearG=1; monthG=0 }
         @{ key="div_late";      label="유수검지장치(월말)";  pattern='^(\d{4})년도_DIV점검표_월말\.xlsx$';                              yearG=1; monthG=0 }
         @{ key="hydrant";       label="옥내소화전";         pattern='^(\d{4})년도_소화전_점검일지\.xlsx$';                              yearG=1; monthG=0 }
@@ -40,7 +40,7 @@ $global:GROUPS = @(
         @{ key="pump";          label="소방펌프";           pattern='^(\d{4})년도_소방펌프_점검일지\.xlsx$';                           yearG=1; monthG=0 }
         @{ key="all_zip";       label="전체 일괄 받기";     pattern='^(\d{4})년도 점검일지 종합 \((\d{2})월 업데이트\)\.zip$';          yearG=1; monthG=2 }
     )}
-    @{ name="QR 코드"; items=@(
+    @{ name="5. QR 코드"; items=@(
         @{ key="qr_ext_insp";   label="소화기점검용";       pattern='^소화기_점검용_QR\.pdf$';                                        yearG=0; monthG=0 }
         @{ key="qr_ext_pub";    label="소화기점검표";       pattern='^소화기_점검확인용_QR\.pdf$';                                    yearG=0; monthG=0 }
         @{ key="qr_hydrant";    label="소화전점검용";       pattern='^소화전_점검용_QR\.pdf$';                                        yearG=0; monthG=0 }
