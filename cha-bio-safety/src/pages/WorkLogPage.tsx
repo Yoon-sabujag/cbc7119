@@ -738,7 +738,8 @@ function WorkLogPortraitPreview({
 
   const [year, month] = yearMonth.split('-').map(Number)
   const lastDay = new Date(year, month, 0).getDate()
-  const perfDateText = `${year}. ${month}. 1 ~ ${year}. ${month}. ${lastDay}`
+  const yy = String(year).slice(-2)
+  const perfDateText = `${yy}. ${month}. 1. ~ ${month}. ${lastDay}.`
 
   const overlayItems: { key: string; text: string; isArea?: boolean }[] = calib ? [
     { key: 'perfDate', text: perfDateText },
