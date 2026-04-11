@@ -40,7 +40,12 @@ export default function WorkShiftPage() {
   })
 
   const { data: staffList } = useStaffList()
+  const STAFF_ORDER = ['석현민', '김병조', '윤종엽', '박보융']
   const staffForCalc = (staffList ?? []).map(s => ({ id: s.id, name: s.name, title: s.title }))
+    .sort((a, b) => {
+      const ai = STAFF_ORDER.indexOf(a.name), bi = STAFF_ORDER.indexOf(b.name)
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi)
+    })
   const { daysInMonth, staffRows } = getMonthlySchedule(year, month, staffForCalc)
 
   const isToday = (d: number) =>
@@ -111,8 +116,8 @@ export default function WorkShiftPage() {
         flex:1, overflow:'auto',
         display:'flex', flexDirection:'column',
         alignItems:'center',
-        justifyContent: isDesktop ? 'center' : 'flex-start',
-        paddingTop: isDesktop ? '8vh' : 0,
+        justifyContent: 'flex-start',
+        paddingTop: isDesktop ? '12vh' : 0,
       }}>
         <div style={{ display:'inline-flex', flexDirection:'column', padding: isDesktop ? '0 32px' : '16px 24px' }}>
           <div style={{ display:'flex' }}>

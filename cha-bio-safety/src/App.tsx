@@ -31,7 +31,6 @@ const FloorPlanPage           = lazy(() => import('./pages/FloorPlanPage'))
 const DivPage                 = lazy(() => import('./pages/DivPage'))
 const QRPrintPage             = lazy(() => import('./pages/QRPrintPage'))
 const ExtinguisherPublicPage  = lazy(() => import('./pages/ExtinguisherPublicPage'))
-const AdminPage               = lazy(() => import('./pages/AdminPage'))
 const MealPage                = lazy(() => import('./pages/MealPage'))
 const EducationPage           = lazy(() => import('./pages/EducationPage'))
 const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
@@ -63,7 +62,7 @@ function Loader() {
 }
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
-const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/admin', '/legal', '/elevator/findings', '/annual-plan']
+const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan']
 
 // 데스크톱: 로그인/스플래시만 nav 숨김 — 나머지는 모두 사이드바 표시
 const DESKTOP_NO_NAV_PATHS = ['/', '/login']
@@ -85,7 +84,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/qr-print': 'QR 코드 출력',
   '/meal': '식사 관리',
   '/education': '보수교육',
-  '/admin': '관리자 설정',
   '/staff-manage': '직원 관리',
   '/checkpoints': '소방 시설 추가',
   '/legal': '소방 점검 관리',
@@ -230,7 +228,7 @@ function Layout() {
               <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
-              <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
+
               <Route path="/staff-manage"  element={<Auth><StaffManagePage /></Auth>} />
               <Route path="/checkpoints"   element={<Auth><CheckpointsPage /></Auth>} />
               <Route path="/meal"           element={<Auth><MealPage /></Auth>} />

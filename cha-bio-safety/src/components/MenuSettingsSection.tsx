@@ -9,6 +9,7 @@ import {
   DEFAULT_SIDE_MENU,
 } from '../utils/api'
 import { MENU } from './SideMenu'
+import { useAuthStore } from '../stores/authStore'
 
 // path → label lookup (from SideMenu.MENU)
 const PATH_LABEL: Record<string, string> = (() => {
@@ -16,6 +17,11 @@ const PATH_LABEL: Record<string, string> = (() => {
   MENU.forEach(s => s.items.forEach(i => { m[i.path] = i.label }))
   return m
 })()
+
+// admin 전용 경로
+const ADMIN_PATHS = new Set(
+  MENU.flatMap(s => s.items).filter(i => i.role === 'admin').map(i => i.path)
+)
 
 // Stable id generator for new dividers (no nanoid dep — use timestamp+rand)
 function newDividerId(): string {
@@ -38,6 +44,8 @@ function entriesEqual(a: SideMenuEntry[], b: SideMenuEntry[]): boolean {
 
 export function MenuSettingsSection() {
   const qc = useQueryClient()
+  const staff = useAuthStore(s => s.staff)
+  const isAdmin = staff?.role === 'admin'
   const { data: serverConfig } = useQuery<MenuConfig>({
     queryKey: ['menu-config'],
     queryFn: () => settingsApi.getMenu(),
@@ -172,6 +180,9 @@ export function MenuSettingsSection() {
       {/* Entry list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {draft.map((entry, idx) => {
+          // admin 전용 항목은 일반 사용자에게 숨김
+          if (!isAdmin && entry.type === 'item' && ADMIN_PATHS.has(entry.path)) return null
+
           const isFirst = idx === 0
           const isLast = idx === draft.length - 1
           const isConfirmingDelete = confirmDeleteIdx === idx
