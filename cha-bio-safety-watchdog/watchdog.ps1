@@ -52,10 +52,15 @@ $script:GROUPS = @(
     )}
 )
 
-# Flatten for pattern matching
 $script:ALL_PATTERNS = @()
+foreach ($g in $script:GROUPS) { foreach ($item in $g.items) { $script:ALL_PATTERNS += $item } }
+
+# Build lookup: key → (groupName, label)
+$script:KEY_INFO = @{}
 foreach ($g in $script:GROUPS) {
-    foreach ($item in $g.items) { $script:ALL_PATTERNS += $item }
+    foreach ($item in $g.items) {
+        $script:KEY_INFO[$item.key] = @{ group=$g.name; label=$item.label }
+    }
 }
 
 # ── Config ──────────────────────────────────────────────
@@ -63,6 +68,8 @@ function Load-Config {
     $cfg = @{}
     $cfg["download_folder"] = Join-Path $env:USERPROFILE "Downloads"
     $cfg["open_webapp_on_start"] = "true"
+    $cfg["mode"] = "simple"
+    $cfg["root_folder"] = ""
     if (Test-Path $script:CONFIG_FILE) {
         $lines = [System.IO.File]::ReadAllLines($script:CONFIG_FILE, [System.Text.Encoding]::UTF8)
         foreach ($line in $lines) {
@@ -85,6 +92,8 @@ function Save-Config($cfg) {
     $lines.Add("# CHA Bio File Organizer Config") | Out-Null
     $lines.Add("download_folder=" + $cfg["download_folder"]) | Out-Null
     $lines.Add("open_webapp_on_start=" + $cfg["open_webapp_on_start"]) | Out-Null
+    $lines.Add("mode=" + $cfg["mode"]) | Out-Null
+    $lines.Add("root_folder=" + $cfg["root_folder"]) | Out-Null
     $lines.Add("") | Out-Null
     foreach ($pat in $script:ALL_PATTERNS) {
         if ($cfg.ContainsKey($pat.key) -and $cfg[$pat.key] -ne "") {
@@ -111,11 +120,26 @@ function Open-WebApp {
 }
 
 # ── File Move ───────────────────────────────────────────
-function Move-MatchedFile($filePath, $destBase, $year, $month) {
+function Get-DestFolder($cfg, $patKey, $year, $month) {
     $now = Get-Date
     if (-not $year -or $year -eq "") { $year = $now.Year.ToString() }
     if (-not $month -or $month -eq "") { $month = $now.Month.ToString().PadLeft(2, '0') }
-    $destDir = Join-Path $destBase (Join-Path ($year + [char]0xB144) ($month + [char]0xC6D4))
+    $yearFolder = $year + [char]0xB144
+    $monthFolder = $month + [char]0xC6D4
+
+    if ($cfg["mode"] -eq "simple") {
+        $root = $cfg["root_folder"]
+        if (-not $root -or $root -eq "") { return $null }
+        $info = $script:KEY_INFO[$patKey]
+        $dest = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yearFolder $monthFolder)))
+    } else {
+        if (-not $cfg.ContainsKey($patKey) -or $cfg[$patKey] -eq "") { return $null }
+        $dest = Join-Path $cfg[$patKey] (Join-Path $yearFolder $monthFolder)
+    }
+    return $dest
+}
+
+function Move-ToFolder($filePath, $destDir) {
     if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
     $destFile = Join-Path $destDir (Split-Path $filePath -Leaf)
     if (Test-Path $destFile) { Remove-Item $destFile -Force }
@@ -131,12 +155,13 @@ function Process-File($filePath) {
     foreach ($pat in $script:ALL_PATTERNS) {
         $m = [regex]::Match($fileName, $pat.pattern)
         if ($m.Success) {
-            $key = $pat.key
-            if (-not $cfg.ContainsKey($key) -or $cfg[$key] -eq "") { continue }
-            $dest = $cfg[$key]
             $year = $null; $month = $null
             if ($pat.yearG -gt 0 -and $m.Groups[$pat.yearG].Success) { $year = $m.Groups[$pat.yearG].Value }
             if ($pat.monthG -gt 0 -and $m.Groups[$pat.monthG].Success) { $month = $m.Groups[$pat.monthG].Value.PadLeft(2, '0') }
+
+            $destDir = Get-DestFolder $cfg $pat.key $year $month
+            if (-not $destDir) { continue }
+
             $prevSize = -1
             for ($i = 0; $i -lt 15; $i++) {
                 Start-Sleep -Milliseconds 500
@@ -146,7 +171,7 @@ function Process-File($filePath) {
                 $prevSize = $curSize
             }
             try {
-                Move-MatchedFile $filePath $dest $year $month
+                Move-ToFolder $filePath $destDir
                 Show-Balloon $fileName "이동 완료"
             } catch {}
             return
@@ -172,22 +197,31 @@ function Show-Settings {
     if ($testFont.Name -ne $krFont) { $krFont = "굴림" }
     $testFont.Dispose()
 
+    $bgDark = [System.Drawing.Color]::FromArgb(30, 30, 46)
+    $bgInput = [System.Drawing.Color]::FromArgb(49, 50, 68)
+    $fgText = [System.Drawing.Color]::FromArgb(205, 214, 244)
+    $fgAccent = [System.Drawing.Color]::FromArgb(137, 180, 250)
+    $fgGroup = [System.Drawing.Color]::FromArgb(250, 179, 135)
+    $bgBtn = [System.Drawing.Color]::FromArgb(69, 71, 90)
+    $bgBottom = [System.Drawing.Color]::FromArgb(24, 24, 37)
+
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "CHA Bio - 파일 자동 분류 설정"
-    $form.Size = New-Object System.Drawing.Size(700, 700)
+    $form.Size = New-Object System.Drawing.Size(700, 720)
     $form.StartPosition = "CenterScreen"
-    $form.BackColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
-    $form.ForeColor = [System.Drawing.Color]::FromArgb(205, 214, 244)
+    $form.BackColor = $bgDark
+    $form.ForeColor = $fgText
     $form.Font = New-Object System.Drawing.Font($krFont, 9.5)
     $form.FormBorderStyle = "FixedDialog"
     $form.MaximizeBox = $false
 
     $y = 15
 
+    # Title
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = "CHA Bio 파일 자동 분류 설정"
     $lbl.Font = New-Object System.Drawing.Font($krFont, 13, [System.Drawing.FontStyle]::Bold)
-    $lbl.ForeColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
+    $lbl.ForeColor = $fgAccent
     $lbl.Location = New-Object System.Drawing.Point(20, $y)
     $lbl.AutoSize = $true
     $form.Controls.Add($lbl)
@@ -196,8 +230,7 @@ function Show-Settings {
     # Download folder
     $lbl2 = New-Object System.Windows.Forms.Label
     $lbl2.Text = "다운로드 감시 폴더:"
-    $lbl2.Location = New-Object System.Drawing.Point(20, $y)
-    $lbl2.AutoSize = $true
+    $lbl2.Location = New-Object System.Drawing.Point(20, $y); $lbl2.AutoSize = $true
     $form.Controls.Add($lbl2)
     $y += 22
 
@@ -205,111 +238,161 @@ function Show-Settings {
     $txtDL.Text = $cfg["download_folder"]
     $txtDL.Location = New-Object System.Drawing.Point(20, $y)
     $txtDL.Size = New-Object System.Drawing.Size(555, 24)
-    $txtDL.BackColor = [System.Drawing.Color]::FromArgb(49, 50, 68)
-    $txtDL.ForeColor = [System.Drawing.Color]::FromArgb(205, 214, 244)
+    $txtDL.BackColor = $bgInput; $txtDL.ForeColor = $fgText
     $form.Controls.Add($txtDL)
 
     $btnBDL = New-Object System.Windows.Forms.Button
-    $btnBDL.Text = "..."
-    $btnBDL.Location = New-Object System.Drawing.Point(585, $y)
-    $btnBDL.Size = New-Object System.Drawing.Size(60, 24)
-    $btnBDL.FlatStyle = "Flat"
-    $btnBDL.BackColor = [System.Drawing.Color]::FromArgb(69, 71, 90)
-    $btnBDL.Add_Click({
-        $fbd = New-Object System.Windows.Forms.FolderBrowserDialog
-        if ($fbd.ShowDialog() -eq "OK") { $txtDL.Text = $fbd.SelectedPath }
-    })
+    $btnBDL.Text = "..."; $btnBDL.Location = New-Object System.Drawing.Point(585, $y)
+    $btnBDL.Size = New-Object System.Drawing.Size(60, 24); $btnBDL.FlatStyle = "Flat"; $btnBDL.BackColor = $bgBtn
+    $btnBDL.Add_Click({ $fbd = New-Object System.Windows.Forms.FolderBrowserDialog; if ($fbd.ShowDialog() -eq "OK") { $txtDL.Text = $fbd.SelectedPath } })
     $form.Controls.Add($btnBDL)
-    $y += 30
+    $y += 28
 
+    # Webapp checkbox
     $chkWeb = New-Object System.Windows.Forms.CheckBox
     $chkWeb.Text = "시작 시 웹앱 자동 열기 (Chrome)"
     $chkWeb.Checked = ($cfg["open_webapp_on_start"] -eq "true")
-    $chkWeb.Location = New-Object System.Drawing.Point(20, $y)
-    $chkWeb.AutoSize = $true
-    $chkWeb.ForeColor = [System.Drawing.Color]::FromArgb(205, 214, 244)
+    $chkWeb.Location = New-Object System.Drawing.Point(20, $y); $chkWeb.AutoSize = $true
+    $chkWeb.ForeColor = $fgText
     $form.Controls.Add($chkWeb)
-    $y += 32
+    $y += 30
 
-    # Scrollable panel for grouped rules
-    $panel = New-Object System.Windows.Forms.Panel
-    $panel.Location = New-Object System.Drawing.Point(0, $y)
-    $panel.Size = New-Object System.Drawing.Size(685, 470)
-    $panel.AutoScroll = $true
-    $panel.BackColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
-    $form.Controls.Add($panel)
+    # ── Mode selection ──────────────────────────────────
+    $modeLabel = New-Object System.Windows.Forms.Label
+    $modeLabel.Text = "분류 방식:"
+    $modeLabel.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
+    $modeLabel.ForeColor = $fgAccent
+    $modeLabel.Location = New-Object System.Drawing.Point(20, $y); $modeLabel.AutoSize = $true
+    $form.Controls.Add($modeLabel)
+    $y += 22
+
+    $rbSimple = New-Object System.Windows.Forms.RadioButton
+    $rbSimple.Text = "간편 모드 — 루트 폴더 하나만 지정 (자동으로 그룹/항목/년/월 폴더 생성)"
+    $rbSimple.Location = New-Object System.Drawing.Point(25, $y); $rbSimple.AutoSize = $true
+    $rbSimple.ForeColor = $fgText; $rbSimple.Checked = ($cfg["mode"] -ne "detail")
+    $form.Controls.Add($rbSimple)
+    $y += 22
+
+    $rbDetail = New-Object System.Windows.Forms.RadioButton
+    $rbDetail.Text = "상세 모드 — 항목별 개별 폴더 지정"
+    $rbDetail.Location = New-Object System.Drawing.Point(25, $y); $rbDetail.AutoSize = $true
+    $rbDetail.ForeColor = $fgText; $rbDetail.Checked = ($cfg["mode"] -eq "detail")
+    $form.Controls.Add($rbDetail)
+    $y += 28
+
+    # ── Simple mode panel ───────────────────────────────
+    $simplePanel = New-Object System.Windows.Forms.Panel
+    $simplePanel.Location = New-Object System.Drawing.Point(0, $y)
+    $simplePanel.Size = New-Object System.Drawing.Size(685, 50)
+    $simplePanel.BackColor = $bgDark
+    $form.Controls.Add($simplePanel)
+
+    $lblRoot = New-Object System.Windows.Forms.Label
+    $lblRoot.Text = "루트 폴더:"
+    $lblRoot.Location = New-Object System.Drawing.Point(20, 5); $lblRoot.AutoSize = $true
+    $simplePanel.Controls.Add($lblRoot)
+
+    $txtRoot = New-Object System.Windows.Forms.TextBox
+    $txtRoot.Text = $cfg["root_folder"]
+    $txtRoot.Location = New-Object System.Drawing.Point(20, 25)
+    $txtRoot.Size = New-Object System.Drawing.Size(555, 24)
+    $txtRoot.BackColor = $bgInput; $txtRoot.ForeColor = $fgText
+    $simplePanel.Controls.Add($txtRoot)
+
+    $btnBRoot = New-Object System.Windows.Forms.Button
+    $btnBRoot.Text = "..."; $btnBRoot.Location = New-Object System.Drawing.Point(585, 25)
+    $btnBRoot.Size = New-Object System.Drawing.Size(60, 24); $btnBRoot.FlatStyle = "Flat"; $btnBRoot.BackColor = $bgBtn
+    $btnBRoot.Add_Click({ $fbd = New-Object System.Windows.Forms.FolderBrowserDialog; if ($fbd.ShowDialog() -eq "OK") { $txtRoot.Text = $fbd.SelectedPath } })
+    $simplePanel.Controls.Add($btnBRoot)
+
+    # ── Detail mode panel (scrollable) ──────────────────
+    $detailPanel = New-Object System.Windows.Forms.Panel
+    $detailPanel.Location = New-Object System.Drawing.Point(0, $y)
+    $detailPanel.Size = New-Object System.Drawing.Size(685, 430)
+    $detailPanel.AutoScroll = $true
+    $detailPanel.BackColor = $bgDark
+    $detailPanel.Visible = $false
+    $form.Controls.Add($detailPanel)
 
     $ruleTexts = @{}
-    $py = 5
+    $dpy = 5
 
     foreach ($group in $script:GROUPS) {
-        # Group header
         $gh = New-Object System.Windows.Forms.Label
-        $gh.Text = "■ " + $group.name
+        $gh.Text = ([char]0x25A0) + " " + $group.name
         $gh.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
-        $gh.ForeColor = [System.Drawing.Color]::FromArgb(250, 179, 135)
-        $gh.Location = New-Object System.Drawing.Point(20, $py)
-        $gh.AutoSize = $true
-        $panel.Controls.Add($gh)
-        $py += 24
+        $gh.ForeColor = $fgGroup
+        $gh.Location = New-Object System.Drawing.Point(20, $dpy); $gh.AutoSize = $true
+        $detailPanel.Controls.Add($gh)
+        $dpy += 24
 
         foreach ($item in $group.items) {
             $rl = New-Object System.Windows.Forms.Label
             $rl.Text = "  " + $item.label + ":"
-            $rl.Location = New-Object System.Drawing.Point(20, ($py + 3))
+            $rl.Location = New-Object System.Drawing.Point(20, ($dpy + 3))
             $rl.Size = New-Object System.Drawing.Size(160, 20)
-            $panel.Controls.Add($rl)
+            $detailPanel.Controls.Add($rl)
 
             $rt = New-Object System.Windows.Forms.TextBox
-            $val = ""
-            if ($cfg.ContainsKey($item.key)) { $val = $cfg[$item.key] }
+            $val = ""; if ($cfg.ContainsKey($item.key)) { $val = $cfg[$item.key] }
             $rt.Text = $val
-            $rt.Location = New-Object System.Drawing.Point(185, $py)
+            $rt.Location = New-Object System.Drawing.Point(185, $dpy)
             $rt.Size = New-Object System.Drawing.Size(390, 22)
-            $rt.BackColor = [System.Drawing.Color]::FromArgb(49, 50, 68)
-            $rt.ForeColor = [System.Drawing.Color]::FromArgb(205, 214, 244)
-            $panel.Controls.Add($rt)
+            $rt.BackColor = $bgInput; $rt.ForeColor = $fgText
+            $detailPanel.Controls.Add($rt)
             $ruleTexts[$item.key] = $rt
 
             $rb = New-Object System.Windows.Forms.Button
-            $rb.Text = "..."
-            $rb.Location = New-Object System.Drawing.Point(585, $py)
-            $rb.Size = New-Object System.Drawing.Size(40, 22)
-            $rb.FlatStyle = "Flat"
-            $rb.BackColor = [System.Drawing.Color]::FromArgb(69, 71, 90)
+            $rb.Text = "..."; $rb.Location = New-Object System.Drawing.Point(585, $dpy)
+            $rb.Size = New-Object System.Drawing.Size(40, 22); $rb.FlatStyle = "Flat"; $rb.BackColor = $bgBtn
             $rb.Tag = $rt
-            $rb.Add_Click({
-                $fbd = New-Object System.Windows.Forms.FolderBrowserDialog
-                if ($fbd.ShowDialog() -eq "OK") { $this.Tag.Text = $fbd.SelectedPath }
-            })
-            $panel.Controls.Add($rb)
-            $py += 26
+            $rb.Add_Click({ $fbd = New-Object System.Windows.Forms.FolderBrowserDialog; if ($fbd.ShowDialog() -eq "OK") { $this.Tag.Text = $fbd.SelectedPath } })
+            $detailPanel.Controls.Add($rb)
+            $dpy += 26
         }
-        $py += 10
+        $dpy += 10
     }
 
-    # Save / Cancel buttons (fixed at bottom)
+    # ── Mode toggle logic ───────────────────────────────
+    function Update-ModeUI {
+        if ($rbSimple.Checked) {
+            $simplePanel.Visible = $true
+            $detailPanel.Visible = $false
+        } else {
+            $simplePanel.Visible = $false
+            $detailPanel.Visible = $true
+        }
+    }
+
+    $rbSimple.Add_CheckedChanged({ Update-ModeUI })
+    $rbDetail.Add_CheckedChanged({ Update-ModeUI })
+    Update-ModeUI
+
+    # ── Bottom buttons ──────────────────────────────────
     $bottomPanel = New-Object System.Windows.Forms.Panel
-    $bottomPanel.Dock = "Bottom"
-    $bottomPanel.Height = 45
-    $bottomPanel.BackColor = [System.Drawing.Color]::FromArgb(24, 24, 37)
+    $bottomPanel.Dock = "Bottom"; $bottomPanel.Height = 45; $bottomPanel.BackColor = $bgBottom
     $form.Controls.Add($bottomPanel)
 
     $btnSave = New-Object System.Windows.Forms.Button
     $btnSave.Text = "저장"
     $btnSave.Location = New-Object System.Drawing.Point(510, 8)
-    $btnSave.Size = New-Object System.Drawing.Size(80, 30)
-    $btnSave.FlatStyle = "Flat"
-    $btnSave.BackColor = [System.Drawing.Color]::FromArgb(137, 180, 250)
-    $btnSave.ForeColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
+    $btnSave.Size = New-Object System.Drawing.Size(80, 30); $btnSave.FlatStyle = "Flat"
+    $btnSave.BackColor = $fgAccent; $btnSave.ForeColor = $bgDark
     $btnSave.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
     $btnSave.Add_Click({
         $newCfg = @{}
         $newCfg["download_folder"] = $txtDL.Text
         if ($chkWeb.Checked) { $newCfg["open_webapp_on_start"] = "true" } else { $newCfg["open_webapp_on_start"] = "false" }
-        foreach ($k in $ruleTexts.Keys) {
-            $v = $ruleTexts[$k].Text.Trim()
-            if ($v -ne "") { $newCfg[$k] = $v }
+        if ($rbSimple.Checked) {
+            $newCfg["mode"] = "simple"
+            $newCfg["root_folder"] = $txtRoot.Text
+        } else {
+            $newCfg["mode"] = "detail"
+            $newCfg["root_folder"] = ""
+            foreach ($k in $ruleTexts.Keys) {
+                $v = $ruleTexts[$k].Text.Trim()
+                if ($v -ne "") { $newCfg[$k] = $v }
+            }
         }
         Save-Config $newCfg
         Restart-Watcher
@@ -321,9 +404,7 @@ function Show-Settings {
     $btnCancel = New-Object System.Windows.Forms.Button
     $btnCancel.Text = "취소"
     $btnCancel.Location = New-Object System.Drawing.Point(600, 8)
-    $btnCancel.Size = New-Object System.Drawing.Size(60, 30)
-    $btnCancel.FlatStyle = "Flat"
-    $btnCancel.BackColor = [System.Drawing.Color]::FromArgb(69, 71, 90)
+    $btnCancel.Size = New-Object System.Drawing.Size(60, 30); $btnCancel.FlatStyle = "Flat"; $btnCancel.BackColor = $bgBtn
     $btnCancel.Add_Click({ $form.Close() })
     $bottomPanel.Controls.Add($btnCancel)
 
@@ -336,27 +417,15 @@ function Start-Watcher {
     $dlFolder = $cfg["download_folder"]
     if (-not (Test-Path $dlFolder)) { return }
     $w = New-Object System.IO.FileSystemWatcher
-    $w.Path = $dlFolder
-    $w.Filter = "*.*"
-    $w.IncludeSubdirectories = $false
-    $w.EnableRaisingEvents = $true
-    Register-ObjectEvent -InputObject $w -EventName Created -Action {
-        Start-Sleep -Seconds 2
-        Process-File $Event.SourceEventArgs.FullPath
-    } | Out-Null
-    Register-ObjectEvent -InputObject $w -EventName Renamed -Action {
-        Start-Sleep -Seconds 1
-        Process-File $Event.SourceEventArgs.FullPath
-    } | Out-Null
+    $w.Path = $dlFolder; $w.Filter = "*.*"
+    $w.IncludeSubdirectories = $false; $w.EnableRaisingEvents = $true
+    Register-ObjectEvent -InputObject $w -EventName Created -Action { Start-Sleep -Seconds 2; Process-File $Event.SourceEventArgs.FullPath } | Out-Null
+    Register-ObjectEvent -InputObject $w -EventName Renamed -Action { Start-Sleep -Seconds 1; Process-File $Event.SourceEventArgs.FullPath } | Out-Null
     $script:watcher = $w
 }
 
 function Restart-Watcher {
-    if ($script:watcher) {
-        $script:watcher.EnableRaisingEvents = $false
-        $script:watcher.Dispose()
-        $script:watcher = $null
-    }
+    if ($script:watcher) { $script:watcher.EnableRaisingEvents = $false; $script:watcher.Dispose(); $script:watcher = $null }
     Get-EventSubscriber | Unregister-Event -Force 2>$null
     Start-Watcher
 }
@@ -366,17 +435,13 @@ function Start-TrayApp {
     $cfg = Load-Config
     if ($cfg["open_webapp_on_start"] -eq "true") { Open-WebApp }
 
-    $hasRules = $false
-    foreach ($pat in $script:ALL_PATTERNS) {
-        if ($cfg.ContainsKey($pat.key) -and $cfg[$pat.key] -ne "") { $hasRules = $true; break }
-    }
-    if (-not $hasRules) { Show-Settings }
+    $hasConfig = ($cfg["mode"] -eq "simple" -and $cfg["root_folder"] -ne "") -or ($cfg["mode"] -eq "detail")
+    if (-not $hasConfig) { Show-Settings }
 
     Start-Watcher
 
     $icon = New-Object System.Windows.Forms.NotifyIcon
-    $icon.Text = "CHA Bio 파일 분류"
-    $icon.Visible = $true
+    $icon.Text = "CHA Bio 파일 분류"; $icon.Visible = $true
     $script:notifyIcon = $icon
 
     $bmp = New-Object System.Drawing.Bitmap(32, 32)
@@ -384,38 +449,23 @@ function Start-TrayApp {
     $g.Clear([System.Drawing.Color]::FromArgb(137, 180, 250))
     $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
     $g.FillRectangle($brush, 8, 12, 16, 12)
-    $points = @(
-        (New-Object System.Drawing.Point(16, 5)),
-        (New-Object System.Drawing.Point(8, 14)),
-        (New-Object System.Drawing.Point(24, 14))
-    )
+    $points = @((New-Object System.Drawing.Point(16, 5)), (New-Object System.Drawing.Point(8, 14)), (New-Object System.Drawing.Point(24, 14)))
     $g.FillPolygon($brush, $points)
-    $brush.Dispose()
-    $g.Dispose()
+    $brush.Dispose(); $g.Dispose()
     $icon.Icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
 
     $menu = New-Object System.Windows.Forms.ContextMenuStrip
-    $miWeb = New-Object System.Windows.Forms.ToolStripMenuItem
-    $miWeb.Text = "웹앱 열기"
-    $miWeb.Add_Click({ Open-WebApp })
-    $menu.Items.Add($miWeb) | Out-Null
-
-    $miSet = New-Object System.Windows.Forms.ToolStripMenuItem
-    $miSet.Text = "설정"
-    $miSet.Add_Click({ Show-Settings })
-    $menu.Items.Add($miSet) | Out-Null
-
+    $miWeb = New-Object System.Windows.Forms.ToolStripMenuItem; $miWeb.Text = "웹앱 열기"
+    $miWeb.Add_Click({ Open-WebApp }); $menu.Items.Add($miWeb) | Out-Null
+    $miSet = New-Object System.Windows.Forms.ToolStripMenuItem; $miSet.Text = "설정"
+    $miSet.Add_Click({ Show-Settings }); $menu.Items.Add($miSet) | Out-Null
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
-
-    $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem
-    $miQuit.Text = "종료"
+    $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem; $miQuit.Text = "종료"
     $miQuit.Add_Click({
         if ($script:watcher) { $script:watcher.Dispose() }
-        $script:notifyIcon.Visible = $false
-        $script:notifyIcon.Dispose()
+        $script:notifyIcon.Visible = $false; $script:notifyIcon.Dispose()
         [System.Windows.Forms.Application]::Exit()
-    })
-    $menu.Items.Add($miQuit) | Out-Null
+    }); $menu.Items.Add($miQuit) | Out-Null
 
     $icon.ContextMenuStrip = $menu
     $icon.Add_DoubleClick({ Show-Settings })
