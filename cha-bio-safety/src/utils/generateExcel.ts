@@ -1001,13 +1001,8 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
     return xml.slice(0, start) + newCell + xml.slice(end)
   }
 
-  let stylesXml = strFromU8(files['xl/styles.xml'])
   let xml = strFromU8(files['xl/worksheets/sheet1.xml'])
   xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
-
-  // -- AA10 (fire_action) 에 wrapText 스타일 추가 (원본 style 63 = no wrapText) --
-  const [newStylesXml, wrapStyleIdx] = addWrapStyle(stylesXml, 63)
-  stylesXml = newStylesXml
 
   // -- 헤더: year / month / lastDay (D-25) --
   xml = patchCell(xml, 'C4', year)
@@ -1031,8 +1026,8 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCell(xml, 'Y19', data.escape_result === 'ok'  ? '\u221A' : '')
   xml = patchCell(xml, 'Y21', data.escape_result === 'bad' ? '\u221A' : '')
 
-  // -- 조치내역 (다중 라인, wrapText 스타일 적용) (D-25, D-28) --
-  xml = patchCellWrap(xml, 'AA10', data.fire_action.replace(/\n/g, '&#10;'), wrapStyleIdx)
+  // -- 조치내역 (다중 라인) --
+  xml = patchCell(xml, 'AA10', data.fire_action.replace(/\n/g, '&#10;'))
   xml = patchCell(xml, 'AA14', data.escape_action.replace(/\n/g, '&#10;'))
 
   // -- 화기취급감독 결과/조치 --
@@ -1061,7 +1056,6 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCell(xml, 'X41', data.fix_method === 'other' ? '\u221A' : '')
 
   files['xl/worksheets/sheet1.xml'] = strToU8(xml)
-  files['xl/styles.xml'] = strToU8(stylesXml)
   const zipped = zipSync(files, { level: 6 })
   const blob   = createExcelBlob(zipped.buffer as ArrayBuffer)
   downloadBlob(blob, `소방안전관리자_업무수행기록표_${year}년_${month}월.xlsx`)
