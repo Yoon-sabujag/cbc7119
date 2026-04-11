@@ -395,7 +395,8 @@ function Show-Settings {
             }
         }
         Save-Config $newCfg
-        Restart-Watcher
+        $global:knownFiles = @{}
+        $global:fileSizes = @{}
         [System.Windows.Forms.MessageBox]::Show("설정이 저장되었습니다.", "완료")
         $form.Close()
     })
@@ -411,130 +412,68 @@ function Show-Settings {
     $form.ShowDialog()
 }
 
-# ── Watcher (timer-based polling) ───────────────────────
+# ── Scan & Move ─────────────────────────────────────────
 $global:knownFiles = @{}
 $global:fileSizes = @{}
-$global:pollTimer = $null
 
-function Start-Watcher {
-    if ($global:pollTimer) { return }
-    $timer = New-Object System.Windows.Forms.Timer
-    $timer.Interval = 4000
-    $timer.Add_Tick({
-        try {
-            # Load config inline
-            $tcfg = @{}
-            $tcfg["download_folder"] = Join-Path $env:USERPROFILE "Downloads"
-            $tcfg["mode"] = "simple"
-            $tcfg["root_folder"] = ""
-            $cfgFile = Join-Path $env:USERPROFILE ".cha-bio-watchdog\config.txt"
-            if (Test-Path $cfgFile) {
-                $tlines = [System.IO.File]::ReadAllLines($cfgFile, [System.Text.Encoding]::UTF8)
-                foreach ($tl in $tlines) {
-                    $tl = $tl.Trim()
-                    if ($tl -eq "" -or $tl.StartsWith("#")) { continue }
-                    $ti = $tl.IndexOf("=")
-                    if ($ti -gt 0) { $tcfg[$tl.Substring(0, $ti).Trim()] = $tl.Substring($ti + 1).Trim() }
-                }
+function Scan-Downloads {
+    $cfg = Load-Config
+    $dlFolder = $cfg["download_folder"]
+    if (-not $dlFolder -or -not (Test-Path $dlFolder)) { return }
+
+    $files = Get-ChildItem -Path $dlFolder -File -ErrorAction SilentlyContinue
+    foreach ($f in $files) {
+        $fp = $f.FullName
+        $fname = $f.Name
+        if ($fname -match '\.(crdownload|tmp|part)$') { continue }
+        if ($global:knownFiles.ContainsKey($fp)) { continue }
+
+        $curSize = $f.Length
+        if ($curSize -eq 0) { continue }
+        if ($global:fileSizes.ContainsKey($fp)) {
+            if ($global:fileSizes[$fp] -ne $curSize) {
+                $global:fileSizes[$fp] = $curSize
+                continue
             }
+        } else {
+            $global:fileSizes[$fp] = $curSize
+            continue
+        }
 
-            $dlFolder = $tcfg["download_folder"]
-            if (-not $dlFolder -or -not (Test-Path $dlFolder)) { return }
+        $didMatch = $false
+        foreach ($pat in $global:ALL_PATTERNS) {
+            $rm = [regex]::Match($fname, $pat.pattern)
+            if ($rm.Success) {
+                $didMatch = $true
+                $now = Get-Date
+                $yr = $null; $mo = $null
+                if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
+                if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
+                if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
+                if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
 
-            $files = Get-ChildItem -Path $dlFolder -File -ErrorAction SilentlyContinue
-            foreach ($f in $files) {
-                $fp = $f.FullName
-                $fname = $f.Name
-                if ($fname -match '\.(crdownload|tmp|part)$') { continue }
-                if ($global:knownFiles.ContainsKey($fp)) { continue }
+                $destDir = Get-DestFolder $cfg $pat.key $yr $mo
+                if (-not $destDir) { break }
 
-                # File size stability: skip if size changed since last tick
-                $curSize = $f.Length
-                if ($curSize -eq 0) { continue }
-                if ($global:fileSizes.ContainsKey($fp)) {
-                    if ($global:fileSizes[$fp] -ne $curSize) {
-                        $global:fileSizes[$fp] = $curSize
-                        continue
-                    }
-                } else {
-                    $global:fileSizes[$fp] = $curSize
-                    continue
-                }
-
-                # Match patterns
-                $didMatch = $false
-                foreach ($pat in $global:ALL_PATTERNS) {
-                    $rm = [regex]::Match($fname, $pat.pattern)
-                    if ($rm.Success) {
-                        $didMatch = $true
-                        $pkey = $pat.key
-
-                        # Get dest folder inline
-                        $now = Get-Date
-                        $yr = $null; $mo = $null
-                        if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
-                        if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
-                        if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
-                        if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
-                        $yrF = $yr + [char]0xB144
-                        $moF = $mo + [char]0xC6D4
-
-                        $destDir = $null
-                        if ($tcfg["mode"] -eq "simple") {
-                            $root = $tcfg["root_folder"]
-                            if ($root -and $root -ne "") {
-                                $info = $global:KEY_INFO[$pkey]
-                                $destDir = Join-Path $root (Join-Path $info.group (Join-Path $info.label (Join-Path $yrF $moF)))
-                            }
-                        } else {
-                            if ($tcfg.ContainsKey($pkey) -and $tcfg[$pkey] -ne "") {
-                                $destDir = Join-Path $tcfg[$pkey] (Join-Path $yrF $moF)
-                            }
-                        }
-
-                        if (-not $destDir) { break }
-
-                        # Move file
-                        try {
-                            if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
-                            $destFile = Join-Path $destDir $fname
-                            if (Test-Path $destFile) { Remove-Item $destFile -Force }
-                            Move-Item -Path $fp -Destination $destFile -Force
-                            $global:knownFiles[$fp] = $true
-                            if ($global:notifyIcon) {
-                                $global:notifyIcon.BalloonTipTitle = $fname
-                                $global:notifyIcon.BalloonTipText = "이동 완료"
-                                $global:notifyIcon.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
-                                $global:notifyIcon.ShowBalloonTip(3000)
-                            }
-                        } catch {}
-                        break
-                    }
-                }
-                if (-not $didMatch) { $global:knownFiles[$fp] = $true }
+                try {
+                    Move-ToFolder $fp $destDir
+                    $global:knownFiles[$fp] = $true
+                    Show-Balloon $fname "이동 완료"
+                } catch {}
+                break
             }
-        } catch {}
-    })
-    $timer.Start()
-    $global:pollTimer = $timer
+        }
+        if (-not $didMatch) { $global:knownFiles[$fp] = $true }
+    }
 }
 
-function Restart-Watcher {
-    if ($global:pollTimer) { $global:pollTimer.Stop(); $global:pollTimer.Dispose(); $global:pollTimer = $null }
-    $global:knownFiles = @{}
-    $global:fileSizes = @{}
-    Start-Watcher
-}
-
-# ── Tray App ────────────────────────────────────────────
+# ── Tray App (main loop with DoEvents) ──────────────────
 function Start-TrayApp {
     $cfg = Load-Config
     if ($cfg["open_webapp_on_start"] -eq "true") { Open-WebApp }
 
     $hasConfig = ($cfg["mode"] -eq "simple" -and $cfg["root_folder"] -ne "") -or ($cfg["mode"] -eq "detail")
     if (-not $hasConfig) { Show-Settings }
-
-    Start-Watcher
 
     $icon = New-Object System.Windows.Forms.NotifyIcon
     $icon.Text = "CHA Bio 파일 분류"; $icon.Visible = $true
@@ -558,15 +497,27 @@ function Start-TrayApp {
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
     $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem; $miQuit.Text = "종료"
     $miQuit.Add_Click({
-        if ($global:pollTimer) { $global:pollTimer.Stop(); $global:pollTimer.Dispose() }
-        $global:notifyIcon.Visible = $false; $global:notifyIcon.Dispose()
-        [System.Windows.Forms.Application]::Exit()
+        $global:notifyIcon.Visible = $false
+        $global:notifyIcon.Dispose()
+        $global:appRunning = $false
     }); $menu.Items.Add($miQuit) | Out-Null
 
     $icon.ContextMenuStrip = $menu
     $icon.Add_DoubleClick({ Show-Settings })
     Show-Balloon "CHA Bio 파일 분류" "파일 감시 시작됨"
-    [System.Windows.Forms.Application]::Run()
+
+    # Main loop — poll every 3 seconds, process UI events
+    $global:appRunning = $true
+    $lastScan = [datetime]::MinValue
+    while ($global:appRunning) {
+        [System.Windows.Forms.Application]::DoEvents()
+        $now = Get-Date
+        if (($now - $lastScan).TotalSeconds -ge 3) {
+            Scan-Downloads
+            $lastScan = $now
+        }
+        Start-Sleep -Milliseconds 200
+    }
 }
 
 Start-TrayApp
