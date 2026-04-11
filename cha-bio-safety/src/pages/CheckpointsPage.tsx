@@ -121,26 +121,30 @@ function CheckPointModalContent({
     setForm(f => ({ ...f, category: cat }))
   }
 
-  // 카테고리 데이터 로드 후 기본값 설정
+  // 카테고리+구역+층 선택 후 기본값 생성
   useEffect(() => {
-    if (mode !== 'add' || !catCheckPoints || catCheckPoints.length === 0) return
-    // 마지막 위치번호에서 다음 번호 추출
-    const nos = catCheckPoints.map(c => c.locationNo).filter(Boolean).sort()
+    if (mode !== 'add' || !catCheckPoints || !form.category) return
+    // 선택된 층의 데이터만 필터
+    const filtered = form.floor
+      ? catCheckPoints.filter(c => c.floor === form.floor)
+      : catCheckPoints
+    // 위치번호: 해당 층의 마지막 번호 +1
+    const nos = filtered.map(c => c.locationNo).filter(Boolean).sort()
     const lastNo = nos[nos.length - 1] ?? ''
-    // 패턴: "1F-10" → 숫자 부분 추출하여 +1
     const numMatch = lastNo.match(/(\d+)$/)
-    const nextNum = numMatch ? String(parseInt(numMatch[1]) + 1).padStart(numMatch[1].length, '0') : ''
-    const prefix = numMatch ? lastNo.slice(0, -numMatch[1].length) : ''
-    const nextNo = nextNum ? `${prefix}${nextNum}` : ''
-    // 개소명: 카테고리 기반 기본 템플릿
-    const count = catCheckPoints.length + 1
-    const defaultName = `${form.category} ${count}번`
-    setForm(f => ({
-      ...f,
-      locationNo: f.locationNo || nextNo,
-      location: f.location || defaultName,
-    }))
-  }, [catCheckPoints, mode])
+    let nextNo = ''
+    if (numMatch) {
+      const nextNum = String(parseInt(numMatch[1]) + 1).padStart(numMatch[1].length, '0')
+      nextNo = lastNo.slice(0, -numMatch[1].length) + nextNum
+    } else if (form.floor) {
+      nextNo = `${form.floor}-1`
+    }
+    // 개소명: {층} {카테고리} {N+1}번
+    const count = filtered.length + 1
+    const floorPrefix = form.floor ? `${form.floor} ` : ''
+    const defaultName = `${floorPrefix}${form.category} ${count}번`
+    setForm(f => ({ ...f, locationNo: nextNo, location: defaultName }))
+  }, [catCheckPoints, form.category, form.floor, mode])
 
   const setField = (k: keyof CpFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
@@ -190,10 +194,6 @@ function CheckPointModalContent({
           </select>
         </div>
         <div>
-          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
-          <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
-        </div>
-        <div>
           <label style={LABEL_STYLE}>구역</label>
           <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--bd)' }}>
             {(['office', 'research', 'common'] as const).map(z => (
@@ -215,6 +215,10 @@ function CheckPointModalContent({
             </select>
           </div>
         )}
+        <div>
+          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
+        </div>
         <div>
           <label style={LABEL_STYLE}>위치번호</label>
           <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001 (선택)" />
