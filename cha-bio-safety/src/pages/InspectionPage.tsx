@@ -1012,6 +1012,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   })()
   // 지하: 해당 측정점 인덱스
   const initUnderIdx = initPt && initIsUnder ? Math.max(0, DIV_UNDER_SEQ.indexOf(initPt.id)) : 0
+  const [timing,       setTiming]       = useState<'early'|'late'>(new Date().getDate() <= 15 ? 'early' : 'late')
   const [zone,         setZone]         = useState<DivZone|null>(initZone)
   const [line,         setLine]         = useState<number|null>(initLine)
   const [lineIdx,      setLineIdx]      = useState(initLineIdx)
@@ -1147,6 +1148,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
           year:        now.getFullYear(),
           month:       now.getMonth()+1,
           day:         now.getDate(),
+          timing,
           pressure_1:  p1,
           pressure_2:  p2,
           pressure_set: p3,
@@ -1267,6 +1269,23 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
       {/* 본문 */}
       <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
+
+        {/* 월초/월말 선택 */}
+        <div>
+          <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 구분</div>
+          <div style={{ display:'flex', gap:8 }}>
+            {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
+              const sel = timing === t
+              return (
+                <button key={t}
+                  onClick={() => setTiming(t)}
+                  style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
         {/* 구역 선택 */}
         <div>

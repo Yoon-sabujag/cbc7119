@@ -43,7 +43,8 @@ const MATRIX_CATEGORIES: Record<string, string> = {
 
 function fetchKey(rt: ReportType | null, year: number): string {
   if (!rt) return ''
-  if (rt === 'div-early' || rt === 'div-late') return `/reports/div?year=${year}`
+  if (rt === 'div-early') return `/reports/div?year=${year}&timing=early`
+  if (rt === 'div-late') return `/reports/div?year=${year}&timing=late`
   if (rt === '소방펌프') return `/reports/check-monthly?year=${year}&category=${encodeURIComponent('소방펌프')}`
   const cat = MATRIX_TYPES.has(rt) ? MATRIX_CATEGORIES[rt] ?? rt : rt
   return `/reports/check-monthly?year=${year}&category=${encodeURIComponent(cat)}`

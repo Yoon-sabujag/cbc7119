@@ -197,13 +197,14 @@ export default function DivPage() {
 
   // ── 압력 데이터 맵: divId → [{month, v1, v2, vc}] ────────────
   const pressureMap = useMemo(() => {
-    const m: Record<string, { year: number; month: number; v1: number; v2: number; vc: number }[]> = {}
+    const m: Record<string, { year: number; month: number; timing: string | null; v1: number; v2: number; vc: number }[]> = {}
     for (const r of pressureRecs) {
       if (!m[r.location_no]) m[r.location_no] = []
-      m[r.location_no].push({ year: r.year, month: r.month, v1: r.pressure_1 ?? 0, v2: r.pressure_2 ?? 0, vc: r.pressure_set ?? 0 })
+      m[r.location_no].push({ year: r.year, month: r.month, timing: r.timing ?? null, v1: r.pressure_1 ?? 0, v2: r.pressure_2 ?? 0, vc: r.pressure_set ?? 0 })
     }
+    const timingOrder = (t: string) => t === 'early' ? 0 : 1
     for (const k of Object.keys(m)) {
-      m[k].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month)
+      m[k].sort((a, b) => a.year !== b.year ? a.year - b.year : a.month !== b.month ? a.month - b.month : timingOrder(a.timing) - timingOrder(b.timing))
     }
     return m
   }, [pressureRecs])
@@ -294,7 +295,7 @@ export default function DivPage() {
                         </span>
                         {alarm && <span style={{ fontSize: 7, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>이상</span>}
                         {warn  && <span style={{ fontSize: 7, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>주의</span>}
-                        {last  && <span style={{ fontSize: 7, color: 'var(--t3)', flexShrink: 0 }}>{last.month}월</span>}
+                        {last  && <span style={{ fontSize: 7, color: 'var(--t3)', flexShrink: 0 }}>{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
                       </div>
                       {/* 압력값: SVG와 동일한 34px 고정 높이 */}
                       <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
@@ -457,8 +458,8 @@ export default function DivPage() {
                           </g>
                         ))}
                         {hist.map((r: any, i: number) => (
-                          <text key={i} x={spx(i)} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
-                            {String(r.month).padStart(2, '0')}
+                          <text key={i} x={spx(i)} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="9" fontFamily="JetBrains Mono, monospace">
+                            {String(r.month).padStart(2, '0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}
                           </text>
                         ))}
                         <polyline
@@ -498,9 +499,9 @@ export default function DivPage() {
                   <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
                 ))}
               </div>
-              {[...hist].reverse().slice(0, 12).map((r: any) => (
-                <div key={`${r.year}-${r.month}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
-                  <div style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{r.year}-{String(r.month).padStart(2,'0')}</div>
+              {[...hist].reverse().slice(0, 24).map((r: any) => (
+                <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
+                  <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
                     <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
                       {v != null ? v.toFixed(1) : '-'}
