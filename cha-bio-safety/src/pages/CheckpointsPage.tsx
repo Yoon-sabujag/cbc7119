@@ -182,6 +182,10 @@ function CheckPointModalContent({
           </div>
         )}
         <div>
+          <label style={LABEL_STYLE}>위치번호</label>
+          <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001 (선택)" />
+        </div>
+        <div>
           <label style={LABEL_STYLE}>설명</label>
           <input style={INPUT_STYLE} value={form.description} onChange={setField('description')} placeholder="메모 (선택)" />
         </div>
