@@ -20,11 +20,11 @@ $script:FILE_PATTERNS = @(
     @{ key="daily_report_single"; label="일일업무일지(일별)";       pattern='^(\d{1,2})월(\d{2})일 방재업무일지\.xlsx$';                       yearG=0; monthG=1 }
     @{ key="daily_report_monthly";label="일일업무일지(월별)";       pattern='^일일업무일지\((\d{2})월\)\.xlsx$';                               yearG=0; monthG=1 }
     @{ key="work_log";            label="업무수행기록표";           pattern='^소방안전관리자_업무수행기록표_(\d{4})년_(\d{1,2})월\.xlsx$';       yearG=1; monthG=2 }
-    @{ key="leave_request";       label="휴가신청서";              pattern='^휴가신청서_.+_\d{8}\.xlsx$';                                    yearG=0; monthG=0 }
+    @{ key="leave_request";       label="휴가신청서";              pattern='^휴가신청서_.+_(\d{4})(\d{2})\d{2}\.xlsx$';                      yearG=1; monthG=2 }
     @{ key="annual_plan";         label="연간 업무 추진 계획";      pattern='^(\d{4})년 연간 업무 추진 계획\.xlsx$';                           yearG=1; monthG=0 }
     @{ key="monthly_plan";        label="월간 중요업무추진계획";     pattern='^(\d{4})년_(\d{1,2})월_중요업무추진계획\(방재\)\.xlsx$';           yearG=1; monthG=2 }
     @{ key="qr_code";             label="QR 코드";                pattern='^.+_(?:점검용|점검확인용)_QR\.pdf$';                              yearG=0; monthG=0 }
-    @{ key="remediation_report";  label="조치보고서";              pattern='^조치보고서_.+_\d{8}\.html$';                                    yearG=0; monthG=0 }
+    @{ key="remediation_report";  label="조치보고서";              pattern='^조치보고서_.+_(\d{4})(\d{2})\d{2}\.html$';                      yearG=1; monthG=2 }
     @{ key="legal_findings";      label="지적사항";                pattern='^지적사항_.+\.zip$';                                             yearG=0; monthG=0 }
 )
 
