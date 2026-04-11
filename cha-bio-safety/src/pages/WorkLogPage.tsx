@@ -1,5 +1,6 @@
 // ── 업무수행기록표 페이지 ──────────────────────────────────────
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { workLogApi } from '../utils/api'
@@ -40,6 +41,12 @@ const textareaStyle: React.CSSProperties = {
   padding: '10px 12px', resize: 'vertical', outline: 'none', lineHeight: 1.6,
 }
 
+const iconBtn: React.CSSProperties = {
+  width: 34, height: 34, borderRadius: 9, border: '1px solid var(--bd)',
+  background: 'var(--bg3)', color: 'var(--t2)',
+  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+}
+
 const skeletonStyle: React.CSSProperties = {
   background: 'var(--bg4)', borderRadius: 4, height: 12, width: '70%',
   animation: 'blink 2s ease-in-out infinite',
@@ -47,6 +54,7 @@ const skeletonStyle: React.CSSProperties = {
 
 // ── 컴포넌트 ──────────────────────────────────────────────
 export default function WorkLogPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isDesktop = useIsDesktop()
   const { staff } = useAuthStore()
@@ -787,15 +795,25 @@ export default function WorkLogPage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', padding: '12px 16px' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
-      {monthNav}
-      <div style={{ height: 14 }} />
-      {formContent}
+      {/* 헤더 */}
+      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px 9px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => navigate(-1)} style={iconBtn} aria-label="뒤로 가기">
+          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>업무수행기록표</span>
+        {monthNav}
+      </header>
 
-      {/* 하단 여백 (푸터 높이만큼) */}
-      <div style={{ height: 72 }} />
+      {/* 스크롤 본문 */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+        {formContent}
+        <div style={{ height: 72 }} />
+      </div>
 
       {/* 고정 푸터 */}
       <div style={{
