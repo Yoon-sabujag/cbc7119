@@ -698,7 +698,7 @@ export default function StaffServicePage() {
     // 해당 날짜에 기존 휴가가 있으면 docLeaveType + docReason 자동 설정
     const cell = calendarDays.find(c => c.ymd === ymd)
     if (cell?.myLeave) {
-      setDocLeaveType(cell.myLeave.type)
+      setDocLeaveType(API_TO_DOC_TYPE[cell.myLeave.type] ?? cell.myLeave.type)
       setDocReason(cell.myLeave.reason ?? '')
     }
 

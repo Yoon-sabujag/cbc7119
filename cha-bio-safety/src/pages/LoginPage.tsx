@@ -153,7 +153,7 @@ export default function LoginPage() {
 
       <p style={{ textAlign:'center', fontSize:11, color:'var(--t3)', marginTop:20, lineHeight:1.6 }}>
         초기 비밀번호: 사번 뒤 4자리<br/>
-        문의: 방재팀 내선 ☎ 031-000-0000
+        문의: 방재팀 내선 ☎ 031-881-7119
       </p>
     </>
   )
@@ -166,7 +166,9 @@ export default function LoginPage() {
           {/* 카드 헤더 */}
           <div style={{ background:'var(--bg2)', padding:'24px 24px 20px', borderBottom:'1px solid var(--bd)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <div style={{ width:38, height:38, borderRadius:11, background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🛡️</div>
+              <div style={{ width:38, height:38, borderRadius:11, background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                <img src="/icons/icon-192.png" alt="" style={{ width:28, height:28, borderRadius:7 }} />
+              </div>
               <div>
                 <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>차바이오컴플렉스 방재팀</div>
                 <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>소방안전 통합관리 시스템</div>
@@ -188,7 +190,9 @@ export default function LoginPage() {
       {/* 상단 헤더 */}
       <div style={{ background:'var(--bg2)', padding:'16px 20px 24px', borderBottom:'1px solid var(--bd)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:16 }}>
-          <div style={{ width:38, height:38, borderRadius:11, background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🛡️</div>
+          <div style={{ width:38, height:38, borderRadius:11, background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+            <img src="/icons/icon-192.png" alt="" style={{ width:28, height:28, borderRadius:7 }} />
+          </div>
           <div>
             <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>차바이오컴플렉스 방재팀</div>
             <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>소방안전 통합관리 시스템</div>
