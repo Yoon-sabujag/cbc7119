@@ -110,14 +110,15 @@ function Process-File($filePath) {
     if ($fileName -match '\.(crdownload|tmp|part)$') { return }
 
     foreach ($pat in $script:FILE_PATTERNS) {
-        if ($fileName -match $pat.pattern) {
+        $m = [regex]::Match($fileName, $pat.pattern)
+        if ($m.Success) {
             $key = $pat.key
             if (-not $cfg.ContainsKey($key) -or $cfg[$key] -eq "") { continue }
             $dest = $cfg[$key]
 
             $year = $null; $month = $null
-            if ($pat.yearG -gt 0 -and $Matches[$pat.yearG]) { $year = $Matches[$pat.yearG] }
-            if ($pat.monthG -gt 0 -and $Matches[$pat.monthG]) { $month = $Matches[$pat.monthG].PadLeft(2, '0') }
+            if ($pat.yearG -gt 0 -and $m.Groups[$pat.yearG].Success) { $year = $m.Groups[$pat.yearG].Value }
+            if ($pat.monthG -gt 0 -and $m.Groups[$pat.monthG].Success) { $month = $m.Groups[$pat.monthG].Value.PadLeft(2, '0') }
 
             $prevSize = -1
             for ($i = 0; $i -lt 15; $i++) {
