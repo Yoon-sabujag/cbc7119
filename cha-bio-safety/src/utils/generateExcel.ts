@@ -902,6 +902,27 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   const ab    = await res.arrayBuffer()
   const files = unzipSync(new Uint8Array(ab))
 
+  // -- 작성법 시트(sheet2) 제거: 관련 파일·참조 모두 삭제 --
+  delete files['xl/worksheets/sheet2.xml']
+
+  // workbook.xml: <sheet> for sheet2 제거
+  let wbXml = strFromU8(files['xl/workbook.xml'])
+  wbXml = wbXml.replace(/<sheet[^>]*name="작성요령"[^>]*\/>/g, '')
+  wbXml = wbXml.replace(/<sheet[^>]*name="작성요령"[^>]*>[^<]*<\/sheet>/g, '')
+  // fallback: sheet2 by sheetId
+  wbXml = wbXml.replace(/<sheet[^>]*sheetId="2"[^>]*\/>/g, '')
+  files['xl/workbook.xml'] = strToU8(wbXml)
+
+  // workbook.xml.rels: sheet2 relationship 제거
+  let wbRels = strFromU8(files['xl/_rels/workbook.xml.rels'])
+  wbRels = wbRels.replace(/<Relationship[^>]*Target="worksheets\/sheet2\.xml"[^>]*\/>/g, '')
+  files['xl/_rels/workbook.xml.rels'] = strToU8(wbRels)
+
+  // [Content_Types].xml: sheet2 content type 제거
+  let ctXml = strFromU8(files['[Content_Types].xml'])
+  ctXml = ctXml.replace(/<Override[^>]*PartName="\/xl\/worksheets\/sheet2\.xml"[^>]*\/>/g, '')
+  files['[Content_Types].xml'] = strToU8(ctXml)
+
   function esc(s: string) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   }
