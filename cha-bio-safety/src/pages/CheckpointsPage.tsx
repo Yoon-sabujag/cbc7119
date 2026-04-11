@@ -25,10 +25,12 @@ function IconChevronDown({ size = 16, color = 'currentColor' }: { size?: number;
 }
 
 // ── 상수 ────────────────────────────────────────────────────
-const CATEGORIES = [
-  '소화기', '옥내소화전', '스프링클러', '유수검지장치',
-  '청정소화약제', '소방펌프', '자탐', '제연설비',
-  '방화셔터', '비상콘센트', '비상방송', '피난방화', '승강기',
+// 카테고리는 DB에서 동적으로 가져옴 (하드코딩 폴백)
+const CATEGORIES_FALLBACK = [
+  '소화기', '소화전', '스프링클러', '청정소화약제', '소방펌프',
+  '자동화재탐지설비', '유도등', '방화셔터', '비상콘센트', '소방용전원공급반',
+  '특별피난계단', '전실제연댐퍼', '배연창', '연결송수관', '완강기',
+  'DIV', 'CCTV', '주차장비', '회전문',
 ]
 const ZONE_LABEL: Record<string, string> = {
   office: '사무동', research: '연구동', common: '지하',
@@ -149,7 +151,7 @@ function CheckPointModalContent({
           <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--danger)' }}>*</span></label>
           <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={setField('category')}>
             <option value="">카테고리 선택</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div>
@@ -268,7 +270,7 @@ export default function CheckpointsPage() {
   if (me?.role !== 'admin') return null
 
   const ModalWrapper = isDesktop ? DesktopModal : BottomSheet
-  const categoryOptions = categories.length > 0 ? categories : CATEGORIES
+  const categoryOptions = categories.length > 0 ? categories : CATEGORIES_FALLBACK
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
