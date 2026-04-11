@@ -234,7 +234,7 @@ function Show-Settings {
     # Scrollable panel for grouped rules
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(0, $y)
-    $panel.Size = New-Object System.Drawing.Size(685, 560)
+    $panel.Size = New-Object System.Drawing.Size(685, 470)
     $panel.AutoScroll = $true
     $panel.BackColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
     $form.Controls.Add($panel)
