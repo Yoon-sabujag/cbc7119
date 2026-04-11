@@ -1003,7 +1003,7 @@ function WorkLogPortraitPreview({
   const [year, month] = yearMonth.split('-').map(Number)
   const lastDay = new Date(year, month, 0).getDate()
 
-  const overlayItems: { key: string; text: string; isArea?: boolean; width?: string }[] = calib ? [
+  const overlayItems: { key: string; text: string; isArea?: boolean; width?: string; align?: 'left' }[] = calib ? [
     { key: 'perfYear', text: String(year) },
     { key: 'perfMonth1', text: String(month) },
     { key: 'perfDay1', text: '1' },
@@ -1036,7 +1036,7 @@ function WorkLogPortraitPreview({
     { key: 'fixRemove', text: fixMethod === 'remove' ? '\u221A' : '' },
     { key: 'fixRepair', text: fixMethod === 'repair' ? '\u221A' : '' },
     { key: 'fixOther', text: fixMethod === 'other' ? '\u221A' : '' },
-    { key: 'fixOtherText', text: fixOtherText },
+    { key: 'fixOtherText', text: fixOtherText, align: 'left' },
   ] : []
 
   return (
@@ -1098,8 +1098,8 @@ function WorkLogPortraitPreview({
               <span key={item.key} style={{
                 position: 'absolute',
                 left: `${pt.x}%`, top: `${pt.y}%`,
-                transform: 'translate(-50%,-50%)',
-                ...textStyle(12), fontWeight: 700, textAlign: 'center',
+                transform: item.align === 'left' ? 'translateY(-50%)' : 'translate(-50%,-50%)',
+                ...textStyle(12), fontWeight: 700, textAlign: item.align || 'center',
                 whiteSpace: 'nowrap',
               }}>
                 {item.text}
