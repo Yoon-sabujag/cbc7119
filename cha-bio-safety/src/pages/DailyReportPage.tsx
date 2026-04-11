@@ -512,6 +512,7 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
     onLeave: string[]
     halfLeave: string[]
     training: string[]
+    holiday: string[]
     dayShift: string[]
     onDuty: string
   }
@@ -637,7 +638,7 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
       { key: 'pPresent', text: String(personnel.present) },
       { key: 'pDuty', text: personnel.onDuty ? '1' : '' },
       { key: 'pOff', text: personnel.offDuty || '' },
-      { key: 'pRest', text: '' },
+      { key: 'pRest', text: personnel.holiday.length > 0 ? String(personnel.holiday.length) : '' },
       { key: 'pLeave', text: personnel.onLeave.join(', ') },
       { key: 'pHalf', text: personnel.halfLeave.join(', ') },
       { key: 'pTraining', text: personnel.training.join(', ') },

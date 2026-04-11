@@ -18,7 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
   }
 
   let sql = `
-    SELECT al.id, al.staff_id, al.date, al.type, al.year, al.created_at, s.name as staff_name
+    SELECT al.id, al.staff_id, al.date, al.type, al.year, al.reason, al.created_at, s.name as staff_name
     FROM annual_leaves al
     LEFT JOIN staff s ON s.id = al.staff_id
     WHERE al.year = ?
@@ -48,6 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
       date:      r.date,
       type:      r.type,
       year:      r.year,
+      reason:    r.reason ?? null,
       createdAt: r.created_at,
     }))
 
@@ -60,6 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
       date:      r.date,
       type:      r.type,
       year:      r.year,
+      reason:    r.reason ?? null,
       createdAt: r.created_at,
     }))
 
@@ -70,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env, data }) =
 export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) => {
   const { staffId } = data as any
 
-  const body = await request.json<{ date: string; type: string }>()
+  const body = await request.json<{ date: string; type: string; reason?: string }>()
 
   if (!body.date || !body.type || !['full', 'half_am', 'half_pm', 'official_full', 'official_half_am', 'official_half_pm', 'condolence', 'sick_work', 'sick_personal', 'health', 'other_special'].includes(body.type)) {
     return Response.json({ success: false, error: '필수 항목 누락 또는 형식 오류' }, { status: 400 })
@@ -132,9 +134,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
 
   const id = 'LV-' + nanoid(8)
   await env.DB.prepare(`
-    INSERT INTO annual_leaves (id, staff_id, date, type, year)
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(id, staffId, body.date, body.type, year).run()
+    INSERT INTO annual_leaves (id, staff_id, date, type, year, reason)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).bind(id, staffId, body.date, body.type, year, body.reason ?? null).run()
 
   return Response.json({ success: true, data: { id } }, { status: 201 })
 }

@@ -85,6 +85,7 @@ export interface LeaveItem {
   date:      string
   type:      'full' | 'half_am' | 'half_pm' | 'official_full' | 'official_half_am' | 'official_half_pm'
   year:      number
+  reason?:   string | null
   createdAt: string
 }
 
@@ -93,8 +94,8 @@ export const leaveApi = {
     api.get<{ myLeaves: LeaveItem[]; teamLeaves: LeaveItem[] }>(
       `/leaves?year=${year}${month ? `&month=${month}` : ''}`
     ),
-  create: (date: string, type: string) =>
-    api.post<{ id: string }>('/leaves', { date, type }),
+  create: (date: string, type: string, reason?: string) =>
+    api.post<{ id: string }>('/leaves', { date, type, reason: reason || undefined }),
   delete: (id: string) =>
     api.delete<void>(`/leaves/${id}`),
 }

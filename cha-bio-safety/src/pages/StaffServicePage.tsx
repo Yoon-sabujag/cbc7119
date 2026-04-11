@@ -694,6 +694,14 @@ export default function StaffServicePage() {
   function handleDayClick(ymd: string) {
     setSelDate(ymd)
     setSheetOpen(true)
+
+    // 해당 날짜에 기존 휴가가 있으면 docLeaveType + docReason 자동 설정
+    const cell = calendarDays.find(c => c.ymd === ymd)
+    if (cell?.myLeave) {
+      setDocLeaveType(cell.myLeave.type)
+      setDocReason(cell.myLeave.reason ?? '')
+    }
+
     // 달력 클릭 → 휴가기간 자동 입력
     if (isDesktop) {
       // 데스크톱: 첫 클릭=시작일=종료일, 둘째 클릭=종료일 변경
@@ -1166,47 +1174,7 @@ export default function StaffServicePage() {
                     return (
                       <button
                         key={lt.type}
-                        onClick={async () => {
-                          setDocLeaveType(lt.type)
-                          if (!apiType || !docStartDate) return
-                          const end = docEndDate || docStartDate
-                          const toastId = toast.loading('등록 중...')
-                          try {
-                            // 범위 내 근무일 목록 수집
-                            const workDates: string[] = []
-                            const cur = new Date(docStartDate)
-                            const endD = new Date(end)
-                            while (cur <= endD) {
-                              const ymd = localYMD(cur)
-                              const dow = cur.getDay()
-                              if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) workDates.push(ymd)
-                              cur.setDate(cur.getDate() + 1)
-                            }
-                            // 전부 같은 타입이면 전체 취소, 아니면 전체 등록
-                            const allRegistered = workDates.every(ymd => myLeaveMap[ymd]?.type === apiType)
-                            if (allRegistered) {
-                              for (const ymd of workDates) {
-                                const existing = myLeaveMap[ymd]
-                                if (existing) await leaveApi.delete(existing.id)
-                              }
-                              toast.success(`${workDates.length}일 취소`, { id: toastId })
-                            } else {
-                              let count = 0
-                              for (const ymd of workDates) {
-                                const existing = myLeaveMap[ymd]
-                                if (existing?.type === apiType) continue // 이미 같은 타입 → 건너뛰기
-                                if (existing) await leaveApi.delete(existing.id) // 다른 타입 삭제
-                                await leaveApi.create(ymd, apiType as any)
-                                count++
-                              }
-                              toast.success(`${count}일 등록`, { id: toastId })
-                            }
-                          } catch (err: any) {
-                            toast.error(err?.message ?? '오류 발생', { id: toastId })
-                          }
-                          await qc.invalidateQueries({ queryKey: ['leaves'] })
-                          await qc.invalidateQueries({ queryKey: ['leaves-year'] })
-                        }}
+                        onClick={() => setDocLeaveType(lt.type)}
                         style={{
                           gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
                           padding: '7px 4px', borderRadius: 6, fontSize: 11, fontWeight: 600,
@@ -1273,6 +1241,54 @@ export default function StaffServicePage() {
                 }}
               />
             </div>
+
+            {/* 휴가 신청 버튼 */}
+            <button
+              onClick={async () => {
+                if (!docStartDate || !docLeaveType) {
+                  toast.error('기간과 휴가 종류를 선택하세요')
+                  return
+                }
+                const apiType = DOC_TO_API_TYPE[docLeaveType]
+                if (!apiType) return
+                const end = docEndDate || docStartDate
+                const toastId = toast.loading('등록 중...')
+                try {
+                  const workDates: string[] = []
+                  const cur = new Date(docStartDate)
+                  const endD = new Date(end)
+                  while (cur <= endD) {
+                    const ymd = localYMD(cur)
+                    const dow = cur.getDay()
+                    if (dow !== 0 && dow !== 6 && !HOLIDAYS_FALLBACK[ymd]) workDates.push(ymd)
+                    cur.setDate(cur.getDate() + 1)
+                  }
+                  let count = 0
+                  for (const ymd of workDates) {
+                    const existing = myLeaveMap[ymd]
+                    if (existing?.type === apiType && existing?.reason === (docReason || null)) continue
+                    if (existing) await leaveApi.delete(existing.id)
+                    await leaveApi.create(ymd, apiType as any, docReason || undefined)
+                    count++
+                  }
+                  toast.success(count > 0 ? `${count}일 등록` : '변경 없음', { id: toastId })
+                } catch (err: any) {
+                  toast.error(err?.message ?? '오류 발생', { id: toastId })
+                }
+                await qc.invalidateQueries({ queryKey: ['leaves'] })
+                await qc.invalidateQueries({ queryKey: ['leaves-year'] })
+              }}
+              disabled={!docStartDate || !docLeaveType}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 8,
+                background: docStartDate && docLeaveType ? '#22c55e' : 'var(--bg3)',
+                color: docStartDate && docLeaveType ? '#fff' : 'var(--t3)',
+                border: 'none', fontSize: 13, fontWeight: 700,
+                cursor: docStartDate && docLeaveType ? 'pointer' : 'default',
+              }}
+            >
+              휴가 신청
+            </button>
 
             <div style={{ flex: 1 }} />
 

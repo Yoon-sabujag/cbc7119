@@ -52,9 +52,12 @@ const SPRINKLER_MARKER_TYPES: { key: SprinklerType; label: [string, string] }[] 
 ]
 
 // ── 소화기·소화전 마커 타입 ──────────────────────────────
-type ExtinguisherType = 'fire_extinguisher' | 'indoor_hydrant' | 'descending_lifeline' | 'div_marker'
+type ExtinguisherType = 'fire_extinguisher' | 'ext_powder20' | 'ext_halogen' | 'ext_kitchen_k' | 'indoor_hydrant' | 'descending_lifeline' | 'div_marker'
 const EXTINGUISHER_MARKER_TYPES: { key: ExtinguisherType; label: [string, string] }[] = [
-  { key: 'fire_extinguisher',    label: ['소화기', '']      },
+  { key: 'fire_extinguisher',    label: ['분말', '3.3kg']   },
+  { key: 'ext_powder20',         label: ['분말', '20kg']    },
+  { key: 'ext_halogen',          label: ['할로겐', '']      },
+  { key: 'ext_kitchen_k',        label: ['K급', '주방']     },
   { key: 'indoor_hydrant',       label: ['소화전', '']      },
   { key: 'descending_lifeline',  label: ['완강기', '']      },
   { key: 'div_marker',           label: ['DIV', '']         },
@@ -144,8 +147,24 @@ function MarkerIcon({ markerType, color, size = 20 }: { markerType: string | nul
         </svg>
       )
     // ── 소화기·소화전 마커 ──
-    case 'fire_extinguisher': // ▲ 삼각
+    case 'fire_extinguisher': // ● 원 (분말3.3kg)
+      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+    case 'ext_powder20': // ◎ 도넛 (분말20kg)
+      return (
+        <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+          <circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/>
+          <circle cx={hs} cy={hs} r={hs*0.4} fill="none" stroke="#fff" strokeWidth={1.5}/>
+        </svg>
+      )
+    case 'ext_halogen': // ▲ 삼각 (할로겐)
       return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+    case 'ext_kitchen_k': // △ 삼각+구멍 (K급주방)
+      return (
+        <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
+          <polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
+          <circle cx={hs} cy={hs*1.15} r={hs*0.3} fill="none" stroke="#fff" strokeWidth={1.5}/>
+        </svg>
+      )
     case 'indoor_hydrant': // ⬡ 육각 (소화전)
       return (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
@@ -636,7 +655,7 @@ export default function FloorPlanPage() {
   // ── 추가 모달: 마커 타입 변경 시 개소 로드 (소화기·소화전) ──
   function loadAddCheckpoints(markerType: string) {
     if (planType === 'extinguisher') {
-      const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
+      const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', ext_powder20: '소화기', ext_halogen: '소화기', ext_kitchen_k: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
       const cat = markerCatMap[markerType] ?? '소화기'
       inspectionApi.getCheckpoints(floor).then(all => setAddCheckpoints(all.filter((cp: any) => cp.category === cat))).catch(() => setAddCheckpoints([]))
     }
@@ -853,7 +872,7 @@ export default function FloorPlanPage() {
           setEditZone(((selected as any).zone as 'research' | 'office' | 'common') ?? 'research')
           setEditCheckpointId(selected.check_point_id)
           if (planType === 'extinguisher') {
-            const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
+            const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', ext_powder20: '소화기', ext_halogen: '소화기', ext_kitchen_k: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
             const markerCat = markerCatMap[selected.marker_type ?? ''] ?? '소화기'
             inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === markerCat))).catch(() => setCheckpoints([]))
           } else {

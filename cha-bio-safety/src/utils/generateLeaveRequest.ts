@@ -230,10 +230,61 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
   // ── 휴가 종류 체크박스 (black fill) ────────────────────────
   const checkAddr = CHECKBOX_CELLS[data.leaveType]
   if (checkAddr) {
-    const origStyle = CHECKBOX_STYLES[checkAddr] ?? 0
-    const [newStyles, newIdx] = addBlackFillStyle(stylesXml, origStyle)
-    stylesXml = newStyles
-    sheetXml = patchCellStyled(sheetXml, checkAddr, null, newIdx)
+    // 1) fills에 solid black 추가
+    const fillsEnd = stylesXml.indexOf('</fills>')
+    if (fillsEnd !== -1) {
+      const newFill = '<fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor indexed="64"/></patternFill></fill>'
+      stylesXml = stylesXml.slice(0, fillsEnd) + newFill + stylesXml.slice(fillsEnd)
+      const fc = stylesXml.match(/<fills count="(\d+)"/)
+      if (fc) stylesXml = stylesXml.replace(`<fills count="${fc[1]}"`, `<fills count="${parseInt(fc[1]) + 1}"`)
+    }
+    const newFillId = 2 // 0=none, 1=gray125, 2=black
+
+    // 2) 원본 xf를 복제하고 fillId 교체하여 cellXfs 끝에 추가
+    const origIdx = CHECKBOX_STYLES[checkAddr] ?? 0
+    const cfStart = stylesXml.indexOf('<cellXfs')
+    const cfEnd = stylesXml.indexOf('</cellXfs>')
+    if (cfStart !== -1 && cfEnd !== -1) {
+      // 모든 xf 요소를 순서대로 추출
+      const xfs: string[] = []
+      let scanPos = cfStart
+      while (scanPos < cfEnd) {
+        const xfStart = stylesXml.indexOf('<xf ', scanPos)
+        if (xfStart === -1 || xfStart >= cfEnd) break
+        // xf 태그의 첫 번째 > 찾기
+        const firstGt = stylesXml.indexOf('>', xfStart)
+        if (firstGt === -1) break
+        if (stylesXml[firstGt - 1] === '/') {
+          // self-closing: <xf ... />
+          xfs.push(stylesXml.slice(xfStart, firstGt + 1))
+          scanPos = firstGt + 1
+        } else {
+          // has children: <xf ...>...</xf>
+          const closeTag = stylesXml.indexOf('</xf>', firstGt)
+          if (closeTag === -1) break
+          xfs.push(stylesXml.slice(xfStart, closeTag + 5))
+          scanPos = closeTag + 5
+        }
+      }
+
+      const xfStr = xfs[origIdx]
+      if (xfStr) {
+        let newXf = xfStr.includes('fillId=')
+          ? xfStr.replace(/fillId="\d+"/, `fillId="${newFillId}"`)
+          : xfStr.replace('<xf ', `<xf fillId="${newFillId}" `)
+        newXf = newXf.includes('applyFill=')
+          ? newXf.replace(/applyFill="\d+"/, 'applyFill="1"')
+          : newXf.replace('<xf ', '<xf applyFill="1" ')
+        // cellXfs 끝에 추가
+        stylesXml = stylesXml.slice(0, cfEnd) + newXf + stylesXml.slice(cfEnd)
+        // count 업데이트
+        const xfCount = stylesXml.match(/<cellXfs count="(\d+)"/)
+        if (xfCount) stylesXml = stylesXml.replace(`<cellXfs count="${xfCount[1]}"`, `<cellXfs count="${parseInt(xfCount[1]) + 1}"`)
+        // 새 스타일 인덱스 = 기존 count (0-based)
+        const newStyleIdx = parseInt(xfCount?.[1] ?? '71')
+        sheetXml = patchCellStyled(sheetXml, checkAddr, null, newStyleIdx)
+      }
+    }
   }
 
   // ── 기타특별휴가 사유 텍스트 (AC21) ────────────────────────
@@ -287,7 +338,6 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
   const out = zipSync(files)
   const blob = createExcelBlob(out.buffer as ArrayBuffer)
 
-  const today = new Date()
-  const dateStr = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`
+  const dateStr = data.startDate.replace(/-/g, '')
   downloadBlob(blob, `휴가신청서_${data.staffName}_${dateStr}.xlsx`)
 }
