@@ -1034,13 +1034,15 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCellWrap(xml, 'AA10', data.fire_action.replace(/\n/g, '&#10;'), wrapStyleIdx)
   xml = patchCell(xml, 'AA14', data.escape_action.replace(/\n/g, '&#10;'))
 
-  // -- 항상 빈 값 (D-25) --
-  xml = patchCell(xml, 'Y26', '')
-  xml = patchCell(xml, 'Y28', '')
-  xml = patchCell(xml, 'Y33', '')
-  xml = patchCell(xml, 'Y35', '')
-  xml = patchCell(xml, 'AA17', '')
-  xml = patchCell(xml, 'AA24', '')
+  // -- 화기취급감독 결과/조치 --
+  xml = patchCell(xml, 'Y26', data.gas_result === 'ok'  ? '\u221A' : '')
+  xml = patchCell(xml, 'Y28', data.gas_result === 'bad' ? '\u221A' : '')
+  xml = patchCell(xml, 'AA17', (data.gas_action ?? '').replace(/\n/g, '&#10;'))
+
+  // -- 기타사항 결과/조치 --
+  xml = patchCell(xml, 'Y33', data.etc_result === 'ok'  ? '\u221A' : '')
+  xml = patchCell(xml, 'Y35', data.etc_result === 'bad' ? '\u221A' : '')
+  xml = patchCell(xml, 'AA24', (data.etc_action ?? '').replace(/\n/g, '&#10;'))
 
   files['xl/worksheets/sheet1.xml'] = strToU8(xml)
   files['xl/styles.xml'] = strToU8(stylesXml)

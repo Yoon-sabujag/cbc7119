@@ -183,7 +183,11 @@ export interface WorkLog {
   escape_result: 'ok' | 'bad'
   escape_action: string
   gas_content: string
+  gas_result: '' | 'ok' | 'bad'
+  gas_action: string
   etc_content: string
+  etc_result: '' | 'ok' | 'bad'
+  etc_action: string
   updated_by: number
   updated_at: string
 }

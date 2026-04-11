@@ -64,7 +64,11 @@ export default function WorkLogPage() {
   const [escapeResult,  setEscapeResult]  = useState<'ok' | 'bad'>('ok')
   const [escapeAction,  setEscapeAction]  = useState('')
   const [gasContent,    setGasContent]    = useState('')
+  const [gasResult,     setGasResult]     = useState<'' | 'ok' | 'bad'>('')
+  const [gasAction,     setGasAction]     = useState('')
   const [etcContent,    setEtcContent]    = useState('')
+  const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('')
+  const [etcAction,     setEtcAction]     = useState('')
 
   const loadedRef = useRef<WorkLogPayload | null>(null)
   const prevYmRef = useRef<string>('')
@@ -107,7 +111,11 @@ export default function WorkLogPage() {
           escape_result:  record.escape_result,
           escape_action:  record.escape_action,
           gas_content:    record.gas_content,
+          gas_result:     record.gas_result ?? '',
+          gas_action:     record.gas_action ?? '',
           etc_content:    record.etc_content,
+          etc_result:     record.etc_result ?? '',
+          etc_action:     record.etc_action ?? '',
         }
         setManagerName(record.manager_name)
         setFireContent(record.fire_content)
@@ -117,7 +125,11 @@ export default function WorkLogPage() {
         setEscapeResult(record.escape_result)
         setEscapeAction(record.escape_action)
         setGasContent(record.gas_content)
+        setGasResult(record.gas_result ?? '')
+        setGasAction(record.gas_action ?? '')
         setEtcContent(record.etc_content)
+        setEtcResult(record.etc_result ?? '')
+        setEtcAction(record.etc_action ?? '')
         loadedRef.current = payload
         prevYmRef.current = ym
       } else if (previewQuery.isSuccess && previewQuery.data) {
@@ -130,7 +142,11 @@ export default function WorkLogPage() {
         setEscapeResult(p.escape_result)
         setEscapeAction(p.escape_action)
         setGasContent(p.gas_content)
+        setGasResult(p.gas_result ?? '')
+        setGasAction(p.gas_action ?? '')
         setEtcContent(p.etc_content)
+        setEtcResult(p.etc_result ?? '')
+        setEtcAction(p.etc_action ?? '')
         loadedRef.current = p
         prevYmRef.current = ym
       }
@@ -143,7 +159,8 @@ export default function WorkLogPage() {
     loadedRef.current = null
     setManagerName(''); setFireContent(''); setFireResult('ok'); setFireAction('')
     setEscapeContent(''); setEscapeResult('ok'); setEscapeAction('')
-    setGasContent(''); setEtcContent('')
+    setGasContent(''); setGasResult(''); setGasAction('')
+    setEtcContent(''); setEtcResult(''); setEtcAction('')
     setYm(newYm)
   }
 
@@ -157,7 +174,11 @@ export default function WorkLogPage() {
     escape_result:  escapeResult,
     escape_action:  escapeAction,
     gas_content:    gasContent,
+    gas_result:     gasResult,
+    gas_action:     gasAction,
     etc_content:    etcContent,
+    etc_result:     etcResult,
+    etc_action:     etcAction,
   }
 
   const isDirty = loadedRef.current !== null && (
@@ -169,7 +190,11 @@ export default function WorkLogPage() {
     escapeResult  !== loadedRef.current.escape_result  ||
     escapeAction  !== loadedRef.current.escape_action  ||
     gasContent    !== loadedRef.current.gas_content    ||
-    etcContent    !== loadedRef.current.etc_content
+    gasResult     !== loadedRef.current.gas_result     ||
+    gasAction     !== loadedRef.current.gas_action     ||
+    etcContent    !== loadedRef.current.etc_content    ||
+    etcResult     !== loadedRef.current.etc_result     ||
+    etcAction     !== loadedRef.current.etc_action
   )
 
   // ── 저장 ──────────────────────────────────────────────
@@ -186,7 +211,11 @@ export default function WorkLogPage() {
         escape_result:  saved.escape_result,
         escape_action:  saved.escape_action,
         gas_content:    saved.gas_content,
+        gas_result:     saved.gas_result ?? '',
+        gas_action:     saved.gas_action ?? '',
         etc_content:    saved.etc_content,
+        etc_result:     saved.etc_result ?? '',
+        etc_action:     saved.etc_action ?? '',
       }
       loadedRef.current = payload
       queryClient.invalidateQueries({ queryKey: ['worklog', ym] })
@@ -413,6 +442,50 @@ export default function WorkLogPage() {
               style={taStyle('gasContent')}
             />
         }
+
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        {isLoading
+          ? <div style={skeletonStyle} />
+          : <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => isAdmin && setGasResult(gasResult === 'ok' ? '' : 'ok')}
+                style={{
+                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                  cursor: isAdmin ? 'pointer' : 'default',
+                  opacity: isAdmin ? 1 : 0.5,
+                  ...(gasResult === 'ok'
+                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
+                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+                }}
+              >양호</button>
+              <button
+                onClick={() => isAdmin && setGasResult(gasResult === 'bad' ? '' : 'bad')}
+                style={{
+                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                  cursor: isAdmin ? 'pointer' : 'default',
+                  opacity: isAdmin ? 1 : 0.5,
+                  ...(gasResult === 'bad'
+                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
+                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+                }}
+              >불량</button>
+            </div>
+        }
+
+        <div style={{ fontSize: 11, color: gasResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        {isLoading
+          ? <div style={skeletonStyle} />
+          : <textarea
+              rows={3}
+              value={gasAction}
+              onChange={e => isAdmin && setGasAction(e.target.value)}
+              readOnly={!isAdmin}
+              placeholder="조치 내역 없음"
+              onFocus={() => setFocusedField('gasAction')}
+              onBlur={() => setFocusedField(null)}
+              style={taStyle('gasAction')}
+            />
+        }
       </div>
 
       {/* 기타사항 카드 */}
@@ -429,6 +502,50 @@ export default function WorkLogPage() {
               onFocus={() => setFocusedField('etcContent')}
               onBlur={() => setFocusedField(null)}
               style={taStyle('etcContent')}
+            />
+        }
+
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        {isLoading
+          ? <div style={skeletonStyle} />
+          : <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => isAdmin && setEtcResult(etcResult === 'ok' ? '' : 'ok')}
+                style={{
+                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                  cursor: isAdmin ? 'pointer' : 'default',
+                  opacity: isAdmin ? 1 : 0.5,
+                  ...(etcResult === 'ok'
+                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
+                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+                }}
+              >양호</button>
+              <button
+                onClick={() => isAdmin && setEtcResult(etcResult === 'bad' ? '' : 'bad')}
+                style={{
+                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                  cursor: isAdmin ? 'pointer' : 'default',
+                  opacity: isAdmin ? 1 : 0.5,
+                  ...(etcResult === 'bad'
+                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
+                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+                }}
+              >불량</button>
+            </div>
+        }
+
+        <div style={{ fontSize: 11, color: etcResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        {isLoading
+          ? <div style={skeletonStyle} />
+          : <textarea
+              rows={3}
+              value={etcAction}
+              onChange={e => isAdmin && setEtcAction(e.target.value)}
+              readOnly={!isAdmin}
+              placeholder="조치 내역 없음"
+              onFocus={() => setFocusedField('etcAction')}
+              onBlur={() => setFocusedField(null)}
+              style={taStyle('etcAction')}
             />
         }
       </div>
@@ -548,7 +665,11 @@ export default function WorkLogPage() {
             escapeResult={escapeResult}
             escapeAction={escapeAction}
             gasContent={gasContent}
+            gasResult={gasResult}
+            gasAction={gasAction}
             etcContent={etcContent}
+            etcResult={etcResult}
+            etcAction={etcAction}
           />
         </div>
       </div>
@@ -599,7 +720,13 @@ const WORKLOG_CALIB_STEPS = [
   { key: 'escapeBad',     label: '불량 체크 (Y21)',            color: '#a855f7' },
   { key: 'escapeAction',  label: '조치내역 (AA14)',            color: '#7c3aed' },
   { key: 'gasContent',    label: '화기취급감독 확인내용 (C17)', color: '#ec4899' },
+  { key: 'gasOk',         label: '화기취급 양호 (Y26)',        color: '#f43f5e' },
+  { key: 'gasBad',        label: '화기취급 불량 (Y28)',        color: '#be185d' },
+  { key: 'gasAction',     label: '화기취급 조치내역 (AA17)',   color: '#db2777' },
   { key: 'etcContent',    label: '기타사항 확인내용 (C24)',     color: '#14b8a6' },
+  { key: 'etcOk',         label: '기타사항 양호 (Y33)',        color: '#0d9488' },
+  { key: 'etcBad',        label: '기타사항 불량 (Y35)',        color: '#115e59' },
+  { key: 'etcAction',     label: '기타사항 조치내역 (AA24)',   color: '#134e4a' },
 ]
 
 const WORKLOG_CALIB_KEY = 'calib_worklog'
@@ -619,7 +746,9 @@ function saveWorkLogCalib(data: WorkLogCalibData) {
 // ── 템플릿 이미지 오버레이 미리보기 ─────────────────────────
 function WorkLogPortraitPreview({
   yearMonth, managerName, fireContent, fireResult, fireAction,
-  escapeContent, escapeResult, escapeAction, gasContent, etcContent,
+  escapeContent, escapeResult, escapeAction,
+  gasContent, gasResult, gasAction,
+  etcContent, etcResult, etcAction,
 }: {
   yearMonth: string
   managerName: string
@@ -630,7 +759,11 @@ function WorkLogPortraitPreview({
   escapeResult: 'ok' | 'bad'
   escapeAction: string
   gasContent: string
+  gasResult: '' | 'ok' | 'bad'
+  gasAction: string
   etcContent: string
+  etcResult: '' | 'ok' | 'bad'
+  etcAction: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -759,7 +892,13 @@ function WorkLogPortraitPreview({
     { key: 'escapeBad', text: escapeResult === 'bad' ? '\u221A' : '' },
     { key: 'escapeAction', text: escapeAction, isArea: true },
     { key: 'gasContent', text: gasContent, isArea: true },
+    { key: 'gasOk', text: gasResult === 'ok' ? '\u221A' : '' },
+    { key: 'gasBad', text: gasResult === 'bad' ? '\u221A' : '' },
+    { key: 'gasAction', text: gasAction, isArea: true },
     { key: 'etcContent', text: etcContent, isArea: true },
+    { key: 'etcOk', text: etcResult === 'ok' ? '\u221A' : '' },
+    { key: 'etcBad', text: etcResult === 'bad' ? '\u221A' : '' },
+    { key: 'etcAction', text: etcAction, isArea: true },
   ] : []
 
   return (

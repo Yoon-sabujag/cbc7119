@@ -93,7 +93,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       escape_result,
       escape_action,
       gas_content,
+      gas_result: '' as const,
+      gas_action: '',
       etc_content,
+      etc_result: '' as const,
+      etc_action: '',
     })
   } catch (e) {
     console.error('work-logs preview error:', e)

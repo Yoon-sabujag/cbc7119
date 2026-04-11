@@ -36,7 +36,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       escape_result?: string
       escape_action?: string
       gas_content?: string
+      gas_result?: string
+      gas_action?: string
       etc_content?: string
+      etc_result?: string
+      etc_action?: string
     }
 
     const {
@@ -48,7 +52,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       escape_result = 'ok',
       escape_action = '',
       gas_content = '',
+      gas_result = '',
+      gas_action = '',
       etc_content = '',
+      etc_result = '',
+      etc_action = '',
     } = body
 
     const [year, month] = ym.split('-').map(Number)
@@ -57,9 +65,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     await ctx.env.DB.prepare(
       `INSERT INTO work_logs
         (year_month, year, month, manager_name, fire_content, fire_result, fire_action,
-         escape_content, escape_result, escape_action, gas_content, etc_content,
+         escape_content, escape_result, escape_action,
+         gas_content, gas_result, gas_action,
+         etc_content, etc_result, etc_action,
          updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(year_month) DO UPDATE SET
          manager_name=excluded.manager_name,
          fire_content=excluded.fire_content,
@@ -69,14 +79,19 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
          escape_result=excluded.escape_result,
          escape_action=excluded.escape_action,
          gas_content=excluded.gas_content,
+         gas_result=excluded.gas_result,
+         gas_action=excluded.gas_action,
          etc_content=excluded.etc_content,
+         etc_result=excluded.etc_result,
+         etc_action=excluded.etc_action,
          updated_by=excluded.updated_by,
          updated_at=excluded.updated_at`
     ).bind(
       ym, year, month,
       manager_name, fire_content, fire_result, fire_action,
       escape_content, escape_result, escape_action,
-      gas_content, etc_content,
+      gas_content, gas_result, gas_action,
+      etc_content, etc_result, etc_action,
       staffId
     ).run()
 
