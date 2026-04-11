@@ -32,7 +32,7 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
   ]},
   { section: '문서 관리', items: [
     { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
-    { label: '업무 수행 기록표', path: '/worklog', badge: 0, soon: false },
+    { label: '업무 수행 기록표', path: '/worklog', badge: 0, soon: false, role: 'admin' },
     { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
     { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
     { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0, soon: false },
