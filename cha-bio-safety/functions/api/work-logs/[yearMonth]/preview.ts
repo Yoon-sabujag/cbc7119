@@ -103,6 +103,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       report_day: '',
       report_method: '' as const,
       fix_method: '' as const,
+      fix_other_text: '',
     })
   } catch (e) {
     console.error('work-logs preview error:', e)

@@ -75,6 +75,7 @@ export default function WorkLogPage() {
   const [reportDay,     setReportDay]     = useState(String(todayKST.getDate()))
   const [reportMethod,  setReportMethod]  = useState<'' | 'face' | 'written' | 'telecom'>('')
   const [fixMethod,     setFixMethod]     = useState<'' | 'relocate' | 'remove' | 'repair' | 'other'>('')
+  const [fixOtherText,  setFixOtherText]  = useState('')
 
   const loadedRef = useRef<WorkLogPayload | null>(null)
   const prevYmRef = useRef<string>('')
@@ -127,6 +128,7 @@ export default function WorkLogPage() {
           report_day:     record.report_day || String(todayKST.getDate()),
           report_method:  record.report_method ?? '',
           fix_method:     record.fix_method ?? '',
+          fix_other_text: record.fix_other_text ?? '',
         }
         setManagerName(record.manager_name)
         setFireContent(record.fire_content)
@@ -146,6 +148,7 @@ export default function WorkLogPage() {
         setReportDay(record.report_day || String(todayKST.getDate()))
         setReportMethod(record.report_method ?? '')
         setFixMethod(record.fix_method ?? '')
+        setFixOtherText(record.fix_other_text ?? '')
         loadedRef.current = payload
         prevYmRef.current = ym
       } else if (previewQuery.isSuccess && previewQuery.data) {
@@ -168,6 +171,7 @@ export default function WorkLogPage() {
         setReportDay(p.report_day || String(todayKST.getDate()))
         setReportMethod(p.report_method ?? '')
         setFixMethod(p.fix_method ?? '')
+        setFixOtherText(p.fix_other_text ?? '')
         loadedRef.current = p
         prevYmRef.current = ym
       }
@@ -184,7 +188,7 @@ export default function WorkLogPage() {
     setEtcContent(''); setEtcResult('ok'); setEtcAction('')
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     setReportYear(String(now.getFullYear()).slice(-2)); setReportMonth(String(now.getMonth() + 1)); setReportDay(String(now.getDate()))
-    setReportMethod(''); setFixMethod('')
+    setReportMethod(''); setFixMethod(''); setFixOtherText('')
     setYm(newYm)
   }
 
@@ -208,6 +212,7 @@ export default function WorkLogPage() {
     report_day:     reportDay,
     report_method:  reportMethod,
     fix_method:     fixMethod,
+    fix_other_text: fixOtherText,
   }
 
   const isDirty = loadedRef.current !== null && (
@@ -228,7 +233,8 @@ export default function WorkLogPage() {
     reportMonth   !== loadedRef.current.report_month   ||
     reportDay     !== loadedRef.current.report_day     ||
     reportMethod  !== loadedRef.current.report_method  ||
-    fixMethod     !== loadedRef.current.fix_method
+    fixMethod     !== loadedRef.current.fix_method     ||
+    fixOtherText  !== loadedRef.current.fix_other_text
   )
 
   // ── 저장 ──────────────────────────────────────────────
@@ -255,6 +261,7 @@ export default function WorkLogPage() {
         report_day:     saved.report_day ?? '',
         report_method:  saved.report_method ?? '',
         fix_method:     saved.fix_method ?? '',
+        fix_other_text: saved.fix_other_text ?? '',
       }
       loadedRef.current = payload
       queryClient.invalidateQueries({ queryKey: ['worklog', ym] })
@@ -633,6 +640,17 @@ export default function WorkLogPage() {
             >{label}</button>
           ))}
         </div>
+        {fixMethod === 'other' && (
+          <input
+            type="text"
+            value={fixOtherText}
+            onChange={e => isAdmin && setFixOtherText(e.target.value.slice(0, 10))}
+            readOnly={!isAdmin}
+            placeholder="기타 내용 입력"
+            maxLength={10}
+            style={{ ...inputStyle(), marginTop: 8, width: 160 }}
+          />
+        )}
       </div>
     </>
   )

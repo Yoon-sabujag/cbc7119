@@ -193,6 +193,7 @@ export interface WorkLog {
   report_day: string
   report_method: '' | 'face' | 'written' | 'telecom'
   fix_method: '' | 'relocate' | 'remove' | 'repair' | 'other'
+  fix_other_text: string
   updated_by: number
   updated_at: string
 }
