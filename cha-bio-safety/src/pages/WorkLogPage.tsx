@@ -64,10 +64,10 @@ export default function WorkLogPage() {
   const [escapeResult,  setEscapeResult]  = useState<'ok' | 'bad'>('ok')
   const [escapeAction,  setEscapeAction]  = useState('')
   const [gasContent,    setGasContent]    = useState('')
-  const [gasResult,     setGasResult]     = useState<'' | 'ok' | 'bad'>('')
+  const [gasResult,     setGasResult]     = useState<'' | 'ok' | 'bad'>('ok')
   const [gasAction,     setGasAction]     = useState('')
   const [etcContent,    setEtcContent]    = useState('')
-  const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('')
+  const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('ok')
   const [etcAction,     setEtcAction]     = useState('')
   const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   const [reportYear,    setReportYear]    = useState(String(todayKST.getFullYear()).slice(-2))
@@ -117,10 +117,10 @@ export default function WorkLogPage() {
           escape_result:  record.escape_result,
           escape_action:  record.escape_action,
           gas_content:    record.gas_content,
-          gas_result:     record.gas_result ?? '',
+          gas_result:     record.gas_result || 'ok',
           gas_action:     record.gas_action ?? '',
           etc_content:    record.etc_content,
-          etc_result:     record.etc_result ?? '',
+          etc_result:     record.etc_result || 'ok',
           etc_action:     record.etc_action ?? '',
           report_year:    record.report_year || String(todayKST.getFullYear()).slice(-2),
           report_month:   record.report_month || String(todayKST.getMonth() + 1),
@@ -136,10 +136,10 @@ export default function WorkLogPage() {
         setEscapeResult(record.escape_result)
         setEscapeAction(record.escape_action)
         setGasContent(record.gas_content)
-        setGasResult(record.gas_result ?? '')
+        setGasResult(record.gas_result || 'ok')
         setGasAction(record.gas_action ?? '')
         setEtcContent(record.etc_content)
-        setEtcResult(record.etc_result ?? '')
+        setEtcResult(record.etc_result || 'ok')
         setEtcAction(record.etc_action ?? '')
         setReportYear(record.report_year || String(todayKST.getFullYear()).slice(-2))
         setReportMonth(record.report_month || String(todayKST.getMonth() + 1))
@@ -158,10 +158,10 @@ export default function WorkLogPage() {
         setEscapeResult(p.escape_result)
         setEscapeAction(p.escape_action)
         setGasContent(p.gas_content)
-        setGasResult(p.gas_result ?? '')
+        setGasResult(p.gas_result || 'ok')
         setGasAction(p.gas_action ?? '')
         setEtcContent(p.etc_content)
-        setEtcResult(p.etc_result ?? '')
+        setEtcResult(p.etc_result || 'ok')
         setEtcAction(p.etc_action ?? '')
         setReportYear(p.report_year || String(todayKST.getFullYear()).slice(-2))
         setReportMonth(p.report_month || String(todayKST.getMonth() + 1))
@@ -180,8 +180,8 @@ export default function WorkLogPage() {
     loadedRef.current = null
     setManagerName(''); setFireContent(''); setFireResult('ok'); setFireAction('')
     setEscapeContent(''); setEscapeResult('ok'); setEscapeAction('')
-    setGasContent(''); setGasResult(''); setGasAction('')
-    setEtcContent(''); setEtcResult(''); setEtcAction('')
+    setGasContent(''); setGasResult('ok'); setGasAction('')
+    setEtcContent(''); setEtcResult('ok'); setEtcAction('')
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
     setReportYear(String(now.getFullYear()).slice(-2)); setReportMonth(String(now.getMonth() + 1)); setReportDay(String(now.getDate()))
     setReportMethod(''); setFixMethod('')
@@ -245,10 +245,10 @@ export default function WorkLogPage() {
         escape_result:  saved.escape_result,
         escape_action:  saved.escape_action,
         gas_content:    saved.gas_content,
-        gas_result:     saved.gas_result ?? '',
+        gas_result:     saved.gas_result || 'ok',
         gas_action:     saved.gas_action ?? '',
         etc_content:    saved.etc_content,
-        etc_result:     saved.etc_result ?? '',
+        etc_result:     saved.etc_result || 'ok',
         etc_action:     saved.etc_action ?? '',
         report_year:    saved.report_year ?? '',
         report_month:   saved.report_month ?? '',
