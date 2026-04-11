@@ -122,9 +122,9 @@ export default function WorkLogPage() {
           etc_content:    record.etc_content,
           etc_result:     record.etc_result ?? '',
           etc_action:     record.etc_action ?? '',
-          report_year:    record.report_year ?? '',
-          report_month:   record.report_month ?? '',
-          report_day:     record.report_day ?? '',
+          report_year:    record.report_year || String(todayKST.getFullYear()).slice(-2),
+          report_month:   record.report_month || String(todayKST.getMonth() + 1),
+          report_day:     record.report_day || String(todayKST.getDate()),
           report_method:  record.report_method ?? '',
           fix_method:     record.fix_method ?? '',
         }
@@ -141,9 +141,9 @@ export default function WorkLogPage() {
         setEtcContent(record.etc_content)
         setEtcResult(record.etc_result ?? '')
         setEtcAction(record.etc_action ?? '')
-        setReportYear(record.report_year ?? '')
-        setReportMonth(record.report_month ?? '')
-        setReportDay(record.report_day ?? '')
+        setReportYear(record.report_year || String(todayKST.getFullYear()).slice(-2))
+        setReportMonth(record.report_month || String(todayKST.getMonth() + 1))
+        setReportDay(record.report_day || String(todayKST.getDate()))
         setReportMethod(record.report_method ?? '')
         setFixMethod(record.fix_method ?? '')
         loadedRef.current = payload
@@ -163,9 +163,9 @@ export default function WorkLogPage() {
         setEtcContent(p.etc_content)
         setEtcResult(p.etc_result ?? '')
         setEtcAction(p.etc_action ?? '')
-        setReportYear(p.report_year ?? '')
-        setReportMonth(p.report_month ?? '')
-        setReportDay(p.report_day ?? '')
+        setReportYear(p.report_year || String(todayKST.getFullYear()).slice(-2))
+        setReportMonth(p.report_month || String(todayKST.getMonth() + 1))
+        setReportDay(p.report_day || String(todayKST.getDate()))
         setReportMethod(p.report_method ?? '')
         setFixMethod(p.fix_method ?? '')
         loadedRef.current = p
