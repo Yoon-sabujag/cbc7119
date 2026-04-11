@@ -539,6 +539,7 @@ export default function WorkLogPage() {
             인쇄 미리보기
           </div>
           <WorkLogPortraitPreview
+            yearMonth={ym}
             managerName={managerName}
             fireContent={fireContent}
             fireResult={fireResult}
@@ -583,6 +584,7 @@ export default function WorkLogPage() {
 
 // ── 캘리브레이션 설정 ─────────────────────────────────────
 const WORKLOG_CALIB_STEPS = [
+  { key: 'perfDate',      label: '수행일자 (C4)',              color: '#64748b' },
   { key: 'manager',       label: '관리자 이름 (U4)',           color: '#3b82f6' },
   { key: 'fireContent',   label: '소방시설 확인내용 (C10)',     color: '#22c55e' },
   { key: 'fireOk',        label: '양호 체크 (Y12)',            color: '#10b981' },
@@ -612,9 +614,10 @@ function saveWorkLogCalib(data: WorkLogCalibData) {
 
 // ── 템플릿 이미지 오버레이 미리보기 ─────────────────────────
 function WorkLogPortraitPreview({
-  managerName, fireContent, fireResult, fireAction,
+  yearMonth, managerName, fireContent, fireResult, fireAction,
   escapeContent, escapeResult, escapeAction, gasContent, etcContent,
 }: {
+  yearMonth: string
   managerName: string
   fireContent: string
   fireResult: 'ok' | 'bad'
@@ -733,7 +736,12 @@ function WorkLogPortraitPreview({
     overflow: 'hidden',
   })
 
+  const [year, month] = yearMonth.split('-').map(Number)
+  const lastDay = new Date(year, month, 0).getDate()
+  const perfDateText = `${year}. ${month}. 1 ~ ${year}. ${month}. ${lastDay}`
+
   const overlayItems: { key: string; text: string; isArea?: boolean }[] = calib ? [
+    { key: 'perfDate', text: perfDateText },
     { key: 'manager', text: managerName },
     { key: 'fireContent', text: fireContent, isArea: true },
     { key: 'fireOk', text: fireResult === 'ok' ? '\u221A' : '' },
