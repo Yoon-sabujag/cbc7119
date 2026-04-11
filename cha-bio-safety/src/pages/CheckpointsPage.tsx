@@ -108,6 +108,40 @@ function CheckPointModalContent({
   )
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
 
+  // 카테고리 선택 시 기존 데이터 기반 기본값 생성
+  const { data: catCheckPoints } = useQuery({
+    queryKey: ['check-points', form.category],
+    queryFn: () => checkPointApi.list(form.category),
+    enabled: mode === 'add' && form.category !== '',
+    staleTime: 30_000,
+  })
+
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cat = e.target.value
+    setForm(f => ({ ...f, category: cat }))
+  }
+
+  // 카테고리 데이터 로드 후 기본값 설정
+  useEffect(() => {
+    if (mode !== 'add' || !catCheckPoints || catCheckPoints.length === 0) return
+    // 마지막 위치번호에서 다음 번호 추출
+    const nos = catCheckPoints.map(c => c.locationNo).filter(Boolean).sort()
+    const lastNo = nos[nos.length - 1] ?? ''
+    // 패턴: "1F-10" → 숫자 부분 추출하여 +1
+    const numMatch = lastNo.match(/(\d+)$/)
+    const nextNum = numMatch ? String(parseInt(numMatch[1]) + 1).padStart(numMatch[1].length, '0') : ''
+    const prefix = numMatch ? lastNo.slice(0, -numMatch[1].length) : ''
+    const nextNo = nextNum ? `${prefix}${nextNum}` : ''
+    // 개소명: 카테고리 기반 기본 템플릿
+    const count = catCheckPoints.length + 1
+    const defaultName = `${form.category} ${count}번`
+    setForm(f => ({
+      ...f,
+      locationNo: f.locationNo || nextNo,
+      location: f.location || defaultName,
+    }))
+  }, [catCheckPoints, mode])
+
   const setField = (k: keyof CpFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }))
 
@@ -149,15 +183,15 @@ function CheckPointModalContent({
     <>
       <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
-          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
-          <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
-        </div>
-        <div>
           <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--danger)' }}>*</span></label>
-          <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={setField('category')}>
+          <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={handleCategoryChange}>
             <option value="">카테고리 선택</option>
             {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
         </div>
         <div>
           <label style={LABEL_STYLE}>구역</label>
