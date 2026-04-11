@@ -395,8 +395,7 @@ function Show-Settings {
             }
         }
         Save-Config $newCfg
-        $global:knownFiles = @{}
-        $global:fileSizes = @{}
+        Restart-Watcher
         [System.Windows.Forms.MessageBox]::Show("설정이 저장되었습니다.", "완료")
         $form.Close()
     })
@@ -412,68 +411,98 @@ function Show-Settings {
     $form.ShowDialog()
 }
 
-# ── Scan & Move ─────────────────────────────────────────
-$global:knownFiles = @{}
-$global:fileSizes = @{}
+# ── Process single file ─────────────────────────────────
+function Process-NewFile($filePath) {
+    Start-Sleep -Seconds 3
+    if (-not (Test-Path $filePath)) { return }
+    $fname = Split-Path $filePath -Leaf
+    if ($fname -match '\.(crdownload|tmp|part)$') { return }
 
-function Scan-Downloads {
+    $cfg = Load-Config
+    foreach ($pat in $global:ALL_PATTERNS) {
+        $rm = [regex]::Match($fname, $pat.pattern)
+        if ($rm.Success) {
+            $now = Get-Date
+            $yr = $null; $mo = $null
+            if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
+            if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
+            if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
+            if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
+
+            $destDir = Get-DestFolder $cfg $pat.key $yr $mo
+            if (-not $destDir) { return }
+
+            # Wait for stable size
+            $sz1 = (Get-Item $filePath -ErrorAction SilentlyContinue).Length
+            Start-Sleep -Seconds 2
+            if (-not (Test-Path $filePath)) { return }
+            $sz2 = (Get-Item $filePath).Length
+            if ($sz2 -ne $sz1 -or $sz2 -eq 0) { return }
+
+            try {
+                Move-ToFolder $filePath $destDir
+                Show-Balloon $fname "이동 완료"
+            } catch {}
+            return
+        }
+    }
+}
+
+# ── Watcher (FileSystemWatcher + .NET events) ──────────
+$global:fsWatcher = $null
+
+function Start-Watcher {
     $cfg = Load-Config
     $dlFolder = $cfg["download_folder"]
     if (-not $dlFolder -or -not (Test-Path $dlFolder)) { return }
 
-    $files = Get-ChildItem -Path $dlFolder -File -ErrorAction SilentlyContinue
-    foreach ($f in $files) {
-        $fp = $f.FullName
-        $fname = $f.Name
-        if ($fname -match '\.(crdownload|tmp|part)$') { continue }
-        if ($global:knownFiles.ContainsKey($fp)) { continue }
+    $w = New-Object System.IO.FileSystemWatcher
+    $w.Path = $dlFolder
+    $w.Filter = "*.*"
+    $w.IncludeSubdirectories = $false
+    $w.NotifyFilter = [System.IO.NotifyFilters]::FileName
 
-        $curSize = $f.Length
-        if ($curSize -eq 0) { continue }
-        if ($global:fileSizes.ContainsKey($fp)) {
-            if ($global:fileSizes[$fp] -ne $curSize) {
-                $global:fileSizes[$fp] = $curSize
-                continue
-            }
-        } else {
-            $global:fileSizes[$fp] = $curSize
-            continue
-        }
+    # .NET direct event — runs on thread pool, not PowerShell event queue
+    $w.Add_Created({
+        param($sender, $e)
+        $path = $e.FullPath
+        $job = [System.Threading.ThreadPool]::QueueUserWorkItem({
+            param($state)
+            try { Process-NewFile $state } catch {}
+        }, $path)
+    })
 
-        $didMatch = $false
-        foreach ($pat in $global:ALL_PATTERNS) {
-            $rm = [regex]::Match($fname, $pat.pattern)
-            if ($rm.Success) {
-                $didMatch = $true
-                $now = Get-Date
-                $yr = $null; $mo = $null
-                if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
-                if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
-                if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
-                if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
+    $w.Add_Renamed({
+        param($sender, $e)
+        $path = $e.FullPath
+        $job = [System.Threading.ThreadPool]::QueueUserWorkItem({
+            param($state)
+            try { Process-NewFile $state } catch {}
+        }, $path)
+    })
 
-                $destDir = Get-DestFolder $cfg $pat.key $yr $mo
-                if (-not $destDir) { break }
-
-                try {
-                    Move-ToFolder $fp $destDir
-                    $global:knownFiles[$fp] = $true
-                    Show-Balloon $fname "이동 완료"
-                } catch {}
-                break
-            }
-        }
-        if (-not $didMatch) { $global:knownFiles[$fp] = $true }
-    }
+    $w.EnableRaisingEvents = $true
+    $global:fsWatcher = $w
 }
 
-# ── Tray App (main loop with DoEvents) ──────────────────
+function Restart-Watcher {
+    if ($global:fsWatcher) {
+        $global:fsWatcher.EnableRaisingEvents = $false
+        $global:fsWatcher.Dispose()
+        $global:fsWatcher = $null
+    }
+    Start-Watcher
+}
+
+# ── Tray App ────────────────────────────────────────────
 function Start-TrayApp {
     $cfg = Load-Config
     if ($cfg["open_webapp_on_start"] -eq "true") { Open-WebApp }
 
     $hasConfig = ($cfg["mode"] -eq "simple" -and $cfg["root_folder"] -ne "") -or ($cfg["mode"] -eq "detail")
     if (-not $hasConfig) { Show-Settings }
+
+    Start-Watcher
 
     $icon = New-Object System.Windows.Forms.NotifyIcon
     $icon.Text = "CHA Bio 파일 분류"; $icon.Visible = $true
@@ -497,27 +526,15 @@ function Start-TrayApp {
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
     $miQuit = New-Object System.Windows.Forms.ToolStripMenuItem; $miQuit.Text = "종료"
     $miQuit.Add_Click({
-        $global:notifyIcon.Visible = $false
-        $global:notifyIcon.Dispose()
-        $global:appRunning = $false
+        if ($global:fsWatcher) { $global:fsWatcher.Dispose() }
+        $global:notifyIcon.Visible = $false; $global:notifyIcon.Dispose()
+        [System.Windows.Forms.Application]::Exit()
     }); $menu.Items.Add($miQuit) | Out-Null
 
     $icon.ContextMenuStrip = $menu
     $icon.Add_DoubleClick({ Show-Settings })
     Show-Balloon "CHA Bio 파일 분류" "파일 감시 시작됨"
-
-    # Main loop — poll every 3 seconds, process UI events
-    $global:appRunning = $true
-    $lastScan = [datetime]::MinValue
-    while ($global:appRunning) {
-        [System.Windows.Forms.Application]::DoEvents()
-        $now = Get-Date
-        if (($now - $lastScan).TotalSeconds -ge 3) {
-            Scan-Downloads
-            $lastScan = $now
-        }
-        Start-Sleep -Milliseconds 200
-    }
+    [System.Windows.Forms.Application]::Run()
 }
 
 Start-TrayApp
