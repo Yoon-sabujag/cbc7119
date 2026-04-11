@@ -1005,8 +1005,7 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
 
   // -- 헤더 (작성법 기준) --
-  const yy = String(year).slice(-2)
-  xml = patchCell(xml, 'C4', yy)           // 현재 년 yy
+  xml = patchCell(xml, 'C4', year)           // 현재 년
   xml = patchCell(xml, 'E4', month)        // 현재 월 m
   xml = patchCell(xml, 'G4', 1)            // 시작일 1
   xml = patchCell(xml, 'K4', month)        // 현재 월 m
