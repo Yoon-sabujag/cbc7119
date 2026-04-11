@@ -5,7 +5,8 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:WEB_APP_URL = "https://cbc7119.pages.dev"
-$script:CONFIG_PATH = Join-Path $env:USERPROFILE ".cha-bio-watchdog\config.json"
+$script:CONFIG_DIR = Join-Path $env:USERPROFILE ".cha-bio-watchdog"
+$script:CONFIG_FILE = Join-Path $script:CONFIG_DIR "config.txt"
 $script:watcher = $null
 $script:notifyIcon = $null
 
@@ -27,25 +28,45 @@ $script:FILE_PATTERNS = @(
     @{ key="legal_findings";      label="지적사항";                pattern='^지적사항_.+\.zip$';                                             yearG=0; monthG=0 }
 )
 
-# ── Config ──────────────────────────────────────────────
+# ── Config (simple key=value text file) ─────────────────
 function Load-Config {
-    if (Test-Path $script:CONFIG_PATH) {
-        $raw = [System.IO.File]::ReadAllText($script:CONFIG_PATH, [System.Text.Encoding]::UTF8)
-        return (ConvertFrom-Json $raw)
+    $cfg = @{}
+    $cfg["download_folder"] = Join-Path $env:USERPROFILE "Downloads"
+    $cfg["open_webapp_on_start"] = "true"
+
+    if (Test-Path $script:CONFIG_FILE) {
+        $lines = [System.IO.File]::ReadAllLines($script:CONFIG_FILE, [System.Text.Encoding]::UTF8)
+        foreach ($line in $lines) {
+            $line = $line.Trim()
+            if ($line -eq "" -or $line.StartsWith("#")) { continue }
+            $idx = $line.IndexOf("=")
+            if ($idx -gt 0) {
+                $k = $line.Substring(0, $idx).Trim()
+                $v = $line.Substring($idx + 1).Trim()
+                $cfg[$k] = $v
+            }
+        }
     }
-    $default = @{
-        download_folder = Join-Path $env:USERPROFILE "Downloads"
-        open_webapp_on_start = $true
-        rules = @{}
-    }
-    return (New-Object PSObject -Property $default)
+    return $cfg
 }
 
 function Save-Config($cfg) {
-    $dir = Split-Path $script:CONFIG_PATH
-    if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $json = ConvertTo-Json $cfg -Depth 4
-    [System.IO.File]::WriteAllText($script:CONFIG_PATH, $json, [System.Text.Encoding]::UTF8)
+    if (-not (Test-Path $script:CONFIG_DIR)) {
+        New-Item -ItemType Directory -Path $script:CONFIG_DIR -Force | Out-Null
+    }
+    $lines = New-Object System.Collections.ArrayList
+    $lines.Add("# CHA Bio File Organizer Config") | Out-Null
+    $lines.Add("download_folder=" + $cfg["download_folder"]) | Out-Null
+    $lines.Add("open_webapp_on_start=" + $cfg["open_webapp_on_start"]) | Out-Null
+    $lines.Add("") | Out-Null
+    $lines.Add("# Rules: key=folder_path") | Out-Null
+    foreach ($pat in $script:FILE_PATTERNS) {
+        $key = $pat.key
+        if ($cfg.ContainsKey($key) -and $cfg[$key] -ne "") {
+            $lines.Add($key + "=" + $cfg[$key]) | Out-Null
+        }
+    }
+    [System.IO.File]::WriteAllLines($script:CONFIG_FILE, $lines.ToArray(), [System.Text.Encoding]::UTF8)
 }
 
 # ── Open Chrome ─────────────────────────────────────────
@@ -61,18 +82,17 @@ function Open-WebApp {
             return
         }
     }
-    # Chrome not found, try default browser
     Start-Process $script:WEB_APP_URL
 }
 
 # ── File Move ───────────────────────────────────────────
 function Move-MatchedFile($filePath, $destBase, $year, $month) {
     $now = Get-Date
-    if (-not $year) { $year = $now.Year.ToString() }
-    if (-not $month) { $month = $now.Month.ToString().PadLeft(2, '0') }
+    if (-not $year -or $year -eq "") { $year = $now.Year.ToString() }
+    if (-not $month -or $month -eq "") { $month = $now.Month.ToString().PadLeft(2, '0') }
 
-    $yearFolder = $year + [char]0xB144        # 년
-    $monthFolder = $month + [char]0xC6D4      # 월
+    $yearFolder = $year + [char]0xB144
+    $monthFolder = $month + [char]0xC6D4
     $destDir = Join-Path $destBase (Join-Path $yearFolder $monthFolder)
     if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
 
@@ -84,27 +104,21 @@ function Move-MatchedFile($filePath, $destBase, $year, $month) {
 }
 
 # ── Process File ────────────────────────────────────────
-function Process-File($filePath, $cfg) {
+function Process-File($filePath) {
+    $cfg = Load-Config
     $fileName = Split-Path $filePath -Leaf
     if ($fileName -match '\.(crdownload|tmp|part)$') { return }
-
-    $rules = $cfg.rules
-    if (-not $rules) { return }
 
     foreach ($pat in $script:FILE_PATTERNS) {
         if ($fileName -match $pat.pattern) {
             $key = $pat.key
-            $dest = $null
-            if ($rules.PSObject.Properties[$key]) {
-                $dest = $rules.$key
-            }
-            if (-not $dest) { continue }
+            if (-not $cfg.ContainsKey($key) -or $cfg[$key] -eq "") { continue }
+            $dest = $cfg[$key]
 
             $year = $null; $month = $null
             if ($pat.yearG -gt 0 -and $Matches[$pat.yearG]) { $year = $Matches[$pat.yearG] }
             if ($pat.monthG -gt 0 -and $Matches[$pat.monthG]) { $month = $Matches[$pat.monthG].PadLeft(2, '0') }
 
-            # Wait for download complete
             $prevSize = -1
             for ($i = 0; $i -lt 15; $i++) {
                 Start-Sleep -Milliseconds 500
@@ -116,7 +130,7 @@ function Process-File($filePath, $cfg) {
 
             try {
                 Move-MatchedFile $filePath $dest $year $month
-                Show-Balloon "$fileName" ("이동 완료: " + $dest)
+                Show-Balloon $fileName ("이동 완료")
             } catch {}
             return
         }
@@ -134,9 +148,10 @@ function Show-Balloon($title, $text) {
 }
 
 # ── Settings GUI ────────────────────────────────────────
-function Show-Settings($cfg) {
+function Show-Settings {
+    $cfg = Load-Config
+
     $krFont = "맑은 고딕"
-    # Fallback font check
     $testFont = New-Object System.Drawing.Font($krFont, 9.5)
     if ($testFont.Name -ne $krFont) { $krFont = "굴림" }
     $testFont.Dispose()
@@ -153,7 +168,6 @@ function Show-Settings($cfg) {
 
     $y = 15
 
-    # Title
     $lbl = New-Object System.Windows.Forms.Label
     $lbl.Text = "CHA Bio 파일 자동 분류 설정"
     $lbl.Font = New-Object System.Drawing.Font($krFont, 13, [System.Drawing.FontStyle]::Bold)
@@ -163,7 +177,6 @@ function Show-Settings($cfg) {
     $form.Controls.Add($lbl)
     $y += 35
 
-    # Download folder
     $lbl2 = New-Object System.Windows.Forms.Label
     $lbl2.Text = "다운로드 감시 폴더:"
     $lbl2.Location = New-Object System.Drawing.Point(20, $y)
@@ -172,7 +185,7 @@ function Show-Settings($cfg) {
     $y += 22
 
     $txtDL = New-Object System.Windows.Forms.TextBox
-    $txtDL.Text = $cfg.download_folder
+    $txtDL.Text = $cfg["download_folder"]
     $txtDL.Location = New-Object System.Drawing.Point(20, $y)
     $txtDL.Size = New-Object System.Drawing.Size(540, 24)
     $txtDL.BackColor = [System.Drawing.Color]::FromArgb(49, 50, 68)
@@ -192,17 +205,15 @@ function Show-Settings($cfg) {
     $form.Controls.Add($btnBDL)
     $y += 30
 
-    # Webapp checkbox
     $chkWeb = New-Object System.Windows.Forms.CheckBox
     $chkWeb.Text = "시작 시 웹앱 자동 열기 (Chrome)"
-    $chkWeb.Checked = [bool]$cfg.open_webapp_on_start
+    $chkWeb.Checked = ($cfg["open_webapp_on_start"] -eq "true")
     $chkWeb.Location = New-Object System.Drawing.Point(20, $y)
     $chkWeb.AutoSize = $true
     $chkWeb.ForeColor = [System.Drawing.Color]::FromArgb(205, 214, 244)
     $form.Controls.Add($chkWeb)
     $y += 35
 
-    # Separator label
     $sep = New-Object System.Windows.Forms.Label
     $sep.Text = "파일 종류별 저장 경로 (비워두면 이동 안 함):"
     $sep.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
@@ -212,7 +223,6 @@ function Show-Settings($cfg) {
     $form.Controls.Add($sep)
     $y += 25
 
-    # Scrollable panel
     $panel = New-Object System.Windows.Forms.Panel
     $panel.Location = New-Object System.Drawing.Point(20, $y)
     $panel.Size = New-Object System.Drawing.Size(620, 340)
@@ -221,7 +231,6 @@ function Show-Settings($cfg) {
     $form.Controls.Add($panel)
 
     $ruleTexts = @{}
-    $rules = $cfg.rules
     $py = 0
 
     foreach ($pat in $script:FILE_PATTERNS) {
@@ -236,7 +245,7 @@ function Show-Settings($cfg) {
 
         $rt = New-Object System.Windows.Forms.TextBox
         $val = ""
-        if ($rules -and $rules.PSObject.Properties[$key]) { $val = $rules.$key }
+        if ($cfg.ContainsKey($key)) { $val = $cfg[$key] }
         $rt.Text = $val
         $rt.Location = New-Object System.Drawing.Point(175, $py)
         $rt.Size = New-Object System.Drawing.Size(360, 22)
@@ -262,7 +271,6 @@ function Show-Settings($cfg) {
 
     $y += 350
 
-    # Save
     $btnSave = New-Object System.Windows.Forms.Button
     $btnSave.Text = "저장"
     $btnSave.Location = New-Object System.Drawing.Point(490, $y)
@@ -272,16 +280,15 @@ function Show-Settings($cfg) {
     $btnSave.ForeColor = [System.Drawing.Color]::FromArgb(30, 30, 46)
     $btnSave.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
     $btnSave.Add_Click({
-        $cfg.download_folder = $txtDL.Text
-        $cfg.open_webapp_on_start = $chkWeb.Checked
-        $newRules = New-Object PSObject
+        $newCfg = @{}
+        $newCfg["download_folder"] = $txtDL.Text
+        if ($chkWeb.Checked) { $newCfg["open_webapp_on_start"] = "true" } else { $newCfg["open_webapp_on_start"] = "false" }
         foreach ($k in $ruleTexts.Keys) {
             $v = $ruleTexts[$k].Text.Trim()
-            if ($v) { $newRules | Add-Member -NotePropertyName $k -NotePropertyValue $v }
+            if ($v -ne "") { $newCfg[$k] = $v }
         }
-        $cfg.rules = $newRules
-        Save-Config $cfg
-        Restart-Watcher $cfg
+        Save-Config $newCfg
+        Restart-Watcher
         [System.Windows.Forms.MessageBox]::Show("설정이 저장되었습니다.", "완료")
         $form.Close()
     })
@@ -300,8 +307,9 @@ function Show-Settings($cfg) {
 }
 
 # ── Watcher ─────────────────────────────────────────────
-function Start-Watcher($cfg) {
-    $dlFolder = $cfg.download_folder
+function Start-Watcher {
+    $cfg = Load-Config
+    $dlFolder = $cfg["download_folder"]
     if (-not (Test-Path $dlFolder)) { return }
 
     $w = New-Object System.IO.FileSystemWatcher
@@ -310,40 +318,45 @@ function Start-Watcher($cfg) {
     $w.IncludeSubdirectories = $false
     $w.EnableRaisingEvents = $true
 
-    $action = {
-        $path = $Event.SourceEventArgs.FullPath
+    Register-ObjectEvent -InputObject $w -EventName Created -Action {
         Start-Sleep -Seconds 2
-        Process-File $path $cfg
-    }
+        Process-File $Event.SourceEventArgs.FullPath
+    } | Out-Null
 
-    Register-ObjectEvent -InputObject $w -EventName Created -Action $action | Out-Null
-    Register-ObjectEvent -InputObject $w -EventName Renamed -Action $action | Out-Null
+    Register-ObjectEvent -InputObject $w -EventName Renamed -Action {
+        Start-Sleep -Seconds 1
+        Process-File $Event.SourceEventArgs.FullPath
+    } | Out-Null
 
     $script:watcher = $w
 }
 
-function Restart-Watcher($cfg) {
+function Restart-Watcher {
     if ($script:watcher) {
         $script:watcher.EnableRaisingEvents = $false
         $script:watcher.Dispose()
-        Get-EventSubscriber | Unregister-Event -Force 2>$null
+        $script:watcher = $null
     }
-    Start-Watcher $cfg
+    Get-EventSubscriber | Unregister-Event -Force 2>$null
+    Start-Watcher
 }
 
 # ── Tray App ────────────────────────────────────────────
 function Start-TrayApp {
     $cfg = Load-Config
 
-    if ($cfg.open_webapp_on_start) { Open-WebApp }
-
-    Start-Watcher $cfg
+    if ($cfg["open_webapp_on_start"] -eq "true") { Open-WebApp }
 
     # First run — show settings
-    if (-not $cfg.rules -or ($cfg.rules.PSObject.Properties | Measure-Object).Count -eq 0) {
-        Show-Settings $cfg
-        $cfg = Load-Config
+    $hasRules = $false
+    foreach ($pat in $script:FILE_PATTERNS) {
+        if ($cfg.ContainsKey($pat.key) -and $cfg[$pat.key] -ne "") { $hasRules = $true; break }
     }
+    if (-not $hasRules) {
+        Show-Settings
+    }
+
+    Start-Watcher
 
     # Tray icon
     $icon = New-Object System.Windows.Forms.NotifyIcon
@@ -351,7 +364,6 @@ function Start-TrayApp {
     $icon.Visible = $true
     $script:notifyIcon = $icon
 
-    # Icon bitmap
     $bmp = New-Object System.Drawing.Bitmap(32, 32)
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.Clear([System.Drawing.Color]::FromArgb(137, 180, 250))
@@ -367,7 +379,6 @@ function Start-TrayApp {
     $g.Dispose()
     $icon.Icon = [System.Drawing.Icon]::FromHandle($bmp.GetHicon())
 
-    # Context menu
     $menu = New-Object System.Windows.Forms.ContextMenuStrip
 
     $miWeb = New-Object System.Windows.Forms.ToolStripMenuItem
@@ -377,10 +388,7 @@ function Start-TrayApp {
 
     $miSet = New-Object System.Windows.Forms.ToolStripMenuItem
     $miSet.Text = "설정"
-    $miSet.Add_Click({
-        $c = Load-Config
-        Show-Settings $c
-    })
+    $miSet.Add_Click({ Show-Settings })
     $menu.Items.Add($miSet) | Out-Null
 
     $menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator)) | Out-Null
@@ -396,10 +404,7 @@ function Start-TrayApp {
     $menu.Items.Add($miQuit) | Out-Null
 
     $icon.ContextMenuStrip = $menu
-    $icon.Add_DoubleClick({
-        $c = Load-Config
-        Show-Settings $c
-    })
+    $icon.Add_DoubleClick({ Show-Settings })
 
     Show-Balloon "CHA Bio 파일 분류" "파일 감시 시작됨"
 
