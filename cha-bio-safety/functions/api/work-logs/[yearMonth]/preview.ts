@@ -98,9 +98,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       etc_content,
       etc_result: '' as const,
       etc_action: '',
-      report_year: String(year).slice(-2),
-      report_month: String(month),
-      report_day: String(new Date(year, month, 0).getDate()),
+      report_year: '',
+      report_month: '',
+      report_day: '',
       report_method: '' as const,
       fix_method: '' as const,
     })

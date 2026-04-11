@@ -69,9 +69,10 @@ export default function WorkLogPage() {
   const [etcContent,    setEtcContent]    = useState('')
   const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('')
   const [etcAction,     setEtcAction]     = useState('')
-  const [reportYear,    setReportYear]    = useState('')
-  const [reportMonth,   setReportMonth]   = useState('')
-  const [reportDay,     setReportDay]     = useState('')
+  const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const [reportYear,    setReportYear]    = useState(String(todayKST.getFullYear()).slice(-2))
+  const [reportMonth,   setReportMonth]   = useState(String(todayKST.getMonth() + 1))
+  const [reportDay,     setReportDay]     = useState(String(todayKST.getDate()))
   const [reportMethod,  setReportMethod]  = useState<'' | 'face' | 'written' | 'telecom'>('')
   const [fixMethod,     setFixMethod]     = useState<'' | 'relocate' | 'remove' | 'repair' | 'other'>('')
 
@@ -181,7 +182,8 @@ export default function WorkLogPage() {
     setEscapeContent(''); setEscapeResult('ok'); setEscapeAction('')
     setGasContent(''); setGasResult(''); setGasAction('')
     setEtcContent(''); setEtcResult(''); setEtcAction('')
-    setReportYear(''); setReportMonth(''); setReportDay('')
+    const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+    setReportYear(String(now.getFullYear()).slice(-2)); setReportMonth(String(now.getMonth() + 1)); setReportDay(String(now.getDate()))
     setReportMethod(''); setFixMethod('')
     setYm(newYm)
   }
