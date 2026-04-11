@@ -983,7 +983,9 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
     }
 
     const total = (stylesXml.slice(cfStart, cfEnd).match(/<xf[\s>]/g) ?? []).length
-    const newStylesXml = stylesXml.slice(0, cfEnd) + xfXml + stylesXml.slice(cfEnd)
+    let newStylesXml = stylesXml.slice(0, cfEnd) + xfXml + stylesXml.slice(cfEnd)
+    // cellXfs count 속성 업데이트 (불일치 시 Excel이 복구 모드로 서식 파괴)
+    newStylesXml = newStylesXml.replace(/<cellXfs\s+count="\d+"/, `<cellXfs count="${total + 1}"`)
     return [newStylesXml, total]
   }
 
