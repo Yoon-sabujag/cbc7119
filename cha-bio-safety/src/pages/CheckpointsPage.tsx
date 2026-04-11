@@ -85,11 +85,16 @@ const LABEL_STYLE: React.CSSProperties = {
 
 // ── CheckPoint Modal Content ────────────────────────────
 interface CpFormState {
-  location: string; category: string; zone: BuildingZone; floor: string;
+  location: string; category: string; zone: string; floor: string;
   description: string; locationNo: string;
 }
 const EMPTY_CP_FORM: CpFormState = {
-  location: '', category: '', zone: 'common', floor: '', description: '', locationNo: '',
+  location: '', category: '', zone: '', floor: '', description: '', locationNo: '',
+}
+const ZONE_FLOORS: Record<string, string[]> = {
+  office: ['8F', '7F', '6F', '5F', 'M'],
+  research: ['3F', '2F', '1F'],
+  common: ['LOBBY', 'B1', 'B2', 'B3', 'B4', 'B5'],
 }
 
 function CheckPointModalContent({
@@ -157,22 +162,25 @@ function CheckPointModalContent({
         <div>
           <label style={LABEL_STYLE}>구역</label>
           <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--bd)' }}>
-            {(['office', 'research', 'common'] as BuildingZone[]).map(z => (
-              <button key={z} onClick={() => setForm(f => ({ ...f, zone: z }))}
+            {(['office', 'research', 'common'] as const).map(z => (
+              <button key={z} onClick={() => setForm(f => ({ ...f, zone: f.zone === z ? '' : z, floor: '' }))}
                 style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, transition: 'all 0.15s', background: form.zone === z ? 'var(--acl)' : 'var(--bg4)', color: form.zone === z ? '#fff' : 'var(--t3)' }}>
                 {ZONE_LABEL[z] ?? z}
               </button>
             ))}
           </div>
         </div>
-        <div>
-          <label style={LABEL_STYLE}>층</label>
-          <input style={INPUT_STYLE} value={form.floor} onChange={setField('floor')} placeholder="1F" />
-        </div>
-        <div>
-          <label style={LABEL_STYLE}>위치번호</label>
-          <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001" />
-        </div>
+        {form.zone && (
+          <div>
+            <label style={LABEL_STYLE}>층</label>
+            <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.floor} onChange={setField('floor')}>
+              <option value="">층 선택</option>
+              {(ZONE_FLOORS[form.zone] ?? []).map(f => (
+                <option key={f} value={f}>{f}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label style={LABEL_STYLE}>설명</label>
           <input style={INPUT_STYLE} value={form.description} onChange={setField('description')} placeholder="메모 (선택)" />
