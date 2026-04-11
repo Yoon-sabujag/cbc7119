@@ -778,6 +778,7 @@ export default function WorkLogPage() {
             reportDay={reportDay}
             reportMethod={reportMethod}
             fixMethod={fixMethod}
+            fixOtherText={fixOtherText}
           />
         </div>
       </div>
@@ -845,6 +846,7 @@ const WORKLOG_CALIB_STEPS = [
   { key: 'fixRemove',     label: '조치방법 — 제거',           color: '#854d0e' },
   { key: 'fixRepair',     label: '조치방법 — 수리·교체',      color: '#a16207' },
   { key: 'fixOther',      label: '조치방법 — 기타',           color: '#ca8a04' },
+  { key: 'fixOtherText', label: '조치방법 — 기타 내용',      color: '#eab308' },
 ]
 
 const WORKLOG_CALIB_KEY = 'calib_worklog'
@@ -867,7 +869,7 @@ function WorkLogPortraitPreview({
   escapeContent, escapeResult, escapeAction,
   gasContent, gasResult, gasAction,
   etcContent, etcResult, etcAction,
-  reportYear, reportMonth, reportDay, reportMethod, fixMethod,
+  reportYear, reportMonth, reportDay, reportMethod, fixMethod, fixOtherText,
 }: {
   yearMonth: string
   managerName: string
@@ -888,6 +890,7 @@ function WorkLogPortraitPreview({
   reportDay: string
   reportMethod: '' | 'face' | 'written' | 'telecom'
   fixMethod: '' | 'relocate' | 'remove' | 'repair' | 'other'
+  fixOtherText: string
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -1033,6 +1036,7 @@ function WorkLogPortraitPreview({
     { key: 'fixRemove', text: fixMethod === 'remove' ? '\u221A' : '' },
     { key: 'fixRepair', text: fixMethod === 'repair' ? '\u221A' : '' },
     { key: 'fixOther', text: fixMethod === 'other' ? '\u221A' : '' },
+    { key: 'fixOtherText', text: fixOtherText },
   ] : []
 
   return (
