@@ -13,7 +13,7 @@ if errorlevel 1 (
 )
 
 echo 필요한 패키지를 설치합니다...
-pip install -r requirements.txt
+pip install watchdog pystray Pillow pywin32
 
 echo.
 echo 설치 완료!
