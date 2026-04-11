@@ -92,9 +92,9 @@ const EMPTY_CP_FORM: CpFormState = {
   location: '', category: '', zone: '', floor: '', description: '', locationNo: '',
 }
 const ZONE_FLOORS: Record<string, string[]> = {
-  office: ['8F', '7F', '6F', '5F', 'M'],
-  research: ['3F', '2F', '1F'],
-  common: ['LOBBY', 'B1', 'B2', 'B3', 'B4', 'B5'],
+  office: ['8-1F', '8F', '7F', '6F', '5F', '3F', '2F', '1F'],
+  research: ['8-1F', '8F', '7F', '6F', '5F', '3F', '2F', '1F'],
+  common: ['B1F', 'M', 'B2F', 'B3F', 'B4F', 'B5F'],
 }
 
 function CheckPointModalContent({
@@ -115,7 +115,7 @@ function CheckPointModalContent({
     mutationFn: () => {
       const id = `cp_${Date.now()}`
       const qrCode = `QR-${id}`
-      return checkPointApi.create({ id, qrCode, floor: form.floor, zone: form.zone, location: form.location, category: form.category, description: form.description || undefined, locationNo: form.locationNo || undefined })
+      return checkPointApi.create({ id, qrCode, floor: form.floor, zone: form.zone as BuildingZone, location: form.location, category: form.category, description: form.description || undefined, locationNo: form.locationNo || undefined })
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); qc.invalidateQueries({ queryKey: ['check-point-categories'] }); toast.success('개소가 추가되었습니다'); onClose() },
     onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
@@ -141,7 +141,7 @@ function CheckPointModalContent({
     if (mode === 'add') {
       createMutation.mutate()
     } else {
-      updateMutation.mutate({ location: form.location, category: form.category, zone: form.zone, floor: form.floor, description: form.description || undefined, locationNo: form.locationNo || undefined })
+      updateMutation.mutate({ location: form.location, category: form.category, zone: form.zone as BuildingZone, floor: form.floor, description: form.description || undefined, locationNo: form.locationNo || undefined })
     }
   }
 
