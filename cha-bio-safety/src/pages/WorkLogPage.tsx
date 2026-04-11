@@ -584,7 +584,11 @@ export default function WorkLogPage() {
 
 // ── 캘리브레이션 설정 ─────────────────────────────────────
 const WORKLOG_CALIB_STEPS = [
-  { key: 'perfDate',      label: '수행일자 (C4)',              color: '#64748b' },
+  { key: 'perfYear',      label: '수행일자 — 연 (C4)',         color: '#64748b' },
+  { key: 'perfMonth1',    label: '수행일자 — 시작월',          color: '#475569' },
+  { key: 'perfDay1',      label: '수행일자 — 시작일',          color: '#334155' },
+  { key: 'perfMonth2',    label: '수행일자 — 종료월',          color: '#1e293b' },
+  { key: 'perfDay2',      label: '수행일자 — 종료일',          color: '#0f172a' },
   { key: 'manager',       label: '관리자 이름 (U4)',           color: '#3b82f6' },
   { key: 'fireContent',   label: '소방시설 확인내용 (C10)',     color: '#22c55e' },
   { key: 'fireOk',        label: '양호 체크 (Y12)',            color: '#10b981' },
@@ -738,11 +742,13 @@ function WorkLogPortraitPreview({
 
   const [year, month] = yearMonth.split('-').map(Number)
   const lastDay = new Date(year, month, 0).getDate()
-  const yy = String(year).slice(-2)
-  const perfDateText = `${yy}. ${month}. 1. ~ ${month}. ${lastDay}.`
 
   const overlayItems: { key: string; text: string; isArea?: boolean }[] = calib ? [
-    { key: 'perfDate', text: perfDateText },
+    { key: 'perfYear', text: String(year) },
+    { key: 'perfMonth1', text: String(month) },
+    { key: 'perfDay1', text: '1' },
+    { key: 'perfMonth2', text: String(month) },
+    { key: 'perfDay2', text: String(lastDay) },
     { key: 'manager', text: managerName },
     { key: 'fireContent', text: fireContent, isArea: true },
     { key: 'fireOk', text: fireResult === 'ok' ? '\u221A' : '' },
