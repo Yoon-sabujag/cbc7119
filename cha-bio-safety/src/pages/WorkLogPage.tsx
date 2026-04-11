@@ -70,7 +70,7 @@ export default function WorkLogPage() {
   const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('ok')
   const [etcAction,     setEtcAction]     = useState('')
   const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-  const [reportYear,    setReportYear]    = useState(String(todayKST.getFullYear()).slice(-2))
+  const [reportYear,    setReportYear]    = useState(String(todayKST.getFullYear()))
   const [reportMonth,   setReportMonth]   = useState(String(todayKST.getMonth() + 1))
   const [reportDay,     setReportDay]     = useState(String(todayKST.getDate()))
   const [reportMethod,  setReportMethod]  = useState<'' | 'face' | 'written' | 'telecom'>('')
@@ -123,7 +123,7 @@ export default function WorkLogPage() {
           etc_content:    record.etc_content,
           etc_result:     record.etc_result || 'ok',
           etc_action:     record.etc_action ?? '',
-          report_year:    record.report_year || String(todayKST.getFullYear()).slice(-2),
+          report_year:    record.report_year || String(todayKST.getFullYear()),
           report_month:   record.report_month || String(todayKST.getMonth() + 1),
           report_day:     record.report_day || String(todayKST.getDate()),
           report_method:  record.report_method ?? '',
@@ -143,7 +143,7 @@ export default function WorkLogPage() {
         setEtcContent(record.etc_content)
         setEtcResult(record.etc_result || 'ok')
         setEtcAction(record.etc_action ?? '')
-        setReportYear(record.report_year || String(todayKST.getFullYear()).slice(-2))
+        setReportYear(record.report_year || String(todayKST.getFullYear()))
         setReportMonth(record.report_month || String(todayKST.getMonth() + 1))
         setReportDay(record.report_day || String(todayKST.getDate()))
         setReportMethod(record.report_method ?? '')
@@ -166,7 +166,7 @@ export default function WorkLogPage() {
         setEtcContent(p.etc_content)
         setEtcResult(p.etc_result || 'ok')
         setEtcAction(p.etc_action ?? '')
-        setReportYear(p.report_year || String(todayKST.getFullYear()).slice(-2))
+        setReportYear(p.report_year || String(todayKST.getFullYear()))
         setReportMonth(p.report_month || String(todayKST.getMonth() + 1))
         setReportDay(p.report_day || String(todayKST.getDate()))
         setReportMethod(p.report_method ?? '')
@@ -187,7 +187,7 @@ export default function WorkLogPage() {
     setGasContent(''); setGasResult('ok'); setGasAction('')
     setEtcContent(''); setEtcResult('ok'); setEtcAction('')
     const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
-    setReportYear(String(now.getFullYear()).slice(-2)); setReportMonth(String(now.getMonth() + 1)); setReportDay(String(now.getDate()))
+    setReportYear(String(now.getFullYear())); setReportMonth(String(now.getMonth() + 1)); setReportDay(String(now.getDate()))
     setReportMethod(''); setFixMethod(''); setFixOtherText('')
     setYm(newYm)
   }
@@ -602,7 +602,7 @@ export default function WorkLogPage() {
 
         <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>보고일시</div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <input type="text" value={reportYear} onChange={e => isAdmin && setReportYear(e.target.value)} readOnly={!isAdmin} placeholder="연" style={{ ...inputStyle(), width: 50, textAlign: 'center' }} />
+          <input type="text" value={reportYear} onChange={e => isAdmin && setReportYear(e.target.value)} readOnly={!isAdmin} placeholder="연" style={{ ...inputStyle(), width: 65, textAlign: 'center' }} />
           <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
           <input type="text" value={reportMonth} onChange={e => isAdmin && setReportMonth(e.target.value)} readOnly={!isAdmin} placeholder="월" style={{ ...inputStyle(), width: 40, textAlign: 'center' }} />
           <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
