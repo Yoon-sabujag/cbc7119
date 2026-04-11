@@ -321,6 +321,7 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/div',        visible: true },
   { type: 'item', path: '/floorplan',  visible: true },
   { type: 'item', path: '/legal',      visible: true },
+  { type: 'item', path: '/checkpoints', visible: true },
   { type: 'divider', id: 'd-docs',     title: '문서 관리' },
   { type: 'item', path: '/documents',    visible: true },
   { type: 'item', path: '/worklog',      visible: true },
@@ -334,7 +335,7 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'item', path: '/staff-service', visible: true },
   { type: 'item', path: '/education',     visible: true },
   { type: 'divider', id: 'd-system',   title: '시스템' },
-  { type: 'item', path: '/admin',         visible: true },
+  { type: 'item', path: '/staff-manage',  visible: true },
 ]
 
 // 레거시 Record<path,{visible,order}> → 평면 리스트 (D-16)

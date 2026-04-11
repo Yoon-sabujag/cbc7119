@@ -42,6 +42,8 @@ const ElevatorFindingDetailPage = lazy(() => import('./pages/ElevatorFindingDeta
 const AnnualPlanPage            = lazy(() => import('./pages/AnnualPlanPage'))
 const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
 const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
+const StaffManagePage           = lazy(() => import('./pages/StaffManagePage'))
+const CheckpointsPage           = lazy(() => import('./pages/CheckpointsPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -84,6 +86,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/meal': '식사 관리',
   '/education': '보수교육',
   '/admin': '관리자 설정',
+  '/staff-manage': '직원 관리',
+  '/checkpoints': '소방시설물 관리',
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
@@ -227,6 +231,8 @@ function Layout() {
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
               <Route path="/admin"          element={<Auth><AdminPage /></Auth>} />
+              <Route path="/staff-manage"  element={<Auth><StaffManagePage /></Auth>} />
+              <Route path="/checkpoints"   element={<Auth><CheckpointsPage /></Auth>} />
               <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
               <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
               <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
