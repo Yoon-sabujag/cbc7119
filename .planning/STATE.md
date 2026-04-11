@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: 22
 Plan: Not started
 Status: Executing Phase 22
-Last activity: 2026-04-11
+Last activity: 2026-04-12 - Completed quick task 260412-8b1: 데스크톱 버전 로그인 페이지 UI/UX 개선
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -93,6 +93,12 @@ v1.4 roadmap decisions:
 ### Pending Todos
 
 None yet.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260412-8b1 | 데스크톱 버전 로그인 페이지 UI/UX 개선 | 2026-04-12 | c5866e5 | [260412-8b1-ui-ux](./quick/260412-8b1-ui-ux/) |
 
 ### Blockers/Concerns
 
