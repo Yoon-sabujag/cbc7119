@@ -1084,7 +1084,7 @@ export default function FloorPlanPage() {
                 >
                   <option value="">연결 안 함</option>
                   {checkpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id) || cp.id === editCheckpointId).map((cp: any) => (
-                    <option key={cp.id} value={cp.id}>{cp.location_no ?? cp.id} — {cp.location} ({cp.category})</option>
+                    <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
                   ))}
                 </select>
                 <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
@@ -1186,7 +1186,7 @@ export default function FloorPlanPage() {
                 >
                   <option value="">연결 안 함</option>
                   {addCheckpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id)).map((cp: any) => (
-                    <option key={cp.id} value={cp.id}>{cp.location_no ?? cp.id} — {cp.location} ({cp.category})</option>
+                    <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
                   ))}
                 </select>
                 <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>

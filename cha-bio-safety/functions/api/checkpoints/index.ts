@@ -47,6 +47,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     guideLightTotal: r.category === '유도등'
       ? (Number(r.ceiling_exit ?? 0) + Number(r.wall_exit ?? 0) + Number(r.room_passage ?? 0) + Number(r.corridor_passage ?? 0) + Number(r.stair_passage ?? 0) + Number(r.audience_passage ?? 0))
       : undefined,
+    extType:      r.ext_type ?? undefined,
+    approvalNo:   r.approval_no ?? undefined,
+    mfgDate:      r.mfg_date ?? undefined,
+    manufacturer: r.manufacturer ?? undefined,
+    prefixChar:   r.prefix_char ?? undefined,
+    certNo:       r.cert_no ?? undefined,
+    serialNo:     r.serial_no ?? undefined,
+    extNote:      r.ext_note ?? undefined,
   }))
   return Response.json({ success:true, data:rows })
 }
