@@ -188,6 +188,11 @@ export interface WorkLog {
   etc_content: string
   etc_result: '' | 'ok' | 'bad'
   etc_action: string
+  report_year: string
+  report_month: string
+  report_day: string
+  report_method: '' | 'face' | 'written' | 'telecom'
+  fix_method: '' | 'relocate' | 'remove' | 'repair' | 'other'
   updated_by: number
   updated_at: string
 }

@@ -69,6 +69,11 @@ export default function WorkLogPage() {
   const [etcContent,    setEtcContent]    = useState('')
   const [etcResult,     setEtcResult]     = useState<'' | 'ok' | 'bad'>('')
   const [etcAction,     setEtcAction]     = useState('')
+  const [reportYear,    setReportYear]    = useState('')
+  const [reportMonth,   setReportMonth]   = useState('')
+  const [reportDay,     setReportDay]     = useState('')
+  const [reportMethod,  setReportMethod]  = useState<'' | 'face' | 'written' | 'telecom'>('')
+  const [fixMethod,     setFixMethod]     = useState<'' | 'relocate' | 'remove' | 'repair' | 'other'>('')
 
   const loadedRef = useRef<WorkLogPayload | null>(null)
   const prevYmRef = useRef<string>('')
@@ -116,6 +121,11 @@ export default function WorkLogPage() {
           etc_content:    record.etc_content,
           etc_result:     record.etc_result ?? '',
           etc_action:     record.etc_action ?? '',
+          report_year:    record.report_year ?? '',
+          report_month:   record.report_month ?? '',
+          report_day:     record.report_day ?? '',
+          report_method:  record.report_method ?? '',
+          fix_method:     record.fix_method ?? '',
         }
         setManagerName(record.manager_name)
         setFireContent(record.fire_content)
@@ -130,6 +140,11 @@ export default function WorkLogPage() {
         setEtcContent(record.etc_content)
         setEtcResult(record.etc_result ?? '')
         setEtcAction(record.etc_action ?? '')
+        setReportYear(record.report_year ?? '')
+        setReportMonth(record.report_month ?? '')
+        setReportDay(record.report_day ?? '')
+        setReportMethod(record.report_method ?? '')
+        setFixMethod(record.fix_method ?? '')
         loadedRef.current = payload
         prevYmRef.current = ym
       } else if (previewQuery.isSuccess && previewQuery.data) {
@@ -147,6 +162,11 @@ export default function WorkLogPage() {
         setEtcContent(p.etc_content)
         setEtcResult(p.etc_result ?? '')
         setEtcAction(p.etc_action ?? '')
+        setReportYear(p.report_year ?? '')
+        setReportMonth(p.report_month ?? '')
+        setReportDay(p.report_day ?? '')
+        setReportMethod(p.report_method ?? '')
+        setFixMethod(p.fix_method ?? '')
         loadedRef.current = p
         prevYmRef.current = ym
       }
@@ -161,6 +181,8 @@ export default function WorkLogPage() {
     setEscapeContent(''); setEscapeResult('ok'); setEscapeAction('')
     setGasContent(''); setGasResult(''); setGasAction('')
     setEtcContent(''); setEtcResult(''); setEtcAction('')
+    setReportYear(''); setReportMonth(''); setReportDay('')
+    setReportMethod(''); setFixMethod('')
     setYm(newYm)
   }
 
@@ -179,6 +201,11 @@ export default function WorkLogPage() {
     etc_content:    etcContent,
     etc_result:     etcResult,
     etc_action:     etcAction,
+    report_year:    reportYear,
+    report_month:   reportMonth,
+    report_day:     reportDay,
+    report_method:  reportMethod,
+    fix_method:     fixMethod,
   }
 
   const isDirty = loadedRef.current !== null && (
@@ -194,7 +221,12 @@ export default function WorkLogPage() {
     gasAction     !== loadedRef.current.gas_action     ||
     etcContent    !== loadedRef.current.etc_content    ||
     etcResult     !== loadedRef.current.etc_result     ||
-    etcAction     !== loadedRef.current.etc_action
+    etcAction     !== loadedRef.current.etc_action     ||
+    reportYear    !== loadedRef.current.report_year    ||
+    reportMonth   !== loadedRef.current.report_month   ||
+    reportDay     !== loadedRef.current.report_day     ||
+    reportMethod  !== loadedRef.current.report_method  ||
+    fixMethod     !== loadedRef.current.fix_method
   )
 
   // ── 저장 ──────────────────────────────────────────────
@@ -216,6 +248,11 @@ export default function WorkLogPage() {
         etc_content:    saved.etc_content,
         etc_result:     saved.etc_result ?? '',
         etc_action:     saved.etc_action ?? '',
+        report_year:    saved.report_year ?? '',
+        report_month:   saved.report_month ?? '',
+        report_day:     saved.report_day ?? '',
+        report_method:  saved.report_method ?? '',
+        fix_method:     saved.fix_method ?? '',
       }
       loadedRef.current = payload
       queryClient.invalidateQueries({ queryKey: ['worklog', ym] })
@@ -549,6 +586,52 @@ export default function WorkLogPage() {
             />
         }
       </div>
+
+      {/* 불량사항 개선보고 카드 */}
+      <div style={card}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>불량사항 개선보고</div>
+
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>보고일시</div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input type="text" value={reportYear} onChange={e => isAdmin && setReportYear(e.target.value)} readOnly={!isAdmin} placeholder="연" style={{ ...inputStyle(), width: 50, textAlign: 'center' }} />
+          <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
+          <input type="text" value={reportMonth} onChange={e => isAdmin && setReportMonth(e.target.value)} readOnly={!isAdmin} placeholder="월" style={{ ...inputStyle(), width: 40, textAlign: 'center' }} />
+          <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
+          <input type="text" value={reportDay} onChange={e => isAdmin && setReportDay(e.target.value)} readOnly={!isAdmin} placeholder="일" style={{ ...inputStyle(), width: 40, textAlign: 'center' }} />
+        </div>
+
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>보고방법</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {([['face', '대면'], ['written', '서면'], ['telecom', '정보통신']] as const).map(([val, label]) => (
+            <button key={val}
+              onClick={() => isAdmin && setReportMethod(reportMethod === val ? '' : val)}
+              style={{
+                padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                cursor: isAdmin ? 'pointer' : 'default', opacity: isAdmin ? 1 : 0.5,
+                ...(reportMethod === val
+                  ? { background: 'var(--acl)', border: '1px solid var(--acl)', color: '#fff' }
+                  : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+              }}
+            >{label}</button>
+          ))}
+        </div>
+
+        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치방법</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {([['relocate', '이전'], ['remove', '제거'], ['repair', '수리·교체'], ['other', '기타']] as const).map(([val, label]) => (
+            <button key={val}
+              onClick={() => isAdmin && setFixMethod(fixMethod === val ? '' : val)}
+              style={{
+                padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+                cursor: isAdmin ? 'pointer' : 'default', opacity: isAdmin ? 1 : 0.5,
+                ...(fixMethod === val
+                  ? { background: 'var(--acl)', border: '1px solid var(--acl)', color: '#fff' }
+                  : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
+              }}
+            >{label}</button>
+          ))}
+        </div>
+      </div>
     </>
   )
 
@@ -670,6 +753,11 @@ export default function WorkLogPage() {
             etcContent={etcContent}
             etcResult={etcResult}
             etcAction={etcAction}
+            reportYear={reportYear}
+            reportMonth={reportMonth}
+            reportDay={reportDay}
+            reportMethod={reportMethod}
+            fixMethod={fixMethod}
           />
         </div>
       </div>
@@ -727,6 +815,16 @@ const WORKLOG_CALIB_STEPS = [
   { key: 'etcOk',         label: '기타사항 양호 (Y33)',        color: '#0d9488' },
   { key: 'etcBad',        label: '기타사항 불량 (Y35)',        color: '#115e59' },
   { key: 'etcAction',     label: '기타사항 조치내역 (AA24)',   color: '#134e4a' },
+  { key: 'rptYear',       label: '보고일시 — 연',             color: '#78716c' },
+  { key: 'rptMonth',      label: '보고일시 — 월',             color: '#57534e' },
+  { key: 'rptDay',        label: '보고일시 — 일',             color: '#44403c' },
+  { key: 'rptFace',       label: '보고방법 — 대면',           color: '#292524' },
+  { key: 'rptWritten',    label: '보고방법 — 서면',           color: '#1c1917' },
+  { key: 'rptTelecom',    label: '보고방법 — 정보통신',       color: '#0c0a09' },
+  { key: 'fixRelocate',   label: '조치방법 — 이전',           color: '#713f12' },
+  { key: 'fixRemove',     label: '조치방법 — 제거',           color: '#854d0e' },
+  { key: 'fixRepair',     label: '조치방법 — 수리·교체',      color: '#a16207' },
+  { key: 'fixOther',      label: '조치방법 — 기타',           color: '#ca8a04' },
 ]
 
 const WORKLOG_CALIB_KEY = 'calib_worklog'
@@ -749,6 +847,7 @@ function WorkLogPortraitPreview({
   escapeContent, escapeResult, escapeAction,
   gasContent, gasResult, gasAction,
   etcContent, etcResult, etcAction,
+  reportYear, reportMonth, reportDay, reportMethod, fixMethod,
 }: {
   yearMonth: string
   managerName: string
@@ -764,6 +863,11 @@ function WorkLogPortraitPreview({
   etcContent: string
   etcResult: '' | 'ok' | 'bad'
   etcAction: string
+  reportYear: string
+  reportMonth: string
+  reportDay: string
+  reportMethod: '' | 'face' | 'written' | 'telecom'
+  fixMethod: '' | 'relocate' | 'remove' | 'repair' | 'other'
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -899,6 +1003,16 @@ function WorkLogPortraitPreview({
     { key: 'etcOk', text: etcResult === 'ok' ? '\u221A' : '' },
     { key: 'etcBad', text: etcResult === 'bad' ? '\u221A' : '' },
     { key: 'etcAction', text: etcAction, isArea: true },
+    { key: 'rptYear', text: reportYear },
+    { key: 'rptMonth', text: reportMonth },
+    { key: 'rptDay', text: reportDay },
+    { key: 'rptFace', text: reportMethod === 'face' ? '\u221A' : '' },
+    { key: 'rptWritten', text: reportMethod === 'written' ? '\u221A' : '' },
+    { key: 'rptTelecom', text: reportMethod === 'telecom' ? '\u221A' : '' },
+    { key: 'fixRelocate', text: fixMethod === 'relocate' ? '\u221A' : '' },
+    { key: 'fixRemove', text: fixMethod === 'remove' ? '\u221A' : '' },
+    { key: 'fixRepair', text: fixMethod === 'repair' ? '\u221A' : '' },
+    { key: 'fixOther', text: fixMethod === 'other' ? '\u221A' : '' },
   ] : []
 
   return (

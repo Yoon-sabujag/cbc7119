@@ -41,6 +41,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       etc_content?: string
       etc_result?: string
       etc_action?: string
+      report_year?: string
+      report_month?: string
+      report_day?: string
+      report_method?: string
+      fix_method?: string
     }
 
     const {
@@ -57,6 +62,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       etc_content = '',
       etc_result = '',
       etc_action = '',
+      report_year = '',
+      report_month = '',
+      report_day = '',
+      report_method = '',
+      fix_method = '',
     } = body
 
     const [year, month] = ym.split('-').map(Number)
@@ -68,8 +78,9 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
          escape_content, escape_result, escape_action,
          gas_content, gas_result, gas_action,
          etc_content, etc_result, etc_action,
+         report_year, report_month, report_day, report_method, fix_method,
          updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
        ON CONFLICT(year_month) DO UPDATE SET
          manager_name=excluded.manager_name,
          fire_content=excluded.fire_content,
@@ -84,6 +95,11 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
          etc_content=excluded.etc_content,
          etc_result=excluded.etc_result,
          etc_action=excluded.etc_action,
+         report_year=excluded.report_year,
+         report_month=excluded.report_month,
+         report_day=excluded.report_day,
+         report_method=excluded.report_method,
+         fix_method=excluded.fix_method,
          updated_by=excluded.updated_by,
          updated_at=excluded.updated_at`
     ).bind(
@@ -92,6 +108,7 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       escape_content, escape_result, escape_action,
       gas_content, gas_result, gas_action,
       etc_content, etc_result, etc_action,
+      report_year, report_month, report_day, report_method, fix_method,
       staffId
     ).run()
 
