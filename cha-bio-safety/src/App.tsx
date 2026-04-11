@@ -87,7 +87,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/education': '보수교육',
   '/admin': '관리자 설정',
   '/staff-manage': '직원 관리',
-  '/checkpoints': '소방시설물 관리',
+  '/checkpoints': '소방 시설 추가',
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',

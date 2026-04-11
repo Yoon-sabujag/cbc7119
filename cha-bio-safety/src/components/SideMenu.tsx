@@ -28,7 +28,7 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: 'DIV 압력 관리',   path: '/div',        badge: 0, soon: false },
     { label: '소방 시설 도면',   path: '/floorplan',  badge: 0, soon: false },
     { label: '소방 점검 관리',   path: '/legal',      badge: 0, soon: false },
-    { label: '소방시설물 관리',  path: '/checkpoints', badge: 0, soon: false, role: 'admin' },
+    { label: '소방 시설 추가',  path: '/checkpoints', badge: 0, soon: false, role: 'admin' },
   ]},
   { section: '문서 관리', items: [
     { label: '소방계획서/훈련자료', path: '/documents', badge: 0, soon: false },
