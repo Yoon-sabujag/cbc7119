@@ -1,0 +1,434 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import { useAuthStore } from '../stores/authStore'
+import { checkPointApi } from '../utils/api'
+import { useIsDesktop } from '../hooks/useIsDesktop'
+import type { CheckPointFull, CheckPointUpdatePayload, BuildingZone } from '../types'
+
+// ── SVG ──────────────────────────────────────────────────
+function IconPlus({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+function IconChevronDown({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+// ── 상수 ────────────────────────────────────────────────────
+const CATEGORIES = [
+  '소화기', '옥내소화전', '스프링클러', '유수검지장치',
+  '청정소화약제', '소방펌프', '자탐', '제연설비',
+  '방화셔터', '비상콘센트', '비상방송', '피난방화', '승강기',
+]
+const ZONE_LABEL: Record<string, string> = {
+  office: '사무동', research: '연구동', common: '지하',
+}
+
+// ── BottomSheet ──────────────────────────────────────────
+function BottomSheet({ onClose, title, children }: {
+  onClose: () => void; title: string; children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', padding: '12px 16px 0' }}>{title}</div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ── Modal (Desktop) ─────────────────────────────────────
+function DesktopModal({ onClose, title, children }: {
+  onClose: () => void; title: string; children: React.ReactNode
+}) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div style={{ background: 'var(--bg2)', borderRadius: 12, width: 440, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', padding: '20px 24px 0' }}>{title}</div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ── 스타일 상수 ─────────────────────────────────────────
+const INPUT_STYLE: React.CSSProperties = {
+  height: 44, background: 'var(--bg3)', border: '1px solid var(--bd)',
+  borderRadius: 8, padding: '0 12px', fontSize: 14, color: 'var(--t1)',
+  width: '100%', boxSizing: 'border-box', outline: 'none',
+}
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 6, display: 'block',
+}
+
+// ── CheckPoint Modal Content ────────────────────────────
+interface CpFormState {
+  location: string; category: string; zone: BuildingZone; floor: string;
+  description: string; locationNo: string;
+}
+const EMPTY_CP_FORM: CpFormState = {
+  location: '', category: '', zone: 'common', floor: '', description: '', locationNo: '',
+}
+
+function CheckPointModalContent({
+  mode, cp, onClose,
+}: { mode: 'add' | 'edit'; cp?: CheckPointFull; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [form, setForm] = useState<CpFormState>(
+    mode === 'edit' && cp
+      ? { location: cp.location, category: cp.category, zone: cp.zone, floor: cp.floor, description: cp.description ?? '', locationNo: cp.locationNo ?? '' }
+      : EMPTY_CP_FORM
+  )
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false)
+
+  const setField = (k: keyof CpFormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const createMutation = useMutation({
+    mutationFn: () => {
+      const id = `cp_${Date.now()}`
+      const qrCode = `QR-${id}`
+      return checkPointApi.create({ id, qrCode, floor: form.floor, zone: form.zone, location: form.location, category: form.category, description: form.description || undefined, locationNo: form.locationNo || undefined })
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); qc.invalidateQueries({ queryKey: ['check-point-categories'] }); toast.success('개소가 추가되었습니다'); onClose() },
+    onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (data: CheckPointUpdatePayload) => checkPointApi.update(cp!.id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); toast.success('개소 정보가 수정되었습니다'); onClose() },
+    onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
+  })
+
+  const deactivateMutation = useMutation({
+    mutationFn: () => checkPointApi.update(cp!.id, { isActive: 0 }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); toast.success('개소가 비활성화되었습니다'); onClose() },
+    onError: () => toast.error('비활성화에 실패했습니다'),
+  })
+
+  const canSave = form.location.trim() !== '' && form.category !== ''
+  const isBusy = createMutation.isPending || updateMutation.isPending
+
+  function handleSave() {
+    if (!canSave) return
+    if (mode === 'add') {
+      createMutation.mutate()
+    } else {
+      updateMutation.mutate({ location: form.location, category: form.category, zone: form.zone, floor: form.floor, description: form.description || undefined, locationNo: form.locationNo || undefined })
+    }
+  }
+
+  return (
+    <>
+      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={setField('category')}>
+            <option value="">카테고리 선택</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>구역</label>
+          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--bd)' }}>
+            {(['office', 'research', 'common'] as BuildingZone[]).map(z => (
+              <button key={z} onClick={() => setForm(f => ({ ...f, zone: z }))}
+                style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, transition: 'all 0.15s', background: form.zone === z ? 'var(--acl)' : 'var(--bg4)', color: form.zone === z ? '#fff' : 'var(--t3)' }}>
+                {ZONE_LABEL[z] ?? z}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>층</label>
+          <input style={INPUT_STYLE} value={form.floor} onChange={setField('floor')} placeholder="1F" />
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>위치번호</label>
+          <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001" />
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>설명</label>
+          <input style={INPUT_STYLE} value={form.description} onChange={setField('description')} placeholder="메모 (선택)" />
+        </div>
+      </div>
+
+      {!confirmDeactivate ? (
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onClose} style={{ flex: 1, height: 44, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>취소</button>
+            <button onClick={handleSave} disabled={!canSave || isBusy}
+              style={{ flex: 1, height: 44, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !isBusy ? 'pointer' : 'not-allowed', fontSize: 14, fontWeight: 700, opacity: canSave && !isBusy ? 1 : 0.4 }}>
+              저장
+            </button>
+          </div>
+          {mode === 'edit' && cp?.isActive !== 0 && (
+            <button onClick={() => setConfirmDeactivate(true)}
+              style={{ width: '100%', height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
+              비활성화
+            </button>
+          )}
+        </div>
+      ) : (
+        <div style={{ padding: 16 }}>
+          <div style={{ background: 'rgba(239,68,68,.08)', borderRadius: 8, padding: '12px', fontSize: 12, color: 'var(--t2)', marginBottom: 8 }}>
+            이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setConfirmDeactivate(false)} style={{ flex: 1, height: 44, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>취소</button>
+            <button onClick={() => deactivateMutation.mutate()} disabled={deactivateMutation.isPending}
+              style={{ flex: 1, height: 44, background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: deactivateMutation.isPending ? 0.6 : 1 }}>
+              비활성화
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ── CheckPoint Card (Mobile) ────────────────────────────
+function CheckPointCard({ cp, onEdit }: { cp: CheckPointFull; onEdit: () => void }) {
+  return (
+    <div onClick={onEdit} style={{ background: 'var(--bg3)', borderRadius: 12, padding: '12px 16px', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, opacity: cp.isActive === 0 ? 0.45 : 1, cursor: 'pointer' }}>
+      <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)' }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</span>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--acl)', flexShrink: 0 }}>
+            {cp.category}
+          </span>
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--t2)' }}>
+          {ZONE_LABEL[cp.zone] ?? cp.zone} · {cp.floor}
+        </span>
+      </div>
+      <span style={{ color: 'var(--acl)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>수정 ▸</span>
+    </div>
+  )
+}
+
+// ── 스켈레톤 ─────────────────────────────────────────────
+const SKELETON_STYLE: React.CSSProperties = {
+  background: 'var(--bg3)', borderRadius: 12, height: 64,
+  animation: 'blink 2s ease-in-out infinite',
+}
+
+// ── 메인 페이지 ──────────────────────────────────────────
+export default function CheckpointsPage() {
+  const navigate = useNavigate()
+  const { staff: me } = useAuthStore()
+  const isDesktop = useIsDesktop()
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; target?: CheckPointFull }>({ open: false, mode: 'add' })
+
+  // Role guard
+  useEffect(() => {
+    if (me?.role !== 'admin') navigate('/dashboard', { replace: true })
+  }, [me, navigate])
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['check-point-categories'],
+    queryFn: checkPointApi.categories,
+    staleTime: 60_000,
+  })
+
+  const { data: checkPoints, isLoading, isError } = useQuery({
+    queryKey: ['check-points', selectedCategory],
+    queryFn: () => checkPointApi.list(selectedCategory || undefined),
+    enabled: selectedCategory !== '',
+    staleTime: 30_000,
+  })
+  const cpList = checkPoints ?? []
+
+  if (me?.role !== 'admin') return null
+
+  const ModalWrapper = isDesktop ? DesktopModal : BottomSheet
+  const categoryOptions = categories.length > 0 ? categories : CATEGORIES
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
+      <style>{`
+        @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
+        @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+        input:focus { border-color: var(--acl) !important; }
+        select:focus { border-color: var(--acl) !important; outline: none; }
+      `}</style>
+
+      {/* 헤더 */}
+      {isDesktop ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 24px', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
+          <div style={{ position: 'relative', width: 220 }}>
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              style={{ ...INPUT_STYLE, height: 36, fontSize: 13, appearance: 'none', cursor: 'pointer', paddingRight: 32 }}
+            >
+              <option value="">전체 (카테고리 선택)</option>
+              {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <IconChevronDown size={14} color="var(--t2)" />
+            </div>
+          </div>
+          <span style={{ flex: 1, fontSize: 12, color: 'var(--t3)' }}>
+            {selectedCategory && !isLoading ? `${cpList.length}개 개소` : ''}
+          </span>
+          <button onClick={() => setModal({ open: true, mode: 'add' })}
+            style={{ height: 36, padding: '0 16px', background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <IconPlus size={16} color="#fff" />
+            개소 추가
+          </button>
+        </div>
+      ) : (
+        <div style={{ padding: 16, flexShrink: 0 }}>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={selectedCategory}
+              onChange={e => setSelectedCategory(e.target.value)}
+              style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer', paddingRight: 36 }}
+            >
+              <option value="">전체 (카테고리 선택)</option>
+              {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--t2)' }}>
+              <IconChevronDown size={16} color="var(--t2)" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 콘텐츠 */}
+      <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+        {selectedCategory === '' && (
+          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t3)', fontSize: 14 }}>
+            카테고리를 선택하면 개소 목록이 표시됩니다
+          </div>
+        )}
+        {selectedCategory !== '' && isLoading && (
+          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={SKELETON_STYLE} />
+            <div style={SKELETON_STYLE} />
+            <div style={SKELETON_STYLE} />
+          </div>
+        )}
+        {selectedCategory !== '' && isError && !isLoading && (
+          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t2)', fontSize: 14 }}>
+            데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요
+          </div>
+        )}
+
+        {/* 데스크톱: 테이블 */}
+        {isDesktop && selectedCategory !== '' && !isLoading && !isError && (
+          <div style={{ padding: '0 24px 24px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--bd)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>개소명</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>카테고리</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>구역</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>층</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>위치번호</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>상태</th>
+                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12, width: 60 }}>액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cpList.length === 0 && (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t3)', fontSize: 14 }}>해당 카테고리에 개소가 없습니다</td></tr>
+                )}
+                {cpList.map(cp => (
+                  <tr key={cp.id}
+                    onClick={() => setModal({ open: true, mode: 'edit', target: cp })}
+                    style={{ borderBottom: '1px solid var(--bd)', cursor: 'pointer', opacity: cp.isActive === 0 ? 0.45 : 1, transition: 'background 0.1s' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--t1)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--acl)' }}>
+                        {cp.category}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 8px', color: 'var(--t2)' }}>{ZONE_LABEL[cp.zone] ?? cp.zone}</td>
+                    <td style={{ padding: '10px 8px', color: 'var(--t2)' }}>{cp.floor}</td>
+                    <td style={{ padding: '10px 8px', color: 'var(--t2)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{cp.locationNo || '-'}</td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
+                        color: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)',
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)' }} />
+                        {cp.isActive !== 0 ? '활성' : '비활성'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <span style={{ color: 'var(--acl)', fontSize: 12, fontWeight: 700 }}>수정</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 모바일: 카드 리스트 */}
+        {!isDesktop && selectedCategory !== '' && !isLoading && !isError && (
+          <div style={{ padding: '0 16px 80px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {cpList.length === 0 && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 16px' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>해당 카테고리에 개소가 없습니다</div>
+                <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>개소 추가 버튼을 눌러 점검 개소를 등록하세요</div>
+              </div>
+            )}
+            {cpList.map(cp => (
+              <CheckPointCard key={cp.id} cp={cp} onEdit={() => setModal({ open: true, mode: 'edit', target: cp })} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 모바일 FAB */}
+      {!isDesktop && (
+        <div style={{ position: 'sticky', bottom: 0, padding: '0 16px', paddingBottom: 'calc(16px + var(--sab))', background: 'var(--bg)' }}>
+          <button onClick={() => setModal({ open: true, mode: 'add' })}
+            style={{ width: '100%', height: 52, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <IconPlus size={18} color="#fff" />
+            개소 추가
+          </button>
+        </div>
+      )}
+
+      {/* 모달 */}
+      {modal.open && (
+        <ModalWrapper onClose={() => setModal({ open: false, mode: 'add' })} title={modal.mode === 'add' ? '개소 추가' : '개소 수정'}>
+          <CheckPointModalContent mode={modal.mode} cp={modal.target} onClose={() => setModal({ open: false, mode: 'add' })} />
+        </ModalWrapper>
+      )}
+    </div>
+  )
+}
