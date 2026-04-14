@@ -715,7 +715,7 @@ export async function generateShiftExcel(year: number, month: number, staffData?
 //   H26-H30 = 명일업무 내용 (행당 1개 항목)
 //   H31-H35 = 특이사항 내용
 //   G37  = 총원, M37 = 현재원, S37 = 당직(명수), Y37 = 비번자 이름
-//   AE37 = 휴무, AK37 = 연차, AO37 = 반차, AW37 = 교육/훈련, BC37 = 결원
+//   AE37 = 휴무, AK37 = 연차, AQ37 = 반차, AW37 = 교육/훈련, BC37 = 결원
 //   O38  = 주간근무자, AZ38 = 당직자
 
 import type { DailyReportData } from './dailyReportCalc'
@@ -770,7 +770,7 @@ function patchDailySheet(
   xml = patchCell(xml, 'Y37', data.personnel.offDuty || null)
   xml = patchCell(xml, 'AE37', data.personnel.holiday.length || null)
   xml = patchCell(xml, 'AK37', data.personnel.onLeave.join(', ') || null)
-  xml = patchCell(xml, 'AO37', data.personnel.halfLeave.join(', ') || null)
+  xml = patchCell(xml, 'AQ37', data.personnel.halfLeave.join(', ') || null)
   xml = patchCell(xml, 'AW37', data.personnel.training.join(', ') || null)
   xml = patchCell(xml, 'BC37', data.personnel.absent || null)
 

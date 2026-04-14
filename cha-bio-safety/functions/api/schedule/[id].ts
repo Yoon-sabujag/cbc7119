@@ -38,6 +38,19 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env, params 
 // DELETE /api/schedule/:id
 export const onRequestDelete: PagesFunction<Env> = async ({ env, params }) => {
   const id = params.id as string
+
+  // 연관된 지적사항 확인
+  const findings = await env.DB.prepare(
+    `SELECT COUNT(*) as cnt FROM legal_findings WHERE schedule_item_id = ?`
+  ).bind(id).first<{ cnt: number }>()
+
+  if (findings && findings.cnt > 0) {
+    return Response.json(
+      { success: false, error: `지적사항 ${findings.cnt}건이 등록되어 있어 삭제할 수 없습니다. 지적사항을 먼저 삭제해주세요.` },
+      { status: 400 }
+    )
+  }
+
   await env.DB.prepare(`DELETE FROM schedule_items WHERE id=?`).bind(id).run()
   return Response.json({ success: true })
 }

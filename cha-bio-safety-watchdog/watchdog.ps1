@@ -9,6 +9,12 @@ $global:CONFIG_DIR = Join-Path $env:USERPROFILE ".cha-bio-watchdog"
 $global:CONFIG_FILE = Join-Path $global:CONFIG_DIR "config.txt"
 $global:watcher = $null
 $global:notifyIcon = $null
+$global:SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
+$global:MENU_PDF_PATTERN = '^CBC Weekly MENU \((\d{2})\.(\d{2})_(\d{2})\.(\d{2})\)\.pdf$'
+
+# TLS 1.2 (Cloudflare 요구) + Windows 7 SSL 인증서 우회
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+[Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
 
 # ── File Patterns (grouped) ────────────────────────────
 $global:GROUPS = @(
@@ -70,6 +76,9 @@ function Load-Config {
     $cfg["open_webapp_on_start"] = "true"
     $cfg["mode"] = "simple"
     $cfg["root_folder"] = ""
+    $cfg["menu_auto_import"] = "false"
+    $cfg["api_staff_id"] = ""
+    $cfg["api_password"] = ""
     if (Test-Path $global:CONFIG_FILE) {
         $lines = [System.IO.File]::ReadAllLines($global:CONFIG_FILE, [System.Text.Encoding]::UTF8)
         foreach ($line in $lines) {
@@ -95,6 +104,11 @@ function Save-Config($cfg) {
     $lines.Add("mode=" + $cfg["mode"]) | Out-Null
     $lines.Add("root_folder=" + $cfg["root_folder"]) | Out-Null
     $lines.Add("") | Out-Null
+    $lines.Add("# 식단표 자동 등록") | Out-Null
+    $lines.Add("menu_auto_import=" + $cfg["menu_auto_import"]) | Out-Null
+    $lines.Add("api_staff_id=" + $cfg["api_staff_id"]) | Out-Null
+    $lines.Add("api_password=" + $cfg["api_password"]) | Out-Null
+    $lines.Add("") | Out-Null
     foreach ($pat in $global:ALL_PATTERNS) {
         if ($cfg.ContainsKey($pat.key) -and $cfg[$pat.key] -ne "") {
             $lines.Add($pat.key + "=" + $cfg[$pat.key]) | Out-Null
@@ -103,8 +117,23 @@ function Save-Config($cfg) {
     [System.IO.File]::WriteAllLines($global:CONFIG_FILE, $lines.ToArray(), [System.Text.Encoding]::UTF8)
 }
 
-# ── Open Chrome (app mode) ──────────────────────────────
+# ── Open PWA (설치된 PWA 우선, 없으면 Chrome app mode) ──
+$global:PWA_APP_ID = "kbhogldhkfnbkoghoggjepkcfcbkacfh"
+
 function Open-WebApp {
+    # 설치된 PWA를 chrome_proxy.exe로 실행
+    $proxyPaths = @(
+        "${env:ProgramFiles}\Google\Chrome\Application\chrome_proxy.exe",
+        "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome_proxy.exe",
+        "$env:LOCALAPPDATA\Google\Chrome\Application\chrome_proxy.exe"
+    )
+    foreach ($p in $proxyPaths) {
+        if (Test-Path $p) {
+            Start-Process $p -ArgumentList "--profile-directory=Default --app-id=$($global:PWA_APP_ID)"
+            return
+        }
+    }
+    # PWA 못 찾으면 Chrome app mode 폴백
     $chromePaths = @(
         "${env:ProgramFiles}\Google\Chrome\Application\chrome.exe",
         "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
@@ -189,6 +218,134 @@ function Show-Balloon($title, $text) {
     }
 }
 
+# ── Process Menu PDF (PS 5.1 + Python/PyMuPDF) ─────────
+function Process-MenuPdf($filePath) {
+    $cfg = Load-Config
+    if ($cfg["menu_auto_import"] -ne "true") { return $false }
+
+    $fileName = Split-Path $filePath -Leaf
+    $menuMatch = [regex]::Match($fileName, $global:MENU_PDF_PATTERN)
+    if (-not $menuMatch.Success) { return $false }
+
+    # 다운로드 완료 대기
+    $prevSize = -1
+    for ($i = 0; $i -lt 15; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Test-Path $filePath)) { return $true }
+        $curSize = (Get-Item $filePath).Length
+        if ($curSize -eq $prevSize -and $curSize -gt 0) { break }
+        $prevSize = $curSize
+    }
+
+    Show-Balloon "식단표 감지" "메뉴 파싱 중..."
+
+    # Python 파서 호출
+    $parseScript = Join-Path $global:SCRIPT_DIR "parse_menu.py"
+    if (-not (Test-Path $parseScript)) {
+        Show-Balloon "식단표 오류" "parse_menu.py 파일이 없습니다"
+        return $true
+    }
+
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "python"
+        $psi.Arguments = "`"$parseScript`" `"$filePath`""
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+        $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $resultStr = $proc.StandardOutput.ReadToEnd()
+        $errStr = $proc.StandardError.ReadToEnd()
+        $proc.WaitForExit()
+
+        if ($proc.ExitCode -ne 0 -or -not $resultStr) {
+            Show-Balloon "식단표 오류" ("Python 오류: " + $(if ($errStr) { $errStr.Substring(0, [Math]::Min(100, $errStr.Length)) } else { "출력 없음" }))
+            return $true
+        }
+        $json = $resultStr | ConvertFrom-Json
+    } catch {
+        Show-Balloon "식단표 오류" "Python 실행 실패: $_"
+        return $true
+    }
+
+    if ($json.error) {
+        Show-Balloon "식단표 오류" $json.error
+        return $true
+    }
+
+    # API 인증 정보 확인
+    $apiBase = $global:WEB_APP_URL
+    $staffId = $cfg["api_staff_id"]
+    $password = $cfg["api_password"]
+    if (-not $staffId -or $staffId -eq "" -or -not $password -or $password -eq "") {
+        Show-Balloon "식단표 오류" "설정에서 관리자 사번/비밀번호를 입력하세요"
+        return $true
+    }
+
+    # 로그인
+    try {
+        $loginBody = @{ staffId = $staffId; password = $password } | ConvertTo-Json
+        $loginResp = Invoke-RestMethod -Uri "$apiBase/api/auth/login" -Method POST `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($loginBody)) `
+            -ContentType "application/json; charset=utf-8"
+        $token = $loginResp.data.token
+    } catch {
+        Show-Balloon "식단표 오류" "API 로그인 실패"
+        return $true
+    }
+
+    # PDF 업로드 (R2)
+    $pdfKey = $null
+    try {
+        $boundary = [System.Guid]::NewGuid().ToString()
+        $fileBytes = [System.IO.File]::ReadAllBytes($filePath)
+        $enc = [System.Text.Encoding]::UTF8
+        $crlf = "`r`n"
+        $hdr = "--$boundary$crlf" +
+               "Content-Disposition: form-data; name=`"file`"; filename=`"$fileName`"$crlf" +
+               "Content-Type: application/pdf$crlf$crlf"
+        $ftr = "$crlf--$boundary--$crlf"
+        $hdrB = $enc.GetBytes($hdr)
+        $ftrB = $enc.GetBytes($ftr)
+        $body = New-Object byte[] ($hdrB.Length + $fileBytes.Length + $ftrB.Length)
+        [System.Buffer]::BlockCopy($hdrB, 0, $body, 0, $hdrB.Length)
+        [System.Buffer]::BlockCopy($fileBytes, 0, $body, $hdrB.Length, $fileBytes.Length)
+        [System.Buffer]::BlockCopy($ftrB, 0, $body, ($hdrB.Length + $fileBytes.Length), $ftrB.Length)
+
+        $uploadResp = Invoke-RestMethod -Uri "$apiBase/api/uploads" -Method POST -Body $body `
+            -ContentType "multipart/form-data; boundary=$boundary" `
+            -Headers @{ Authorization = "Bearer $token" }
+        $pdfKey = $uploadResp.data.key
+    } catch {
+        # PDF 업로드 실패해도 메뉴 등록은 계속 진행
+    }
+
+    # 메뉴 등록
+    try {
+        $menuPayload = @{ menus = $json.menus }
+        if ($pdfKey) { $menuPayload["pdf_key"] = $pdfKey }
+
+        $menuBody = $menuPayload | ConvertTo-Json -Depth 5
+        $menuResp = Invoke-RestMethod -Uri "$apiBase/api/menu" -Method POST `
+            -Body ([System.Text.Encoding]::UTF8.GetBytes($menuBody)) `
+            -ContentType "application/json; charset=utf-8" `
+            -Headers @{ Authorization = "Bearer $token" }
+
+        if ($menuResp.success) {
+            $count = ($json.menus | Where-Object { $_.lunch_a }).Count
+            Show-Balloon "식단표 등록 완료" "$count 일치 메뉴가 등록되었습니다"
+        } else {
+            Show-Balloon "식단표 오류" $menuResp.error
+        }
+    } catch {
+        Show-Balloon "식단표 오류" "메뉴 등록 실패: $_"
+    }
+
+    return $true
+}
+
 # ── Settings GUI ────────────────────────────────────────
 function Show-Settings {
     $cfg = Load-Config
@@ -207,7 +364,7 @@ function Show-Settings {
 
     $form = New-Object System.Windows.Forms.Form
     $form.Text = "CHA Bio - 파일 자동 분류 설정"
-    $form.Size = New-Object System.Drawing.Size(700, 720)
+    $form.Size = New-Object System.Drawing.Size(700, 810)
     $form.StartPosition = "CenterScreen"
     $form.BackColor = $bgDark
     $form.ForeColor = $fgText
@@ -256,6 +413,47 @@ function Show-Settings {
     $chkWeb.ForeColor = $fgText
     $form.Controls.Add($chkWeb)
     $y += 30
+
+    # ── 식단표 자동 등록 ────────────────────────────────
+    $menuLabel = New-Object System.Windows.Forms.Label
+    $menuLabel.Text = "식단표 자동 등록:"
+    $menuLabel.Font = New-Object System.Drawing.Font($krFont, 10, [System.Drawing.FontStyle]::Bold)
+    $menuLabel.ForeColor = $fgAccent
+    $menuLabel.Location = New-Object System.Drawing.Point(20, $y); $menuLabel.AutoSize = $true
+    $form.Controls.Add($menuLabel)
+    $y += 22
+
+    $chkMenu = New-Object System.Windows.Forms.CheckBox
+    $chkMenu.Text = "식단표 PDF 감지 시 자동으로 DB에 등록"
+    $chkMenu.Checked = ($cfg["menu_auto_import"] -eq "true")
+    $chkMenu.Location = New-Object System.Drawing.Point(25, $y); $chkMenu.AutoSize = $true
+    $chkMenu.ForeColor = $fgText
+    $form.Controls.Add($chkMenu)
+    $y += 24
+
+    $lblStaff = New-Object System.Windows.Forms.Label
+    $lblStaff.Text = "  관리자 사번:"
+    $lblStaff.Location = New-Object System.Drawing.Point(20, ($y + 3)); $lblStaff.AutoSize = $true
+    $form.Controls.Add($lblStaff)
+    $txtStaff = New-Object System.Windows.Forms.TextBox
+    $txtStaff.Text = $cfg["api_staff_id"]
+    $txtStaff.Location = New-Object System.Drawing.Point(120, $y)
+    $txtStaff.Size = New-Object System.Drawing.Size(150, 24)
+    $txtStaff.BackColor = $bgInput; $txtStaff.ForeColor = $fgText
+    $form.Controls.Add($txtStaff)
+
+    $lblPwd = New-Object System.Windows.Forms.Label
+    $lblPwd.Text = "비밀번호:"
+    $lblPwd.Location = New-Object System.Drawing.Point(290, ($y + 3)); $lblPwd.AutoSize = $true
+    $form.Controls.Add($lblPwd)
+    $txtPwd = New-Object System.Windows.Forms.TextBox
+    $txtPwd.Text = $cfg["api_password"]
+    $txtPwd.Location = New-Object System.Drawing.Point(370, $y)
+    $txtPwd.Size = New-Object System.Drawing.Size(150, 24)
+    $txtPwd.BackColor = $bgInput; $txtPwd.ForeColor = $fgText
+    $txtPwd.UseSystemPasswordChar = $true
+    $form.Controls.Add($txtPwd)
+    $y += 35
 
     # ── Mode selection ──────────────────────────────────
     $modeLabel = New-Object System.Windows.Forms.Label
@@ -383,6 +581,9 @@ function Show-Settings {
         $newCfg = @{}
         $newCfg["download_folder"] = $txtDL.Text
         if ($chkWeb.Checked) { $newCfg["open_webapp_on_start"] = "true" } else { $newCfg["open_webapp_on_start"] = "false" }
+        if ($chkMenu.Checked) { $newCfg["menu_auto_import"] = "true" } else { $newCfg["menu_auto_import"] = "false" }
+        $newCfg["api_staff_id"] = $txtStaff.Text
+        $newCfg["api_password"] = $txtPwd.Text
         if ($rbSimple.Checked) {
             $newCfg["mode"] = "simple"
             $newCfg["root_folder"] = $txtRoot.Text
@@ -432,6 +633,9 @@ function Start-Watcher {
         $fname = Split-Path $path -Leaf
         if ($fname -match '\.(crdownload|tmp|part)$') { return }
 
+        # 식단표 PDF 우선 체크
+        if (Process-MenuPdf $path) { return }
+
         $cfg = Load-Config
         foreach ($pat in $global:ALL_PATTERNS) {
             $rm = [regex]::Match($fname, $pat.pattern)
@@ -458,6 +662,9 @@ function Start-Watcher {
         if (-not (Test-Path $path)) { return }
         $fname = Split-Path $path -Leaf
         if ($fname -match '\.(crdownload|tmp|part)$') { return }
+
+        # 식단표 PDF 우선 체크
+        if (Process-MenuPdf $path) { return }
 
         $cfg = Load-Config
         foreach ($pat in $global:ALL_PATTERNS) {
