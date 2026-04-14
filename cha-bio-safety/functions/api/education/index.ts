@@ -7,11 +7,11 @@ import type { Env } from '../../_middleware'
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
     const staffRows = await env.DB.prepare(
-      `SELECT id, name, title, appointed_at
+      `SELECT id, name, title, role, appointed_at
        FROM staff
        WHERE active = 1
        ORDER BY name ASC`
-    ).all<{ id: string; name: string; title: string; appointed_at: string | null }>()
+    ).all<{ id: string; name: string; title: string; role: string; appointed_at: string | null }>()
 
     const recordRows = await env.DB.prepare(
       `SELECT id, staff_id, education_type, completed_at, created_at
@@ -32,6 +32,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
         id: s.id,
         name: s.name,
         title: s.title,
+        role: s.role,
         appointedAt: s.appointed_at ?? null,
       },
       records: (recordsByStaff.get(s.id) ?? []).map(r => ({

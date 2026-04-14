@@ -11,20 +11,31 @@ export function isKoreanHolidayOrWeekend(date: Date): boolean {
   } catch { return false }
 }
 
-// ── 직원별 근무 패턴 설정 ─────────────────────────────────
-// 기준일: 2026-03-01(일) 박보융 = 당직
+// ── 기준일 (3교대 사이클 기준점) ─────────────────────────
 const REF_DATE = new Date(2026, 2, 1) // 2026-03-01 (로컬 시간)
-
-// 3교대 오프셋 (당=0, 비=1, 주=2)
-// 박보융: 0, 윤종엽: 1, 김병조: 2
-const SHIFT_OFFSETS: Record<string, number> = {
-  '2023071752': 0, // 박보융
-  '2022051052': 1, // 윤종엽
-  '2021061451': 2, // 김병조
-}
 
 const CYCLE = ['당','비','주'] as const
 export type RawShift = '당' | '비' | '주' | '휴'
+
+// ── 직원별 교대 설정 (DB에서 로드) ─────────────────────────
+// staffShiftConfig를 외부에서 세팅하면 DB 기반으로 동작
+// 세팅 전에는 빈 상태 (모든 직원 '주' 반환)
+interface StaffShiftConfig {
+  shiftOffset: number | null  // 3교대 오프셋 (0,1,2), null이면 비교대
+  shiftFixed: string | null   // 'day' = 평일 주간 고정
+}
+
+let _staffShiftMap: Record<string, StaffShiftConfig> = {}
+let _configLoaded = false
+
+export function setStaffShiftConfig(map: Record<string, StaffShiftConfig>) {
+  _staffShiftMap = map
+  _configLoaded = true
+}
+
+export function isShiftConfigLoaded(): boolean {
+  return _configLoaded
+}
 
 function daysBetween(a: Date, b: Date): number {
   const ms = b.getTime() - a.getTime()
@@ -33,14 +44,16 @@ function daysBetween(a: Date, b: Date): number {
 
 function calcRaw(staffId: string, date: Date): RawShift {
   const isOff = isKoreanHolidayOrWeekend(date)
+  const config = _staffShiftMap[staffId]
 
-  // 석현민 (방재책임, 평일 주간 고정 — 공휴일도 휴)
-  if (staffId === '2018042451') {
+  // 평일 주간 고정 (방재책임자 등)
+  if (config?.shiftFixed === 'day') {
     return isOff ? '휴' : '주'
   }
 
-  const offset = SHIFT_OFFSETS[staffId]
-  if (offset === undefined) return '주'
+  // 3교대
+  const offset = config?.shiftOffset
+  if (offset === undefined || offset === null) return isOff ? '휴' : '주'
 
   const diff = daysBetween(REF_DATE, date)
   const base = CYCLE[(((diff + offset) % 3) + 3) % 3]
@@ -67,7 +80,6 @@ export function getRawShift(staffId: string, date: Date): RawShift {
 }
 
 // 월 전체 스케줄 반환
-// staffData: 외부에서 주입되는 직원 배열 (TECH-01: 하드코딩 제거)
 export function getMonthlySchedule(
   year: number,
   month: number,

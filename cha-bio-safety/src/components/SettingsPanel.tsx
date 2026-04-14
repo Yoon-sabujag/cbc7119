@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronRight } from 'lucide-react'
+import JSZip from 'jszip'
 
 // ── Collapsible section header ────────────────────────
 function SectionHeader({ label, collapsed, onToggle }: { label: string; collapsed: boolean; onToggle: () => void }) {
@@ -263,8 +264,14 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const [notifCollapsed, setNotifCollapsed] = usePersistedCollapse('settings.notif.collapsed', true)
   const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
   const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
+  const [dbCollapsed, setDbCollapsed] = usePersistedCollapse('settings.db.collapsed', true)
   const [appInfoCollapsed, setAppInfoCollapsed] = usePersistedCollapse('settings.appinfo.collapsed', true)
   const [cacheClearing, setCacheClearing] = useState(false)
+  const [dbBackingUp, setDbBackingUp] = useState(false)
+  const [dbRestoring, setDbRestoring] = useState(false)
+  const [r2BackingUp, setR2BackingUp] = useState(false)
+  const [r2BackupProgress, setR2BackupProgress] = useState('')
+  const [r2Restoring, setR2Restoring] = useState(false)
 
   const displayName = staff?.name ?? ''
   const displayRole = staff?.role === 'admin' ? '관리자' : '보조자'
@@ -385,6 +392,189 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
     }
   }
 
+  async function handleDbBackup() {
+    setDbBackingUp(true)
+    try {
+      const token = useAuthStore.getState().token
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/database/backup`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error((j as any).error || '백업 실패'); }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `cha-bio-safety_${new Date().toISOString().slice(0, 10)}.sql`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('백업 파일이 다운로드되었습니다')
+    } catch (e: any) {
+      toast.error(e.message || '백업 실패')
+    } finally {
+      setDbBackingUp(false)
+    }
+  }
+
+  async function handleDbRestore() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.sql'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      if (!confirm(`"${file.name}" 파일로 데이터베이스를 복원합니다.\n기존 데이터가 덮어씌워집니다. 계속하시겠습니까?`)) return
+      setDbRestoring(true)
+      try {
+        const token = useAuthStore.getState().token
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}/database/restore`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        })
+        const json = await res.json() as any
+        if (!json.success) throw new Error(json.error || '복원 실패')
+        toast.success(`복원 완료 (${json.data.executed}개 실행, ${json.data.errors}개 오류)`)
+      } catch (e: any) {
+        toast.error(e.message || '복원 실패')
+      } finally {
+        setDbRestoring(false)
+      }
+    }
+    input.click()
+  }
+
+  async function handleR2Backup() {
+    setR2BackingUp(true)
+    setR2BackupProgress('파일 목록 조회 중...')
+    try {
+      const token = useAuthStore.getState().token
+      const base = import.meta.env.VITE_API_BASE_URL || '/api'
+      const listRes = await fetch(`${base}/database/r2-list`, { headers: { Authorization: `Bearer ${token}` } })
+      const listJson = await listRes.json() as any
+      if (!listJson.success) throw new Error(listJson.error || '목록 조회 실패')
+
+      const cronZips = (listJson.data.cronZips ?? []) as { key: string; date: string; size: number }[]
+      // DB에서 마지막 백업 날짜 조회
+      const statusRes = await fetch(`${base}/database/backup-status`, { headers: { Authorization: `Bearer ${token}` } })
+      const statusJson = await statusRes.json() as any
+      const lastDownloaded = statusJson.data?.lastDate ?? ''
+      let downloaded = 0
+
+      // 1. 새 크론 백업 zip 다운로드 (이미 받은 건 건너뜀)
+      const newCronZips = cronZips.filter(z => z.date > lastDownloaded).sort((a, b) => a.date.localeCompare(b.date))
+      for (const cz of newCronZips) {
+        setR2BackupProgress(`크론 백업 다운로드 (${cz.date})...`)
+        const res = await fetch(`${base}/database/r2-download?key=${encodeURIComponent(cz.key)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) continue
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `cha-bio-r2_${cz.date}.zip`
+        a.click()
+        URL.revokeObjectURL(url)
+        // DB에 마지막 받은 날짜 저장
+        await fetch(`${base}/database/backup-status`, {
+          method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: cz.date }),
+        })
+        downloaded++
+      }
+
+      // 2. 크론 이후 새로 생긴 파일만 delta zip
+      const latestCronDate = newCronZips.length > 0
+        ? newCronZips[newCronZips.length - 1].date
+        : lastDownloaded
+      const allKeys = listJson.data.keys as { key: string; size: number; uploaded: string }[]
+      const deltaKeys = allKeys.filter(k =>
+        !k.key.startsWith('documents/') && !k.key.startsWith('backups/') && !k.key.startsWith('preview/') &&
+        k.uploaded.slice(0, 10) > latestCronDate
+      )
+
+      if (deltaKeys.length > 0) {
+        const zip = new JSZip()
+        for (let i = 0; i < deltaKeys.length; i++) {
+          setR2BackupProgress(`신규 파일 다운로드 (${i + 1}/${deltaKeys.length})...`)
+          const res = await fetch(`${base}/database/r2-download?key=${encodeURIComponent(deltaKeys[i].key)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!res.ok) continue
+          const blob = await res.blob()
+          zip.file(deltaKeys[i].key, blob)
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob' })
+        const url = URL.createObjectURL(zipBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `cha-bio-r2_delta_${new Date().toISOString().slice(0, 10)}.zip`
+        a.click()
+        URL.revokeObjectURL(url)
+        downloaded++
+      }
+
+      if (downloaded === 0 && deltaKeys.length === 0) {
+        toast('새로 백업할 파일이 없습니다')
+      } else {
+        const parts = []
+        if (newCronZips.length > 0) parts.push(`크론 백업 ${newCronZips.length}개`)
+        if (deltaKeys.length > 0) parts.push(`신규 파일 ${deltaKeys.length}개`)
+        toast.success(`R2 백업 완료 (${parts.join(', ')})`)
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'R2 백업 실패')
+    } finally {
+      setR2BackingUp(false)
+      setR2BackupProgress('')
+    }
+  }
+
+  async function handleR2Restore() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.zip'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      if (!confirm(`"${file.name}" 파일로 R2 스토리지를 복원합니다. 계속하시겠습니까?`)) return
+      setR2Restoring(true)
+      try {
+        const token = useAuthStore.getState().token
+        const base = import.meta.env.VITE_API_BASE_URL || '/api'
+        const zip = await JSZip.loadAsync(file)
+        const fileNames = Object.keys(zip.files).filter(n => !zip.files[n].dir)
+        let uploaded = 0
+
+        // 10개씩 배치 업로드
+        for (let i = 0; i < fileNames.length; i += 10) {
+          const batch = fileNames.slice(i, i + 10)
+          const formData = new FormData()
+          for (const name of batch) {
+            const blob = await zip.files[name].async('blob')
+            formData.append('files', blob, name)
+            formData.append('keys', name)
+          }
+          const res = await fetch(`${base}/database/r2-upload`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          })
+          const json = await res.json() as any
+          if (json.success) uploaded += json.data.uploaded
+        }
+        toast.success(`R2 복원 완료 (${uploaded}개 파일)`)
+      } catch (e: any) {
+        toast.error(e.message || 'R2 복원 실패')
+      } finally {
+        setR2Restoring(false)
+      }
+    }
+    input.click()
+  }
+
   function handleLogout() {
     logout()
     navigate('/login')
@@ -411,7 +601,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
       <div
         id="settings-panel"
         style={{
-          position: 'fixed', top: isDesktop ? 0 : 'var(--sat, 0px)', bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 34px) - var(--sat, 0px))', right: 0, zIndex: 200,
+          position: 'fixed', top: isDesktop ? 0 : 'var(--sat, 0px)', bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 0px) - var(--sat, 0px))', right: 0, zIndex: 200,
           width: '88%', maxWidth: 320,
           background: 'var(--bg2)',
           transform: open ? 'translateX(0)' : 'translateX(100%)',
@@ -529,6 +719,73 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
               <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
                 <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
               </Row>
+            </>)}
+          </div>
+        )}
+
+        {/* 데이터베이스 */}
+        {staff?.role === 'admin' && (
+          <div style={{ padding: '12px 13px 5px' }}>
+            <SectionHeader label="데이터베이스" collapsed={dbCollapsed} onToggle={() => setDbCollapsed(c => !c)} />
+            {!dbCollapsed && (<>
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 4 }}>DB (점검기록, 직원, 설정 등)</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <button
+                  onClick={handleDbBackup}
+                  disabled={dbBackingUp}
+                  style={{
+                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
+                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: dbBackingUp ? 'default' : 'pointer',
+                    color: 'var(--t1)', opacity: dbBackingUp ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+                  {dbBackingUp ? '백업 중...' : '백업'}
+                </button>
+                <button
+                  onClick={handleDbRestore}
+                  disabled={dbRestoring}
+                  style={{
+                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
+                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: dbRestoring ? 'default' : 'pointer',
+                    color: 'var(--t1)', opacity: dbRestoring ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  {dbRestoring ? '복원 중...' : '업로드'}
+                </button>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 4 }}>파일 (점검 사진 등)</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleR2Backup}
+                  disabled={r2BackingUp}
+                  style={{
+                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
+                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: r2BackingUp ? 'default' : 'pointer',
+                    color: 'var(--t1)', opacity: r2BackingUp ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  {r2BackingUp ? (r2BackupProgress || '백업 중...') : '백업'}
+                </button>
+                <button
+                  onClick={handleR2Restore}
+                  disabled={r2Restoring}
+                  style={{
+                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
+                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: r2Restoring ? 'default' : 'pointer',
+                    color: 'var(--t1)', opacity: r2Restoring ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}
+                >
+                  <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  {r2Restoring ? '복원 중...' : '업로드'}
+                </button>
+              </div>
             </>)}
           </div>
         )}

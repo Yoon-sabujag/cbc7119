@@ -26,10 +26,10 @@ export interface ApiResponse<T> { success:boolean; data?:T; error?:string }
 export interface StaffFull {
   id: string; name: string; role: Role; title: string;
   phone: string | null; email: string | null; appointedAt: string | null;
-  active: number; shiftType: string | null; createdAt: string;
+  active: number; shiftType: string | null; shiftOffset: number | null; shiftFixed: string | null; createdAt: string;
 }
-export interface StaffCreatePayload { id: string; name: string; role: Role; title: string; phone?: string; email?: string; appointedAt?: string }
-export interface StaffUpdatePayload { name?: string; role?: Role; title?: string; phone?: string; email?: string; appointedAt?: string; active?: number }
+export interface StaffCreatePayload { id: string; name: string; role: Role; title: string; phone?: string; email?: string; appointedAt?: string; shiftOffset?: number; shiftFixed?: string }
+export interface StaffUpdatePayload { name?: string; role?: Role; title?: string; phone?: string; email?: string; appointedAt?: string; active?: number; shiftOffset?: number | null; shiftFixed?: string | null }
 
 export interface CheckPointFull {
   id: string; qrCode: string; floor: string; zone: BuildingZone;
@@ -48,7 +48,7 @@ export interface EducationRecord {
 }
 
 export interface StaffEducation {
-  staff: { id: string; name: string; title: string; appointedAt: string | null }
+  staff: { id: string; name: string; title: string; role: string; appointedAt: string | null }
   records: EducationRecord[]
 }
 

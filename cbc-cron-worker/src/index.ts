@@ -54,6 +54,52 @@ async function sendPush(
   }
 }
 
+// ── 근무 판정 (DB 기반) ──────────────────────────────
+const SHIFT_REF = new Date(2026, 2, 1) // 2026-03-01
+const CYCLE = ['당', '비', '주'] as const
+
+function isWeekend(d: Date): boolean {
+  const dow = d.getUTCDay()
+  return dow === 0 || dow === 6
+}
+
+function getShiftRaw(staffId: string, date: Date, shiftMap: Record<string, { offset: number | null; fixed: string | null }>): string {
+  const config = shiftMap[staffId]
+  if (config?.fixed === 'day') return isWeekend(date) ? '휴' : '주'
+  const offset = config?.offset
+  if (offset === undefined || offset === null) return isWeekend(date) ? '휴' : '주'
+  const diff = Math.round((date.getTime() - SHIFT_REF.getTime()) / 86_400_000)
+  const base = CYCLE[(((diff + offset) % 3) + 3) % 3]
+  if (base === '주' && isWeekend(date)) return '휴'
+  return base
+}
+
+async function getWorkingStaffIds(env: Env, kstDate: Date, dateStr: string): Promise<Set<string>> {
+  // DB에서 교대 설정 로드
+  const staffRows = await env.DB.prepare('SELECT id, shift_offset, shift_fixed FROM staff WHERE active = 1').all<{ id: string; shift_offset: number | null; shift_fixed: string | null }>()
+  const shiftMap: Record<string, { offset: number | null; fixed: string | null }> = {}
+  for (const r of (staffRows.results ?? [])) shiftMap[r.id] = { offset: r.shift_offset, fixed: r.shift_fixed }
+
+  // 모든 구독자의 staff_id 수집
+  const subs = await env.DB.prepare('SELECT DISTINCT staff_id FROM push_subscriptions').all<{ staff_id: string }>()
+  const allIds = (subs.results ?? []).map(r => r.staff_id)
+
+  // 근무 패턴으로 비번/휴무 제외
+  const working = allIds.filter(id => {
+    const shift = getShiftRaw(id, kstDate, shiftMap)
+    return shift !== '비' && shift !== '휴'
+  })
+
+  // 연차/공가 조회해서 추가 제외
+  const ym = dateStr.slice(0, 7)
+  const leaves = await env.DB.prepare(
+    `SELECT staff_id, type FROM annual_leaves WHERE date = ? AND status != 'rejected'`
+  ).bind(dateStr).all<{ staff_id: string; type: string }>()
+  const leaveIds = new Set((leaves.results ?? []).map(r => r.staff_id))
+
+  return new Set(working.filter(id => !leaveIds.has(id)))
+}
+
 // ── Daily notifications (08:45 KST = 23:45 UTC previous day) ─────
 async function handleDailyNotifications(env: Env) {
   // KST date (UTC+9): when cron fires at 23:45 UTC, KST is next day 08:45
@@ -61,11 +107,15 @@ async function handleDailyNotifications(env: Env) {
   const today = kstNow.toISOString().slice(0, 10)
   const yesterday = new Date(kstNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10)
 
-  const subs = await env.DB.prepare(
+  // 근무 중인 직원만 필터
+  const workingIds = await getWorkingStaffIds(env, kstNow, today)
+
+  const allDailySubs = await env.DB.prepare(
     'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
   ).all<PushSubRow>()
 
-  if (!subs.results?.length) return
+  const subs = { results: (allDailySubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
+  if (!subs.results.length) return
 
   // Batch queries for daily notification types
   const [todaySchedules, yesterdayIncomplete, unresolvedFindings, upcomingEducation] = await Promise.all([
@@ -150,11 +200,15 @@ async function handleEventNotifications(env: Env) {
 
   if (!events.results?.length) return
 
-  const subs = await env.DB.prepare(
+  // 근무 중인 직원만 필터
+  const workingIds = await getWorkingStaffIds(env, kstNow, today)
+
+  const allEventSubs = await env.DB.prepare(
     'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
   ).all<PushSubRow>()
 
-  if (!subs.results?.length) return
+  const subs = { results: (allEventSubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
+  if (!subs.results.length) return
 
   const sends: Promise<void>[] = []
 

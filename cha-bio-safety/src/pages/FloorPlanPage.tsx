@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { floorPlanMarkerApi, inspectionApi, api, type FloorPlanMarker } from '../utils/api'
+import { floorPlanMarkerApi, inspectionApi, extinguisherApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -215,10 +215,14 @@ export default function FloorPlanPage() {
   const [addLabel, setAddLabel] = useState('')
   const [addCheckpointId, setAddCheckpointId] = useState<string | null>(null)
   const [addCheckpoints, setAddCheckpoints] = useState<any[]>([])
+  const [addExtMode, setAddExtMode] = useState<'existing' | 'new'>('existing')
+  const [newExt, setNewExt] = useState({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
+  const [addSubmitting, setAddSubmitting] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragPos, setDragPos] = useState<{ x_pct: number; y_pct: number } | null>(null) // 드래그 중 실시간 위치
   const [editMarker, setEditMarker] = useState(false) // 마커 수정 모달
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
+  const [inspectExtDetail, setInspectExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectMemo, setInspectMemo] = useState('')
   const [inspectSymptomPick, setInspectSymptomPick] = useState<string>('점등 이상')
@@ -512,6 +516,8 @@ export default function FloorPlanPage() {
         const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
         setAddMarkerType(firstType as MarkerType)
         setAddCheckpointId(null)
+        setAddExtMode('existing')
+        setNewExt({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
         loadAddCheckpoints(firstType)
       }
       longPressPos.current = null
@@ -631,6 +637,8 @@ export default function FloorPlanPage() {
       const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
       setAddMarkerType(firstType as MarkerType)
       setAddCheckpointId(null)
+      setAddExtMode('existing')
+      setNewExt({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
       loadAddCheckpoints(firstType)
     }
   }, [isDesktop, editMode, currentMarkerTypes])
@@ -663,8 +671,35 @@ export default function FloorPlanPage() {
   }
 
   // ── 마커 추가 제출 ────────────────────────────────────
-  function submitAddMarker() {
+  async function submitAddMarker() {
     if (!addModal) return
+    // 소화기 새로 등록 모드
+    if (planType === 'extinguisher' && addExtMode === 'new') {
+      if (!newExt.location) { toast.error('위치를 입력하세요'); return }
+      setAddSubmitting(true)
+      try {
+        const zoneMap: Record<string, string> = { research: '연', office: '사', common: '공' }
+        const zoneChar = zoneMap[addZone] ?? '연'
+        const res = await extinguisherApi.create({
+          floor, zone: zoneChar, location: newExt.location, type: newExt.type,
+          approval_no: newExt.approval_no || undefined, manufactured_at: newExt.manufactured_at || undefined,
+          manufacturer: newExt.manufacturer || undefined, prefix_code: newExt.prefix_code || undefined,
+          seal_no: newExt.seal_no || undefined, serial_no: newExt.serial_no || undefined,
+        })
+        createMutation.mutate({
+          floor, plan_type: planType, marker_type: addMarkerType,
+          x_pct: addModal.x_pct, y_pct: addModal.y_pct,
+          label: addLabel || undefined, check_point_id: res.checkPointId,
+        })
+        toast.success(`소화기 등록 완료 (${res.mgmtNo})`)
+        setAddModal(null)
+      } catch (e: any) {
+        toast.error(e.message ?? '소화기 등록 실패')
+      } finally {
+        setAddSubmitting(false)
+      }
+      return
+    }
     createMutation.mutate({
       floor,
       plan_type: planType,
@@ -888,7 +923,7 @@ export default function FloorPlanPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             {canInspect && (
               <button
-                onClick={() => { setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom(''); inspectPhoto.reset(); setInspectModal(true) }}
+                onClick={() => { setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom(''); inspectPhoto.reset(); setInspectExtDetail(null); if (planType === 'extinguisher' && selected?.check_point_id) { extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {}) } setInspectModal(true) }}
                 style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
               >
                 점검 기록 입력
@@ -983,9 +1018,9 @@ export default function FloorPlanPage() {
         return (
           <div
             style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
+              position: 'fixed', bottom: 'calc(54px + var(--sab, 0px))', left: 0, right: 0,
               background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
-              borderRadius: '16px 16px 0 0', padding: '16px 16px 28px', zIndex: 30,
+              borderRadius: '16px 16px 0 0', padding: '16px 16px 20px', zIndex: 30,
               boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
             }}
             onClick={e => e.stopPropagation()}
@@ -1153,7 +1188,7 @@ export default function FloorPlanPage() {
               {currentMarkerTypes.map(mt => (
                 <button
                   key={mt.key}
-                  onClick={() => { setAddMarkerType(mt.key as MarkerType); loadAddCheckpoints(mt.key) }}
+                  onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddExtMode('existing'); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
                   style={{
                     padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                     background: addMarkerType === mt.key ? 'var(--acl)' : 'var(--bg3)',
@@ -1176,29 +1211,87 @@ export default function FloorPlanPage() {
               style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
             />
 
-            {planType === 'extinguisher' && (
+            {planType === 'extinguisher' && (() => {
+              const isExtType = ['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'].includes(addMarkerType)
+              return (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
-                <select
-                  value={addCheckpointId ?? ''}
-                  onChange={e => setAddCheckpointId(e.target.value || null)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
-                >
-                  <option value="">연결 안 함</option>
-                  {addCheckpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id)).map((cp: any) => (
-                    <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
-                  ))}
-                </select>
-                <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
+                {isExtType && (
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                    {([['existing', '기존 개소 연결'], ['new', '새로 등록']] as const).map(([mode, label]) => (
+                      <button key={mode} onClick={() => { setAddExtMode(mode); setAddCheckpointId(null) }} style={{
+                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        background: addExtMode === mode ? 'var(--acl)' : 'var(--bg3)',
+                        color: addExtMode === mode ? '#fff' : 'var(--t2)',
+                        border: addExtMode === mode ? 'none' : '1px solid var(--bd)',
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                )}
+
+                {(!isExtType || addExtMode === 'existing') ? (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
+                    <select
+                      value={addCheckpointId ?? ''}
+                      onChange={e => setAddCheckpointId(e.target.value || null)}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
+                    >
+                      <option value="">연결 안 함</option>
+                      {addCheckpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id)).map((cp: any) => (
+                        <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
+                  </>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginBottom: 14 }}>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>위치 *</div>
+                      <input value={newExt.location} onChange={e => setNewExt(p => ({ ...p, location: e.target.value }))} placeholder="예: 5번계단 뒤"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조업체</div>
+                      <input value={newExt.manufacturer} onChange={e => setNewExt(p => ({ ...p, manufacturer: e.target.value }))} placeholder="예: 한울방재"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조년월</div>
+                      <input value={newExt.manufactured_at} onChange={e => setNewExt(p => ({ ...p, manufactured_at: e.target.value }))} placeholder="예: 2024-04"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>형식승인</div>
+                      <input value={newExt.approval_no} onChange={e => setNewExt(p => ({ ...p, approval_no: e.target.value }))} placeholder="예: 수소10-19-11"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>접두문자</div>
+                      <input value={newExt.prefix_code} onChange={e => setNewExt(p => ({ ...p, prefix_code: e.target.value }))} placeholder="예: BEQV"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>증지번호</div>
+                      <input value={newExt.seal_no} onChange={e => setNewExt(p => ({ ...p, seal_no: e.target.value }))} placeholder="예: 72605"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조번호</div>
+                      <input value={newExt.serial_no} onChange={e => setNewExt(p => ({ ...p, serial_no: e.target.value }))} placeholder="예: 68605"
+                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
+                    </div>
+                  </div>
+                )}
               </>
-            )}
+              )
+            })()}
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setAddModal(null)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 취소
               </button>
-              <button onClick={submitAddMarker} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                추가
+              <button disabled={addSubmitting} onClick={submitAddMarker} style={{ flex: 1, height: 42, borderRadius: 10, background: addSubmitting ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: addSubmitting ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: addSubmitting ? 'default' : 'pointer' }}>
+                {addSubmitting ? '등록 중...' : '추가'}
               </button>
             </div>
           </div>
@@ -1220,6 +1313,20 @@ export default function FloorPlanPage() {
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
               {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
             </div>
+
+            {planType === 'extinguisher' && inspectExtDetail && (
+              <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)', marginBottom:14 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
+                  <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.location}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufacturer ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufactured_at ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.approval_no ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.prefix_code ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.seal_no ?? '-'}</span></div>
+                  <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.serial_no ?? '-'}</span></div>
+                </div>
+              </div>
+            )}
 
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 결과</div>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>

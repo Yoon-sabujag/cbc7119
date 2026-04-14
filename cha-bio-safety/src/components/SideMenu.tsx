@@ -118,7 +118,7 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
       <div
         id="side-menu-panel"
         style={{
-          position: 'fixed', top: 'var(--sat, 0px)', bottom: 'calc(54px + var(--sab, 34px) - var(--sat, 0px))', left: 0, zIndex: 200,
+          position: 'fixed', top: 'var(--sat, 0px)', bottom: 'calc(54px + var(--sab, 0px) - var(--sat, 0px))', left: 0, zIndex: 200,
           width: '82%', maxWidth: 300,
           background: 'var(--bg2)',
           transform: open ? 'translateX(0)' : 'translateX(-100%)',

@@ -222,14 +222,30 @@ export default function DashboardPage() {
               {monthly.length === 0 ? (
                 <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
               ) : (
-                <div style={{ padding:'24px 28px', display:'grid', gridTemplateColumns:`repeat(${Math.min(monthly.length, 6)},1fr)`, gap:'24px 20px', flex:1, alignContent:'center' }}>
-                  {monthly.map((m, i) => (
-                    <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
-                      <Donut pct={m.pct} color={m.color} size={64} />
-                      <div style={{ fontSize:12, color:'var(--t2)', textAlign:'center', lineHeight:1.4, wordBreak:'keep-all' }}>{m.label}</div>
-                      <div style={{ fontSize:12, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
-                    </div>
-                  ))}
+                <div style={{ padding:'16px 20px', display:'flex', flexDirection:'column', gap:14, flex:1, justifyContent:'center', overflowY:'auto' }}>
+                  {(() => {
+                    const rows: MonthlyItem[][] = []
+                    const n = monthly.length
+                    if (n <= 7) { rows.push(monthly) }
+                    else {
+                      const mid = Math.ceil(n / 3)
+                      const side = Math.floor((n - mid) / 2)
+                      rows.push(monthly.slice(0, side))
+                      rows.push(monthly.slice(side, side + mid))
+                      rows.push(monthly.slice(side + mid))
+                    }
+                    return rows.map((row, ri) => (
+                      <div key={ri} style={{ display:'flex', justifyContent:'space-evenly' }}>
+                        {row.map((m, i) => (
+                          <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, minWidth:0 }}>
+                            <Donut pct={m.pct} color={m.color} size={52} />
+                            <div style={{ fontSize:10, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
+                            <div style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                          </div>
+                        ))}
+                      </div>
+                    ))
+                  })()}
                 </div>
               )}
             </div>
@@ -356,7 +372,7 @@ export default function DashboardPage() {
 
       {/* ══ 메인 그리드 ══ */}
       <main style={{
-        flex:1, minHeight:0, overflow:'hidden',
+        flex:1, minHeight:0, overflowY:'auto',
         display:'grid',
         gridTemplateRows:'auto auto auto 1fr auto',
         gap:7, padding:'7px 11px',

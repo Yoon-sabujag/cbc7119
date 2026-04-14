@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery } from '@tanstack/react-query'
-import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, floorPlanMarkerApi, type ExtinguisherDetail, type ExtinguisherListResponse, type FloorPlanMarker } from '../utils/api'
+import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type ExtinguisherListResponse, type FloorPlanMarker } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -558,7 +558,7 @@ function BaeyeonModal({ group, allCheckpoints, records, onClose, onSave }: {
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
   const zoneCPs = useMemo(() =>
-    zone ? allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo === BY_LOC_NO[zone]) : [],
+    zone ? allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo?.startsWith(BY_LOC_NO[zone])) : [],
     [zone, allCheckpoints]
   )
   const availableFloors = useMemo(() => {
@@ -642,7 +642,7 @@ function BaeyeonModal({ group, allCheckpoints, records, onClose, onSave }: {
         <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>구역 선택</div>
         <div style={{ display:'flex', gap:8 }}>
           {(['research','office'] as BYZone[]).map(z => {
-            const zCPs    = allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo === BY_LOC_NO[z])
+            const zCPs    = allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo?.startsWith(BY_LOC_NO[z]))
             const allDone = zCPs.length > 0 && zCPs.every(cp => records[cp.id])
             return (
               <button key={z} onClick={() => setZone(z)} style={tabStyle(zone === z)}>
@@ -3888,6 +3888,285 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── 써머리 카드 ────────────────────────────────────────────
+const ZONE_LBL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+
+function InspectionSummaryCard({ categoryIdx, allRecords }: { categoryIdx: number; allRecords: any[] }) {
+  const group = CATEGORY_GROUPS[categoryIdx]
+  const cats = group.categories
+
+  // 이번 달 일정에서 해당 카테고리의 점검일 조회
+  const nowY = new Date().getFullYear()
+  const nowM = String(new Date().getMonth() + 1).padStart(2, '0')
+  const month = `${nowY}-${nowM}`
+  const { data: schedItems } = useQuery({
+    queryKey: ['schedule-month', month],
+    queryFn: () => scheduleApi.getByMonth(month),
+    staleTime: 60_000,
+  })
+
+  // 해당 카테고리의 점검 일정 추출 (alias 역매핑 포함: 방화문→특별피난계단, 컴프레셔→DIV)
+  const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단', '컴프레셔': 'DIV' }
+  const schedMatches = useMemo(() => {
+    if (!schedItems) return [] as typeof schedItems
+    return schedItems.filter(s => {
+      if (s.category !== 'inspect') return false
+      const ic = s.inspectionCategory ?? ''
+      return cats.includes(ic) || cats.includes(SCHED_ALIAS[ic] ?? '')
+    })
+  }, [schedItems, cats])
+
+  const schedDates = useMemo(() => schedMatches.map(s => s.date), [schedMatches])
+
+  // 점검명 & 세부내역 (복수 일정 지원)
+  const schedInfos = useMemo(() => {
+    const seen = new Set<string>()
+    return schedMatches.filter(s => {
+      const key = `${s.title}|${s.memo ?? ''}`
+      if (seen.has(key)) return false
+      seen.add(key); return true
+    }).map(s => ({ title: s.title, memo: s.memo ?? '' }))
+  }, [schedMatches])
+  const schedTitle = schedInfos.length > 0 ? schedInfos.map(s => s.title).join(' / ') : group.labels.join(', ')
+
+  // 해당 날짜에 행한 점검만 필터 (날짜만 비교)
+  const filteredRecords = useMemo(() => {
+    if (schedDates.length === 0) return allRecords.filter(r => cats.includes(r.category))
+    const dateSet = new Set(schedDates)
+    return allRecords.filter(r => cats.includes(r.category) && dateSet.has((r.checkedAt ?? '').slice(0, 10)))
+  }, [allRecords, cats, schedDates])
+
+  const normalRecs  = filteredRecords.filter(r => r.result === 'normal')
+  const cautionRecs = filteredRecords.filter(r => r.result === 'caution')
+  const badRecs     = filteredRecords.filter(r => r.result === 'bad')
+
+  const normalPhotos  = normalRecs.filter(r => r.photoKey).map(r => ({ key: r.photoKey, label: `${r.category} ${r.floor}` }))
+  const cautionPhotos = cautionRecs.filter(r => r.photoKey).map(r => ({ key: r.photoKey, label: `${r.category} ${r.floor}` }))
+  const badPhotos     = badRecs.filter(r => r.photoKey).map(r => ({ key: r.photoKey, label: `${r.category} ${r.floor}` }))
+
+  const schedDateLabel = schedDates.length > 0
+    ? schedDates.map(d => { const [y,m,dd] = d.split('-'); return `${y}년 ${parseInt(m)}월 ${parseInt(dd)}일` }).join(', ')
+    : '일정 미등록'
+
+  async function downloadPhoto(photoKey: string, filename: string) {
+    try {
+      const res = await fetch('/api/uploads/' + photoKey)
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 3000)
+    } catch { toast.error('다운로드 실패') }
+  }
+
+  async function downloadReport() {
+    try {
+      // 사진을 base64로 변환
+      async function toB64(key: string): Promise<string | null> {
+        try {
+          const res = await fetch('/api/uploads/' + key)
+          if (!res.ok) return null
+          const blob = await res.blob()
+          return await new Promise<string>((resolve, reject) => {
+            const r = new FileReader(); r.onloadend = () => resolve(r.result as string); r.onerror = reject; r.readAsDataURL(blob)
+          })
+        } catch { return null }
+      }
+
+      const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+      const title = group.labels.join(', ')
+
+      // 정상 사진 행
+      const normalWithPhoto = normalRecs.filter((r: any) => r.photoKey)
+      const normalPhotoHtml = await Promise.all(normalWithPhoto.map(async (r: any) => {
+        const b64 = await toB64(r.photoKey)
+        const place = `${ZONE_LABEL[r.zone] ?? r.zone} ${r.floor}${r.location ? ' · ' + r.location : ''}`
+        return b64 ? `<div style="display:inline-block;margin:4px;text-align:center"><img src="${b64}" style="width:150px;height:112px;object-fit:cover;border-radius:4px;border:1px solid #ccc;display:block"/><div style="font-size:10px;color:#666;margin-top:2px">${place}</div></div>` : ''
+      }))
+
+      // 주의/불량 상세 행
+      const issueRecs = [...cautionRecs, ...badRecs]
+      const issueRows = await Promise.all(issueRecs.map(async (r: any) => {
+        const photoB64 = r.photoKey ? await toB64(r.photoKey) : null
+        const resPhotoB64 = r.resolutionPhotoKey ? await toB64(r.resolutionPhotoKey) : null
+        const place = `${ZONE_LABEL[r.zone] ?? r.zone} ${r.floor}${r.location ? ' · ' + r.location : ''}`
+        const resultLabel = r.result === 'bad' ? '불량' : '주의'
+        const resultClass = r.result === 'bad' ? 'bad' : 'cau'
+        const statusLabel = r.status === 'open' ? '미조치' : '조치완료'
+        const statusClass = r.status === 'open' ? 'open' : 'done'
+        return `
+        <tr>
+          <td>${place}</td>
+          <td><span class="badge ${resultClass}">${resultLabel}</span></td>
+          <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+          <td style="white-space:pre-wrap">${r.memo ?? '-'}</td>
+          <td>${r.resolvedAt ? fmtKstDateTime(r.resolvedAt) : '-'}</td>
+          <td style="white-space:pre-wrap">${r.resolutionMemo ?? '-'}</td>
+        </tr>
+        ${(photoB64 || resPhotoB64) ? `<tr><td colspan="6" style="padding:6px 10px">
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            ${photoB64 ? `<div><div style="font-size:11px;font-weight:700;margin-bottom:4px;color:#666">점검 사진</div><img src="${photoB64}" style="max-width:200px;max-height:150px;border-radius:4px;border:1px solid #ccc"/></div>` : ''}
+            ${resPhotoB64 ? `<div><div style="font-size:11px;font-weight:700;margin-bottom:4px;color:#666">조치 사진</div><img src="${resPhotoB64}" style="max-width:200px;max-height:150px;border-radius:4px;border:1px solid #ccc"/></div>` : ''}
+          </div>
+        </td></tr>` : ''}`
+      }))
+
+      const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${title} 점검 보고서</title>
+<style>
+body{font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;max-width:900px;margin:24px auto;padding:0 24px;color:#222;font-size:13px}
+h1{font-size:20px;border-bottom:2px solid #333;padding-bottom:8px;margin-bottom:16px}
+.summary{display:flex;gap:16px;margin-bottom:20px}
+.summary-box{flex:1;border-radius:10px;padding:16px;text-align:center}
+.summary-box .count{font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.summary-box .label{font-size:12px;font-weight:700;margin-bottom:6px}
+.normal-box{background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a}
+.caution-box{background:#fffbeb;border:1px solid #fde68a;color:#b45309}
+.bad-box{background:#fef2f2;border:1px solid #fecaca;color:#dc2626}
+table{width:100%;border-collapse:collapse;margin:12px 0}
+th,td{border:1px solid #999;padding:7px 10px;font-size:12px;text-align:left;vertical-align:top}
+th{background:#f0f0f0;font-weight:700}
+.info-table th{width:140px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.bad{background:#fee;color:#c33}.cau{background:#fef3c7;color:#b8740b}
+.open{background:#fed7aa;color:#c2410c}.done{background:#d1fae5;color:#15803d}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid #ddd;font-size:11px;color:#888;text-align:center}
+@media print{body{margin:0;padding:16px}h1{font-size:16px}.summary-box .count{font-size:22px}}
+</style></head><body>
+<h1>${schedTitle} 점검 보고서</h1>
+
+<table class="info-table">
+  <tr><th>점검명</th><td>${schedTitle}</td></tr>
+  <tr><th>점검일</th><td>${schedDateLabel}</td></tr>
+  <tr><th>점검 개소 총수</th><td>${filteredRecords.length}개소</td></tr>
+  <tr><th>점검 세부내역</th><td style="white-space:pre-wrap">${schedInfos.map(s => (schedInfos.length > 1 ? `[${s.title}]\n` : '') + (s.memo || '-')).join('\n\n') || '-'}</td></tr>
+</table>
+
+<div class="summary">
+  <div class="summary-box normal-box"><div class="label">정상</div><div class="count">${normalRecs.length}</div></div>
+  <div class="summary-box caution-box"><div class="label">주의</div><div class="count">${cautionRecs.length}</div></div>
+  <div class="summary-box bad-box"><div class="label">불량</div><div class="count">${badRecs.length}</div></div>
+</div>
+
+${normalPhotoHtml.filter(Boolean).length > 0 ? `
+<h2 style="font-size:15px;margin-top:24px">정상 점검 사진 (${normalPhotoHtml.filter(Boolean).length}건)</h2>
+<div style="display:flex;flex-wrap:wrap;gap:4px">${normalPhotoHtml.filter(Boolean).join('')}</div>` : ''}
+
+${issueRecs.length > 0 ? `
+<h2 style="font-size:15px;margin-top:24px">주의/불량 상세 내역 (${issueRecs.length}건)</h2>
+<table>
+  <thead><tr><th>개소</th><th>판정</th><th>상태</th><th>점검 메모</th><th>조치일</th><th>조치 내용</th></tr></thead>
+  <tbody>${issueRows.join('')}</tbody>
+</table>` : '<p style="color:#16a34a;font-weight:700;margin-top:16px">전 개소 정상 — 주의/불량 항목 없음</p>'}
+
+<div class="footer">
+  차바이오컴플렉스 방재팀 · 생성일: ${new Date().toLocaleDateString('ko-KR')}
+</div>
+</body></html>`
+
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${schedTitle}_점검보고서_${month}.html`
+      document.body.appendChild(a); a.click(); a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      toast.success('보고서 다운로드 완료')
+    } catch (e) {
+      console.error(e)
+      toast.error('보고서 생성 실패')
+    }
+  }
+
+  const photoRow = (photos: { key: string; label: string }[], color: string) => {
+    if (photos.length === 0) return null
+    return (
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingTop: 6, scrollbarWidth: 'none' }}>
+        {photos.map((p, i) => (
+          <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+            <img src={`/api/uploads/${p.key}`} alt={p.label}
+              style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: `2px solid ${color}`, cursor: 'pointer', display: 'block' }}
+              onClick={() => downloadPhoto(p.key, `${p.label}.jpg`)}
+              title="클릭하여 다운로드"
+            />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (filteredRecords.length === 0 && schedDates.length === 0) return null
+
+  return (
+    <div id={`summary-card-${categoryIdx}`} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+      {/* 헤더 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{group.icon} {schedTitle}</div>
+          <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>점검일: {schedDateLabel} · 총 {filteredRecords.length}건</div>
+          {schedInfos.map((s, i) => s.memo && (
+            <div key={i} style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+              {schedInfos.length > 1 && <span style={{ fontWeight: 600, color: 'var(--t2)' }}>[{s.title}]</span>}{schedInfos.length > 1 ? '\n' : ''}{s.memo}
+            </div>
+          ))}
+        </div>
+        <button onClick={downloadReport} style={{ fontSize: 11, fontWeight: 700, height: 30, background: 'var(--bg3)', borderRadius: 7, padding: '0 12px', border: '1px solid var(--bd)', color: 'var(--t1)', cursor: 'pointer' }}>
+          보고서 다운로드
+        </button>
+      </div>
+
+      {/* 정상 / 주의 / 불량 박스 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        {/* 정상 */}
+        <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--safe)' }}>정상</span>
+            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--safe)' }}>{normalRecs.length}</span>
+          </div>
+          {photoRow(normalPhotos, 'rgba(34,197,94,0.5)')}
+        </div>
+
+        {/* 주의 */}
+        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)' }}>주의</span>
+            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--warn)' }}>{cautionRecs.length}</span>
+          </div>
+          {cautionRecs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+              {cautionRecs.map((r: any, i: number) => (
+                <div key={i} style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.3 }}>
+                  <span style={{ fontWeight: 600 }}>{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
+                  {r.memo && <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo.split('\n')[0]}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          {photoRow(cautionPhotos, 'rgba(245,158,11,0.5)')}
+        </div>
+
+        {/* 불량 */}
+        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--danger)' }}>불량</span>
+            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--danger)' }}>{badRecs.length}</span>
+          </div>
+          {badRecs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+              {badRecs.map((r: any, i: number) => (
+                <div key={i} style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.3 }}>
+                  <span style={{ fontWeight: 600 }}>{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
+                  {r.memo && <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo.split('\n')[0]}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+          {photoRow(badPhotos, 'rgba(239,68,68,0.5)')}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 데스크톱 점검 관리 뷰 (좌=카테고리 카드 / 우=내역 또는 상세) ─────
 function DesktopInspectionView({
   categoryIdx, setCategoryIdx, recordId, setRecordId, dateFilter, setDateFilter,
@@ -4132,6 +4411,8 @@ function DesktopInspectionView({
               <span style={{ fontSize:11, color:'var(--t3)' }}>{categoryRecords.length}건</span>
             </div>
             <div style={{ flex:1, overflowY:'auto', padding:'14px 18px' }}>
+              {/* 써머리 카드 */}
+              <InspectionSummaryCard categoryIdx={categoryIdx} allRecords={allRecords} />
               {isLoading ? (
                 <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
               ) : categoryRecords.length === 0 ? (

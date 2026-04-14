@@ -235,17 +235,70 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     const monthlyItems: {label:string; pct:number; color:string; total:number; done:number}[] = []
     const seen = new Set<string>()
 
+    // 유도등: floor_plan_markers에서 총 수 조회
+    const glMarkerCount = await env.DB.prepare(
+      `SELECT COUNT(*) as n FROM floor_plan_markers WHERE plan_type='guidelamp'`
+    ).first<{n:number}>()
+    const GL_TOTAL = glMarkerCount?.n ?? 674
+
     for (const sched of (monthScheds.results ?? [])) {
-      // 일정별로 개별 표시 (방화문, 컴프레셔도 따로 표시)
       const schedKey = sched.inspection_category
       if (seen.has(schedKey)) continue
       seen.add(schedKey)
-      // 체크포인트 조회 시에만 alias 적용
+
       const cpCategory = CATEGORY_ALIAS[sched.inspection_category] ?? sched.inspection_category
 
+      // 유도등: 일정 status='done' 기준으로 100% 판정
+      if (sched.inspection_category === '유도등') {
+        const schedDoneQ = await env.DB.prepare(
+          `SELECT COUNT(*) as n FROM schedule_items WHERE date BETWEEN ? AND ? AND category='inspect' AND inspection_category='유도등' AND status='done'`
+        ).bind(monthStart, monthEnd).first<{n:number}>()
+        const isDone = (schedDoneQ?.n ?? 0) > 0
+        const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+        monthlyItems.push({
+          label,
+          pct: isDone ? 100 : 0,
+          color: isDone ? ITEM_COLORS[monthlyItems.length % ITEM_COLORS.length] : '#52525b',
+          total: GL_TOTAL,
+          done: isDone ? GL_TOTAL : 0,
+        })
+        continue
+      }
+
+      // check_points 기반 카테고리
       const t = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points WHERE category=? AND is_active=1`
       ).bind(cpCategory).first<{n:number}>()
+      const cpTotal = t?.n ?? 0
+
+      // check_points에 없는 항목 (CCTV, 회전문, 주차장비 등): status='done' 또는 inspection_session 존재 여부
+      if (cpTotal === 0) {
+        // 방법1: status가 done인지
+        const schedDone = await env.DB.prepare(
+          `SELECT COUNT(*) as n FROM schedule_items WHERE date BETWEEN ? AND ? AND category='inspect' AND inspection_category=? AND status='done'`
+        ).bind(monthStart, monthEnd, sched.inspection_category).first<{n:number}>()
+        // 방법2: 해당 카테고리 check_records가 있는지 (inspect 일정은 status가 안 바뀌는 경우 대비)
+        const hasRecord = await env.DB.prepare(`
+          SELECT 1 FROM check_records cr
+          JOIN check_points cp ON cr.checkpoint_id = cp.id
+          WHERE cp.category = ?
+            AND date(cr.checked_at) BETWEEN ? AND ?
+            AND cr.result IN ('normal','caution')
+          LIMIT 1
+        `).bind(cpCategory, monthStart, monthEnd).first()
+        const isDone = (schedDone?.n ?? 0) > 0 || !!hasRecord
+        const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+        monthlyItems.push({
+          label,
+          pct: isDone ? 100 : 0,
+          color: isDone ? ITEM_COLORS[monthlyItems.length % ITEM_COLORS.length] : '#52525b',
+          total: 1,
+          done: isDone ? 1 : 0,
+        })
+        continue
+      }
+
+      // check_points 기반 카테고리: 기존 로직
       const d = await env.DB.prepare(`
         SELECT COUNT(DISTINCT cr.checkpoint_id) as n
         FROM check_records cr
@@ -257,7 +310,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND cp.default_result IS NOT NULL AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
       ).bind(cpCategory, cpCategory, monthStart, monthEnd).first<{n:number}>()
 
-      const total = t?.n ?? 0
+      const total = cpTotal
       const done = (d?.n ?? 0) + (autoN?.n ?? 0)
       const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
       const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
@@ -349,6 +402,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
                 `).bind(cpCat, r.date).first()
               }
               completed = !!rec
+              // inspect 일정이 완료 판정되면 status도 done으로 동기화
+              if (completed && r.status !== 'done') {
+                await env.DB.prepare(`UPDATE schedule_items SET status='done' WHERE id=?`).bind(r.id).run()
+              }
             } else {
               // Per D-19: non-inspect items use manual status='done'
               completed = r.status === 'done'

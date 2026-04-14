@@ -56,6 +56,10 @@ $global:GROUPS = @(
         @{ key="qr_damper";     label="제연댐퍼점검용";     pattern='^전실제연댐퍼_점검용_QR\.pdf$';                                  yearG=0; monthG=0 }
         @{ key="qr_shutter";    label="방화셔터점검용";     pattern='^방화셔터_점검용_QR\.pdf$';                                      yearG=0; monthG=0 }
     )}
+    @{ name="6. 백업"; items=@(
+        @{ key="backup_db";     label="DB백업";             pattern='^cha-bio-safety_(\d{4})-(\d{2})-\d{2}\.sql$';                   yearG=1; monthG=2 }
+        @{ key="backup_r2";     label="파일백업";           pattern='^cha-bio-r2_(\d{4})-(\d{2})-\d{2}\.zip$';                      yearG=1; monthG=2 }
+    )}
 )
 
 $global:ALL_PATTERNS = @()
@@ -115,6 +119,18 @@ function Save-Config($cfg) {
         }
     }
     [System.IO.File]::WriteAllLines($global:CONFIG_FILE, $lines.ToArray(), [System.Text.Encoding]::UTF8)
+}
+
+# ── Chrome 백그라운드 실행 활성화 (푸시 알림 수신 유지) ──
+function Enable-ChromeBackground {
+    $regPath = "HKCU:\Software\Policies\Google\Chrome"
+    try {
+        if (-not (Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
+        $cur = Get-ItemProperty -Path $regPath -Name "BackgroundModeEnabled" -ErrorAction SilentlyContinue
+        if (-not $cur -or $cur.BackgroundModeEnabled -ne 1) {
+            Set-ItemProperty -Path $regPath -Name "BackgroundModeEnabled" -Value 1 -Type DWord
+        }
+    } catch {}
 }
 
 # ── Open PWA (설치된 PWA 우선, 없으면 Chrome app mode) ──
@@ -702,6 +718,7 @@ function Restart-Watcher {
 
 # ── Tray App (while loop — processes PS events via Start-Sleep) ──
 function Start-TrayApp {
+    Enable-ChromeBackground
     $cfg = Load-Config
     if ($cfg["open_webapp_on_start"] -eq "true") { Open-WebApp }
 

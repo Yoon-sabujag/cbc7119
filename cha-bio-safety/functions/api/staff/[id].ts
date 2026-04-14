@@ -7,7 +7,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
   try {
     const id = params.id as string
     const row = await env.DB.prepare(
-      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, created_at
+      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, shift_offset, shift_fixed, created_at
        FROM staff WHERE id = ?1`
     ).bind(id).first<Record<string, unknown>>()
 
@@ -26,6 +26,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         appointedAt: row.appointed_at ?? null,
         active:      row.active ?? 1,
         shiftType:   row.shift_type ?? null,
+        shiftOffset: row.shift_offset ?? null,
+        shiftFixed:  row.shift_fixed ?? null,
         createdAt:   row.created_at,
       },
     })
@@ -46,7 +48,8 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     const id = params.id as string
     const body = await request.json<{
       name?: string; role?: string; title?: string;
-      phone?: string; email?: string; appointedAt?: string; active?: number
+      phone?: string; email?: string; appointedAt?: string; active?: number;
+      shiftOffset?: number | null; shiftFixed?: string | null;
     }>()
 
     const existing = await env.DB.prepare('SELECT id FROM staff WHERE id = ?1').bind(id).first()
@@ -57,14 +60,16 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
 
     await env.DB.prepare(
       `UPDATE staff SET
-        name        = COALESCE(?1, name),
-        role        = COALESCE(?2, role),
-        title       = COALESCE(?3, title),
-        phone       = ?4,
-        email       = ?5,
+        name         = COALESCE(?1, name),
+        role         = COALESCE(?2, role),
+        title        = COALESCE(?3, title),
+        phone        = ?4,
+        email        = ?5,
         appointed_at = ?6,
-        active      = COALESCE(?7, active),
-        updated_at  = ?8
+        active       = COALESCE(?7, active),
+        updated_at   = ?8,
+        shift_offset = CASE WHEN ?10 = 'SET' THEN ?11 ELSE shift_offset END,
+        shift_fixed  = CASE WHEN ?12 = 'SET' THEN ?13 ELSE shift_fixed END
        WHERE id = ?9`
     ).bind(
       body.name   ?? null,
@@ -76,10 +81,14 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       body.active !== undefined ? body.active : null,
       now,
       id,
+      body.shiftOffset !== undefined ? 'SET' : 'SKIP',
+      body.shiftOffset !== undefined ? body.shiftOffset : null,
+      body.shiftFixed !== undefined ? 'SET' : 'SKIP',
+      body.shiftFixed !== undefined ? body.shiftFixed : null,
     ).run()
 
     const updated = await env.DB.prepare(
-      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, created_at FROM staff WHERE id = ?1`
+      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, shift_offset, shift_fixed, created_at FROM staff WHERE id = ?1`
     ).bind(id).first<Record<string, unknown>>()
 
     return Response.json({
@@ -94,6 +103,8 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
         appointedAt: updated!.appointed_at ?? null,
         active:      updated!.active ?? 1,
         shiftType:   updated!.shift_type ?? null,
+        shiftOffset: updated!.shift_offset ?? null,
+        shiftFixed:  updated!.shift_fixed ?? null,
         createdAt:   updated!.created_at,
       },
     })

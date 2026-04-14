@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
@@ -161,45 +162,12 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
     textAlign: 'center',
   })
 
-  return (
-    <div
-      onClick={onClose}
-      onTouchMove={e => e.stopPropagation()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-end',
-        zIndex: 50,
-        overscrollBehavior: 'contain',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        onTouchMove={e => e.stopPropagation()}
-        style={{
-          background: 'var(--bg2)',
-          borderRadius: '16px 16px 0 0',
-          animation: 'slideUp 0.28s ease-out both',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          overscrollBehavior: 'contain',
-        }}
-      >
-        {/* 드래그 핸들 */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
-        </div>
+  const isDesktopSheet = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+  const pad = isDesktopSheet ? '0 24px' : '12px 16px'
 
-        {/* 제목 */}
-        <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 등록</div>
-        </div>
-
-        {/* 폼 */}
-        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+  const formContent = (
+    <>
+        <div style={{ padding: pad, display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* 구역 선택 */}
           <div>
             <div style={lblStyle}>구역</div>
@@ -309,42 +277,41 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
         </div>
 
         {/* 버튼 영역 */}
-        <div style={{ padding: '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            style={{
-              width: '100%',
-              height: 48,
-              background: 'var(--acl)',
-              borderRadius: 10,
-              border: 'none',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              opacity: isSubmitting ? 0.6 : 1,
-            }}
-          >
+        <div style={{ padding: isDesktopSheet ? '8px 24px 24px' : '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button onClick={handleSubmit} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'var(--acl)', borderRadius: 10, border: 'none', color: '#fff', fontWeight: 700, fontSize: 14, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.6 : 1 }}>
             {isSubmitting ? '처리 중...' : '등록'}
           </button>
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            style={{
-              width: '100%',
-              height: 48,
-              background: 'transparent',
-              border: '1px solid var(--bd2)',
-              borderRadius: 10,
-              color: 'var(--t2)',
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={onClose} disabled={isSubmitting} style={{ width: '100%', height: 48, background: 'transparent', border: '1px solid var(--bd2)', borderRadius: 10, color: 'var(--t2)', fontSize: 14, cursor: 'pointer' }}>
             취소
           </button>
         </div>
+    </>
+  )
+
+  if (isDesktopSheet) {
+    return (
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+        <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: 12, width: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,.18)' }}>
+          <div style={{ padding: '20px 24px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 등록</div>
+            <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✕</button>
+          </div>
+          {formContent}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div onClick={onClose} onTouchMove={e => e.stopPropagation()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 50, overscrollBehavior: 'contain' }}>
+      <div onClick={e => e.stopPropagation()} onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+        </div>
+        <div style={{ padding: '12px 16px 0' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 등록</div>
+        </div>
+        {formContent}
       </div>
       <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
     </div>
@@ -514,166 +481,117 @@ export default function LegalFindingsPage() {
     return b.createdAt.localeCompare(a.createdAt)
   })
 
+  const isDesktop = useIsDesktop()
+
+  // ── 관리자 도구 바 ──
+  const adminBar = role === 'admin' && round ? (
+    <div style={{
+      padding: isDesktop ? '8px 24px' : '8px 16px',
+      background: 'var(--bg2)',
+      borderBottom: '1px solid var(--bd)',
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center',
+      flexShrink: 0,
+      flexWrap: 'wrap',
+    }}>
+      <select value={effectiveSelectedResult} onChange={e => setSelectedResult(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8, padding: '6px 12px', color: 'var(--t1)', fontSize: 13, appearance: 'none', cursor: 'pointer' }}>
+        <option value="">결과 미입력</option>
+        <option value="pass">적합</option>
+        <option value="fail">부적합</option>
+        <option value="conditional">조건부적합</option>
+      </select>
+      <button onClick={handleSaveResult} disabled={savingResult} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--acl)', borderRadius: 8, padding: '0 12px', border: 'none', color: '#fff', cursor: savingResult ? 'not-allowed' : 'pointer', opacity: savingResult ? 0.6 : 1, flexShrink: 0 }}>결과 저장</button>
+      <input ref={reportInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleReportUpload} />
+      {round.reportFileKey ? (
+        <button onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', cursor: 'pointer', flexShrink: 0 }}>보고서 보기</button>
+      ) : (
+        <button onClick={() => reportInputRef.current?.click()} disabled={uploadingReport} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t2)', cursor: uploadingReport ? 'not-allowed' : 'pointer', opacity: uploadingReport ? 0.6 : 1, flexShrink: 0 }}>{uploadingReport ? '업로드 중...' : '보고서 업로드'}</button>
+      )}
+      <button onClick={handleZipDownload} disabled={!!zipLoading || !findings?.length} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer', opacity: (zipLoading || !findings?.length) ? 0.6 : 1, flexShrink: 0, whiteSpace: 'nowrap' }}>{zipLoading || '일괄 다운로드'}</button>
+    </div>
+  ) : null
+
+  // ── 지적사항 카드 렌더 ──
+  const findingCard = (finding: LegalFinding) => (
+    <div
+      key={finding.id}
+      onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
+      style={{
+        background: 'var(--bg3)',
+        border: '1px solid var(--bd)',
+        borderLeft: `2px solid ${finding.status === 'open' ? 'var(--danger)' : 'var(--safe)'}`,
+        borderRadius: 12,
+        padding: isDesktop ? 16 : 12,
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--t1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finding.description}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '2px 8px', flexShrink: 0, background: finding.status === 'open' ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.13)', color: finding.status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>{finding.status === 'open' ? '미조치' : '완료'}</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--t2)' }}>{finding.location ?? '위치 미지정'}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
+        <button onClick={(e) => handleDeleteFinding(e, finding)} style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>삭제</button>
+      </div>
+    </div>
+  )
+
+  // ── 등록 버튼 ──
+  const addButton = (
+    <button
+      onClick={() => setShowSheet(true)}
+      style={{
+        width: isDesktop ? 'auto' : '100%',
+        height: isDesktop ? 36 : 48,
+        background: 'var(--acl)',
+        color: '#fff',
+        fontSize: isDesktop ? 13 : 14,
+        fontWeight: 700,
+        border: 'none',
+        borderRadius: isDesktop ? 8 : 12,
+        cursor: 'pointer',
+        padding: isDesktop ? '0 16px' : undefined,
+        flexShrink: 0,
+      }}
+    >
+      + 지적사항 등록
+    </button>
+  )
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
-      {/* 자체 헤더 */}
-      <div style={{
-        height: 48,
-        background: 'rgba(22,27,34,0.97)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        flexShrink: 0,
-      }}>
-        <button
-          aria-label="뒤로 가기"
-          onClick={() => navigate(-1)}
-          style={{
-            position: 'absolute',
-            left: 12,
-            width: 36,
-            height: 36,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            color: 'var(--t1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{headerTitle}</span>
-      </div>
-
-      {/* 관리자 전용 서브 헤더 */}
-      {role === 'admin' && round && (
+      {/* 모바일 헤더 */}
+      {!isDesktop && (
         <div style={{
-          padding: '8px 16px',
-          background: 'var(--bg2)',
-          borderBottom: '1px solid var(--bd)',
-          display: 'flex',
-          gap: 8,
-          alignItems: 'center',
-          flexShrink: 0,
+          height: 48, background: 'rgba(22,27,34,0.97)', borderBottom: '1px solid var(--bd)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0,
         }}>
-          <select
-            value={effectiveSelectedResult}
-            onChange={e => setSelectedResult(e.target.value)}
-            style={{
-              background: 'var(--bg3)',
-              border: '1px solid var(--bd2)',
-              borderRadius: 8,
-              padding: '6px 12px',
-              color: 'var(--t1)',
-              fontSize: 13,
-              appearance: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="">결과 미입력</option>
-            <option value="pass">적합</option>
-            <option value="fail">부적합</option>
-            <option value="conditional">조건부적합</option>
-          </select>
-
-          <button
-            onClick={handleSaveResult}
-            disabled={savingResult}
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              height: 36,
-              background: 'var(--acl)',
-              borderRadius: 8,
-              padding: '0 12px',
-              border: 'none',
-              color: '#fff',
-              cursor: savingResult ? 'not-allowed' : 'pointer',
-              opacity: savingResult ? 0.6 : 1,
-              flexShrink: 0,
-            }}
-          >
-            결과 저장
+          <button aria-label="뒤로 가기" onClick={() => navigate(-1)} style={{ position: 'absolute', left: 12, width: 36, height: 36, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--t1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           </button>
-
-          <input
-            ref={reportInputRef}
-            type="file"
-            accept="application/pdf"
-            style={{ display: 'none' }}
-            onChange={handleReportUpload}
-          />
-
-          {round.reportFileKey ? (
-            <button
-              onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')}
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                height: 36,
-                background: 'var(--bg3)',
-                borderRadius: 8,
-                padding: '0 12px',
-                border: '1px solid var(--bd2)',
-                color: 'var(--t1)',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-            >
-              보고서 보기
-            </button>
-          ) : (
-            <button
-              onClick={() => reportInputRef.current?.click()}
-              disabled={uploadingReport}
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                height: 36,
-                background: 'var(--bg3)',
-                borderRadius: 8,
-                padding: '0 12px',
-                border: '1px solid var(--bd2)',
-                color: 'var(--t2)',
-                cursor: uploadingReport ? 'not-allowed' : 'pointer',
-                opacity: uploadingReport ? 0.6 : 1,
-                flexShrink: 0,
-              }}
-            >
-              {uploadingReport ? '업로드 중...' : '보고서 업로드'}
-            </button>
-          )}
-
-          <button
-            onClick={handleZipDownload}
-            disabled={!!zipLoading || !findings?.length}
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              height: 36,
-              background: 'var(--bg3)',
-              borderRadius: 8,
-              padding: '0 12px',
-              border: '1px solid var(--bd2)',
-              color: 'var(--t1)',
-              cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer',
-              opacity: (zipLoading || !findings?.length) ? 0.6 : 1,
-              flexShrink: 0,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {zipLoading || '일괄 다운로드'}
-          </button>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{headerTitle}</span>
         </div>
       )}
+
+      {/* 데스크톱 타이틀 + 등록 버튼 */}
+      {isDesktop && (
+        <div style={{ padding: '24px 32px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--t1)' }}>{headerTitle}</div>
+            {round && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{round.title}</div>}
+          </div>
+          {addButton}
+        </div>
+      )}
+
+      {adminBar}
 
       {/* 콘텐츠 영역 */}
       {isLoading ? (
@@ -684,108 +602,33 @@ export default function LegalFindingsPage() {
         </div>
       ) : (
         <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '12px 16px',
-          paddingBottom: 'calc(72px + var(--sab, 0px))',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 8,
+          flex: 1, overflowY: 'auto',
+          padding: isDesktop ? '16px 32px' : '12px 16px',
+          paddingBottom: isDesktop ? 24 : 'calc(72px + var(--sab, 0px))',
+          display: 'flex', flexDirection: 'column', gap: 8,
+          maxWidth: isDesktop ? 800 : undefined,
         }}>
           {sortedFindings.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '60px 16px' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 없음</div>
-              <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>현장에서 지적된 항목을 등록하려면 아래 버튼을 누르세요.</div>
+              <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>현장에서 지적된 항목을 등록하려면 {isDesktop ? '상단' : '아래'} 버튼을 누르세요.</div>
             </div>
-          ) : (
-            sortedFindings.map(finding => (
-              <div
-                key={finding.id}
-                onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
-                style={{
-                  background: 'var(--bg3)',
-                  border: '1px solid var(--bd)',
-                  borderLeft: `2px solid ${finding.status === 'open' ? 'var(--danger)' : 'var(--safe)'}`,
-                  borderRadius: 12,
-                  padding: 12,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 3,
-                }}
-              >
-                {/* Line 1: 지적 내용 + 상태 배지 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--t1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {finding.description}
-                  </span>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    borderRadius: 6,
-                    padding: '2px 8px',
-                    flexShrink: 0,
-                    background: finding.status === 'open' ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.13)',
-                    color: finding.status === 'open' ? 'var(--danger)' : 'var(--safe)',
-                  }}>
-                    {finding.status === 'open' ? '미조치' : '완료'}
-                  </span>
-                </div>
-
-                {/* Line 2: 위치 */}
-                <div style={{ fontSize: 12, color: 'var(--t2)' }}>
-                  {finding.location ?? '위치 미지정'}
-                </div>
-
-                {/* Line 3: 등록일 + 등록자 + 삭제 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>
-                    {fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}
-                  </span>
-                  <button
-                    onClick={(e) => handleDeleteFinding(e, finding)}
-                    style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+          ) : sortedFindings.map(findingCard)}
         </div>
       )}
 
-      {/* 고정 하단 CTA */}
-      <div style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'var(--bg)',
-        borderTop: '1px solid var(--bd)',
-        padding: '12px 16px',
-        paddingBottom: 'calc(12px + var(--sab, 0px))',
-        zIndex: 20,
-      }}>
-        <button
-          onClick={() => setShowSheet(true)}
-          style={{
-            width: '100%',
-            height: 48,
-            background: 'var(--acl)',
-            color: '#fff',
-            fontSize: 14,
-            fontWeight: 700,
-            border: 'none',
-            borderRadius: 12,
-            cursor: 'pointer',
-          }}
-        >
-          + 지적사항 등록
-        </button>
-      </div>
+      {/* 모바일 고정 하단 CTA */}
+      {!isDesktop && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          background: 'var(--bg)', borderTop: '1px solid var(--bd)',
+          padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))', zIndex: 20,
+        }}>
+          {addButton}
+        </div>
+      )}
 
-      {/* BottomSheet */}
+      {/* 등록 시트/모달 */}
       {showSheet && id && (
         <FindingBottomSheet
           scheduleItemId={id}

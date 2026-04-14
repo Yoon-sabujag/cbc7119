@@ -26,12 +26,10 @@ const SchedulePage   = lazy(() => import('./pages/SchedulePage'))
 const ReportsPage    = lazy(() => import('./pages/ReportsPage'))
 const DailyReportPage = lazy(() => import('./pages/DailyReportPage'))
 const WorkShiftPage  = lazy(() => import('./pages/WorkShiftPage'))
-const LeavePage      = lazy(() => import('./pages/LeavePage'))
 const FloorPlanPage           = lazy(() => import('./pages/FloorPlanPage'))
 const DivPage                 = lazy(() => import('./pages/DivPage'))
 const QRPrintPage             = lazy(() => import('./pages/QRPrintPage'))
 const ExtinguisherPublicPage  = lazy(() => import('./pages/ExtinguisherPublicPage'))
-const MealPage                = lazy(() => import('./pages/MealPage'))
 const EducationPage           = lazy(() => import('./pages/EducationPage'))
 const StaffServicePage        = lazy(() => import('./pages/StaffServicePage'))
 const LegalPage               = lazy(() => import('./pages/LegalPage'))
@@ -205,7 +203,7 @@ function Layout() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          paddingBottom: (!isDesktop && showNav) ? 'calc(54px + var(--sab, 34px))' : 0,
+          paddingBottom: (!isDesktop && showNav) ? 'calc(54px + var(--sab, 0px))' : 0,
         }}>
           <Suspense fallback={<Loader />}>
             <Routes>
@@ -224,14 +222,12 @@ function Layout() {
               <Route path="/reports"       element={<Auth><ReportsPage /></Auth>} />
               <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
               <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
-              <Route path="/leave"         element={<Auth><LeavePage /></Auth>} />
               <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
 
               <Route path="/staff-manage"  element={<Auth><StaffManagePage /></Auth>} />
               <Route path="/checkpoints"   element={<Auth><CheckpointsPage /></Auth>} />
-              <Route path="/meal"           element={<Auth><MealPage /></Auth>} />
               <Route path="/education"      element={<Auth><EducationPage /></Auth>} />
               <Route path="/legal"                      element={<Auth><LegalPage /></Auth>} />
               <Route path="/legal/:id"                  element={<Auth><LegalFindingsPage /></Auth>} />

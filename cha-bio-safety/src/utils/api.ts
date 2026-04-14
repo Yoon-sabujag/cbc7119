@@ -183,6 +183,12 @@ export const extinguisherApi = {
     const q = qs.toString()
     return api.get<ExtinguisherListResponse>(`/extinguishers${q ? '?' + q : ''}`)
   },
+  create: (data: {
+    floor: string; zone: string; location: string; type: string;
+    approval_no?: string; manufactured_at?: string; manufacturer?: string;
+    prefix_code?: string; seal_no?: string; serial_no?: string; note?: string;
+    category?: string;
+  }) => api.post<{ checkPointId: string; mgmtNo: string }>('/extinguishers/create', data),
 }
 
 export const staffApi = {

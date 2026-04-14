@@ -70,9 +70,82 @@ const LABEL_STYLE: React.CSSProperties = {
 interface StaffFormState {
   name: string; id: string; phone: string; email: string;
   appointedAt: string; title: string; role: Role;
+  shiftOffset: string; shiftFixed: string;
 }
 const EMPTY_STAFF_FORM: StaffFormState = {
   name: '', id: '', phone: '', email: '', appointedAt: '', title: '', role: 'assistant',
+  shiftOffset: '', shiftFixed: '',
+}
+
+// ── 교체 모달 ───────────────────────────────────────────
+function ReplaceModalContent({ oldStaff, onClose }: { oldStaff: StaffFull; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [selectedId, setSelectedId] = useState<string>('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // 활성 직원 중 교대 설정이 없는 직원만 후보 (oldStaff 제외)
+  const { data: allStaff = [] } = useQuery({ queryKey: ['staff-list'], queryFn: staffApi.list })
+  const candidates = allStaff.filter(s => s.active === 1 && s.id !== oldStaff.id && s.shiftOffset === null && s.shiftFixed === null)
+
+  const shiftLabel = oldStaff.shiftFixed === 'day' ? '평일 주간 고정' :
+    oldStaff.shiftOffset !== null ? `3교대 (오프셋 ${oldStaff.shiftOffset})` : '미설정'
+
+  async function handleReplace() {
+    if (!selectedId) return
+    const newStaff = allStaff.find(s => s.id === selectedId)
+    if (!newStaff) return
+    setSubmitting(true)
+    try {
+      // 1. 신규 직원에 교대 설정 이전
+      await staffApi.update(selectedId, {
+        shiftOffset: oldStaff.shiftOffset,
+        shiftFixed: oldStaff.shiftFixed,
+      })
+      // 2. 기존 직원 비활성화 + 개인정보 제거 + 교대 설정 제거
+      await staffApi.update(oldStaff.id, { active: 0, phone: '', email: '', shiftOffset: null, shiftFixed: null })
+      qc.invalidateQueries({ queryKey: ['staff-list'] })
+      toast.success(`${oldStaff.name} → ${newStaff.name} 교체 완료`)
+      onClose()
+    } catch (e: any) {
+      toast.error(e.message || '교체 실패')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ background: 'rgba(59,130,246,.08)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--t2)' }}>
+        <strong>{oldStaff.name}</strong> ({oldStaff.title})의 근무 패턴을 이전합니다.<br/>
+        근무 패턴: <strong>{shiftLabel}</strong><br/>
+        <span style={{ fontSize: 11, color: 'var(--t3)' }}>기존 점검 기록은 보존되며, 개인정보(연락처/이메일)는 삭제됩니다.</span>
+      </div>
+
+      <div>
+        <label style={LABEL_STYLE}>교체할 직원 선택</label>
+        {candidates.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--t3)', padding: '12px', background: 'var(--bg3)', borderRadius: 8 }}>
+            교체 가능한 직원이 없습니다. 먼저 "직원 추가"로 신규 직원을 등록해주세요.
+          </div>
+        ) : (
+          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} style={{ ...INPUT_STYLE, cursor: 'pointer' }}>
+            <option value="">선택하세요</option>
+            {candidates.map(s => (
+              <option key={s.id} value={s.id}>{s.name} ({s.title}) — {s.id}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button onClick={onClose} style={{ flex: 1, height: 44, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>취소</button>
+        <button onClick={handleReplace} disabled={!selectedId || submitting}
+          style={{ flex: 1, height: 44, background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 8, cursor: selectedId && !submitting ? 'pointer' : 'not-allowed', fontSize: 14, fontWeight: 700, opacity: selectedId && !submitting ? 1 : 0.4 }}>
+          {submitting ? '처리 중...' : '교체'}
+        </button>
+      </div>
+    </div>
+  )
 }
 
 function StaffModalContent({
@@ -81,7 +154,7 @@ function StaffModalContent({
   const qc = useQueryClient()
   const [form, setForm] = useState<StaffFormState>(
     mode === 'edit' && staff
-      ? { name: staff.name, id: staff.id, phone: staff.phone ?? '', email: staff.email ?? '', appointedAt: staff.appointedAt ?? '', title: staff.title, role: staff.role }
+      ? { name: staff.name, id: staff.id, phone: staff.phone ?? '', email: staff.email ?? '', appointedAt: staff.appointedAt ?? '', title: staff.title, role: staff.role, shiftOffset: staff.shiftOffset !== null ? String(staff.shiftOffset) : '', shiftFixed: staff.shiftFixed ?? '' }
       : EMPTY_STAFF_FORM
   )
   const [confirmReset, setConfirmReset] = useState(false)
@@ -204,10 +277,16 @@ function StaffModalContent({
             </button>
           </div>
           {mode === 'edit' && staff?.active !== 0 && (
-            <button onClick={() => setConfirmDeactivate(true)}
-              style={{ width: '100%', height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-              비활성화
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setConfirmDeactivate(true)}
+                style={{ flex: 1, height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
+                비활성화
+              </button>
+              <button onClick={() => { onClose(); setTimeout(() => (window as any).__openReplaceModal?.(staff), 100) }}
+                style={{ flex: 1, height: 40, background: 'rgba(245,158,11,.1)', color: '#d97706', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+                교체
+              </button>
+            </div>
           )}
         </div>
       ) : (
@@ -264,6 +343,13 @@ export default function StaffManagePage() {
   const { staff: me } = useAuthStore()
   const isDesktop = useIsDesktop()
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; target?: StaffFull }>({ open: false, mode: 'add' })
+  const [replaceModal, setReplaceModal] = useState<{ open: boolean; target?: StaffFull }>({ open: false })
+
+  // 교체 모달 열기 콜백 (StaffModalContent에서 호출)
+  useEffect(() => {
+    (window as any).__openReplaceModal = (staff: StaffFull) => setReplaceModal({ open: true, target: staff })
+    return () => { delete (window as any).__openReplaceModal }
+  }, [])
 
   // Role guard
   useEffect(() => {
@@ -411,6 +497,13 @@ export default function StaffManagePage() {
       {modal.open && (
         <ModalWrapper onClose={() => setModal({ open: false, mode: 'add' })} title={modal.mode === 'add' ? '직원 추가' : '직원 수정'}>
           <StaffModalContent mode={modal.mode} staff={modal.target} onClose={() => setModal({ open: false, mode: 'add' })} />
+        </ModalWrapper>
+      )}
+
+      {/* 교체 모달 */}
+      {replaceModal.open && replaceModal.target && (
+        <ModalWrapper onClose={() => setReplaceModal({ open: false })} title="직원 교체">
+          <ReplaceModalContent oldStaff={replaceModal.target} onClose={() => setReplaceModal({ open: false })} />
         </ModalWrapper>
       )}
     </div>

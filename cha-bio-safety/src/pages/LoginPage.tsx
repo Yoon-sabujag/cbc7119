@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { authApi, ApiError } from '../utils/api'
+import { authApi, staffApi, ApiError } from '../utils/api'
+import type { StaffFull } from '../types'
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -17,11 +18,13 @@ function useMediaQuery(query: string): boolean {
   return matches
 }
 
-const STAFF_LIST = [
-  { id: '2018042451', name: '석현민', title: '관리자',  initial: '석', color: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.35)' },
-  { id: '2021061451', name: '김병조', title: '주임',    initial: '김', color: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.3)'   },
-  { id: '2022051052', name: '윤종엽', title: '기사',    initial: '윤', color: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)'  },
-  { id: '2023071752', name: '박보융', title: '기사',    initial: '박', color: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)'  },
+const CARD_COLORS = [
+  { color: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.35)' },
+  { color: 'rgba(34,197,94,0.1)',   border: 'rgba(34,197,94,0.3)'   },
+  { color: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.3)'  },
+  { color: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.3)'  },
+  { color: 'rgba(236,72,153,0.1)',  border: 'rgba(236,72,153,0.3)'  },
+  { color: 'rgba(20,184,166,0.1)',  border: 'rgba(20,184,166,0.3)'  },
 ]
 
 export default function LoginPage() {
@@ -30,10 +33,17 @@ export default function LoginPage() {
   const [showPw,   setShowPw]   = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
+  const [staffList, setStaffList] = useState<StaffFull[]>([])
   const pwRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { login } = useAuthStore()
   const isDesktop = useMediaQuery('(min-width: 768px)')
+
+  useEffect(() => {
+    fetch('/api/public/staff-list').then(r => r.json()).then((j: any) => {
+      if (j.success) setStaffList(j.data)
+    }).catch(() => {})
+  }, [])
 
   const selectStaff = (id: string) => {
     setSelected(id)
@@ -75,25 +85,28 @@ export default function LoginPage() {
       <div style={{ background:'var(--bg2)', borderRadius:16, padding:16, marginBottom:12, border:'1px solid var(--bd)' }}>
         <p style={{ fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:12 }}>담당자 선택</p>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-          {STAFF_LIST.map(s => {
+          {staffList.map((s, i) => {
             const isSelected = selected === s.id
+            const c = CARD_COLORS[i % CARD_COLORS.length]
+            const initial = s.name.charAt(0)
+            const titleLabel = s.role === 'admin' ? '관리자' : s.title
             return (
               <button
                 key={s.id}
                 onClick={() => selectStaff(s.id)}
                 style={{
                   display:'flex', alignItems:'center', gap:10, padding:10,
-                  borderRadius:12, border:`1px solid ${isSelected ? 'rgba(59,130,246,0.6)' : s.border}`,
-                  background: isSelected ? 'rgba(59,130,246,0.12)' : s.color,
+                  borderRadius:12, border:`1px solid ${isSelected ? 'rgba(59,130,246,0.6)' : c.border}`,
+                  background: isSelected ? 'rgba(59,130,246,0.12)' : c.color,
                   cursor:'pointer', textAlign:'left', transition:'all .13s',
                 }}
               >
-                <div style={{ width:34, height:34, borderRadius:10, background:isSelected?'#2563eb':s.border, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
-                  {s.initial}
+                <div style={{ width:34, height:34, borderRadius:10, background:isSelected?'#2563eb':c.border, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                  {initial}
                 </div>
                 <div>
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{s.name}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>{s.title}</div>
+                  <div style={{ fontSize:10, color:'var(--t3)' }}>{titleLabel}</div>
                 </div>
               </button>
             )

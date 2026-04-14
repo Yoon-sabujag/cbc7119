@@ -7,5 +7,6 @@ binding = "DB"
 database_name = "cha-bio-db"
 database_id = "b12b88e7-fc41-4186-8f35-ee9cbaf994c7"
 
+
 [triggers]
 crons = ["45 23 * * *", "*/5 * * * *"]
