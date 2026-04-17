@@ -22,17 +22,18 @@ const UNDER_SET    = new Set<Floor>(UNDER_LIST)
 const CATEGORY_GROUPS: { labels:string[]; icon:string; color:string; border:string; categories:string[] }[] = [
   { labels:['특별피난계단','피난·방화시설','방화문'], icon:'🚪', color:'rgba(34,197,94,.12)',  border:'rgba(34,197,94,.3)',  categories:['특별피난계단'] },
   { labels:['청정소화약제'],                         icon:'☁️', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['청정소화약제'] },
-  { labels:['전실제연댐퍼','연결송수관'],              icon:'💨', color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['전실제연댐퍼','연결송수관'] },
+  { labels:['전실제연댐퍼','연결송수관'],              icon:'🛡️', color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['전실제연댐퍼','연결송수관'] },
   { labels:['주차장비','회전문'],                     icon:'🚗', color:'rgba(168,85,247,.12)', border:'rgba(168,85,247,.3)', categories:['주차장비','회전문'] },
   { labels:['소방용전원공급반'],                       icon:'⚡', color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['소방용전원공급반'] },
-  { labels:['방화셔터'],                              icon:'🔩', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['방화셔터'] },
+  { labels:['방화셔터'],                              icon:'⬜️', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['방화셔터'] },
   { labels:['DIV'],                                  icon:'📊', color:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.3)', categories:['DIV'] },
+  { labels:['컴프레셔'],                              icon:'💨', color:'rgba(100,116,139,.12)',border:'rgba(100,116,139,.3)',categories:['컴프레셔'] },
   { labels:['유도등'],                               icon:'⬅️', color:'rgba(234,179,8,.12)',  border:'rgba(234,179,8,.3)',  categories:['유도등'] },
   { labels:['배연창'],                               icon:'🪟', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['배연창'] },
   { labels:['완강기'],                               icon:'🪢', color:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', categories:['완강기'] },
-  { labels:['소화전','비상콘센트'],                    icon:'🔌', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['소화전','비상콘센트'] },
+  { labels:['소화전','비상콘센트'],                    icon:'🚰', color:'rgba(59,130,246,.12)', border:'rgba(59,130,246,.3)', categories:['소화전','비상콘센트'] },
   { labels:['소화기'],                               icon:'🧯', color:'rgba(239,68,68,.12)',  border:'rgba(239,68,68,.3)',  categories:['소화기'] },
-  { labels:['소방펌프'],                              icon:'💧', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
+  { labels:['소방펌프'],                              icon:'🌊', color:'rgba(14,165,233,.12)', border:'rgba(14,165,233,.3)', categories:['소방펌프'] },
   { labels:['화재수신반'],                            icon:'🔔', color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
   { labels:['CCTV'],                               icon:'📹', color:'rgba(71,85,105,.12)',  border:'rgba(71,85,105,.3)',  categories:['CCTV'] },
 ]
@@ -795,6 +796,10 @@ const DIV_UNDER_SEQ = ['-1-1','-1-2','-1-3','-2-3','-2-1','-2-2','-3-2','-3-3','
 const DIV_PT_CP: Record<string, string> = Object.fromEntries(
   DIV_PTS.map(p => [p.id, `CP-DIV-${p.id}`])
 )
+// 컴프레셔 측정점 id → 점검 체크포인트 ID 매핑
+const COMP_PT_CP: Record<string, string> = Object.fromEntries(
+  DIV_PTS.map(p => [p.id, `CP-COMP-${p.id}`])
+)
 
 // 추세 판단: 연속 방향성 + 누적 임계값
 function detectDivTrend(series: number[], badIfIncreasing: boolean): { level: 'normal'|'caution'|'bad'; cumulative: number } {
@@ -1034,10 +1039,10 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
   // ── 부가 항목 ──
   const [drain,  setDrain]  = useState<'none'|'yes'>('none')
-  const [oil,    setOil]    = useState<'sufficient'|'refill'>('sufficient')
   const [result, setResult] = useState<CheckResult>('normal')
   const [memo,   setMemo]   = useState('')
   const photo = usePhotoUpload()
+  const [showCompressor, setShowCompressor] = useState(false)
 
   // ── 이전 기록 & 자동 판단 ──
   const [prevRecords, setPrevRecords] = useState<any[]>([])
@@ -1114,7 +1119,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   const resetForm = useCallback(() => {
     setDigits(['','','','','','','','',''])
     setDrain('none')
-    setOil('sufficient')
     setResult('normal')
     setMemo('')
     setAutoReason('')
@@ -1154,7 +1158,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
           pressure_set: p3,
           result,
           drain,
-          oil,
           memo:      memo || null,
           photo_key: photoKey ?? null,
           inspector: staff?.name ?? null,
@@ -1167,13 +1170,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
           body: JSON.stringify({ type:'drain', div_id:currentPt.id, date:today, staff_name:staff?.name })
         })
       }
-      if (oil === 'refill') {
-        await fetch('/api/div/logs', {
-          method:'POST', headers: hdrs,
-          body: JSON.stringify({ type:'compressor', div_id:currentPt.id, date:today, action:'오일보충', staff_name:staff?.name })
-        })
-      }
-
       // 점검 기록 연동 — 해당 층 체크포인트에 결과 반영
       const cpId = DIV_PT_CP[currentPt.id]
       if (cpId) {
@@ -1445,7 +1441,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
               )
             })()}
 
-            {/* 배수 / 오일 */}
+            {/* 배수 / 컴프 점검 */}
             <div style={{ display:'flex', gap:10 }}>
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>배수</div>
@@ -1457,13 +1453,11 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
                 </div>
               </div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
-                <div style={{ display:'flex', gap:6 }}>
-                  <button onClick={() => setOil('sufficient')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
-                  <button onClick={() => setOil('refill')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
-                </div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 점검</div>
+                <button onClick={() => setShowCompressor(true)}
+                  style={{ width:'100%', padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background:'rgba(100,116,139,.12)', color:'var(--t1)', boxShadow:'0 0 0 1px rgba(100,116,139,.3)' }}>
+                  💨 컴프레셔 점검 →
+                </button>
               </div>
             </div>
 
@@ -1517,6 +1511,302 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
           onClose={() => setShowTrend(false)}
         />
       )}
+
+      {/* 컴프레셔 점검 서브뷰 (DIV에서 호출) */}
+      {showCompressor && currentPt && (
+        <CompressorModal
+          onClose={() => setShowCompressor(false)}
+          onSaveRecord={onSaveRecord}
+          initialLocationNo={currentPt.id}
+          mode="from-div"
+        />
+      )}
+    </div>
+  )
+}
+
+// ── 컴프레셔 점검 모달 ──────────────────────────────────
+function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'standalone' }: {
+  onClose: () => void
+  onSaveRecord: (cpId: string, result: CheckResult, memo: string) => Promise<void>
+  initialLocationNo?: string
+  mode?: 'standalone' | 'from-div'
+}) {
+  const staff = useAuthStore(s => s.staff)
+  const photo = usePhotoUpload()
+
+  const initPt = initialLocationNo ? DIV_PTS.find(p => p.id === initialLocationNo) : null
+  const initIsUnder = initPt ? initPt.floor < 0 : false
+  const initZone: DivZone|null = initPt ? (initIsUnder ? 'underground' : initPt.pos <= 2 ? 'research' : 'office') : null
+  const initLine = initPt && !initIsUnder ? initPt.pos : null
+  const initLineIdx = (() => {
+    if (!initLine || !initPt) return 0
+    const seq = DIV_LINE_SEQ[initLine]
+    return seq ? Math.max(0, seq.indexOf(initPt.floor)) : 0
+  })()
+  const initUnderIdx = initPt && initIsUnder ? Math.max(0, DIV_UNDER_SEQ.indexOf(initPt.id)) : 0
+
+  const [zone,         setZone]         = useState<DivZone|null>(initZone)
+  const [line,         setLine]         = useState<number|null>(initLine)
+  const [lineIdx,      setLineIdx]      = useState(initLineIdx)
+  const [underPending, setUnderPending] = useState<string[]>([...DIV_UNDER_SEQ])
+  const [underPickIdx, setUnderPickIdx] = useState(initUnderIdx)
+
+  const [tankDrain, setTankDrain] = useState<'none'|'yes'>('none')
+  const [oil,       setOil]       = useState<'sufficient'|'refill'>('sufficient')
+  const [result,    setResult]    = useState<CheckResult>('normal')
+  const [memo,      setMemo]      = useState('')
+  const [saving,    setSaving]    = useState(false)
+  const [done,      setDone]      = useState(false)
+
+  const [lastDrain, setLastDrain] = useState<string|null>(null)
+
+  const currentPt = useMemo(() => {
+    if (!zone) return null
+    if (zone === 'underground') return DIV_PTS.find(p => p.id === underPending[underPickIdx]) ?? null
+    if (!line) return null
+    const floor = DIV_LINE_SEQ[line][lineIdx]
+    return DIV_PTS.find(p => p.pos === line && p.floor === floor) ?? null
+  }, [zone, line, lineIdx, underPending, underPickIdx])
+
+  useEffect(() => {
+    if (!currentPt) { setLastDrain(null); return }
+    const token = useAuthStore.getState().token
+    fetch(`/api/div/logs?type=comp_drain&divId=${currentPt.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.json() as Promise<{ ok: boolean; logs: any[] }>)
+      .then(j => { const logs = j.logs ?? []; setLastDrain(logs.length > 0 ? logs[0].drained_at : null) })
+      .catch(() => setLastDrain(null))
+  }, [currentPt?.id])
+
+  const drainDPlus = useMemo(() => {
+    if (!lastDrain) return null
+    return Math.floor((new Date().getTime() - new Date(lastDrain).getTime()) / 86400000)
+  }, [lastDrain])
+
+  const resetForm = useCallback(() => {
+    setTankDrain('none'); setOil('sufficient'); setResult('normal'); setMemo(''); photo.reset()
+  }, [photo])
+
+  const resultColor: Partial<Record<CheckResult,string>> = { normal:'var(--safe)', caution:'var(--warn)', bad:'var(--danger)' }
+  const resultLabel: Partial<Record<CheckResult,string>> = { normal:'정상', caution:'주의', bad:'불량' }
+
+  const totalSteps = zone && zone !== 'underground' && line ? DIV_LINE_SEQ[line].length : null
+
+  const handleSave = async () => {
+    if (!currentPt) return
+    setSaving(true)
+    try {
+      const now   = new Date()
+      const token = useAuthStore.getState().token
+      const hdrs  = { 'Content-Type':'application/json', ...(token ? { Authorization:`Bearer ${token}` } : {}) }
+      const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+      const photoKey = await photo.upload()
+
+      await fetch('/api/div/comp-inspection', {
+        method:'POST', headers: hdrs,
+        body: JSON.stringify({
+          location_no: currentPt.id, floor: currentPt.floor, position: currentPt.pos,
+          year: now.getFullYear(), month: now.getMonth()+1, day: now.getDate(),
+          tank_drain: tankDrain, oil, result, memo: memo || null, photo_key: photoKey ?? null, inspector: staff?.name ?? null,
+        })
+      })
+
+      if (tankDrain === 'yes') {
+        await fetch('/api/div/logs', { method:'POST', headers: hdrs, body: JSON.stringify({ type:'comp_drain', div_id:currentPt.id, date:today, staff_name:staff?.name }) })
+      }
+      if (oil === 'refill') {
+        await fetch('/api/div/logs', { method:'POST', headers: hdrs, body: JSON.stringify({ type:'compressor', div_id:currentPt.id, date:today, action:'오일보충', staff_name:staff?.name }) })
+      }
+
+      const cpId = COMP_PT_CP[currentPt.id]
+      if (cpId) await onSaveRecord(cpId, result, memo || '').catch(() => {})
+
+      resetForm()
+
+      if (mode === 'from-div') { onClose(); return }
+
+      if (zone === 'underground') {
+        const newPending = underPending.filter(id => id !== currentPt.id)
+        setUnderPending(newPending)
+        if (newPending.length === 0) { setDone(true); return }
+        if (underPickIdx >= newPending.length) setUnderPickIdx(newPending.length - 1)
+      } else {
+        const seq = DIV_LINE_SEQ[line!]
+        if (lineIdx < seq.length - 1) setLineIdx(lineIdx + 1)
+        else setDone(true)
+      }
+    } finally { setSaving(false) }
+  }
+
+  if (done) return (
+    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
+      <span style={{ fontSize:48 }}>✅</span>
+      <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
+      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--primary)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+    </div>
+  )
+
+  return (
+    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* 헤더 */}
+      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
+        <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>💨 컴프레셔 점검</span>
+        {mode !== 'from-div' && currentPt && totalSteps && (
+          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{lineIdx+1} / {totalSteps}</span>
+        )}
+        {mode !== 'from-div' && currentPt && zone === 'underground' && (
+          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{underPickIdx+1} / {underPending.length}</span>
+        )}
+      </div>
+
+      {/* 본문 */}
+      <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
+
+        {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
+        {mode !== 'from-div' && (
+          <>
+            {/* 구역 선택 */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>구역 선택</div>
+              <div style={{ display:'flex', gap:8 }}>
+                {(['research','office','underground'] as DivZone[]).map(z => {
+                  const sel = zone === z
+                  return (
+                    <button key={z}
+                      onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                      style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                      {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 라인 선택 (연구동/사무동) */}
+            {zone && zone !== 'underground' && (
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>라인 선택</div>
+                <div style={{ display:'flex', gap:8 }}>
+                  {(zone === 'research' ? [1,2] : [3]).map(l => {
+                    const sel = line === l
+                    return (
+                      <button key={l}
+                        onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
+                        style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                        컴프 #{l}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* 점검 폼 */}
+        {currentPt && (
+          <>
+            {/* 개소 정보 + 이전/다음 네비 (standalone만) */}
+            {mode !== 'from-div' && (() => {
+              const seq = zone !== 'underground' && line ? DIV_LINE_SEQ[line] : null
+              const canPrev = zone === 'underground' ? underPickIdx > 0 : lineIdx > 0
+              const canNext = zone === 'underground' ? underPickIdx < underPending.length - 1 : seq ? lineIdx < seq.length - 1 : false
+              const goPrev = () => { if (zone === 'underground') setUnderPickIdx(i => i - 1); else setLineIdx(i => i - 1); resetForm() }
+              const goNext = () => { if (zone === 'underground') setUnderPickIdx(i => i + 1); else setLineIdx(i => i + 1); resetForm() }
+              const navBtnStyle = (enabled: boolean): React.CSSProperties => ({
+                width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)',
+                color: enabled ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: enabled ? 'pointer' : 'default',
+                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: enabled ? 1 : 0.3,
+              })
+              return (
+                <div
+                  style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+                  onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
+                  onTouchEnd={e => { const sx = (e.currentTarget as any)._swX; if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (dx > 40 && canPrev) goPrev(); else if (dx < -40 && canNext) goNext() }}
+                >
+                  <button style={navBtnStyle(canPrev)} onClick={canPrev ? goPrev : undefined}>‹</button>
+                  <div style={{ flex:1, textAlign:'center' }}>
+                    <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                    <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+                  </div>
+                  <button style={navBtnStyle(canNext)} onClick={canNext ? goNext : undefined}>›</button>
+                </div>
+              )
+            })()}
+
+            {/* from-div: 간단한 개소 정보 (가운데 정렬) */}
+            {mode === 'from-div' && (
+              <div style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', textAlign:'center' }}>
+                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
+                <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+              </div>
+            )}
+
+            {/* 탱크 배수 / 컴프 오일 */}
+            <div style={{ display:'flex', gap:10 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                  탱크 배수
+                  {drainDPlus !== null && (
+                    <span style={{ fontSize:10, fontWeight:700, color: drainDPlus > 60 ? 'var(--warn)' : 'var(--t3)', background: drainDPlus > 60 ? 'rgba(245,158,11,.12)' : 'var(--bg3)', padding:'1px 6px', borderRadius:4 }}>D+{drainDPlus}</span>
+                  )}
+                  {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
+                  <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: tankDrain==='yes' ? 1 : 0.45 }}>있음</button>
+                </div>
+              </div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
+                  <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
+                </div>
+              </div>
+            </div>
+
+            {/* 점검 결과 */}
+            <div>
+              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
+              <div style={{ display:'flex', gap:8 }}>
+                {(['normal','caution','bad'] as const).map(r => (
+                  <button key={r} onClick={() => setResult(r)}
+                    style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                    {resultLabel[r]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 특이사항 + 사진 */}
+            <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+              <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
+                style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
+              <PhotoButton hook={photo} />
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 하단 버튼 바 */}
+      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
+        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+        {currentPt && (
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)' }}>
+            {saving ? '저장 중...' :
+              mode === 'from-div' ? '저장 후 닫기' :
+              zone === 'underground'
+                ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
+                : (lineIdx < DIV_LINE_SEQ[line!].length-1 ? '저장 후 다음 층' : '저장 (완료)')}
+          </button>
+        )}
+      </div>
     </div>
   )
 }
@@ -2325,6 +2615,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
   const [bcMemo,        setBcMemo]        = useState('')
   const [symptomPick,   setSymptomPick]   = useState<string>('점등 이상')
   const [symptomCustom, setSymptomCustom] = useState('')
+  const [showDupAlert,  setShowDupAlert]  = useState(false)
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -2419,8 +2710,9 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
     const sohwaCPs = floorCPs.filter(cp => cp.category === '소화전')
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isGuideLight, glMarkers, selectedZone, isSohwaGroup, floorCPs])
-  // 미완료 항목만 피커에 표시
+  // 미완료 항목만 피커에 표시 (QR 스캔 개소는 이력 있어도 포함)
   const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => {
+    if (initialCpId && cp.id === initialCpId) return true
     if (cp.defaultResult) return false
     if (cp.description?.includes('[접근���가]')) return false
     if (isGuideLight) {
@@ -2428,7 +2720,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       return !markerRecords?.[mid]
     }
     return !records[cp.id]
-  }), [pickerSourceCPs, records, markerRecords, isGuideLight])
+  }), [pickerSourceCPs, records, markerRecords, isGuideLight, initialCpId])
 
   // QR 체크포인트로 pickerIdx 자동 매칭 (첫 렌더 시 1회만)
   useEffect(() => {
@@ -2437,6 +2729,8 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
     if (idx >= 0) {
       setPickerIdx(idx)
       initialCpAppliedRef.current = true
+      // 이미 점검 이력이 있는 개소인 경우 알림 표시
+      if (records[initialCpId]) setShowDupAlert(true)
     }
   }, [initialCpId, pendingCPs])
 
@@ -2739,50 +3033,61 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
           )
         })()}
 
-        {/* 결과 선택 — 1행 3열 (정상/주의/불량, 기본값 정상) */}
+        {/* 결과 선택 ~ 특이사항 영역 (이미 점검한 개소 오버레이 포함) */}
         {selectedCP && (
-          <div>
-            <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-            <div style={{ display:'flex', gap:6 }}>
-              {INSPECT_RESULT_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                  <span style={{ fontSize:20 }}>{opt.icon}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          <div style={{ position:'relative' }}>
+            {/* 이미 점검한 개소 알림 오버레이 */}
+            {showDupAlert && (
+              <div style={{ position:'absolute', inset:0, zIndex:10, background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, padding:20 }}>
+                <div style={{ fontSize:32 }}>⚠️</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.5 }}>이미 점검한 개소입니다</div>
+                <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', lineHeight:1.5 }}>다시 저장하면 기존 기록에 추가됩니다</div>
+                <button onClick={() => setShowDupAlert(false)} style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>확인</button>
+              </div>
+            )}
 
-        {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
-        {isGuideLight && selectedCP && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
-          <div>
-            <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-            <div style={{ display:'flex', gap:5 }}>
-              {['점등 이상','예비전원 이상','직접 입력'].map(s => (
-                <button key={s} onClick={() => setSymptomPick(s)} style={{
-                  flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
-                  border: symptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                  background: symptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                  fontSize:11, fontWeight:700, color: symptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                }}>{s}</button>
-              ))}
+            {/* 결과 선택 — 1행 3열 (정상/주의/불량, 기본값 정상) */}
+            <div>
+              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
+              <div style={{ display:'flex', gap:6 }}>
+                {INSPECT_RESULT_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
+                    <span style={{ fontSize:20 }}>{opt.icon}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* 특이사항 + 증빙사진 (한 행) */}
-        {selectedCP && (
-          <div>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-              <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>
-                {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
-              </label>
-              <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
-            </div>
-            <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
-              <PhotoButton hook={photo} label="촬영" noCapture />
+            {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
+            {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
+              <div style={{ marginTop:10 }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
+                <div style={{ display:'flex', gap:5 }}>
+                  {['점등 이상','예비전원 이상','직접 입력'].map(s => (
+                    <button key={s} onClick={() => setSymptomPick(s)} style={{
+                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
+                      border: symptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: symptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize:11, fontWeight:700, color: symptomPick===s ? 'var(--acl)' : 'var(--t2)',
+                    }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 특이사항 + 증빙사진 (한 행) */}
+            <div style={{ marginTop:10 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>
+                  {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
+                </label>
+                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              </div>
+              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+                <PhotoButton hook={photo} label="촬영" noCapture />
+              </div>
             </div>
           </div>
         )}
@@ -3550,7 +3855,7 @@ export default function InspectionPage() {
                 <span style={{ fontSize:9, color:'var(--t3)', alignSelf:'center', flexShrink:0, padding:'0 1px' }}>—</span>
                 {[
                   { icon:'🔧', label:'미조치', val:unresolvedItems.length, color:'var(--fire)',  bg:'rgba(249,115,22,.1)', border:'rgba(249,115,22,.3)' },
-                  { icon:'✓',  label:'조치완',  val:resolvedItems.length,   color:'var(--safe)', bg:'rgba(34,197,94,.08)', border:'rgba(34,197,94,.25)' },
+                  { icon:'✓',  label:'조치완',  val:resolvedItems.length,   color:'#3b82f6', bg:'rgba(59,130,246,.08)', border:'rgba(59,130,246,.25)' },
                 ].map(({ icon, label, val, color, bg, border }) => (
                   <div key={label} style={{ display:'flex', alignItems:'center', gap:3, background:bg, border:`1px solid ${border}`, borderRadius:20, padding:'1px 6px', flexShrink:0 }}>
                     <span style={{ fontSize:9 }}>{icon}</span>
@@ -3598,15 +3903,15 @@ export default function InspectionPage() {
               {resolvedItems.length > 0 && (
                 <div>
                   <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:13 }}>✅</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--safe)' }}>조치 완료 항목</span>
-                    <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'var(--safe)', borderRadius:20, padding:'1px 7px' }}>{resolvedItems.length}</span>
+                    <span style={{ fontSize:13 }}>🔵</span>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#3b82f6' }}>조치 완료 항목</span>
+                    <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'#3b82f6', borderRadius:20, padding:'1px 7px' }}>{resolvedItems.length}</span>
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
                     {resolvedItems.map(item => {
                       const opt = ALL_RESULT_OPTIONS.find(o => o.value === item.result)!
                       return (
-                        <div key={item.cpId} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'rgba(34,197,94,.06)', borderRadius:10, border:'1px solid rgba(34,197,94,.2)' }}>
+                        <div key={item.cpId} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'rgba(59,130,246,.06)', borderRadius:10, border:'1px solid rgba(59,130,246,.2)' }}>
                           <span style={{ fontSize:13, flexShrink:0 }}>{opt.icon}</span>
                           <div style={{ flex:1, minWidth:0 }}>
                             <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.cp!.location}</div>
@@ -3614,7 +3919,7 @@ export default function InspectionPage() {
                           </div>
                           <button
                             onClick={() => setDetailTarget({ cpId: item.cpId })}
-                            style={{ flexShrink:0, padding:'4px 9px', borderRadius:8, border:'1px solid rgba(34,197,94,.4)', background:'rgba(34,197,94,.1)', color:'var(--safe)', fontSize:11, fontWeight:700, cursor:'pointer' }}
+                            style={{ flexShrink:0, padding:'4px 9px', borderRadius:8, border:'1px solid rgba(59,130,246,.4)', background:'rgba(59,130,246,.1)', color:'#3b82f6', fontSize:11, fontWeight:700, cursor:'pointer' }}
                           >
                             조치결과
                           </button>
@@ -3695,6 +4000,8 @@ export default function InspectionPage() {
       {selectedGroup && (
         selectedGroup.categories.includes('DIV') ? (
           <DivModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} initialLocationNo={qrCheckpoint?.category === 'DIV' ? qrCheckpoint.locationNo : undefined} />
+        ) : selectedGroup.categories.includes('컴프레셔') ? (
+          <CompressorModal onClose={() => setSelectedGroupIdx(null)} onSaveRecord={handleSave} initialLocationNo={qrCheckpoint?.category === '컴프레셔' ? qrCheckpoint.locationNo : undefined} />
         ) : selectedGroup.categories.includes('배연창') ? (
           <BaeyeonModal
             group={selectedGroup}
@@ -3905,8 +4212,8 @@ function InspectionSummaryCard({ categoryIdx, allRecords }: { categoryIdx: numbe
     staleTime: 60_000,
   })
 
-  // 해당 카테고리의 점검 일정 추출 (alias 역매핑 포함: 방화문→특별피난계단, 컴프레셔→DIV)
-  const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단', '컴프레셔': 'DIV' }
+  // 해당 카테고리의 점검 일정 추출 (alias 역매핑 포함: 방화문→특별피난계단)
+  const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
   const schedMatches = useMemo(() => {
     if (!schedItems) return [] as typeof schedItems
     return schedItems.filter(s => {
@@ -4421,7 +4728,8 @@ function DesktopInspectionView({
                 <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                   {categoryRecords.map(r => {
                     const isIssue = r.result === 'bad' || r.result === 'caution'
-                    const borderColor = r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)'
+                    const isResolved = isIssue && r.status === 'resolved'
+                    const borderColor = isResolved ? '#3b82f6' : r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)'
                     return (
                     <div key={r.id}
                       onClick={() => isIssue && setRecordId(r.id)}
@@ -4441,9 +4749,9 @@ function DesktopInspectionView({
                         </span>
                         {isIssue && (
                           <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
-                            background: r.status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(34,197,94,.13)',
-                            color: r.status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>
-                            {r.status === 'open' ? '미조치' : '완료'}
+                            background: r.status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(59,130,246,.13)',
+                            color: r.status === 'open' ? 'var(--danger)' : '#3b82f6' }}>
+                            {r.status === 'open' ? '미조치' : '조치완료'}
                           </span>
                         )}
                       </div>

@@ -7,7 +7,7 @@ import { MENU, MenuItem } from './SideMenu'
 // ── 데스크톱 전용 섹션 순서 (D-04) ──────────────────────────────────────────
 const DESKTOP_SECTIONS = [
   { label: '점검 현황', paths: ['/dashboard', '/inspection', '/remediation', '/floorplan'] },
-  { label: '시설 관리', paths: ['/div', '/legal', '/elevator', '/inspection/qr', '/checkpoints'] },
+  { label: '시설 관리', paths: ['/div', '/legal', '/elevator', '/checkpoints'] },
   { label: '문서 관리', paths: ['/daily-report', '/worklog', '/schedule', '/workshift', '/annual-plan', '/documents', '/reports', '/qr-print'] },
   { label: '직원 관리', paths: ['/staff-manage', '/staff-service', '/education'] },
 ]

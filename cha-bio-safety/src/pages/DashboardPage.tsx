@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const navigate  = useNavigate()
   const { staff } = useAuthStore()
   const { data: staffList } = useStaffList()
+  const [contactStaff, setContactStaff] = useState<Staff | null>(null)
 
   const queryClient = useQueryClient()
 
@@ -94,6 +95,7 @@ export default function DashboardPage() {
   const dutyStaff: Staff[] = staffRows.map(s => ({
     id: s.id, name: s.name, title: s.title,
     role: staffList?.find(st => st.id === s.id)?.role ?? 'assistant',
+    phone: staffList?.find(st => st.id === s.id)?.phone ?? null,
     shiftType: (RAW_TO_STYPE[s.shifts[_todayIdx]] ?? 'off') as Staff['shiftType'],
     leaveType: leaveMap[s.id] as Staff['leaveType'],
   }))
@@ -358,13 +360,13 @@ export default function DashboardPage() {
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
             <div style={{ display:'flex', gap:5 }}>
-              {admin.map(s => <DutyChip key={s.id} staff={s} />)}
+              {admin.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} />)}
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
             <div style={{ display:'flex', gap:5 }}>
-              {assistant.map(s => <DutyChip key={s.id} staff={s} />)}
+              {assistant.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} />)}
             </div>
           </div>
         </div>
@@ -512,6 +514,63 @@ export default function DashboardPage() {
         </div>
 
       </main>
+
+      {/* ══ 전화/문자 액션시트 ══ */}
+      {contactStaff && (
+        <div
+          onClick={() => setContactStaff(null)}
+          style={{
+            position:'fixed', inset:0, zIndex:9999,
+            background:'rgba(0,0,0,.45)',
+            display:'flex', alignItems:'flex-end', justifyContent:'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width:'100%', maxWidth:400,
+              background:'var(--bg2)', borderRadius:'16px 16px 0 0',
+              padding:'16px 16px calc(16px + var(--sab, 0px))',
+            }}
+          >
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', textAlign:'center', marginBottom:14 }}>
+              {contactStaff.name}
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <button
+                onClick={() => { window.location.href = `tel:${contactStaff.phone}`; setContactStaff(null) }}
+                style={{
+                  width:'100%', padding:'14px 0', borderRadius:12,
+                  background:'var(--acl)', color:'#fff',
+                  fontSize:14, fontWeight:700, border:'none', cursor:'pointer',
+                }}
+              >
+                전화 걸기
+              </button>
+              <button
+                onClick={() => { window.location.href = `sms:${contactStaff.phone}`; setContactStaff(null) }}
+                style={{
+                  width:'100%', padding:'14px 0', borderRadius:12,
+                  background:'var(--bg3)', color:'var(--t1)',
+                  fontSize:14, fontWeight:700, border:'1px solid var(--bd)', cursor:'pointer',
+                }}
+              >
+                문자 보내기
+              </button>
+            </div>
+            <button
+              onClick={() => setContactStaff(null)}
+              style={{
+                width:'100%', padding:'12px 0', marginTop:8,
+                background:'none', color:'var(--t3)',
+                fontSize:13, fontWeight:600, border:'none', cursor:'pointer',
+              }}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   )

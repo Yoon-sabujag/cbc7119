@@ -6,6 +6,7 @@ import { legalApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
+import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useAuthStore } from '../stores/authStore'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
@@ -220,7 +221,9 @@ export default function LegalFindingDetailPage() {
               <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="조치 내용을 입력하세요" rows={3} style={{ width: '100%', background: 'var(--bg3)', borderRadius: 9, padding: '10px 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical', outline: 'none' }} />
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 (최대 5장)</div>
-                <input ref={resolutionPhotos.inputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+                <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+                <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+                <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
                   {resolutionPhotos.slots.map((slot, i) => (
                     <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
@@ -230,7 +233,7 @@ export default function LegalFindingDetailPage() {
                     </div>
                   ))}
                   {resolutionPhotos.canAdd && (
-                    <button onClick={resolutionPhotos.pickPhotos} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
+                    <button onClick={resolutionPhotos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
                       <span style={{ fontSize: 22 }}>📷</span>사진 첨부
                     </button>
                   )}

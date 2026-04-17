@@ -6,6 +6,7 @@ import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
 
@@ -254,7 +255,9 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
           {/* 지적 사진 (최대 5장) */}
           <div>
             <div style={lblStyle}>지적 사진 (최대 5장)</div>
-            <input ref={photos.inputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+            <input ref={photos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={photos.handleFiles} />
+            <input ref={photos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={photos.handleFiles} />
+            <PhotoSourceModal open={photos.showPicker} onClose={photos.closePicker} onCamera={photos.pickCamera} onAlbum={photos.pickAlbum} />
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               {photos.slots.map((slot, i) => (
                 <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
@@ -268,7 +271,7 @@ function FindingBottomSheet({ scheduleItemId, onClose }: BottomSheetProps) {
                 </div>
               ))}
               {photos.canAdd && (
-                <button onClick={photos.pickPhotos} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
+                <button onClick={photos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
                   <span style={{ fontSize: 22 }}>📷</span>사진 첨부
                 </button>
               )}

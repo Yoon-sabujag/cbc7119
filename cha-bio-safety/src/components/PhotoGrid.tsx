@@ -3,6 +3,7 @@ import Lightbox from 'yet-another-react-lightbox'
 import Zoom from 'yet-another-react-lightbox/plugins/zoom'
 import 'yet-another-react-lightbox/styles.css'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
+import { PhotoSourceModal } from './PhotoSourceModal'
 
 // ── 다중 사진 그리드 (썸네일 + 라이트박스) ────────────────────
 
@@ -102,7 +103,7 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
 
         {hook && hook.canAdd && (
           <button
-            onClick={hook.pickPhotos}
+            onClick={hook.openPicker}
             style={{
               width: 72,
               height: 72,
@@ -128,14 +129,11 @@ export function PhotoGrid({ photoUrls, hook, label = '사진 첨부' }: PhotoGri
       </div>
 
       {hook && (
-        <input
-          ref={hook.inputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          style={{ display: 'none' }}
-          onChange={hook.handleFiles}
-        />
+        <>
+          <input ref={hook.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={hook.handleFiles} />
+          <input ref={hook.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={hook.handleFiles} />
+          <PhotoSourceModal open={hook.showPicker} onClose={hook.closePicker} onCamera={hook.pickCamera} onAlbum={hook.pickAlbum} />
+        </>
       )}
 
       <Lightbox

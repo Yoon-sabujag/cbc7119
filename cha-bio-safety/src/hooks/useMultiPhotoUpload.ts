@@ -27,7 +27,9 @@ async function uploadBlob(blob: Blob, token: string | null): Promise<string> {
 export function useMultiPhotoUpload() {
   const [slots, setSlots] = useState<PhotoSlot[]>([])
   const slotsRef = useRef<PhotoSlot[]>([])
-  const inputRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const albumRef  = useRef<HTMLInputElement>(null)
+  const [showPicker, setShowPicker] = useState(false)
   // Mutex: serialize handleFiles calls to prevent race conditions
   const processingRef = useRef<Promise<void>>(Promise.resolve())
 
@@ -40,9 +42,10 @@ export function useMultiPhotoUpload() {
 
   const canAdd = slots.length < MAX_PHOTOS
 
-  const pickPhotos = useCallback(() => {
-    inputRef.current?.click()
-  }, [])
+  const openPicker  = useCallback(() => setShowPicker(true), [])
+  const closePicker = useCallback(() => setShowPicker(false), [])
+  const pickCamera  = useCallback(() => cameraRef.current?.click(), [])
+  const pickAlbum   = useCallback(() => albumRef.current?.click(), [])
 
   const handleFiles = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
@@ -115,11 +118,16 @@ export function useMultiPhotoUpload() {
   const hasPhotos = slots.length > 0
 
   return {
-    inputRef,
+    cameraRef,
+    albumRef,
+    showPicker,
+    openPicker,
+    closePicker,
+    pickCamera,
+    pickAlbum,
     slots,
     canAdd,
     hasPhotos,
-    pickPhotos,
     handleFiles,
     removeSlot,
     uploadAll,

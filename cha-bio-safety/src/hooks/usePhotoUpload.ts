@@ -6,9 +6,14 @@ export function usePhotoUpload() {
   const [photoBlob,     setPhotoBlob]     = useState<Blob | null>(null)
   const [photoPreview,  setPhotoPreview]  = useState<string | null>(null)
   const [uploading,     setUploading]     = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [showPicker,    setShowPicker]    = useState(false)
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const albumRef  = useRef<HTMLInputElement>(null)
 
-  const pickPhoto = () => inputRef.current?.click()
+  const openPicker  = () => setShowPicker(true)
+  const closePicker = () => setShowPicker(false)
+  const pickCamera  = () => cameraRef.current?.click()
+  const pickAlbum   = () => albumRef.current?.click()
 
   const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -51,5 +56,5 @@ export function usePhotoUpload() {
     setPhotoPreview(null)
   }, [photoPreview])
 
-  return { inputRef, photoPreview, uploading, pickPhoto, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob }
+  return { cameraRef, albumRef, showPicker, openPicker, closePicker, pickCamera, pickAlbum, photoPreview, uploading, handleFile, removePhoto, upload, reset, hasPhoto: !!photoBlob }
 }

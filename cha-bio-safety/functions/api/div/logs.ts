@@ -1,21 +1,27 @@
 import type { Env } from '../../_middleware'
 
-// GET  /api/div/logs?type=drain|compressor&divId=8-1
+// GET  /api/div/logs?type=drain|compressor|comp_drain&divId=8-1
 // POST /api/div/logs
 // DELETE /api/div/logs?id=xxx
+
+const TABLE_MAP: Record<string, { table: string; dateCol: string }> = {
+  drain:      { table: 'div_drain_log',      dateCol: 'drained_at' },
+  compressor: { table: 'div_compressor_log', dateCol: 'action_at' },
+  comp_drain: { table: 'comp_drain_log',     dateCol: 'drained_at' },
+}
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url   = new URL(request.url)
   const type  = url.searchParams.get('type') ?? 'drain'
   const divId = url.searchParams.get('divId')
 
-  const table = type === 'compressor' ? 'div_compressor_log' : 'div_drain_log'
+  const cfg = TABLE_MAP[type] ?? TABLE_MAP.drain
 
-  let query  = `SELECT * FROM ${table} ORDER BY ${type === 'compressor' ? 'action_at' : 'drained_at'} DESC LIMIT 200`
+  let query  = `SELECT * FROM ${cfg.table} ORDER BY ${cfg.dateCol} DESC LIMIT 200`
   let params: string[] = []
 
   if (divId) {
-    query  = `SELECT * FROM ${table} WHERE div_id = ? ORDER BY ${type === 'compressor' ? 'action_at' : 'drained_at'} DESC`
+    query  = `SELECT * FROM ${cfg.table} WHERE div_id = ? ORDER BY ${cfg.dateCol} DESC`
     params = [divId]
   }
 
@@ -25,7 +31,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const body = await request.json() as {
-    type:       'drain' | 'compressor'
+    type:       'drain' | 'compressor' | 'comp_drain'
     div_id:     string
     date:       string   // YYYY-MM-DD
     action?:    string   // compressor only
@@ -40,6 +46,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       INSERT INTO div_compressor_log (id, div_id, action, action_at, note, staff_name, created_at)
       VALUES (?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
     `).bind(id, body.div_id, body.action ?? '오일보충', body.date, body.note ?? null, body.staff_name ?? null).run()
+  } else if (body.type === 'comp_drain') {
+    await env.DB.prepare(`
+      INSERT INTO comp_drain_log (id, div_id, drained_at, note, staff_name, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now','+9 hours'))
+    `).bind(id, body.div_id, body.date, body.note ?? null, body.staff_name ?? null).run()
   } else {
     await env.DB.prepare(`
       INSERT INTO div_drain_log (id, div_id, drained_at, note, staff_name, created_at)
@@ -56,7 +67,7 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
   const type = url.searchParams.get('type') ?? 'drain'
   if (!id) return Response.json({ ok: false, error: 'id required' }, { status: 400 })
 
-  const table = type === 'compressor' ? 'div_compressor_log' : 'div_drain_log'
-  await env.DB.prepare(`DELETE FROM ${table} WHERE id = ?`).bind(id).run()
+  const cfg = TABLE_MAP[type] ?? TABLE_MAP.drain
+  await env.DB.prepare(`DELETE FROM ${cfg.table} WHERE id = ?`).bind(id).run()
   return Response.json({ ok: true })
 }

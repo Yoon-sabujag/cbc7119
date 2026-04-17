@@ -35,7 +35,7 @@ export default function RemediationDetailPage() {
   const [memo, setMemo] = useState('')
   const [actionPick, setActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
   const [materialName, setMaterialName] = useState('')
-  const [materialCount, setMaterialCount] = useState<string>('1')
+  const [materialCount, setMaterialCount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
   const photo = usePhotoUpload()
   const isAdmin = useAuthStore(s => s.staff?.role === 'admin')
@@ -124,8 +124,8 @@ export default function RemediationDetailPage() {
         photoKey = await photo.upload()
         if (photoKey === null) { toast.error('사진 업로드 실패'); return }
       }
-      const materialsString = isGuideLight
-        ? (materialName.trim() ? `${materialName.trim()} ${materialCount || 1}ea` : null)
+      const materialsString = materialName.trim()
+        ? `${materialName.trim()} ${materialCount || 1}ea`
         : null
       await api.post('/inspections/records/' + recordId + '/resolve', {
         resolution_memo: finalMemo,
@@ -337,52 +337,44 @@ export default function RemediationDetailPage() {
                 />
               )}
 
-              {/* 유도등 전용: 자재 + 개수 + 사진 (한 줄) */}
-              {isGuideLight ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>소모 자재</span>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+              {/* 소모 자재 + 사진 (모든 카테고리 공통) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: 'var(--t3)' }}>소모 자재</span>
+                <span style={{ fontSize: 11, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
+                  <input
+                    type="text"
+                    value={materialName}
+                    onChange={e => setMaterialName(e.target.value)}
+                    placeholder="자재명"
+                    style={{
+                      flex: 1, minHeight: 0, minWidth: 0, width: '100%',
+                      background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
+                      fontSize: 13, color: 'var(--t1)', padding: '0 10px',
+                      boxSizing: 'border-box', fontFamily: 'inherit',
+                    }}
+                  />
+                  <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+                    <input
+                      type="number"
+                      min={0}
+                      value={materialCount}
+                      onChange={e => setMaterialCount(e.target.value)}
+                      placeholder="0"
+                      style={{
+                        width: '100%', height: '100%', minWidth: 0,
+                        background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
+                        fontSize: 13, color: 'var(--t1)', padding: '0 28px 0 10px',
+                        boxSizing: 'border-box', fontFamily: 'inherit',
+                      }}
+                    />
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
-                      <input
-                        type="text"
-                        value={materialName}
-                        onChange={e => setMaterialName(e.target.value)}
-                        placeholder="자재명"
-                        style={{
-                          flex: 1, minHeight: 0, minWidth: 0, width: '100%',
-                          background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
-                          fontSize: 13, color: 'var(--t1)', padding: '0 10px',
-                          boxSizing: 'border-box', fontFamily: 'inherit',
-                        }}
-                      />
-                      <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
-                        <input
-                          type="number"
-                          min={0}
-                          value={materialCount}
-                          onChange={e => setMaterialCount(e.target.value)}
-                          placeholder="0"
-                          style={{
-                            width: '100%', height: '100%', minWidth: 0,
-                            background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
-                            fontSize: 13, color: 'var(--t1)', padding: '0 28px 0 10px',
-                            boxSizing: 'border-box', fontFamily: 'inherit',
-                          }}
-                        />
-                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
-                      </div>
-                    </div>
-                    <PhotoButton hook={photo} label="촬영" noCapture />
-                  </div>
-                </>
-              ) : (
-                <div style={{ marginTop: 12 }}>
-                  <PhotoButton hook={photo} noCapture />
                 </div>
-              )}
+                <PhotoButton hook={photo} label="촬영" noCapture />
+              </div>
             </div>
           )}
         </div>

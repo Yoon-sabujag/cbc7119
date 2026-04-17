@@ -7,6 +7,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useAuthStore } from '../stores/authStore'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
+import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalRound, LegalInspectionResult, LegalFinding } from '../types'
 
@@ -306,7 +307,9 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
           <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="조치 내용을 입력하세요" rows={3} style={{ width: '100%', background: 'var(--bg3)', borderRadius: 9, padding: '10px 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit', lineHeight: 1.5, resize: 'vertical', outline: 'none' }} />
           <div style={{ marginTop: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 (최대 5장)</div>
-            <input ref={resPhotos.inputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resPhotos.handleFiles} />
+            <input ref={resPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resPhotos.handleFiles} />
+            <input ref={resPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resPhotos.handleFiles} />
+            <PhotoSourceModal open={resPhotos.showPicker} onClose={resPhotos.closePicker} onCamera={resPhotos.pickCamera} onAlbum={resPhotos.pickAlbum} />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {resPhotos.slots.map((slot, i) => (
                 <div key={i} style={{ position: 'relative' }}>
@@ -315,7 +318,7 @@ function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId
                 </div>
               ))}
               {resPhotos.canAdd && (
-                <button onClick={resPhotos.pickPhotos} style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                <button onClick={resPhotos.openPicker} style={{ width: 64, height: 64, borderRadius: 8, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 10, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                   <span style={{ fontSize: 18 }}>📷</span>첨부
                 </button>
               )}
