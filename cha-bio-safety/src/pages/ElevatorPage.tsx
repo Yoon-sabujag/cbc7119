@@ -87,7 +87,7 @@ interface ElevatorInspection {
   // 0058: 조치 후 합격 cert 부모 링크
   parent_inspection_id?: string
 }
-type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual'
+type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual' | 'safety'
 type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'annual_upload' | 'repair_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
@@ -234,10 +234,75 @@ async function fetchInspections(type: string): Promise<ElevatorInspection[]> {
   const json = await res.json() as { success:boolean; data:ElevatorInspection[] }
   return json.data ?? []
 }
+// ── 공단 자체점검결과 조회 ──
+interface KoelsaInspection {
+  elevatorNo: string
+  summary: {
+    inspectDate: string
+    startTime: string
+    endTime: string
+    inspectorName: string
+    subInspectorName: string
+    companyName: string
+    overallResult: string
+    confirmDate: string
+    registDate: string
+  } | null
+  resultCounts: { A: number; B: number; C: number; D: number; E: number }
+  issues: { titNo: string; itemName: string; itemDetail: string; result: string }[]
+  totalItems: number
+}
+async function fetchKoelsaInspection(elevatorNo: string, yyyymm: string): Promise<KoelsaInspection | null> {
+  try {
+    const res = await fetch(`/api/elevators/koelsa?elevator_no=${elevatorNo}&yyyymm=${yyyymm}`, { headers: authHeader() })
+    const json = await res.json() as any
+    if (!json.success || !json.data?.summary) return null
+    return json.data as KoelsaInspection
+  } catch { return null }
+}
+async function fetchKoelsaAll(elevators: Elevator[], yyyymm: string): Promise<Map<string, KoelsaInspection>> {
+  const map = new Map<string, KoelsaInspection>()
+  const promises = elevators
+    .filter(ev => ev.cert_no)
+    .map(async ev => {
+      const no = ev.cert_no!.replace(/-/g, '')
+      const data = await fetchKoelsaInspection(no, yyyymm)
+      if (data) map.set(ev.id, data)
+    })
+  await Promise.all(promises)
+  return map
+}
+
 async function fetchEvHistory(elevatorId: string, from: string, to: string): Promise<EvDetailHistory[]> {
   const res  = await fetch(`/api/elevators/history?elevator_id=${elevatorId}&from=${from}&to=${to}`, { headers:authHeader() })
   const json = await res.json() as { success:boolean; data:EvDetailHistory[] }
   return json.data ?? []
+}
+
+function openClipReport(mwEv: any, order: number) {
+  const data = JSON.stringify({
+    report_name: 'APD015',
+    report_file_path: '/welvt/APD015.crf',
+    report_param: {
+      PARAM1: mwEv.rptInsttCd,
+      PARAM2: mwEv.rptRecptDe,
+      PARAM3: String(mwEv.rptRecptNo),
+      PARAM4: String(order),
+      PARAM5: '1',
+      PARAM6: '',
+    },
+    datasource_name: 'KOELSAB',
+  })
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = 'https://minwon.koelsa.or.kr:8080/ClipReport4/viewReport'
+  form.target = '_blank'
+  const input = document.createElement('input')
+  input.type = 'hidden'; input.name = 'print_data'; input.value = data
+  form.appendChild(input)
+  document.body.appendChild(form)
+  form.submit()
+  document.body.removeChild(form)
 }
 
 // ── 메인 ─────────────────────────────────────────────────
@@ -252,7 +317,10 @@ export default function ElevatorPage() {
   const [selectedFault, setSelectedFault] = useState<ElevatorFault | null>(null)
   const [expandedAnnual, setExpandedAnnual] = useState<string | null>(null)
   const [certViewerKey,  setCertViewerKey]  = useState<string | null>(null)
-  const [desktopRightTab, setDesktopRightTab] = useState<'fault' | 'repair' | 'inspect' | 'annual'>('fault')
+  const [expandedInspect, setExpandedInspect] = useState<string | null>(null)
+  const [expandedMw,      setExpandedMw]      = useState<string | null>(null)
+  const [desktopRightTab, setDesktopRightTab] = useState<'fault' | 'repair' | 'inspect' | 'annual' | 'safety'>('fault')
+  const [editRepairData, setEditRepairData] = useState<any>(null)
 
   async function deleteRecord(type: 'fault' | 'inspection', id: string) {
     if (!confirm('삭제하시겠습니까?')) return
@@ -270,8 +338,41 @@ export default function ElevatorPage() {
 
   const { data: elevators   = [] } = useQuery({ queryKey:['elevators'],            queryFn: fetchElevators })
   const { data: faults      = [] } = useQuery({ queryKey:['elevator_faults'],      queryFn: fetchFaults })
-  const { data: inspections = [] } = useQuery({ queryKey:['elevator_inspections'], queryFn: () => fetchInspections('monthly') })
   const { data: annuals     = [] } = useQuery({ queryKey:['elevator_annuals'],     queryFn: () => fetchInspections('annual') })
+  const { data: repairs     = [] } = useQuery({ queryKey:['elevator_repairs_all'], queryFn: () => elevatorRepairApi.list() })
+
+  // 공단 자체점검결과 조회 (월 선택)
+  const now = new Date()
+  const [koelsaMonth, setKoelsaMonth] = useState(() => `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}`)
+
+  // 데이터 있는 월 목록
+  const koelsaMonthsQuery = useQuery({
+    queryKey: ['koelsa_available_months'],
+    queryFn: async () => {
+      const res = await fetch('/api/elevators/koelsa-months', { headers: authHeader() })
+      const json = await res.json() as any
+      return json.success ? (json.data as string[]) : []
+    },
+  })
+  const availableMonths = useMemo(() => new Set(koelsaMonthsQuery.data ?? []), [koelsaMonthsQuery.data])
+
+  // 초기 로드 시 가장 최근 데이터 있는 월로 이동
+  useEffect(() => {
+    if (koelsaMonthsQuery.data && koelsaMonthsQuery.data.length > 0 && !availableMonths.has(koelsaMonth)) {
+      setKoelsaMonth(koelsaMonthsQuery.data[0])
+    }
+  }, [koelsaMonthsQuery.data])
+
+  const koelsaQuery = useQuery({
+    queryKey: ['koelsa_inspections', koelsaMonth, elevators.length],
+    queryFn: () => fetchKoelsaAll(elevators, koelsaMonth),
+    enabled: elevators.length > 0,
+    staleTime: 5 * 60_000,
+  })
+  const koelsaMap = koelsaQuery.data ?? new Map<string, KoelsaInspection>()
+
+  // 민원24 연도 선택
+  const [annualYear, setAnnualYear] = useState(() => now.getFullYear())
   const nextInspQuery = useQuery({
     queryKey: ['elev-next-inspection'],
     queryFn: () => elevatorInspectionApi.getNextInspection(),
@@ -357,12 +458,70 @@ export default function ElevatorPage() {
 
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
   const repairCount = faults.filter(f => f.is_resolved && f.repair_detail).length
+
+  // 민원24 검사조회 키 — DB에서 로드 (DB 비어있으면 localStorage에서 자동 마이그레이션)
+  const inspectKeysQuery = useQuery({
+    queryKey: ['inspect_keys'],
+    queryFn: async () => {
+      const res = await fetch('/api/elevators/inspect-keys', { headers: authHeader() })
+      const json = await res.json() as any
+      const dbKeys = json.success ? (json.data as InspectKeyEntry[]) : []
+      if (dbKeys.length > 0) return dbKeys
+      // DB 비어있으면 localStorage에서 마이그레이션
+      const local: InspectKeyEntry[] = JSON.parse(localStorage.getItem('koelsa_inspect_keys_v2') || '[]')
+      if (local.length > 0) {
+        const saveRes = await fetch('/api/elevators/inspect-keys', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
+          body: JSON.stringify({ keys: local }),
+        })
+        const saveJson = await saveRes.json() as any
+        if (saveJson.success) return saveJson.data as InspectKeyEntry[]
+      }
+      return []
+    },
+  })
+  const [inspectKeyList, setInspectKeyList] = useState<InspectKeyEntry[]>([])
+  useEffect(() => {
+    if (inspectKeysQuery.data && inspectKeysQuery.data.length > 0) {
+      setInspectKeyList(inspectKeysQuery.data)
+    }
+  }, [inspectKeysQuery.data])
+
+  const minwon24Query = useQuery({
+    queryKey: ['minwon24_inspect', ...inspectKeyList.map(k => k.cstmr + k.recptn)],
+    queryFn: async () => {
+      const results: any[] = []
+      for (const key of inspectKeyList) {
+        if (key.cstmr.length !== 13 || key.recptn.length !== 17) continue
+        const res = await fetch(`/api/elevators/koelsa-inspect?cstmr=${key.cstmr}&recptn=${key.recptn}`, { headers: authHeader() })
+        const json = await res.json() as any
+        if (json.success && json.data) results.push(json.data)
+      }
+      return results.length > 0 ? results : null
+    },
+    enabled: inspectKeyList.length > 0,
+    staleTime: 10 * 60_000,
+  })
+
+  // 안전관리자 정보
+  const safetyMgrQuery = useQuery({
+    queryKey: ['elevator_safety_manager'],
+    queryFn: async () => {
+      const res = await fetch('/api/elevators/safety-manager', { headers: authHeader() })
+      const json = await res.json() as any
+      return json.success ? json.data : null
+    },
+    staleTime: 30 * 60_000,
+  })
+
   const TABS: { key:Tab; label:string }[] = [
     { key:'list',    label:'목록' },
     { key:'fault',   label:`고장${unresolvedCount > 0 ? ` (${unresolvedCount})` : ''}` },
     { key:'repair',  label:'수리' },
     { key:'inspect', label:'점검 기록' },
     { key:'annual',  label:'검사 기록' },
+    { key:'safety',  label:'안전관리자' },
   ]
 
   // ── 데스크톱: 좌=배치도 / 우=호기별 이력 탭 ─────────────────
@@ -381,8 +540,9 @@ export default function ElevatorPage() {
 
     const selectedDesktopEv = detailEv ?? evs[0] ?? ess[0] ?? null
     const evFaults      = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id) : []
-    const evRepairs     = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id && f.is_resolved && f.repair_detail) : []
-    const evInspections = selectedDesktopEv ? inspections.filter((i: any) => i.elevator_id === selectedDesktopEv.id) : []
+    // 통합 수리 이력: API가 독립수리+고장수리+검사조치를 합쳐서 반환
+    const evRepairs = selectedDesktopEv ? repairs.filter((r: any) => r.elevatorId === selectedDesktopEv.id) : []
+    const evKoelsa = selectedDesktopEv ? koelsaMap.get(selectedDesktopEv.id) ?? null : null
     // 자식 cert(조치 후 합격) 기록은 메인 리스트에서 제외 — 부모 카드 안에서 표시됨
     const evAnnuals     = selectedDesktopEv ? annuals.filter((a: any) => a.elevator_id === selectedDesktopEv.id && !a.parent_inspection_id) : []
     // 자식 cert id → 자식 객체 맵 (부모 카드에서 lookup용)
@@ -421,11 +581,12 @@ export default function ElevatorPage() {
       )
     }
 
-    const RIGHT_TABS: { key:'fault'|'repair'|'inspect'|'annual'; label:string; count:number }[] = [
+    const RIGHT_TABS: { key:'fault'|'repair'|'inspect'|'annual'|'safety'; label:string; count:number }[] = [
       { key:'fault',   label:'고장 이력', count: evFaults.length },
       { key:'repair',  label:'수리 이력', count: evRepairs.length },
-      { key:'inspect', label:'점검 기록', count: evInspections.length },
+      { key:'inspect', label:'점검 기록', count: evKoelsa ? 1 : 0 },
       { key:'annual',  label:'검사 기록', count: evAnnuals.length },
+      { key:'safety',  label:'안전관리자', count: 0 },
     ]
 
     return (
@@ -445,14 +606,6 @@ export default function ElevatorPage() {
           <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
             style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             🔧 수리 기록
-          </button>
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('inspect_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            📋 점검 기록
-          </button>
-          <button onClick={() => setModal('annual_upload')}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#14532d,#22c55e)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🔍 검사 기록
           </button>
         </header>
 
@@ -564,60 +717,274 @@ export default function ElevatorPage() {
                       <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>수리 이력이 없습니다</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {evRepairs.map(f => {
-                          const pure = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
-                          return (
-                            <div key={f.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{pure}</span>
-                                <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--safe)', fontWeight: 700 }}>✅ 완료</span>
+                        {evRepairs.map((r: any) => {
+                          const isExp = expandedAnnual === `repair-${r.id}`
+                          const hasPhotos = r.partsArrivalPhotos || r.damagedPartsPhotos || r.duringRepairPhotos || r.completedPhotos
+                          const hasDetail = (r.detail && r.detail !== r.title) || hasPhotos
+                          const renderPhotoRow = (label: string, csv: string | null) => {
+                            if (!csv) return null
+                            const keys = csv.split(',').filter(Boolean)
+                            if (!keys.length) return null
+                            return (
+                              <div style={{ marginTop:6 }}>
+                                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:3 }}>{label} ({keys.length})</div>
+                                <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                                  {keys.map((k: string) => <img key={k} src={`/api/uploads/${k}`} style={{ width:64, height:64, objectFit:'cover', borderRadius:6, border:'1px solid var(--bd)' }} />)}
+                                </div>
                               </div>
-                              <div style={{ fontSize: 12, color: 'var(--safe)', fontWeight: 600, marginBottom: 4 }}>{f.repair_detail}</div>
-                              <div style={{ fontSize: 10, color: 'var(--t3)' }}>
-                                고장: {fmtKstDate(f.fault_at)} → 수리: {fmtKstDate(f.repaired_at)}
-                                {f.repair_company && ` · ${f.repair_company}`}
+                            )
+                          }
+                          return (
+                          <div key={r.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, overflow:'hidden' }}>
+                            <div onClick={() => hasDetail && setExpandedAnnual(isExp ? null : `repair-${r.id}`)} style={{ padding: '10px 14px', display:'flex', gap:12, cursor: hasDetail ? 'pointer' : 'default' }}>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{r.title}</span>
+                                  {r.sourceType === 'fault' && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--warn)', background: 'rgba(245,158,11,.12)', padding: '1px 6px', borderRadius: 4 }}>고장수리</span>}
+                                  {r.isInspectionAction && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--info)', background: 'rgba(59,130,246,.12)', padding: '1px 6px', borderRadius: 4 }}>검사조치</span>}
+                                </div>
+                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>
+                                  {r.hallFloor && `${r.hallFloor} `}
+                                  {r.target && `${REPAIR_TARGET_LABEL[r.target] ?? r.target} `}
+                                  {r.company && `· ${r.company}`}
+                                </div>
+                              </div>
+                              <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+                                <span style={{ fontSize: 10, color: 'var(--t3)' }}>{r.date}</span>
+                                {r.sourceType === 'standalone' && (
+                                  <div style={{ display:'flex', gap:4 }}>
+                                    <button onClick={(e) => { e.stopPropagation(); setEditRepairData(r) }}
+                                      style={{ padding:'3px 8px', borderRadius:5, background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--info)', fontSize:9, fontWeight:600, cursor:'pointer' }}>수정</button>
+                                    <button onClick={async (e) => {
+                                      e.stopPropagation()
+                                      if (!confirm('삭제하시겠습니까?')) return
+                                      try {
+                                        await elevatorRepairApi.delete(r.sourceId)
+                                        qc.invalidateQueries({ queryKey: ['elevator_repairs_all'] })
+                                        toast.success('삭제 완료')
+                                      } catch { toast.error('삭제 실패') }
+                                    }}
+                                      style={{ padding:'3px 8px', borderRadius:5, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:9, fontWeight:600, cursor:'pointer' }}>삭제</button>
+                                  </div>
+                                )}
                               </div>
                             </div>
+                            {isExp && (
+                              <div style={{ padding:'0 14px 12px', borderTop:'1px solid var(--bd)' }}>
+                                {r.detail && r.detail !== r.title && (
+                                  <div style={{ paddingTop:10, fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{r.detail}</div>
+                                )}
+                                {renderPhotoRow('부품 입고', r.partsArrivalPhotos)}
+                                {renderPhotoRow('파손 부품', r.damagedPartsPhotos)}
+                                {renderPhotoRow('수리 중', r.duringRepairPhotos)}
+                                {renderPhotoRow('수리 완료', r.completedPhotos)}
+                              </div>
+                            )}
+                          </div>
                           )
                         })}
                       </div>
                     )
                   )}
 
-                  {desktopRightTab === 'inspect' && (
-                    evInspections.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>점검 기록이 없습니다</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {evInspections.map((i: any) => {
-                          const ov = OVERALL_STYLE[i.overall] ?? OVERALL_STYLE.normal
+                  {desktopRightTab === 'inspect' && (() => {
+                    const fmtDate = (d: string) => d ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : '-'
+                    const sortedMonths = [...availableMonths].sort()
+                    const curIdx = sortedMonths.indexOf(koelsaMonth)
+                    const hasPrev = curIdx > 0
+                    const hasNext = curIdx < sortedMonths.length - 1
+                    const goPrev = () => { if (hasPrev) setKoelsaMonth(sortedMonths[curIdx - 1]) }
+                    const goNext = () => { if (hasNext) setKoelsaMonth(sortedMonths[curIdx + 1]) }
+                    return (
+                      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                        {/* 월 선택 — 데이터 있는 월만 이동 */}
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <button onClick={goPrev} disabled={!hasPrev} style={{ width:28, height:28, borderRadius:6, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color: hasPrev ? 'var(--t2)' : 'var(--bd)', opacity: hasPrev ? 1 : 0.4 }}>‹</button>
+                          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:700, color:'var(--t1)' }}>{koelsaMonth.slice(0,4)}년 {parseInt(koelsaMonth.slice(4))}월</span>
+                          <button onClick={goNext} disabled={!hasNext} style={{ width:28, height:28, borderRadius:6, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color: hasNext ? 'var(--t2)' : 'var(--bd)', opacity: hasNext ? 1 : 0.4 }}>›</button>
+                        </div>
+                        {koelsaQuery.isLoading && <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>공단 데이터 조회 중...</div>}
+                        {!koelsaQuery.isLoading && !evKoelsa && <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>해당 월 점검 기록이 없습니다</div>}
+                        {/* 요약 */}
+                        {evKoelsa && evKoelsa.summary && (() => {
+                          const s = evKoelsa.summary!
                           return (
-                            <div key={i.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{i.inspect_date}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: ov.color, background: `${ov.color}22`, padding: '1px 6px', borderRadius: 6 }}>{ov.label}</span>
+                            <>
+                              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'10px 14px' }}>
+                                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+                                  <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{fmtDate(s.inspectDate)}</span>
+                                  <span style={{ fontSize:10, fontWeight:700, color: evKoelsa.issues.length > 0 ? 'var(--warn)' : 'var(--safe)', background: evKoelsa.issues.length > 0 ? 'rgba(245,158,11,.12)' : 'rgba(34,197,94,.12)', padding:'1px 6px', borderRadius:6 }}>{evKoelsa.issues.length > 0 ? '이상' : '양호'}</span>
+                                </div>
+                                <div style={{ fontSize:11, color:'var(--t2)' }}>{s.companyName} · 점검자 {s.inspectorName}</div>
+                                <div style={{ display:'flex', gap:6, marginTop:6, fontSize:10 }}>
+                                  {(['A','B','C','D','E'] as const).map(r => {
+                                    const cnt = evKoelsa.resultCounts[r]; if (!cnt) return null
+                                    const colors: Record<string,string> = { A:'var(--safe)', B:'var(--warn)', C:'var(--danger)', D:'var(--t3)', E:'var(--t3)' }
+                                    const labels: Record<string,string> = { A:'양호', B:'주의', C:'긴급', D:'제외', E:'없음' }
+                                    return <span key={r} style={{ fontWeight:700, color:colors[r], background:`${colors[r]}18`, padding:'2px 6px', borderRadius:4 }}>{labels[r]} {cnt}</span>
+                                  })}
+                                </div>
                               </div>
-                              <div style={{ fontSize: 12, color: 'var(--t2)' }}>{i.action_needed?.replace(/^\[[^\]]+\]\s*/, '') || '조치 사항 없음'}</div>
-                            </div>
+                              {/* 이상 항목 — 그리드 */}
+                              {evKoelsa.issues.length > 0 && (
+                                <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
+                                  <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--warn)' }}>
+                                    ⚠️ 주의관찰 항목
+                                  </div>
+                                  <div style={{ display:'grid', gridTemplateColumns:'50px 1fr auto', background:'var(--bg3)' }}>
+                                    {evKoelsa.issues.map((issue, idx) => {
+                                      const isLast = idx === evKoelsa.issues.length - 1
+                                      const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
+                                      const resultColor = issue.result === 'C' ? 'var(--danger)' : 'var(--warn)'
+                                      const resultLabel = issue.result === 'C' ? '긴급수리' : '주의관찰'
+                                      return (
+                                        <div key={idx} style={{ display:'contents' }}>
+                                          <div style={{ ...cellSt, color:'var(--t3)', fontWeight:600, fontFamily:'JetBrains Mono, monospace', fontSize:10 }}>{issue.titNo}</div>
+                                          <div style={{ ...cellSt, color:'var(--t1)' }}>
+                                            {issue.itemName}
+                                            {issue.itemDetail && <span style={{ color:'var(--t3)', marginLeft:4, fontSize:10 }}>({issue.itemDetail})</span>}
+                                          </div>
+                                          <div style={{ ...cellSt, color:resultColor, fontWeight:700 }}>{resultLabel}</div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </>
                           )
-                        })}
+                        })()}
                       </div>
                     )
-                  )}
+                  })()}
 
-                  {desktopRightTab === 'annual' && (
-                    evAnnuals.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>검사 기록이 없습니다</div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {evAnnuals.map((a: any) => {
+                  {desktopRightTab === 'annual' && (() => {
+                    // 민원24 검사결과 — 선택 호기 매칭 + 연도 필터
+                    const mwList: any[] = minwon24Query.data ?? []
+                    const certToEv = new Map<string, Elevator>()
+                    for (const ev of elevators) { if (ev.cert_no) certToEv.set(ev.cert_no.replace(/-/g, ''), ev) }
+
+                    // 전체 mwEv 목록 (모든 연도) + 호기별 차수 판별
+                    const allMwEvs: any[] = []
+                    for (const mw of mwList) {
+                      const uniqueDates = [...new Set((mw.elevators ?? []).map((e: any) => e.inspectDate?.replace(/\./g, '') ?? ''))].filter(Boolean).sort()
+                      const dateToOrder = new Map<string, number>()
+                      uniqueDates.forEach((d, i) => dateToOrder.set(d as string, i + 1))
+
+                      for (const ev of mw.elevators) {
+                        const ourEv = certToEv.get(ev.elevatorNo)
+                        if (ourEv && ourEv.id === selectedDesktopEv!.id) {
+                          const d = ev.inspectDate?.replace(/\./g, '') ?? ''
+                          const evOrder = dateToOrder.get(d) ?? 1
+                          allMwEvs.push({ ...ev, institution: mw.inspectInstitution, inspectKind: mw.inspectKind, documentNo: mw.report?.documentNo, rptInsttCd: mw.report?.inspectInstitutionCode, rptRecptDe: mw.report?.receiptDate, rptRecptNo: mw.report?.receiptNo, rptOdr: mw.report?.inspectOrder, rptDrftOdr: mw.report?.draftOrder, totalOrders: mw.report?.totalOrders ?? 1, evOrder })
+                        }
+                      }
+                    }
+
+                    // 사용 가능한 연도 (민원24 + DB 검사성적서)
+                    const mwYears = allMwEvs.map(e => {
+                      const d = e.inspectDate?.replace(/\./g, '') ?? ''
+                      return d.length >= 4 ? parseInt(d.slice(0,4)) : 0
+                    }).filter(y => y > 0)
+                    const dbYears = evAnnuals.map((a: any) => parseInt(a.inspect_date?.slice(0,4))).filter((y: number) => y > 0)
+                    const availableYears = [...new Set([...mwYears, ...dbYears])].sort((a, b) => b - a)
+                    const curYearIdx = availableYears.indexOf(annualYear)
+                    const hasPrevYear = curYearIdx < availableYears.length - 1
+                    const hasNextYear = curYearIdx > 0
+                    const goPrevYear = () => { if (hasPrevYear) setAnnualYear(availableYears[curYearIdx + 1]) }
+                    const goNextYear = () => { if (hasNextYear) setAnnualYear(availableYears[curYearIdx - 1]) }
+
+                    // 선택 연도의 mwEv
+                    const mwEv = allMwEvs.find(e => {
+                      const d = e.inspectDate?.replace(/\./g, '') ?? ''
+                      return d.length >= 4 && parseInt(d.slice(0,4)) === annualYear
+                    }) ?? null
+
+                    // 선택 연도의 DB 검사성적서
+                    const yearAnnuals = evAnnuals.filter((a: any) => a.inspect_date?.startsWith(String(annualYear)))
+                    const MINWON_RESULT: Record<string, { text: string; color: string }> = {
+                      '합격': { text: '합격', color: 'var(--safe)' },
+                      '조건부합격': { text: '조건부', color: 'var(--warn)' },
+                      '불합격': { text: '불합격', color: 'var(--danger)' },
+                      '보완': { text: '보완', color: 'var(--warn)' },
+                    }
+                    const fmtMwDate = (d: string) => {
+                      if (!d || d === '-') return '-'
+                      if (d.includes('.')) return d
+                      if (d.length === 8) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`
+                      return d
+                    }
+                    const noData = !mwEv && yearAnnuals.length === 0 && !minwon24Query.isLoading && availableYears.length === 0
+                    if (noData) return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>검사 기록이 없습니다</div>
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* 연도 선택 */}
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <button onClick={goPrevYear} disabled={!hasPrevYear} style={{ width:28, height:28, borderRadius:6, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasPrevYear ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color: hasPrevYear ? 'var(--t2)' : 'var(--bd)', opacity: hasPrevYear ? 1 : 0.4 }}>‹</button>
+                          <span style={{ flex:1, textAlign:'center', fontSize:13, fontWeight:700, color:'var(--t1)' }}>{annualYear}년</span>
+                          <button onClick={goNextYear} disabled={!hasNextYear} style={{ width:28, height:28, borderRadius:6, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNextYear ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color: hasNextYear ? 'var(--t2)' : 'var(--bd)', opacity: hasNextYear ? 1 : 0.4 }}>›</button>
+                        </div>
+                        {/* 민원24 검사결과 */}
+                        {minwon24Query.isLoading && inspectKeyList.length > 0 && (
+                          <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t3)', fontSize:12 }}>공단 검사 결과 조회 중...</div>
+                        )}
+                        {mwEv && (() => {
+                          const rl = MINWON_RESULT[mwEv.inspectResultLabel] ?? { text: mwEv.inspectResultLabel || '-', color: 'var(--t3)' }
+                          const hasConditional = mwEv.conditionalFrom && mwEv.conditionalFrom !== '-'
+                          return (
+                            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, overflow:'hidden' }}>
+                              <div style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:10, borderBottom:'1px solid var(--bd)' }}>
+                                <span style={{ fontSize:11, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>공단 검사결과</span>
+                                <span style={{ marginLeft:'auto', fontSize:11, fontWeight:700, color:rl.color, background:`${rl.color}18`, padding:'3px 10px', borderRadius:20 }}>{rl.text}</span>
+                              </div>
+                              <div style={{ padding:'14px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+                                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'8px 16px', fontSize:12 }}>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사유형</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.inspectKind ?? '정기'}검사</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>차수</div><div style={{ color:'var(--info)', fontWeight:700 }}>{mwEv.evOrder ?? 1}차</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>결과상세</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.resultText ?? mwEv.inspectResultLabel}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>접수일</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{fmtMwDate(mwEv.receiptDate)}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사일</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.assignDate ?? '-'}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>최종검사일</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{fmtMwDate(mwEv.inspectDate)}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사기관</div><div style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.institution}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>성적서번호</div><div style={{ color:'var(--t1)', fontWeight:600, fontFamily:'JetBrains Mono, monospace' }}>{mwEv.documentNo ?? '-'}</div></div>
+                                  <div><div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>유효기간</div><div style={{ color:'var(--t1)', fontWeight:700 }}>{mwEv.validFrom} ~ {mwEv.validTo}</div></div>
+                                </div>
+                                {hasConditional && (
+                                  <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:8, padding:'8px 12px', fontSize:12, fontWeight:700, color:'var(--warn)' }}>
+                                    ⚠️ 보완기간: {mwEv.conditionalFrom} ~ {mwEv.conditionalTo}
+                                  </div>
+                                )}
+                                {mwEv.rptInsttCd && (
+                                  <div style={{ display:'flex', gap:8 }}>
+                                    <button onClick={() => openClipReport(mwEv, mwEv.evOrder ?? 1)}
+                                      style={{ flex:1, padding:'10px', borderRadius:8, background:'rgba(59,130,246,.1)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                                      📄 {(mwEv.totalOrders ?? 1) > 1 ? `${mwEv.evOrder}차 ` : ''}검사성적서 출력
+                                    </button>
+                                    <button onClick={() => setModal('annual_upload')}
+                                      style={{ flex:1, padding:'10px', borderRadius:8, background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', color:'var(--safe)', fontSize:12, fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                                      📥 {(mwEv.totalOrders ?? 1) > 1 ? `${mwEv.evOrder}차 ` : ''}검사성적서 입력
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })()}
+
+                        {/* 업로드된 검사 기록 (DB) — 연도 필터 적용 */}
+                        {yearAnnuals.length > 0 && (
+                          <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em', marginTop:4 }}>📄 업로드된 검사성적서</div>
+                        )}
+                        {!mwEv && yearAnnuals.length === 0 && !minwon24Query.isLoading && (
+                          <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>해당 연도 검사 기록이 없습니다</div>
+                        )}
+                        {yearAnnuals.map((a: any) => {
                           const ov = OVERALL_STYLE[a.overall] ?? OVERALL_STYLE.normal
                           const resultKey = a.result || a.overall
                           const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
                           const typeLabel = a.inspect_type ? (INSPECT_TYPE_LABEL[a.inspect_type] ?? a.inspect_type) : '정기검사'
                           const isExpanded = expandedAnnual === a.id
                           const isConditional = resultKey === 'conditional'
-                          // 조치 후 합격 cert가 있으면 그게 최종 유효한 성적서
                           const corrective = correctiveByParent[a.id]
                           const headerCertKey = corrective?.certificate_key ?? a.certificate_key
                           return (
@@ -666,19 +1033,127 @@ export default function ElevatorPage() {
                                       <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{a.memo}</div>
                                     </div>
                                   )}
-                                  {(resultKey === 'conditional' || resultKey === 'fail' || a.action_needed?.includes('→합격 전환')) && (
-                                    <FindingsPanel elevatorId={a.elevator_id} inspectionId={a.id} inspectionResult={resultKey} navigate={navigate} hasCorrective={!!correctiveByParent[a.id]} />
-                                  )}
-                                  {/* 검사성적서 — 항목별 검사결과 + 검사실시정보 */}
-                                  <CertSummary inspection={a} corrective={correctiveByParent[a.id]} onViewCert={setCertViewerKey} />
+                                  <CertSummary inspection={a} corrective={correctiveByParent[a.id]} onViewCert={setCertViewerKey} elevatorId={a.elevator_id} inspectionId={a.id} inspectionResult={resultKey} navigate={navigate} />
                                 </div>
                               )}
                             </div>
                           )
                         })}
+
                       </div>
                     )
-                  )}
+                  })()}
+
+                  {desktopRightTab === 'safety' && (() => {
+                    const data = safetyMgrQuery.data
+                    if (safetyMgrQuery.isLoading) return <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:13 }}>공단 데이터 조회 중...</div>
+                    if (!data?.manager) return <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:13 }}>안전관리자 정보가 없습니다</div>
+
+                    const m = data.manager
+                    const edu = data.education
+                    const reg = data.registration
+
+                    const fmtDday = (days: number | null) => {
+                      if (days === null) return null
+                      if (days < 0) return { text: `D+${Math.abs(days)} 초과`, color: 'var(--danger)', bg: 'rgba(239,68,68,.12)' }
+                      if (days <= 60) return { text: `D-${days}`, color: 'var(--warn)', bg: 'rgba(245,158,11,.12)' }
+                      if (days <= 365) return { text: `D-${days}`, color: 'var(--info)', bg: 'rgba(59,130,246,.12)' }
+                      return { text: `D-${days}`, color: 'var(--safe)', bg: 'rgba(34,197,94,.12)' }
+                    }
+                    const refreshDday = fmtDday(edu.refreshEdu.daysLeft)
+
+                    return (
+                      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                        {/* 안전관리자 프로필 */}
+                        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                            <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>👤</div>
+                            <div>
+                              <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>{m.realName ?? m.maskedName}</div>
+                              <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>승강기 안전관리자</div>
+                            </div>
+                          </div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontSize:12 }}>
+                            <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
+                              <div style={{ color:'var(--t3)', fontSize:10, marginBottom:2 }}>선임일</div>
+                              <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.appointedAt}</div>
+                            </div>
+                            <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
+                              <div style={{ color:'var(--t3)', fontSize:10, marginBottom:2 }}>교육이수일</div>
+                              <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.eduDate}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 교육 현황 */}
+                        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:10 }}>📚 교육 현황</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                            <div style={{ background:'var(--bg3)', borderRadius:8, padding:'10px 12px' }}>
+                              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                                <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>보수(재) 교육</span>
+                                {refreshDday && <span style={{ fontSize:10, fontWeight:700, color:refreshDday.color, background:refreshDday.bg, padding:'2px 6px', borderRadius:6 }}>{refreshDday.text}</span>}
+                              </div>
+                              <div style={{ fontSize:11, color:'var(--t3)' }}>유효: {m.eduValidFrom} ~ {m.eduValidTo}</div>
+                              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>마감: {edu.refreshEdu.deadline ?? '-'}</div>
+                            </div>
+                            <div style={{ background:'var(--bg3)', borderRadius:8, padding:'10px 12px' }}>
+                              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+                                <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>신규 교육</span>
+                                {edu.newEdu.daysLeft !== null && edu.newEdu.daysLeft < 0 ? (
+                                  <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.12)', padding:'2px 6px', borderRadius:6 }}>완료</span>
+                                ) : edu.newEdu.daysLeft !== null ? (
+                                  <span style={{ fontSize:10, fontWeight:700, color:'var(--warn)', background:'rgba(245,158,11,.12)', padding:'2px 6px', borderRadius:6 }}>D-{edu.newEdu.daysLeft}</span>
+                                ) : null}
+                              </div>
+                              <div style={{ fontSize:10, color:'var(--t3)' }}>마감: {edu.newEdu.deadline ?? '-'} (선임일+3월)</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 등록 현황 */}
+                        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:10, padding:'14px 16px' }}>
+                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>🏢 공단 등록 현황</div>
+                          <div style={{ fontSize:12, color:'var(--t2)', marginBottom:10 }}>
+                            {reg.total}대 중 <span style={{ fontWeight:700, color:'var(--safe)' }}>{reg.registered}대</span> 등록
+                            {reg.total - reg.registered > 0 && <span style={{ color:'var(--warn)', marginLeft:6 }}>· 미등록 {reg.total - reg.registered}대</span>}
+                          </div>
+                          {(() => {
+                            const evMap = new Map(elevators.map(e => [e.id, e]))
+                            const chip = (evId: string | undefined) => {
+                              if (!evId) return <div />
+                              const ev = evMap.get(evId)
+                              if (!ev) return <div />
+                              const isReg = reg.registeredIds.includes(evId)
+                              const icon = ev.type === 'escalator' ? 'ES' : 'EV'
+                              return <span style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:6, background: isReg ? 'rgba(34,197,94,.12)' : 'rgba(245,158,11,.12)', color: isReg ? 'var(--safe)' : 'var(--warn)', textAlign:'center', display:'block' }}>{icon}{ev.number} {isReg ? '✓' : '✗'}</span>
+                            }
+                            const find = (type: string, num: number) => elevators.find(e => (type === 'ev' ? e.type !== 'escalator' : e.type === 'escalator') && e.number === num)?.id
+                            // 고정 배치 7열: EV 4열 + sep + ES 2열
+                            const grid = [
+                              [find('ev',1), find('ev',4), find('ev',7), find('ev',9), null, find('es',5), find('es',6)],
+                              [find('ev',2), find('ev',5), find('ev',8), find('ev',10), null, find('es',3), find('es',4)],
+                              [find('ev',3), find('ev',6), undefined,    find('ev',11), null, find('es',1), find('es',2)],
+                            ]
+                            return (
+                              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr) 8px repeat(2, 1fr)', gap:4, alignItems:'center' }}>
+                                <div style={{ gridColumn:'1/5', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>🛗 엘리베이터</div>
+                                <div />
+                                <div style={{ gridColumn:'6/8', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>↕️ 에스컬레이터</div>
+                                {grid.map((row, ri) => row.map((id, ci) => {
+                                  if (id === null) return <div key={`${ri}-sep`} />
+                                  return <div key={`${ri}-${ci}`}>{chip(id)}</div>
+                                }))}
+                              </div>
+                            )
+                          })()}
+                        </div>
+
+                        {/* 검사 일정 등록 */}
+                        <InspectionLookupInput onSave={entries => setInspectKeyList(entries)} initialKeys={inspectKeyList} />
+                      </div>
+                    )
+                  })()}
                 </div>
               </>
             ) : (
@@ -696,12 +1171,12 @@ export default function ElevatorPage() {
             : <FaultNewModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitFault.mutate(b)} loading={submitFault.isPending} />
         )}
         {modal === 'fault_resolve' && <FaultResolveModal fault={selectedFault!} onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
-        {modal === 'inspect_new' && <InspectModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
         {modal === 'annual_new' && <AnnualModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
         {modal === 'annual_upload' && <AnnualUploadModal elevators={elevators} onClose={() => setModal(null)} onComplete={() => { qc.invalidateQueries({ queryKey:['elevator_annuals'] }); setModal(null) }} />}
         {modal === 'repair_new' && <RepairNewModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
         {modal === 'ev_detail' && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
         {certViewerKey && <CertViewerModal certKey={certViewerKey} onClose={() => setCertViewerKey(null)} />}
+        {editRepairData && <RepairNewModal elevators={elevators} selected={null} onClose={() => setEditRepairData(null)} editData={editRepairData} />}
       </div>
     )
   }
@@ -863,60 +1338,257 @@ export default function ElevatorPage() {
           <RepairListSection elevators={elevators} navigate={navigate} />
         )}
 
-        {/* ── 점검 기록 ── */}
-        {tab === 'inspect' && (
+        {/* ── 점검 기록 (공단 자체점검결과) ── */}
+        {tab === 'inspect' && (() => {
+          const fmtDate8 = (d: string) => d && d.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d || '-'
+          const sortedMonths = [...availableMonths].sort()
+          const curIdx = sortedMonths.indexOf(koelsaMonth)
+          const hasPrev = curIdx > 0
+          const hasNext = curIdx < sortedMonths.length - 1
+          const goPrev = () => { if (hasPrev) setKoelsaMonth(sortedMonths[curIdx - 1]) }
+          const goNext = () => { if (hasNext) setKoelsaMonth(sortedMonths[curIdx + 1]) }
+          return (
           <>
-            {inspections.length === 0 && <EmptyState icon="📋" text="점검 기록이 없어요" />}
-            {inspections.map(i => {
-              const ov = OVERALL_STYLE[i.overall] ?? OVERALL_STYLE.normal
-              const isEs = i.elevator_type === 'escalator'
-              // action_needed에서 층 파싱
-              const floorMatch = i.action_needed?.match(/^\[([^\]]+)\]/)
-              const pureAction = i.action_needed?.replace(/^\[[^\]]+\]\s*/, '')
-              const floorLabel = floorMatch ? floorMatch[1] : null
+            {/* 월 선택 — 데이터 있는 월만 이동 */}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+              <button onClick={goPrev} disabled={!hasPrev} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasPrev ? 'var(--t2)' : 'var(--bd)', opacity: hasPrev ? 1 : 0.4 }}>‹</button>
+              <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--t1)' }}>
+                {koelsaMonth.slice(0,4)}년 {parseInt(koelsaMonth.slice(4))}월
+              </span>
+              <button onClick={goNext} disabled={!hasNext} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasNext ? 'var(--t2)' : 'var(--bd)', opacity: hasNext ? 1 : 0.4 }}>›</button>
+            </div>
 
+            {koelsaQuery.isLoading && <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t3)', fontSize:12 }}>공단 데이터 조회 중...</div>}
+            {koelsaQuery.isError && <div style={{ textAlign:'center', padding:'24px 0', color:'var(--danger)', fontSize:12 }}>공단 API 조회 실패</div>}
+
+            {!koelsaQuery.isLoading && koelsaMap.size === 0 && !koelsaQuery.isError && (
+              <EmptyState icon="📋" text="해당 월 점검 기록이 없어요" />
+            )}
+
+            {(['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
+              const group = elevators.filter(e => e.type === type && e.cert_no).sort((a,b) => a.number - b.number)
+              if (!group.length) return null
+              const fmtDate = (d: string) => d ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : '-'
               return (
-                <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'stretch', gap:10 }}>
-                  {/* 아이콘 */}
-                  <div style={{ width:48, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:32 }}>
-                    {TYPE_ICON[i.elevator_type]}
+                <div key={type}>
+                  <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:5, marginTop:4 }}>
+                    {TYPE_ICON[type]} {TYPE_LABEL[type]} ({group.length}대)
                   </div>
-                  {/* 내용 */}
-                  <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', gap:3 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{i.elevator_number ? `${i.elevator_number}호기` : i.elevator_location || '호기 미상'}</span>
-                      <span style={{ fontSize:10, fontWeight:700, color:ov.color, background:`${ov.color}22`, padding:'1px 6px', borderRadius:6 }}>{ov.label}</span>
-                    </div>
-                    <div style={{ fontSize:13, color:'var(--t2)' }}>{pureAction || '조치 사항 없음'}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date}</div>
-                  </div>
-                  {/* 우측: 해당층 + 삭제 */}
-                  <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                    {!isEs && floorLabel && (
-                      <span style={{ fontSize:11, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.1)', padding:'2px 7px', borderRadius:8 }}>{floorLabel}</span>
-                    )}
-                    {isAdmin && (
-                      <button onClick={() => deleteRecord('inspection', i.id)} style={{ fontSize:9, color:'var(--danger)', background:'none', border:'none', cursor:'pointer', fontWeight:600, opacity:0.6 }}>삭제</button>
-                    )}
-                  </div>
+                  {group.map(ev => {
+                    const data = koelsaMap.get(ev.id)
+                    const hasIssues = data ? data.issues.length > 0 : false
+                    const badge = !data ? { text:'미점검', color:'var(--t3)', bg:'var(--bg3)' } : hasIssues ? { text:'이상', color:'var(--warn)', bg:'rgba(245,158,11,.12)' } : { text:'양호', color:'var(--safe)', bg:'rgba(34,197,94,.12)' }
+                    const isExp = expandedInspect === ev.id
+                    return (
+                      <div key={ev.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', marginBottom:6, flexShrink:0 }}>
+                        <div onClick={() => data && setExpandedInspect(isExp ? null : ev.id)} style={{ padding:'10px 13px', display:'flex', alignItems:'center', gap:10, cursor: data ? 'pointer' : 'default' }}>
+                          <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[type]}</div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{ev.number}호기 <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>{ev.location}</span></div>
+                            <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{data ? `점검일: ${fmtDate8(data.summary!.inspectDate)}` : '점검 데이터 없음'}</div>
+                          </div>
+                          <span style={{ fontSize:10, fontWeight:700, color:badge.color, background:badge.bg, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>{badge.text}</span>
+                          {data && <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExp ? 'rotate(90deg)' : 'none', transition:'transform .15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>}
+                        </div>
+                        {isExp && data && (
+                          <div style={{ borderTop:'1px solid var(--bd)', padding:'12px 14px' }}>
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11, marginBottom:8 }}>
+                              <div><span style={{ color:'var(--t3)' }}>점검업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{data.summary!.companyName}</span></div>
+                              <div><span style={{ color:'var(--t3)' }}>점검자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{data.summary!.inspectorName}</span></div>
+                            </div>
+                            <div style={{ display:'flex', gap:6, fontSize:10, flexWrap:'wrap', marginBottom: hasIssues ? 10 : 0 }}>
+                              {(['A','B','C','D','E'] as const).map(r => {
+                                const cnt = data.resultCounts[r]; if (!cnt) return null
+                                const c: Record<string,string> = { A:'var(--safe)', B:'var(--warn)', C:'var(--danger)', D:'var(--t3)', E:'var(--t3)' }
+                                const l: Record<string,string> = { A:'양호', B:'주의', C:'긴급', D:'제외', E:'없음' }
+                                return <span key={r} style={{ fontWeight:700, color:c[r], background:`${c[r]}18`, padding:'2px 8px', borderRadius:6 }}>{l[r]} {cnt}</span>
+                              })}
+                            </div>
+                            {hasIssues && (
+                              <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
+                                <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--warn)' }}>
+                                  ⚠️ 주의관찰 항목
+                                </div>
+                                <div style={{ display:'grid', gridTemplateColumns:'50px 1fr auto', background:'var(--bg3)' }}>
+                                  {data.issues.map((issue, idx) => {
+                                    const isLast = idx === data.issues.length - 1
+                                    const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
+                                    const resultColor = issue.result === 'C' ? 'var(--danger)' : 'var(--warn)'
+                                    const resultLabel = issue.result === 'C' ? '긴급수리' : '주의관찰'
+                                    return (
+                                      <div key={idx} style={{ display:'contents' }}>
+                                        <div style={{ ...cellSt, color:'var(--t3)', fontWeight:600, fontFamily:'JetBrains Mono, monospace', fontSize:10 }}>{issue.titNo}</div>
+                                        <div style={{ ...cellSt, color:'var(--t1)' }}>
+                                          {issue.itemName}
+                                          {issue.itemDetail && <span style={{ color:'var(--t3)', marginLeft:4, fontSize:10 }}>({issue.itemDetail})</span>}
+                                        </div>
+                                        <div style={{ ...cellSt, color:resultColor, fontWeight:700 }}>{resultLabel}</div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )
             })}
           </>
-        )}
+          )
+        })()}
 
         {/* ── 검사 기록 ── */}
         {tab === 'annual' && (() => {
+          // 민원24 검사결과 (여러 건)
+          const mwList: any[] = minwon24Query.data ?? []
+          const MINWON_RESULT: Record<string, { text: string; color: string }> = {
+            '합격': { text: '합격', color: 'var(--safe)' },
+            '조건부합격': { text: '조건부', color: 'var(--warn)' },
+            '불합격': { text: '불합격', color: 'var(--danger)' },
+            '보완': { text: '보완', color: 'var(--warn)' },
+          }
+          const fmtMwDate = (d: string) => {
+            if (!d || d === '-') return '-'
+            if (d.includes('.')) return d
+            if (d.length === 8) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`
+            return d
+          }
+
           // 자식 cert(조치 후 합격) 제외 + parent별 매핑
           const mainAnnuals = annuals.filter((a: any) => !a.parent_inspection_id)
           const correctiveByParent: Record<string, ElevatorInspection> = {}
           for (const a of annuals as ElevatorInspection[]) {
             if (a.parent_inspection_id) correctiveByParent[a.parent_inspection_id] = a
           }
+
+          // 사용 가능한 연도 추출
+          const allMwYears: number[] = []
+          for (const mw of mwList) {
+            for (const ev of mw.elevators) {
+              const d = ev.inspectDate?.replace(/\./g, '') ?? ''
+              if (d.length >= 4) allMwYears.push(parseInt(d.slice(0,4)))
+            }
+          }
+          const dbYears = mainAnnuals.map((a: any) => parseInt(a.inspect_date?.slice(0,4))).filter((y: number) => y > 0)
+          const mobileAvailYears = [...new Set([...allMwYears, ...dbYears])].sort((a, b) => b - a)
+          const mCurIdx = mobileAvailYears.indexOf(annualYear)
+          const mHasPrev = mCurIdx < mobileAvailYears.length - 1
+          const mHasNext = mCurIdx > 0
+          const mGoPrev = () => { if (mHasPrev) setAnnualYear(mobileAvailYears[mCurIdx + 1]) }
+          const mGoNext = () => { if (mHasNext) setAnnualYear(mobileAvailYears[mCurIdx - 1]) }
+
+          // 연도 필터 적용된 DB 검사성적서
+          const yearMainAnnuals = mainAnnuals.filter((a: any) => a.inspect_date?.startsWith(String(annualYear)))
+
           return (
           <>
-            {mainAnnuals.length === 0 && <EmptyState icon="📋" text="검사 기록이 없어요" />}
-            {mainAnnuals.map(i => {
+            {/* 연도 선택 */}
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
+              <button onClick={mGoPrev} disabled={!mHasPrev} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: mHasPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: mHasPrev ? 'var(--t2)' : 'var(--bd)', opacity: mHasPrev ? 1 : 0.4 }}>‹</button>
+              <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--t1)' }}>{annualYear}년</span>
+              <button onClick={mGoNext} disabled={!mHasNext} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: mHasNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: mHasNext ? 'var(--t2)' : 'var(--bd)', opacity: mHasNext ? 1 : 0.4 }}>›</button>
+            </div>
+
+            {/* 민원24 검사결과 — 타입별 호기 카드 (연도 필터) */}
+            {(() => {
+              const certToEv = new Map<string, Elevator>()
+              for (const ev of elevators) { if (ev.cert_no) certToEv.set(ev.cert_no.replace(/-/g, ''), ev) }
+              const mwByEvId = new Map<string, any>()
+              for (const mw of mwList) {
+                // 검사일 기준 차수 판별: 고유 검사일을 시간순 정렬 → 인덱스+1 = 차수
+                const uniqueDates = [...new Set((mw.elevators ?? []).map((e: any) => e.inspectDate?.replace(/\./g, '') ?? ''))].filter(Boolean).sort()
+                const dateToOrder = new Map<string, number>()
+                uniqueDates.forEach((d, i) => dateToOrder.set(d as string, i + 1))
+
+                for (const ev of mw.elevators) {
+                  // 연도 필터
+                  const d = ev.inspectDate?.replace(/\./g, '') ?? ''
+                  if (d.length >= 4 && parseInt(d.slice(0,4)) !== annualYear) continue
+                  const evOrder = dateToOrder.get(d) ?? 1
+                  const ourEv = certToEv.get(ev.elevatorNo)
+                  if (ourEv) mwByEvId.set(ourEv.id, { ...ev, institution: mw.inspectInstitution, inspectKind: mw.inspectKind, documentNo: mw.report?.documentNo, rptInsttCd: mw.report?.inspectInstitutionCode, rptRecptDe: mw.report?.receiptDate, rptRecptNo: mw.report?.receiptNo, rptOdr: mw.report?.inspectOrder, rptDrftOdr: mw.report?.draftOrder, totalOrders: mw.report?.totalOrders ?? 1, evOrder })
+                }
+              }
+              return (['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
+                const group = elevators.filter(e => e.type === type && e.cert_no).sort((a,b) => a.number - b.number)
+                if (!group.length) return null
+                return (
+                  <div key={type}>
+                    <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', marginBottom:5, marginTop:6 }}>{TYPE_ICON[type]} {TYPE_LABEL[type]} ({group.length}대)</div>
+                    {group.map(ev => {
+                      const mwEv = mwByEvId.get(ev.id)
+                      const rl = mwEv ? (MINWON_RESULT[mwEv.inspectResultLabel] ?? { text: mwEv.inspectResultLabel || '-', color: 'var(--t3)' }) : { text: '미등록', color: 'var(--t3)' }
+                      const isExp = expandedMw === ev.id
+                      const hasConditional = mwEv?.conditionalFrom && mwEv.conditionalFrom !== '-'
+                      return (
+                        <div key={ev.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', marginBottom:6, flexShrink:0 }}>
+                          <div onClick={() => mwEv && setExpandedMw(isExp ? null : ev.id)} style={{ padding:'10px 13px', display:'flex', alignItems:'center', gap:10, cursor: mwEv ? 'pointer' : 'default' }}>
+                            <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[type]}</div>
+                            <div style={{ flex:1, minWidth:0 }}>
+                              <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{ev.number}호기 <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>{ev.location}</span></div>
+                              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{mwEv ? `최종검사일: ${fmtMwDate(mwEv.inspectDate)}` : '검사 데이터 없음'}</div>
+                            </div>
+                            <span style={{ fontSize:10, fontWeight:700, color:rl.color, background:`${rl.color}22`, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>{rl.text}</span>
+                            {mwEv && <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExp ? 'rotate(90deg)' : 'none', transition:'transform .15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>}
+                          </div>
+                          {isExp && mwEv && (
+                            <div style={{ borderTop:'1px solid var(--bd)', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+                              {/* 검사 정보 2열 */}
+                              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'6px 12px', fontSize:11 }}>
+                                <div><span style={{ color:'var(--t3)' }}>검사유형 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.inspectKind ?? '정기'}검사</span></div>
+                                <div><span style={{ color:'var(--t3)' }}>결과상세 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.resultText ?? mwEv.inspectResultLabel}</span></div>
+                                <div><span style={{ color:'var(--t3)' }}>접수일 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{fmtMwDate(mwEv.receiptDate)}</span></div>
+                                <div><span style={{ color:'var(--t3)' }}>검사일 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.assignDate ?? '-'}</span></div>
+                                <div><span style={{ color:'var(--t3)' }}>최종검사일 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{fmtMwDate(mwEv.inspectDate)}</span></div>
+                                <div><span style={{ color:'var(--t3)' }}>차수 </span><span style={{ color:'var(--info)', fontWeight:700 }}>{mwEv.evOrder ?? 1}차</span></div>
+                              </div>
+                              {/* 검사기관 1열 */}
+                              <div style={{ fontSize:11 }}>
+                                <span style={{ color:'var(--t3)' }}>검사기관 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{mwEv.institution}</span>
+                              </div>
+                              {/* 유효기간 + 성적서번호 인라인 */}
+                              <div style={{ fontSize:11 }}>
+                                <span style={{ color:'var(--t3)' }}>검사유효기간 </span><span style={{ color:'var(--t1)', fontWeight:700 }}>{mwEv.validFrom} ~ {mwEv.validTo}</span>
+                              </div>
+                              {mwEv.documentNo && (
+                                <div style={{ fontSize:11 }}>
+                                  <span style={{ color:'var(--t3)' }}>성적서번호 </span><span style={{ color:'var(--t1)', fontWeight:600, fontFamily:'JetBrains Mono, monospace' }}>{mwEv.documentNo}</span>
+                                </div>
+                              )}
+                              {/* 보완기간 */}
+                              {hasConditional && (
+                                <div style={{ background:'rgba(245,158,11,.08)', border:'1px solid rgba(245,158,11,.2)', borderRadius:8, padding:'8px 10px', fontSize:11, fontWeight:700, color:'var(--warn)' }}>
+                                  ⚠️ 보완기간: {mwEv.conditionalFrom} ~ {mwEv.conditionalTo}
+                                </div>
+                              )}
+                              {/* 검사성적서 출력 (ClipReport) — 차수별 */}
+                              {mwEv.rptInsttCd && (
+                                <button onClick={() => openClipReport(mwEv, mwEv.evOrder ?? 1)}
+                                  style={{ width:'100%', padding:'10px', borderRadius:8, background:'rgba(59,130,246,.1)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer', textAlign:'center' }}>
+                                  📄 {(mwEv.totalOrders ?? 1) > 1 ? `${mwEv.evOrder}차 ` : ''}검사성적서 출력
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })
+            })()}
+            {minwon24Query.isLoading && inspectKeyList.length > 0 && (
+              <div style={{ textAlign:'center', padding:'12px 0', color:'var(--t3)', fontSize:11 }}>공단 검사 결과 조회 중...</div>
+            )}
+
+            {/* 기존 검사 기록 (DB) — 연도 필터 */}
+            {yearMainAnnuals.length > 0 && <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', marginTop:12, marginBottom:5 }}>📄 업로드된 검사 기록</div>}
+            {yearMainAnnuals.length === 0 && mwList.length === 0 && !minwon24Query.isLoading && <EmptyState icon="📋" text="해당 연도 검사 기록이 없어요" />}
+            {yearMainAnnuals.map(i => {
               const resultKey = i.result || i.overall
               const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
               const isExpanded = expandedAnnual === i.id
@@ -1016,12 +1688,8 @@ export default function ElevatorPage() {
                       )}
 
                       {/* 조건부합격/불합격 조치 패널 (합격 전환 후에도 이력 표시) */}
-                      {(resultKey === 'conditional' || resultKey === 'fail' || i.action_needed?.includes('→합격 전환')) && (
-                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} hasCorrective={!!correctiveByParent[i.id]} />
-                      )}
-
-                      {/* 검사성적서 — 항목별 검사결과 + 검사실시정보 (조치 후 합격 cert 포함) */}
-                      <CertSummary inspection={i} corrective={correctiveByParent[i.id]} onViewCert={setCertViewerKey} />
+                      {/* 검사성적서 — 항목별 검사결과 + 검사실시정보 (부적합 항목에 지적사항 포함) */}
+                      <CertSummary inspection={i} corrective={correctiveByParent[i.id]} onViewCert={setCertViewerKey} elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} />
 
                       {isAdmin && (
                         <button
@@ -1040,21 +1708,139 @@ export default function ElevatorPage() {
           )
         })()}
 
+        {/* ── 안전관리자 ── */}
+        {tab === 'safety' && (() => {
+          const data = safetyMgrQuery.data
+          if (safetyMgrQuery.isLoading) return <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>공단 데이터 조회 중...</div>
+          if (!data?.manager) return <EmptyState icon="👤" text="안전관리자 정보가 없어요" />
+
+          const m = data.manager
+          const edu = data.education
+          const reg = data.registration
+
+          const fmtDday = (days: number | null) => {
+            if (days === null) return null
+            if (days < 0) return { text: `D+${Math.abs(days)} 초과`, color: 'var(--danger)', bg: 'rgba(239,68,68,.12)' }
+            if (days <= 60) return { text: `D-${days}`, color: 'var(--warn)', bg: 'rgba(245,158,11,.12)' }
+            if (days <= 365) return { text: `D-${days}`, color: 'var(--info)', bg: 'rgba(59,130,246,.12)' }
+            return { text: `D-${days}`, color: 'var(--safe)', bg: 'rgba(34,197,94,.12)' }
+          }
+
+          const refreshDday = fmtDday(edu.refreshEdu.daysLeft)
+
+          return (
+            <>
+              {/* 안전관리자 프로필 */}
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                  <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>👤</div>
+                  <div>
+                    <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{m.realName ?? m.maskedName}</div>
+                    <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>승강기 안전관리자</div>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontSize:11 }}>
+                  <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
+                    <div style={{ color:'var(--t3)', marginBottom:2 }}>선임일</div>
+                    <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.appointedAt}</div>
+                  </div>
+                  <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
+                    <div style={{ color:'var(--t3)', marginBottom:2 }}>교육이수일</div>
+                    <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.eduDate}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 교육 현황 */}
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:12 }}>📚 교육 현황</div>
+
+                {/* 보수(재) 교육 */}
+                <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px', marginBottom:8 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>보수(재) 교육</span>
+                    {refreshDday && (
+                      <span style={{ fontSize:11, fontWeight:700, color:refreshDday.color, background:refreshDday.bg, padding:'2px 8px', borderRadius:6 }}>{refreshDday.text}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--t3)' }}>
+                    유효기간: {m.eduValidFrom} ~ {m.eduValidTo}
+                  </div>
+                  <div style={{ fontSize:10, color:'var(--t3)', marginTop:4 }}>
+                    다음 교육 마감: {edu.refreshEdu.deadline ?? '-'} (직전 이수일 + 3년)
+                  </div>
+                </div>
+
+                {/* 신규 교육 (이미 완료된 경우) */}
+                <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                    <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>신규 교육</span>
+                    {edu.newEdu.daysLeft !== null && edu.newEdu.daysLeft < 0 ? (
+                      <span style={{ fontSize:11, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.12)', padding:'2px 8px', borderRadius:6 }}>완료</span>
+                    ) : edu.newEdu.daysLeft !== null ? (
+                      <span style={{ fontSize:11, fontWeight:700, color:'var(--warn)', background:'rgba(245,158,11,.12)', padding:'2px 8px', borderRadius:6 }}>D-{edu.newEdu.daysLeft}</span>
+                    ) : null}
+                  </div>
+                  <div style={{ fontSize:10, color:'var(--t3)' }}>
+                    마감: {edu.newEdu.deadline ?? '-'} (선임일 + 3개월)
+                  </div>
+                </div>
+              </div>
+
+              {/* 등록 현황 */}
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>🏢 공단 등록 현황</div>
+                <div style={{ fontSize:12, color:'var(--t2)', marginBottom:10 }}>
+                  {reg.total}대 중 <span style={{ fontWeight:700, color:'var(--safe)' }}>{reg.registered}대</span> 등록
+                  {reg.total - reg.registered > 0 && (
+                    <span style={{ color:'var(--warn)', marginLeft:6 }}>· 미등록 {reg.total - reg.registered}대</span>
+                  )}
+                </div>
+                {(() => {
+                  const evMap = new Map(elevators.map(e => [e.id, e]))
+                  const chip = (evId: string | undefined) => {
+                    if (!evId) return <div />
+                    const ev = evMap.get(evId)
+                    if (!ev) return <div />
+                    const isReg = reg.registeredIds.includes(evId)
+                    const icon = ev.type === 'escalator' ? 'ES' : 'EV'
+                    return <span style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:6, background: isReg ? 'rgba(34,197,94,.12)' : 'rgba(245,158,11,.12)', color: isReg ? 'var(--safe)' : 'var(--warn)', textAlign:'center', display:'block' }}>{icon}{ev.number} {isReg ? '✓' : '✗'}</span>
+                  }
+                  const find = (type: string, num: number) => elevators.find(e => (type === 'ev' ? e.type !== 'escalator' : e.type === 'escalator') && e.number === num)?.id
+                  const grid = [
+                    [find('ev',1), find('ev',4), find('ev',7), find('ev',9), null, find('es',5), find('es',6)],
+                    [find('ev',2), find('ev',5), find('ev',8), find('ev',10), null, find('es',3), find('es',4)],
+                    [find('ev',3), find('ev',6), undefined,    find('ev',11), null, find('es',1), find('es',2)],
+                  ]
+                  return (
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr) 6px repeat(2, 1fr)', gap:4, alignItems:'center' }}>
+                      <div style={{ gridColumn:'1/5', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>🛗 엘리베이터</div>
+                      <div />
+                      <div style={{ gridColumn:'6/8', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>↕️ 에스컬레이터</div>
+                      {grid.map((row, ri) => row.map((id, ci) => {
+                        if (id === null) return <div key={`${ri}-sep`} />
+                        return <div key={`${ri}-${ci}`}>{chip(id)}</div>
+                      }))}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* 검사 일정 등록 */}
+              <InspectionLookupInput onSave={entries => setInspectKeyList(entries)} initialKeys={inspectKeyList} />
+            </>
+          )
+        })()}
+
       </main>
 
       {/* ── FAB 버튼 (BottomNav 바로 위, flex 형제) ── */}
-      {(tab === 'fault' || tab === 'repair' || tab === 'inspect' || tab === 'annual') && (
+      {(tab === 'fault' || tab === 'repair' || tab === 'annual') && (
         <div style={{ flexShrink:0, padding:'8px 12px', background:'var(--bg)' }}>
           {tab === 'fault' && (
             <button onClick={() => { setSelectedEv(null); setModal('fault_new') }}
               style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#991b1b,#ef4444)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(239,68,68,.4)' }}>
               🚨 고장 접수
-            </button>
-          )}
-          {tab === 'inspect' && (
-            <button onClick={() => { setSelectedEv(null); setModal('inspect_new') }}
-              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#1e3a5f,#3b82f6)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(59,130,246,.4)' }}>
-              📋 점검 기록 입력
             </button>
           )}
           {tab === 'repair' && (
@@ -1644,6 +2430,95 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
   )
 }
 
+// ── 검사 일정 등록 입력폼 (안전관리자 탭용) ────────────────────
+type InspectKeyEntry = { cstmr: string; recptn: string }
+
+function InspectionLookupInput({ onSave, initialKeys }: { onSave: (entries: InspectKeyEntry[]) => void; initialKeys?: InspectKeyEntry[] }) {
+  const [entries, setEntries] = useState<InspectKeyEntry[]>(
+    initialKeys && initialKeys.length > 0 ? initialKeys : [{ cstmr: '', recptn: '' }]
+  )
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const updateEntry = (idx: number, field: 'cstmr' | 'recptn', val: string) => {
+    const next = [...entries]
+    next[idx] = { ...next[idx], [field]: val }
+    setEntries(next)
+  }
+  const addEntry = () => setEntries([...entries, { cstmr: '', recptn: '' }])
+  const removeEntry = (idx: number) => { if (entries.length > 1) setEntries(entries.filter((_, i) => i !== idx)) }
+
+  const handleSave = async () => {
+    const valid = entries.filter(e => e.cstmr && e.recptn)
+    for (const e of valid) {
+      if (e.cstmr.length !== 13) { setError('고객안내번호는 13자리여야 합니다'); return }
+      if (e.recptn.length !== 17) { setError('접수번호는 17자리여야 합니다'); return }
+    }
+    if (valid.length === 0) { setError('최소 1건을 입력하세요'); return }
+    setError(null)
+    setSaving(true)
+    try {
+      const res = await fetch('/api/elevators/inspect-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ keys: valid }),
+      })
+      const json = await res.json() as any
+      if (json.success) {
+        onSave(json.data)
+        toast.success('저장 완료 — 검사 기록 탭에서 확인하세요')
+      } else {
+        toast.error(json.error ?? '저장 실패')
+      }
+    } catch {
+      toast.error('저장 실패')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputSt: React.CSSProperties = { width:'100%', padding:'9px 10px', borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, fontFamily:'JetBrains Mono, monospace', outline:'none', boxSizing:'border-box', letterSpacing:1 }
+
+  return (
+    <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:12 }}>🔍 검사 일정 등록</div>
+      <div style={{ fontSize:10, color:'var(--t3)', marginBottom:10, lineHeight:1.5 }}>
+        검사 신청 후 전달받은 고객안내번호와 접수번호를 입력하면<br/>검사 기록 탭에서 검사 결과를 자동으로 확인할 수 있습니다.
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+        {entries.map((entry, idx) => (
+          <div key={idx} style={{ background:'var(--bg3)', borderRadius:8, padding:'10px', position:'relative' }}>
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(idx)} style={{ position:'absolute', top:6, right:8, background:'none', border:'none', color:'var(--danger)', fontSize:14, cursor:'pointer', fontWeight:700, opacity:0.6 }}>✕</button>
+            )}
+            {entries.length > 1 && <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>검사 #{idx + 1}</div>}
+            <div style={{ marginBottom:6 }}>
+              <label style={{ fontSize:9, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:3 }}>고객안내번호 (13자리)</label>
+              <input value={entry.cstmr} onChange={e => updateEntry(idx, 'cstmr', e.target.value.replace(/\D/g,'').slice(0,13))} placeholder="0000000000000" style={inputSt} />
+            </div>
+            <div>
+              <label style={{ fontSize:9, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:3 }}>접수번호 (17자리)</label>
+              <input value={entry.recptn} onChange={e => updateEntry(idx, 'recptn', e.target.value.replace(/\D/g,'').slice(0,17))} placeholder="00000000000000000" style={inputSt} />
+            </div>
+          </div>
+        ))}
+        {error && <div style={{ fontSize:11, color:'var(--danger)', background:'rgba(239,68,68,.1)', padding:'8px 10px', borderRadius:8 }}>{error}</div>}
+        {initialKeys && initialKeys.length > 0 && <div style={{ fontSize:10, color:'var(--safe)' }}>✓ {initialKeys.length}건 등록됨</div>}
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={addEntry}
+            style={{ flex:1, padding:'11px 0', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+            + 추가
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ flex:1, padding:'11px 0', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', opacity: saving ? 0.5 : 1 }}>
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── 점검 기록 모달 ─────────────────────────────────────────
 function InspectModal({ elevators, selected, onClose, onSubmit, loading }: {
   elevators:Elevator[]; selected:Elevator|null; onClose:()=>void; onSubmit:(b:any)=>void; loading:boolean
@@ -2131,6 +3006,9 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
   const qc = useQueryClient()
   const { staff: fpStaff } = useAuthStore()
   const isAdmin = fpStaff?.role === 'admin'
+  const [newDesc, setNewDesc] = useState('')
+  const [addingFinding, setAddingFinding] = useState(false)
+  const [linkingFindingId, setLinkingFindingId] = useState<string | null>(null)
 
   const { data: findings = [], isLoading } = useQuery({
     queryKey: ['elev-findings', inspectionId],
@@ -2138,7 +3016,43 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
     staleTime: 60_000,
   })
 
+  // 해당 호기 수리이력
+  const { data: repairsList = [] } = useQuery({
+    queryKey: ['elev-repairs-for-panel', elevatorId],
+    queryFn: () => elevatorRepairApi.list({ elevator_id: elevatorId }),
+    enabled: !!elevatorId,
+  })
+
   const allResolved = findings.length > 0 && findings.every(f => f.status === 'resolved')
+
+  // 지적사항 추가
+  const handleAddFinding = async () => {
+    if (!newDesc.trim()) return
+    setAddingFinding(true)
+    try {
+      await elevatorInspectionApi.createFinding(elevatorId, inspectionId, { description: newDesc.trim() })
+      setNewDesc('')
+      qc.invalidateQueries({ queryKey: ['elev-findings', inspectionId] })
+      toast.success('지적사항 등록 완료')
+    } catch { toast.error('등록 실패') }
+    setAddingFinding(false)
+  }
+
+  // 수리이력 연결 → 조치 완료
+  const handleLinkRepair = async (findingId: string, repair: any) => {
+    try {
+      await elevatorInspectionApi.resolveFinding(elevatorId, inspectionId, findingId, {
+        resolution_memo: `[수리이력 연결] ${repair.date} · ${repair.title}${repair.detail && repair.detail !== repair.title ? '\n' + repair.detail : ''}`,
+        resolved_date: repair.date,
+        repair_id: repair.sourceId,
+      })
+      qc.invalidateQueries({ queryKey: ['elev-findings', inspectionId] })
+      qc.invalidateQueries({ queryKey: ['elevator_repairs_all'] })
+      qc.invalidateQueries({ queryKey: ['elev-repairs'] })
+      setLinkingFindingId(null)
+      toast.success('조치 연결 완료')
+    } catch { toast.error('연결 실패') }
+  }
 
   // 합격 전환 mutation
   const convertToPass = useMutation({
@@ -2158,52 +3072,57 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
   })
 
   return (
-    <div style={{ marginTop:12, borderTop:'1px solid var(--bd)', paddingTop:10 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
-        <div style={{ fontSize:11, fontWeight:700, color: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)' }}>
-          지적사항 및 조치
-        </div>
-        {findings.length > 0 && (
-          <span style={{ fontSize:10, color:'var(--t3)' }}>
-            조치완료 {findings.filter(f => f.status === 'resolved').length}/{findings.length}건
-          </span>
-        )}
+    <div style={{ padding:'6px 8px' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
+        <span style={{ fontSize:10, fontWeight:700, color: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)' }}>지적사항 및 조치</span>
+        {findings.length > 0 && <span style={{ fontSize:9, color:'var(--t3)' }}>{findings.filter(f => f.status === 'resolved').length}/{findings.length} 조치</span>}
       </div>
 
-      {isLoading && <div style={{ fontSize:11, color:'var(--t3)' }}>불러오는 중...</div>}
+      {isLoading && <div style={{ fontSize:9, color:'var(--t3)' }}>불러오는 중...</div>}
 
       {findings.map(f => (
-        <div key={f.id}
-          onClick={() => navigate(`/elevator/findings/${f.id}?eid=${elevatorId}&iid=${inspectionId}`)}
-          style={{ padding:'8px 10px', background:'var(--bg3)', borderRadius:9, marginBottom:6, cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}
-        >
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.description}</div>
-            {f.location && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{f.location}</div>}
+        <div key={f.id} style={{ padding:'4px 6px', background:'var(--bg2)', borderRadius:5, marginBottom:3 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:10 }}>
+            <span style={{ flex:1, color:'var(--t1)', fontWeight:600, cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
+              onClick={() => navigate(`/elevator/findings/${f.id}?eid=${elevatorId}&iid=${inspectionId}`)}>{f.description}</span>
+            <span style={{ fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:6, flexShrink:0,
+              background: f.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
+              color: f.status === 'open' ? 'var(--danger)' : 'var(--safe)',
+            }}>{f.status === 'open' ? '미조치' : '완료'}</span>
           </div>
-          <span style={{
-            fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:10, flexShrink:0,
-            background: f.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
-            color:      f.status === 'open' ? 'var(--danger)'        : 'var(--safe)',
-          }}>{f.status === 'open' ? '미조치' : '조치완료'}</span>
-          <svg width={12} height={12} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+          {f.status === 'open' && linkingFindingId !== f.id && (
+            <button onClick={() => setLinkingFindingId(f.id)}
+              style={{ marginTop:2, padding:'2px 6px', borderRadius:4, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.15)', color:'var(--info)', fontSize:9, fontWeight:600, cursor:'pointer' }}>
+              수리이력 연결
+            </button>
+          )}
+          {linkingFindingId === f.id && (
+            <div style={{ marginTop:3, background:'var(--bg3)', borderRadius:4, padding:4, maxHeight:100, overflowY:'auto', border:'1px solid var(--bd)' }}>
+              {repairsList.filter((r: any) => r.sourceType === 'standalone').length === 0 && <div style={{ fontSize:9, color:'var(--t3)', padding:2 }}>수리 이력 없음</div>}
+              {repairsList.filter((r: any) => r.sourceType === 'standalone').map((r: any) => (
+                <div key={r.id} onClick={() => handleLinkRepair(f.id, r)}
+                  style={{ padding:'2px 5px', borderRadius:3, cursor:'pointer', marginBottom:1, background:'var(--bg2)', fontSize:9 }}>
+                  <span style={{ fontWeight:600, color:'var(--t1)' }}>{r.date}</span> <span style={{ color:'var(--t2)' }}>{r.title}</span>
+                </div>
+              ))}
+              <button onClick={() => setLinkingFindingId(null)} style={{ marginTop:2, padding:'1px 5px', borderRadius:3, background:'none', border:'1px solid var(--bd)', color:'var(--t3)', fontSize:8, cursor:'pointer' }}>취소</button>
+            </div>
+          )}
+          {f.status === 'resolved' && f.resolutionMemo && (
+            <div style={{ fontSize:9, color:'var(--safe)', marginTop:2 }}>✅ {f.resolutionMemo}</div>
+          )}
         </div>
       ))}
 
-      {findings.length === 0 && !isLoading && (
-        <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', padding:'8px 0' }}>등록된 지적사항이 없습니다</div>
-      )}
-
-      {/* 합격 전환 버튼 — 모든 지적 조치 완료 + admin + 조치 후 cert 없음 */}
-      {allResolved && isAdmin && inspectionResult !== 'pass' && !hasCorrective && (
-        <button
-          onClick={() => { if (confirm('모든 조치가 완료되었습니다. 합격으로 전환하시겠습니까?')) convertToPass.mutate() }}
-          disabled={convertToPass.isPending}
-          style={{ width:'100%', marginTop:8, padding:'10px 0', borderRadius:8, border:'none', background:'rgba(34,197,94,0.15)', color:'var(--safe)', fontSize:12, fontWeight:700, cursor:'pointer' }}
-        >
-          {convertToPass.isPending ? '전환 중...' : '✓ 합격으로 전환'}
+      <div style={{ display:'flex', gap:4, marginTop:3 }}>
+        <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="지적사항 입력..."
+          onKeyDown={e => e.key === 'Enter' && handleAddFinding()}
+          style={{ flex:1, padding:'3px 6px', borderRadius:4, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:10, outline:'none' }} />
+        <button onClick={handleAddFinding} disabled={!newDesc.trim() || addingFinding}
+          style={{ padding:'3px 8px', borderRadius:4, border:'none', background: inspectionResult === 'fail' ? 'var(--danger)' : 'var(--warn)', color:'#fff', fontSize:9, fontWeight:700, cursor:'pointer', opacity: !newDesc.trim() || addingFinding ? 0.5 : 1 }}>
+          {addingFinding ? '..' : '추가'}
         </button>
-      )}
+      </div>
     </div>
   )
 }
@@ -2248,18 +3167,27 @@ function EmptyState({ icon, text }: { icon:string; text:string }) {
 // ── 검사성적서 요약 (검사기록 카드 펼침 시 표시) ────────────
 // inspection 객체에 PDF 파싱된 항목별 결과(inspection_items JSON) + 검사실시정보가 있으면 표시
 // corrective: 조건부합격 → 시정조치 후 합격 cert (선택적)
-function CertSummary({ inspection, corrective, onViewCert }: {
+function CertSummary({ inspection, corrective, onViewCert, elevatorId, inspectionId, inspectionResult, navigate }: {
   inspection: ElevatorInspection
   corrective?: ElevatorInspection
   onViewCert?: (key: string) => void
+  elevatorId?: string
+  inspectionId?: string
+  inspectionResult?: string
+  navigate?: (to: string) => void
 }) {
   const hasOriginal = certHasData(inspection)
   const hasCorrective = corrective && certHasData(corrective)
   if (!hasOriginal && !hasCorrective) return null
 
+  const showFindings = elevatorId && inspectionId && inspectionResult && navigate &&
+    (inspectionResult === 'conditional' || inspectionResult === 'fail' || inspection.action_needed?.includes('→합격 전환'))
+
   return (
     <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:14 }}>
-      {hasOriginal && <CertBlock inspection={inspection} title="검사성적서" onViewCert={onViewCert} />}
+      {hasOriginal && <CertBlock inspection={inspection} title="검사성적서" onViewCert={onViewCert}
+        elevatorId={showFindings ? elevatorId : undefined} inspectionId={showFindings ? inspectionId : undefined}
+        inspectionResult={showFindings ? inspectionResult : undefined} navigate={showFindings ? navigate : undefined} />}
       {hasCorrective && (
         <CertBlock
           inspection={corrective!}
@@ -2275,11 +3203,15 @@ function certHasData(insp: ElevatorInspection): boolean {
   if (insp.inspection_items) return true
   return !!(insp.inspector_name || insp.inspection_agency || insp.judgment || insp.validity_start || insp.cert_number || insp.certificate_key)
 }
-function CertBlock({ inspection, title, accent, onViewCert }: {
+function CertBlock({ inspection, title, accent, onViewCert, elevatorId, inspectionId, inspectionResult, navigate }: {
   inspection: ElevatorInspection
   title: string
   accent?: string
   onViewCert?: (key: string) => void
+  elevatorId?: string
+  inspectionId?: string
+  inspectionResult?: string
+  navigate?: (to: string) => void
 }) {
   let items: Array<{ no:string; name:string; result:string }> = []
   if (inspection.inspection_items) {
@@ -2313,13 +3245,19 @@ function CertBlock({ inspection, title, accent, onViewCert }: {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'40px 1fr auto', background:'var(--bg3)' }}>
             {items.map((it, idx) => {
-              const isLast = idx === items.length - 1
+              const isLast = idx === items.length - 1 && it.result !== '부적합'
               const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
-              return [
-                <div key={`${idx}-no`} style={{ ...cellSt, color:'var(--t3)', fontWeight:600 }}>{it.no}</div>,
-                <div key={`${idx}-name`} style={{ ...cellSt, color:'var(--t1)' }}>{it.name}</div>,
-                <div key={`${idx}-result`} style={{ ...cellSt, color:resultColor(it.result), fontWeight:700 }}>{it.result}</div>,
-              ]
+              return (<>
+                <div key={`${idx}-no`} style={{ ...cellSt, color:'var(--t3)', fontWeight:600 }}>{it.no}</div>
+                <div key={`${idx}-name`} style={{ ...cellSt, color:'var(--t1)' }}>{it.name}</div>
+                <div key={`${idx}-result`} style={{ ...cellSt, color:resultColor(it.result), fontWeight:700 }}>{it.result}</div>
+                {it.result === '부적합' && elevatorId && inspectionId && inspectionResult && navigate && (<>
+                  <div key={`${idx}-findings-spacer`} style={{ borderBottom: idx === items.length - 1 ? 'none' : '1px solid var(--bd)' }} />
+                  <div key={`${idx}-findings`} style={{ gridColumn:'2 / -1', borderBottom: idx === items.length - 1 ? 'none' : '1px solid var(--bd)' }}>
+                    <FindingsPanel elevatorId={elevatorId} inspectionId={inspectionId} inspectionResult={inspectionResult} navigate={navigate} />
+                  </div>
+                </>)}
+              </>)
             })}
           </div>
         </div>
@@ -2490,6 +3428,7 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
   const [keyword, setKeyword] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
+  const [editRepair, setEditRepair] = useState<any>(null)
 
   const filteredElevators = (evType ? elevators.filter(e => evType === 'escalator' ? e.type === 'escalator' : e.type !== 'escalator') : elevators).slice().sort((a, b) => a.number - b.number)
 
@@ -2576,26 +3515,35 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
                 {renderPhotos('수리 중', r.duringRepairPhotos)}
                 {renderPhotos('수리 완료 / 조치 사진', r.completedPhotos)}
                 {r.sourceType === 'standalone' && (
-                  <button
-                    onClick={async () => {
-                      if (!confirm('삭제하시겠습니까?')) return
-                      try {
-                        await elevatorRepairApi.delete(r.sourceId)
-                        qc.invalidateQueries({ queryKey: ['elev-repairs'] })
-                        toast.success('삭제 완료')
-                        setExpandedId(null)
-                      } catch { toast.error('삭제 실패') }
-                    }}
-                    style={{ marginTop:10, width:'100%', padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
-                  >
-                    수리 기록 삭제
-                  </button>
+                  <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                    <button
+                      onClick={() => { setEditRepair(r); setExpandedId(null) }}
+                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--info)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                    >
+                      수정
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm('삭제하시겠습니까?')) return
+                        try {
+                          await elevatorRepairApi.delete(r.sourceId)
+                          qc.invalidateQueries({ queryKey: ['elev-repairs'] })
+                          toast.success('삭제 완료')
+                          setExpandedId(null)
+                        } catch { toast.error('삭제 실패') }
+                      }}
+                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                    >
+                      삭제
+                    </button>
+                  </div>
                 )}
               </div>
             )}
           </div>
         )
       })}
+      {editRepair && <RepairNewModal elevators={elevators} selected={null} onClose={() => setEditRepair(null)} editData={editRepair} />}
     </>
   )
 }
@@ -2690,21 +3638,22 @@ function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; ke
 }
 
 // ── 수리 기록 입력 모달 ──────────────────────────────────────
-function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[]; selected: Elevator | null; onClose: () => void }) {
+function RepairNewModal({ elevators, selected, onClose, editData }: { elevators: Elevator[]; selected: Elevator | null; onClose: () => void; editData?: any }) {
   const qc = useQueryClient()
-  const initKind: EvKind = selected ? (selected.type === 'escalator' ? 'escalator' : 'elevator') : ''
+  const isEdit = !!editData
+  const initKind: EvKind = editData ? (elevators.find(e => e.id === editData.elevatorId)?.type === 'escalator' ? 'escalator' : 'elevator') : selected ? (selected.type === 'escalator' ? 'escalator' : 'elevator') : ''
   const [evKind, setEvKind] = useState<EvKind>(initKind)
-  const [elevatorId, setElevatorId] = useState(selected?.id ?? '')
-  const [repairDate, setRepairDate] = useState(new Date().toISOString().slice(0,10))
-  const [repairTarget, setRepairTarget] = useState<string>('')
-  const [hallFloor, setHallFloor] = useState('')
-  const [repairItem, setRepairItem] = useState('')
-  const [repairDetail, setRepairDetail] = useState('')
-  const [repairCompany, setRepairCompany] = useState('TKE')
-  const [partsPhotos, setPartsPhotos] = useState<string[]>([])
-  const [damagedPhotos, setDamagedPhotos] = useState<string[]>([])
-  const [duringPhotos, setDuringPhotos] = useState<string[]>([])
-  const [completedPhotos, setCompletedPhotos] = useState<string[]>([])
+  const [elevatorId, setElevatorId] = useState(editData?.elevatorId ?? selected?.id ?? '')
+  const [repairDate, setRepairDate] = useState(editData?.date ?? new Date().toISOString().slice(0,10))
+  const [repairTarget, setRepairTarget] = useState<string>(editData?.target ?? '')
+  const [hallFloor, setHallFloor] = useState(editData?.hallFloor ?? '')
+  const [repairItem, setRepairItem] = useState(editData?.title ?? '')
+  const [repairDetail, setRepairDetail] = useState(editData?.detail ?? '')
+  const [repairCompany, setRepairCompany] = useState(editData?.company ?? 'TKE')
+  const [partsPhotos, setPartsPhotos] = useState<string[]>(editData?.partsArrivalPhotos?.split(',').filter(Boolean) ?? [])
+  const [damagedPhotos, setDamagedPhotos] = useState<string[]>(editData?.damagedPartsPhotos?.split(',').filter(Boolean) ?? [])
+  const [duringPhotos, setDuringPhotos] = useState<string[]>(editData?.duringRepairPhotos?.split(',').filter(Boolean) ?? [])
+  const [completedPhotos, setCompletedPhotos] = useState<string[]>(editData?.completedPhotos?.split(',').filter(Boolean) ?? [])
   const [saving, setSaving] = useState(false)
 
   const selectedEv = elevators.find(e => e.id === elevatorId)
@@ -2719,29 +3668,35 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
   const handleSubmit = async () => {
     if (!elevatorId || !repairTarget || !repairItem.trim()) return
     setSaving(true)
+    const body = {
+      elevatorId, repairDate, repairTarget,
+      hallFloor: repairTarget === 'hall' ? hallFloor : undefined,
+      repairItem: repairItem.trim(),
+      repairDetail: repairDetail.trim() || undefined,
+      repairCompany: repairCompany.trim() || undefined,
+      partsArrivalPhotos: partsPhotos.length ? partsPhotos.join(',') : undefined,
+      damagedPartsPhotos: damagedPhotos.length ? damagedPhotos.join(',') : undefined,
+      duringRepairPhotos: duringPhotos.length ? duringPhotos.join(',') : undefined,
+      completedPhotos: completedPhotos.length ? completedPhotos.join(',') : undefined,
+    }
     try {
-      await elevatorRepairApi.create({
-        elevatorId, repairDate, repairTarget,
-        hallFloor: repairTarget === 'hall' ? hallFloor : undefined,
-        repairItem: repairItem.trim(),
-        repairDetail: repairDetail.trim() || undefined,
-        repairCompany: repairCompany.trim() || undefined,
-        partsArrivalPhotos: partsPhotos.length ? partsPhotos.join(',') : undefined,
-        damagedPartsPhotos: damagedPhotos.length ? damagedPhotos.join(',') : undefined,
-        duringRepairPhotos: duringPhotos.length ? duringPhotos.join(',') : undefined,
-        completedPhotos: completedPhotos.length ? completedPhotos.join(',') : undefined,
-      })
+      if (isEdit) {
+        await elevatorRepairApi.update(editData.sourceId, body)
+      } else {
+        await elevatorRepairApi.create(body)
+      }
       qc.invalidateQueries({ queryKey: ['elev-repairs'] })
-      toast.success('수리 기록 저장 완료')
+      qc.invalidateQueries({ queryKey: ['elevator_repairs_all'] })
+      toast.success(isEdit ? '수리 기록 수정 완료' : '수리 기록 저장 완료')
       onClose()
-    } catch { toast.error('저장 실패') }
+    } catch { toast.error(isEdit ? '수정 실패' : '저장 실패') }
     setSaving(false)
   }
 
   const canSubmit = elevatorId && repairTarget && repairItem.trim() && !saving
 
   return (
-    <ModalWrap title="수리 기록 입력" onClose={onClose}>
+    <ModalWrap title={isEdit ? "수리 기록 수정" : "수리 기록 입력"} onClose={onClose}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <EvSelector
           elevators={elevators} evKind={evKind}
@@ -2824,5 +3779,126 @@ function RepairNewModal({ elevators, selected, onClose }: { elevators: Elevator[
         )}
       </div>
     </ModalWrap>
+  )
+}
+
+// ── 민원24 지적사항 패널 ─────────────────────────────────────
+function MinwonFindingsPanel({ elevatorId, year, order, repairs }: { elevatorId: string; year: number; order: number; repairs: any[] }) {
+  const qc = useQueryClient()
+  const [newDesc, setNewDesc] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [linkingId, setLinkingId] = useState<number | null>(null)
+
+  const { data: findings = [] } = useQuery({
+    queryKey: ['minwon-findings', elevatorId, year],
+    queryFn: async () => {
+      const res = await fetch(`/api/elevators/minwon-findings?elevator_id=${elevatorId}&year=${year}`, { headers: authHeader() })
+      const json = await res.json() as any
+      return json.success ? json.data : []
+    },
+  })
+
+  const handleAdd = async () => {
+    if (!newDesc.trim()) return
+    setSaving(true)
+    try {
+      const res = await fetch('/api/elevators/minwon-findings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ elevatorId, inspectYear: year, inspectOrder: order, description: newDesc.trim() }),
+      })
+      const json = await res.json() as any
+      if (json.success) {
+        setNewDesc('')
+        qc.invalidateQueries({ queryKey: ['minwon-findings', elevatorId, year] })
+        toast.success('지적사항 등록 완료')
+      } else {
+        toast.error(json.error ?? '등록 실패')
+      }
+    } catch { toast.error('등록 실패') }
+    setSaving(false)
+  }
+
+  const handleLink = async (findingId: number, repairId: string) => {
+    try {
+      await fetch(`/api/elevators/minwon-findings?id=${findingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
+        body: JSON.stringify({ repairId }),
+      })
+      qc.invalidateQueries({ queryKey: ['minwon-findings', elevatorId, year] })
+      setLinkingId(null)
+      toast.success('조치 연결 완료')
+    } catch { toast.error('연결 실패') }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('삭제하시겠습니까?')) return
+    await fetch(`/api/elevators/minwon-findings?id=${id}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${useAuthStore.getState().token}` },
+    })
+    qc.invalidateQueries({ queryKey: ['minwon-findings', elevatorId, year] })
+    toast.success('삭제 완료')
+  }
+
+  // 해당 호기의 독립수리 기록만 필터
+  const standaloneRepairs = repairs.filter((r: any) => r.sourceType === 'standalone')
+
+  return (
+    <div style={{ background:'rgba(245,158,11,.06)', border:'1px solid rgba(245,158,11,.2)', borderRadius:10, padding:'12px 14px', marginTop:4 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:'var(--warn)', marginBottom:8 }}>⚠️ 지적사항 및 조치</div>
+
+      {/* 기존 지적사항 목록 */}
+      {findings.map((f: any) => (
+        <div key={f.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:8, padding:'8px 12px', marginBottom:6 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+            <span style={{ fontSize:11, fontWeight:700, color:'var(--t1)', flex:1 }}>{f.description}</span>
+            <span style={{ fontSize:9, fontWeight:700, padding:'1px 6px', borderRadius:4, background: f.status === 'resolved' ? 'rgba(34,197,94,.12)' : 'rgba(239,68,68,.12)', color: f.status === 'resolved' ? 'var(--safe)' : 'var(--danger)' }}>
+              {f.status === 'resolved' ? '조치완료' : '미조치'}
+            </span>
+            <button onClick={() => handleDelete(f.id)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', padding:0 }}>✕</button>
+          </div>
+
+          {f.status === 'resolved' && f.repair_item && (
+            <div style={{ fontSize:10, color:'var(--safe)', marginTop:2 }}>
+              조치: {f.repair_date} · {f.repair_item}
+            </div>
+          )}
+
+          {f.status === 'open' && linkingId !== f.id && (
+            <button onClick={() => setLinkingId(f.id)}
+              style={{ marginTop:4, padding:'4px 10px', borderRadius:6, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:10, fontWeight:600, cursor:'pointer' }}>
+              수리이력에서 조치 연결
+            </button>
+          )}
+
+          {linkingId === f.id && (
+            <div style={{ marginTop:6, background:'var(--bg3)', borderRadius:6, padding:8, maxHeight:150, overflowY:'auto' }}>
+              <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:4 }}>수리 이력 선택:</div>
+              {standaloneRepairs.length === 0 && <div style={{ fontSize:10, color:'var(--t3)' }}>수리 이력이 없습니다</div>}
+              {standaloneRepairs.map((r: any) => (
+                <div key={r.id} onClick={() => handleLink(f.id, r.sourceId)}
+                  style={{ padding:'5px 8px', borderRadius:5, cursor:'pointer', fontSize:10, color:'var(--t1)', marginBottom:2, background:'var(--bg2)', border:'1px solid var(--bd)' }}>
+                  <span style={{ fontWeight:600 }}>{r.date}</span> · {r.title}
+                </div>
+              ))}
+              <button onClick={() => setLinkingId(null)}
+                style={{ marginTop:4, padding:'3px 8px', borderRadius:5, background:'none', border:'1px solid var(--bd)', color:'var(--t3)', fontSize:9, cursor:'pointer' }}>취소</button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* 새 지적사항 입력 */}
+      <div style={{ display:'flex', gap:6, marginTop:4 }}>
+        <input value={newDesc} onChange={e => setNewDesc(e.target.value)} placeholder="지적사항 입력..."
+          onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          style={{ flex:1, padding:'7px 10px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:11, outline:'none' }} />
+        <button onClick={handleAdd} disabled={!newDesc.trim() || saving}
+          style={{ padding:'7px 14px', borderRadius:7, border:'none', background:'var(--warn)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', opacity: !newDesc.trim() || saving ? 0.5 : 1 }}>
+          {saving ? '...' : '추가'}
+        </button>
+      </div>
+    </div>
   )
 }

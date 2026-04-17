@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from 'react'
+import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { elevatorInspectionApi } from '../utils/api'
+import { elevatorInspectionApi, elevatorRepairApi } from '../utils/api'
 
 // ── 이미지 뷰어 (핀치투줌 + 패닝) ─────────────────────────────────
 function ImageViewer({ src, onClose }: { src: string; onClose: () => void }) {
@@ -139,6 +140,11 @@ export default function ElevatorFindingDetailPage() {
   const [resolveDate, setResolveDate] = useState(new Date().toISOString().slice(0,10))
   const [photoKeys, setPhotoKeys] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [showPhotoPicker, setShowPhotoPicker] = useState(false)
+  const [showRepairPicker, setShowRepairPicker] = useState(false)
+  const [linkedRepair, setLinkedRepair] = useState<any>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const albumInputRef = useRef<HTMLInputElement>(null)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
 
   const { data: findings, isLoading, error } = useQuery({
@@ -148,6 +154,13 @@ export default function ElevatorFindingDetailPage() {
   })
 
   const finding = findings?.find(f => f.id === fid)
+
+  // 해당 호기의 수리이력 조회
+  const { data: repairList = [] } = useQuery({
+    queryKey: ['elev-repairs-for-finding', eid],
+    queryFn: () => elevatorRepairApi.list({ elevator_id: eid }),
+    enabled: !!eid,
+  })
 
   // 사진 업로드 핸들러 (최대 5장)
   const handlePhotoAdd = async (file: File) => {
@@ -303,6 +316,42 @@ export default function ElevatorFindingDetailPage() {
           {finding.status === 'open' && (
             <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
               <SectionHeader>조치 내용</SectionHeader>
+
+              {/* 수리이력에서 선택 */}
+              {!linkedRepair && (
+                <button onClick={() => setShowRepairPicker(!showRepairPicker)}
+                  style={{ width:'100%', marginBottom:12, padding:'10px', borderRadius:8, background:'rgba(59,130,246,.08)', border:'1px solid rgba(59,130,246,.2)', color:'var(--info)', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                  🔧 수리이력에서 조치 선택
+                </button>
+              )}
+              {showRepairPicker && !linkedRepair && (
+                <div style={{ marginBottom:12, background:'var(--bg3)', borderRadius:8, padding:10, maxHeight:200, overflowY:'auto' }}>
+                  {repairList.filter((r: any) => r.sourceType === 'standalone').length === 0 && (
+                    <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', padding:8 }}>수리 이력이 없습니다</div>
+                  )}
+                  {repairList.filter((r: any) => r.sourceType === 'standalone').map((r: any) => (
+                    <div key={r.id} onClick={() => {
+                      setLinkedRepair(r)
+                      setMemo(r.title + (r.detail && r.detail !== r.title ? '\n' + r.detail : ''))
+                      setResolveDate(r.date)
+                      setShowRepairPicker(false)
+                    }} style={{ padding:'8px 10px', borderRadius:6, cursor:'pointer', marginBottom:4, background:'var(--bg2)', border:'1px solid var(--bd)', fontSize:11 }}>
+                      <div style={{ fontWeight:600, color:'var(--t1)' }}>{r.title}</div>
+                      <div style={{ color:'var(--t3)', marginTop:2 }}>{r.date}{r.company ? ` · ${r.company}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {linkedRepair && (
+                <div style={{ marginBottom:12, background:'rgba(34,197,94,.06)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'8px 12px', display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ flex:1, fontSize:11 }}>
+                    <span style={{ fontWeight:700, color:'var(--safe)' }}>🔧 연결됨: </span>
+                    <span style={{ color:'var(--t1)' }}>{linkedRepair.date} · {linkedRepair.title}</span>
+                  </div>
+                  <button onClick={() => setLinkedRepair(null)} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:14, cursor:'pointer' }}>✕</button>
+                </div>
+              )}
+
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4 }}>조치일</div>
                 <input
@@ -350,19 +399,22 @@ export default function ElevatorFindingDetailPage() {
                 <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 6 }}>조치 사진 ({photoKeys.length}/5)</div>
                 <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
                   {/* 추가 버튼 (1:1 정사각형) */}
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
+                  <input ref={albumInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }} />
+                  <PhotoSourceModal open={showPhotoPicker} onClose={() => setShowPhotoPicker(false)} onCamera={() => cameraInputRef.current?.click()} onAlbum={() => albumInputRef.current?.click()} />
                   {photoKeys.length < 5 && (
-                    <label style={{
-                      width: 72, height: 72, flexShrink: 0, borderRadius: 10,
-                      border: '1px dashed var(--bd2)', background: 'var(--bg3)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      cursor: uploading ? 'wait' : 'pointer',
-                    }}>
+                    <button
+                      onClick={() => !uploading && setShowPhotoPicker(true)}
+                      style={{
+                        width: 72, height: 72, flexShrink: 0, borderRadius: 10,
+                        border: '1px dashed var(--bd2)', background: 'var(--bg3)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                        cursor: uploading ? 'wait' : 'pointer',
+                      }}
+                    >
                       <span style={{ fontSize: 22 }}>📷</span>
                       <span style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600 }}>{uploading ? '업로드 중' : `${photoKeys.length}/5`}</span>
-                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoAdd(f); e.target.value = '' }}
-                      />
-                    </label>
+                    </button>
                   )}
                   {/* 업로드된 사진 썸네일 */}
                   {photoKeys.map((key, idx) => (

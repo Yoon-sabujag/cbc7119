@@ -11,6 +11,7 @@ $global:watcher = $null
 $global:notifyIcon = $null
 $global:SCRIPT_DIR = Split-Path -Parent $MyInvocation.MyCommand.Path
 $global:MENU_PDF_PATTERN = '^CBC Weekly MENU \((\d{2})\.(\d{2})_(\d{2})\.(\d{2})\)\.pdf$'
+$global:ELEV_CERT_PATTERN = '^Secure document \(2D Barcode\)(\s*\(\d+\))?\.pdf$'
 
 # TLS 1.2 (Cloudflare 요구) + Windows 7 SSL 인증서 우회
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -46,7 +47,10 @@ $global:GROUPS = @(
         @{ key="pump";          label="소방펌프";           pattern='^(\d{4})년도_소방펌프_점검일지\.xlsx$';                           yearG=1; monthG=0 }
         @{ key="all_zip";       label="전체 일괄 받기";     pattern='^(\d{4})년도 점검일지 종합 \((\d{2})월 업데이트\)\.zip$';          yearG=1; monthG=2 }
     )}
-    @{ name="5. QR 코드"; items=@(
+    @{ name="5. 승강기 관련"; items=@(
+        @{ key="elev_cert";     label="검사결과 및 성적서"; pattern='^PLACEHOLDER_ELEV_CERT$';                                        yearG=0; monthG=0 }
+    )}
+    @{ name="6. QR 코드"; items=@(
         @{ key="qr_ext_insp";   label="소화기점검용";       pattern='^소화기_점검용_QR\.pdf$';                                        yearG=0; monthG=0 }
         @{ key="qr_ext_pub";    label="소화기점검표";       pattern='^소화기_점검확인용_QR\.pdf$';                                    yearG=0; monthG=0 }
         @{ key="qr_hydrant";    label="소화전점검용";       pattern='^소화전_점검용_QR\.pdf$';                                        yearG=0; monthG=0 }
@@ -56,7 +60,7 @@ $global:GROUPS = @(
         @{ key="qr_damper";     label="제연댐퍼점검용";     pattern='^전실제연댐퍼_점검용_QR\.pdf$';                                  yearG=0; monthG=0 }
         @{ key="qr_shutter";    label="방화셔터점검용";     pattern='^방화셔터_점검용_QR\.pdf$';                                      yearG=0; monthG=0 }
     )}
-    @{ name="6. 백업"; items=@(
+    @{ name="7. 백업"; items=@(
         @{ key="backup_db";     label="DB백업";             pattern='^cha-bio-safety_(\d{4})-(\d{2})-\d{2}\.sql$';                   yearG=1; monthG=2 }
         @{ key="backup_r2";     label="파일백업";           pattern='^cha-bio-r2_(\d{4})-(\d{2})-\d{2}\.zip$';                      yearG=1; monthG=2 }
     )}
@@ -362,6 +366,92 @@ function Process-MenuPdf($filePath) {
     return $true
 }
 
+# ── Process Elevator Cert PDF (검사성적서 자동 분류) ────
+function Process-ElevCertPdf($filePath) {
+    $fileName = Split-Path $filePath -Leaf
+    $certMatch = [regex]::Match($fileName, $global:ELEV_CERT_PATTERN)
+    if (-not $certMatch.Success) { return $false }
+
+    # 다운로드 완료 대기
+    $prevSize = -1
+    for ($i = 0; $i -lt 15; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Test-Path $filePath)) { return $true }
+        $curSize = (Get-Item $filePath).Length
+        if ($curSize -eq $prevSize -and $curSize -gt 0) { break }
+        $prevSize = $curSize
+    }
+
+    Show-Balloon "검사성적서 감지" "검사실시일 파싱 중..."
+
+    # Python 파서 호출
+    $parseScript = Join-Path $global:SCRIPT_DIR "parse_elev_cert.py"
+    if (-not (Test-Path $parseScript)) {
+        Show-Balloon "검사성적서 오류" "parse_elev_cert.py 파일이 없습니다"
+        return $true
+    }
+
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "python"
+        $psi.Arguments = "`"$parseScript`" `"$filePath`""
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+        $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+        $proc = [System.Diagnostics.Process]::Start($psi)
+        $resultStr = $proc.StandardOutput.ReadToEnd()
+        $errStr = $proc.StandardError.ReadToEnd()
+        $proc.WaitForExit()
+
+        if ($proc.ExitCode -ne 0 -or -not $resultStr) {
+            Show-Balloon "검사성적서 오류" ("Python 오류: " + $(if ($errStr) { $errStr.Substring(0, [Math]::Min(100, $errStr.Length)) } else { "출력 없음" }))
+            return $true
+        }
+        $json = $resultStr | ConvertFrom-Json
+    } catch {
+        Show-Balloon "검사성적서 오류" "Python 실행 실패: $_"
+        return $true
+    }
+
+    if ($json.error) {
+        Show-Balloon "검사성적서 오류" $json.error
+        return $true
+    }
+
+    # 폴더 경로 계산: 5. 승강기 관련/검사결과 및 성적서/YYYY년/MM월/
+    $cfg = Load-Config
+    $destDir = Get-DestFolder $cfg "elev_cert" $json.year $json.month
+    if (-not $destDir) {
+        Show-Balloon "검사성적서" "저장 폴더 미설정 (설정에서 루트 폴더를 지정하세요)"
+        return $true
+    }
+
+    # 파일명 변환: 검사성적서_YYYY-MM-DD.pdf
+    $newName = "검사성적서_$($json.inspect_date).pdf"
+    if (-not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+    $destFile = Join-Path $destDir $newName
+
+    # 동일 이름 존재 시 번호 추가
+    if (Test-Path $destFile) {
+        $base = "검사성적서_$($json.inspect_date)"
+        $n = 2
+        while (Test-Path (Join-Path $destDir "${base}_${n}.pdf")) { $n++ }
+        $destFile = Join-Path $destDir "${base}_${n}.pdf"
+        $newName = "${base}_${n}.pdf"
+    }
+
+    try {
+        Move-Item -Path $filePath -Destination $destFile -Force
+        Show-Balloon $newName "이동 완료: $destDir"
+    } catch {
+        Show-Balloon "이동 실패" "$newName`n$_"
+    }
+
+    return $true
+}
+
 # ── Settings GUI ────────────────────────────────────────
 function Show-Settings {
     $cfg = Load-Config
@@ -640,6 +730,9 @@ function Handle-DownloadFile($path) {
 
     # 식단표 PDF 우선 체크
     if (Process-MenuPdf $path) { return }
+
+    # 승강기 검사성적서 PDF 체크
+    if (Process-ElevCertPdf $path) { return }
 
     $cfg = Load-Config
     foreach ($pat in $global:ALL_PATTERNS) {

@@ -19,9 +19,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
 
       const rows = await env.DB.prepare(`
-        SELECT r.*, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type
+        SELECT r.*, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type,
+          (SELECT COUNT(*) FROM elevator_inspection_findings eif WHERE eif.repair_id = r.id AND eif.status = 'resolved') AS linked_finding_count
         FROM elevator_repairs r LEFT JOIN elevators e ON e.id = r.elevator_id
-        WHERE ${w} ORDER BY r.repair_date DESC LIMIT 100
+        WHERE ${w} ORDER BY r.repair_date DESC LIMIT 500
       `).bind(...b).all<any>()
 
       for (const r of rows.results ?? []) {
@@ -33,6 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
           photos: [r.parts_arrival_photos, r.damaged_parts_photos, r.during_repair_photos, r.completed_photos].filter(Boolean).join(','),
           partsArrivalPhotos: r.parts_arrival_photos, damagedPartsPhotos: r.damaged_parts_photos,
           duringRepairPhotos: r.during_repair_photos, completedPhotos: r.completed_photos,
+          isInspectionAction: (r.linked_finding_count ?? 0) > 0,
         })
       }
     }
@@ -47,7 +49,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       const rows = await env.DB.prepare(`
         SELECT f.*, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type
         FROM elevator_faults f LEFT JOIN elevators e ON e.id = f.elevator_id
-        WHERE ${w} ORDER BY f.repaired_at DESC LIMIT 100
+        WHERE ${w} ORDER BY f.repaired_at DESC LIMIT 500
       `).bind(...b).all<any>()
 
       for (const f of rows.results ?? []) {
@@ -63,36 +65,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
       }
     }
 
-    // ── 3. 검사 조치 (elevator_inspection_findings, resolved) ──
-    {
-      let w = "eif.status = 'resolved'"; const b: string[] = []
-      if (elevatorId) { w += ' AND ei.elevator_id = ?'; b.push(elevatorId) }
-      if (keyword) { w += ' AND (eif.description LIKE ? OR eif.resolution_memo LIKE ? OR CAST(e.number AS TEXT) LIKE ? OR e.location LIKE ?)'; b.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`) }
-      if (evType) { w += evType === 'escalator' ? " AND e.type = 'escalator'" : " AND e.type != 'escalator'" }
-
-      const rows = await env.DB.prepare(`
-        SELECT eif.*, ei.elevator_id, ei.inspect_date, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type
-        FROM elevator_inspection_findings eif
-        JOIN elevator_inspections ei ON ei.id = eif.inspection_id
-        LEFT JOIN elevators e ON e.id = ei.elevator_id
-        WHERE ${w} ORDER BY eif.resolved_at DESC LIMIT 100
-      `).bind(...b).all<any>()
-
-      for (const f of rows.results ?? []) {
-        results.push({
-          id: `finding-${f.id}`, sourceType: 'annual_finding', sourceId: f.id,
-          elevatorId: f.elevator_id, elevatorNumber: f.ev_num, elevatorLocation: f.ev_loc, elevatorType: f.ev_type,
-          date: (f.resolved_at ?? f.created_at)?.slice(0, 10), target: null, hallFloor: null,
-          title: `검사조치: ${f.description?.slice(0, 40) ?? ''}`,
-          detail: f.resolution_memo, company: null,
-          photos: f.resolution_photo_key || null,
-          partsArrivalPhotos: null, damagedPartsPhotos: null, duringRepairPhotos: null,
-          completedPhotos: f.resolution_photo_key || null,
-        })
-      }
-    }
-
-    // ── 4. 점검 조치 (elevator_inspections type='monthly', action_needed 있는 건) ──
+    // ── 3. 점검 조치 (elevator_inspections type='monthly', action_needed 있는 건) ──
     {
       let w = "ei.type = 'monthly' AND ei.action_needed IS NOT NULL AND ei.action_needed != ''"; const b: string[] = []
       if (elevatorId) { w += ' AND ei.elevator_id = ?'; b.push(elevatorId) }
@@ -103,7 +76,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
         SELECT ei.*, e.number AS ev_num, e.location AS ev_loc, e.type AS ev_type
         FROM elevator_inspections ei
         LEFT JOIN elevators e ON e.id = ei.elevator_id
-        WHERE ${w} ORDER BY ei.inspect_date DESC LIMIT 100
+        WHERE ${w} ORDER BY ei.inspect_date DESC LIMIT 500
       `).bind(...b).all<any>()
 
       for (const r of rows.results ?? []) {
@@ -122,7 +95,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     // 날짜 내림차순 정렬
     results.sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))
 
-    return Response.json({ success: true, data: results.slice(0, 200) })
+    return Response.json({ success: true, data: results.slice(0, 1000) })
   } catch (e) {
     console.error('[elevators/repairs GET]', e)
     return Response.json({ success: false, error: '수리 목록 조회 실패' }, { status: 500 })
@@ -162,6 +135,40 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data: ct
   } catch (e) {
     console.error('[elevators/repairs POST]', e)
     return Response.json({ success: false, error: '수리 기록 저장 실패' }, { status: 500 })
+  }
+}
+
+// PUT /api/elevators/repairs?id= — 독립 수리 수정
+export const onRequestPut: PagesFunction<Env> = async ({ request, env }) => {
+  const url = new URL(request.url)
+  const id = url.searchParams.get('id')
+  if (!id) return Response.json({ success: false, error: 'id 필수' }, { status: 400 })
+
+  let body: any
+  try { body = await request.json() } catch {
+    return Response.json({ success: false, error: '요청 본문 파싱 실패' }, { status: 400 })
+  }
+
+  const { elevatorId, repairDate, repairTarget, hallFloor, repairItem, repairDetail, repairCompany, partsArrivalPhotos, damagedPartsPhotos, duringRepairPhotos, completedPhotos } = body
+
+  try {
+    await env.DB.prepare(`
+      UPDATE elevator_repairs SET
+        elevator_id=?, repair_date=?, repair_target=?, hall_floor=?,
+        repair_item=?, repair_detail=?, repair_company=?,
+        parts_arrival_photos=?, damaged_parts_photos=?, during_repair_photos=?, completed_photos=?
+      WHERE id=?
+    `).bind(
+      elevatorId, repairDate, repairTarget, hallFloor ?? null,
+      repairItem?.trim(), repairDetail?.trim() ?? null, repairCompany?.trim() ?? null,
+      partsArrivalPhotos ?? null, damagedPartsPhotos ?? null,
+      duringRepairPhotos ?? null, completedPhotos ?? null,
+      id
+    ).run()
+    return Response.json({ success: true })
+  } catch (e) {
+    console.error('[elevators/repairs PUT]', e)
+    return Response.json({ success: false, error: '수정 실패' }, { status: 500 })
   }
 }
 

@@ -283,7 +283,7 @@ export const elevatorInspectionApi = {
     api.post<{ id: string }>(
       `/elevators/${elevatorId}/inspections/${inspectionId}/findings`, body
     ),
-  resolveFinding: (elevatorId: string, inspectionId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string; resolved_date?: string }) =>
+  resolveFinding: (elevatorId: string, inspectionId: string, fid: string, body: { resolution_memo: string; resolution_photo_key?: string; resolved_date?: string; repair_id?: string }) =>
     api.post<void>(
       `/elevators/${elevatorId}/inspections/${inspectionId}/findings/${fid}/resolve`, body
     ),
@@ -305,6 +305,8 @@ export const elevatorRepairApi = {
   },
   create: (body: any) =>
     api.post<{ id: string }>('/elevators/repairs', body),
+  update: (id: string, body: any) =>
+    api.put<void>(`/elevators/repairs?id=${id}`, body),
   delete: (id: string) =>
     api.delete<void>(`/elevators/repairs?id=${id}`),
 }
