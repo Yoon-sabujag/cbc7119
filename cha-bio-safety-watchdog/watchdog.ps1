@@ -628,13 +628,57 @@ function Show-Settings {
     $form.ShowDialog()
 }
 
+# ── 파일 처리 공통 (Created / Renamed 이벤트 공유) ──────
+function Handle-DownloadFile($path) {
+    if (-not (Test-Path $path)) { return }
+    $fname = Split-Path $path -Leaf
+    if ($fname -match '\.(crdownload|tmp|part)$') { return }
+
+    # Chrome 중복 파일명 "(N)" 제거 후 원본 이름으로 매칭
+    # 예: "4월17일 방재업무일지 (1).xlsx" → "4월17일 방재업무일지.xlsx"
+    $cleanFname = $fname -replace '\s*\(\d+\)(?=\.[^.]+$)', ''
+
+    # 식단표 PDF 우선 체크
+    if (Process-MenuPdf $path) { return }
+
+    $cfg = Load-Config
+    foreach ($pat in $global:ALL_PATTERNS) {
+        $rm = [regex]::Match($cleanFname, $pat.pattern)
+        if ($rm.Success) {
+            $now = Get-Date
+            $yr = $null; $mo = $null
+            if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
+            if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
+            if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
+            if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
+
+            $destDir = Get-DestFolder $cfg $pat.key $yr $mo
+            if (-not $destDir) {
+                Show-Balloon "분류 대상 없음" "$fname`n($($global:KEY_INFO[$pat.key].label)) 저장 폴더 미설정"
+                return
+            }
+
+            try {
+                Move-ToFolder $path $destDir
+                Show-Balloon $fname "이동 완료: $destDir"
+            } catch {
+                Show-Balloon "이동 실패" "$fname`n$_"
+            }
+            return
+        }
+    }
+}
+
 # ── Watcher (Register-ObjectEvent) ──────────────────────
 $global:fsWatcher = $null
 
 function Start-Watcher {
     $cfg = Load-Config
     $dlFolder = $cfg["download_folder"]
-    if (-not $dlFolder -or -not (Test-Path $dlFolder)) { return }
+    if (-not $dlFolder -or -not (Test-Path $dlFolder)) {
+        Show-Balloon "감시 오류" "다운로드 폴더를 찾을 수 없습니다: $dlFolder"
+        return
+    }
 
     $w = New-Object System.IO.FileSystemWatcher
     $w.Path = $dlFolder
@@ -645,61 +689,13 @@ function Start-Watcher {
     Register-ObjectEvent -InputObject $w -EventName Created -SourceIdentifier "DLCreated" -Action {
         $path = $Event.SourceEventArgs.FullPath
         Start-Sleep -Seconds 3
-        if (-not (Test-Path $path)) { return }
-        $fname = Split-Path $path -Leaf
-        if ($fname -match '\.(crdownload|tmp|part)$') { return }
-
-        # 식단표 PDF 우선 체크
-        if (Process-MenuPdf $path) { return }
-
-        $cfg = Load-Config
-        foreach ($pat in $global:ALL_PATTERNS) {
-            $rm = [regex]::Match($fname, $pat.pattern)
-            if ($rm.Success) {
-                $now = Get-Date
-                $yr = $null; $mo = $null
-                if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
-                if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
-                if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
-                if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
-
-                $destDir = Get-DestFolder $cfg $pat.key $yr $mo
-                if (-not $destDir) { return }
-
-                try { Move-ToFolder $path $destDir } catch {}
-                return
-            }
-        }
+        Handle-DownloadFile $path
     } | Out-Null
 
     Register-ObjectEvent -InputObject $w -EventName Renamed -SourceIdentifier "DLRenamed" -Action {
         $path = $Event.SourceEventArgs.FullPath
         Start-Sleep -Seconds 2
-        if (-not (Test-Path $path)) { return }
-        $fname = Split-Path $path -Leaf
-        if ($fname -match '\.(crdownload|tmp|part)$') { return }
-
-        # 식단표 PDF 우선 체크
-        if (Process-MenuPdf $path) { return }
-
-        $cfg = Load-Config
-        foreach ($pat in $global:ALL_PATTERNS) {
-            $rm = [regex]::Match($fname, $pat.pattern)
-            if ($rm.Success) {
-                $now = Get-Date
-                $yr = $null; $mo = $null
-                if ($pat.yearG -gt 0 -and $rm.Groups[$pat.yearG].Success) { $yr = $rm.Groups[$pat.yearG].Value }
-                if ($pat.monthG -gt 0 -and $rm.Groups[$pat.monthG].Success) { $mo = $rm.Groups[$pat.monthG].Value.PadLeft(2, '0') }
-                if (-not $yr -or $yr -eq "") { $yr = $now.Year.ToString() }
-                if (-not $mo -or $mo -eq "") { $mo = $now.Month.ToString().PadLeft(2, '0') }
-
-                $destDir = Get-DestFolder $cfg $pat.key $yr $mo
-                if (-not $destDir) { return }
-
-                try { Move-ToFolder $path $destDir } catch {}
-                return
-            }
-        }
+        Handle-DownloadFile $path
     } | Out-Null
 
     $global:fsWatcher = $w

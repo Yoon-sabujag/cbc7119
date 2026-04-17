@@ -78,10 +78,12 @@ const STATUS_COLOR: Record<string, string> = {
   caution:     '#eab308',
   bad:         '#ef4444',
   fault:       '#ef4444',
+  resolved:    '#3b82f6',
 }
 
 function getMarkerStatus(m: FloorPlanMarker): string {
   if (!m.last_result) return 'uninspected'
+  if ((m.last_result === 'bad' || m.last_result === 'caution') && m.last_status === 'resolved') return 'resolved'
   return STATUS_COLOR[m.last_result] ? m.last_result : 'uninspected'
 }
 
@@ -875,31 +877,12 @@ export default function FloorPlanPage() {
             도면 준비 중
           </div>
         )}
-      </div>
 
-      {/* ── 범례 ─────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, padding: '7px 12px', background: 'var(--bg2)', borderTop: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {currentMarkerTypes.map(mt => (
-          <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MarkerIcon markerType={mt.key} color="#888" size={14} />
-            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{mt.label.join('')}</span>
-          </div>
-        ))}
-        <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
-        {['normal', 'caution', 'fault'].map(s => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[s] }} />
-            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량' }[s]}</span>
-          </div>
-        ))}
-        <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
-      </div>
-
-      {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
-      {selected && !addModal && !editMarker && (() => {
+        {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
+        {selected && !addModal && !editMarker && (() => {
         const statusColor = STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal
         const markerLabel = selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
-        const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량' }[getMarkerStatus(selected)] ?? '미점검'
+        const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[getMarkerStatus(selected)] ?? '미점검'
 
         const openEditMarkerModal = () => {
           setEditLabel(selected.label ?? '')
@@ -1018,7 +1001,7 @@ export default function FloorPlanPage() {
         return (
           <div
             style={{
-              position: 'fixed', bottom: 'calc(54px + var(--sab, 0px))', left: 0, right: 0,
+              position: 'absolute', bottom: 0, left: 0, right: 0,
               background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
               borderRadius: '16px 16px 0 0', padding: '16px 16px 20px', zIndex: 30,
               boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
@@ -1050,6 +1033,25 @@ export default function FloorPlanPage() {
           </div>
         )
       })()}
+      </div>
+
+      {/* ── 범례 ─────────────────────────────────────── */}
+      <div style={{ flexShrink: 0, padding: '7px 12px', background: 'var(--bg2)', borderTop: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        {currentMarkerTypes.map(mt => (
+          <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <MarkerIcon markerType={mt.key} color="#888" size={14} />
+            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{mt.label.join('')}</span>
+          </div>
+        ))}
+        <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
+        {['normal', 'caution', 'fault', 'resolved'].map(s => (
+          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[s] }} />
+            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '조치완료' }[s]}</span>
+          </div>
+        ))}
+        <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
+      </div>
 
       {/* ── 마커 수정 모달 ───────────────────────────── */}
       {editMarker && selected && (
@@ -1324,6 +1326,7 @@ export default function FloorPlanPage() {
                   <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.prefix_code ?? '-'}</span></div>
                   <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.seal_no ?? '-'}</span></div>
                   <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.serial_no ?? '-'}</span></div>
+                  {selected?.check_point_id && <div><span style={{ color:'var(--t3)' }}>ID </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{selected.check_point_id}</span></div>}
                 </div>
               </div>
             )}

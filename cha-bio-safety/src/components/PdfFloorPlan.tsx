@@ -13,7 +13,6 @@ export default function PdfFloorPlan({ url, scale = 1, onReady }: PdfFloorPlanPr
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [loading, setLoading] = useState(true)
-  const [debug, setDebug] = useState('')
   const pageRef = useRef<any>(null)
   const readyFired = useRef(false)
 
@@ -86,17 +85,12 @@ export default function PdfFloorPlan({ url, scale = 1, onReady }: PdfFloorPlanPr
     canvas.style.width = `${displayW}px`
     canvas.style.height = `${displayH}px`
 
-    const dbg = `container=${cw.toFixed(0)}x${ch.toFixed(0)} canvas=${canvas.width}x${canvas.height} css=${displayW.toFixed(0)}x${displayH.toFixed(0)} scale=${renderScale.toFixed(2)}`
-    setDebug(dbg)
-    console.log(`[PdfFloorPlan] ${dbg}`)
-
     const ctx = canvas.getContext('2d')!
     // 흰 배경
     ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     page.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
-      console.log(`[PdfFloorPlan] render complete: ${canvas.width}x${canvas.height}px`)
       if (!readyFired.current) {
         readyFired.current = true
         onReady({
@@ -125,11 +119,6 @@ export default function PdfFloorPlan({ url, scale = 1, onReady }: PdfFloorPlanPr
         style={{ display: 'block', pointerEvents: 'none', userSelect: 'none' }}
         draggable={false}
       />
-      {debug && (
-        <div style={{ position: 'absolute', top: 4, left: 4, background: 'rgba(0,0,0,0.8)', color: '#0f0', fontSize: 10, padding: '2px 6px', borderRadius: 4, zIndex: 99, fontFamily: 'monospace' }}>
-          {debug}
-        </div>
-      )}
       {loading && (
         <div style={{
           position: 'absolute', inset: 0,

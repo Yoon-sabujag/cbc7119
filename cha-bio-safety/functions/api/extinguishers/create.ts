@@ -56,12 +56,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
   const qrCode = `QR-${zoneChar}-${body.floor.replace(/F$/i, '')}-${String(qrSeq).padStart(2, '0')}`
 
-  // check_points INSERT
+  // check_points INSERT — zone은 영문으로 변환 (CHECK 제약조건)
+  const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '공': 'common' }
+  const zoneEn = zoneEnMap[body.zone] ?? body.zone
   await env.DB.prepare(
     `INSERT INTO check_points (id, qr_code, floor, zone, location, category, prefix_char, cert_no, serial_no, ext_type, approval_no, mfg_date, manufacturer)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    cpId, qrCode, body.floor, body.zone, body.location, category,
+    cpId, qrCode, body.floor, zoneEn, body.location, category,
     body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null,
     body.type, body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null
   ).run()

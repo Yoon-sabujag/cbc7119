@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { PhotoSourceModal } from '../components/PhotoSourceModal'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -10,6 +11,8 @@ import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
+import { parseInspectionPdf, type ParsedCertPage, type InspectionItem } from '../utils/parseInspectionPdf'
+import { extractSinglePagePdf } from '../utils/splitInspectionPdf'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -23,6 +26,27 @@ interface Elevator {
   status: 'normal' | 'fault' | 'maintenance' | 'out_of_service'
   active_faults?: number
   last_inspect_date?: string
+  // 공단 등록 정보 (0054 마이그레이션)
+  cert_no?: string        // 승강기고유번호 (예: 2114-971)
+  public_no?: number      // 공단 호기 (1~17)
+  classification?: string // 분류 (장애/전망용, 전망용, 승객용, 화물용, 덤웨이터, 에스컬레이터 등)
+  service_range?: string  // 설치층수 (예: B5-8, 2-B1(D))
+  capacity_person?: number // 탑승인원
+  capacity_kg?: number    // 용량 kg
+  // 검사성적서 상세 (0055 마이그레이션)
+  model_type?: string           // 형식/종류 (권상식/VVVF/장애/전망용 등)
+  manufacturer?: string         // 제조업체
+  maintenance_company?: string  // 유지관리업체
+  machine_location?: string     // 구동기 공간/설치위치
+  rated_speed?: string          // 정격속도/공칭속도
+  floor_count?: number          // 운행층수
+  rope_diameter?: string        // 매다는장치의 지름/두께
+  safety_device?: string        // 추락방지안전장치
+  rope_count?: number           // 매다는장치의 가닥수
+  max_capacity_persons?: number // 최대수용능력 (에스컬레이터)
+  incline_angle?: number        // 경사 각도 (에스컬레이터)
+  auxiliary_brake?: string      // 보조브레이크 (에스컬레이터)
+  operation_mode?: string       // 운전 방식 (에스컬레이터)
 }
 interface ElevatorFault {
   id: string
@@ -52,9 +76,19 @@ interface ElevatorInspection {
   elevator_location: string
   elevator_number: number
   elevator_type: string
+  // 0057: 검사성적서 PDF 파싱 데이터
+  inspector_name?: string
+  inspection_agency?: string
+  judgment?: string
+  validity_start?: string
+  validity_end?: string
+  cert_number?: string
+  inspection_items?: string  // JSON 문자열
+  // 0058: 조치 후 합격 cert 부모 링크
+  parent_inspection_id?: string
 }
 type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual'
-type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'repair_new' | 'ev_detail'
+type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'annual_new' | 'annual_upload' | 'repair_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
 // 호기 상세 이력 타입
@@ -349,7 +383,13 @@ export default function ElevatorPage() {
     const evFaults      = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id) : []
     const evRepairs     = selectedDesktopEv ? faults.filter(f => f.elevator_id === selectedDesktopEv.id && f.is_resolved && f.repair_detail) : []
     const evInspections = selectedDesktopEv ? inspections.filter((i: any) => i.elevator_id === selectedDesktopEv.id) : []
-    const evAnnuals     = selectedDesktopEv ? annuals.filter((a: any) => a.elevator_id === selectedDesktopEv.id) : []
+    // 자식 cert(조치 후 합격) 기록은 메인 리스트에서 제외 — 부모 카드 안에서 표시됨
+    const evAnnuals     = selectedDesktopEv ? annuals.filter((a: any) => a.elevator_id === selectedDesktopEv.id && !a.parent_inspection_id) : []
+    // 자식 cert id → 자식 객체 맵 (부모 카드에서 lookup용)
+    const correctiveByParent = annuals.reduce((acc: Record<string, ElevatorInspection>, a: ElevatorInspection) => {
+      if (a.parent_inspection_id) acc[a.parent_inspection_id] = a
+      return acc
+    }, {} as Record<string, ElevatorInspection>)
 
     const renderEvCard = (ev: Elevator) => {
       const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
@@ -402,17 +442,17 @@ export default function ElevatorPage() {
             style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             🚨 고장 접수
           </button>
+          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
+            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+            🔧 수리 기록
+          </button>
           <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('inspect_new') }}
             style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#1e3a5f,#3b82f6)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             📋 점검 기록
           </button>
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('annual_new') }}
+          <button onClick={() => setModal('annual_upload')}
             style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#14532d,#22c55e)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             🔍 검사 기록
-          </button>
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🔧 수리 기록
           </button>
         </header>
 
@@ -462,6 +502,11 @@ export default function ElevatorPage() {
                   <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).color, background: (STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).bg, padding: '4px 10px', borderRadius: 20 }}>
                     {(STATUS_STYLE[selectedDesktopEv.status] ?? STATUS_STYLE.normal).label}
                   </span>
+                </div>
+
+                {/* 승강기 정보 (검사성적서 상단 양식) */}
+                <div style={{ flexShrink: 0, padding: '12px 24px', borderBottom: '1px solid var(--bd)' }}>
+                  <ElevatorInfoCard ev={selectedDesktopEv} />
                 </div>
 
                 {/* 탭 버튼 */}
@@ -567,14 +612,67 @@ export default function ElevatorPage() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {evAnnuals.map((a: any) => {
                           const ov = OVERALL_STYLE[a.overall] ?? OVERALL_STYLE.normal
+                          const resultKey = a.result || a.overall
+                          const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
+                          const typeLabel = a.inspect_type ? (INSPECT_TYPE_LABEL[a.inspect_type] ?? a.inspect_type) : '정기검사'
+                          const isExpanded = expandedAnnual === a.id
+                          const isConditional = resultKey === 'conditional'
+                          // 조치 후 합격 cert가 있으면 그게 최종 유효한 성적서
+                          const corrective = correctiveByParent[a.id]
+                          const headerCertKey = corrective?.certificate_key ?? a.certificate_key
                           return (
-                            <div key={a.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '10px 14px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{a.inspect_date}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: ov.color, background: `${ov.color}22`, padding: '1px 6px', borderRadius: 6 }}>{ov.label}</span>
-                                <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>연간검사</span>
+                            <div key={a.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, overflow:'hidden' }}>
+                              <div onClick={() => setExpandedAnnual(isExpanded ? null : a.id)} style={{ padding: '10px 14px', cursor:'pointer', display:'flex', alignItems:'center', gap:8 }}>
+                                <div style={{ flex:1, minWidth:0 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>{a.inspect_date}</span>
+                                    <span style={{ fontSize: 10, fontWeight: 700, color: ov.color, background: `${ov.color}22`, padding: '1px 6px', borderRadius: 6 }}>{ov.label}</span>
+                                    <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>{typeLabel}</span>
+                                  </div>
+                                  <div style={{ fontSize: 12, color: 'var(--t2)' }}>{a.action_needed || '검사 결과 없음'}</div>
+                                </div>
+                                {headerCertKey && (
+                                  <button onClick={e => { e.stopPropagation(); setCertViewerKey(headerCertKey) }}
+                                    style={{ padding:'6px 10px', borderRadius:8, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer', flexShrink:0 }}>
+                                    📄 성적서{corrective ? ' (조치후)' : ''}
+                                  </button>
+                                )}
                               </div>
-                              <div style={{ fontSize: 12, color: 'var(--t2)' }}>{a.action_needed || '검사 결과 없음'}</div>
+                              {isExpanded && (
+                                <div style={{ padding:'0 14px 14px', borderTop:'1px solid var(--bd)' }}>
+                                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8, paddingTop:10 }}>
+                                    <div>
+                                      <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사일</div>
+                                      <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{a.inspect_date}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 유형</div>
+                                      <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{typeLabel}</div>
+                                    </div>
+                                    <div>
+                                      <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 결과</div>
+                                      <div style={{ fontSize:12, fontWeight:700, color:rs.color }}>{rs.label}</div>
+                                    </div>
+                                  </div>
+                                  {a.action_needed && (
+                                    <div style={{ marginTop:10 }}>
+                                      <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>검사 결과 상세</div>
+                                      <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{a.action_needed}</div>
+                                    </div>
+                                  )}
+                                  {a.memo && (
+                                    <div style={{ marginTop:8 }}>
+                                      <div style={{ fontSize:10, color:'var(--t3)', fontWeight:600, marginBottom:2 }}>메모</div>
+                                      <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{a.memo}</div>
+                                    </div>
+                                  )}
+                                  {(resultKey === 'conditional' || resultKey === 'fail' || a.action_needed?.includes('→합격 전환')) && (
+                                    <FindingsPanel elevatorId={a.elevator_id} inspectionId={a.id} inspectionResult={resultKey} navigate={navigate} hasCorrective={!!correctiveByParent[a.id]} />
+                                  )}
+                                  {/* 검사성적서 — 항목별 검사결과 + 검사실시정보 */}
+                                  <CertSummary inspection={a} corrective={correctiveByParent[a.id]} onViewCert={setCertViewerKey} />
+                                </div>
+                              )}
                             </div>
                           )
                         })}
@@ -600,6 +698,7 @@ export default function ElevatorPage() {
         {modal === 'fault_resolve' && <FaultResolveModal fault={selectedFault!} onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
         {modal === 'inspect_new' && <InspectModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
         {modal === 'annual_new' && <AnnualModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
+        {modal === 'annual_upload' && <AnnualUploadModal elevators={elevators} onClose={() => setModal(null)} onComplete={() => { qc.invalidateQueries({ queryKey:['elevator_annuals'] }); setModal(null) }} />}
         {modal === 'repair_new' && <RepairNewModal elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
         {modal === 'ev_detail' && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
         {certViewerKey && <CertViewerModal certKey={certViewerKey} onClose={() => setCertViewerKey(null)} />}
@@ -807,15 +906,24 @@ export default function ElevatorPage() {
         )}
 
         {/* ── 검사 기록 ── */}
-        {tab === 'annual' && (
+        {tab === 'annual' && (() => {
+          // 자식 cert(조치 후 합격) 제외 + parent별 매핑
+          const mainAnnuals = annuals.filter((a: any) => !a.parent_inspection_id)
+          const correctiveByParent: Record<string, ElevatorInspection> = {}
+          for (const a of annuals as ElevatorInspection[]) {
+            if (a.parent_inspection_id) correctiveByParent[a.parent_inspection_id] = a
+          }
+          return (
           <>
-            {annuals.length === 0 && <EmptyState icon="📋" text="검사 기록이 없어요" />}
-            {annuals.map(i => {
+            {mainAnnuals.length === 0 && <EmptyState icon="📋" text="검사 기록이 없어요" />}
+            {mainAnnuals.map(i => {
               const resultKey = i.result || i.overall
               const rs = RESULT_STYLE[resultKey] ?? RESULT_STYLE.pass
               const isExpanded = expandedAnnual === i.id
               const isConditional = resultKey === 'conditional'
               const typeLabel = i.inspect_type ? (INSPECT_TYPE_LABEL[i.inspect_type] ?? i.inspect_type) : '정기검사'
+              const corrective = correctiveByParent[i.id]
+              const headerCertKey = corrective?.certificate_key ?? i.certificate_key
               return (
                 <div key={i.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0 }}>
                   {/* 리스트 행: 탭하면 상세 펼침 */}
@@ -834,14 +942,14 @@ export default function ElevatorPage() {
                       </div>
                       <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{i.inspect_date} · {typeLabel}</div>
                     </div>
-                    {/* 우측: 인증서 버튼 */}
-                    {i.certificate_key ? (
+                    {/* 우측: 인증서 버튼 — 조치 후 cert가 있으면 그걸 우선 */}
+                    {headerCertKey ? (
                       <button
-                        onClick={e => { e.stopPropagation(); setCertViewerKey(i.certificate_key!) }}
+                        onClick={e => { e.stopPropagation(); setCertViewerKey(headerCertKey) }}
                         style={{ width:52, height:52, borderRadius:10, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, flexShrink:0, cursor:'pointer' }}
                       >
                         <span style={{ fontSize:20 }}>📄</span>
-                        <span style={{ fontSize:8, fontWeight:700, color:'var(--safe)' }}>인증서 보기</span>
+                        <span style={{ fontSize:8, fontWeight:700, color:'var(--safe)' }}>{corrective ? '조치후 성적서' : '인증서 보기'}</span>
                       </button>
                     ) : isAdmin ? (
                       <label
@@ -909,8 +1017,11 @@ export default function ElevatorPage() {
 
                       {/* 조건부합격/불합격 조치 패널 (합격 전환 후에도 이력 표시) */}
                       {(resultKey === 'conditional' || resultKey === 'fail' || i.action_needed?.includes('→합격 전환')) && (
-                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} />
+                        <FindingsPanel elevatorId={i.elevator_id} inspectionId={i.id} inspectionResult={resultKey} navigate={navigate} hasCorrective={!!correctiveByParent[i.id]} />
                       )}
+
+                      {/* 검사성적서 — 항목별 검사결과 + 검사실시정보 (조치 후 합격 cert 포함) */}
+                      <CertSummary inspection={i} corrective={correctiveByParent[i.id]} onViewCert={setCertViewerKey} />
 
                       {isAdmin && (
                         <button
@@ -926,7 +1037,8 @@ export default function ElevatorPage() {
               )
             })}
           </>
-        )}
+          )
+        })()}
 
       </main>
 
@@ -1098,7 +1210,10 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
         </div>
 
         {/* 스크롤 영역 */}
-        <div style={{ flex:1, minHeight:0, overflowY:'auto', padding:'12px 16px', display:'flex', flexDirection:'column', gap:14 }}>
+        <div style={{ flex:1, minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', padding:'12px 16px', display:'flex', flexDirection:'column', gap:14 } as React.CSSProperties}>
+
+          {/* 승강기 정보 (검사성적서 상단 양식) */}
+          <ElevatorInfoCard ev={ev} compact={!isDesktop} />
 
           {isLoading ? (
             <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>불러오는 중...</div>
@@ -1779,6 +1894,189 @@ function AnnualModal({ elevators, selected, onClose, onSubmit, loading }: {
   )
 }
 
+// ── 검사성적서 일괄 업로드 모달 ──────────────────────────────
+// PDF에서 페이지별 검사성적서를 자동 파싱 → cert_no로 elevators와 매칭 → 호기별 분리 저장
+type ParsedRow = ParsedCertPage & {
+  matchedElevator: Elevator | null  // null이면 매칭 실패
+  selected: boolean                  // 업로드 대상 여부
+}
+function AnnualUploadModal({ elevators, onClose, onComplete }: { elevators: Elevator[]; onClose: () => void; onComplete: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [parsing, setParsing] = useState(false)
+  const [rows, setRows] = useState<ParsedRow[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState<{ done:number; total:number }>({ done:0, total:0 })
+
+  async function handleFile(f: File) {
+    setFile(f)
+    setParsing(true)
+    setRows([])
+    try {
+      const parsed = await parseInspectionPdf(f)
+      if (parsed.length === 0) {
+        toast.error('검사성적서 페이지를 찾을 수 없어요')
+        return
+      }
+      // cert_no로 매칭 — 매칭 실패한 페이지는 미리보기에서 제외 (표지 등 잡음 방지)
+      const mapped: ParsedRow[] = parsed
+        .map(p => {
+          const matched = p.certNo ? (elevators.find(e => e.cert_no === p.certNo) ?? null) : null
+          return { ...p, matchedElevator: matched, selected: matched !== null }
+        })
+        .filter(r => r.matchedElevator !== null)
+      setRows(mapped)
+      if (mapped.length === 0) {
+        toast.error('매칭되는 호기가 없습니다 (DB에 등록된 승강기 고유번호와 일치하지 않음)')
+      } else {
+        toast.success(`${mapped.length}개 호기 매칭 완료`)
+      }
+    } catch (e: any) {
+      console.error(e)
+      toast.error('PDF 파싱 실패: ' + (e?.message ?? '알 수 없는 오류'))
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  async function handleUpload() {
+    if (!file) return
+    const targets = rows.filter(r => r.selected && r.matchedElevator)
+    if (targets.length === 0) { toast.error('업로드할 호기를 선택해주세요'); return }
+
+    setUploading(true)
+    setProgress({ done:0, total:targets.length })
+    const token = useAuthStore.getState().token
+    let success = 0
+    let failed = 0
+
+    for (let i = 0; i < targets.length; i++) {
+      const r = targets[i]
+      try {
+        // 1) 단일 페이지 PDF 추출
+        const singlePdf = await extractSinglePagePdf(file, r.pageNumber)
+        // 2) R2 업로드
+        const fd = new FormData()
+        fd.append('file', singlePdf, `cert_${r.matchedElevator!.cert_no}_${r.inspectDate ?? 'unknown'}.pdf`)
+        const upRes = await fetch('/api/uploads', {
+          method:'POST', body:fd, headers:{ Authorization:`Bearer ${token}` },
+        })
+        const upJson = await upRes.json() as any
+        if (!upJson.success) throw new Error(upJson.error ?? '업로드 실패')
+        const certKey = upJson.data.key
+
+        // 3) 검사기록 INSERT
+        const judgmentToResult = (j: string | null): 'pass'|'conditional'|'fail' =>
+          j === '조건부합격' ? 'conditional' : j === '불합격' ? 'fail' : 'pass'
+
+        const insertRes = await fetch('/api/elevators/inspections', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
+          body: JSON.stringify({
+            elevatorId: r.matchedElevator!.id,
+            inspectDate: r.inspectDate ?? new Date().toISOString().slice(0,10),
+            type: 'annual',
+            inspectType: 'regular',
+            overall: judgmentToResult(r.judgment),
+            result:  judgmentToResult(r.judgment),
+            certificateKey: certKey,
+            inspectorName:    r.inspectorName ?? undefined,
+            inspectionAgency: r.inspectionAgency ?? undefined,
+            judgment:         r.judgment ?? undefined,
+            validityStart:    r.validityStart ?? undefined,
+            validityEnd:      r.validityEnd ?? undefined,
+            certNumber:       r.certNumber ?? undefined,
+            inspectionItems:  r.items.length > 0 ? r.items : undefined,
+          }),
+        })
+        const insJson = await insertRes.json() as any
+        if (!insJson.success) throw new Error(insJson.error ?? '저장 실패')
+        success++
+      } catch (e: any) {
+        console.error(`Page ${r.pageNumber} (${r.certNo}) 실패:`, e)
+        failed++
+      }
+      setProgress({ done:i+1, total:targets.length })
+    }
+
+    setUploading(false)
+    if (failed === 0) {
+      toast.success(`${success}건 업로드 완료`)
+      onComplete()
+    } else {
+      toast.error(`${success}건 성공 / ${failed}건 실패`)
+    }
+  }
+
+  return (
+    <ModalWrap title="검사성적서 일괄 업로드" onClose={onClose}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {!file && (
+          <label style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, padding:'40px 20px', borderRadius:12, border:'2px dashed var(--bd2)', background:'var(--bg3)', cursor:'pointer' }}>
+            <span style={{ fontSize:36 }}>📄</span>
+            <span style={{ fontSize:13, fontWeight:600, color:'var(--t2)' }}>검사성적서 PDF 선택</span>
+            <span style={{ fontSize:10, color:'var(--t3)' }}>여러 호기 통합본 가능 (자동 분리·매칭)</span>
+            <input type="file" accept=".pdf" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+          </label>
+        )}
+
+        {file && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 12px', background:'var(--bg3)', borderRadius:9, fontSize:12, color:'var(--t2)' }}>
+            <span style={{ fontSize:18 }}>📄</span>
+            <span style={{ flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{file.name}</span>
+            <button onClick={() => { setFile(null); setRows([]) }} disabled={uploading} style={{ background:'none', border:'none', color:'var(--t3)', fontSize:12, cursor:'pointer', fontWeight:600 }}>변경</button>
+          </div>
+        )}
+
+        {parsing && (
+          <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>PDF 파싱 중...</div>
+        )}
+
+        {rows.length > 0 && !parsing && (
+          <>
+            <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>
+              매칭된 검사성적서 ({rows.length}개)
+            </div>
+            <div style={{ maxHeight:340, overflowY:'auto', border:'1px solid var(--bd)', borderRadius:8 }}>
+              {rows.map((r, idx) => (
+                <div key={idx} style={{ padding:'10px 12px', borderBottom: idx < rows.length-1 ? '1px solid var(--bd)' : 'none', display:'flex', gap:10, alignItems:'flex-start', background: r.matchedElevator ? 'transparent' : 'rgba(239,68,68,0.06)' }}>
+                  <input type="checkbox" checked={r.selected} disabled={!r.matchedElevator || uploading}
+                    onChange={e => setRows(rs => rs.map((x,i) => i===idx ? { ...x, selected:e.target.checked } : x))}
+                    style={{ marginTop:2 }} />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, color:'var(--t3)' }}>p.{r.pageNumber}</span>
+                      <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
+                        {r.matchedElevator ? `${r.matchedElevator.number}호기 (${r.matchedElevator.classification})` : '⚠️ 매칭 실패'}
+                      </span>
+                      {r.certNo && <span style={{ fontSize:10, color:'var(--t3)' }}>고유번호 {r.certNo}</span>}
+                      {r.judgment && <span style={{ fontSize:10, fontWeight:700, color: r.judgment === '합격' ? 'var(--safe)' : r.judgment === '조건부합격' ? 'var(--warn)' : 'var(--danger)', padding:'1px 6px', borderRadius:6, background:'rgba(255,255,255,0.05)' }}>{r.judgment}</span>}
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--t3)', marginTop:3 }}>
+                      검사일 {r.inspectDate ?? '-'} · 검사자 {r.inspectorName ?? '-'} · 항목 {r.items.length}개
+                      {r.validityStart && r.validityEnd && <> · 유효기간 {r.validityStart}~{r.validityEnd}</>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {uploading && (
+              <div style={{ fontSize:12, color:'var(--t2)', textAlign:'center' }}>
+                업로드 중... {progress.done}/{progress.total}
+              </div>
+            )}
+
+            <button onClick={handleUpload} disabled={uploading || rows.filter(r => r.selected).length === 0}
+              style={{ ...primaryBtnSt, opacity: (uploading || rows.filter(r => r.selected).length === 0) ? 0.5 : 1 }}>
+              {uploading ? '업로드 중...' : `${rows.filter(r => r.selected).length}건 업로드`}
+            </button>
+          </>
+        )}
+      </div>
+    </ModalWrap>
+  )
+}
+
 // ── 인증서 뷰어 모달 ─────────────────────────────────────
 function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>void }) {
   const isPdf = certKey.toLowerCase().endsWith('.pdf')
@@ -1789,7 +2087,7 @@ function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>voi
       <div style={{ position:'fixed', inset:0, zIndex:201, display:'flex', flexDirection:'column', paddingTop:'var(--sat, 44px)', paddingBottom:'var(--sab, 0px)' }}>
         {/* 헤더 */}
         <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 16px', background:'rgba(22,27,34,0.97)', borderBottom:'1px solid var(--bd)' }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>인증서</span>
+          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>검사성적서</span>
           <div style={{ display:'flex', gap:8 }}>
             <a href={url} target="_blank" rel="noopener" style={{ fontSize:11, fontWeight:700, color:'var(--acl)', padding:'6px 12px', borderRadius:8, background:'rgba(59,130,246,.15)', border:'1px solid rgba(59,130,246,.3)', textDecoration:'none' }}>새 탭 열기</a>
             <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:20 }}>✕</button>
@@ -1828,7 +2126,8 @@ function FindingCountBadge({ elevatorId, inspectionId, isConditional }: { elevat
 }
 
 // ── 조건부합격 지적사항 패널 ─────────────────────────────
-function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate }: { elevatorId:string; inspectionId:string; inspectionResult:string; navigate:(to:string)=>void }) {
+// hasCorrective: 조치 후 합격 cert가 이미 링크되어 있으면 "합격 전환" 버튼 숨김
+function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, hasCorrective }: { elevatorId:string; inspectionId:string; inspectionResult:string; navigate:(to:string)=>void; hasCorrective?:boolean }) {
   const qc = useQueryClient()
   const { staff: fpStaff } = useAuthStore()
   const isAdmin = fpStaff?.role === 'admin'
@@ -1895,8 +2194,8 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate }:
         <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', padding:'8px 0' }}>등록된 지적사항이 없습니다</div>
       )}
 
-      {/* 합격 전환 버튼 — 모든 지적사항이 조치완료된 경우에만 표시 */}
-      {allResolved && isAdmin && inspectionResult !== 'pass' && (
+      {/* 합격 전환 버튼 — 모든 지적 조치 완료 + admin + 조치 후 cert 없음 */}
+      {allResolved && isAdmin && inspectionResult !== 'pass' && !hasCorrective && (
         <button
           onClick={() => { if (confirm('모든 조치가 완료되었습니다. 합격으로 전환하시겠습니까?')) convertToPass.mutate() }}
           disabled={convertToPass.isPending}
@@ -1942,6 +2241,208 @@ function EmptyState({ icon, text }: { icon:string; text:string }) {
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0', gap:10 }}>
       <div style={{ fontSize:36 }}>{icon}</div>
       <div style={{ fontSize:13, color:'var(--t3)' }}>{text}</div>
+    </div>
+  )
+}
+
+// ── 검사성적서 요약 (검사기록 카드 펼침 시 표시) ────────────
+// inspection 객체에 PDF 파싱된 항목별 결과(inspection_items JSON) + 검사실시정보가 있으면 표시
+// corrective: 조건부합격 → 시정조치 후 합격 cert (선택적)
+function CertSummary({ inspection, corrective, onViewCert }: {
+  inspection: ElevatorInspection
+  corrective?: ElevatorInspection
+  onViewCert?: (key: string) => void
+}) {
+  const hasOriginal = certHasData(inspection)
+  const hasCorrective = corrective && certHasData(corrective)
+  if (!hasOriginal && !hasCorrective) return null
+
+  return (
+    <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:14 }}>
+      {hasOriginal && <CertBlock inspection={inspection} title="검사성적서" onViewCert={onViewCert} />}
+      {hasCorrective && (
+        <CertBlock
+          inspection={corrective!}
+          title="조치 후 합격 검사성적서"
+          accent="var(--safe)"
+          onViewCert={onViewCert}
+        />
+      )}
+    </div>
+  )
+}
+function certHasData(insp: ElevatorInspection): boolean {
+  if (insp.inspection_items) return true
+  return !!(insp.inspector_name || insp.inspection_agency || insp.judgment || insp.validity_start || insp.cert_number || insp.certificate_key)
+}
+function CertBlock({ inspection, title, accent, onViewCert }: {
+  inspection: ElevatorInspection
+  title: string
+  accent?: string
+  onViewCert?: (key: string) => void
+}) {
+  let items: Array<{ no:string; name:string; result:string }> = []
+  if (inspection.inspection_items) {
+    try { items = JSON.parse(inspection.inspection_items) } catch { /* ignore */ }
+  }
+  const hasInfo =
+    inspection.inspector_name || inspection.inspection_agency ||
+    inspection.judgment || inspection.validity_start || inspection.cert_number
+  const resultColor = (r: string) =>
+    r === '적합' ? 'var(--safe)' : r === '부적합' ? 'var(--danger)' : 'var(--t3)'
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      {/* 섹션 타이틀 + PDF 보기 */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, paddingTop:4 }}>
+        <div style={{ width:3, height:14, background: accent ?? 'var(--acl)', borderRadius:2 }} />
+        <span style={{ fontSize:12, fontWeight:700, color: accent ?? 'var(--t1)' }}>{title}</span>
+        {inspection.certificate_key && onViewCert && (
+          <button onClick={(e) => { e.stopPropagation(); onViewCert(inspection.certificate_key!) }}
+            style={{ marginLeft:'auto', fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:6, background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', color:'var(--safe)', cursor:'pointer' }}>
+            📄 PDF 보기
+          </button>
+        )}
+      </div>
+
+      {/* 항목별 검사결과 */}
+      {items.length > 0 && (
+        <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
+          <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--t2)' }}>
+            항목별 검사결과
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'40px 1fr auto', background:'var(--bg3)' }}>
+            {items.map((it, idx) => {
+              const isLast = idx === items.length - 1
+              const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
+              return [
+                <div key={`${idx}-no`} style={{ ...cellSt, color:'var(--t3)', fontWeight:600 }}>{it.no}</div>,
+                <div key={`${idx}-name`} style={{ ...cellSt, color:'var(--t1)' }}>{it.name}</div>,
+                <div key={`${idx}-result`} style={{ ...cellSt, color:resultColor(it.result), fontWeight:700 }}>{it.result}</div>,
+              ]
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 검사실시정보 */}
+      {hasInfo && (
+        <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
+          <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--t2)' }}>
+            검사실시정보
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'112px minmax(0, 1fr)', background:'var(--bg3)' }}>
+            {[
+              ['검사실시일', inspection.inspect_date ?? '-'],
+              ['검사자', inspection.inspector_name ?? '-'],
+              ['관할 검사 기관', inspection.inspection_agency ?? '-'],
+              ['판정 결과', inspection.judgment ?? '-'],
+              ['검사유효기간', inspection.validity_start && inspection.validity_end ? `${inspection.validity_start} ~ ${inspection.validity_end}` : '-'],
+              ['합격증명서 번호', inspection.cert_number ?? '-'],
+            ].map(([k, v], idx, arr) => {
+              const isLast = idx === arr.length - 1
+              const cellK: React.CSSProperties = { padding:'5px 8px', fontSize:10.5, color:'var(--t3)', fontWeight:600, background:'var(--bg2)', borderBottom: isLast ? 'none' : '1px solid var(--bd)', borderRight:'1px solid var(--bd)' }
+              const cellV: React.CSSProperties = { padding:'5px 8px', fontSize:11, color:'var(--t1)', fontWeight:600, borderBottom: isLast ? 'none' : '1px solid var(--bd)', wordBreak:'break-all' }
+              return [
+                <div key={`${idx}-k`} style={cellK}>{k}</div>,
+                <div key={`${idx}-v`} style={cellV}>{v}</div>,
+              ]
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 승강기정보 카드 (검사성적서 상단 재현) ──────────────────
+// 호기(설치장소) 포맷 — EV: "1(1-1)", 화물: "9(1-9)", 덤웨이터: "11(1-11)", ES: "16(E/S-5)"
+function formatInstallLocation(ev: Elevator): string {
+  if (!ev.public_no) return ''
+  if (ev.type === 'escalator') return `${ev.public_no}(E/S-${ev.public_no - 11})`
+  return `${ev.public_no}(1-${ev.public_no})`
+}
+// 빈 값은 대시 처리
+function dashIfEmpty(v: string | number | null | undefined): string {
+  return (v === null || v === undefined || v === '') ? '-' : String(v)
+}
+function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) {
+  const isEsc = ev.type === 'escalator'
+  // 운행구간 표시 — 엘리베이터: "B5-8(12)", 에스컬레이터: 그대로
+  const rangeText = !isEsc && ev.service_range && ev.floor_count
+    ? `${ev.service_range}(${ev.floor_count})`
+    : dashIfEmpty(ev.service_range)
+  // 엘리베이터 vs 에스컬레이터 필드 세트 다름 (검사성적서 원본 양식 준수)
+  const rows: Array<[string, string, string, string]> = isEsc
+    ? [
+        ['호기(설치장소)', formatInstallLocation(ev),                                 '승강기 고유번호', dashIfEmpty(ev.cert_no)],
+        ['형식/종류',      dashIfEmpty(ev.model_type),                                '운행구간(운행수)', rangeText],
+        ['제조업체',       dashIfEmpty(ev.manufacturer),                              '유지관리업체',     dashIfEmpty(ev.maintenance_company)],
+        ['구동기설치위치', dashIfEmpty(ev.machine_location),                          '운전 방식',        dashIfEmpty(ev.operation_mode)],
+        ['최대수용능력',   ev.max_capacity_persons ? `${ev.max_capacity_persons.toLocaleString()} 명/h` : '-', '공칭속도', dashIfEmpty(ev.rated_speed)],
+        ['경사 각도',      ev.incline_angle ? `${ev.incline_angle}°` : '-',           '보조브레이크',     dashIfEmpty(ev.auxiliary_brake)],
+      ]
+    : [
+        ['호기(설치장소)', formatInstallLocation(ev),                                 '승강기 고유번호',     dashIfEmpty(ev.cert_no)],
+        ['형식/종류',      dashIfEmpty(ev.model_type ?? ev.classification),           '운행구간(운행층수)', rangeText],
+        ['제조업체',       dashIfEmpty(ev.manufacturer),                              '유지관리업체',       dashIfEmpty(ev.maintenance_company)],
+        ['구동기 공간',    dashIfEmpty(ev.machine_location),                          '적재하중',           ev.capacity_kg ? `${ev.capacity_kg.toLocaleString()} kg` : '-'],
+        ['정격속도',       dashIfEmpty(ev.rated_speed),                               '매다는장치 지름/두께', dashIfEmpty(ev.rope_diameter)],
+        ['추락방지안전장치', dashIfEmpty(ev.safety_device),                           '매다는장치 가닥수',   ev.rope_count ? `${ev.rope_count} 가닥` : '-'],
+      ]
+  // 라벨/값 셀 공통 스타일
+  const kSt: React.CSSProperties = { color:'var(--t3)', fontWeight:600, fontSize:10.5, padding:'5px 7px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', borderRight:'1px solid var(--bd)', lineHeight:1.3, wordBreak:'keep-all' }
+  const vSt: React.CSSProperties = { color:'var(--t1)', fontWeight:600, fontSize:11,   padding:'5px 7px', borderBottom:'1px solid var(--bd)', borderRight:'1px solid var(--bd)', wordBreak:'break-all', lineHeight:1.3 }
+  // ── 컴팩트(모바일): 2열 (라벨|값), 한 줄에 한 항목 + 카드 내부 자체 스크롤 ──
+  if (compact) {
+    // 4열 페어를 풀어서 한 줄에 하나씩
+    const flatRows: Array<[string, string]> = [
+      ['건물명', '차바이오컴플렉스'],
+      ['건물주소', '경기도 성남시 분당구 판교로 335 (삼평동)'],
+      ...rows.flatMap(([k1, v1, k2, v2]): Array<[string, string]> => [[k1, v1], [k2, v2]]),
+    ]
+    return (
+      <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+        <div style={{ padding:'7px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t1)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <span>승강기 정보</span>
+          <span style={{ fontSize:9, fontWeight:500, color:'var(--t3)' }}>↕ 스크롤</span>
+        </div>
+        {/* 자체 스크롤 영역 — 약 6행(운행구간까지) 보이는 높이 */}
+        <div style={{ maxHeight:170, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', display:'grid', gridTemplateColumns:'112px minmax(0, 1fr)', background:'var(--bg3)' } as React.CSSProperties}>
+          {flatRows.map(([k, v], idx) => {
+            const isLast = idx === flatRows.length - 1
+            const lastRowSt = isLast ? { borderBottom:'none' } : null
+            return [
+              <div key={`${idx}-k`} style={{ ...kSt, ...lastRowSt }}>{k}</div>,
+              <div key={`${idx}-v`} style={{ ...vSt, ...lastRowSt, borderRight:'none' }}>{v}</div>,
+            ]
+          })}
+        </div>
+      </div>
+    )
+  }
+  // ── 일반(데스크톱): 4열 (검사성적서 양식 그대로) ──
+  return (
+    <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
+      <div style={{ padding:'7px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t1)' }}>
+        승강기 정보
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'max-content minmax(0, 1fr) max-content minmax(0, 1fr)', background:'var(--bg3)' }}>
+        <div style={kSt}>건물명</div>
+        <div style={{ ...vSt, gridColumn:'2 / -1', borderRight:'none' }}>차바이오컴플렉스</div>
+        <div style={kSt}>건물주소</div>
+        <div style={{ ...vSt, gridColumn:'2 / -1', borderRight:'none' }}>경기도 성남시 분당구 판교로 335 (삼평동)</div>
+        {rows.map(([k1, v1, k2, v2], idx) => {
+          const isLast = idx === rows.length - 1
+          const lastRowSt = isLast ? { borderBottom:'none' } : null
+          return [
+            <div key={`${idx}-k1`} style={{ ...kSt, ...lastRowSt }}>{k1}</div>,
+            <div key={`${idx}-v1`} style={{ ...vSt, ...lastRowSt }}>{v1}</div>,
+            <div key={`${idx}-k2`} style={{ ...kSt, ...lastRowSt }}>{k2}</div>,
+            <div key={`${idx}-v2`} style={{ ...vSt, ...lastRowSt, borderRight:'none' }}>{v2}</div>,
+          ]
+        })}
+      </div>
     </div>
   )
 }
@@ -2141,6 +2642,9 @@ function RepairImageViewer({ src, onClose }: { src: string; onClose: () => void 
 // ── 다중 사진 업로드 컴포넌트 ────────────────────────────────
 function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; keys: string[]; setKeys: (k: string[]) => void; max?: number }) {
   const [uploading, setUploading] = useState(false)
+  const [showPicker, setShowPicker] = useState(false)
+  const camRef = useRef<HTMLInputElement>(null)
+  const albRef = useRef<HTMLInputElement>(null)
 
   const handleAdd = async (file: File) => {
     if (keys.length >= max) { toast.error(`사진은 최대 ${max}장까지 가능합니다`); return }
@@ -2159,18 +2663,20 @@ function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; ke
     setUploading(false)
   }
 
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) handleAdd(f); e.target.value = '' }
+
   return (
     <div>
       <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>{label} ({keys.length}/{max})</div>
+      <input ref={camRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={onFileChange} />
+      <input ref={albRef} type="file" accept="image/*" style={{ display:'none' }} onChange={onFileChange} />
+      <PhotoSourceModal open={showPicker} onClose={() => setShowPicker(false)} onCamera={() => camRef.current?.click()} onAlbum={() => albRef.current?.click()} />
       <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
         {keys.length < max && (
-          <label style={{ width:64, height:64, flexShrink:0, borderRadius:8, border:'1px dashed var(--bd2)', background:'var(--bg3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor: uploading ? 'wait' : 'pointer' }}>
+          <button onClick={() => !uploading && setShowPicker(true)} style={{ width:64, height:64, flexShrink:0, borderRadius:8, border:'1px dashed var(--bd2)', background:'var(--bg3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor: uploading ? 'wait' : 'pointer' }}>
             <span style={{ fontSize:18 }}>📷</span>
             <span style={{ fontSize:8, color:'var(--t3)', fontWeight:600 }}>{uploading ? '...' : '추가'}</span>
-            <input type="file" accept="image/*" style={{ display:'none' }} disabled={uploading}
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleAdd(f); e.target.value = '' }}
-            />
-          </label>
+          </button>
         )}
         {keys.map((key, idx) => (
           <div key={key} style={{ position:'relative', width:64, height:64, flexShrink:0 }}>
