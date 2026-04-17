@@ -1,5 +1,6 @@
 name = "cbc-cron-worker"
 compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 main = "src/index.ts"
 
 [[d1_databases]]

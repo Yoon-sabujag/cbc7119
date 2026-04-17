@@ -115,10 +115,17 @@ async function handleDailyNotifications(env: Env) {
   ).all<PushSubRow>()
 
   const subs = { results: (allDailySubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
-  if (!subs.results.length) return
+
+  // 소방안전관리자(admin) staff_id 조회
+  const adminRows = await env.DB.prepare(
+    "SELECT id FROM staff WHERE role = 'admin' AND active = 1"
+  ).all<{ id: string }>()
+  const adminIds = new Set((adminRows.results ?? []).map(r => r.id))
+
+  if (!subs.results.length && !(allDailySubs.results ?? []).length) return
 
   // Batch queries for daily notification types
-  const [todaySchedules, yesterdayIncomplete, unresolvedFindings, upcomingEducation] = await Promise.all([
+  const [todaySchedules, yesterdayIncomplete, unresolvedFindings, upcomingEducation, elevatorEduExpiring] = await Promise.all([
     // 금일 점검 일정 (date range supported via end_date)
     env.DB.prepare(
       `SELECT title FROM schedule_items WHERE date = ? OR (date <= ? AND end_date >= ?)`
@@ -131,14 +138,18 @@ async function handleDailyNotifications(env: Env) {
     env.DB.prepare(
       `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
     ).all(),
-    // 교육 D-30: refresher 주기 2년 가정. completed_at + 2년 - 30일 = today
-    // Not all environments compute next_due in DB; derive client-side: we want
-    // records where next due date (= completed_at + 2 years) is exactly 30 days from today
+    // 소방 교육 D-30: completed_at + 2년 만기 기준 30일 전
     env.DB.prepare(
-      `SELECT s.name as staff_name, e.education_type, e.completed_at
+      `SELECT e.staff_id, s.name as staff_name, e.education_type, e.completed_at
        FROM education_records e JOIN staff s ON e.staff_id = s.id
        WHERE date(e.completed_at, '+2 years', '-30 days') = ?`
-    ).bind(today).all(),
+    ).bind(today).all<{ staff_id: string; staff_name: string; education_type: string }>(),
+    // 승강기 안전관리자 교육 D-30: safety_mgr_edu_expire 만료 30일 전
+    env.DB.prepare(
+      `SELECT id, name FROM staff
+       WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL
+         AND date(safety_mgr_edu_expire, '-30 days') = ?`
+    ).bind(today).all<{ id: string; name: string }>(),
   ])
 
   const sends: Promise<void>[] = []
@@ -173,11 +184,38 @@ async function handleDailyNotifications(env: Env) {
       }))
     }
 
-    // D-05: 교육 D-30 (보수교육 30일 전)
-    if (prefs.education_reminder && upcomingEducation.results?.length) {
+    // D-02 ~ D-04 는 근무자 전원 대상 (위에서 처리)
+  }
+
+  // D-05: 교육 D-30 — 당사자 + 소방안전관리자(admin)에게만 발송
+  const allSubs = allDailySubs.results ?? []
+  const adminSubs = allSubs.filter(s => adminIds.has(s.staff_id))
+
+  // 교육 만기 대상자별 알림 구성
+  interface EduTarget { staffId: string; line: string }
+  const eduTargets: EduTarget[] = []
+  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; education_type: string }[]) {
+    const label = r.education_type === 'initial' ? '신규교육' : '보수교육'
+    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 소방안전관리자 ${label}` })
+  }
+  for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
+    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 교육` })
+  }
+
+  if (eduTargets.length > 0) {
+    const body = eduTargets.map(t => t.line).join(', ') + '이 30일 후 만기됩니다'
+    // 수신 대상: 당사자 + admin (중복 제거)
+    const recipientIds = new Set<string>()
+    for (const t of eduTargets) recipientIds.add(t.staffId)
+    for (const id of adminIds) recipientIds.add(id)
+
+    for (const sub of allSubs) {
+      if (!recipientIds.has(sub.staff_id)) continue
+      const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
+      if (!prefs.education_reminder) continue
       sends.push(sendPush(env, sub, {
-        title: '보수교육 알림',
-        body: `${upcomingEducation.results.length}명의 보수교육이 30일 후 예정입니다`,
+        title: '교육 만기 알림 (D-30)',
+        body,
         type: 'education_reminder',
       }))
     }
