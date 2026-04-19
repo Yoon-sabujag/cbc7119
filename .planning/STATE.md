@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: 22
 Plan: Not started
 Status: Executing Phase 22
-Last activity: 2026-04-12 - Completed quick task 260412-8b1: 데스크톱 버전 로그인 페이지 UI/UX 개선
+Last activity: 2026-04-19 - Completed quick task 260420-c5s: DIV 압력관리 탱크배수주기 탭 추가 및 배수주기 이름 변경
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -99,6 +99,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260412-8b1 | 데스크톱 버전 로그인 페이지 UI/UX 개선 | 2026-04-12 | c5866e5 | [260412-8b1-ui-ux](./quick/260412-8b1-ui-ux/) |
+| 260420-c5s | DIV 압력관리 탱크배수주기 탭 추가 및 배수주기 이름 변경 | 2026-04-19 | e4995aa | [260420-c5s-div](./quick/260420-c5s-div/) |
 
 ### Blockers/Concerns
 
