@@ -1,8 +1,9 @@
 /**
  * DIV (드라이파이프 밸브) 압력 관리 페이지
- * 탭 1: 압력 트렌드 — 34개 측정점 1차압/2차압/챔버압
- * 탭 2: 배수 주기   — 배수 이력 기록
- * 탭 3: 오일 주기   — 컴프레셔 오일 보충 이력
+ * 탭 1: 압력 트렌드     — 34개 측정점 1차압/2차압/챔버압
+ * 탭 2: 챔버배수주기   — DIV 챔버 배수 이력 (div_drain_log)
+ * 탭 3: 탱크배수주기   — 컴프레셔 탱크 배수 이력 (comp_drain_log)
+ * 탭 4: 오일 주기       — 컴프레셔 오일 보충 이력 (div_compressor_log)
  */
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -79,7 +80,7 @@ async function fetchPressure(year?: number) {
   const j   = await res.json() as { ok: boolean; records: any[] }
   return j.records ?? []
 }
-async function fetchLogs(type: 'drain' | 'compressor') {
+async function fetchLogs(type: 'drain' | 'compressor' | 'comp_drain') {
   const res = await fetch(`/api/div/logs?type=${type}`, { headers: authHeader() })
   const j   = await res.json() as { ok: boolean; logs: any[] }
   return j.logs ?? []
@@ -152,7 +153,7 @@ function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
 }
 
 // ── 메인 페이지 ────────────────────────────────────────────────
-type Tab = 'pressure' | 'drain' | 'compressor'
+type Tab = 'pressure' | 'drain' | 'comp_drain' | 'compressor'
 
 export default function DivPage() {
   const navigate   = useNavigate()
@@ -189,6 +190,11 @@ export default function DivPage() {
     queryFn: () => fetchLogs('drain'),
     enabled: tab === 'drain',
   })
+  const { data: compDrainLogs = [] } = useQuery({
+    queryKey: ['div-comp-drain'],
+    queryFn: () => fetchLogs('comp_drain'),
+    enabled: tab === 'comp_drain',
+  })
   const { data: oilLogs = [] } = useQuery({
     queryKey: ['div-oil'],
     queryFn: () => fetchLogs('compressor'),
@@ -219,6 +225,16 @@ export default function DivPage() {
     for (const k of Object.keys(m)) m[k].sort()
     return m
   }, [drainLogs])
+
+  const compDrainDateMap = useMemo(() => {
+    const m: Record<string, string[]> = {}
+    for (const log of compDrainLogs) {
+      if (!m[log.div_id]) m[log.div_id] = []
+      if (!m[log.div_id].includes(log.drained_at)) m[log.div_id].push(log.drained_at)
+    }
+    for (const k of Object.keys(m)) m[k].sort()
+    return m
+  }, [compDrainLogs])
 
   const oilDateMap = useMemo(() => {
     const m: Record<string, string[]> = {}
@@ -331,9 +347,9 @@ export default function DivPage() {
   }
 
   // ── 배수/오일 탭: 층별 3열 간격 막대차트 ────────────────────
-  function renderLogTab(type: 'drain' | 'compressor') {
-    const dateMap = type === 'drain' ? drainDateMap : oilDateMap
-    const color   = type === 'drain' ? '#38bdf8' : '#f97316'
+  function renderLogTab(type: 'drain' | 'comp_drain' | 'compressor') {
+    const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
+    const color   = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
 
     return (
       <div style={{ padding: '6px 8px 80px' }}>
@@ -531,7 +547,8 @@ export default function DivPage() {
       <div style={{ flexShrink: 0, display: 'flex', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
         {([
           { key: 'pressure',   label: '압력 트렌드' },
-          { key: 'drain',      label: '배수 주기' },
+          { key: 'drain',      label: '챔버배수주기' },
+          { key: 'comp_drain', label: '탱크배수주기' },
           { key: 'compressor', label: '오일 주기' },
         ] as { key: Tab; label: string }[]).map(t => (
           <button
@@ -552,6 +569,7 @@ export default function DivPage() {
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {tab === 'pressure'   && renderPressureTab()}
         {tab === 'drain'      && renderLogTab('drain')}
+        {tab === 'comp_drain' && renderLogTab('comp_drain')}
         {tab === 'compressor' && renderLogTab('compressor')}
       </div>
 
