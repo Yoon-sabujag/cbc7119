@@ -3,6 +3,8 @@ export interface Env {
   STORAGE: R2Bucket
   JWT_SECRET: string
   ENVIRONMENT: string
+  VAPID_PUBLIC_KEY?: string
+  VAPID_PRIVATE_KEY?: string
 }
 
 interface JWTPayload { sub:string; name:string; role:string; title:string; iat:number; exp:number }
