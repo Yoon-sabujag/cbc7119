@@ -461,16 +461,6 @@ export default function ElevatorPage() {
     staleTime: 30 * 60_000,
   })
 
-  // 공단 공식 검사이력 (모바일 annual 탭) — selectedEv.cert_no 기준
-  const mobileCertNo = selectedEv?.cert_no ?? null
-  const koelsaHistoryMobile = useQuery({
-    queryKey: ['elevator_inspect_history', mobileCertNo],
-    queryFn: () => fetchInspectHistory(mobileCertNo!),
-    enabled: !!mobileCertNo && tab === 'annual',
-    staleTime: 6 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  })
-
   // 공단 공식 검사이력 (데스크톱 annual 탭) — selectedDesktopEv 와 동일한 우선순위로 cert_no 계산
   // (selectedDesktopEv 는 isDesktop 블록 내부에서 계산되므로, React hooks 규칙을 위해 여기서 별도 계산)
   const _desktopEvsSorted = useMemo(
@@ -1226,16 +1216,17 @@ export default function ElevatorPage() {
           )
         })()}
 
-        {/* ── 검사 기록 ── */}
+        {/* ── 검사 기록 (17대 전체 리스트) ── */}
         {tab === 'annual' && (
-          <div style={{ marginBottom: 10 }}>
-            <KoelsaHistorySection
-              certNo={selectedEv?.cert_no}
-              data={koelsaHistoryMobile.data}
-              isLoading={koelsaHistoryMobile.isLoading}
-              isError={koelsaHistoryMobile.isError}
-              isMobile
-            />
+          <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom: 10 }}>
+            {elevators.filter(e => e.cert_no).map(ev => (
+              <MobileAnnualRow key={ev.id} elevator={ev} />
+            ))}
+            {elevators.filter(e => e.cert_no).length === 0 && (
+              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>
+                공단 고유번호가 등록된 호기가 없습니다
+              </div>
+            )}
           </div>
         )}
         {/* ── 안전관리자 ── */}
@@ -1947,6 +1938,33 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         </button>
       </div>
     </ModalWrap>
+  )
+}
+
+// ── 모바일 annual 탭 — 호기별 공단 검사이력 Row ──
+function MobileAnnualRow({ elevator }: { elevator: Elevator }) {
+  const q = useQuery({
+    queryKey: ['elevator_inspect_history', elevator.cert_no],
+    queryFn: () => fetchInspectHistory(elevator.cert_no!),
+    enabled: !!elevator.cert_no,
+    staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+  const prefix = elevator.type === 'escalator' ? 'ES' : 'EV'
+  const numStr = String(elevator.number).padStart(2, '0')
+  return (
+    <div>
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--t3)', marginBottom:6, letterSpacing:'.04em' }}>
+        {prefix}-{numStr}{elevator.classification ? ` · ${elevator.classification}` : ''}
+      </div>
+      <KoelsaHistorySection
+        certNo={elevator.cert_no}
+        data={q.data}
+        isLoading={q.isLoading}
+        isError={q.isError}
+        isMobile
+      />
+    </div>
   )
 }
 
