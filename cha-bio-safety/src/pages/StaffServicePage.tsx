@@ -859,10 +859,12 @@ export default function StaffServicePage() {
                     position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
                     background:'#3b82f6',
                     color:'#fff',
-                    fontSize: isDesktop ? 11 : 9, fontWeight: 800,
-                    padding: isDesktop ? '3px 9px' : '2px 6px',
+                    fontSize: isDesktop ? 11 : 7, fontWeight: 800,
+                    ...(isDesktop
+                      ? { padding: '3px 9px' }
+                      : { width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' as const }),
                     borderRadius: 6,
-                    letterSpacing: '.02em',
+                    letterSpacing: '-.02em',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
                     pointerEvents: 'none',
                     zIndex: 1,
