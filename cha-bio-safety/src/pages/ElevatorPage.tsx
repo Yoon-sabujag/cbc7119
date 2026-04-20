@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
 import { useLocation, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -313,6 +313,9 @@ export default function ElevatorPage() {
   const [expandedInspect, setExpandedInspect] = useState<string | null>(null)
   // expandedAnnual: desktop repair 탭 확장 상태 (네이밍 레거시 — repair 카드 ID key로 사용)
   const [expandedAnnual, setExpandedAnnual] = useState<string | null>(null)
+  // 모바일 annual(검사 기록) 탭 — 연도 피커 + 카드별 펼침 상태
+  const [mobileAnnualYear, setMobileAnnualYear] = useState<number>(() => new Date().getFullYear())
+  const [expandedMobileAnnual, setExpandedMobileAnnual] = useState<Record<string, boolean>>({})
   const [desktopRightTab, setDesktopRightTab] = useState<'fault' | 'repair' | 'inspect' | 'annual' | 'safety'>('fault')
   const [editRepairData, setEditRepairData] = useState<any>(null)
 
@@ -333,6 +336,48 @@ export default function ElevatorPage() {
   const { data: elevators   = [] } = useQuery({ queryKey:['elevators'],            queryFn: fetchElevators })
   const { data: faults      = [] } = useQuery({ queryKey:['elevator_faults'],      queryFn: fetchFaults })
   const { data: repairs     = [] } = useQuery({ queryKey:['elevator_repairs_all'], queryFn: () => elevatorRepairApi.list() })
+
+  // 모바일 annual(검사 기록) 탭 — 모든 cert_no 보유 호기의 공단 검사이력을 일괄 조회
+  // 각 호기별 staleTime 6h 유지, 상위로 리프트하여 연도 Set 계산에 사용
+  const certElevators = useMemo(
+    () => elevators.filter(e => e.cert_no).sort((a, b) => {
+      // escalator 뒤로, 같은 type이면 number 오름차순
+      if (a.type === 'escalator' && b.type !== 'escalator') return 1
+      if (a.type !== 'escalator' && b.type === 'escalator') return -1
+      return a.number - b.number
+    }),
+    [elevators],
+  )
+  const mobileAnnualQueries = useQueries({
+    queries: certElevators.map(ev => ({
+      queryKey: ['elevator_inspect_history', ev.cert_no] as const,
+      queryFn: () => fetchInspectHistory(ev.cert_no!),
+      enabled: !!ev.cert_no,
+      staleTime: 6 * 60 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    })),
+  })
+  // 연도 Set: 모든 호기 검사이력에서 inspect_date(YYYY-MM-DD)의 연도 추출, 내림차순
+  const mobileAnnualAvailableYears = useMemo(() => {
+    const yset = new Set<number>()
+    for (const q of mobileAnnualQueries) {
+      const data = q.data
+      if (!data) continue
+      for (const item of data.history) {
+        if (item.inspectDate && item.inspectDate.length >= 4) {
+          const y = parseInt(item.inspectDate.slice(0, 4), 10)
+          if (!Number.isNaN(y)) yset.add(y)
+        }
+      }
+    }
+    return Array.from(yset).sort((a, b) => b - a)
+  }, [mobileAnnualQueries])
+  // 초기 로드: 데이터 있는 가장 최근 연도로 이동 (현재 연도에 데이터 없으면)
+  useEffect(() => {
+    if (mobileAnnualAvailableYears.length > 0 && !mobileAnnualAvailableYears.includes(mobileAnnualYear)) {
+      setMobileAnnualYear(mobileAnnualAvailableYears[0])
+    }
+  }, [mobileAnnualAvailableYears])
 
   // 공단 자체점검결과 조회 (월 선택)
   const now = new Date()
@@ -1216,19 +1261,178 @@ export default function ElevatorPage() {
           )
         })()}
 
-        {/* ── 검사 기록 (17대 전체 리스트) ── */}
-        {tab === 'annual' && (
-          <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom: 10 }}>
-            {elevators.filter(e => e.cert_no).map(ev => (
-              <MobileAnnualRow key={ev.id} elevator={ev} />
-            ))}
-            {elevators.filter(e => e.cert_no).length === 0 && (
+        {/* ── 검사 기록 (연도 선택 + 호기별 펼침) ── */}
+        {tab === 'annual' && (() => {
+          // 판정 배지 색상 (KoelsaHistorySection 과 동일 로직)
+          const dispColor = (disp: string | null | undefined): string => {
+            if (!disp) return 'var(--t3)'
+            const s = disp
+            const hasBo = s.includes('보완')
+            const hasFail = s.includes('불합격')
+            const hasCond = s.includes('조건부')
+            const hasBoAfterPass = s.includes('보완후합격')
+            const hasPass = s.includes('합격')
+            if (hasBoAfterPass || hasCond) return 'var(--warn)'
+            if (hasBo || hasFail) return 'var(--danger)'
+            if (hasPass) return 'var(--safe)'
+            return 'var(--t3)'
+          }
+
+          // cert_no 없음
+          if (certElevators.length === 0) {
+            return (
               <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>
                 공단 고유번호가 등록된 호기가 없습니다
               </div>
-            )}
-          </div>
-        )}
+            )
+          }
+
+          const anyLoading = mobileAnnualQueries.some(q => q.isLoading && !q.data)
+          const anyError   = mobileAnnualQueries.some(q => q.isError)
+
+          // 연도 피커 — 사용 가능한 연도 내에서 ◀/▶ 이동 (availableYears 는 내림차순)
+          const years = mobileAnnualAvailableYears
+          const hasAny = years.length > 0
+          // 현재 선택 연도가 years 에 없으면 0번(가장 최근)으로 fallback 인덱스 표시
+          const curYearIdx = hasAny ? Math.max(0, years.indexOf(mobileAnnualYear)) : -1
+          // years 는 내림차순 — "이전 연도(더 오래된)"는 index+1, "다음 연도(더 최근)"는 index-1
+          const hasOlder = hasAny && curYearIdx < years.length - 1
+          const hasNewer = hasAny && curYearIdx > 0
+          const goOlder = () => { if (hasOlder) setMobileAnnualYear(years[curYearIdx + 1]) }
+          const goNewer = () => { if (hasNewer) setMobileAnnualYear(years[curYearIdx - 1]) }
+
+          // 선택된 연도에 해당하는 호기별 items 집계
+          const yearStr = String(mobileAnnualYear)
+          const perElevatorYearItems = certElevators.map((ev, i) => {
+            const q = mobileAnnualQueries[i]
+            const items = (q.data?.history ?? []).filter(it => it.inspectDate?.slice(0, 4) === yearStr)
+            // 최신순 정렬
+            items.sort((a, b) => (b.inspectDate ?? '').localeCompare(a.inspectDate ?? ''))
+            return { ev, items, isLoading: q.isLoading, isError: q.isError }
+          })
+          const visible = perElevatorYearItems.filter(r => r.items.length > 0)
+
+          return (
+            <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom: 10 }}>
+              {/* 연도 선택 — 점검 기록 탭 월 피커와 동일 스타일, 연 단위 */}
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                <button
+                  onClick={goOlder}
+                  disabled={!hasOlder}
+                  style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasOlder ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasOlder ? 'var(--t2)' : 'var(--bd)', opacity: hasOlder ? 1 : 0.4 }}
+                >‹</button>
+                <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--t1)' }}>
+                  {mobileAnnualYear}년
+                </span>
+                <button
+                  onClick={goNewer}
+                  disabled={!hasNewer}
+                  style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNewer ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasNewer ? 'var(--t2)' : 'var(--bd)', opacity: hasNewer ? 1 : 0.4 }}
+                >›</button>
+              </div>
+
+              {anyLoading && (
+                <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t3)', fontSize:12 }}>공단 검사이력 조회 중...</div>
+              )}
+              {!anyLoading && anyError && visible.length === 0 && (
+                <div style={{ textAlign:'center', padding:'24px 0', color:'var(--danger)', fontSize:12 }}>공단 API 일시 오류 — 잠시 후 다시 시도해주세요</div>
+              )}
+              {!anyLoading && !hasAny && !anyError && (
+                <EmptyState icon="🔍" text="등록된 검사 이력이 없어요" />
+              )}
+              {!anyLoading && hasAny && visible.length === 0 && (
+                <EmptyState icon="📋" text="해당 연도에 검사 이력이 없어요" />
+              )}
+
+              {/* 호기 카드 리스트 — 선택 연도에 이력 있는 호기만 */}
+              {visible.map(({ ev, items }) => {
+                const prefix = ev.type === 'escalator' ? 'ES' : 'EV'
+                const numStr = String(ev.number).padStart(2, '0')
+                const evKey = ev.id
+                const isExp = !!expandedMobileAnnual[evKey]
+                // 최신 판정 (items 는 이미 최신순 정렬됨)
+                const latest = items[0]
+                const badge = dispColor(latest?.dispWords)
+                return (
+                  <div key={evKey} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0 }}>
+                    {/* 카드 헤더 */}
+                    <div
+                      onClick={() => setExpandedMobileAnnual(p => ({ ...p, [evKey]: !p[evKey] }))}
+                      style={{ padding:'10px 13px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}
+                    >
+                      <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[ev.type]}</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
+                          {prefix}-{numStr}
+                          {ev.classification && (
+                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>· {ev.classification}</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{items.length}건 · 최근 {latest.inspectDate ?? '-'}</div>
+                      </div>
+                      <span style={{ fontSize:10, fontWeight:700, color:badge, background:`${badge}22`, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>
+                        {latest?.dispWords ?? '-'}
+                      </span>
+                      <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExp ? 'rotate(90deg)' : 'none', transition:'transform .15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                    {/* 펼침 시 해당 연도 이력 상세 */}
+                    {isExp && (
+                      <div style={{ borderTop:'1px solid var(--bd)', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                        {items.map(item => {
+                          const itemBadge = dispColor(item.dispWords)
+                          const hasFails = item.fails.length > 0
+                          return (
+                            <div key={item.failCd} style={{ background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:10, padding:'10px 12px' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{item.inspectDate ?? '-'}</span>
+                                <span style={{ fontSize:10, color:'var(--t3)' }}>· {item.inspectKind ?? '-'}</span>
+                                <span style={{ marginLeft:'auto', fontSize:10, fontWeight:700, color:itemBadge, background:`${itemBadge}22`, padding:'2px 8px', borderRadius:12 }}>
+                                  {item.dispWords ?? '-'}
+                                </span>
+                              </div>
+                              {(item.validStart || item.validEnd) && (
+                                <div style={{ fontSize:11, color:'var(--t2)' }}>
+                                  유효기간 {item.validStart ?? '-'} ~ {item.validEnd ?? '-'}
+                                </div>
+                              )}
+                              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                                {[item.inspectInstitution, item.companyName].filter(Boolean).join(' · ') || '기관 정보 없음'}
+                              </div>
+                              {hasFails && (
+                                <div style={{ borderTop:'1px solid var(--bd)', marginTop:8, paddingTop:8 }}>
+                                  <div style={{ fontSize:11, fontWeight:700, color:'var(--warn)', marginBottom:6 }}>
+                                    부적합 {item.fails.length}건
+                                  </div>
+                                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                                    {item.fails.map((f, idx) => (
+                                      <div key={idx} style={{ fontSize:11, color:'var(--t2)', lineHeight:1.5 }}>
+                                        <div style={{ fontWeight:700, color:'var(--t1)' }}>
+                                          ▸ {[f.standardArticle, f.standardTitle].filter(Boolean).join(' ') || '조항 정보 없음'}
+                                        </div>
+                                        {f.failDesc && (
+                                          <div style={{ marginTop:2, paddingLeft:12 }}>
+                                            {f.failDesc}
+                                            {f.failDescInspector && (
+                                              <span style={{ color:'var(--t3)' }}> ({f.failDescInspector})</span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
         {/* ── 안전관리자 ── */}
         {tab === 'safety' && (() => {
           const data = safetyMgrQuery.data
@@ -1938,33 +2142,6 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         </button>
       </div>
     </ModalWrap>
-  )
-}
-
-// ── 모바일 annual 탭 — 호기별 공단 검사이력 Row ──
-function MobileAnnualRow({ elevator }: { elevator: Elevator }) {
-  const q = useQuery({
-    queryKey: ['elevator_inspect_history', elevator.cert_no],
-    queryFn: () => fetchInspectHistory(elevator.cert_no!),
-    enabled: !!elevator.cert_no,
-    staleTime: 6 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  })
-  const prefix = elevator.type === 'escalator' ? 'ES' : 'EV'
-  const numStr = String(elevator.number).padStart(2, '0')
-  return (
-    <div>
-      <div style={{ fontSize:11, fontWeight:700, color:'var(--t3)', marginBottom:6, letterSpacing:'.04em' }}>
-        {prefix}-{numStr}{elevator.classification ? ` · ${elevator.classification}` : ''}
-      </div>
-      <KoelsaHistorySection
-        certNo={elevator.cert_no}
-        data={q.data}
-        isLoading={q.isLoading}
-        isError={q.isError}
-        isMobile
-      />
-    </div>
   )
 }
 
