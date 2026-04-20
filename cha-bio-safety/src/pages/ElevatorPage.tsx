@@ -450,53 +450,6 @@ export default function ElevatorPage() {
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
   const repairCount = faults.filter(f => f.is_resolved && f.repair_detail).length
 
-  // 민원24 검사조회 키 — DB에서 로드 (DB 비어있으면 localStorage에서 자동 마이그레이션)
-  const inspectKeysQuery = useQuery({
-    queryKey: ['inspect_keys'],
-    queryFn: async () => {
-      const res = await fetch('/api/elevators/inspect-keys', { headers: authHeader() })
-      const json = await res.json() as any
-      const dbKeys = json.success ? (json.data as InspectKeyEntry[]) : []
-      if (dbKeys.length > 0) return dbKeys
-      // DB 비어있으면 localStorage에서 마이그레이션
-      const local: InspectKeyEntry[] = JSON.parse(localStorage.getItem('koelsa_inspect_keys_v2') || '[]')
-      if (local.length > 0) {
-        const saveRes = await fetch('/api/elevators/inspect-keys', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
-          body: JSON.stringify({ keys: local }),
-        })
-        const saveJson = await saveRes.json() as any
-        if (saveJson.success) return saveJson.data as InspectKeyEntry[]
-      }
-      return []
-    },
-  })
-  const [inspectKeyList, setInspectKeyList] = useState<InspectKeyEntry[]>([])
-  useEffect(() => {
-    if (inspectKeysQuery.data && inspectKeysQuery.data.length > 0) {
-      setInspectKeyList(inspectKeysQuery.data)
-    }
-  }, [inspectKeysQuery.data])
-
-  // NOTE(260420): annual 탭 UI 제거로 결과 소비자 없음. inspect-keys 저장은 유지 (InspectionLookupInput에서 사용).
-  // TODO: 추후 다른 UI에서 사용처가 생길 때까지 dead 상태. 제거 검토는 향후 정리 작업으로.
-  const minwon24Query = useQuery({
-    queryKey: ['minwon24_inspect', ...inspectKeyList.map(k => k.cstmr + k.recptn)],
-    queryFn: async () => {
-      const results: any[] = []
-      for (const key of inspectKeyList) {
-        if (key.cstmr.length !== 13 || key.recptn.length !== 17) continue
-        const res = await fetch(`/api/elevators/koelsa-inspect?cstmr=${key.cstmr}&recptn=${key.recptn}`, { headers: authHeader() })
-        const json = await res.json() as any
-        if (json.success && json.data) results.push(json.data)
-      }
-      return results.length > 0 ? results : null
-    },
-    enabled: inspectKeyList.length > 0,
-    staleTime: 10 * 60_000,
-  })
-
   // 안전관리자 정보
   const safetyMgrQuery = useQuery({
     queryKey: ['elevator_safety_manager'],
@@ -506,16 +459,6 @@ export default function ElevatorPage() {
       return json.success ? json.data : null
     },
     staleTime: 30 * 60_000,
-  })
-
-  // 공단 공식 검사이력 (모바일 annual 탭) — selectedEv.cert_no 기준
-  const mobileCertNo = selectedEv?.cert_no ?? null
-  const koelsaHistoryMobile = useQuery({
-    queryKey: ['elevator_inspect_history', mobileCertNo],
-    queryFn: () => fetchInspectHistory(mobileCertNo!),
-    enabled: !!mobileCertNo && tab === 'annual',
-    staleTime: 6 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
   })
 
   // 공단 공식 검사이력 (데스크톱 annual 탭) — selectedDesktopEv 와 동일한 우선순위로 cert_no 계산
@@ -986,8 +929,6 @@ export default function ElevatorPage() {
                           })()}
                         </div>
 
-                        {/* 검사 일정 등록 */}
-                        <InspectionLookupInput onSave={entries => setInspectKeyList(entries)} initialKeys={inspectKeyList} />
                       </div>
                     )
                   })()}
@@ -1275,16 +1216,17 @@ export default function ElevatorPage() {
           )
         })()}
 
-        {/* ── 검사 기록 ── */}
+        {/* ── 검사 기록 (17대 전체 리스트) ── */}
         {tab === 'annual' && (
-          <div style={{ marginBottom: 10 }}>
-            <KoelsaHistorySection
-              certNo={selectedEv?.cert_no}
-              data={koelsaHistoryMobile.data}
-              isLoading={koelsaHistoryMobile.isLoading}
-              isError={koelsaHistoryMobile.isError}
-              isMobile
-            />
+          <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom: 10 }}>
+            {elevators.filter(e => e.cert_no).map(ev => (
+              <MobileAnnualRow key={ev.id} elevator={ev} />
+            ))}
+            {elevators.filter(e => e.cert_no).length === 0 && (
+              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>
+                공단 고유번호가 등록된 호기가 없습니다
+              </div>
+            )}
           </div>
         )}
         {/* ── 안전관리자 ── */}
@@ -1405,8 +1347,6 @@ export default function ElevatorPage() {
                 })()}
               </div>
 
-              {/* 검사 일정 등록 */}
-              <InspectionLookupInput onSave={entries => setInspectKeyList(entries)} initialKeys={inspectKeyList} />
             </>
           )
         })()}
@@ -2001,91 +1941,29 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
   )
 }
 
-// ── 검사 일정 등록 입력폼 (안전관리자 탭용) ────────────────────
-type InspectKeyEntry = { cstmr: string; recptn: string }
-
-function InspectionLookupInput({ onSave, initialKeys }: { onSave: (entries: InspectKeyEntry[]) => void; initialKeys?: InspectKeyEntry[] }) {
-  const [entries, setEntries] = useState<InspectKeyEntry[]>(
-    initialKeys && initialKeys.length > 0 ? initialKeys : [{ cstmr: '', recptn: '' }]
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-
-  const updateEntry = (idx: number, field: 'cstmr' | 'recptn', val: string) => {
-    const next = [...entries]
-    next[idx] = { ...next[idx], [field]: val }
-    setEntries(next)
-  }
-  const addEntry = () => setEntries([...entries, { cstmr: '', recptn: '' }])
-  const removeEntry = (idx: number) => { if (entries.length > 1) setEntries(entries.filter((_, i) => i !== idx)) }
-
-  const handleSave = async () => {
-    const valid = entries.filter(e => e.cstmr && e.recptn)
-    for (const e of valid) {
-      if (e.cstmr.length !== 13) { setError('고객안내번호는 13자리여야 합니다'); return }
-      if (e.recptn.length !== 17) { setError('접수번호는 17자리여야 합니다'); return }
-    }
-    if (valid.length === 0) { setError('최소 1건을 입력하세요'); return }
-    setError(null)
-    setSaving(true)
-    try {
-      const res = await fetch('/api/elevators/inspect-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${useAuthStore.getState().token}` },
-        body: JSON.stringify({ keys: valid }),
-      })
-      const json = await res.json() as any
-      if (json.success) {
-        onSave(json.data)
-        toast.success('저장 완료 — 검사 기록 탭에서 확인하세요')
-      } else {
-        toast.error(json.error ?? '저장 실패')
-      }
-    } catch {
-      toast.error('저장 실패')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const inputSt: React.CSSProperties = { width:'100%', padding:'9px 10px', borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, fontFamily:'JetBrains Mono, monospace', outline:'none', boxSizing:'border-box', letterSpacing:1 }
-
+// ── 모바일 annual 탭 — 호기별 공단 검사이력 Row ──
+function MobileAnnualRow({ elevator }: { elevator: Elevator }) {
+  const q = useQuery({
+    queryKey: ['elevator_inspect_history', elevator.cert_no],
+    queryFn: () => fetchInspectHistory(elevator.cert_no!),
+    enabled: !!elevator.cert_no,
+    staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+  const prefix = elevator.type === 'escalator' ? 'ES' : 'EV'
+  const numStr = String(elevator.number).padStart(2, '0')
   return (
-    <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:12 }}>🔍 검사 일정 등록</div>
-      <div style={{ fontSize:10, color:'var(--t3)', marginBottom:10, lineHeight:1.5 }}>
-        검사 신청 후 전달받은 고객안내번호와 접수번호를 입력하면<br/>검사 기록 탭에서 검사 결과를 자동으로 확인할 수 있습니다.
+    <div>
+      <div style={{ fontSize:11, fontWeight:700, color:'var(--t3)', marginBottom:6, letterSpacing:'.04em' }}>
+        {prefix}-{numStr}{elevator.classification ? ` · ${elevator.classification}` : ''}
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-        {entries.map((entry, idx) => (
-          <div key={idx} style={{ background:'var(--bg3)', borderRadius:8, padding:'10px', position:'relative' }}>
-            {entries.length > 1 && (
-              <button onClick={() => removeEntry(idx)} style={{ position:'absolute', top:6, right:8, background:'none', border:'none', color:'var(--danger)', fontSize:14, cursor:'pointer', fontWeight:700, opacity:0.6 }}>✕</button>
-            )}
-            {entries.length > 1 && <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>검사 #{idx + 1}</div>}
-            <div style={{ marginBottom:6 }}>
-              <label style={{ fontSize:9, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:3 }}>고객안내번호 (13자리)</label>
-              <input value={entry.cstmr} onChange={e => updateEntry(idx, 'cstmr', e.target.value.replace(/\D/g,'').slice(0,13))} placeholder="0000000000000" style={inputSt} />
-            </div>
-            <div>
-              <label style={{ fontSize:9, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:3 }}>접수번호 (17자리)</label>
-              <input value={entry.recptn} onChange={e => updateEntry(idx, 'recptn', e.target.value.replace(/\D/g,'').slice(0,17))} placeholder="00000000000000000" style={inputSt} />
-            </div>
-          </div>
-        ))}
-        {error && <div style={{ fontSize:11, color:'var(--danger)', background:'rgba(239,68,68,.1)', padding:'8px 10px', borderRadius:8 }}>{error}</div>}
-        {initialKeys && initialKeys.length > 0 && <div style={{ fontSize:10, color:'var(--safe)' }}>✓ {initialKeys.length}건 등록됨</div>}
-        <div style={{ display:'flex', gap:8 }}>
-          <button onClick={addEntry}
-            style={{ flex:1, padding:'11px 0', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-            + 추가
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            style={{ flex:1, padding:'11px 0', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', opacity: saving ? 0.5 : 1 }}>
-            {saving ? '저장 중...' : '저장'}
-          </button>
-        </div>
-      </div>
+      <KoelsaHistorySection
+        certNo={elevator.cert_no}
+        data={q.data}
+        isLoading={q.isLoading}
+        isError={q.isError}
+        isMobile
+      />
     </div>
   )
 }
