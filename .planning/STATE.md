@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: 22
 Plan: Not started
 Status: Executing Phase 22
-Last activity: 2026-04-20 - Completed quick task 260420-mk6: 공단 공식 API 기반 검사이력 동기화
+Last activity: 2026-04-20 - Completed quick task 260420-n04: 승강기 검사기록 탭 UI 연동 + 6시간 TTL
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -103,6 +103,7 @@ None yet.
 | 260420-ee1 | DIV 압력관리 데스크톱 버전 (마스터-디테일 레이아웃) | 2026-04-20 | eb0b442 | [260420-ee1-div](./quick/260420-ee1-div/) |
 | 260420-fri | 스플래쉬 버전 체크 + 조건부 캐시 초기화 (달라졌을 때만 리로드) | 2026-04-20 | 3a0a04b | [260420-fri-splash-version-cache](./quick/260420-fri-splash-version-cache/) |
 | 260420-mk6 | 공단 공식 API 기반 승강기 검사이력 동기화 (민원24 대체, 2개 API 체이닝) | 2026-04-20 | 085b2ec | [260420-mk6-inspect-history](./quick/260420-mk6-inspect-history/) |
+| 260420-n04 | 승강기 검사기록 탭 UI 연동 + 자동 새로고침 (6h TTL, 부적합 펼침) | 2026-04-20 | 1cbbbc8 | [260420-n04-inspect-history-ui](./quick/260420-n04-inspect-history-ui/) |
 
 ### Blockers/Concerns
 
