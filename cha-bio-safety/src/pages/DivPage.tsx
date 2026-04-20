@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/authStore'
+import { useIsDesktop } from '../hooks/useIsDesktop'
 
 function authHeader(): Record<string, string> {
   const token = useAuthStore.getState().token
@@ -165,6 +166,7 @@ export default function DivPage() {
   const [tab, setTab]       = useState<Tab>('pressure')
   const [year, setYear]     = useState(today.getFullYear())
   const [selDiv, setSelDiv] = useState<DivPoint | null>(null)
+  const isDesktop = useIsDesktop()
 
   // 점검 페이지에서 openDivId 상태로 넘어온 경우 자동으로 해당 개소 상세 열기
   useEffect(() => {
@@ -245,6 +247,40 @@ export default function DivPage() {
     for (const k of Object.keys(m)) m[k].sort()
     return m
   }, [oilLogs])
+
+  // ── 데스크톱: 전체 포인트 상태 요약 ─────────────────────────
+  type PointStatus = {
+    point: DivPoint
+    status: 'ok' | 'warn' | 'danger'
+    worstKind: '1차압' | '2차압' | '세팅' | null
+    pct: number | null
+    last: { year: number; month: number; timing: string | null; v1: number; v2: number; vc: number } | null
+  }
+  const pointStatusList = useMemo<PointStatus[]>(() => {
+    return DIV_POINTS.map(point => {
+      const hist = pressureMap[point.id] ?? []
+      const last = hist[hist.length - 1]
+      const prev = hist[hist.length - 2]
+      if (!last || !prev) {
+        return { point: point as DivPoint, status: 'ok', worstKind: null, pct: null, last: last ?? null }
+      }
+      const cases = [
+        { kind: '1차압' as const, val: last.v1, ref: prev.v1, alert: 'rise' as const },
+        { kind: '2차압' as const, val: last.v2, ref: prev.v2, alert: 'fall' as const },
+        { kind: '세팅' as const, val: last.vc, ref: prev.vc, alert: 'fall' as const },
+      ]
+      const ranked = cases.map(c => ({ ...c, s: pressureStatus(c.val, c.ref, c.alert) }))
+      const sev = (s: 'ok' | 'warn' | 'danger') => s === 'danger' ? 2 : s === 'warn' ? 1 : 0
+      ranked.sort((a, b) => sev(b.s) - sev(a.s))
+      const top = ranked[0]
+      const pct = top.ref && top.ref !== 0 ? Math.round(((top.val - top.ref) / top.ref) * 100) : null
+      return { point: point as DivPoint, status: top.s, worstKind: top.kind, pct, last }
+    })
+  }, [pressureMap])
+
+  const dangerList = pointStatusList.filter(p => p.status === 'danger')
+  const warnList   = pointStatusList.filter(p => p.status === 'warn')
+  const okCount    = pointStatusList.filter(p => p.status === 'ok').length
 
   // ── 특정 DIV 전체 이력 fetch ──────────────────────────────────
   const { data: selHistory = [] } = useQuery({
@@ -530,6 +566,156 @@ export default function DivPage() {
         </div>
       </div>
     )
+  }
+
+  // ── 데스크톱: 우측 상세 패널 (Task 2에서 채워짐) ─────────────
+  function renderDesktopRightPanel() {
+    return <div style={{ padding: 20, color: 'var(--t3)', fontSize: 12 }}>Task 2에서 구현</div>
+  }
+
+  // ── 데스크톱: 전체 레이아웃 (헤더 + 배너 + 좌 매트릭스 + 우 상세) ─────────
+  function renderDesktopLayout() {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+        {/* 헤더 */}
+        <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+        </header>
+
+        {/* 상단 알림 배너 */}
+        <div style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 24px', display: 'flex', alignItems: 'center', gap: 10, overflowX: 'auto' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>
+            ⚠ 이상 {dangerList.length}건 · 주의 {warnList.length}건
+          </span>
+          {[...dangerList, ...warnList].map(item => (
+            <button
+              key={item.point.id}
+              onClick={() => setSelDiv(item.point as DivPoint)}
+              style={{
+                flexShrink: 0,
+                border: '1px solid',
+                borderColor: item.status === 'danger' ? 'rgba(239,68,68,.4)' : 'rgba(245,158,11,.4)',
+                background: item.status === 'danger' ? 'rgba(239,68,68,.12)' : 'rgba(245,158,11,.12)',
+                color: item.status === 'danger' ? 'var(--danger)' : '#f59e0b',
+                borderRadius: 16, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {item.status === 'danger' ? '●' : '◐'} {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
+            </button>
+          ))}
+          {dangerList.length === 0 && warnList.length === 0 && (
+            <span style={{ fontSize: 11, color: 'var(--t3)' }}>모든 포인트 정상</span>
+          )}
+        </div>
+
+        {/* 본문: 좌 매트릭스 / 우 상세 */}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {/* 좌측 매트릭스 */}
+          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
+            {/* 테이블 헤더 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--bd)' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>층</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#1 연구동</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#2 연구동</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#3 사무동</div>
+            </div>
+
+            {FLOOR_GROUPS.map(group => {
+              const floorLabel = group[0].floorLabel
+              return (
+                <div key={group[0].floor} style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 6 }}>
+                  {/* 층 라벨 */}
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                    {floorLabel}
+                  </div>
+                  {[1, 2, 3].map(pos => {
+                    const div = group.find(g => g.pos === pos) as DivPoint | undefined
+                    if (!div) {
+                      return (
+                        <div key={pos} style={{
+                          background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 8,
+                          minHeight: 54, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--t3)', fontSize: 14,
+                        }}>—</div>
+                      )
+                    }
+                    const info = pointStatusList.find(p => p.point.id === div.id)
+                    const status = info?.status ?? 'ok'
+                    const last = info?.last ?? null
+                    const selected = selDiv?.id === div.id
+
+                    let bg = 'var(--bg2)'
+                    let border = 'var(--bd)'
+                    if (status === 'danger')      { bg = 'rgba(239,68,68,.18)';  border = 'rgba(239,68,68,.4)' }
+                    else if (status === 'warn')   { bg = 'rgba(245,158,11,.18)'; border = 'rgba(245,158,11,.4)' }
+                    else if (last)                { bg = 'rgba(34,197,94,.12)';  border = 'rgba(34,197,94,.25)' }
+
+                    return (
+                      <div
+                        key={pos}
+                        onClick={() => setSelDiv(div)}
+                        style={{
+                          background: bg,
+                          border: selected ? '2px solid var(--acl)' : `1px solid ${border}`,
+                          borderRadius: 8,
+                          padding: selected ? '7px 9px' : '8px 10px',
+                          cursor: 'pointer',
+                          position: 'relative',
+                          minHeight: 54,
+                          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                          transition: 'background .1s',
+                        }}
+                      >
+                        {/* 우상단 뱃지 */}
+                        {status === 'danger' && (
+                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: 'var(--danger)' }}>이상</span>
+                        )}
+                        {status === 'warn' && (
+                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: '#f59e0b' }}>주의</span>
+                        )}
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)' }}>{div.id}</div>
+                        <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 2 }}>
+                          {last ? `최근 ${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+
+            {/* 범례 */}
+            <div style={{ marginTop: 16, padding: '10px 12px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--t3)', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(34,197,94,.12)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 3 }} /> 정상
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(245,158,11,.18)', border: '1px solid rgba(245,158,11,.4)', borderRadius: 3 }} /> 주의
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(239,68,68,.18)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 3 }} /> 이상
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 3 }} /> 해당없음
+              </span>
+            </div>
+          </div>
+
+          {/* 우측 상세 패널 */}
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 24px' }}>
+            {renderDesktopRightPanel()}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isDesktop) {
+    return <>{renderDesktopLayout()}</>
   }
 
   return (
