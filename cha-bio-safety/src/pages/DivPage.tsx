@@ -992,10 +992,21 @@ export default function DivPage() {
                         {status === 'warn' && (
                           <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: '#f59e0b' }}>주의</span>
                         )}
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)' }}>{div.id}</div>
-                        <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 2 }}>
-                          {last ? `최근 ${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)' }}>{div.id}</div>
+                          <div style={{ fontSize: 9, color: 'var(--t3)' }}>
+                            {last ? `${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
+                          </div>
                         </div>
+                        {last && (
+                          <div style={{ display: 'flex', gap: 6, marginTop: 4, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
+                            <span style={{ color: '#3b82f6' }}>{last.v1.toFixed(1)}</span>
+                            <span style={{ color: 'var(--t3)', fontWeight: 400 }}>|</span>
+                            <span style={{ color: '#f97316' }}>{last.v2.toFixed(1)}</span>
+                            <span style={{ color: 'var(--t3)', fontWeight: 400 }}>|</span>
+                            <span style={{ color: '#22c55e' }}>{last.vc.toFixed(1)}</span>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
