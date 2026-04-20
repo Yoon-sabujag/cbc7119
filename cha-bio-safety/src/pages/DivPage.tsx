@@ -2,8 +2,8 @@
  * DIV (드라이파이프 밸브) 압력 관리 페이지
  * 탭 1: 압력 트렌드     — 34개 측정점 1차압/2차압/챔버압
  * 탭 2: 챔버배수주기   — DIV 챔버 배수 이력 (div_drain_log)
- * 탭 3: 탱크배수주기   — 컴프레셔 탱크 배수 이력 (comp_drain_log)
- * 탭 4: 오일 주기       — 컴프레셔 오일 보충 이력 (div_compressor_log)
+ * 탭 3: 오일 주기       — 컴프레셔 오일 보충 이력 (div_compressor_log)
+ * 탭 4: 탱크배수주기   — 컴프레셔 탱크 배수 이력 (comp_drain_log)
  */
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
@@ -548,8 +548,8 @@ export default function DivPage() {
         {([
           { key: 'pressure',   label: '압력 트렌드' },
           { key: 'drain',      label: '챔버배수주기' },
-          { key: 'comp_drain', label: '탱크배수주기' },
           { key: 'compressor', label: '오일 주기' },
+          { key: 'comp_drain', label: '탱크배수주기' },
         ] as { key: Tab; label: string }[]).map(t => (
           <button
             key={t.key}
