@@ -236,12 +236,22 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const syncAll = url.searchParams.get('sync_all') === '1'
     const refresh = url.searchParams.get('refresh') !== '0'
 
+    // min_age (초) — 최근 fetched_at 이 min_age 이내이면 공단 API 호출 SKIP 후 DB 캐시만 반환
+    // 기본 21600 (6시간). 숫자 아니면 기본값. 음수는 0으로 clamp.
+    const minAgeRaw = url.searchParams.get('min_age')
+    let minAge = 21600
+    if (minAgeRaw != null) {
+      const parsed = parseInt(minAgeRaw, 10)
+      if (!Number.isNaN(parsed)) minAge = Math.max(0, parsed)
+    }
+
     if (!certNo && !syncAll) {
       return Response.json({ success: false, error: 'cert_no 또는 sync_all 필수' }, { status: 400 })
     }
 
     // ── 전체 동기화 (admin only) ──
     if (syncAll) {
+      // min_age ignored for sync_all mode
       if (data?.role !== 'admin') {
         return Response.json({ success: false, error: 'admin 권한 필요' }, { status: 403 })
       }
@@ -284,7 +294,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const elevatorNo = certToElevatorNo(certNo!)
 
     if (!refresh) {
-      // 캐시 only
+      // 캐시 only — 공단 API 호출 없이 DB 에서만 조회
+      const latestFetch = await env.DB.prepare(
+        'SELECT MAX(fetched_at) as fetched_at FROM elevator_inspect_history WHERE elevator_no=?'
+      ).bind(elevatorNo).first<{ fetched_at: string | null }>()
       const loaded = await loadFromDb(env, elevatorNo)
       return Response.json({
         success: true,
@@ -293,8 +306,33 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
           certNo: certNo!,
           ...loaded,
           cached: true,
+          lastFetchedAt: latestFetch?.fetched_at ?? null,
         },
       })
+    }
+
+    // refresh=true — min_age TTL 로 DB 최신성 검사.
+    //   DB 최신 fetched_at 이 min_age 이내면 공단 API SKIP + cached=true 반환.
+    if (minAge > 0) {
+      const latestFetch = await env.DB.prepare(
+        'SELECT fetched_at FROM elevator_inspect_history WHERE elevator_no=? ORDER BY fetched_at DESC LIMIT 1'
+      ).bind(elevatorNo).first<{ fetched_at: string }>()
+      if (latestFetch?.fetched_at) {
+        const ageMs = Date.now() - new Date(latestFetch.fetched_at).getTime()
+        if (ageMs >= 0 && ageMs < minAge * 1000) {
+          const loaded = await loadFromDb(env, elevatorNo)
+          return Response.json({
+            success: true,
+            data: {
+              elevatorNo,
+              certNo: certNo!,
+              ...loaded,
+              cached: true,
+              lastFetchedAt: latestFetch.fetched_at,
+            },
+          })
+        }
+      }
     }
 
     // 동기화 후 DB 재조회
@@ -308,6 +346,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         certNo: certNo!,
         ...loaded,
         cached: false,
+        lastFetchedAt: new Date().toISOString(),
       },
     })
   } catch (e) {
