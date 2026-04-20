@@ -65,7 +65,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 
       let status: 'ok' | 'due_soon' | 'overdue'
       if (days < 0)       status = 'overdue'
-      else if (days <= 30) status = 'due_soon'
+      else if (days <= 90) status = 'due_soon'
       else                status = 'ok'
 
       return {

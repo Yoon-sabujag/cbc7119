@@ -212,7 +212,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       const cycleMonths = getElevCycleMonths(r.type, r.install_year)
       const nextDate = addMonths(parseISO(r.last_date), cycleMonths)
       const days = differenceInDays(nextDate, todayDate)
-      if (days <= 30) elevInspDueSoon++
+      if (days <= 90) elevInspDueSoon++
     }
 
     // ── 이번 달 점검 진척도 ──────────────────────────
