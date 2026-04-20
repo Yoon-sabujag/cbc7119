@@ -568,9 +568,324 @@ export default function DivPage() {
     )
   }
 
-  // ── 데스크톱: 우측 상세 패널 (Task 2에서 채워짐) ─────────────
+  // ── 데스크톱: 압력 트렌드 차트 (모바일 renderDivDetail 차트 로직 복사) ───────
+  function renderDesktopPressureChart(div: DivPoint) {
+    const allHist = [...selHistory].sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month)
+    const currentYear = new Date().getFullYear()
+    const hist = (() => {
+      if (year === currentYear) {
+        const lastRec = allHist[allHist.length - 1]
+        if (!lastRec) return []
+        const endY = lastRec.year, endM = lastRec.month
+        const startDate = new Date(endY - 1, endM, 1)
+        return allHist.filter((r: any) => {
+          const d = new Date(r.year, r.month - 1, 1)
+          return d >= startDate && (r.year < endY || (r.year === endY && r.month <= endM))
+        })
+      } else {
+        return allHist.filter((r: any) => r.year === year)
+      }
+    })()
+    void div
+    const W = 600
+    const n = hist.length
+
+    if (hist.length === 0) {
+      return <div style={{ color: 'var(--t3)', padding: '30px 0', textAlign: 'center', fontSize: 13 }}>데이터 없음</div>
+    }
+
+    return (
+      <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {([
+            { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
+            { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
+            { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
+          ] as const).map(({ key, label, color, dashed }) => {
+            const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
+            if (vals.length === 0) return null
+            const center = (Math.min(...vals) + Math.max(...vals)) / 2
+            const sMinV  = center - 0.5
+            const sMaxV  = center + 0.5
+            const sRange = sMaxV - sMinV
+            const sH = 160, sPadL = 34, sPadR = 12, sPadT = 38, sPadB = 22
+            const sCW = W - sPadL - sPadR, sCH = sH - sPadT - sPadB
+            function spx(i: number) { return sPadL + (n > 1 ? (i / (n - 1)) * sCW : sCW / 2) }
+            function spy(v: number) { return sPadT + (1 - (v - sMinV) / sRange) * sCH }
+            const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
+            return (
+              <div key={key}>
+                <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 3 }}>{label}</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <svg width={Math.max(W, n * 28)} height={sH} style={{ display: 'block' }}>
+                    {sTicks.map((t, ti) => (
+                      <g key={ti}>
+                        <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
+                        <line x1={sPadL} y1={spy(t)} x2={W - sPadR} y2={spy(t)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                      </g>
+                    ))}
+                    {hist.map((r: any, i: number) => (
+                      <text key={i} x={spx(i)} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="9" fontFamily="JetBrains Mono, monospace">
+                        {String(r.month).padStart(2, '0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}
+                      </text>
+                    ))}
+                    <polyline
+                      points={hist.map((r: any, i: number) => `${spx(i).toFixed(1)},${spy(r[key] ?? 0).toFixed(1)}`).join(' ')}
+                      fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"
+                      strokeDasharray={dashed ? '4 2' : undefined}
+                    />
+                    {hist.map((r: any, i: number) => {
+                      const cx = spx(i), cy = spy(r[key] ?? center)
+                      const vx = cx
+                      const vy = cy - 18
+                      return (
+                        <g key={i}>
+                          <circle cx={cx} cy={cy} r={3} fill={color} />
+                          <text
+                            x={vx} y={vy}
+                            textAnchor="middle" dominantBaseline="central"
+                            transform={`rotate(-90, ${vx.toFixed(1)}, ${vy.toFixed(1)})`}
+                            fontSize="11" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}
+                          >{(r[key] ?? 0).toFixed(1)}</text>
+                        </g>
+                      )
+                    })}
+                  </svg>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 수치 테이블 */}
+        <div style={{ marginTop: 14, borderRadius: 10, border: '1px solid var(--bd)', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', background: 'var(--bg3)', padding: '7px 10px' }}>
+            {['월', '1차압', '2차압', '세팅압'].map(h => (
+              <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
+            ))}
+          </div>
+          {[...hist].reverse().slice(0, 24).map((r: any) => (
+            <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
+              <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
+              {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
+                <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                  {v != null ? v.toFixed(1) : '-'}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  // ── 데스크톱: 배수/오일 타임라인 (IntervalBar + 날짜 리스트) ─────
+  function renderDesktopLogTimeline(div: DivPoint, type: 'drain' | 'comp_drain' | 'compressor') {
+    const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
+    const dates = dateMap[div.id] ?? []
+    const color = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const label = type === 'drain' ? '챔버 배수' : type === 'comp_drain' ? '탱크 배수' : '오일 보충'
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '.04em' }}>{label} 간격</div>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '14px 16px' }}>
+          <IntervalBar dates={dates} color={color} />
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', marginTop: 6 }}>최근 기록</div>
+        {dates.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center' }}>기록 없음</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {[...dates].reverse().slice(0, 20).map(d => (
+              <div key={d} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: 'var(--bg2)', borderRadius: 8, border: '1px solid var(--bd)' }}>
+                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--t1)' }}>{d}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── 데스크톱: 우측 상세 패널 ─────────────────────────────────
   function renderDesktopRightPanel() {
-    return <div style={{ padding: 20, color: 'var(--t3)', fontSize: 12 }}>Task 2에서 구현</div>
+    // A. 빈 상태: 전역 통계 요약
+    if (!selDiv) {
+      // 배수/오일 평균 간격 + 최근 날짜 계산
+      function summarizeMap(m: Record<string, string[]>) {
+        const intervals: number[] = []
+        let recent: string | null = null
+        for (const id of Object.keys(m)) {
+          const arr = m[id]
+          if (arr.length >= 2) {
+            intervals.push(daysBetween(arr[arr.length - 2], arr[arr.length - 1]))
+          }
+          const last = arr[arr.length - 1]
+          if (last && (!recent || last > recent)) recent = last
+        }
+        const avg = intervals.length > 0 ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length) : null
+        return { avg, recent }
+      }
+      const drainSum = summarizeMap(drainDateMap)
+      const compDrainSum = summarizeMap(compDrainDateMap)
+      const oilSum = summarizeMap(oilDateMap)
+
+      const counters = [
+        { label: '정상', count: okCount, color: '#22c55e', bg: 'rgba(34,197,94,.12)', border: 'rgba(34,197,94,.25)' },
+        { label: '주의', count: warnList.length, color: '#f59e0b', bg: 'rgba(245,158,11,.18)', border: 'rgba(245,158,11,.4)' },
+        { label: '이상', count: dangerList.length, color: 'var(--danger)', bg: 'rgba(239,68,68,.18)', border: 'rgba(239,68,68,.4)' },
+      ]
+
+      const logCards = [
+        { label: '챔버 배수', sum: drainSum, color: '#38bdf8' },
+        { label: '탱크 배수', sum: compDrainSum, color: '#8b4513' },
+        { label: '오일 보충', sum: oilSum, color: '#f97316' },
+      ]
+
+      const alertItems = [...dangerList, ...warnList]
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {/* 섹션 1: 측정점 현황 */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>◆ 34개 측정점 현황</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {counters.map(c => (
+                <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: c.color, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace' }}>{c.count}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 6, fontWeight: 600 }}>{c.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 섹션 2: 배수/오일 현황 */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 배수/오일 현황 ──</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {logCards.map(card => (
+                <div key={card.label} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '12px 12px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: card.color, marginBottom: 6, letterSpacing: '.04em' }}>{card.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace' }}>
+                    {card.sum.avg != null ? `평균 ${card.sum.avg}일` : '기록 없음'}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>
+                    {card.sum.recent ? `최근 ${card.sum.recent}` : '—'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 섹션 3: 이상/주의 리스트 */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 이상/주의 포인트 ──</div>
+            {alertItems.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8 }}>
+                이상·주의 포인트가 없습니다
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {alertItems.map(item => {
+                  const isDanger = item.status === 'danger'
+                  return (
+                    <button
+                      key={item.point.id}
+                      onClick={() => setSelDiv(item.point as DivPoint)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px',
+                        background: isDanger ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
+                        border: `1px solid ${isDanger ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`,
+                        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', flexShrink: 0, minWidth: 32 }}>
+                        {isDanger ? '● 이상' : '◐ 주의'}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0, minWidth: 48 }}>
+                        {item.point.id}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        {item.point.floorLabel} · {item.point.loc}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                        {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    // B. 선택 상태: 제목 + 연도 네비 + 내부 탭 + 탭 콘텐츠
+    const selectedDiv: DivPoint = selDiv
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 40 }}>
+        {/* 헤더: 제목 + 연도 네비 + ✕ */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+              {selectedDiv.floorLabel} · {selectedDiv.loc}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
+              {POS_LABEL[selectedDiv.pos]} · {selectedDiv.id}
+            </div>
+          </div>
+          {tab === 'pressure' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+                {year > 2023 && (
+                  <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>‹</button>
+                )}
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 38, textAlign: 'center', display: 'inline-block' }}>{year}</span>
+              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+                {year < new Date().getFullYear() && (
+                  <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>›</button>
+                )}
+              </div>
+            </div>
+          )}
+          <button
+            onClick={closeDetail}
+            style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 22, cursor: 'pointer', flexShrink: 0 }}
+          >✕</button>
+        </div>
+
+        {/* 내부 탭 */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--bd)' }}>
+          {([
+            { key: 'pressure',   label: '압력 트렌드' },
+            { key: 'drain',      label: '챔버배수' },
+            { key: 'comp_drain', label: '탱크배수' },
+            { key: 'compressor', label: '오일' },
+          ] as { key: Tab; label: string }[]).map(t => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              style={{
+                flex: 1, padding: '8px 4px', border: 'none', background: 'transparent', cursor: 'pointer',
+                fontSize: 12, fontWeight: 600,
+                color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
+                borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
+              }}
+            >{t.label}</button>
+          ))}
+        </div>
+
+        {/* 탭 콘텐츠 */}
+        {tab === 'pressure'   && renderDesktopPressureChart(selectedDiv)}
+        {tab === 'drain'      && renderDesktopLogTimeline(selectedDiv, 'drain')}
+        {tab === 'comp_drain' && renderDesktopLogTimeline(selectedDiv, 'comp_drain')}
+        {tab === 'compressor' && renderDesktopLogTimeline(selectedDiv, 'compressor')}
+      </div>
+    )
   }
 
   // ── 데스크톱: 전체 레이아웃 (헤더 + 배너 + 좌 매트릭스 + 우 상세) ─────────
