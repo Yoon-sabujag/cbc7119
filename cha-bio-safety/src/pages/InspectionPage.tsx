@@ -3741,10 +3741,12 @@ export default function InspectionPage() {
     return { normal, caution, bad }
   }, [records])
 
+  // '오늘 점검 현황' 칩 집계: 오늘 실제로 기록된 건수만 센다.
+  // (defaultResult/[접근불가] 바이패스는 월간 완료 판정용이라 여기선 제외)
   const categoryStats = useMemo(() =>
     CATEGORY_GROUPS.map((g, idx) => {
       const cps  = allCheckpoints.filter(cp => g.categories.includes(cp.category))
-      const done = cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
+      const done = cps.filter(cp => records[cp.id]).length
       return { idx, group:g, total:cps.length, done }
     }).filter(s => s.done > 0),
     [allCheckpoints, records]
