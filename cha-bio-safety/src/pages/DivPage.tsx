@@ -980,8 +980,8 @@ export default function DivPage() {
                           padding: selected ? '7px 9px' : '8px 10px',
                           cursor: 'pointer',
                           position: 'relative',
-                          minHeight: 54,
-                          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+                          minHeight: 64,
+                          display: 'flex', flexDirection: 'column',
                           transition: 'background .1s',
                         }}
                       >
@@ -992,18 +992,20 @@ export default function DivPage() {
                         {status === 'warn' && (
                           <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: '#f59e0b' }}>주의</span>
                         )}
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)' }}>{div.id}</div>
-                          <div style={{ fontSize: 9, color: 'var(--t3)' }}>
+                        {/* 좌상단: 개소번호 + 월 (세로 스택) */}
+                        <div style={{ position: 'absolute', top: 6, left: 10, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)', lineHeight: 1 }}>{div.id}</div>
+                          <div style={{ fontSize: 9, color: 'var(--t3)', lineHeight: 1 }}>
                             {last ? `${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
                           </div>
                         </div>
+                        {/* 중앙: 1차/2차/세팅압 */}
                         {last && (
-                          <div style={{ display: 'flex', gap: 6, marginTop: 4, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, lineHeight: 1 }}>
+                          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
                             <span style={{ color: '#3b82f6' }}>{last.v1.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400 }}>|</span>
+                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
                             <span style={{ color: '#f97316' }}>{last.v2.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400 }}>|</span>
+                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
                             <span style={{ color: '#22c55e' }}>{last.vc.toFixed(1)}</span>
                           </div>
                         )}
