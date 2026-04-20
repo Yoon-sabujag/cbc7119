@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
+import { getDeferredInstallPrompt, subscribeInstallPrompt, showInstallPrompt } from '../utils/pwaInstall'
 
 // PWA 설치 여부 확인
 function isStandalone(): boolean {
@@ -22,29 +23,28 @@ function isIOS(): boolean {
  * - 이미 PWA로 실행 중이면 표시 안 함
  */
 export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  // pwaInstall 유틸이 모듈 로드 시점에 이미 이벤트를 캡처해뒀으므로
+  // mount 시 즉시 값이 있을 수 있음. 아직 안 왔다면 구독해서 기다림.
+  const [hasPrompt, setHasPrompt] = useState<boolean>(() => !!getDeferredInstallPrompt())
   const [showIOSGuide, setShowIOSGuide] = useState(false)
-  const promptRef = useRef<any>(null)
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false)
 
   useEffect(() => {
-    function handler(e: Event) {
-      e.preventDefault()
-      promptRef.current = e
-      setDeferredPrompt(e)
-    }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
+    const unsub = subscribeInstallPrompt(p => setHasPrompt(!!p))
+    return unsub
   }, [])
 
   // Android 네이티브 설치
   async function handleInstallAndroid() {
-    const prompt = promptRef.current
-    if (!prompt) return
-    prompt.prompt()
-    const result = await prompt.userChoice
-    if (result.outcome === 'accepted') {
+    const outcome = await showInstallPrompt()
+    if (outcome === 'accepted') {
       onDismiss()
+    } else if (outcome === 'unavailable') {
+      // 브라우저가 아직 설치 가능 이벤트를 발사하지 않았거나 이미 설치됨
+      // → 수동 설치 가이드 표시
+      setShowAndroidGuide(true)
     }
+    // 'dismissed': 사용자가 팝업에서 취소 → 아무것도 안 함
   }
 
   // iOS 안내
@@ -85,7 +85,7 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
           홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
         </p>
 
-        {!showIOSGuide ? (
+        {!showIOSGuide && !showAndroidGuide ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={ios ? handleInstallIOS : handleInstallAndroid}
@@ -96,7 +96,7 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
               }}
             >
-              {ios ? '설치 방법 보기' : '홈 화면에 설치'}
+              {ios ? '설치 방법 보기' : hasPrompt ? '홈 화면에 설치' : '설치 방법 보기'}
             </button>
             <button
               onClick={onDismiss}
@@ -107,6 +107,42 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
               }}
             >
               나중에 할게요
+            </button>
+          </div>
+        ) : showAndroidGuide ? (
+          /* Android Chrome 수동 설치 가이드 (이벤트 미발사 fallback) */
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '8px 10px', marginBottom: 14 }}>
+              자동 설치 창이 뜨지 않으면 아래 순서로 설치해 주세요.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>1</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>크롬 우상단 <span style={{ fontSize: 16 }}>⋮</span> 메뉴</div>
+                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>주소창 오른쪽 점 세 개 메뉴를 누르세요</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>2</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>'앱 설치' 또는 '홈 화면에 추가' 선택</div>
+                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>메뉴에서 <strong style={{ color: '#e6edf3' }}>앱 설치</strong>(또는 <strong style={{ color: '#e6edf3' }}>홈 화면에 추가</strong>)를 누르세요</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>3</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>'설치' 확인</div>
+                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>팝업에서 <strong style={{ color: '#e6edf3' }}>설치</strong>를 누르면 완료</div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={onDismiss}
+              style={{ width: '100%', height: 44, borderRadius: 10, marginTop: 18, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              확인했습니다
             </button>
           </div>
         ) : (
