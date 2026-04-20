@@ -679,18 +679,60 @@ export default function DivPage() {
     )
   }
 
-  // ── 데스크톱: 배수/오일 타임라인 (IntervalBar + 날짜 리스트) ─────
+  // ── 데스크톱: 배수/오일 타임라인 (큰 막대그래프 + 날짜 리스트) ─────
   function renderDesktopLogTimeline(div: DivPoint, type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
     const dates = dateMap[div.id] ?? []
     const color = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
     const label = type === 'drain' ? '챔버 배수' : type === 'comp_drain' ? '탱크 배수' : '오일 보충'
 
+    // 데스크톱용 큰 막대그래프: 최근 6건 → 5개 간격
+    const recent = dates.slice(-6)
+    const intervals = recent.length >= 2
+      ? recent.slice(1).map((d, i) => ({
+          days: daysBetween(recent[i], d),
+          mm:   d.slice(5, 7),
+          dd:   d.slice(8, 10),
+        }))
+      : []
+    const maxDays = intervals.length > 0 ? Math.max(...intervals.map(iv => iv.days)) : 0
+    const barMaxH = 110
+    const chartH  = 170
+    const labelY  = barMaxH + 30
+    const subY    = barMaxH + 54
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '.04em' }}>{label} 간격</div>
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '14px 16px' }}>
-          <IntervalBar dates={dates} color={color} />
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '18px 20px' }}>
+          {intervals.length === 0 ? (
+            <div style={{ height: chartH, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>
+              기록이 부족하여 간격을 표시할 수 없습니다 (최소 2건 필요)
+            </div>
+          ) : (
+            <svg width="100%" height={chartH} viewBox={`0 0 ${intervals.length * 100} ${chartH}`} preserveAspectRatio="xMidYMid meet">
+              {intervals.map(({ days, mm, dd }, i) => {
+                const h = maxDays > 0 ? Math.max(16, Math.round((days / maxDays) * barMaxH)) : barMaxH
+                const cx = i * 100 + 50
+                const barW = 60
+                const x = cx - barW / 2
+                const barY = barMaxH - h + 8
+                return (
+                  <g key={i}>
+                    <rect x={x} y={barY} width={barW} height={h} rx={6} fill={color} opacity={0.85} />
+                    <text x={cx} y={barY - 8} textAnchor="middle"
+                      fontSize="20" fontWeight="700" fill={color} fontFamily="JetBrains Mono, monospace">
+                      {days}
+                    </text>
+                    <text x={cx} y={labelY} textAnchor="middle"
+                      fontSize="16" fontWeight="700" fill="var(--t2)" fontFamily="JetBrains Mono, monospace">{mm}</text>
+                    <text x={cx} y={subY} textAnchor="middle"
+                      fontSize="14" fill="var(--t3)" fontFamily="JetBrains Mono, monospace">{dd}</text>
+                  </g>
+                )
+              })}
+            </svg>
+          )}
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', marginTop: 6 }}>최근 기록</div>
         {dates.length === 0 ? (
