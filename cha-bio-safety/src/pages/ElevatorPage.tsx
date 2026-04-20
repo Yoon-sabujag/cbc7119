@@ -13,6 +13,8 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { parseInspectionPdf, type ParsedCertPage, type InspectionItem } from '../utils/parseInspectionPdf'
 import { extractSinglePagePdf } from '../utils/splitInspectionPdf'
+import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
+import { fetchInspectHistory } from '../utils/inspectHistory'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -515,6 +517,35 @@ export default function ElevatorPage() {
     staleTime: 30 * 60_000,
   })
 
+  // 공단 공식 검사이력 (모바일 annual 탭) — selectedEv.cert_no 기준
+  const mobileCertNo = selectedEv?.cert_no ?? null
+  const koelsaHistoryMobile = useQuery({
+    queryKey: ['elevator_inspect_history', mobileCertNo],
+    queryFn: () => fetchInspectHistory(mobileCertNo!),
+    enabled: !!mobileCertNo && tab === 'annual',
+    staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  // 공단 공식 검사이력 (데스크톱 annual 탭) — selectedDesktopEv 와 동일한 우선순위로 cert_no 계산
+  // (selectedDesktopEv 는 isDesktop 블록 내부에서 계산되므로, React hooks 규칙을 위해 여기서 별도 계산)
+  const _desktopEvsSorted = useMemo(
+    () => elevators.filter(e => e.type !== 'escalator').sort((a, b) => a.number - b.number),
+    [elevators],
+  )
+  const _desktopEssSorted = useMemo(
+    () => elevators.filter(e => e.type === 'escalator').sort((a, b) => a.number - b.number),
+    [elevators],
+  )
+  const desktopCertNo = (detailEv ?? _desktopEvsSorted[0] ?? _desktopEssSorted[0] ?? null)?.cert_no ?? null
+  const koelsaHistoryDesktop = useQuery({
+    queryKey: ['elevator_inspect_history', desktopCertNo],
+    queryFn: () => fetchInspectHistory(desktopCertNo!),
+    enabled: !!desktopCertNo && isDesktop && desktopRightTab === 'annual',
+    staleTime: 6 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
   const TABS: { key:Tab; label:string }[] = [
     { key:'list',    label:'목록' },
     { key:'fault',   label:`고장${unresolvedCount > 0 ? ` (${unresolvedCount})` : ''}` },
@@ -915,9 +946,19 @@ export default function ElevatorPage() {
                       return d
                     }
                     const noData = !mwEv && yearAnnuals.length === 0 && !minwon24Query.isLoading && availableYears.length === 0
-                    if (noData) return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 13 }}>검사 기록이 없습니다</div>
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* 공단 공식 검사이력 (annual 탭 최상단) */}
+                        <KoelsaHistorySection
+                          certNo={selectedDesktopEv?.cert_no}
+                          data={koelsaHistoryDesktop.data}
+                          isLoading={koelsaHistoryDesktop.isLoading}
+                          isError={koelsaHistoryDesktop.isError}
+                        />
+                        {noData && (
+                          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--t3)', fontSize: 13 }}>민원24/업로드 검사 기록이 없습니다</div>
+                        )}
+                        {/* ─ 아래는 기존 민원24/PDF 업로드 섹션 그대로 유지 ─ */}
                         {/* 연도 선택 */}
                         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                           <button onClick={goPrevYear} disabled={!hasPrevYear} style={{ width:28, height:28, borderRadius:6, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasPrevYear ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color: hasPrevYear ? 'var(--t2)' : 'var(--bd)', opacity: hasPrevYear ? 1 : 0.4 }}>‹</button>
@@ -1486,6 +1527,17 @@ export default function ElevatorPage() {
 
           return (
           <>
+            {/* 공단 공식 검사이력 (annual 탭 최상단) */}
+            <div style={{ marginBottom: 10 }}>
+              <KoelsaHistorySection
+                certNo={selectedEv?.cert_no}
+                data={koelsaHistoryMobile.data}
+                isLoading={koelsaHistoryMobile.isLoading}
+                isError={koelsaHistoryMobile.isError}
+                isMobile
+              />
+            </div>
+            {/* ─ 아래는 기존 민원24/PDF 업로드 섹션 그대로 유지 ─ */}
             {/* 연도 선택 */}
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6 }}>
               <button onClick={mGoPrev} disabled={!mHasPrev} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: mHasPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: mHasPrev ? 'var(--t2)' : 'var(--bd)', opacity: mHasPrev ? 1 : 0.4 }}>‹</button>
