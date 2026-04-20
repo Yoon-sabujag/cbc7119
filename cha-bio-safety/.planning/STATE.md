@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-10 - Completed quick task 260410-h2u: StaffServicePage 휴가신청서 출력 기능 추가
+Last activity: 2026-04-20 - Completed quick task 260420-e72: 데스크톱 대시보드 승강기 고장 카드에 검사도래 배지 추가
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -90,6 +90,7 @@ Recent decisions affecting current work:
 |---|-------------|------|--------|-----------|
 | 260410-h2u | StaffServicePage 휴가신청서 출력 기능 추가 - 3분할 레이아웃, 새 휴가종류, 엑셀/프린트 | 2026-04-10 | 8db68d9 | [260410-h2u-staffservicepage-3](./quick/260410-h2u-staffservicepage-3/) |
 | 260411-cwr | AdminPage 분리 - 직원관리/개소관리 독립 페이지 + 데스크톱 UI | 2026-04-11 | 9de63a7 | [260411-cwr-adminpage-ui](./quick/260411-cwr-adminpage-ui/) |
+| 260420-e72 | 데스크톱 대시보드 승강기 고장 카드에 검사도래 배지 추가 | 2026-04-20 | 72bd198 | [260420-e72-desktop-elev-insp-badge](./quick/260420-e72-desktop-elev-insp-badge/) |
 
 ## Session Continuity
 
