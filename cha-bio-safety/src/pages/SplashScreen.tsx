@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { InstallPrompt, shouldShowInstallPrompt, dismissInstallPrompt } from '../components/InstallPrompt'
+import { checkVersionAndRefresh } from '../utils/versionCheck'
 
 export default function SplashScreen() {
   const [pct, setPct] = useState(0)
@@ -10,6 +11,10 @@ export default function SplashScreen() {
   const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
+    // 버전 체크 — 결과를 기다리지 않고 스플래쉬 진행.
+    // 버전 mismatch면 내부에서 location.reload()가 호출되어 이 컴포넌트가 재마운트된다.
+    void checkVersionAndRefresh()
+
     const tick = setInterval(() => setPct(p => Math.min(p + 4, 100)), 48)
 
     const nav = setTimeout(() => {
@@ -65,7 +70,7 @@ export default function SplashScreen() {
         </p>
       </div>
 
-      <p style={{ position:'absolute', bottom:20, fontSize:10, color:'#3d444d' }}>v1.0.0 · 경기도 성남시 분당구</p>
+      <p style={{ position:'absolute', bottom:20, fontSize:10, color:'#3d444d' }}>v{__APP_VERSION__} · 경기도 성남시 분당구</p>
 
       {/* PWA 설치 팝업 */}
       {showInstall && <InstallPrompt onDismiss={handleDismiss} />}
