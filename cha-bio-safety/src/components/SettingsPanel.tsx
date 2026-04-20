@@ -321,6 +321,8 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         return
       }
       const reg = await navigator.serviceWorker.ready
+      const existing = await reg.pushManager.getSubscription()
+      if (existing) await existing.unsubscribe()
       const vapidKey = await pushApi.getVapidKey()
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
