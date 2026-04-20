@@ -863,8 +863,8 @@ export default function DivPage() {
           {([
             { key: 'pressure',   label: '압력 트렌드' },
             { key: 'drain',      label: '챔버배수' },
-            { key: 'comp_drain', label: '탱크배수' },
             { key: 'compressor', label: '오일' },
+            { key: 'comp_drain', label: '탱크배수' },
           ] as { key: Tab; label: string }[]).map(t => (
             <button
               key={t.key}
