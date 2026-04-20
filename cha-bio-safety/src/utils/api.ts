@@ -101,7 +101,7 @@ export const leaveApi = {
 }
 
 export const dailyReportApi = {
-  getData: (date: string) => req<{ schedules: any[]; leaves: any[]; elevatorFaults: any[] }>(`/daily-report?date=${date}`),
+  getData: (date: string) => req<{ schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations?: any[]; compOilRefills?: any[] }>(`/daily-report?date=${date}`),
   getNotes: (date: string) => req<any>(`/daily-report/notes?date=${date}`),
   getMonthNotes: (year: number, month: number) => req<any[]>(`/daily-report/notes?year=${year}&month=${String(month).padStart(2, '0')}`),
   saveNotes: (data: { date: string; today_text?: string; tomorrow_text?: string; content?: string; is_auto?: number }) =>

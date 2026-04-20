@@ -32,6 +32,14 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
        WHERE date(fault_at) <= ? AND (is_resolved = 0 OR date(repaired_at) >= ?)`
     ).bind(date, date).all()
 
+    // ── 해당 날짜 DIV 컴프레셔 오일 보충 내역 ────────────
+    const compOilRefills = await ctx.env.DB.prepare(
+      `SELECT div_id, action_at, staff_name, note
+       FROM div_compressor_log
+       WHERE action = '오일보충' AND action_at = ?
+       ORDER BY created_at ASC`
+    ).bind(date).all()
+
     // ── 해당 날짜에 조치 완료된 점검 항목 (불량/주의) ──────
     const remediations = await ctx.env.DB.prepare(
       `SELECT r.id, r.result, r.memo, r.resolution_memo, r.materials_used, r.location_detail, r.resolved_at,
@@ -53,6 +61,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         leaves: leaves.results ?? [],
         elevatorFaults: elevatorFaults.results ?? [],
         remediations: remediations.results ?? [],
+        compOilRefills: compOilRefills.results ?? [],
       }
     })
   } catch (e) {

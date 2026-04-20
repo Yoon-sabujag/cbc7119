@@ -238,6 +238,45 @@ function buildPatrol(date: Date, onDutyName: string): PatrolEntry[] {
 
 // ── 업무 항목 생성 ────────────────────────────────────────
 
+// DIV 측정점 id → 표시 라벨 (컴프레셔 오일 보충 소항목 표기용)
+// DivPage.tsx / InspectionPage.tsx의 DIV_POINTS와 동기화 필요
+const DIV_POINT_LABEL: Record<string, { floorLabel: string; loc: string }> = {
+  '9-3':  { floorLabel: '8-1층', loc: '사) 8층 계단 위' },
+  '8-1':  { floorLabel: '8층',   loc: '연) 8층 공조실' },
+  '8-2':  { floorLabel: '8층',   loc: '연) 8층 PS실'   },
+  '8-3':  { floorLabel: '8층',   loc: '사) 8층 PS실'   },
+  '7-1':  { floorLabel: '7층',   loc: '연) 7층 공조실' },
+  '7-2':  { floorLabel: '7층',   loc: '연) 7층 PS실'   },
+  '7-3':  { floorLabel: '7층',   loc: '사) 7층 PS실'   },
+  '6-1':  { floorLabel: '6층',   loc: '연) 6층 공조실' },
+  '6-2':  { floorLabel: '6층',   loc: '연) 6층 PS실'   },
+  '6-3':  { floorLabel: '사) 6층', loc: '사) 6층 PS실' },
+  '5-1':  { floorLabel: '5층',   loc: '연) 5층 공조실' },
+  '5-2':  { floorLabel: '5층',   loc: '연) 5층 PS실'   },
+  '5-3':  { floorLabel: '5층',   loc: '사) 5층 PS실'   },
+  '3-1':  { floorLabel: '3층',   loc: '연) 3층 공조실' },
+  '3-2':  { floorLabel: '3층',   loc: '연) 3층 PS실'   },
+  '3-3':  { floorLabel: '3층',   loc: '사) 3층 PS실'   },
+  '2-2':  { floorLabel: '2층',   loc: '연) 2층 PS실'   },
+  '2-3':  { floorLabel: '2층',   loc: '사) 2층 PS실'   },
+  '1-1':  { floorLabel: '1층',   loc: '연) 1층 공조실' },
+  '1-2':  { floorLabel: '1층',   loc: '연) 1층 PS실'   },
+  '1-3':  { floorLabel: '1층',   loc: '사) 1층 PS실'   },
+  '-1-1': { floorLabel: 'B1층',  loc: '지) B1층 공조실' },
+  '-1-2': { floorLabel: 'B1층',  loc: '지) B1층 화장실' },
+  '-1-3': { floorLabel: 'B1층',  loc: '지) B1층 식당 뒤' },
+  '-2-1': { floorLabel: 'B2층',  loc: '지) B2층 공조실' },
+  '-2-2': { floorLabel: 'B2층',  loc: '지) B2층 CPX실'  },
+  '-2-3': { floorLabel: 'B2층',  loc: '지) B2층 PS실'   },
+  '-3-2': { floorLabel: 'B3층',  loc: '지) B3층 팬룸'   },
+  '-3-3': { floorLabel: 'B3층',  loc: '지) B3층 기사대기실' },
+  '-4-1': { floorLabel: 'B4층',  loc: '지) B4층 팬룸'   },
+  '-4-2': { floorLabel: 'B4층',  loc: '지) B4층 기계실' },
+  '-4-3': { floorLabel: 'B4층',  loc: '지) B4층 창고'   },
+  '-5-2': { floorLabel: 'B5층',  loc: '지) B5층 2번팬룸' },
+  '-5-3': { floorLabel: 'B5층',  loc: '지) B5층 1번팬룸' },
+}
+
 // 금일업무 월점검 항목 전체 내용 (작성법 Sheet3 기준, 기재번호 포함)
 const INSPECT_FULL_CONTENT: Record<string, { num: number; text: string }> = {
   '방화문':       { num: 4, text: '전층 방화문 동작상태 점검\n  - 방화문 폐쇄상태 및 파손상태 점검\n  - 방화문 도어첵크 설치상태 점검' },
@@ -289,7 +328,8 @@ function buildTasks(
   patrol: PatrolEntry[],
   schedules: any[],
   elevatorFaults: any[],
-  remediations: any[] = []
+  remediations: any[] = [],
+  compOilRefills: any[] = []
 ): TaskEntry[] {
   const dateStr = toDateStr(date)
   const tasks: TaskEntry[] = []
@@ -314,7 +354,17 @@ function buildTasks(
     const cat = s.inspection_category ?? ''
     const full = INSPECT_FULL_CONTENT[cat]
     if (full) {
-      tasks.push({ number: full.num, content: full.text })
+      let text = full.text
+      // 컴프레셔 점검 시: 금일 오일 보충한 측정점을 소항목 마지막에 추가
+      if (cat === '컴프레셔' && compOilRefills.length > 0) {
+        const refillLines = compOilRefills.map((r: any) => {
+          const lbl = DIV_POINT_LABEL[r.div_id]
+          const place = lbl ? `${lbl.floorLabel} ${lbl.loc}` : (r.div_id ?? '')
+          return `  - ${place} 컴프레샤 오일 보충`
+        })
+        text = `${text}\n${refillLines.join('\n')}`
+      }
+      tasks.push({ number: full.num, content: text })
     } else {
       tasks.push({ number: num, content: s.title ?? cat })
     }
@@ -457,7 +507,7 @@ function buildTomorrowTasks(
 
 export function buildDailyReportData(
   date: string,
-  apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations?: any[] },
+  apiData: { schedules: any[]; leaves: any[]; elevatorFaults: any[]; remediations?: any[]; compOilRefills?: any[] },
   notes: string,
   staffData?: { id: string; name: string; title?: string }[]
 ): DailyReportData {
@@ -466,7 +516,7 @@ export function buildDailyReportData(
 
   const personnel = buildPersonnel(dateObj, apiData.leaves ?? [], apiData.schedules ?? [], staffData)
   const patrol = buildPatrol(dateObj, personnel.onDuty)
-  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [], apiData.remediations ?? [])
+  const todayTasks = buildTasks(dateObj, patrol, apiData.schedules ?? [], apiData.elevatorFaults ?? [], apiData.remediations ?? [], apiData.compOilRefills ?? [])
   const tomorrowTasks = buildTomorrowTasks(dateObj, patrol, apiData.schedules ?? [])
 
   // 텍스트 조합 (엑셀 병합셀용)
