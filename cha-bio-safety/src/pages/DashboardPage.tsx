@@ -204,6 +204,13 @@ export default function DashboardPage() {
                 <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:36, fontWeight:700, lineHeight:1, color:c.color }}>{c.val}</span>
                 <span style={{ fontSize:14, color:'var(--t3)' }}>{c.sub}</span>
               </div>
+              {c.label === '승강기 고장' && stats.elevInspDueSoon > 0 && (
+                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
+                  <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:11, fontWeight:600 }}>
+                    검사도래 {stats.elevInspDueSoon}
+                  </span>
+                </div>
+              )}
               <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:c.color, borderRadius:'0 0 16px 16px' }} />
             </div>
           ))}
