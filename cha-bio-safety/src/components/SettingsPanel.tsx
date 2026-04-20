@@ -272,6 +272,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const [r2BackingUp, setR2BackingUp] = useState(false)
   const [r2BackupProgress, setR2BackupProgress] = useState('')
   const [r2Restoring, setR2Restoring] = useState(false)
+  const [testSending, setTestSending] = useState(false)
 
   const displayName = staff?.name ?? ''
   const displayRole = staff?.role === 'admin' ? '관리자' : '보조자'
@@ -346,6 +347,28 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
     } catch (e) {
       console.error('Push unsubscribe error:', e)
       toast.error('알림 해제에 실패했습니다.')
+    }
+  }
+
+  async function handleTestPush() {
+    const token = useAuthStore.getState().token
+    const base = import.meta.env.VITE_API_BASE_URL || '/api'
+    setTestSending(true)
+    try {
+      const res = await fetch(`${base}/push/test`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+      const json = await res.json() as { success: boolean; data?: { sent: number; total: number }; error?: string }
+      if (json.success) {
+        toast.success(`테스트 푸시 발송: ${json.data?.sent ?? 0}/${json.data?.total ?? 0} 성공`)
+      } else {
+        toast.error(`실패: ${json.error ?? '알 수 없는 오류'}`)
+      }
+    } catch {
+      toast.error('요청 실패: 네트워크 확인')
+    } finally {
+      setTestSending(false)
     }
   }
 
@@ -656,6 +679,23 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
 
           {!notifCollapsed && (
             <div style={{ marginTop: 8, padding: '8px 10px 4px', background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 9 }}>
+              {/* admin 전용 테스트 푸시 버튼 */}
+              {staff?.role === 'admin' && subscribed && permState === 'granted' && (
+                <button
+                  onClick={handleTestPush}
+                  disabled={testSending}
+                  style={{
+                    width: '100%', marginBottom: 8,
+                    background: 'var(--bg4)', color: 'var(--t1)',
+                    border: '1px solid var(--bd2)', borderRadius: 8,
+                    padding: '7px 10px', fontSize: 11, fontWeight: 600,
+                    cursor: testSending ? 'not-allowed' : 'pointer',
+                    opacity: testSending ? 0.6 : 1,
+                  }}
+                >
+                  {testSending ? '⏳ 전송 중...' : '🔔 테스트 푸시 보내기'}
+                </button>
+              )}
               {/* 점검 그룹 */}
               <div style={{ fontSize: 9, color: 'var(--t3)', marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>점검</div>
               <Row label="금일 점검 일정" sub="매일 08:45">
