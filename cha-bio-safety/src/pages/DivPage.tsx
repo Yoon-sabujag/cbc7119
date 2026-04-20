@@ -696,10 +696,11 @@ export default function DivPage() {
         }))
       : []
     const maxDays = intervals.length > 0 ? Math.max(...intervals.map(iv => iv.days)) : 0
-    const barMaxH = 110
-    const chartH  = 170
-    const labelY  = barMaxH + 30
-    const subY    = barMaxH + 54
+    const topPad  = 32                // 막대 위 숫자 라벨 공간
+    const barMaxH = 100
+    const labelY  = topPad + barMaxH + 30
+    const subY    = topPad + barMaxH + 56
+    const chartH  = topPad + barMaxH + 70
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -716,18 +717,18 @@ export default function DivPage() {
                 const cx = i * 100 + 50
                 const barW = 60
                 const x = cx - barW / 2
-                const barY = barMaxH - h + 8
+                const barY = topPad + (barMaxH - h)
                 return (
                   <g key={i}>
                     <rect x={x} y={barY} width={barW} height={h} rx={6} fill={color} opacity={0.85} />
-                    <text x={cx} y={barY - 8} textAnchor="middle"
+                    <text x={cx} y={barY - 10} textAnchor="middle"
                       fontSize="20" fontWeight="700" fill={color} fontFamily="JetBrains Mono, monospace">
-                      {days}
+                      {days}일
                     </text>
                     <text x={cx} y={labelY} textAnchor="middle"
-                      fontSize="16" fontWeight="700" fill="var(--t2)" fontFamily="JetBrains Mono, monospace">{mm}</text>
+                      fontSize="16" fontWeight="700" fill="var(--t2)" fontFamily="JetBrains Mono, monospace">{Number(mm)}월</text>
                     <text x={cx} y={subY} textAnchor="middle"
-                      fontSize="14" fill="var(--t3)" fontFamily="JetBrains Mono, monospace">{dd}</text>
+                      fontSize="14" fill="var(--t3)" fontFamily="JetBrains Mono, monospace">{Number(dd)}일</text>
                   </g>
                 )
               })}
