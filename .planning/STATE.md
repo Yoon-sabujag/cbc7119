@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: 22
 Plan: Not started
 Status: Executing Phase 22
-Last activity: 2026-04-20 - Completed quick task 260420-n04: 승강기 검사기록 탭 UI 연동 + 6시간 TTL
+Last activity: 2026-04-20 - Completed quick task 260420-npr: 검사 기록 탭 기존 UI 제거 (KoelsaHistorySection 단독)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -104,6 +104,7 @@ None yet.
 | 260420-fri | 스플래쉬 버전 체크 + 조건부 캐시 초기화 (달라졌을 때만 리로드) | 2026-04-20 | 3a0a04b | [260420-fri-splash-version-cache](./quick/260420-fri-splash-version-cache/) |
 | 260420-mk6 | 공단 공식 API 기반 승강기 검사이력 동기화 (민원24 대체, 2개 API 체이닝) | 2026-04-20 | 085b2ec | [260420-mk6-inspect-history](./quick/260420-mk6-inspect-history/) |
 | 260420-n04 | 승강기 검사기록 탭 UI 연동 + 자동 새로고침 (6h TTL, 부적합 펼침) | 2026-04-20 | 1cbbbc8 | [260420-n04-inspect-history-ui](./quick/260420-n04-inspect-history-ui/) |
+| 260420-npr | 검사 기록 탭 기존 UI 제거 (PDF 업로드/민원24 카드/모달 삭제, -985 lines) | 2026-04-20 | d7bec4c | [260420-npr-annual-cleanup](./quick/260420-npr-annual-cleanup/) |
 
 ### Blockers/Concerns
 
