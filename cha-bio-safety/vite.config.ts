@@ -45,6 +45,21 @@ export default defineConfig({
         ],
       },
     }),
+    // 빌드 시 dist/version.json 생성 — SplashScreen의 버전 체크가 이 파일을 fetch한다.
+    {
+      name: 'emit-version-json',
+      apply: 'build',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({
+            version: APP_VERSION,
+            buildTime: BUILD_TIME,
+          }),
+        })
+      },
+    },
   ],
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
