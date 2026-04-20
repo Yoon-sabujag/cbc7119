@@ -337,6 +337,15 @@ const SKELETON_STYLE: React.CSSProperties = {
   animation: 'blink 2s ease-in-out infinite',
 }
 
+// 직급 정렬 순서: 대리 → 주임 → 기사 → 기타
+function rankOfTitle(title: string | null | undefined): number {
+  const t = title ?? ''
+  if (t.includes('대리')) return 0
+  if (t.includes('주임')) return 1
+  if (t.includes('기사')) return 2
+  return 3
+}
+
 // ── 메인 페이지 ──────────────────────────────────────────
 export default function StaffManagePage() {
   const navigate = useNavigate()
@@ -361,7 +370,7 @@ export default function StaffManagePage() {
     queryFn: staffApi.list,
     staleTime: 30_000,
   })
-  const staffList = data ?? []
+  const staffList = (data ?? []).slice().sort((a, b) => rankOfTitle(a.title) - rankOfTitle(b.title))
 
   if (me?.role !== 'admin') return null
 
