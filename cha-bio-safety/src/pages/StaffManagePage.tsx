@@ -370,7 +370,10 @@ export default function StaffManagePage() {
     queryFn: staffApi.list,
     staleTime: 30_000,
   })
-  const staffList = (data ?? []).slice().sort((a, b) => rankOfTitle(a.title) - rankOfTitle(b.title))
+  const staffList = (data ?? []).slice().sort((a, b) => {
+    const r = rankOfTitle(a.title) - rankOfTitle(b.title)
+    return r !== 0 ? r : a.id.localeCompare(b.id)
+  })
 
   if (me?.role !== 'admin') return null
 
