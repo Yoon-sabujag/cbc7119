@@ -385,7 +385,12 @@ export default function DivPage() {
   // ── DIV 상세 바텀시트 ─────────────────────────────────────────
   function renderDivDetail() {
     if (!selDiv) return null
-    const allHist = [...selHistory].sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month)
+    const tOrder = (t: string | null | undefined) => t === 'early' ? 0 : 1
+    const allHist = [...selHistory].sort((a: any, b: any) => {
+      if (a.year !== b.year) return a.year - b.year
+      if (a.month !== b.month) return a.month - b.month
+      return tOrder(a.timing) - tOrder(b.timing)
+    })
     const currentYear = new Date().getFullYear()
     const hist = (() => {
       if (year === currentYear) {
@@ -530,7 +535,12 @@ export default function DivPage() {
 
   // ── 데스크톱: 압력 트렌드 차트 (모바일 renderDivDetail 차트 로직 복사) ───────
   function renderDesktopPressureChart(div: DivPoint) {
-    const allHist = [...selHistory].sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month)
+    const tOrder = (t: string | null | undefined) => t === 'early' ? 0 : 1
+    const allHist = [...selHistory].sort((a: any, b: any) => {
+      if (a.year !== b.year) return a.year - b.year
+      if (a.month !== b.month) return a.month - b.month
+      return tOrder(a.timing) - tOrder(b.timing)
+    })
     const currentYear = new Date().getFullYear()
     const hist = (() => {
       if (year === currentYear) {
