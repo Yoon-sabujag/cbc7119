@@ -2992,7 +2992,8 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       )}
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
-      {selectedFloor && (isGuideLight ? pickerSourceCPs.length > 1 : floorCPs.length > 1) && (
+      {/* floorCPs 가 1개뿐이어도 완료 배너는 보여야 하므로 >= 1 */}
+      {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
           {allDoneFloor ? (
             <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
