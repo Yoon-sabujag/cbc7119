@@ -22,37 +22,24 @@ UPDATE check_points SET description = '지) B4층 기계실' WHERE id = 'CP-COMP
 UPDATE check_points SET description = '지) B4층 팬룸'   WHERE id = 'CP-COMP--4-2';
 
 -- 2) div_pressures 4월말 2건 값 스왑
---    TEMP 테이블에 -4-1 원본을 백업 → -4-1 에 -4-2 값 복사 → -4-2 에 백업 복사
+--    D1 remote 환경에서는 CREATE TEMP TABLE 이 허용되지 않아 리터럴 값으로 직접 교환.
+--    스왑 직전 현재 값은 다음과 같이 확인됨:
+--      -4-1: day=22, p1=10.0, p2=4.3, ps=9.9, inspector='윤종엽',
+--            result='normal', drain='none', oil='sufficient', memo=NULL, photo_key=NULL
+--      -4-2: day=22, p1=9.9,  p2=3.3, ps=9.5, inspector='윤종엽',
+--            result='normal', drain='none', oil='sufficient', memo=NULL, photo_key=NULL
+--    day/inspector/result/drain/oil/memo/photo_key 는 양쪽 동일하므로 pressure 3개만 교환.
 
-CREATE TEMP TABLE _b4_swap_tmp AS
-SELECT * FROM div_pressures WHERE id = 'DIV-2026-04-late--4-1';
-
--- -4-1 ← -4-2
+-- -4-1 ← -4-2 의 압력값
 UPDATE div_pressures SET
-  day          = (SELECT day          FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  pressure_1   = (SELECT pressure_1   FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  pressure_2   = (SELECT pressure_2   FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  pressure_set = (SELECT pressure_set FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  inspector    = (SELECT inspector    FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  result       = (SELECT result       FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  drain        = (SELECT drain        FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  oil          = (SELECT oil          FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  memo         = (SELECT memo         FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2'),
-  photo_key    = (SELECT photo_key    FROM div_pressures WHERE id = 'DIV-2026-04-late--4-2')
+  pressure_1   = 9.9,
+  pressure_2   = 3.3,
+  pressure_set = 9.5
 WHERE id = 'DIV-2026-04-late--4-1';
 
--- -4-2 ← 백업(-4-1 원본)
+-- -4-2 ← -4-1 의 압력값 (스왑 전 원본)
 UPDATE div_pressures SET
-  day          = (SELECT day          FROM _b4_swap_tmp),
-  pressure_1   = (SELECT pressure_1   FROM _b4_swap_tmp),
-  pressure_2   = (SELECT pressure_2   FROM _b4_swap_tmp),
-  pressure_set = (SELECT pressure_set FROM _b4_swap_tmp),
-  inspector    = (SELECT inspector    FROM _b4_swap_tmp),
-  result       = (SELECT result       FROM _b4_swap_tmp),
-  drain        = (SELECT drain        FROM _b4_swap_tmp),
-  oil          = (SELECT oil          FROM _b4_swap_tmp),
-  memo         = (SELECT memo         FROM _b4_swap_tmp),
-  photo_key    = (SELECT photo_key    FROM _b4_swap_tmp)
+  pressure_1   = 10.0,
+  pressure_2   = 4.3,
+  pressure_set = 9.9
 WHERE id = 'DIV-2026-04-late--4-2';
-
-DROP TABLE _b4_swap_tmp;
