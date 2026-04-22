@@ -2732,12 +2732,18 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
+  // QR 스캔으로 들어온 cp 는 이미 저장돼도 pendingCPs 에 남아 있어서
+  // totalCount - pendingCPs.length 로 계산하면 완료수가 1 부족해짐.
+  // 실제 저장 기록(records / markerRecords / defaultResult / [접근불가]) 기준으로 집계.
   const doneCount    = isGuideLight
     ? pickerSourceCPs.filter(cp => {
         const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
         return !!markerRecords?.[mid]
       }).length
-    : totalCount - pendingCPs.length
+    : pickerSourceCPs.filter(cp =>
+        records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
+      ).length
+  const allDoneFloor = doneCount >= totalCount && totalCount > 0
 
   // 선택된 소화전과 같은 location_no를 가진 비상콘센트 (소화전인 경우에만)
   const pairedBC = useMemo(() =>
@@ -2923,7 +2929,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length > 1 : floorCPs.length > 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          {pendingCPs.length === 0 ? (
+          {allDoneFloor ? (
             <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
               ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
             </div>
