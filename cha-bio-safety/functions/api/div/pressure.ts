@@ -12,15 +12,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   let query = ''
   let params: (string | number)[] = []
 
+  // 같은 (year, month) 내에서 late > early 순서 보장
+  const TIMING_ORDER = "CASE timing WHEN 'late' THEN 1 ELSE 0 END"
+
   if (location) {
-    query  = 'SELECT * FROM div_pressures WHERE location_no = ? ORDER BY year DESC, month DESC'
+    query  = `SELECT * FROM div_pressures WHERE location_no = ? ORDER BY year DESC, month DESC, ${TIMING_ORDER} DESC`
     params = [location]
   } else if (year) {
-    query  = 'SELECT * FROM div_pressures WHERE year = ? ORDER BY floor DESC, position, month'
+    query  = `SELECT * FROM div_pressures WHERE year = ? ORDER BY floor DESC, position, month, ${TIMING_ORDER}`
     params = [Number(year)]
   } else {
     // 전체 연도
-    query  = 'SELECT * FROM div_pressures ORDER BY year DESC, month DESC, floor DESC, position'
+    query  = `SELECT * FROM div_pressures ORDER BY year DESC, month DESC, ${TIMING_ORDER} DESC, floor DESC, position`
     params = []
   }
 

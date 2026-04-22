@@ -1034,9 +1034,12 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
     })
       .then(r => r.json() as Promise<{ok:boolean; records:any[]}>)
       .then(j => {
-        const sorted = (j.records ?? []).sort((a: any, b: any) =>
-          b.year !== a.year ? b.year - a.year : b.month - a.month
-        )
+        const t = (x: any) => x?.timing === 'late' ? 1 : 0
+        const sorted = (j.records ?? []).sort((a: any, b: any) => {
+          if (a.year !== b.year) return b.year - a.year
+          if (a.month !== b.month) return b.month - a.month
+          return t(b) - t(a)
+        })
         setPrevRecords(sorted)
       })
       .catch(() => setPrevRecords([]))
@@ -1341,7 +1344,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
             {/* 압력 입력 */}
             {(() => {
               const prevMonthLabel = prev
-                ? `${prev.month}월${prev.day ? (prev.day <= 15 ? '초' : '말') : ''}`
+                ? `${prev.month}월${prev.timing === 'late' ? '말' : prev.timing === 'early' ? '초' : ''}`
                 : null
               const P_COLORS = ['#3b82f6', '#f97316', '#22c55e']
               const rows = [
@@ -1479,7 +1482,12 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
       {showTrend && currentPt && (
         <DivTrendSubview
           point={currentPt}
-          records={[...prevRecords].sort((a: any, b: any) => a.year !== b.year ? a.year - b.year : a.month - b.month)}
+          records={[...prevRecords].sort((a: any, b: any) => {
+            if (a.year !== b.year) return a.year - b.year
+            if (a.month !== b.month) return a.month - b.month
+            const t = (x: any) => x?.timing === 'late' ? 1 : 0
+            return t(a) - t(b)
+          })}
           onClose={() => setShowTrend(false)}
         />
       )}
