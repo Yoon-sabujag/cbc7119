@@ -3585,6 +3585,8 @@ export default function InspectionPage() {
   const [loading,          setLoading]          = useState(true)
   const [selectedGroupIdx, setSelectedGroupIdx] = useState<number | null>(null)
   const [records,          setRecords]          = useState<Record<string, CheckResult>>({})
+  // DIV / 컴프레셔는 회당 2일 연속 점검이므로 전일 기록도 완료 판정에 포함
+  const [prevDayRecords,   setPrevDayRecords]   = useState<Record<string, CheckResult>>({})
   const [recordCounts,     setRecordCounts]     = useState<Record<string, number>>({})
   const [markerRecords,    setMarkerRecords]    = useState<Record<string, CheckResult>>({})
   const [recordMeta,       setRecordMeta]       = useState<Record<string, RecordMeta>>({})
@@ -3599,8 +3601,18 @@ export default function InspectionPage() {
   // 오늘 전체 점검 기록 로드 (타 직원 포함)
   const loadTodayRecords = useCallback(async () => {
     try {
-      const today = new Date().toISOString().slice(0, 10)
-      const data  = await inspectionApi.getTodayRecords(today)
+      const now       = new Date()
+      const today     = now.toISOString().slice(0, 10)
+      const ymd = (d: Date) => d.toISOString().slice(0, 10)
+      const prev1 = new Date(now); prev1.setDate(prev1.getDate() - 1)
+      const prev2 = new Date(now); prev2.setDate(prev2.getDate() - 2)
+
+      const [data, prevData1, prevData2] = await Promise.all([
+        inspectionApi.getTodayRecords(today),
+        inspectionApi.getTodayRecords(ymd(prev1)).catch(() => [] as any[]),
+        inspectionApi.getTodayRecords(ymd(prev2)).catch(() => [] as any[]),
+      ])
+
       const map:        Record<string, CheckResult> = {}
       const counts:     Record<string, number>      = {}
       const markerMap:  Record<string, CheckResult> = {}
@@ -3622,7 +3634,13 @@ export default function InspectionPage() {
           resolvedBy:          r.resolvedBy ?? undefined,
         }
       }
+      // 전일/전전일 기록 병합 (DIV/컴프레셔용 2일 연속 점검 완료 판정 목적)
+      const prevMap: Record<string, CheckResult> = {}
+      for (const r of [...prevData1, ...prevData2]) {
+        if (!prevMap[r.checkpointId]) prevMap[r.checkpointId] = r.result as CheckResult
+      }
       setRecords(map)
+      setPrevDayRecords(prevMap)
       setRecordCounts(counts)
       setMarkerRecords(markerMap)
       setRecordMeta(meta)
@@ -3967,11 +3985,13 @@ export default function InspectionPage() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
               {CATEGORY_GROUPS.map((g, idx) => {
                 const isGL    = g.categories.includes('유도등')
+                // DIV/컴프레셔는 회당 2일 연속 점검 주기라 전일(및 전전일) 기록도 완료로 인정
+                const isMultiDay = g.categories.includes('DIV') || g.categories.includes('컴프레셔')
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const total   = isGL ? glMarkerCount : cps.length
                 const doneCnt = isGL
                   ? Object.keys(markerRecords).length
-                  : cps.filter(cp => records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')).length
+                  : cps.filter(cp => records[cp.id] || (isMultiDay && prevDayRecords[cp.id]) || cp.defaultResult || cp.description?.includes('[접근불가]')).length
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
                 return (
