@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes, maximum-scale=5.0"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
     <meta name="theme-color" content="#161b22"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -16,6 +16,14 @@
   </head>
   <body>
     <script>
+      // Android 전용 핀치줌 허용 — iOS는 기본 viewport(user-scalable=no) 유지
+      ;(function () {
+        if (/Android/i.test(navigator.userAgent)) {
+          var v = document.querySelector('meta[name=viewport]')
+          if (v) v.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes, maximum-scale=5.0')
+        }
+      })()
+
       // Safe area 초기화 — React/CSS 보다 먼저 실행
       // env()를 측정하고, iOS PWA에서 0이 반환되면 screen.height로 기기 판별해 직접 주입
       ;(function () {
