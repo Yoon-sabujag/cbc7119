@@ -903,11 +903,23 @@ function DivTrendSubview({ point, records, onClose }: {
                             <line x1={sPadL} y1={spy(t)} x2={W-sPadR} y2={spy(t)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                           </g>
                         ))}
-                        {hist.map((r: any, i: number) => (
-                          <text key={i} x={spx(i)} y={sH-4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
-                            {String(r.month).padStart(2,'0')}
-                          </text>
-                        ))}
+                        {(() => {
+                          const labels: { x: number; m: number }[] = []
+                          let li = 0
+                          while (li < hist.length) {
+                            const r0 = hist[li], r1 = hist[li+1]
+                            if (r1 && r1.year === r0.year && r1.month === r0.month) {
+                              labels.push({ x: (spx(li) + spx(li+1)) / 2, m: r0.month }); li += 2
+                            } else {
+                              labels.push({ x: spx(li), m: r0.month }); li += 1
+                            }
+                          }
+                          return labels.map((L, idx) => (
+                            <text key={idx} x={L.x} y={sH-4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
+                              {String(L.m).padStart(2,'0')}
+                            </text>
+                          ))
+                        })()}
                         <polyline
                           points={hist.map((r: any, i: number) => `${spx(i).toFixed(1)},${spy(r[key] ?? 0).toFixed(1)}`).join(' ')}
                           fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"
@@ -916,9 +928,13 @@ function DivTrendSubview({ point, records, onClose }: {
                         {hist.map((r: any, i: number) => {
                           const cx = spx(i), cy = spy(r[key] ?? center)
                           const vx = cx, vy = cy - 18
+                          const isLate = r.timing === 'late'
                           return (
                             <g key={i}>
-                              <circle cx={cx} cy={cy} r={3} fill={color} />
+                              <circle cx={cx} cy={cy} r={3}
+                                fill={isLate ? color : 'var(--bg2)'}
+                                stroke={color} strokeWidth={isLate ? 0 : 1.5}
+                              />
                               <text x={vx} y={vy} textAnchor="middle" dominantBaseline="central"
                                 transform={`rotate(-90, ${vx.toFixed(1)}, ${vy.toFixed(1)})`}
                                 fontSize="11" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}>
