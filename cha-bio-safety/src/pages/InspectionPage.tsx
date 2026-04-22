@@ -1029,6 +1029,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   const [saving,     setSaving]     = useState(false)
   const [done,       setDone]       = useState(false)
   const [showTrend,  setShowTrend]  = useState(false)
+  const [showDupAlert, setShowDupAlert] = useState(false)
 
   // ── 현재 측정점 ──
   const currentPt = useMemo(() => {
@@ -1232,6 +1233,20 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
   const resultColor: Partial<Record<CheckResult,string>> = { normal:'var(--safe)', caution:'var(--warn)', bad:'var(--danger)' }
   const resultLabel: Partial<Record<CheckResult,string>> = { normal:'정상', caution:'주의', bad:'불량' }
 
+  // ── QR 진입 시 이미 점검된 개소 dup 알림 (같은 사이클 기록 존재 시) ──
+  const dupAlertAppliedRef = useRef(false)
+  useEffect(() => {
+    if (dupAlertAppliedRef.current) return
+    if (!initialLocationNo || !currentPt || currentPt.id !== initialLocationNo) return
+    if (prevRecords.length === 0) return
+    const now = new Date()
+    const hasCycleRecord = prevRecords.some((r: any) =>
+      r.year === now.getFullYear() && r.month === (now.getMonth() + 1) && r.timing === timing
+    )
+    if (hasCycleRecord) setShowDupAlert(true)
+    dupAlertAppliedRef.current = true
+  }, [prevRecords, currentPt?.id, timing, initialLocationNo])
+
   // ── 완료 화면 ──
   if (done) return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex:99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
@@ -1243,6 +1258,17 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
 
   return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex:99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* 이미 점검한 개소 알림 오버레이 (QR 진입 + 같은 사이클 기록 존재 시) */}
+      {showDupAlert && (
+        <div style={{ position:'absolute', inset:0, zIndex:200, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, padding:'24px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:10, maxWidth:320 }}>
+            <div style={{ fontSize:32 }}>⚠️</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.5 }}>이미 점검한 개소입니다</div>
+            <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', lineHeight:1.5 }}>다시 저장하면 기존 기록을 덮어씁니다</div>
+            <button onClick={() => setShowDupAlert(false)} style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>확인</button>
+          </div>
+        </div>
+      )}
       {/* 헤더 */}
       <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
         <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>📊 DIV 점검</span>
@@ -1556,6 +1582,8 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
   const [done,      setDone]      = useState(false)
 
   const [lastDrain, setLastDrain] = useState<string|null>(null)
+  const [prevInspections, setPrevInspections] = useState<any[]>([])
+  const [showDupAlert, setShowDupAlert] = useState(false)
 
   const currentPt = useMemo(() => {
     if (!zone) return null
@@ -1575,6 +1603,32 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       .then(j => { const logs = j.logs ?? []; setLastDrain(logs.length > 0 ? logs[0].drained_at : null) })
       .catch(() => setLastDrain(null))
   }, [currentPt?.id])
+
+  // 현재 개소의 comp_inspections 이력 로드 (이미 점검 여부 판정용)
+  useEffect(() => {
+    if (!currentPt) { setPrevInspections([]); return }
+    const token = useAuthStore.getState().token
+    fetch(`/api/div/comp-inspection?location=${currentPt.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.json() as Promise<{ ok: boolean; records: any[] }>)
+      .then(j => setPrevInspections(j.records ?? []))
+      .catch(() => setPrevInspections([]))
+  }, [currentPt?.id])
+
+  // QR/DIV 연동 진입 시 이미 이번 달 점검된 개소면 알림
+  const dupAlertAppliedRef = useRef(false)
+  useEffect(() => {
+    if (dupAlertAppliedRef.current) return
+    if (!initialLocationNo || !currentPt || currentPt.id !== initialLocationNo) return
+    if (prevInspections.length === 0) return
+    const now = new Date()
+    const hasThisMonth = prevInspections.some((r: any) =>
+      r.year === now.getFullYear() && r.month === (now.getMonth() + 1)
+    )
+    if (hasThisMonth) setShowDupAlert(true)
+    dupAlertAppliedRef.current = true
+  }, [prevInspections, currentPt?.id, initialLocationNo])
 
   const drainDPlus = useMemo(() => {
     if (!lastDrain) return null
@@ -1646,6 +1700,17 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
   return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* 이미 점검한 개소 알림 (QR/DIV 진입 + 이번 달 comp_inspections 기록 존재 시) */}
+      {showDupAlert && (
+        <div style={{ position:'absolute', inset:0, zIndex: (mode === 'from-div' ? 121 : 200), background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, padding:'24px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:10, maxWidth:320 }}>
+            <div style={{ fontSize:32 }}>⚠️</div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.5 }}>이미 점검한 개소입니다</div>
+            <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', lineHeight:1.5 }}>다시 저장하면 기존 기록을 덮어씁니다</div>
+            <button onClick={() => setShowDupAlert(false)} style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>확인</button>
+          </div>
+        </div>
+      )}
       {/* 헤더 */}
       <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
         <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>💨 컴프레셔 점검</span>
