@@ -51,27 +51,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const timing = body.timing ?? 'early'
   const id = `DIV-${body.year}-${String(body.month).padStart(2,'0')}-${timing}-${body.location_no}`
 
-  await env.DB.prepare(`
-    INSERT INTO div_pressures (id, year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, result, drain, oil, memo, photo_key, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
-    ON CONFLICT(id) DO UPDATE SET
-      day          = excluded.day,
-      pressure_1   = excluded.pressure_1,
-      pressure_2   = excluded.pressure_2,
-      pressure_set = excluded.pressure_set,
-      inspector    = excluded.inspector,
-      result       = excluded.result,
-      drain        = excluded.drain,
-      oil          = excluded.oil,
-      memo         = excluded.memo,
-      photo_key    = excluded.photo_key
-  `).bind(
-    id, body.year, body.month, body.day ?? null, timing, body.location_no, body.floor, body.position,
-    body.pressure_1, body.pressure_2 ?? null, body.pressure_set ?? null,
-    body.inspector ?? null,
-    body.result ?? 'normal', body.drain ?? 'none', body.oil ?? 'sufficient',
-    body.memo ?? null, body.photo_key ?? null
-  ).run()
+  try {
+    await env.DB.prepare(`
+      INSERT INTO div_pressures (id, year, month, day, timing, location_no, floor, position, pressure_1, pressure_2, pressure_set, inspector, result, drain, oil, memo, photo_key, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','+9 hours'))
+      ON CONFLICT(id) DO UPDATE SET
+        day          = excluded.day,
+        pressure_1   = excluded.pressure_1,
+        pressure_2   = excluded.pressure_2,
+        pressure_set = excluded.pressure_set,
+        inspector    = excluded.inspector,
+        result       = excluded.result,
+        drain        = excluded.drain,
+        oil          = excluded.oil,
+        memo         = excluded.memo,
+        photo_key    = excluded.photo_key
+    `).bind(
+      id, body.year, body.month, body.day ?? null, timing, body.location_no, body.floor, body.position,
+      body.pressure_1, body.pressure_2 ?? null, body.pressure_set ?? null,
+      body.inspector ?? null,
+      body.result ?? 'normal', body.drain ?? 'none', body.oil ?? 'sufficient',
+      body.memo ?? null, body.photo_key ?? null
+    ).run()
 
-  return Response.json({ ok: true, id })
+    return Response.json({ ok: true, id })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[div/pressure POST] save failed', { id, timing, location_no: body.location_no, msg })
+    return Response.json(
+      { ok: false, error: msg, id },
+      { status: 500 }
+    )
+  }
 }

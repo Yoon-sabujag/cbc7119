@@ -1106,7 +1106,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
       const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
       const photoKey = await photo.upload()
 
-      await fetch('/api/div/pressure', {
+      const pressureRes = await fetch('/api/div/pressure', {
         method:'POST', headers: hdrs,
         body: JSON.stringify({
           location_no: currentPt.id,
@@ -1126,6 +1126,15 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo }: {
           inspector: staff?.name ?? null,
         })
       })
+      if (!pressureRes.ok) {
+        let detail = ''
+        try {
+          const j = await pressureRes.json() as { error?: string }
+          detail = j?.error ? ` (${j.error})` : ''
+        } catch { /* ignore parse errors */ }
+        toast.error(`압력 저장 실패${detail} — 다시 시도해주세요`)
+        return
+      }
 
       if (drain === 'yes') {
         await fetch('/api/div/logs', {
