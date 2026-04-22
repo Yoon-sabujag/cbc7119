@@ -2771,29 +2771,44 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
     const sohwaCPs = floorCPs.filter(cp => cp.category === '소화전')
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isGuideLight, glMarkers, selectedZone, isSohwaGroup, floorCPs])
-  // 미완료 항목만 피커에 표시 (QR 스캔 개소는 이력 있어도 포함)
+  // 피커 표시 대상: defaultResult 및 접근불가는 자동 정상 처리라 제외,
+  // 그 외 개소는 완료 여부와 무관하게 포함 (완료된 개소는 ✓ 뱃지 + 선택 시 팝업)
   const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => {
-    if (initialCpId && cp.id === initialCpId) return true
     if (cp.defaultResult) return false
-    if (cp.description?.includes('[접근���가]')) return false
+    if (cp.description?.includes('접근불가')) return false
     if (isGuideLight) {
       const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
       return !markerRecords?.[mid]
     }
-    return !records[cp.id]
-  }), [pickerSourceCPs, records, markerRecords, isGuideLight, initialCpId])
+    return true
+  }), [pickerSourceCPs, markerRecords, isGuideLight])
 
-  // QR 체크포인트로 pickerIdx 자동 매칭 (첫 렌더 시 1회만)
+  // 초기 포커스: QR 지정이 있으면 그 개소, 없으면 첫 미완료, 전부 완료면 0
   useEffect(() => {
-    if (initialCpAppliedRef.current || !initialCpId || pendingCPs.length === 0) return
-    const idx = pendingCPs.findIndex(cp => cp.id === initialCpId)
-    if (idx >= 0) {
-      setPickerIdx(idx)
-      initialCpAppliedRef.current = true
-      // 이미 점검 이력이 있는 개소인 경우 알림 표시
-      if (records[initialCpId]) setShowDupAlert(true)
+    if (initialCpAppliedRef.current || pendingCPs.length === 0) return
+    if (initialCpId) {
+      const idx = pendingCPs.findIndex(cp => cp.id === initialCpId)
+      if (idx >= 0) {
+        setPickerIdx(idx)
+        initialCpAppliedRef.current = true
+        if (records[initialCpId]) setShowDupAlert(true)
+        return
+      }
     }
-  }, [initialCpId, pendingCPs])
+    const firstPending = pendingCPs.findIndex(cp => !records[cp.id])
+    setPickerIdx(firstPending >= 0 ? firstPending : 0)
+    initialCpAppliedRef.current = true
+  }, [initialCpId, pendingCPs, records])
+
+  // 완료된 개소로 이동 시 팝업 (swipe / 탭 / prev-next 버튼 모두 포함)
+  const lastPopupCpRef = useRef<string | null>(null)
+  const currentSelCP = pendingCPs[pickerIdx] ?? null
+  useEffect(() => {
+    if (!currentSelCP) { lastPopupCpRef.current = null; return }
+    if (lastPopupCpRef.current === currentSelCP.id) return
+    lastPopupCpRef.current = currentSelCP.id
+    if (!isGuideLight && records[currentSelCP.id]) setShowDupAlert(true)
+  }, [currentSelCP?.id, records, isGuideLight])
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
@@ -2887,38 +2902,32 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       photo.reset()
       bcPhoto.reset()
       setJustSaved(true)
-      // #14: 저장 후 다음 항목/층/구역 자동 이동
+      // 저장 후 다음 미완료로 자동 이동 (피커에 완료 개소도 포함되므로 records 기반 탐색)
+      const justSavedId = cpIdToSave
       setTimeout(() => {
-        // 유도등은 층당 여러 건 기록 가능 — 자동 층 이동 스킵 (사용자가 직접 이동)
         if (isGuideLight) return
-        // pendingCPs는 현재 렌더 기준이므로 저장 후 1개 줄어듦
-        const remainingAfterSave = pendingCPs.length - 1
-        if (remainingAfterSave > 0) {
-          // 같은 층에 미완료 있으면 다음 항목
-          if (pickerIdx >= remainingAfterSave) setPickerIdx(0)
-        } else if (selectedFloor && selectedZone) {
-          // 이 층 완료 — 같은 구역 내 다음 미완료 층 찾기
+        const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
+          cp.id !== alsoSkipId && !records[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
+        // 현재 idx 이후 첫 미완료 (방금 저장한 건 제외)
+        const nextIdx = pendingCPs.findIndex((cp, i) => i > pickerIdx && isIncomplete(cp, justSavedId))
+        if (nextIdx >= 0) { setPickerIdx(nextIdx); return }
+        // 이후가 없으면 처음부터 다시
+        const firstIdx = pendingCPs.findIndex(cp => isIncomplete(cp, justSavedId))
+        if (firstIdx >= 0) { setPickerIdx(firstIdx); return }
+        // 이 층 전부 완료 — 같은 구역 내 다음 미완료 층
+        if (selectedFloor && selectedZone) {
           const nextFloor = availableFloors.find(f => {
             if (f === selectedFloor) return false
             const fCPs = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
-            return fCPs.some(cp => !records[cp.id])
+            return fCPs.some(cp => isIncomplete(cp, justSavedId))
           })
-          if (nextFloor) {
-            setSelectedFloor(nextFloor)
-            setPickerIdx(0)
-          } else {
-            // 이 구역 완료 — 다음 미완료 구역 찾기
-            const nextZone = availableZones.find(z => {
-              if (z === selectedZone) return false
-              const zCPs = groupCPs.filter(cp => matchZone(cp, z))
-              return zCPs.some(cp => !records[cp.id])
-            })
-            if (nextZone) {
-              setSelectedZone(nextZone)
-              setSelectedFloor(null)
-              setPickerIdx(0)
-            }
-          }
+          if (nextFloor) { setSelectedFloor(nextFloor); setPickerIdx(0); return }
+          const nextZone = availableZones.find(z => {
+            if (z === selectedZone) return false
+            const zCPs = groupCPs.filter(cp => matchZone(cp, z))
+            return zCPs.some(cp => isIncomplete(cp, justSavedId))
+          })
+          if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0) }
         }
       }, 600)
     } catch (e: any) {
@@ -3013,7 +3022,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
             >
               <button onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx > 0 ? 1 : 0.3 }}>‹</button>
               <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소 ({pickerIdx + 1}/{pendingCPs.length} 미완료 · {doneCount}/{totalCount} 완료)</div>
+                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>개소 ({pickerIdx + 1}/{pendingCPs.length}) · {doneCount}/{totalCount} 완료</div>
                 {isExtinguisher && extDetail ? (
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:3 }}>
                     <span style={{ fontSize:14 }}>🧯</span>
@@ -3025,6 +3034,11 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
                     <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
                     {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
                   </>
+                )}
+                {selectedCP && records[selectedCP.id] && (
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:6, padding:'2px 8px', borderRadius:999, background:'rgba(34,197,94,.15)', border:'1px solid rgba(34,197,94,.35)' }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)' }}>✓ 점검 완료</span>
+                  </div>
                 )}
               </div>
               <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
