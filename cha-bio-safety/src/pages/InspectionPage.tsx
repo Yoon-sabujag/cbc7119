@@ -3687,9 +3687,11 @@ export default function InspectionPage() {
   // 오늘 전체 점검 기록 로드 (타 직원 포함)
   const loadTodayRecords = useCallback(async () => {
     try {
-      const now       = new Date()
-      const today     = now.toISOString().slice(0, 10)
-      const ymd = (d: Date) => d.toISOString().slice(0, 10)
+      // KST(로컬) 기준 날짜. toISOString()은 UTC라 자정~오전 9시 구간에서 전일 날짜가 나옴.
+      const ymd = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const now   = new Date()
+      const today = ymd(now)
       const prev1 = new Date(now); prev1.setDate(prev1.getDate() - 1)
       const prev2 = new Date(now); prev2.setDate(prev2.getDate() - 2)
 
@@ -3786,7 +3788,8 @@ export default function InspectionPage() {
 
   const ensureSession = async (): Promise<string> => {
     if (sessionId) return sessionId
-    const today = new Date().toISOString().slice(0, 10)
+    const n = new Date()
+    const today = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`
     try {
       const sessions = await inspectionApi.getSessions(today)
       const mine = sessions.find((s: any) => s.staff_id === staff?.id || s.staffId === staff?.id)
