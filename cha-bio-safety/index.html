@@ -76,6 +76,23 @@
           window.screen.orientation.addEventListener('change', function () { setTimeout(measure, 150) })
         }
       })()
+
+      // 뷰포트 높이 실측 — Android Chrome SPA에서 dvh가 stale해지는 이슈 회피
+      // visualViewport.height(있으면) or innerHeight를 --app-height에 주입, resize 시 갱신
+      ;(function () {
+        var root = document.documentElement
+        function setAppHeight() {
+          var vv = window.visualViewport
+          var h = (vv && vv.height) || window.innerHeight
+          if (h > 0) root.style.setProperty('--app-height', h + 'px')
+        }
+        setAppHeight()
+        window.addEventListener('resize', setAppHeight)
+        window.addEventListener('orientationchange', function () { setTimeout(setAppHeight, 150) })
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', setAppHeight)
+        }
+      })()
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
