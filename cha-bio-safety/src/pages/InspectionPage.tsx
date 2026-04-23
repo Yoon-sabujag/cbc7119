@@ -3017,17 +3017,19 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   // Bug F-a 추가 수정: 같은 층에 접근불가 cp 가 2개 이상 있는데 첫 cp 에서 확인을
   // 눌러도 두 번째 cp 로 이동하지 않던 문제. 기존 폴백은 "accessible 한 cp 없으면
   // 바로 다음 층" 이라 같은 층의 잔여 접근불가 cp 를 건너뛰었다.
-  // Bug F-b 추가 수정: 마지막 층에서 확인 → 다음 구역 첫 층으로도 이동해야 함.
+  // Bug F-a 수정 (Task 5): Task 13(fad7fc5) 의 7단계 폴백 중 "현재 층 다른
+  // 접근불가 cp (first)" 단계가 2-개 접근불가 cp 만 있는 층에서 무한 순환을
+  // 유발 (A→B→A). linear forward 만 유지하기 위해 first-재탐색을 제거.
   //
-  // fromAccessBlocked=true 폴백 체인 (순서 보장):
+  // fromAccessBlocked=true 폴백 체인 (순서 보장, 6단계):
   //   1) 현재 층의 accessible next cp (피커 인덱스 i > pickerIdx)
-  //   2) 현재 층의 accessible first cp (처음부터 재탐색)
-  //   3) 현재 층의 다른 접근불가 cp (현재 제외, i > pickerIdx)
-  //   4) 현재 층의 다른 접근불가 cp (처음부터 재탐색)
-  //   5) 같은 zone 내 다음 층 (availableFloors[currIdx+1])
-  //   6) 다음 zone 첫 층 (availableZones 순서; selectedFloor=null 으로 두면
+  //   2) 현재 층의 accessible first cp (처음부터 재탐색 — 점검 가능한 cp 는
+  //      전체 탐색이 맞음)
+  //   3) 현재 층의 다른 접근불가 cp (현재 제외, i > pickerIdx) — next 만
+  //   4) 같은 zone 내 다음 층 (availableFloors[currIdx+1])
+  //   5) 다음 zone 첫 층 (availableZones 순서; selectedFloor=null 으로 두면
   //      useEffect 가 availableFloors[0] 으로 자동 설정)
-  //   7) 그 외: dismissedBlockedId 설정 — 팝업만 닫고 모달 유지.
+  //   6) 그 외: dismissedBlockedId 설정 — 팝업만 닫고 모달 유지.
   //
   // fromAccessBlocked 없을 때(handleSave auto-advance)는 기존 4-tier 그대로.
   const advanceToNextPending = (skipCpId?: string, fromAccessBlocked?: boolean) => {
@@ -3042,18 +3044,18 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       const firstIncIdx = pendingCPs.findIndex(cp => isIncomplete(cp, skipCpId))
       if (firstIncIdx >= 0) { setPickerIdx(firstIncIdx); return }
 
-      // Step 3/4: 현재 층의 다른 접근불가 cp 탐색 (현재 제외) — next 우선, 없으면 first.
+      // Step 3: 현재 층의 다른 접근불가 cp 탐색 (현재 제외) — next 만.
+      // first 재탐색 시 이전 cp 로 되돌아가 무한 순환이 발생하므로 linear forward
+      // 만 유지. 사용자가 이전 접근불가 cp 로 돌아가려면 수동 스와이프/← 사용.
       // defaultResult (자동 처리) 인 접근불가 cp 는 피커에서 이미 제외됐으므로 여기서
       // 한 번 더 확인할 필요는 없지만 방어적으로 포함.
       const isBlockedOther = (cp: CheckPoint) =>
         cp.id !== skipCpId && !cp.defaultResult && !!cp.description?.includes('접근불가')
       const nextBlIdx = pendingCPs.findIndex((cp, i) => i > pickerIdx && isBlockedOther(cp))
       if (nextBlIdx >= 0) { setPickerIdx(nextBlIdx); return }
-      const firstBlIdx = pendingCPs.findIndex(isBlockedOther)
-      if (firstBlIdx >= 0) { setPickerIdx(firstBlIdx); return }
 
-      // Step 5: 같은 zone 내 다음 층. availableFloors 는 cps 있는 층만 포함하므로
-      // 그대로 +1 로 이동. 잔여(accessible/blocked) 여부는 이미 step 1~4 에서
+      // Step 4: 같은 zone 내 다음 층. availableFloors 는 cps 있는 층만 포함하므로
+      // 그대로 +1 로 이동. 잔여(accessible/blocked) 여부는 이미 step 1~3 에서
       // 없음이 확정됐으므로 "다음 층 자체" 로만 이동.
       if (selectedFloor && selectedZone) {
         const currFloorIdx = availableFloors.indexOf(selectedFloor)
@@ -3064,7 +3066,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         }
       }
 
-      // Step 6: 다음 zone 첫 층. availableZones 는 ZONE_CONFIG(research → office →
+      // Step 5: 다음 zone 첫 층. availableZones 는 ZONE_CONFIG(research → office →
       // underground) 순서를 그대로 유지한 subset. currZoneIdx+1 이 존재하면 이동.
       // selectedFloor=null 로 두면 availableFloors 재계산 후 useEffect 가 첫 층을
       // 자동 선택 (line ~2829). 피커는 useEffect 의 prevIdsRef 체크로 자동 리셋.
@@ -3078,7 +3080,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         }
       }
 
-      // Step 7: 최후 폴백 — 팝업만 닫고 모달 유지. 사용자가 ‹/› / 구역·층 탭 /
+      // Step 6: 최후 폴백 — 팝업만 닫고 모달 유지. 사용자가 ‹/› / 구역·층 탭 /
       // 닫기 버튼으로 수동 탈출.
       if (skipCpId) setDismissedBlockedId(skipCpId)
       return
