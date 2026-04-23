@@ -10,8 +10,6 @@
        CSS 파싱은 JS보다 먼저 실행되므로 초기 렌더에서 env()가 올바를 때 즉시 반영 */
     --sat: 0px;
     --sab: 0px;
-    /* 뷰포트 높이 — index.html 인라인 스크립트가 visualViewport.height 실측값으로 덮어씀 */
-    --app-height: 100dvh;
 
     --bg:    #0d1117;
     --bg2:   #161b22;
@@ -52,7 +50,7 @@
   }
 
   body {
-    height: var(--app-height, 100dvh);
+    height: 100dvh;
     overflow: visible;
     margin: 0;
     padding: 0;
