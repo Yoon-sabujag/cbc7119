@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-23 - Completed quick task 260423-htx: 일반 점검 완료 개소 재진입 시 팝업 통일 (9개 카테고리 + FloorPlan)
+Last activity: 2026-04-24 - Completed quick tasks 260424-1x0 (유도등 InspectionModal 팝업) + 260424-1x1 (접근불가 개소 팝업)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -139,6 +139,8 @@ None yet.
 | 260420-q10 | 관리자 푸시 테스트 발송 기능 (/api/push/test + 설정 버튼 + README) | 2026-04-20 | 7f01d5a | [260420-q10-push-test](./quick/260420-q10-push-test/) |
 | 260423-dzx | Galaxy S25 Android 레이아웃 버그 수정 (Layout dvh → 100%, 근무자 칩 small) | 2026-04-23 | ddd724a | [260423-dzx-galaxy-s25-android-layout-dvh](./quick/260423-dzx-galaxy-s25-android-layout-dvh/) |
 | 260423-htx | 일반 점검 완료 개소 재진입 시 팝업 통일 (9개 카테고리 + FloorPlan, (가)완료/(나)조치대기 2-variant) | 2026-04-23 | 87389b7 | [260423-htx-inspection-revisit-popup](./quick/260423-htx-inspection-revisit-popup/) |
+| 260424-1x0 | 유도등 InspectionModal 재진입 팝업 지원 (marker 기반 monthRecords 병행 업서트) | 2026-04-24 | 78bd71f | [260424-1x0-guidelamp-inspectionmodal-revisit](./quick/260424-1x0-guidelamp-inspectionmodal-revisit/) |
+| 260424-1x1 | 접근불가 개소 자동 스킵 대신 팝업 노출 (AccessBlockedPopup + picker 포함) | 2026-04-24 | 44463c4 | [260424-1x1-access-blocked-popup](./quick/260424-1x1-access-blocked-popup/) |
 
 ### Blockers/Concerns
 
