@@ -152,28 +152,54 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         )
     `).bind(today).first<{n:number}>()
 
-    // 점검 기록 + 자동완료(default_result 또는 description '[접근불가]') 항목 합산
-    const inspDoneRecords = await env.DB.prepare(`
-      SELECT COUNT(DISTINCT cr.checkpoint_id) as n
-      FROM check_records cr
-      JOIN check_points cp ON cr.checkpoint_id=cp.id
-      WHERE date(cr.checked_at)=? AND cr.result IN ('normal','caution')
-        AND cp.category IN (
-          SELECT inspection_category FROM schedule_items
-          WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
-        )
-    `).bind(today, today).first<{n:number}>()
-    const inspDoneAuto = await env.DB.prepare(`
-      SELECT COUNT(*) as n FROM check_points cp
-      WHERE cp.is_active=1
-        AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%')
-        AND cp.category IN (
-          SELECT inspection_category FROM schedule_items
-          WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
-        )
-        AND cp.id NOT IN (SELECT checkpoint_id FROM check_records WHERE date(checked_at)=?)
-    `).bind(today, today).first<{n:number}>()
-    const inspDone = { n: (inspDoneRecords?.n ?? 0) + (inspDoneAuto?.n ?? 0) }
+    // 오늘 inspect 일정이 걸린 카테고리마다, 해당 카테고리의 "오늘 포함 연속 일정 블록"
+    // 시작일부터 오늘까지의 범위로 완료 개소를 집계한다.
+    // 예: 소화전이 4/22·4/23·4/24 세 날짜에 연속 등록돼 있고 오늘이 4/24면
+    //     block=[4/22, 4/24] 로 합산 → 월간 카드(97%)와 수치 정합.
+    const todayCats = await env.DB.prepare(
+      `SELECT DISTINCT inspection_category FROM schedule_items
+       WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL`
+    ).bind(today).all<{ inspection_category: string }>()
+
+    let inspDoneN = 0
+    for (const row of (todayCats.results ?? [])) {
+      const cat = row.inspection_category
+      // 같은 카테고리의 직전 30일치 일정 날짜 수집 후 오늘로부터 연속 블록 시작일 계산
+      const prevDates = await env.DB.prepare(
+        `SELECT date FROM schedule_items
+         WHERE category='inspect' AND inspection_category=?
+           AND date <= ? AND date >= date(?, '-30 days')`
+      ).bind(cat, today, today).all<{ date: string }>()
+      const dateSet = new Set((prevDates.results ?? []).map(r => r.date))
+      let blockStart = today
+      // 달력 기준 연속 — 하루 전날 같은 카테고리 일정이 있으면 블록 확장
+      while (true) {
+        const d = new Date(blockStart + 'T00:00:00Z')
+        d.setUTCDate(d.getUTCDate() - 1)
+        const prev = d.toISOString().slice(0, 10)
+        if (dateSet.has(prev)) blockStart = prev
+        else break
+      }
+
+      const recQ = await env.DB.prepare(
+        `SELECT COUNT(DISTINCT cr.checkpoint_id) as n
+         FROM check_records cr
+         JOIN check_points cp ON cr.checkpoint_id=cp.id
+         WHERE cp.category=? AND cr.result IN ('normal','caution')
+           AND date(cr.checked_at) BETWEEN ? AND ?`
+      ).bind(cat, blockStart, today).first<{ n: number }>()
+      const autoQ = await env.DB.prepare(
+        `SELECT COUNT(*) as n FROM check_points cp
+         WHERE cp.is_active=1 AND cp.category=?
+           AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%')
+           AND cp.id NOT IN (
+             SELECT checkpoint_id FROM check_records
+             WHERE date(checked_at) BETWEEN ? AND ?
+           )`
+      ).bind(cat, blockStart, today).first<{ n: number }>()
+      inspDoneN += (recQ?.n ?? 0) + (autoQ?.n ?? 0)
+    }
+    const inspDone = { n: inspDoneN }
 
     const unresolved = await env.DB.prepare(`
       SELECT COUNT(*) as n FROM check_records
