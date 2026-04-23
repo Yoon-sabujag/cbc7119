@@ -90,10 +90,9 @@ async function getWorkingStaffIds(env: Env, kstDate: Date, dateStr: string): Pro
     return shift !== '비' && shift !== '휴'
   })
 
-  // 연차/공가 조회해서 추가 제외
-  const ym = dateStr.slice(0, 7)
+  // 연차/공가 조회해서 추가 제외 (annual_leaves 에 status 컬럼 없음 — 등록된 건은 모두 유효)
   const leaves = await env.DB.prepare(
-    `SELECT staff_id, type FROM annual_leaves WHERE date = ? AND status != 'rejected'`
+    `SELECT staff_id, type FROM annual_leaves WHERE date = ?`
   ).bind(dateStr).all<{ staff_id: string; type: string }>()
   const leaveIds = new Set((leaves.results ?? []).map(r => r.staff_id))
 
