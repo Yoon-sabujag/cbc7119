@@ -4385,20 +4385,15 @@ export default function InspectionPage() {
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const total   = isGL ? glMarkerCount : cps.length
                 // 카드 완료 판정은 대시보드와 동일 기준 (DISTINCT checkpoint_id + 자동완료).
-                // 유도등은 오늘을 포함하는 inspect 일정의 status='done' 이면 100% 바이패스,
-                // 아니면 markerRecords 기반 카운트. DIV/컴프레셔/소화전/비상콘센트/소화기는
-                // attribution window 기반 (computeCardCompletion 내부).
-                const todayKST = (() => {
-                  const n = new Date()
-                  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`
-                })()
+                // 유도등은 당월 inspect 일정 중 status='done' 이 하나라도 있으면 100%
+                // 바이패스(scheduleItems 는 useQuery 로 당월치만 로드됨), 아니면
+                // markerRecords 기반 카운트.
                 let doneCnt: number
                 if (isGL) {
                   const glSchedDone = scheduleItems.some(s =>
                     s.category === 'inspect' &&
                     s.inspectionCategory === '유도등' &&
-                    s.status === 'done' &&
-                    s.date <= todayKST && (s.endDate ?? s.date) >= todayKST
+                    s.status === 'done'
                   )
                   doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
                 } else {
