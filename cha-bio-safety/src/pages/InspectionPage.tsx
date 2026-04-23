@@ -11,6 +11,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstLocaleString, fmtKstDate, fmtKstDateTime } from '../utils/datetime'
 import { DIV_POINTS as DIV_PTS, type DivPoint as DivPt } from '../constants/divPoints'
 import { InspectionRevisitPopup } from '../components/InspectionRevisitPopup'
+import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useInspectionRevisitPopup'
 import type { ScheduleItem } from '../types'
 
@@ -2895,19 +2896,16 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     const sohwaCPs = floorCPs.filter(cp => cp.category === '소화전')
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isGuideLight, glMarkers, selectedZone, isSohwaGroup, floorCPs])
-  // 피커 표시 대상: defaultResult 및 접근불가는 자동 정상 처리라 제외,
-  // 그 외 개소는 완료 여부와 무관하게 포함 (완료된 개소는 ✓ 뱃지 + 선택 시 팝업)
+  // 피커 표시 대상: defaultResult 는 자동 정상 처리라 제외.
+  // 접근불가 cp 는 피커에 포함 → 선택 시 AccessBlockedPopup 오버레이로 안내 (자동 스킵 안 함).
+  // 유도등 마커도 비-유도등과 동일하게 처리 (완료 마커를 피커에 남겨 재진입 팝업이 뜰 수 있게).
   const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => {
     if (cp.defaultResult) return false
-    if (cp.description?.includes('접근불가')) return false
-    if (isGuideLight) {
-      const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
-      return !markerRecords?.[mid]
-    }
     return true
-  }), [pickerSourceCPs, markerRecords, isGuideLight])
+  }), [pickerSourceCPs])
 
-  // 초기 포커스: QR 지정이 있으면 그 개소, 없으면 첫 미완료, 전부 완료면 0
+  // 초기 포커스: QR 지정이 있으면 그 개소, 없으면 첫 미완료, 전부 완료면 0.
+  // 접근불가 cp 는 "첫 미완료" 후보에서 제외 (실제 점검 대상 먼저 보여주기 위함).
   useEffect(() => {
     if (initialCpAppliedRef.current || pendingCPs.length === 0) return
     if (initialCpId) {
@@ -2918,17 +2916,21 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         return
       }
     }
-    const firstPending = pendingCPs.findIndex(cp => !monthRecords[cp.id])
+    const firstPending = pendingCPs.findIndex(cp => !monthRecords[cp.id] && !cp.description?.includes('접근불가'))
     setPickerIdx(firstPending >= 0 ? firstPending : 0)
     initialCpAppliedRef.current = true
   }, [initialCpId, pendingCPs, monthRecords])
 
   const currentSelCP = pendingCPs[pickerIdx] ?? null
+  const isAccessBlocked = !!currentSelCP?.description?.includes('접근불가')
 
-  // ── 재진입 팝업 (공통 훅) — 유도등은 마커 기반이라 제외 ──
+  // ── 재진입 팝업 (공통 훅) ──
+  // 유도등: cp.id = 'MARKER:{markerId}'. loadTodayRecords 가 monthRecords 에 같은 키로
+  // 엔트리를 병행 적재하므로, 훅에 그대로 넘기면 (가)/(나) 팝업이 동일하게 뜬다.
+  // 접근불가 cp 는 AccessBlockedPopup 이 우선하므로 훅은 호출하지 않음.
   const { popupState, dismiss } = useInspectionRevisitPopup({
-    checkpointId: isGuideLight ? null : (currentSelCP?.id ?? null),
-    category:     group.categories[0] ?? null,
+    checkpointId: isAccessBlocked ? null : (currentSelCP?.id ?? null),
+    category:     isGuideLight ? '유도등' : (group.categories[0] ?? null),
     monthRecords,
     scheduleItems,
   })
@@ -2994,6 +2996,33 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
   const handlePickerSelect = useCallback((idx: number) => setPickerIdx(idx), [])
 
+  // 저장/접근불가 확인 후 다음 미완료 개소로 자동 이동.
+  // 접근불가/defaultResult/이미 완료 된 개소는 건너뛴다.
+  const advanceToNextPending = (skipCpId?: string) => {
+    if (isGuideLight) return
+    const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
+      cp.id !== alsoSkipId && !monthRecords[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
+    const nextIdx = pendingCPs.findIndex((cp, i) => i > pickerIdx && isIncomplete(cp, skipCpId))
+    if (nextIdx >= 0) { setPickerIdx(nextIdx); return }
+    const firstIdx = pendingCPs.findIndex(cp => isIncomplete(cp, skipCpId))
+    if (firstIdx >= 0) { setPickerIdx(firstIdx); return }
+    // 이 층 전부 완료 — 같은 구역 내 다음 미완료 층
+    if (selectedFloor && selectedZone) {
+      const nextFloor = availableFloors.find(f => {
+        if (f === selectedFloor) return false
+        const fCPs = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
+        return fCPs.some(cp => isIncomplete(cp, skipCpId))
+      })
+      if (nextFloor) { setSelectedFloor(nextFloor); setPickerIdx(0); return }
+      const nextZone = availableZones.find(z => {
+        if (z === selectedZone) return false
+        const zCPs = groupCPs.filter(cp => matchZone(cp, z))
+        return zCPs.some(cp => isIncomplete(cp, skipCpId))
+      })
+      if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0) }
+    }
+  }
+
   const handleSave = async () => {
     if (!result || !selectedCP) return
     setSubmitting(true)
@@ -3027,32 +3056,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       setJustSaved(true)
       // 저장 후 다음 미완료로 자동 이동 (피커에 완료 개소도 포함되므로 records 기반 탐색)
       const justSavedId = cpIdToSave
-      setTimeout(() => {
-        if (isGuideLight) return
-        const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
-          cp.id !== alsoSkipId && !monthRecords[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
-        // 현재 idx 이후 첫 미완료 (방금 저장한 건 제외)
-        const nextIdx = pendingCPs.findIndex((cp, i) => i > pickerIdx && isIncomplete(cp, justSavedId))
-        if (nextIdx >= 0) { setPickerIdx(nextIdx); return }
-        // 이후가 없으면 처음부터 다시
-        const firstIdx = pendingCPs.findIndex(cp => isIncomplete(cp, justSavedId))
-        if (firstIdx >= 0) { setPickerIdx(firstIdx); return }
-        // 이 층 전부 완료 — 같은 구역 내 다음 미완료 층
-        if (selectedFloor && selectedZone) {
-          const nextFloor = availableFloors.find(f => {
-            if (f === selectedFloor) return false
-            const fCPs = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
-            return fCPs.some(cp => isIncomplete(cp, justSavedId))
-          })
-          if (nextFloor) { setSelectedFloor(nextFloor); setPickerIdx(0); return }
-          const nextZone = availableZones.find(z => {
-            if (z === selectedZone) return false
-            const zCPs = groupCPs.filter(cp => matchZone(cp, z))
-            return zCPs.some(cp => isIncomplete(cp, justSavedId))
-          })
-          if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0) }
-        }
-      }, 600)
+      setTimeout(() => { advanceToNextPending(justSavedId) }, 600)
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
     } finally {
@@ -3235,8 +3239,13 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         {/* 결과 선택 ~ 특이사항 영역 (이미 점검한 개소 오버레이 포함) */}
         {selectedCP && (
           <div style={{ position:'relative' }}>
-            {/* 재진입 팝업 (공통 컴포넌트) */}
-            {popupState && (
+            {/* 접근불가 개소 안내 팝업 (최우선) — 재진입 팝업보다 앞에 렌더 */}
+            {isAccessBlocked ? (
+              <AccessBlockedPopup
+                onConfirm={() => advanceToNextPending(selectedCP.id)}
+              />
+            ) : popupState && (
+              /* 재진입 팝업 (공통 컴포넌트) */
               <InspectionRevisitPopup
                 variant={popupState.variant}
                 checkedAt={popupState.checkedAt}
@@ -3351,10 +3360,10 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
         <button
           onClick={handleSave}
-          disabled={submitting || photo.uploading || bcPhoto.uploading || !selectedCP}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||bcPhoto.uploading||!selectedCP ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||bcPhoto.uploading||!selectedCP ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||bcPhoto.uploading||!selectedCP ? 'default' : 'pointer', transition:'all .13s' }}
+          disabled={submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked}
+          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'default' : 'pointer', transition:'all .13s' }}
         >
-          {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
+          {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '점검 기록 저장'}
         </button>
       </div>
 
@@ -3866,6 +3875,15 @@ export default function InspectionPage() {
       // 이번 달 전체 기록 (완료 판정 기준)
       // 팝업 우선순위: (나) 주의/불량 + status=open > (가) normal/resolved
       // 같은 체크포인트에 여러 기록이 있으면 pending-action 후보를 우선 선택.
+      // 유도등(마커 기반): 동일 기록을 'MARKER:{markerId}' 키로도 병행 저장하여
+      // InspectionModal 의 마커 피커가 useInspectionRevisitPopup 훅으로 팝업을 띄울 수 있게 한다.
+      const isPending = (e: MonthRecordEntry) =>
+        (e.result === 'bad' || e.result === 'caution') && e.status === 'open'
+      const upsert = (m: Record<string, MonthRecordEntry>, key: string, entry: MonthRecordEntry) => {
+        const prev = m[key]
+        if (!prev) { m[key] = entry; return }
+        if (!isPending(prev) && isPending(entry)) m[key] = entry
+      }
       const monthMap: Record<string, MonthRecordEntry> = {}
       for (const r of monthData) {
         const cpId = (r as any).checkpointId
@@ -3877,12 +3895,10 @@ export default function InspectionPage() {
           recordId:  (r as any).id,
           status:    ((r as any).status ?? 'open') as 'open' | 'resolved',
         }
-        const prev = monthMap[cpId]
-        const isPending = (e: MonthRecordEntry) =>
-          (e.result === 'bad' || e.result === 'caution') && e.status === 'open'
-        if (!prev) { monthMap[cpId] = entry; continue }
-        // 기존이 pending 이면 유지 (우선순위). 기존이 비-pending 이고 새로 들어온 게 pending 이면 교체.
-        if (!isPending(prev) && isPending(entry)) monthMap[cpId] = entry
+        upsert(monthMap, cpId, entry)
+        // 유도등 마커 병행 키
+        const mkId = (r as any).floorPlanMarkerId as string | null
+        if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
       }
       setRecords(map)
       setPrevDayRecords(prevMap)
@@ -3962,13 +3978,20 @@ export default function InspectionPage() {
     const sid = await ensureSession()
     await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey, ...(extra ?? {}) })
     // 로컬 즉시 반영 + DB와 동기화
-    setRecords(prev => ({ ...prev, [cpId]: result }))
-    setMonthRecords(prev => ({ ...prev, [cpId]: {
-      result, checkedAt: new Date().toISOString(),
+    const nowIso = new Date().toISOString()
+    const localEntry: MonthRecordEntry = {
+      result, checkedAt: nowIso,
       staffName: staff?.name ?? undefined,
       // recordId 는 loadTodayRecords() 가 서버 응답으로 채워줌
       status: 'open',
-    }}))
+    }
+    setRecords(prev => ({ ...prev, [cpId]: result }))
+    setMonthRecords(prev => {
+      const next = { ...prev, [cpId]: localEntry }
+      // 유도등 마커 병행 키 — 재진입 팝업 즉시 동작 목적
+      if (extra?.floor_plan_marker_id) next['MARKER:' + extra.floor_plan_marker_id] = localEntry
+      return next
+    })
     setRecordCounts(prev => ({ ...prev, [cpId]: (prev[cpId] ?? 0) + 1 }))
     if (extra?.floor_plan_marker_id) {
       setMarkerRecords(prev => ({ ...prev, [extra.floor_plan_marker_id!]: result }))
