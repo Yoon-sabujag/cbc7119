@@ -535,3 +535,128 @@ localStorage.setItem('REVISIT_DBG', '1')
    localStorage.setItem('REVISIT_DBG', '1')
    ```
    해당 카테고리 이미 점검한 개소에 재진입 → 콘솔에 `[revisit]` 또는 `[revisit-fp]` 로 분기 결과가 출력되는지 확인. 출력된 내용을 리포트 주시면 다음 퀵에서 근본 수정 가능.
+
+---
+
+## Task 6 — (나) 기간 무관 분기 + 소화기 진단
+
+Task 5 에서 프로덕션 진단 로그를 켠 결과 사용자가 "소화기 `CP-FE-0018` 에서 `no monthRecord for cp {hasMeta: false, meta: undefined}`" 를 확인. 동시에 설계 관점에서 **"조치 대기 상태 개소는 활성 스케줄 창과 무관하게 팝업이 떠야 한다"** 로 정책 재정의됨. 근거: 조치 대기는 "기간" 이 아니라 "이 개소 점검·조치해야 함" 경고이므로 사용자가 재진입한 순간 조치 확인 의도일 수 있음.
+
+### 변경 요약
+
+| # | Commit     | Type | 범위        | 제목                                                    |
+| - | ---------- | ---- | ----------- | ------------------------------------------------------- |
+| 1 | `a53f293`  | fix  | T6.1 + T6.2 | (나) 기간 무관 분기 재구성 + 소화기 진단 로그 강화       |
+
+(T6.3 = 기존 로그 유지. 별도 커밋 아님, T6.2 와 함께 포함.)
+
+### 수정 파일
+
+| File                                                        | 변경 유형 | 해당 Task  |
+| ----------------------------------------------------------- | --------- | ---------- |
+| `cha-bio-safety/src/hooks/useInspectionRevisitPopup.ts`     | 수정      | T6.1, T6.2 |
+
+### T6.1 — 설계 재정의: pending 분기 window-agnostic
+
+**Before (Task 5 강화 정책):**
+- `matches` 발견 → `activeMatch` (오늘이 창 안) → `inPeriod` (기록이 창 안) → 그 안에서 pending/completed 분기.
+- pending 도 오늘 활성 창이 없으면 skip.
+
+**After (Task 6 재정의):**
+- `meta` 먼저 확보.
+- `isPending = (result in bad|caution) && status==='open'` 이면 **matches / activeMatch / inPeriod 세 필터 전부 skip** 하고 즉시 SHOW.
+- completed 분기 (normal / resolved) 는 기존 Task 5 로직(활성 창 + inPeriod) 그대로 유지.
+
+**변경 전/후 플로우 비교:**
+
+```
+Before (Task 5)                         After (Task 6)
+─────────────                           ─────────────
+if !checkpointId → skip                 if !checkpointId → skip
+if excluded      → skip                 if excluded      → skip
+                                        if !meta         → skip (+ 확장 진단)
+matches          → skip if empty
+meta             → skip if none         if pending       → SHOW (window-agnostic) ★
+recYmd parse     → skip if bad
+activeMatch      → skip if none         matches          → skip if empty
+inPeriod         → skip if false        recYmd parse     → skip if bad
+                                        activeMatch      → skip if none
+isPending?                              inPeriod         → skip if false
+ yes → SHOW pending-action              → SHOW completed
+ no  → SHOW completed
+```
+
+새 로그 라인: `[revisit] <category> <cpId> → SHOW pending-action (window-agnostic) { result, status, checkedAt }`.
+
+### T6.2 — 소화기 진단 강화
+
+Task 5 로그에서 소화기 `CP-FE-0018` 이 `no monthRecord for cp` 로 skip 되고 있었으나, 원인이 (a) monthRecords 전체가 비어있음 / (b) FE 접두사만 누락 / (c) 특정 cp 만 없음 중 어디인지 구분 불가. 해당 로그에 진단 필드 3개 추가:
+
+```ts
+dbg('skip: no monthRecord for cp', {
+  hasMeta: !!meta,
+  meta,
+  monthRecordsSize:       keys.length,                          // 전체 크기
+  monthRecordsSampleKeys: keys.slice(0, 5),                     // 실제 들어있는 키 샘플
+  cpIdStartsWithFE:       keys.filter(k => k.startsWith('CP-FE')).slice(0, 5),  // 소화기 접두사 존재 여부
+})
+```
+
+활용:
+- `monthRecordsSize === 0` → loadTodayRecords 가 애초에 데이터를 못 가져옴 (API / 쿼리 실패 의심).
+- `monthRecordsSize > 0` 인데 `cpIdStartsWithFE` 가 비어있음 → inspection API 가 소화기 카테고리를 누락 (백엔드 필터 문제).
+- `cpIdStartsWithFE` 에 값이 있는데 `CP-FE-0018` 만 없음 → 해당 개소에 이번 달 기록이 없는 게 legit (사용자가 첫 점검 시도 중).
+
+### T6.3 — 기존 로그 유지
+
+Task 5 의 모든 `[revisit]` 로그 라인 (skip 사유별) 은 그대로 유지. `localStorage.getItem('REVISIT_DBG') === '1'` 일 때만 출력되므로 기본 동작 영향 0. 소화기 외 다른 케이스 재발 시에도 바로 진단 가능.
+
+### 회귀 리스크 분석
+
+1. **pending 팝업이 "과도하게" 뜰 가능성** — 이번 달과 무관한 과거 기록이 `bad + open` 으로 남아있으면 언제든 팝업이 뜬다. 단, 사용자 정책이 정확히 그걸 원함 ("조치 확인 의도"). 조치를 통해 `status=resolved` 가 되면 자연히 사라진다. → 의도된 동작.
+2. **completed 팝업 로직은 변경 없음** — Task 5 활성 창 체크 + inPeriod 체크 동일. 소화전/비상콘센트 현재 점검 기간 안의 팝업 발동은 영향 없음.
+3. **CCTV / 화재수신반 제외** — excludeCategories 체크는 pending 분기 이전에 수행되므로 기존대로 팝업 제외 유지.
+4. **유도등 InspectionModal 경로** — 여전히 `pendingCPs` 필터가 완료 cp 를 피커에서 숨기므로 본 변경 효과 없음 (별도 퀵에서 분리 처리 예정).
+5. **FloorPlanPage evalRevisit** — 이번 Task 에서 건드리지 않음. 마커 기반 판정은 기존 Task 5 "활성 창" 정책 그대로. 필요 시 다음 퀵에서 동일 설계 반영 검토.
+
+### 빌드/검증
+
+- `npx tsc --noEmit` → exit 0 ✓
+- `npm run build` → 10.39s 성공 ✓ (sw.js 생성, 67 PWA precache entries)
+
+### 건드리지 않은 것 (운영 관찰 모드 준수)
+
+- InspectionPage 9개 모달 본체, FloorPlanPage, InspectionRevisitPopup 컴포넌트, API handlers, DB 스키마, 저장/조치 로직.
+- FloorPlan evalRevisit 의 활성 창 체크 (Task 5 정책 유지).
+- 팝업 문구, 버튼 라벨, CCTV·화재수신반 제외 규칙.
+
+### 사용자 재검증 포인트
+
+1. **pending 팝업 기간 무관 발동** — 오늘이 소화기 점검 창 밖이더라도, 이전에 `주의`/`불량` 으로 저장해 놓은 소화기 개소를 재진입하면:
+   - 팝업 (나) 가 떠야 함 (`${when}에 ${who}에 의해\n조치 대기중인 개소입니다.\n조치 내용을 입력하시겠습니까?`).
+   - "이동" → remediation 페이지.
+   - "취소" → 팝업 닫힘, 점검창 잔류 (저장 가능).
+2. **completed 팝업은 활성 창만** — 오늘이 활성 창 **안** 인 카테고리에서 `정상`/`조치완료` 기록이 있는 cp 재진입 → 팝업 (가) 발동 (기존 Task 5 동작 유지).
+3. **과거 창만 있는 completed 는 skip** — 오늘이 창 **밖** 인 카테고리 cp 에 `정상` 기록 있으면 팝업 미발동 (Task 5 C2 정책 유지).
+4. **소화기 진단 재수집** — `localStorage.setItem('REVISIT_DBG','1')` 후 소화기 `CP-FE-0018` 재진입 → 콘솔에 `monthRecordsSize` / `monthRecordsSampleKeys` / `cpIdStartsWithFE` 가 찍히는지 확인. 결과 리포트 주시면 다음 퀵에서 소화기 전체 로딩 이슈 근본 원인 파악 가능.
+
+### 변경되지 않은 잠긴 결정
+
+- ✓ CCTV·화재수신반 모달 완전 제외.
+- ✓ 팝업 (가)(나) 문구 그대로 (Task 4 M1 반영본).
+- ✓ (나) > (가) 우선순위 (`loadTodayRecords` 집계 로직 유지).
+- ✓ '접근불가' 자동 스킵.
+- ✓ 저장/DB 규칙 변경 없음.
+- ✓ FloorPlan 마커 activeWindow 체크 (Task 5) 유지.
+
+### Self-Check (Task 6)
+
+- Created/modified 파일 존재 ✓
+- 커밋 존재 확인: `a53f293` ✓ (`git log --oneline -3` 확인 완료)
+- `npx tsc --noEmit` → exit 0 ✓
+- `npm run build` → 성공 ✓
+- 범위 외 파일 건드리지 않음 (`git status --short` 커밋 후 clean) ✓
+
+### T6.4 — FloorPlan 마커 경로도 window-agnostic 통일 (후속)
+
+`cha-bio-safety/src/pages/FloorPlanPage.tsx` 의 `evalRevisit` 함수 재구성: `isPending = (last_result in bad|caution) && last_status !== 'resolved'` 이면 `matches/activeMatch/inPeriod` 세 필터 전부 skip 하고 즉시 `pending-action` 반환. completed 분기는 기존 활성 창 체크 그대로 유지. 훅(T6.1)과 동일 규칙을 마커 필드(`last_result` / `last_status` / `last_inspected_at`)에 맞춰 이식. 로그 라인 `[revisit-fp] ... → SHOW pending-action (window-agnostic)` 추가. `npx tsc --noEmit` → 0, `npm run build` → 10.95s 성공. 커밋: `fix(260423-htx-04): FloorPlan 마커도 (나) 조치 대기 팝업 기간 무관으로 통일`.
