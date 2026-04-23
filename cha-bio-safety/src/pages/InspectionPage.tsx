@@ -2998,7 +2998,13 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
   // 저장/접근불가 확인 후 다음 미완료 개소로 자동 이동.
   // 접근불가/defaultResult/이미 완료 된 개소는 건너뛴다.
-  const advanceToNextPending = (skipCpId?: string) => {
+  // Bug E 수정: AccessBlockedPopup '확인' 에서 호출될 때 accessible 한 대상이
+  // 전혀 없는 경우(잔여 전부 접근불가 등) 현재 cp 에 그대로 머물러 사용자가
+  // "확인 버튼이 안 눌린다" 고 체감하던 문제 해결.
+  //  → fromAccessBlocked=true 이면 최종 폴백으로 '다음 피커 인덱스' 이동을
+  //    허용한다(접근불가 cp 라도 가시적으로 전진). 이동 가능한 다음 cp 가
+  //    정말 0개일 때만 현 위치 유지(이 때 사용자는 '닫기' 또는 이전 화살표로 탈출).
+  const advanceToNextPending = (skipCpId?: string, fromAccessBlocked?: boolean) => {
     if (isGuideLight) return
     const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
       cp.id !== alsoSkipId && !monthRecords[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
@@ -3019,7 +3025,16 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         const zCPs = groupCPs.filter(cp => matchZone(cp, z))
         return zCPs.some(cp => isIncomplete(cp, skipCpId))
       })
-      if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0) }
+      if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0); return }
+    }
+    // Bug E 폴백: 접근불가 확인 클릭인데 accessible 대상이 전혀 없는 경우에도
+    // 최소한 한 칸 전진해 사용자에게 "확인이 반응했음" 을 보여준다. 피커 내
+    // 다른 인덱스(접근불가 포함)로 이동. 그마저 없으면 현 위치 유지.
+    if (fromAccessBlocked) {
+      if (pickerIdx + 1 < pendingCPs.length) { setPickerIdx(pickerIdx + 1); return }
+      if (pickerIdx > 0) { setPickerIdx(0); return }
+      // pendingCPs.length <= 1 → 정말 이동할 곳 없음. onClose 로 폴백.
+      onClose()
     }
   }
 
@@ -3242,7 +3257,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
             {/* 접근불가 개소 안내 팝업 (최우선) — 재진입 팝업보다 앞에 렌더 */}
             {isAccessBlocked ? (
               <AccessBlockedPopup
-                onConfirm={() => advanceToNextPending(selectedCP.id)}
+                onConfirm={() => advanceToNextPending(selectedCP.id, true)}
               />
             ) : popupState && (
               /* 재진입 팝업 (공통 컴포넌트) */
@@ -3888,15 +3903,22 @@ export default function InspectionPage() {
       for (const r of monthData) {
         const cpId = (r as any).checkpointId
         if (!cpId) continue
+        // Bug C 수정: upsert 조건 엄격화 — result 가 유효한 CheckResult 인 레코드만
+        // monthRecords 에 반영한다. 과거에는 result 가 falsy 여도 entry 가 upsert
+        // 되었고, 훅의 `if (!meta.result)` 가드에 의존해 간접적으로 필터되었다.
+        // 이 구조는 상위 컨슈머(doneCount 등)가 entry 존재만으로 '기록 있음' 을
+        // 판단할 때 오탐을 유발하므로, 소스 단에서 차단한다. 마커 병행 키도 동일.
+        const rawResult = (r as any).result
+        if (!rawResult) continue
         const entry: MonthRecordEntry = {
-          result:    (r as any).result,
+          result:    rawResult,
           checkedAt: (r as any).checkedAt,
           staffName: (r as any).staffName ?? undefined,
           recordId:  (r as any).id,
           status:    ((r as any).status ?? 'open') as 'open' | 'resolved',
         }
         upsert(monthMap, cpId, entry)
-        // 유도등 마커 병행 키
+        // 유도등 마커 병행 키 — 기록(result 유효) 있을 때만 적재
         const mkId = (r as any).floorPlanMarkerId as string | null
         if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
       }
