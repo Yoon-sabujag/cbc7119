@@ -958,7 +958,29 @@ export default function FloorPlanPage() {
           if (!planTypeToCategory) { dbg('skip: no category mapping'); return null }
           if (!selected.last_result) { dbg('skip: no last_result on marker'); return null }
           if (!selected.last_inspected_at) { dbg('skip: no last_inspected_at on marker'); return null }
-          // 이번 달 해당 카테고리 일정 있어야 함
+
+          // Task 6.4: pending (bad|caution + status !== 'resolved') 은 기간 무관 즉시 팝업.
+          // 정책: 조치 대기는 "기간" 이 아니라 "이 개소 조치해야 함" 경고.
+          //       사용자가 재진입 = 조치 확인 의도로 해석 → activeWindow / scheduleMatch 필터 전부 skip.
+          //       훅(useInspectionRevisitPopup)의 T6.1 과 동일 규칙.
+          const who = (selected.last_inspected_by as string | null | undefined) ?? '—'
+          const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
+          if (isPending) {
+            dbg('SHOW pending-action (window-agnostic)', {
+              result:    selected.last_result,
+              status:    selected.last_status,
+              checkedAt: selected.last_inspected_at,
+            })
+            return {
+              variant:       'pending-action',
+              checkedAt:     selected.last_inspected_at as string,
+              inspectorName: who,
+              recordId:      selected.last_record_id as string | undefined,
+            }
+          }
+
+          // completed (normal / resolved) 분기 — 기존 Task 5 활성 창 정책 그대로 유지.
+          // 이번 달 해당 카테고리 일정 있어야 함.
           const matches = scheduleItems.filter(s => {
             if (s.category !== 'inspect') return false
             const ic = s.inspectionCategory ?? ''
@@ -995,15 +1017,7 @@ export default function FloorPlanPage() {
             dbg('skip: record not in active window', { recYmd, active: `${activeMatch.date}~${activeMatch.endDate ?? activeMatch.date}` })
             return null
           }
-          const who = (selected.last_inspected_by as string | null | undefined) ?? '—'
-          const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
-          dbg(isPending ? 'SHOW pending-action' : 'SHOW completed', { recYmd, todayYmd, result: selected.last_result, status: selected.last_status })
-          if (isPending) return {
-            variant:       'pending-action',
-            checkedAt:     selected.last_inspected_at as string,
-            inspectorName: who,
-            recordId:      selected.last_record_id as string | undefined,
-          }
+          dbg('SHOW completed', { recYmd, todayYmd, result: selected.last_result, status: selected.last_status })
           return {
             variant:       'completed',
             checkedAt:     selected.last_inspected_at as string,

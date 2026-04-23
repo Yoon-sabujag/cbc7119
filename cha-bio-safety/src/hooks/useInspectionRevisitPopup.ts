@@ -84,8 +84,43 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
     const excl = excludeCategories ?? ['CCTV', '화재수신반']
     if (category && excl.includes(category)) { dbg('skip: excluded category'); return null }
 
-    // schedule_items 필터: 'inspect' + inspectionCategory 매칭
-    // 방화문→특별피난계단 alias 역매핑 포함
+    // ── 메타(monthRecord) 먼저 확보 ──
+    // pending 판정을 활성 창 체크보다 앞에 둬야 하므로, meta 를 여기서 미리 꺼낸다.
+    // Task 6.2: 소화기에서 "no monthRecord for cp" 로그가 나오면 원인이
+    //   (a) monthRecords 전체가 비어있음 / (b) 특정 cpId 접두사만 빠짐 / (c) 정상인데 해당 cp 만 없음
+    // 중 어디인지 즉시 구분 가능하도록 진단 정보를 확장한다.
+    const meta = monthRecords[checkpointId]
+    if (!meta || !meta.result) {
+      const keys = Object.keys(monthRecords)
+      dbg('skip: no monthRecord for cp', {
+        hasMeta: !!meta,
+        meta,
+        monthRecordsSize:       keys.length,
+        monthRecordsSampleKeys: keys.slice(0, 5),
+        cpIdStartsWithFE:       keys.filter(k => k.startsWith('CP-FE')).slice(0, 5),
+      })
+      return null
+    }
+
+    // ── (나) pending-action 분기: 활성 창 무관 ──
+    // Task 6 사용자 확정: "조치 대기(주의/불량 + status='open') 상태의 개소는 활성
+    // 스케줄 창과 무관하게 팝업이 떠야 한다." 근거는 조치 대기가 "기간"이 아니라
+    // "이 개소 점검·조치해야 함" 경고이기 때문. 사용자가 재진입한 것 자체가 조치
+    // 확인 의도일 수 있음.
+    // 따라서 matches / activeWindow / inPeriod 세 필터 전부 skip.
+    const isPending = (meta.result === 'bad' || meta.result === 'caution') && meta.status === 'open'
+    if (isPending) {
+      dbg('SHOW pending-action (window-agnostic)', { result: meta.result, status: meta.status, checkedAt: meta.checkedAt })
+      return {
+        show:          true,
+        variant:       'pending-action',
+        checkedAt:     meta.checkedAt ?? '',
+        inspectorName: meta.staffName ?? '—',
+        recordId:      meta.recordId,
+      }
+    }
+
+    // ── (가) completed 분기: 기존 필터 유지 (matches → activeMatch → inPeriod) ──
     const matches = scheduleItems.filter(s => {
       if (s.category !== 'inspect') return false
       const ic = s.inspectionCategory ?? ''
@@ -98,12 +133,6 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
         scheduleItemsCount: scheduleItems.length,
         inspectCats: scheduleItems.filter(s => s.category === 'inspect').map(s => s.inspectionCategory),
       })
-      return null
-    }
-
-    const meta = monthRecords[checkpointId]
-    if (!meta || !meta.result) {
-      dbg('skip: no monthRecord for cp', { hasMeta: !!meta, meta })
       return null
     }
 
@@ -139,18 +168,7 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
       return null
     }
 
-    const isPending = (meta.result === 'bad' || meta.result === 'caution') && meta.status === 'open'
-    dbg(isPending ? 'SHOW pending-action' : 'SHOW completed', { recYmd, todayYmd, result: meta.result, status: meta.status })
-    if (isPending) {
-      return {
-        show:          true,
-        variant:       'pending-action',
-        checkedAt:     meta.checkedAt ?? '',
-        inspectorName: meta.staffName ?? '—',
-        recordId:      meta.recordId,
-      }
-    }
-
+    dbg('SHOW completed', { recYmd, todayYmd, result: meta.result, status: meta.status })
     // normal / resolved → completed
     return {
       show:          true,
