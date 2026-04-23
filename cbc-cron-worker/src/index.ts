@@ -124,7 +124,15 @@ async function handleDailyNotifications(env: Env) {
   if (!subs.results.length && !(allDailySubs.results ?? []).length) return
 
   // Batch queries for daily notification types
-  const [todaySchedules, yesterdayIncomplete, unresolvedFindings, upcomingEducation, elevatorEduExpiring] = await Promise.all([
+  const [
+    todaySchedules,
+    yesterdayIncomplete,
+    unresolvedFindings,
+    upcomingEducation,
+    elevatorEduExpiring,
+    fireInitialDue,
+    elevatorInitialDue,
+  ] = await Promise.all([
     // 금일 점검 일정 (date range supported via end_date)
     env.DB.prepare(
       `SELECT title FROM schedule_items WHERE date = ? OR (date <= ? AND end_date >= ?)`
@@ -137,18 +145,41 @@ async function handleDailyNotifications(env: Env) {
     env.DB.prepare(
       `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
     ).all(),
-    // 소방 교육 D-60: 신규교육일 기준 +2년*N 주기로 고정 (화재예방법 실무교육
+    // 소방 실무교육 D-60: 신규교육일 기준 +2년*N 주기로 고정 (화재예방법 실무교육
     // 이수 기한 기준). 매칭은 JS 단에서 수행 — 모든 initial 행을 조회한다.
     env.DB.prepare(
       `SELECT e.staff_id, s.name as staff_name, s.role, e.completed_at
        FROM education_records e JOIN staff s ON e.staff_id = s.id
        WHERE e.education_type = 'initial'`
     ).all<{ staff_id: string; staff_name: string; role: string; completed_at: string }>(),
-    // 승강기 안전관리자 교육 D-60: safety_mgr_edu_expire 만료 60일 전
+    // 승강기 실무교육(재교육) D-60: safety_mgr_edu_expire 만료 60일 전
     env.DB.prepare(
       `SELECT id, name FROM staff
        WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL
          AND date(safety_mgr_edu_expire, '-60 days') = ?`
+    ).bind(today).all<{ id: string; name: string }>(),
+    // 소방 신규교육 D-60: appointed_at + 6개월 - 60일 = 오늘, 그리고
+    // education_records 에 initial 이 아직 없는 사람만
+    env.DB.prepare(
+      `SELECT s.id, s.name, s.role
+       FROM staff s
+       WHERE s.active = 1
+         AND s.appointed_at IS NOT NULL
+         AND date(s.appointed_at, '+6 months', '-60 days') = ?
+         AND NOT EXISTS (
+           SELECT 1 FROM education_records e
+           WHERE e.staff_id = s.id AND e.education_type = 'initial'
+         )`
+    ).bind(today).all<{ id: string; name: string; role: string }>(),
+    // 승강기 신규교육 D-60: safety_mgr_appointed_at + 3개월 - 60일 = 오늘,
+    // 그리고 safety_mgr_edu_dt 가 아직 비어있는 사람만
+    env.DB.prepare(
+      `SELECT id, name FROM staff
+       WHERE active = 1
+         AND elevator_safety_manager = 1
+         AND safety_mgr_appointed_at IS NOT NULL
+         AND safety_mgr_edu_dt IS NULL
+         AND date(safety_mgr_appointed_at, '+3 months', '-60 days') = ?`
     ).bind(today).all<{ id: string; name: string }>(),
   ])
 
@@ -211,7 +242,18 @@ async function handleDailyNotifications(env: Env) {
     eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 실무교육` })
   }
   for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
-    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 교육` })
+    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 재교육` })
+  }
+
+  // 소방 신규교육 D-60: 선임 후 6개월 이내 이수 기한. initial 기록 없는 사람만.
+  for (const r of (fireInitialDue.results ?? []) as { id: string; name: string; role: string }[]) {
+    const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
+    eduTargets.push({ staffId: r.id, line: `${r.name}님 ${roleLabel} 신규교육` })
+  }
+
+  // 승강기 신규교육 D-60: 선임 후 3개월 이내 이수 기한. safety_mgr_edu_dt 미등록자만.
+  for (const r of (elevatorInitialDue.results ?? []) as { id: string; name: string }[]) {
+    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 신규교육` })
   }
 
   if (eduTargets.length > 0) {
