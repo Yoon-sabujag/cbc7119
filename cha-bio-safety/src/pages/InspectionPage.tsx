@@ -2924,6 +2924,16 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const currentSelCP = pendingCPs[pickerIdx] ?? null
   const isAccessBlocked = !!currentSelCP?.description?.includes('접근불가')
 
+  // Bug F: 접근불가 팝업에서 '확인' 눌렀는데 이동할 다음 층이 없는 경우
+  //  → 모달은 유지하고 해당 cp 의 팝업만 닫는다. 다른 cp 로 이동하면 자동 리셋.
+  const [dismissedBlockedId, setDismissedBlockedId] = useState<string | null>(null)
+  useEffect(() => {
+    if (dismissedBlockedId && currentSelCP?.id !== dismissedBlockedId) {
+      setDismissedBlockedId(null)
+    }
+  }, [currentSelCP?.id, dismissedBlockedId])
+  const showAccessBlockedPopup = isAccessBlocked && dismissedBlockedId !== currentSelCP?.id
+
   // ── 재진입 팝업 (공통 훅) ──
   // 유도등: cp.id = 'MARKER:{markerId}'. loadTodayRecords 가 monthRecords 에 같은 키로
   // 엔트리를 병행 적재하므로, 훅에 그대로 넘기면 (가)/(나) 팝업이 동일하게 뜬다.
@@ -3001,9 +3011,12 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   // Bug E 수정: AccessBlockedPopup '확인' 에서 호출될 때 accessible 한 대상이
   // 전혀 없는 경우(잔여 전부 접근불가 등) 현재 cp 에 그대로 머물러 사용자가
   // "확인 버튼이 안 눌린다" 고 체감하던 문제 해결.
-  //  → fromAccessBlocked=true 이면 최종 폴백으로 '다음 피커 인덱스' 이동을
-  //    허용한다(접근불가 cp 라도 가시적으로 전진). 이동 가능한 다음 cp 가
-  //    정말 0개일 때만 현 위치 유지(이 때 사용자는 '닫기' 또는 이전 화살표로 탈출).
+  // Bug F 수정: Bug E 폴백이 `onClose()` 로 모달을 닫아버리면 "다음 층에 점검할
+  // 개소가 있을 수 있는데 닫히는건 불편" 하다는 사용자 피드백 반영.
+  //  → fromAccessBlocked=true 일 때는 같은 구역(zone) 내 '다음 층' 으로 1회만
+  //    자동 이동 (availableFloors 에서 현재 층의 다음 위치). 다음 층이 없으면
+  //    팝업만 닫고 모달은 유지 (dismissedBlockedId 설정). 사용자가 수동으로
+  //    다른 구역/층/닫기 버튼으로 이동.
   const advanceToNextPending = (skipCpId?: string, fromAccessBlocked?: boolean) => {
     if (isGuideLight) return
     const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
@@ -3027,14 +3040,17 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       })
       if (nextZone) { setSelectedZone(nextZone); setSelectedFloor(null); setPickerIdx(0); return }
     }
-    // Bug E 폴백: 접근불가 확인 클릭인데 accessible 대상이 전혀 없는 경우에도
-    // 최소한 한 칸 전진해 사용자에게 "확인이 반응했음" 을 보여준다. 피커 내
-    // 다른 인덱스(접근불가 포함)로 이동. 그마저 없으면 현 위치 유지.
+    // Bug F 폴백 (접근불가 확인 전용): accessible 대상이 전혀 없어도 모달 유지.
+    //  1) 같은 구역 내 '다음 층' 존재 → 그 층으로 1회 자동 이동 (잔여 여부 무관).
+    //  2) 다음 층 없음 → 이 cp 의 접근불가 팝업만 닫고 모달은 유지. 사용자가
+    //     수동으로 이전 화살표 / 구역·층 탭 / 닫기 버튼 등으로 탈출.
     if (fromAccessBlocked) {
-      if (pickerIdx + 1 < pendingCPs.length) { setPickerIdx(pickerIdx + 1); return }
-      if (pickerIdx > 0) { setPickerIdx(0); return }
-      // pendingCPs.length <= 1 → 정말 이동할 곳 없음. onClose 로 폴백.
-      onClose()
+      if (selectedFloor && selectedZone) {
+        const currIdx = availableFloors.indexOf(selectedFloor)
+        const nextFloorAny = currIdx >= 0 ? availableFloors[currIdx + 1] : undefined
+        if (nextFloorAny) { setSelectedFloor(nextFloorAny); setPickerIdx(0); return }
+      }
+      if (skipCpId) setDismissedBlockedId(skipCpId)
     }
   }
 
@@ -3255,7 +3271,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         {selectedCP && (
           <div style={{ position:'relative' }}>
             {/* 접근불가 개소 안내 팝업 (최우선) — 재진입 팝업보다 앞에 렌더 */}
-            {isAccessBlocked ? (
+            {showAccessBlockedPopup ? (
               <AccessBlockedPopup
                 onConfirm={() => advanceToNextPending(selectedCP.id, true)}
               />
