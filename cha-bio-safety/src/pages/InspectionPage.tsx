@@ -2644,10 +2644,11 @@ function DamperModal({ group, allCheckpoints, records, onClose, onSave, initialC
 }
 
 // ── Inspection Modal (전체화면) ────────────────────────
-function InspectionModal({ group, allCheckpoints, records, recordCounts, markerRecords, onClose, onSave, initialCpId }: {
+function InspectionModal({ group, allCheckpoints, records, monthRecords, recordCounts, markerRecords, onClose, onSave, initialCpId }: {
   group:          typeof CATEGORY_GROUPS[0]
   allCheckpoints: CheckPoint[]
   records:        Record<string, CheckResult>
+  monthRecords:   Record<string, CheckResult>
   recordCounts?:  Record<string, number>
   markerRecords?: Record<string, CheckResult>
   onClose:        () => void
@@ -2791,14 +2792,14 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       if (idx >= 0) {
         setPickerIdx(idx)
         initialCpAppliedRef.current = true
-        if (records[initialCpId]) setShowDupAlert(true)
+        if (monthRecords[initialCpId]) setShowDupAlert(true)
         return
       }
     }
-    const firstPending = pendingCPs.findIndex(cp => !records[cp.id])
+    const firstPending = pendingCPs.findIndex(cp => !monthRecords[cp.id])
     setPickerIdx(firstPending >= 0 ? firstPending : 0)
     initialCpAppliedRef.current = true
-  }, [initialCpId, pendingCPs, records])
+  }, [initialCpId, pendingCPs, monthRecords])
 
   // 완료된 개소로 이동 시 팝업 (swipe / 탭 / prev-next 버튼 모두 포함)
   const lastPopupCpRef = useRef<string | null>(null)
@@ -2807,8 +2808,8 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
     if (!currentSelCP) { lastPopupCpRef.current = null; return }
     if (lastPopupCpRef.current === currentSelCP.id) return
     lastPopupCpRef.current = currentSelCP.id
-    if (!isGuideLight && records[currentSelCP.id]) setShowDupAlert(true)
-  }, [currentSelCP?.id, records, isGuideLight])
+    if (!isGuideLight && monthRecords[currentSelCP.id]) setShowDupAlert(true)
+  }, [currentSelCP?.id, monthRecords, isGuideLight])
 
   const selectedCP   = pendingCPs[pickerIdx] ?? null
   const totalCount   = pickerSourceCPs.length
@@ -2821,7 +2822,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
         return !!markerRecords?.[mid]
       }).length
     : pickerSourceCPs.filter(cp =>
-        records[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
+        monthRecords[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
       ).length
   const allDoneFloor = doneCount >= totalCount && totalCount > 0
 
@@ -2907,7 +2908,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
       setTimeout(() => {
         if (isGuideLight) return
         const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
-          cp.id !== alsoSkipId && !records[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
+          cp.id !== alsoSkipId && !monthRecords[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
         // 현재 idx 이후 첫 미완료 (방금 저장한 건 제외)
         const nextIdx = pendingCPs.findIndex((cp, i) => i > pickerIdx && isIncomplete(cp, justSavedId))
         if (nextIdx >= 0) { setPickerIdx(nextIdx); return }
@@ -2988,7 +2989,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
           <div style={{ display:'flex', gap:5, overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
             {availableFloors.map(f => {
               const fCPs  = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
-              const fDone = fCPs.filter(cp => records[cp.id]).length
+              const fDone = fCPs.filter(cp => monthRecords[cp.id]).length
               const isSel = f === selectedFloor
               return (
                 <button key={f} onClick={() => handleFloorChange(f)} style={{ flexShrink:0, padding:'4px 12px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', border: isSel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', background: isSel ? 'var(--acl)' : 'var(--bg)', color: isSel ? '#fff' : 'var(--t2)', transition:'all .1s' }}>
@@ -3035,7 +3036,7 @@ function InspectionModal({ group, allCheckpoints, records, recordCounts, markerR
                     {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
                   </>
                 )}
-                {selectedCP && records[selectedCP.id] && (
+                {selectedCP && monthRecords[selectedCP.id] && (
                   <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:6, padding:'2px 8px', borderRadius:999, background:'rgba(34,197,94,.15)', border:'1px solid rgba(34,197,94,.35)' }}>
                     <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)' }}>✓ 점검 완료</span>
                   </div>
@@ -3673,6 +3674,8 @@ export default function InspectionPage() {
   const [records,          setRecords]          = useState<Record<string, CheckResult>>({})
   // DIV / 컴프레셔는 회당 2일 연속 점검이므로 전일 기록도 완료 판정에 포함
   const [prevDayRecords,   setPrevDayRecords]   = useState<Record<string, CheckResult>>({})
+  // 이번 달 전체 기록 (이미 점검 여부 판정용) — 피커/팝업/✓ 뱃지 기준
+  const [monthRecords,     setMonthRecords]     = useState<Record<string, CheckResult>>({})
   const [recordCounts,     setRecordCounts]     = useState<Record<string, number>>({})
   const [markerRecords,    setMarkerRecords]    = useState<Record<string, CheckResult>>({})
   const [recordMeta,       setRecordMeta]       = useState<Record<string, RecordMeta>>({})
@@ -3695,10 +3698,12 @@ export default function InspectionPage() {
       const prev1 = new Date(now); prev1.setDate(prev1.getDate() - 1)
       const prev2 = new Date(now); prev2.setDate(prev2.getDate() - 2)
 
-      const [data, prevData1, prevData2] = await Promise.all([
+      const yyyymm = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`
+      const [data, prevData1, prevData2, monthData] = await Promise.all([
         inspectionApi.getTodayRecords(today),
         inspectionApi.getTodayRecords(ymd(prev1)).catch(() => [] as any[]),
         inspectionApi.getTodayRecords(ymd(prev2)).catch(() => [] as any[]),
+        inspectionApi.getMonthRecords(yyyymm).catch(() => [] as any[]),
       ])
 
       const map:        Record<string, CheckResult> = {}
@@ -3727,8 +3732,14 @@ export default function InspectionPage() {
       for (const r of [...prevData1, ...prevData2]) {
         if (!prevMap[r.checkpointId]) prevMap[r.checkpointId] = r.result as CheckResult
       }
+      // 이번 달 전체 기록 (완료 판정 기준)
+      const monthMap: Record<string, CheckResult> = {}
+      for (const r of monthData) {
+        if (!monthMap[r.checkpointId]) monthMap[r.checkpointId] = r.result as CheckResult
+      }
       setRecords(map)
       setPrevDayRecords(prevMap)
+      setMonthRecords(monthMap)
       setRecordCounts(counts)
       setMarkerRecords(markerMap)
       setRecordMeta(meta)
@@ -3805,6 +3816,7 @@ export default function InspectionPage() {
     await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey, ...(extra ?? {}) })
     // 로컬 즉시 반영 + DB와 동기화
     setRecords(prev => ({ ...prev, [cpId]: result }))
+    setMonthRecords(prev => ({ ...prev, [cpId]: result }))
     setRecordCounts(prev => ({ ...prev, [cpId]: (prev[cpId] ?? 0) + 1 }))
     if (extra?.floor_plan_marker_id) {
       setMarkerRecords(prev => ({ ...prev, [extra.floor_plan_marker_id!]: result }))
@@ -4162,6 +4174,7 @@ export default function InspectionPage() {
             group={selectedGroup}
             allCheckpoints={allCheckpoints}
             records={records}
+            monthRecords={monthRecords}
             recordCounts={recordCounts}
             markerRecords={markerRecords}
             onClose={() => setSelectedGroupIdx(null)}

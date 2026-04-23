@@ -241,6 +241,7 @@ export const inspectionApi = {
   createSession:  (body: any)    => api.post<any>('/inspections', body),
   submitRecord:   (sid: string, body: any) => api.post<any>(`/inspections/${sid}/records`, body),
   getTodayRecords:(date: string) => api.get<any[]>(`/inspections/records?date=${date}`),
+  getMonthRecords:(month: string) => api.get<any[]>(`/inspections/records?month=${month}`),
   resolveRecord:  (recordId: string, resolution_memo: string, resolution_photo_key?: string) =>
     api.post<any>(`/inspections/records/${recordId}/resolve`, { resolution_memo, resolution_photo_key }),
   saveSessionPhoto: (sessionId: string, photoKey: string) =>
