@@ -10,6 +10,7 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
     marker_type?: string
     check_point_id?: string | null
     zone?: string | null
+    description?: string | null
   }>()
 
   const sets: string[] = []
@@ -21,6 +22,8 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
   if (body.marker_type !== undefined) { sets.push('marker_type=?'); binds.push(body.marker_type) }
   if (body.check_point_id !== undefined) { sets.push('check_point_id=?'); binds.push(body.check_point_id) }
   if (body.zone !== undefined) { sets.push('zone=?'); binds.push(body.zone) }
+  // description: check_points 와 대칭 — '[접근불가]' 등 메모 기반 접근불가 판정 용
+  if (body.description !== undefined) { sets.push('description=?'); binds.push(body.description) }
 
   if (sets.length === 0) {
     return Response.json({ success: false, error: '수정할 항목이 없습니다' }, { status: 400 })
