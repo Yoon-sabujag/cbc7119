@@ -2941,7 +2941,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     : pickerSourceCPs.filter(cp =>
         monthRecords[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
       ).length
-  const allDoneFloor = doneCount >= totalCount && totalCount > 0
+  // (H1 — '이 층 점검 완료' 배너/플래그 제거. 개소 카드의 doneCount/totalCount 표기만 유지.)
 
   // 선택된 소화전과 같은 location_no를 가진 비상콘센트 (소화전인 경우에만)
   const pairedBC = useMemo(() =>
@@ -3119,16 +3119,10 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       )}
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
-      {/* floorCPs 가 1개뿐이어도 완료 배너는 보여야 하므로 >= 1 */}
-      {/* 층 전체가 완료된 상태에서도 피커는 계속 보여 줘야 한다 —
-         재진입 팝업 확인 후 '그래도 재점검' 이 필요한 사용자 흐름을 막으면 안 된다. */}
+      {/* H1 (260423-htx Task 5): '이 층 점검 완료 (N/N)' 배너 제거 —
+         개소 카드 첫줄의 `doneCount/totalCount 완료` 표기로 대체. */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          {allDoneFloor && (
-            <div style={{ textAlign:'center', padding:'4px 0 8px', color:'var(--safe)', fontSize:12, fontWeight:600 }}>
-              ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
-            </div>
-          )}
           {pendingCPs.length >= 1 && (
             <div
               style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
@@ -3156,11 +3150,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
                   </>
                 )}
-                {selectedCP && monthRecords[selectedCP.id] && (
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:6, padding:'2px 8px', borderRadius:999, background:'rgba(34,197,94,.15)', border:'1px solid rgba(34,197,94,.35)' }}>
-                    <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)' }}>✓ 점검 완료</span>
-                  </div>
-                )}
+                {/* H1 (260423-htx Task 5): '✓ 점검 완료' 초록 알약 제거 —
+                    개소 카드 첫줄 `doneCount/totalCount 완료` 표기로 대체. */}
               </div>
               <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
             </div>
