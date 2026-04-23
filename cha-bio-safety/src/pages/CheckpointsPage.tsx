@@ -159,15 +159,50 @@ function CheckPointModalContent({
     onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
   })
 
+  // FPM- 프리픽스 id 는 floor_plan_markers 테이블 (유도등 전용).
+  // check_points 와 스키마가 다르므로 update 라우팅을 분리한다.
+  const isMarker = !!cp?.id?.startsWith('FPM-')
+
   const updateMutation = useMutation({
-    mutationFn: (data: CheckPointUpdatePayload) => checkPointApi.update(cp!.id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); toast.success('개소 정보가 수정되었습니다'); onClose() },
+    mutationFn: async (data: CheckPointUpdatePayload): Promise<void> => {
+      if (isMarker) {
+        // 마커: label (=개소명), description, zone 만 수정 가능.
+        // floor/locationNo/category/isActive 는 마커 스키마에 없거나 의미가 달라 무시.
+        await floorPlanMarkerApi.update(cp!.id, {
+          label: data.location,
+          description: data.description ?? null,
+          zone: (data.zone as string) ?? null,
+        })
+        return
+      }
+      await checkPointApi.update(cp!.id, data)
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['check-points'] })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers-all'] })
+      toast.success('개소 정보가 수정되었습니다')
+      onClose()
+    },
     onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
   })
 
   const deactivateMutation = useMutation({
-    mutationFn: () => checkPointApi.update(cp!.id, { isActive: 0 }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); toast.success('개소가 비활성화되었습니다'); onClose() },
+    mutationFn: async (): Promise<void> => {
+      if (isMarker) {
+        // 마커는 isActive 컬럼이 없음 → 비활성화 대신 DELETE (방어적).
+        // 현재 UI 는 markers 섹션에서 '비활성화' 버튼을 숨기는 편이 안전하지만,
+        // 이 경로로 들어오면 삭제로 처리.
+        await floorPlanMarkerApi.delete(cp!.id)
+        return
+      }
+      await checkPointApi.update(cp!.id, { isActive: 0 })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['check-points'] })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers-all'] })
+      toast.success(isMarker ? '마커가 삭제되었습니다' : '개소가 비활성화되었습니다')
+      onClose()
+    },
     onError: () => toast.error('비활성화에 실패했습니다'),
   })
 
