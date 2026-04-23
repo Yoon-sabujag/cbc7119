@@ -2882,16 +2882,23 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       }
       return glMarkers
         .filter(m => zoneMatch((m as any).zone))
-        .map((m, idx) => ({
-          id: 'MARKER:' + m.id,
-          qrCode: '',
-          floor: m.floor as any,
-          zone: m.zone as any,
-          location: m.label || `${GL_COL_LABEL[MARKER_TO_GL_COL[m.marker_type ?? ''] ?? ''] ?? '유도등'} #${idx + 1}`,
-          category: '유도등',
-          description: GL_COL_LABEL[MARKER_TO_GL_COL[m.marker_type ?? ''] ?? ''] ?? '',
-          locationNo: MARKER_TO_GL_COL[m.marker_type ?? ''] ?? '',
-        } as any as CheckPoint))
+        .map((m, idx) => {
+          // description: 마커에 저장된 값이 있으면 우선 사용 ('[접근불가]' 등 판정용).
+          // 없으면 marker_type 의 한글 라벨을 기본값으로 (기존 동작 유지).
+          const markerDesc = (m as any).description as string | null | undefined
+          const typeLabel = GL_COL_LABEL[MARKER_TO_GL_COL[m.marker_type ?? ''] ?? ''] ?? ''
+          const desc = (markerDesc && markerDesc.trim()) ? markerDesc : typeLabel
+          return {
+            id: 'MARKER:' + m.id,
+            qrCode: '',
+            floor: m.floor as any,
+            zone: m.zone as any,
+            location: m.label || `${typeLabel || '유도등'} #${idx + 1}`,
+            category: '유도등',
+            description: desc,
+            locationNo: MARKER_TO_GL_COL[m.marker_type ?? ''] ?? '',
+          } as any as CheckPoint
+        })
     }
     if (!isSohwaGroup) return floorCPs
     const sohwaCPs = floorCPs.filter(cp => cp.category === '소화전')
