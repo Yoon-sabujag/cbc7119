@@ -8,6 +8,7 @@ import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
+import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 // import PdfFloorPlan from '../components/PdfFloorPlan'
 // import SvgFloorPlan from '../components/SvgFloorPlan'
 
@@ -1441,9 +1442,16 @@ export default function FloorPlanPage() {
         }
         const glType = planType === 'guidelamp' ? (MARKER_TO_GL[selected.marker_type ?? ''] ?? '') : ''
         const needSymptom = planType === 'guidelamp' && inspectResult !== 'normal' && glType !== 'audience_passage' && glType !== ''
+        // Bug J: 마커 description 에 '접근불가' 포함 시 AccessBlockedPopup 오버레이 노출.
+        // InspectionPage InspectionModal 과 동일한 UX. FloorPlanPage 는 단일 마커 기반
+        // 이라 확인 = 모달 닫기 (다음 마커 네비게이션 없음).
+        const isAccessBlocked = !!selected.description?.includes('접근불가')
         return (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'relative', width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            {isAccessBlocked && (
+              <AccessBlockedPopup onConfirm={() => { setInspectModal(false); setSelected(null) }} />
+            )}
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
               {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
@@ -1513,7 +1521,7 @@ export default function FloorPlanPage() {
                 취소
               </button>
               <button
-                disabled={inspectSubmitting || inspectPhoto.uploading}
+                disabled={inspectSubmitting || inspectPhoto.uploading || isAccessBlocked}
                 onClick={async () => {
                   setInspectSubmitting(true)
                   try {
@@ -1558,9 +1566,9 @@ export default function FloorPlanPage() {
                     setInspectSubmitting(false)
                   }
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading) ? 'default' : 'pointer' }}
+                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'default' : 'pointer' }}
               >
-                {inspectPhoto.uploading ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : '저장'}
+                {inspectPhoto.uploading ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
               </button>
             </div>
           </div>

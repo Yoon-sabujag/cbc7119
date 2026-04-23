@@ -3039,8 +3039,15 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   //   6) 그 외: dismissedBlockedId 설정 — 팝업만 닫고 모달 유지.
   //
   // fromAccessBlocked 없을 때(handleSave auto-advance)는 기존 4-tier 그대로.
+  //
+  // Bug I 수정 (260424-7l2-06): 유도등 마커 description='[접근불가]' 에서 호출된
+  // AccessBlockedPopup '확인' 이 전혀 반응하지 않던 문제. `if (isGuideLight) return`
+  // 가드가 맨 앞에 있어 fromAccessBlocked 분기에도 진입 전에 no-op 으로 종료됐음.
+  // 유도등도 일반 카테고리와 동일 의미로 pickerIdx / selectedFloor / selectedZone
+  // 기반 네비게이션이 작동하므로 fromAccessBlocked=true 에 한해 가드를 통과시킨다.
+  // handleSave auto-advance 경로는 유도등에서 여전히 no-op (기존 동작 보존).
   const advanceToNextPending = (skipCpId?: string, fromAccessBlocked?: boolean) => {
-    if (isGuideLight) return
+    if (isGuideLight && !fromAccessBlocked) return
     const isIncomplete = (cp: CheckPoint, alsoSkipId?: string) =>
       cp.id !== alsoSkipId && !monthRecords[cp.id] && !cp.defaultResult && !cp.description?.includes('접근불가')
 
