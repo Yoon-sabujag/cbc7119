@@ -137,16 +137,13 @@ async function handleDailyNotifications(env: Env) {
     env.DB.prepare(
       `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
     ).all(),
-    // 소방 교육 D-60: 각 staff 의 가장 최근 completed_at 만 기준. 이미 refresher
-    // 받은 사람의 과거 initial 은 제외 (중복 만기 알림 방지).
+    // 소방 교육 D-60: 신규교육일 기준 +2년*N 주기로 고정 (화재예방법 실무교육
+    // 이수 기한 기준). 매칭은 JS 단에서 수행 — 모든 initial 행을 조회한다.
     env.DB.prepare(
-      `SELECT e.staff_id, s.name as staff_name, s.role, e.education_type, e.completed_at
+      `SELECT e.staff_id, s.name as staff_name, s.role, e.completed_at
        FROM education_records e JOIN staff s ON e.staff_id = s.id
-       WHERE e.completed_at = (
-         SELECT MAX(e2.completed_at) FROM education_records e2 WHERE e2.staff_id = e.staff_id
-       )
-       AND date(e.completed_at, '+2 years', '-60 days') = ?`
-    ).bind(today).all<{ staff_id: string; staff_name: string; role: string; education_type: string }>(),
+       WHERE e.education_type = 'initial'`
+    ).all<{ staff_id: string; staff_name: string; role: string; completed_at: string }>(),
     // 승강기 안전관리자 교육 D-60: safety_mgr_edu_expire 만료 60일 전
     env.DB.prepare(
       `SELECT id, name FROM staff
@@ -197,10 +194,21 @@ async function handleDailyNotifications(env: Env) {
   // 교육 만기 대상자별 알림 구성
   interface EduTarget { staffId: string; line: string }
   const eduTargets: EduTarget[] = []
-  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; education_type: string }[]) {
-    const typeLabel = r.education_type === 'initial' ? '신규교육' : '보수교육'
+
+  // 소방 보수교육: target(today+60일) 이 신규교육일 + 2N년 과 동일한 사람만 대상
+  const [ty, tm, td] = today.split('-').map(Number)
+  const targetDate = new Date(Date.UTC(ty, tm - 1, td + 60))
+  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; completed_at: string }[]) {
+    const [iy, im, id] = r.completed_at.split('-').map(Number)
+    const initDate = new Date(Date.UTC(iy, im - 1, id))
+    const yearDiff = targetDate.getUTCFullYear() - initDate.getUTCFullYear()
+    const matches = yearDiff >= 2
+      && yearDiff % 2 === 0
+      && targetDate.getUTCMonth() === initDate.getUTCMonth()
+      && targetDate.getUTCDate() === initDate.getUTCDate()
+    if (!matches) continue
     const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
-    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} ${typeLabel}` })
+    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 보수교육` })
   }
   for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
     eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 교육` })
