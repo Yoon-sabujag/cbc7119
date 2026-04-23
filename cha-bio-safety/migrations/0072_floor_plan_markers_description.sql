@@ -1,0 +1,14 @@
+-- 0072: floor_plan_markers 에 description 컬럼 추가
+-- ─────────────────────────────────────────────────────────
+-- 배경:
+--   check_points 테이블은 description 필드가 있어 '[접근불가]' 같은 메모 기반
+--   접근불가 판정을 지원한다 (InspectionModal → AccessBlockedPopup).
+--   반면 유도등은 floor_plan_markers 테이블로만 관리되어 description 이 없어
+--   접근불가 표현이 불가능했다.
+-- 목적:
+--   마커에도 description 을 두어 관리자 UI(CheckpointsPage) 에서 편집 → 점검 화면에서
+--   접근불가 팝업이 정상 동작하도록 한다.
+-- 영향:
+--   - 기존 row 는 NULL (빈 문자열 아님) → 코드에서는 `r.description ?? undefined` 로 처리
+--   - check_points 와 대칭이므로 readers 는 기존 접근불가 검사 로직을 그대로 쓸 수 있다.
+ALTER TABLE floor_plan_markers ADD COLUMN description TEXT;
