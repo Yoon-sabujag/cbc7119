@@ -407,7 +407,10 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
       await Promise.all(names.map(n => caches.delete(n)))
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration()
-        if (reg) await reg.update()
+        // reg.update()는 새 SW 다운로드만 요청하고 활성화 대기하지 않아
+        // 바로 reload 시 구 SW가 precache 서빙 → 신버전 코드 적용 안 됨.
+        // unregister로 완전 해제 후 reload해야 새 SW가 깨끗하게 재등록됨.
+        if (reg) await reg.unregister()
       }
       window.location.reload()
     } catch (e) {
