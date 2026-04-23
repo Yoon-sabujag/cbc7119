@@ -944,10 +944,20 @@ export default function FloorPlanPage() {
         })()
 
         const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
+        // Task 5 진단 로그 — 프로덕션 브라우저 콘솔에서 분기를 직접 확인.
+        // localStorage.setItem('REVISIT_DBG', '1') 로만 활성화.
+        const dbgEnabled = typeof window !== 'undefined' && (() => {
+          try { return window.localStorage.getItem('REVISIT_DBG') === '1' } catch { return false }
+        })()
+        const dbg = (reason: string, extra?: Record<string, unknown>) => {
+          if (!dbgEnabled) return
+          // eslint-disable-next-line no-console
+          console.log('[revisit-fp]', planType, selected.marker_type, '→', planTypeToCategory, '→', reason, extra ?? '')
+        }
         const evalRevisit = (): { variant: RevisitVariant; checkedAt: string; inspectorName: string; recordId?: string } | null => {
-          if (!planTypeToCategory) return null
-          if (!selected.last_result) return null
-          if (!selected.last_inspected_at) return null
+          if (!planTypeToCategory) { dbg('skip: no category mapping'); return null }
+          if (!selected.last_result) { dbg('skip: no last_result on marker'); return null }
+          if (!selected.last_inspected_at) { dbg('skip: no last_inspected_at on marker'); return null }
           // 이번 달 해당 카테고리 일정 있어야 함
           const matches = scheduleItems.filter(s => {
             if (s.category !== 'inspect') return false
@@ -956,16 +966,38 @@ export default function FloorPlanPage() {
             if (SCHED_ALIAS[ic] && SCHED_ALIAS[ic] === planTypeToCategory) return true
             return false
           })
-          if (matches.length === 0) return null
+          if (matches.length === 0) {
+            dbg('skip: no schedule_items matching category', {
+              inspectCats: scheduleItems.filter(s => s.category === 'inspect').map(s => s.inspectionCategory),
+            })
+            return null
+          }
           const recYmd = (selected.last_inspected_at as string).slice(0, 10)
-          const inPeriod = matches.some(s => {
+          // Task 5 C2: 오늘이 활성 창 안에 포함된 일정만 인정
+          const todayYmd = (() => {
+            const now = new Date()
+            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+          })()
+          const activeMatch = matches.find(s => {
             const start = s.date
             const end   = s.endDate ?? s.date
-            return recYmd >= start && recYmd <= end
+            return todayYmd >= start && todayYmd <= end
           })
-          if (!inPeriod) return null
+          if (!activeMatch) {
+            dbg('skip: no active schedule window today', {
+              todayYmd,
+              windows: matches.map(s => `${s.date}~${s.endDate ?? s.date}`),
+            })
+            return null
+          }
+          const inPeriod = recYmd >= activeMatch.date && recYmd <= (activeMatch.endDate ?? activeMatch.date)
+          if (!inPeriod) {
+            dbg('skip: record not in active window', { recYmd, active: `${activeMatch.date}~${activeMatch.endDate ?? activeMatch.date}` })
+            return null
+          }
           const who = (selected.last_inspected_by as string | null | undefined) ?? '—'
           const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
+          dbg(isPending ? 'SHOW pending-action' : 'SHOW completed', { recYmd, todayYmd, result: selected.last_result, status: selected.last_status })
           if (isPending) return {
             variant:       'pending-action',
             checkedAt:     selected.last_inspected_at as string,
@@ -1396,7 +1428,22 @@ export default function FloorPlanPage() {
               checkedAt={revisitPopup.checkedAt}
               inspectorName={revisitPopup.inspectorName}
               recordId={revisitPopup.recordId}
-              onClose={() => setRevisitPopup(null)}
+              onClose={() => {
+                // Task 5 C3 신규 버그 수정:
+                // 완료(가) 확인 → 재점검 모달로 넘어감. 잠긴 결정의 '확인 = 재점검 가능' 조항을
+                // 마커 경로에서도 실제로 연결. pending(나) 취소는 기존대로 단순 닫기 (InspectionPage
+                // 모달들과 일관된 UX — 사용자가 명시적으로 다시 '점검 기록 입력' 을 눌러야 함).
+                const wasCompleted = revisitPopup.variant === 'completed'
+                setRevisitPopup(null)
+                if (wasCompleted && selected) {
+                  setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
+                  inspectPhoto.reset(); setInspectExtDetail(null)
+                  if (planType === 'extinguisher' && selected.check_point_id) {
+                    extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
+                  }
+                  setInspectModal(true)
+                }
+              }}
               onGoToRemediation={(recordId) => { setRevisitPopup(null); navigate('/remediation/' + recordId) }}
             />
           </div>
