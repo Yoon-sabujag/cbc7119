@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
+const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+
 type NavKey = 'dashboard' | 'inspection' | 'qr' | 'remediation' | 'elevator'
 
 const ITEMS: { key: NavKey; label: string; path: string; icon: React.ReactNode }[] = [
@@ -40,8 +42,8 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
         bottom: 0,
         left: 0,
         right: 0,
-        height: 'calc(54px + var(--sab, 0px))',
-        paddingBottom: 'var(--sab, 0px)',
+        height: IS_ANDROID ? 'calc(54px + var(--sab, 0px) + 12px)' : 'calc(54px + var(--sab, 0px))',
+        paddingBottom: IS_ANDROID ? 'calc(var(--sab, 0px) + 12px)' : 'var(--sab, 0px)',
         background: 'rgba(22,27,34,0.97)',
         borderTop: '1px solid var(--bd)',
         boxSizing: 'border-box',
