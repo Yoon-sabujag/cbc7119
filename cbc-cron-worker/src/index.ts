@@ -282,6 +282,30 @@ async function handleEventNotifications(env: Env) {
   await Promise.allSettled(sends)
 }
 
+// ── 진단용 15분 주기 푸시 (임시) ──────────────────────
+// 모든 구독자에게 현재 KST 시각을 담은 테스트 알림을 발송. 근무/설정 필터
+// 없이 항상 발송. 원인 진단 후 제거할 것.
+async function handleDiagnosticNotification(env: Env) {
+  const subs = await env.DB.prepare(
+    'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
+  ).all<PushSubRow>()
+
+  const kstNow = new Date(Date.now() + 9 * 3600 * 1000)
+  const timeStr = kstNow.toISOString().slice(11, 16)
+
+  console.log(`[diagnostic] firing at ${timeStr} KST, subs=${subs.results?.length ?? 0}`)
+
+  const sends: Promise<void>[] = []
+  for (const sub of (subs.results ?? [])) {
+    sends.push(sendPush(env, sub, {
+      title: '진단 푸시',
+      body: `cron 정상 동작 (${timeStr} KST)`,
+      type: 'diagnostic',
+    }))
+  }
+  await Promise.allSettled(sends)
+}
+
 // ── Main export ──────────────────────────────────────
 export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -291,6 +315,9 @@ export default {
         break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
+        break
+      case '*/15 * * * *':
+        ctx.waitUntil(handleDiagnosticNotification(env))
         break
     }
   },
