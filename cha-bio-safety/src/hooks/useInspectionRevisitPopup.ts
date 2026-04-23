@@ -122,11 +122,17 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
       setPopupState(null)
       return
     }
-    // 같은 체크포인트에 한 번만 자동 show
+    // 같은 체크포인트에 대해 한 번 "표시"된 뒤에는 다시 뜨지 않도록 가드.
+    // 단, scheduleItems / monthRecords 가 비동기 로딩되는 경우 첫 effect run 시점에는
+    // compute() 결과가 null 일 수 있다. 이 때 ref 를 미리 세팅해 버리면
+    // 데이터가 뒤늦게 도착해도 popup 이 영영 뜨지 않는 버그가 생긴다.
+    // → ref 는 "실제로 popup 을 띄운 순간" 에만 세팅한다.
     if (lastShownCpRef.current === checkpointId) return
-    lastShownCpRef.current = checkpointId
     const s = compute()
-    setPopupState(s)
+    if (s) {
+      lastShownCpRef.current = checkpointId
+      setPopupState(s)
+    }
   }, [checkpointId, category, cpMetaKey, schedKey, excludeKey]) // eslint-disable-line
 
   const dismiss = useCallback(() => {
