@@ -132,6 +132,8 @@ export interface FloorPlanMarker {
   last_record_id?: string | null
   last_status?: string | null
   last_memo?: string | null
+  last_inspected_by?: string | null     // staff.name — 재진입 팝업 문구용
+  last_inspected_by_id?: string | null  // staff.id — 로그/집계용
   zone?: string | null
 }
 

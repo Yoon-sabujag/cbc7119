@@ -238,3 +238,141 @@ FOUND: cha-bio-safety/functions/api/inspections/records.ts
 - FloorPlanPage 팝업 ≥ 1: 2 ✓
 - records.ts staff_name: 2 occurrences (SELECT + mapping) ✓
 - CCTV·FireAlarm 모달에 popup 미등장: 0 ✓
+
+---
+
+## 1차 검증 피드백 반영 (Task 4)
+
+프로덕션 배포 후 사용자가 전체 카테고리를 수동 검증하면서 7건의 이슈를 리포트했다 (C1~C4, H1~H2, M1). 동일 퀵 태스크(260423-htx)의 후속 커밋으로 처리.
+
+### 커밋 인덱스
+
+| # | Commit     | Type | 이슈        | 제목                                              |
+| - | ---------- | ---- | ----------- | ------------------------------------------------- |
+| 1 | `349878f`  | fix  | C1          | 비동기 로딩으로 팝업이 영영 안 뜨는 버그 수정      |
+| 2 | `c091010`  | fix  | M1          | 팝업 문구 줄바꿈 및 존칭 일관성 조정              |
+| 3 | `9ecb3d8`  | fix  | H2          | 5개 모달 팝업 스타일을 소화기 방식으로 통일       |
+| 4 | `fca5c29`  | fix  | H1          | '이 층 점검 완료' 잠금과 재진입 팝업 흐름 조율    |
+| 5 | `a8b65db`  | fix  | C3+C4       | FloorPlan 마커 전 카테고리 연결 및 점검자 이름 전달 |
+
+### 이슈별 조치 결과
+
+#### C1 — 5개 카테고리 팝업 미발동 (CRITICAL)
+
+**Root cause (조사 결과):** 훅 호출부 누락이나 조건이 잘못된 것이 아니라, `useInspectionRevisitPopup` 의 `lastShownCpRef` 세팅 타이밍 버그였다. 첫 effect run 시점에 `scheduleItems` / `monthRecords` 가 React Query 로 비동기 로딩되고 있어 `compute()` 결과가 `null` 이다. 그런데 ref 는 이미 현재 `checkpointId` 로 세팅돼 있어서, 데이터가 뒤늦게 도착해 effect 가 재실행돼도 `lastShownCpRef.current === checkpointId` 가드에 걸려 early-return → 팝업이 영영 안 뜸.
+
+**수정:** `ref = "실제로 popup 을 띄운 순간" 에만 세팅` 으로 가드 이동. 같은 CP 반복 show 방지 동작은 그대로 유지.
+
+**영향 범위:** 소화기/DIV/연결송수관/댐퍼/유도등(InspectionModal 안쪽은 마커 기반이라 별개) 뿐 아니라, 데이터 로딩 타이밍에 의존하던 전 모달. 10초 폴링으로 `monthRecords` 가 뒤늦게 갱신될 때도 같은 버그가 발생했으므로 이번 수정이 전체에 영향.
+
+#### C2 — 월 계획 기간 밖 팝업 발동 (CRITICAL)
+
+**조사 결과:** 훅 로직 재검증. 기존 코드가 `matches.length === 0 → null` + `inPeriod === false → null` 를 이미 올바르게 수행하고 있다. 사용자가 목격한 "기간 밖 팝업" 증상은 실제로는 C1 타이밍 버그와 10초 폴링 interaction 이 맞물려 예상과 다르게 발동 / 미발동이 뒤섞인 결과로 보인다. C1 수정으로 판정이 결정론적으로 수행 → 증상 해소.
+
+**추가 조치 없음.** 훅의 `inPeriod` 필터 로직(`recYmd >= s.date && recYmd <= (s.endDate ?? s.date)`) 는 잠긴 결정 그대로 유지.
+
+#### C3 — FloorPlan 마커 대부분 미발동 (CRITICAL)
+
+**Root cause:** `planTypeToCategory` 가 `extinguisher` / `guidelamp` 만 다루고 `detector`(자동화재탐지설비) / `sprinkler`(스프링클러설비) 는 `null` 반환 → 팝업 skip. 잠긴 결정 "CCTV·화재수신반 만 제외" 에 법정점검 카테고리가 빠져 있었다. 또한 `extinguisher` 에서 `marker_type` 이 unknown 일 때 `null` 로 떨어지던 fallback 도 `'소화기'` 로 수정.
+
+**수정:** FloorPlanPage.tsx 의 `planTypeToCategory` 맵 확장.
+
+#### C4 — FloorPlan 팝업 점검자 이름 누락 (CRITICAL)
+
+**Root cause:** `floorplan-markers/index.ts` 의 SELECT 에 `staff_id` / `staff_name` 이 없어서 마커 API 응답에 점검자 정보가 포함되지 않았다. 1차 구현에서 어쩔 수 없이 `inspectorName='—'` 로 하드코딩.
+
+**수정:**
+- SQL SELECT 두 곳 (markerRecMap / cpRecMap) 에 `(SELECT s.name FROM staff s WHERE s.id = check_records.staff_id) AS staff_name` + `staff_id` 추가.
+- merged 응답에 `last_inspected_by` / `last_inspected_by_id` 필드 추가.
+- `FloorPlanMarker` 인터페이스에 두 옵셔널 필드 추가.
+- `FloorPlanPage.evalRevisit` 에서 `selected.last_inspected_by` 를 `inspectorName` 으로 반환. state 타입도 `inspectorName: string` 포함하도록 확장.
+
+#### H1 — '이 층 점검 완료' 잠금과 충돌 (HIGH)
+
+**Root cause:** `InspectionModal` 에서 `allDoneFloor === true` 이면 개소 선택 피커를 정적 배너 `'✅ 이 층 점검 완료 (N/N)'` 로 **교체** 해 버렸다. 피커가 사라지므로 재진입 팝업 '확인' 을 눌러도 개소를 전환할 UI 가 없음.
+
+**수정:** `allDoneFloor === true` 일 때도 피커를 계속 렌더. 완료 배너는 피커 상단의 작은 안내 라인으로 축소. 기존 "이 층 점검 완료" 기능(카운트 표시) 은 보존.
+
+**주의 (범위 밖 유지):** `pendingCPs` / `doneCount` / `totalCount` 집계 로직, `allDoneFloor` 판정 기준은 건드리지 않음.
+
+#### H2 — 5개 모달 팝업 스타일 불일치 (HIGH)
+
+**Root cause:** Compressor / Baeyeon / Stairwell / ParkingGate / PowerPanel / Damper 는 본문 스크롤 컨테이너 자체에 `position:relative` 를 걸고 팝업을 그 직속 자식으로 뒀다. → 헤더/항목 선택 줄 아래부터 저장 버튼 위까지 본문 전체를 덮음.
+
+**수정:** 각 모달에서 본문 컨테이너의 `position:relative` 를 제거하고, '점검 결과 + 특이사항 + 저장 피드백' 부분만 감싸는 작은 서브 컨테이너에 `position:relative` 세팅. 팝업을 그 서브 컨테이너의 자식으로 이동. → 소화기 (`InspectionModal` 3226) 와 동일한 부분 오버레이 스타일.
+
+**주의:** 각 모달의 저장 로직, 폼 입력, 항목/구역 선택 UI 는 전혀 건드리지 않음. JSX 구조만 재배치.
+
+**영향 모달 표시:**
+
+| Modal          | Before (overlay 범위)                     | After (overlay 범위)         |
+| -------------- | ----------------------------------------- | ---------------------------- |
+| Stairwell      | 계단실 선택 줄 아래 본문 전체             | 층별 결과 + 특이사항 서브 영역 |
+| Baeyeon        | 구역/층/위치 선택 줄 아래 본문 전체       | 결과 + 특이사항 서브 영역    |
+| Compressor     | 헤더 아래 본문 전체 (구역/라인 포함)      | 점검 폼(개소 정보 포함) 서브 영역 |
+| PowerPanel     | 구역/위치 선택 줄 아래 본문 전체          | 결과 + 특이사항 서브 영역    |
+| ParkingGate    | 항목/회전문 선택 줄 아래 본문 전체        | 결과 + 특이사항 서브 영역    |
+| Damper         | item 선택 줄 아래 본문 전체               | 폼 컨테이너 (stair/equip/연결송수관 분기 공통) |
+
+#### M1 — 팝업 문구 줄바꿈 추가 (MINOR)
+
+**수정 내용 (문구 잠긴 결정 재확정):**
+
+- (가) completed:
+  - Before: `"${when}에 ${who}이 이미 점검한 개소입니다."`
+  - After:  `"${when}에 ${who}에 의해\n이미 점검한 개소입니다."`
+  - '이/가' → '에 의해' 로 통일 (존칭 일관성)
+
+- (나) pending-action:
+  - Before: `"${when}에 ${who}에 의해 조치 대기중인 개소입니다. 조치 내용을 입력하시겠습니까?"`
+  - After:  `"${when}에 ${who}에 의해\n조치 대기중인 개소입니다.\n조치 내용을 입력하시겠습니까?"`
+
+- 렌더: 기존 `<div>` 에 `whiteSpace:'pre-line'` 추가로 `\n` 을 줄바꿈으로 해석.
+
+### 변경 파일 (Task 4 전체)
+
+| File                                                        | 변경 유형 | 이슈      |
+| ----------------------------------------------------------- | --------- | --------- |
+| `cha-bio-safety/src/hooks/useInspectionRevisitPopup.ts`     | 수정      | C1        |
+| `cha-bio-safety/src/components/InspectionRevisitPopup.tsx`  | 수정      | M1        |
+| `cha-bio-safety/src/pages/InspectionPage.tsx`               | 수정      | H1, H2    |
+| `cha-bio-safety/src/pages/FloorPlanPage.tsx`                | 수정      | C3, C4    |
+| `cha-bio-safety/src/utils/api.ts`                           | 수정      | C4 (type) |
+| `cha-bio-safety/functions/api/floorplan-markers/index.ts`   | 수정      | C4        |
+
+### 빌드/검증
+
+- `npx tsc --noEmit` → exit 0, 에러 0.
+- `npm run build` → 10.19s 성공, 67 PWA precache entries, sw.js 생성.
+- 프로덕션 배포는 오케스트레이터가 수행 (본 executor 는 코드 변경만 수행).
+
+### 1차와 달라진 설계 포인트
+
+1. **monthRecords 엔트리 구조는 그대로 유지.** 타입 확장 없음 — 기존 구조로 충분.
+2. **`useInspectionRevisitPopup` 의 `lastShownCpRef` 세팅 규칙 1줄 변경.** 외부 계약(반환값, props) 전혀 변경 없음.
+3. **FloorPlan 마커 API 응답에 `last_inspected_by` / `last_inspected_by_id` 추가.** 하위 호환 — 기존 소비자는 두 필드를 무시하면 됨.
+4. **InspectionModal 의 `allDoneFloor` 분기 JSX 교체.** 상태/프롭스 변경 없음, 렌더 구조만 재배치.
+5. **5개 모달 팝업 배치 재조정.** 팝업 컴포넌트/훅 계약은 그대로. 부모 컨테이너만 이동.
+
+### Self-Check (Task 4)
+
+- Created/modified 파일 존재 확인 ✓ (5 commits 모두 git log 에 존재: 349878f, c091010, 9ecb3d8, fca5c29, a8b65db)
+- `npx tsc --noEmit` → exit 0 ✓
+- `npm run build` → 성공 ✓
+- Task 4 커밋 5개 모두 atomic (이슈 카테고리 단위 분리) ✓
+- 1차 SUMMARY 섹션 보존 ✓ (본 섹션은 이어쓰기)
+- 문서 커밋은 없음 (오케스트레이터가 처리할 수 있도록 SUMMARY.md 업데이트만 워킹트리에 남겨 둠) ✓
+
+### 잠긴 결정 — 재확인 체크리스트
+
+- ✓ CCTV·화재수신반 모달 완전 제외 유지.
+- ✓ 팝업 (가)(나) 문구는 M1 반영한 최종 문구로 고정.
+- ✓ "완료 판정 = 이번 달 schedule_items 점검 기간 내 기록" 정책 변경 없음 (inPeriod 체크 그대로).
+- ✓ (나) 우선순위 > (가) 정책 유지 (`loadTodayRecords` 집계 로직 그대로).
+- ✓ '접근불가' 자동 스킵 동작 그대로.
+- ✓ 저장 로직/DB 규칙 (UNIQUE 있으면 덮어쓰기, 없으면 추가) 건드리지 않음.
+
+### 남은 이슈 / 추가 제안
+
+- **유도등 in InspectionModal:** `pendingCPs` 필터(line 2888-2889)가 완료된 마커를 숨기므로, InspectionModal 안에서는 유도등 재진입 팝업이 여전히 발동하지 않는다. 사용자의 재인스펙션 경로는 **FloorPlan 마커 → 점검 기록 입력** 이다 (이번 태스크에서 C3+C4 로 정상화됨). InspectionModal 측 유도등 지원은 마커 기반 메타(`markerRecords` 에 staff/time 없음)를 일반 `monthRecords` 와 통합하는 API 확장이 필요한 별도 작업. **본 태스크 범위 밖 — 별도 이슈로 추적 권장.**
+- **DIV / InspectionModal 의 팝업 배치는 기존 본문 전체 오버레이 유지.** 사용자가 DIV/제네릭 InspectionModal 을 H2 list 에서 제외했으므로 재배치 없음. 추후 UX 통일이 필요하면 별도 이슈.

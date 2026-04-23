@@ -227,9 +227,10 @@ export default function FloorPlanPage() {
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
   // ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 가드) ──
   const [revisitPopup, setRevisitPopup] = useState<{
-    variant:   RevisitVariant
-    checkedAt: string
-    recordId?: string
+    variant:       RevisitVariant
+    checkedAt:     string
+    inspectorName: string
+    recordId?:     string
   } | null>(null)
   const [inspectExtDetail, setInspectExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
@@ -922,24 +923,28 @@ export default function FloorPlanPage() {
         const canResolve = !isDesktop && !!selected.last_record_id && (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
 
         // ── 재진입 팝업 판정 (점검 기록 입력 버튼 클릭 시) ──
-        // 마커 카테고리 → schedule_items 매핑은 plan_type 기준:
-        //   guidelamp → 유도등 (일반 점검 대상, 팝업 필요)
-        //   extinguisher → 소화기/소화전/완강기/DIV 등 (일반 점검 대상, 팝업 필요)
-        //   detector/sprinkler → 법정 점검 전용, 일반 점검 re-entry 팝업 대상 아님 (바로 입력 허용).
+        // 마커 카테고리 → schedule_items.inspectionCategory 매핑.
+        // 잠긴 결정 기준 (CCTV·화재수신반 만 제외, 나머지 전부 대상).
+        //   guidelamp    → 유도등
+        //   extinguisher → 소화기 / 소화전 / 완강기 / DIV (marker_type 기준)
+        //   detector     → 자동화재탐지설비
+        //   sprinkler    → 스프링클러설비
         const planTypeToCategory = (() => {
           if (planType === 'guidelamp') return '유도등'
+          if (planType === 'detector')  return '자동화재탐지설비'
+          if (planType === 'sprinkler') return '스프링클러설비'
           if (planType === 'extinguisher') {
             const map: Record<string, string> = {
               fire_extinguisher: '소화기', ext_powder20: '소화기', ext_halogen: '소화기', ext_kitchen_k: '소화기',
               indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV',
             }
-            return map[selected.marker_type ?? ''] ?? null
+            return map[selected.marker_type ?? ''] ?? '소화기'
           }
           return null
         })()
 
         const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
-        const evalRevisit = (): { variant: RevisitVariant; checkedAt: string; recordId?: string } | null => {
+        const evalRevisit = (): { variant: RevisitVariant; checkedAt: string; inspectorName: string; recordId?: string } | null => {
           if (!planTypeToCategory) return null
           if (!selected.last_result) return null
           if (!selected.last_inspected_at) return null
@@ -959,16 +964,19 @@ export default function FloorPlanPage() {
             return recYmd >= start && recYmd <= end
           })
           if (!inPeriod) return null
+          const who = (selected.last_inspected_by as string | null | undefined) ?? '—'
           const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
           if (isPending) return {
-            variant:   'pending-action',
-            checkedAt: selected.last_inspected_at as string,
-            recordId:  selected.last_record_id as string | undefined,
+            variant:       'pending-action',
+            checkedAt:     selected.last_inspected_at as string,
+            inspectorName: who,
+            recordId:      selected.last_record_id as string | undefined,
           }
           return {
-            variant:   'completed',
-            checkedAt: selected.last_inspected_at as string,
-            recordId:  selected.last_record_id as string | undefined,
+            variant:       'completed',
+            checkedAt:     selected.last_inspected_at as string,
+            inspectorName: who,
+            recordId:      selected.last_record_id as string | undefined,
           }
         }
 
@@ -1386,7 +1394,7 @@ export default function FloorPlanPage() {
             <InspectionRevisitPopup
               variant={revisitPopup.variant}
               checkedAt={revisitPopup.checkedAt}
-              inspectorName={'—'}
+              inspectorName={revisitPopup.inspectorName}
               recordId={revisitPopup.recordId}
               onClose={() => setRevisitPopup(null)}
               onGoToRemediation={(recordId) => { setRevisitPopup(null); navigate('/remediation/' + recordId) }}

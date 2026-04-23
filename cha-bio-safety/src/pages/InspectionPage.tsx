@@ -280,24 +280,25 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
         </div>
       </div>
 
-      {/* 폼 영역 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
+      {/* 폼 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
         {!selectedSW && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>계단실을 선택해 주세요</div>
         )}
 
         {swDef && (
-          <>
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:10 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
             {/* 완료 뱃지 */}
             {swDoneCount > 0 && !justSaved && (
               <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'6px 10px' }}>
@@ -363,7 +364,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
 
             {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
-          </>
+          </div>
         )}
       </div>
 
@@ -728,24 +729,25 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
         </div>
       )}
 
-      {/* 폼 영역 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
+      {/* 폼 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
         {!zone && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>구역을 선택해 주세요</div>}
         {zone && !selFloor && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>층을 선택해 주세요</div>}
         {zone && selFloor && floorCPs.length > 1 && !selectedId && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>}
 
         {selectedCP && (
-          <>
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:12 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
             {!!records[selectedCP.id] && !justSaved && (
               <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
             )}
@@ -772,7 +774,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
             </div>
             {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
-          </>
+          </div>
         )}
       </div>
 
@@ -1752,19 +1754,8 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
         )}
       </div>
 
-      {/* 본문 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
-
+      {/* 본문 */}
+      <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
         {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
         {mode !== 'from-div' && (
           <>
@@ -1806,9 +1797,20 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
           </>
         )}
 
-        {/* 점검 폼 */}
+        {/* 점검 폼 (재진입 팝업 부분 오버레이의 부모 — position:relative) */}
         {currentPt && (
-          <>
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:14 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 점검 폼만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
             {/* 개소 정보 + 이전/다음 네비 (standalone만) */}
             {mode !== 'from-div' && (() => {
               const seq = zone !== 'underground' && line ? DIV_LINE_SEQ[line] : null
@@ -1890,7 +1892,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
                 style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
               <PhotoButton hook={photo} />
             </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -2041,18 +2043,8 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
         </div>
       )}
 
-      {/* 폼 영역 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
+      {/* 폼 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
         {!zone && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>구역을 선택해 주세요</div>
         )}
@@ -2061,7 +2053,18 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
         )}
 
         {selectedCP && (
-          <>
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:12 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
             {isDone && !justSaved && (
               <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
             )}
@@ -2093,7 +2096,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
 
             {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
-          </>
+          </div>
         )}
       </div>
 
@@ -2241,18 +2244,8 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
         </div>
       )}
 
-      {/* 폼 영역 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
+      {/* 폼 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
         {!item && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>항목을 선택해 주세요</div>
         )}
@@ -2261,7 +2254,18 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
         )}
 
         {showForm && (
-          <>
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:12 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
             {isDone && !justSaved && (
               <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
             )}
@@ -2293,7 +2297,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
 
             {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
-          </>
+          </div>
         )}
       </div>
 
@@ -2574,21 +2578,26 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         </div>
       )}
 
-      {/* 폼 영역 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
-        {popupState && (
-          <InspectionRevisitPopup
-            variant={popupState.variant}
-            checkedAt={popupState.checkedAt}
-            inspectorName={popupState.inspectorName}
-            recordId={popupState.recordId}
-            onClose={dismiss}
-            onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-          />
-        )}
+      {/* 폼 영역 */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
         {!item && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>항목을 선택해 주세요</div>
         )}
+
+        {/* 점검 폼 컨테이너 (재진입 팝업 부분 오버레이의 부모) — item 선택 후에만 렌더 */}
+        {item && (
+          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:10 }}>
+            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 폼 서브 컨테이너만 덮음) */}
+            {popupState && (
+              <InspectionRevisitPopup
+                variant={popupState.variant}
+                checkedAt={popupState.checkedAt}
+                inspectorName={popupState.inspectorName}
+                recordId={popupState.recordId}
+                onClose={dismiss}
+                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+              />
+            )}
 
         {/* 전실제연댐퍼 — 계단전실 2열 층별 리스트 (StairwellModal 패턴) */}
         {jdMode === 'stair' && (
@@ -2731,6 +2740,8 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
             {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
           </>
+        )}
+          </div>
         )}
       </div>
 
@@ -3109,13 +3120,16 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
       {/* floorCPs 가 1개뿐이어도 완료 배너는 보여야 하므로 >= 1 */}
+      {/* 층 전체가 완료된 상태에서도 피커는 계속 보여 줘야 한다 —
+         재진입 팝업 확인 후 '그래도 재점검' 이 필요한 사용자 흐름을 막으면 안 된다. */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          {allDoneFloor ? (
-            <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
+          {allDoneFloor && (
+            <div style={{ textAlign:'center', padding:'4px 0 8px', color:'var(--safe)', fontSize:12, fontWeight:600 }}>
               ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
             </div>
-          ) : (
+          )}
+          {pendingCPs.length >= 1 && (
             <div
               style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
               onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
