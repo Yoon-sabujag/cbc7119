@@ -367,13 +367,13 @@ export default function DashboardPage() {
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
             <div style={{ display:'flex', gap:5 }}>
-              {admin.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} />)}
+              {admin.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} small />)}
             </div>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:5 }}>
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
             <div style={{ display:'flex', gap:5 }}>
-              {assistant.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} />)}
+              {assistant.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} small />)}
             </div>
           </div>
         </div>

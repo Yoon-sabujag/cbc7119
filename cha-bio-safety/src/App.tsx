@@ -140,7 +140,7 @@ function Layout() {
   return (
     <div style={{
       display: 'flex',
-      height: '100dvh',
+      height: '100%',
       overflow: 'hidden',
     }}>
       {/* 데스크톱: 280px 고정 사이드바 */}
