@@ -27,6 +27,7 @@
 | `21e5a40` | `monthRecordDates` 배열로 여러 기록 케이스 커버 | 동일 |
 | **`fa7725b`** | **attribution window 폐기 → 당월 전체 집계 (대시보드 동치)** | 동일 |
 | `c73a1de` | 유도등 바이패스 당월 any-done 확장 | `cha-bio-safety/src/pages/InspectionPage.tsx` |
+| **`1f9fe65`** | **"오늘 현황 점검 미완료" 가 연속 일정 블록 인식하도록 수정 (`[blockStart, today]` 범위로 집계)** | `cha-bio-safety/functions/api/dashboard/stats.ts` |
 
 ## DB Mutations (remote `cha-bio-db`)
 

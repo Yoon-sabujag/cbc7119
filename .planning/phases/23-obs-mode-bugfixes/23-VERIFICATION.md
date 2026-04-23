@@ -40,6 +40,8 @@
 - 소방용전원공급반 4/7 — 지하 1층 3개소(B113실/식당EPS실/방재실) 당월 기록 없음으로 확인 (`SELECT ... FROM check_records WHERE cp.category='소방용전원공급반' ...` 쿼리로 검증). 대시보드와 동일.
 - 유도등 카드: 4/13 일정이 `status='done'` 상태 → c73a1de 로 당월 any-done 바이패스 적용 후 100% 표시 확인 — 사용자 "확인 완료" 피드백.
 
+**추가 후속 수정 (1f9fe65):** 카드(월간)는 맞아졌는데 대시보드 "오늘 현황 점검 미완료" 가 147/154 로 크게 어긋남. 원인: `inspDoneRecords` 가 `cr.checked_at=today` 로만 집계해 연속 다일 일정의 어제·그제 기록을 누락. 수정 후 오늘 inspect 일정이 걸린 카테고리별로 연속 일정 블록 시작일을 계산해 `[blockStart, today]` 범위로 합산 — 사용자 "확인 됨" 피드백으로 정합 확인.
+
 **로직 비교표:**
 
 | 위치 | 변경 전 | 변경 후 |
@@ -57,6 +59,6 @@ git reset --hard backup/before-inspection-unify-20260424
 ```
 
 ## 최종 배포 검증
-- Frontend: https://22789ed8.cbc7119.pages.dev (commit c73a1de)
+- Frontend: https://784384fc.cbc7119.pages.dev (commit 1f9fe65)
 - cron-worker: Version ID `75e06927-f4cf-4ed3-aee2-cd53c689a2cf` (commit f4f1fe2)
 - 사용자 실기기(iOS)/데스크톱 Chrome 에서 확인 완료
