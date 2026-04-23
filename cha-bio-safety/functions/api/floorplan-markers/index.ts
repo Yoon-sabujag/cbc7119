@@ -28,7 +28,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
     // 2a) 도면에서 기록한 것 (floor_plan_marker_id로 매핑)
     const recByMarker = await env.DB.prepare(`
-      SELECT floor_plan_marker_id, result, checked_at, id, status, memo
+      SELECT floor_plan_marker_id, result, checked_at, id, status, memo, staff_id,
+             (SELECT s.name FROM staff s WHERE s.id = check_records.staff_id) AS staff_name
       FROM check_records
       WHERE floor_plan_marker_id IS NOT NULL AND checked_at >= ?
       ORDER BY checked_at DESC
@@ -45,7 +46,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     if (cpIds.length > 0) {
       const placeholders = cpIds.map(() => '?').join(',')
       const recByCp = await env.DB.prepare(`
-        SELECT checkpoint_id, result, checked_at, id, status, memo
+        SELECT checkpoint_id, result, checked_at, id, status, memo, staff_id,
+               (SELECT s.name FROM staff s WHERE s.id = check_records.staff_id) AS staff_name
         FROM check_records
         WHERE checkpoint_id IN (${placeholders}) AND checked_at >= ?
         ORDER BY checked_at DESC
@@ -74,6 +76,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         last_record_id: best?.id ?? null,
         last_status: best?.status ?? null,
         last_memo: best?.memo ?? null,
+        // 재진입 팝업에서 '[점검자]에 의해' 로 표시하기 위해 포함.
+        last_inspected_by: (best?.staff_name as string | null) ?? null,
+        last_inspected_by_id: (best?.staff_id as string | null) ?? null,
       }
     })
 
