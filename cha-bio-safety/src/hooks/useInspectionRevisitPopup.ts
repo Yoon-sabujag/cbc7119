@@ -40,7 +40,15 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
 } {
   const { checkpointId, category, monthRecords, scheduleItems, excludeCategories } = args
   const [popupState, setPopupState] = useState<RevisitPopupState | null>(null)
-  const lastShownCpRef = useRef<string | null>(null)
+  // Bug G 수정: dismiss 기반 억제 정책.
+  // 기존 `lastShownCpRef` 는 "한 번 표시한 cp 는 더이상 안 띄움" 이라 층/개소
+  // 이동 후 돌아와도 재노출이 안 됐다. 사용자 의도:
+  //   - cp 이동으로 팝업이 사라진 건 "보류" → 돌아오면 다시 떠야 함
+  //   - 사용자가 명시적으로 닫기/이동 버튼을 눌러야 그 cp 는 이후 억제
+  // 따라서 "사용자가 dismiss() 를 호출한 cp" 만 Set 에 기록하고, useEffect 에서
+  // 그 Set 에 포함된 cp 는 스킵. 모달 인스턴스가 파괴되면 훅도 재생성되어
+  // Set 이 초기화되므로 세션 단위 억제가 된다.
+  const dismissedCpsRef = useRef<Set<string>>(new Set())
 
   // 안정 deps — monthRecords 전체 객체 대신 해당 체크포인트만 직렬화
   const cpMeta = checkpointId ? monthRecords[checkpointId] : undefined
@@ -114,39 +122,34 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
 
   useEffect(() => {
     if (!checkpointId) {
-      lastShownCpRef.current = null
+      // cp 해제: popupState 만 정리. dismissedCpsRef 는 유지 (재선택 시 억제 계속).
       setPopupState(null)
       return
     }
-    // 같은 체크포인트에 대해 한 번 "표시"된 뒤에는 다시 뜨지 않도록 가드.
-    // 단, scheduleItems / monthRecords 가 비동기 로딩되는 경우 첫 effect run 시점에는
-    // compute() 결과가 null 일 수 있다. 이 때 ref 를 미리 세팅해 버리면
-    // 데이터가 뒤늦게 도착해도 popup 이 영영 뜨지 않는 버그가 생긴다.
-    // → ref 는 "실제로 popup 을 띄운 순간" 에만 세팅한다.
-    if (lastShownCpRef.current === checkpointId) return
-    const s = compute()
-    if (s) {
-      lastShownCpRef.current = checkpointId
-      setPopupState(s)
-    } else {
-      // Bug D 수정: 층/개소 이동으로 checkpointId 가 바뀌었는데 새 cp 에는 팝업이
-      // 필요 없는 경우(기록 없음/활성창 없음 등), 이전 cp 의 popupState 가 그대로
-      // 남아 화면에 잔류하던 문제. 새 cp 기준으로 compute() 가 null 이면 명시적
-      // 으로 popupState 도 null 로 클리어한다. lastShownCpRef 는 건드리지 않음
-      // (아직 "표시"된 적 없으므로 다음 데이터 도착 시 정상 평가되어야 함).
+    // Bug G: 사용자가 명시적으로 dismiss 한 cp 는 같은 모달 세션 내에서 억제.
+    if (dismissedCpsRef.current.has(checkpointId)) {
+      // 기존 popup 이 혹시 남아 있다면 닫는다 (방어적).
       setPopupState(null)
+      return
     }
+    // 그 외에는 매 재방문마다 compute() 결과대로 갱신. 기록/활성창이 있으면 표시,
+    // 없으면 명시적으로 null 클리어 (Bug D 회귀 방지 — 이전 cp popup 이 잔류하지
+    // 않도록).
+    const s = compute()
+    setPopupState(s)
   }, [checkpointId, category, cpMetaKey, schedKey, excludeKey]) // eslint-disable-line
 
   const dismiss = useCallback(() => {
+    // 사용자 명시적 dismiss — 현재 cp 를 억제 집합에 추가하고 popup 닫음.
+    if (checkpointId) dismissedCpsRef.current.add(checkpointId)
     setPopupState(null)
-  }, [])
+  }, [checkpointId])
 
   const evaluate = useCallback(() => {
-    lastShownCpRef.current = null
+    // 수동 재평가: 현재 cp 의 억제도 해제하고 compute() 결과대로 갱신.
+    if (checkpointId) dismissedCpsRef.current.delete(checkpointId)
     const s = compute()
     setPopupState(s)
-    if (s && checkpointId) lastShownCpRef.current = checkpointId
   }, [compute, checkpointId])
 
   return { popupState, dismiss, evaluate }

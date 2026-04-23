@@ -858,3 +858,103 @@ if (s) {
 ### 커밋
 
 - `f3edb5b` fix(260423-htx-06): 층/개소 이동 시 재진입 팝업 state 갱신 누락 수정
+
+---
+
+## Task 9 — Bug G fix (재진입 팝업 재노출 정책 재설계)
+
+### 증상
+
+사용자 피드백:
+> "원래 층으로 돌아오면 팝업 다시 뜸 (의도된 재평가) → 안 뜸"
+
+시나리오:
+- 배연창 모달에서 완료 cp 선택 → 재진입 팝업 뜸
+- **dismiss(확인) 안 누르고** 층 B로 이동 → 팝업 사라짐 (Bug D fix OK)
+- 층 A로 돌아옴, 같은 cp 재선택 → **팝업 다시 떠야 함**. 근데 안 뜸.
+
+### Root Cause
+
+기존 훅은 "표시 기반 억제" 정책:
+
+```ts
+const lastShownCpRef = useRef<string | null>(null)
+
+useEffect(() => {
+  // ...
+  if (lastShownCpRef.current === checkpointId) return  // ← 한 번 표시한 cp 는 이후 영영 억제
+  const s = compute()
+  if (s) {
+    lastShownCpRef.current = checkpointId   // ← 표시한 순간 기록
+    setPopupState(s)
+  } else {
+    setPopupState(null)
+  }
+}, [...])
+```
+
+문제:
+1. cp A 선택 → popup 뜸 → `lastShownCpRef = A`
+2. cp B 이동 → effect 재실행, `B !== A` 여서 통과 → compute()=null → setPopupState(null). `lastShownCpRef` 는 여전히 A.
+   - 실제로 Bug D 패치 상 분기 진입 순간에는 `lastShownCpRef` 가 B 로 업데이트 되지 않는다 (`compute()` 가 null 이므로 if 브랜치 진입 안 함). 따라서 B 로는 세팅되지 않음.
+3. cp A 재선택 → effect, `lastShownCpRef === A` 여서 **early return → 재노출 불가**
+
+즉 "한 번 띄운 cp 는 세션 내 재노출 차단" 규칙이 "층 이동 후 재방문" 도 차단해 버림.
+
+### 재설계 — "dismiss 기반 억제"
+
+정책:
+- cp 이동으로 팝업이 사라진 건 "보류" 이지 "처리 완료" 가 아님 → 돌아오면 다시 떠야 함.
+- 사용자가 직접 닫기(X)/조치 이동 버튼을 눌러야 그 cp 는 이후 재방문에서도 억제.
+
+구현:
+- `lastShownCpRef: useRef<string | null>` → **제거**.
+- 신규: `dismissedCpsRef: useRef<Set<string>>(new Set())` — dismiss() 호출 시 현재 checkpointId 를 Set 에 추가.
+- useEffect:
+  ```ts
+  if (!checkpointId) { setPopupState(null); return }
+  if (dismissedCpsRef.current.has(checkpointId)) { setPopupState(null); return }
+  const s = compute()
+  setPopupState(s)  // s 가 null 이어도 명시적 클리어 (Bug D 회귀 방지 유지)
+  ```
+- `dismiss()`:
+  ```ts
+  if (checkpointId) dismissedCpsRef.current.add(checkpointId)
+  setPopupState(null)
+  ```
+- `evaluate()` (수동 재평가): 현재 cp 를 Set 에서 제거 후 compute() 재실행. 관리자용 재평가 경로 의미 유지.
+
+세션 단위 억제는 "모달 인스턴스가 파괴되면 훅도 재생성되어 `dismissedCpsRef` 가 새 Set" 으로 자연 보장됨. 모달 열려 있는 동안엔 cp 해제(null 전환) 후 재선택에도 Set 유지 — 의도된 동작.
+
+### 파일
+
+- `cha-bio-safety/src/hooks/useInspectionRevisitPopup.ts` (+24 / −21)
+
+### 소비자 영향
+
+`useInspectionRevisitPopup` 훅 소비자 (InspectionPage.tsx 내 9개 모달: 소화기·계단실·DIV·배연창·기타 등) 전원 동일 혜택.
+
+소비자 인터페이스는 **완전 호환** — `{ popupState, dismiss, evaluate }` 시그니처 변경 없음. 소비자 코드 수정 0건.
+
+FloorPlanPage.tsx 는 `useInspectionRevisitPopup` 을 쓰지 않고 자체 `useState<RevisitPopup>` + `evalRevisit()` 로직을 사용하므로 이 버그와 무관. 사용자 지시("FloorPlan 체크: 같은 dismiss 패턴이 있다면 동일 적용. 없으면 스킵")대로 스킵.
+
+### 회귀 방지 체크 포인트
+
+- **정상 dismiss 경로**: cp A → popup → X 클릭 → dismiss() → Set 에 A 추가 → popupState=null. cp A 재선택 → useEffect, Set 에 있으므로 early return, popup 안 뜸. **기존 동작 보존**.
+- **조치 이동 경로**: `onGoToRemediation(recordId) => { dismiss(); navigate(...) }` — dismiss() 호출되므로 이후 cp A 재선택 시 억제. **의도 부합**.
+- **Bug D 시나리오**: cp A → popup → cp B 이동 (dismiss 없음) → Set 에 아무도 없음 → compute(B)=null → setPopupState(null). **이전 popup 잔류 없음**.
+- **Bug G 시나리오 (이번 수정)**: cp A → popup → cp B 이동 → cp A 재선택 → Set 에 A 없음 → compute(A) 재실행 → popup 재표시. **버그 해소**.
+- **비동기 로딩 레이스**: 첫 effect run 에서 scheduleItems 비어 있으면 compute(A)=null → setPopupState(null). 이후 데이터 도착으로 `schedKey` 변경 → deps 재트리거 → compute(A) 가 유의미 값 반환 → 정상 표시. Set 에는 A 없으므로 통과. **초기 데이터 레이스 안전**.
+- **cp 해제 후 재선택**: checkpointId=null 전환 시 `dismissedCpsRef` 유지 (Set 을 비우지 않음). 재선택 시 이전 dismiss 가 계속 유효. **억제 연속성 보장**.
+- **세션 경계**: 모달 닫기 → 훅 언마운트 → Set 소멸. 모달 재오픈 → 새 훅 인스턴스 → 빈 Set. 다음 세션에서 처음 방문 시 정상 팝업 표시. **세션 단위 억제 달성**.
+- **evaluate() 의미 보존**: 현재 cp 를 Set 에서 제거 후 compute() 재실행. 관리자/수동 트리거가 있을 때(현재 소비자 없음, 내부 export) 정상 동작.
+
+### 검증
+
+- `node_modules/.bin/tsc --noEmit`: **0 errors**
+- `npm run build`: **success** (87 modules transformed, PWA precache 67 entries)
+- `git grep -n lastShownCpRef` → 주석 내 히스토리 언급 1건만 남음 (제거된 식별자 설명용). 코드 의미는 0건.
+
+### 커밋
+
+- `b21e209` fix(260423-htx-07): 재진입 팝업 재노출 정책을 dismiss 기반으로 변경
