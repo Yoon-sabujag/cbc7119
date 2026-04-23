@@ -511,7 +511,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ⑤ 이번 달 점검 현황 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both' }}>
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both', height: IS_ANDROID ? 140 : undefined }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
             <span style={{ fontSize:9.5, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
@@ -519,7 +519,7 @@ export default function DashboardPage() {
           {monthly.length === 0 ? (
             <div style={{ padding:'14px 0', textAlign:'center', fontSize:11, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
           ) : (
-            <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, flex: IS_ANDROID ? 1 : undefined }}>
+            <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, flex: IS_ANDROID ? 1 : undefined, height: IS_ANDROID ? 108 : undefined }}>
               {monthly.map((m, i) => (
                 <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
                   <Donut pct={m.pct} color={m.color} size={44} />
