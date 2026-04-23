@@ -128,6 +128,13 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
     if (s) {
       lastShownCpRef.current = checkpointId
       setPopupState(s)
+    } else {
+      // Bug D 수정: 층/개소 이동으로 checkpointId 가 바뀌었는데 새 cp 에는 팝업이
+      // 필요 없는 경우(기록 없음/활성창 없음 등), 이전 cp 의 popupState 가 그대로
+      // 남아 화면에 잔류하던 문제. 새 cp 기준으로 compute() 가 null 이면 명시적
+      // 으로 popupState 도 null 로 클리어한다. lastShownCpRef 는 건드리지 않음
+      // (아직 "표시"된 적 없으므로 다음 데이터 도착 시 정상 평가되어야 함).
+      setPopupState(null)
     }
   }, [checkpointId, category, cpMetaKey, schedKey, excludeKey]) // eslint-disable-line
 
