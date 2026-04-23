@@ -3120,13 +3120,16 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
       {/* floorCPs 가 1개뿐이어도 완료 배너는 보여야 하므로 >= 1 */}
+      {/* 층 전체가 완료된 상태에서도 피커는 계속 보여 줘야 한다 —
+         재진입 팝업 확인 후 '그래도 재점검' 이 필요한 사용자 흐름을 막으면 안 된다. */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          {allDoneFloor ? (
-            <div style={{ textAlign:'center', padding:'16px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
+          {allDoneFloor && (
+            <div style={{ textAlign:'center', padding:'4px 0 8px', color:'var(--safe)', fontSize:12, fontWeight:600 }}>
               ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
             </div>
-          ) : (
+          )}
+          {pendingCPs.length >= 1 && (
             <div
               style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
               onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
