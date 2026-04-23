@@ -135,6 +135,7 @@ export interface FloorPlanMarker {
   last_inspected_by?: string | null     // staff.name — 재진입 팝업 문구용
   last_inspected_by_id?: string | null  // staff.id — 로그/집계용
   zone?: string | null
+  description?: string | null          // '[접근불가]' 등 메모 기반 접근불가 판정 (check_points 와 대칭)
 }
 
 export const floorPlanMarkerApi = {
@@ -144,7 +145,7 @@ export const floorPlanMarkerApi = {
     api.get<FloorPlanMarker[]>(`/floorplan-markers?plan_type=${planType}`),
   create: (body: { floor: string; plan_type: string; marker_type?: string; x_pct: number; y_pct: number; label?: string; check_point_id?: string; zone?: string }) =>
     api.post<{ id: string }>('/floorplan-markers', body),
-  update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null; zone?: string | null }) =>
+  update: (id: string, body: { x_pct?: number; y_pct?: number; label?: string; marker_type?: string; check_point_id?: string | null; zone?: string | null; description?: string | null }) =>
     api.put<void>(`/floorplan-markers/${id}`, body),
   delete: (id: string) =>
     api.delete<void>(`/floorplan-markers/${id}`),
