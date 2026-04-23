@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import type { ScheduleItem } from '../types'
 import type { RevisitVariant } from '../components/InspectionRevisitPopup'
 
@@ -40,15 +40,21 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
 } {
   const { checkpointId, category, monthRecords, scheduleItems, excludeCategories } = args
   const [popupState, setPopupState] = useState<RevisitPopupState | null>(null)
-  // Bug G 수정: dismiss 기반 억제 정책.
-  // 기존 `lastShownCpRef` 는 "한 번 표시한 cp 는 더이상 안 띄움" 이라 층/개소
-  // 이동 후 돌아와도 재노출이 안 됐다. 사용자 의도:
-  //   - cp 이동으로 팝업이 사라진 건 "보류" → 돌아오면 다시 떠야 함
-  //   - 사용자가 명시적으로 닫기/이동 버튼을 눌러야 그 cp 는 이후 억제
-  // 따라서 "사용자가 dismiss() 를 호출한 cp" 만 Set 에 기록하고, useEffect 에서
-  // 그 Set 에 포함된 cp 는 스킵. 모달 인스턴스가 파괴되면 훅도 재생성되어
-  // Set 이 초기화되므로 세션 단위 억제가 된다.
-  const dismissedCpsRef = useRef<Set<string>>(new Set())
+  // Bug G 재설계 (260423-htx-08): dismiss 기반 억제 정책도 제거.
+  //
+  // 이전 단계에서 `lastShownCpRef` (한 번 띄운 cp 는 영영 억제) → `dismissedCpsRef`
+  // (사용자가 dismiss 호출한 cp 만 억제) 로 옮겼는데, 사용자 재피드백:
+  //   "팝업을 다시 띄우는게 맞지 않을까?"
+  // — dismiss 는 "잠깐 안 보이게" 하는 일시 액션일 뿐, 이후 재방문에서도 억제까지
+  // 할 필요는 없다는 의도.
+  //
+  // 새 정책: 억제 자체 없음.
+  //   - useEffect 는 checkpointId/deps 가 바뀔 때마다 compute() 결과로 setPopupState.
+  //   - dismiss() 는 단순히 setPopupState(null). Set 조작 없음.
+  //   - 같은 cp 에서 dismiss → popup 사라짐 → 같은 render 사이클 내엔 deps 불변 →
+  //     useEffect 재트리거 없음 → 재노출 안 됨 (Set 없이도 OK).
+  //   - 다른 cp 이동 후 복귀 → checkpointId 재변경 → useEffect 재트리거 → compute()
+  //     결과 있으면 재노출. 이 동작이 사용자 기대에 부합.
 
   // 안정 deps — monthRecords 전체 객체 대신 해당 체크포인트만 직렬화
   const cpMeta = checkpointId ? monthRecords[checkpointId] : undefined
@@ -121,36 +127,23 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
   }, [checkpointId, category, monthRecords, scheduleItems, excludeCategories])
 
   useEffect(() => {
-    if (!checkpointId) {
-      // cp 해제: popupState 만 정리. dismissedCpsRef 는 유지 (재선택 시 억제 계속).
-      setPopupState(null)
-      return
-    }
-    // Bug G: 사용자가 명시적으로 dismiss 한 cp 는 같은 모달 세션 내에서 억제.
-    if (dismissedCpsRef.current.has(checkpointId)) {
-      // 기존 popup 이 혹시 남아 있다면 닫는다 (방어적).
-      setPopupState(null)
-      return
-    }
-    // 그 외에는 매 재방문마다 compute() 결과대로 갱신. 기록/활성창이 있으면 표시,
-    // 없으면 명시적으로 null 클리어 (Bug D 회귀 방지 — 이전 cp popup 이 잔류하지
-    // 않도록).
-    const s = compute()
-    setPopupState(s)
+    // checkpointId 또는 관련 deps 가 바뀔 때마다 compute() 결과대로 setPopupState.
+    // - checkpointId=null 이면 compute() 가 즉시 null 반환 → popupState=null.
+    // - 유의미 값 반환 시 popup 표시. 억제 Set 없으므로 재방문 시 자연 재노출.
+    setPopupState(compute())
   }, [checkpointId, category, cpMetaKey, schedKey, excludeKey]) // eslint-disable-line
 
   const dismiss = useCallback(() => {
-    // 사용자 명시적 dismiss — 현재 cp 를 억제 집합에 추가하고 popup 닫음.
-    if (checkpointId) dismissedCpsRef.current.add(checkpointId)
+    // 사용자 명시적 dismiss — popup 만 닫음. 억제 없음.
+    // 같은 cp 에서 dismiss 후 render: deps 불변 → useEffect 재트리거 없음 → 재노출 안 됨.
+    // 다른 cp 로 이동 후 복귀: checkpointId 변경 → useEffect 재트리거 → 재노출.
     setPopupState(null)
-  }, [checkpointId])
+  }, [])
 
   const evaluate = useCallback(() => {
-    // 수동 재평가: 현재 cp 의 억제도 해제하고 compute() 결과대로 갱신.
-    if (checkpointId) dismissedCpsRef.current.delete(checkpointId)
-    const s = compute()
-    setPopupState(s)
-  }, [compute, checkpointId])
+    // 수동 재평가: compute() 재실행하여 현재 상태 기준 갱신.
+    setPopupState(compute())
+  }, [compute])
 
   return { popupState, dismiss, evaluate }
 }
