@@ -718,7 +718,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
               <Row label="행사 5분 전 알림" sub="행사 시작 5분 전">
                 <Toggle on={prefs.event_5min} onChange={() => handlePrefToggle('event_5min')} disabled={!subscribed || permState === 'denied'} />
               </Row>
-              <Row label="교육 D-30 알림" sub="교육일 30일 전">
+              <Row label="교육 D-60 알림" sub="교육일 60일 전">
                 <Toggle on={prefs.education_reminder} onChange={() => handlePrefToggle('education_reminder')} disabled={!subscribed || permState === 'denied'} />
               </Row>
             </div>

@@ -137,7 +137,7 @@ async function handleDailyNotifications(env: Env) {
     env.DB.prepare(
       `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
     ).all(),
-    // 소방 교육 D-30: 각 staff 의 가장 최근 completed_at 만 기준. 이미 refresher
+    // 소방 교육 D-60: 각 staff 의 가장 최근 completed_at 만 기준. 이미 refresher
     // 받은 사람의 과거 initial 은 제외 (중복 만기 알림 방지).
     env.DB.prepare(
       `SELECT e.staff_id, s.name as staff_name, s.role, e.education_type, e.completed_at
@@ -145,13 +145,13 @@ async function handleDailyNotifications(env: Env) {
        WHERE e.completed_at = (
          SELECT MAX(e2.completed_at) FROM education_records e2 WHERE e2.staff_id = e.staff_id
        )
-       AND date(e.completed_at, '+2 years', '-30 days') = ?`
+       AND date(e.completed_at, '+2 years', '-60 days') = ?`
     ).bind(today).all<{ staff_id: string; staff_name: string; role: string; education_type: string }>(),
-    // 승강기 안전관리자 교육 D-30: safety_mgr_edu_expire 만료 30일 전
+    // 승강기 안전관리자 교육 D-60: safety_mgr_edu_expire 만료 60일 전
     env.DB.prepare(
       `SELECT id, name FROM staff
        WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL
-         AND date(safety_mgr_edu_expire, '-30 days') = ?`
+         AND date(safety_mgr_edu_expire, '-60 days') = ?`
     ).bind(today).all<{ id: string; name: string }>(),
   ])
 
@@ -190,7 +190,7 @@ async function handleDailyNotifications(env: Env) {
     // D-02 ~ D-04 는 근무자 전원 대상 (위에서 처리)
   }
 
-  // D-05: 교육 D-30 — 당사자 + 소방안전관리자(admin)에게만 발송
+  // D-05: 교육 D-60 — 당사자 + 소방안전관리자(admin)에게만 발송
   const allSubs = allDailySubs.results ?? []
   const adminSubs = allSubs.filter(s => adminIds.has(s.staff_id))
 
@@ -207,7 +207,7 @@ async function handleDailyNotifications(env: Env) {
   }
 
   if (eduTargets.length > 0) {
-    const body = eduTargets.map(t => t.line).join(', ') + '이 30일 후 만기됩니다'
+    const body = eduTargets.map(t => t.line).join(', ') + '이 60일 후 만기됩니다'
     // 수신 대상: 당사자 + admin (중복 제거)
     const recipientIds = new Set<string>()
     for (const t of eduTargets) recipientIds.add(t.staffId)
@@ -218,7 +218,7 @@ async function handleDailyNotifications(env: Env) {
       const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
       if (!prefs.education_reminder) continue
       sends.push(sendPush(env, sub, {
-        title: '교육 만기 알림 (D-30)',
+        title: '교육 만기 알림 (D-60)',
         body,
         type: 'education_reminder',
       }))
