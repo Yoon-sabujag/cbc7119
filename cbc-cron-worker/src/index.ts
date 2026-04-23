@@ -137,12 +137,16 @@ async function handleDailyNotifications(env: Env) {
     env.DB.prepare(
       `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
     ).all(),
-    // 소방 교육 D-30: completed_at + 2년 만기 기준 30일 전
+    // 소방 교육 D-30: 각 staff 의 가장 최근 completed_at 만 기준. 이미 refresher
+    // 받은 사람의 과거 initial 은 제외 (중복 만기 알림 방지).
     env.DB.prepare(
-      `SELECT e.staff_id, s.name as staff_name, e.education_type, e.completed_at
+      `SELECT e.staff_id, s.name as staff_name, s.role, e.education_type, e.completed_at
        FROM education_records e JOIN staff s ON e.staff_id = s.id
-       WHERE date(e.completed_at, '+2 years', '-30 days') = ?`
-    ).bind(today).all<{ staff_id: string; staff_name: string; education_type: string }>(),
+       WHERE e.completed_at = (
+         SELECT MAX(e2.completed_at) FROM education_records e2 WHERE e2.staff_id = e.staff_id
+       )
+       AND date(e.completed_at, '+2 years', '-30 days') = ?`
+    ).bind(today).all<{ staff_id: string; staff_name: string; role: string; education_type: string }>(),
     // 승강기 안전관리자 교육 D-30: safety_mgr_edu_expire 만료 30일 전
     env.DB.prepare(
       `SELECT id, name FROM staff
@@ -193,9 +197,10 @@ async function handleDailyNotifications(env: Env) {
   // 교육 만기 대상자별 알림 구성
   interface EduTarget { staffId: string; line: string }
   const eduTargets: EduTarget[] = []
-  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; education_type: string }[]) {
-    const label = r.education_type === 'initial' ? '신규교육' : '보수교육'
-    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 소방안전관리자 ${label}` })
+  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; education_type: string }[]) {
+    const typeLabel = r.education_type === 'initial' ? '신규교육' : '보수교육'
+    const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
+    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} ${typeLabel}` })
   }
   for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
     eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 교육` })
