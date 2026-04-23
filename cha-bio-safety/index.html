@@ -57,14 +57,8 @@
             else if (h >= 700) { v.top = 44; v.bot = 34 }  // 노치 (X~14)
             else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
           }
-          // Samsung Chrome 등 일부 Android에서 env(safe-area-inset-bottom)가 0으로
-          // 리포트되어 제스처/네비게이션 영역이 BottomNav·콘텐츠를 삼키는 이슈 대응.
-          // 제스처 네비 ~24px, 3-button ~48px — 중간값 32로 fallback.
-          if (v.bot === 0 && /Android/i.test(navigator.userAgent)) {
-            v.bot = 32
-          }
           apply(v.top, v.bot)
-          return v.top > 0 || v.bot > 0
+          return v.top > 0
         }
 
         measure()
