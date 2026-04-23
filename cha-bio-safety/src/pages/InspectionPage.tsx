@@ -3888,15 +3888,22 @@ export default function InspectionPage() {
       for (const r of monthData) {
         const cpId = (r as any).checkpointId
         if (!cpId) continue
+        // Bug C 수정: upsert 조건 엄격화 — result 가 유효한 CheckResult 인 레코드만
+        // monthRecords 에 반영한다. 과거에는 result 가 falsy 여도 entry 가 upsert
+        // 되었고, 훅의 `if (!meta.result)` 가드에 의존해 간접적으로 필터되었다.
+        // 이 구조는 상위 컨슈머(doneCount 등)가 entry 존재만으로 '기록 있음' 을
+        // 판단할 때 오탐을 유발하므로, 소스 단에서 차단한다. 마커 병행 키도 동일.
+        const rawResult = (r as any).result
+        if (!rawResult) continue
         const entry: MonthRecordEntry = {
-          result:    (r as any).result,
+          result:    rawResult,
           checkedAt: (r as any).checkedAt,
           staffName: (r as any).staffName ?? undefined,
           recordId:  (r as any).id,
           status:    ((r as any).status ?? 'open') as 'open' | 'resolved',
         }
         upsert(monthMap, cpId, entry)
-        // 유도등 마커 병행 키
+        // 유도등 마커 병행 키 — 기록(result 유효) 있을 때만 적재
         const mkId = (r as any).floorPlanMarkerId as string | null
         if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
       }
