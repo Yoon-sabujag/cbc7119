@@ -944,20 +944,10 @@ export default function FloorPlanPage() {
         })()
 
         const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
-        // Task 5 진단 로그 — 프로덕션 브라우저 콘솔에서 분기를 직접 확인.
-        // localStorage.setItem('REVISIT_DBG', '1') 로만 활성화.
-        const dbgEnabled = typeof window !== 'undefined' && (() => {
-          try { return window.localStorage.getItem('REVISIT_DBG') === '1' } catch { return false }
-        })()
-        const dbg = (reason: string, extra?: Record<string, unknown>) => {
-          if (!dbgEnabled) return
-          // eslint-disable-next-line no-console
-          console.log('[revisit-fp]', planType, selected.marker_type, '→', planTypeToCategory, '→', reason, extra ?? '')
-        }
         const evalRevisit = (): { variant: RevisitVariant; checkedAt: string; inspectorName: string; recordId?: string } | null => {
-          if (!planTypeToCategory) { dbg('skip: no category mapping'); return null }
-          if (!selected.last_result) { dbg('skip: no last_result on marker'); return null }
-          if (!selected.last_inspected_at) { dbg('skip: no last_inspected_at on marker'); return null }
+          if (!planTypeToCategory) return null
+          if (!selected.last_result) return null
+          if (!selected.last_inspected_at) return null
 
           // Task 6.4: pending (bad|caution + status !== 'resolved') 은 기간 무관 즉시 팝업.
           // 정책: 조치 대기는 "기간" 이 아니라 "이 개소 조치해야 함" 경고.
@@ -966,11 +956,6 @@ export default function FloorPlanPage() {
           const who = (selected.last_inspected_by as string | null | undefined) ?? '—'
           const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
           if (isPending) {
-            dbg('SHOW pending-action (window-agnostic)', {
-              result:    selected.last_result,
-              status:    selected.last_status,
-              checkedAt: selected.last_inspected_at,
-            })
             return {
               variant:       'pending-action',
               checkedAt:     selected.last_inspected_at as string,
@@ -979,8 +964,9 @@ export default function FloorPlanPage() {
             }
           }
 
-          // completed (normal / resolved) 분기 — 기존 Task 5 활성 창 정책 그대로 유지.
-          // 이번 달 해당 카테고리 일정 있어야 함.
+          // Task 7: completed 분기도 inPeriod 체크 제거.
+          // 정책: "오늘 그 카테고리 활성 창이 존재 + 해당 개소에 기록이 존재" 이면 팝업.
+          // 기록 날짜가 창 안일 필요 없음 (훅 useInspectionRevisitPopup T7.1 과 동일 규칙).
           const matches = scheduleItems.filter(s => {
             if (s.category !== 'inspect') return false
             const ic = s.inspectionCategory ?? ''
@@ -988,14 +974,8 @@ export default function FloorPlanPage() {
             if (SCHED_ALIAS[ic] && SCHED_ALIAS[ic] === planTypeToCategory) return true
             return false
           })
-          if (matches.length === 0) {
-            dbg('skip: no schedule_items matching category', {
-              inspectCats: scheduleItems.filter(s => s.category === 'inspect').map(s => s.inspectionCategory),
-            })
-            return null
-          }
-          const recYmd = (selected.last_inspected_at as string).slice(0, 10)
-          // Task 5 C2: 오늘이 활성 창 안에 포함된 일정만 인정
+          if (matches.length === 0) return null
+
           const todayYmd = (() => {
             const now = new Date()
             return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
@@ -1005,19 +985,8 @@ export default function FloorPlanPage() {
             const end   = s.endDate ?? s.date
             return todayYmd >= start && todayYmd <= end
           })
-          if (!activeMatch) {
-            dbg('skip: no active schedule window today', {
-              todayYmd,
-              windows: matches.map(s => `${s.date}~${s.endDate ?? s.date}`),
-            })
-            return null
-          }
-          const inPeriod = recYmd >= activeMatch.date && recYmd <= (activeMatch.endDate ?? activeMatch.date)
-          if (!inPeriod) {
-            dbg('skip: record not in active window', { recYmd, active: `${activeMatch.date}~${activeMatch.endDate ?? activeMatch.date}` })
-            return null
-          }
-          dbg('SHOW completed', { recYmd, todayYmd, result: selected.last_result, status: selected.last_status })
+          if (!activeMatch) return null
+
           return {
             variant:       'completed',
             checkedAt:     selected.last_inspected_at as string,
