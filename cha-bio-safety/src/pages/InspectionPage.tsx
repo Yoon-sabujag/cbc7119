@@ -4395,7 +4395,7 @@ export default function InspectionPage() {
                   )
                   doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
                 } else {
-                  doneCnt = computeCardCompletion({ cps, today: todayKST, monthRecordDates, scheduleItems })
+                  doneCnt = computeCardCompletion({ cps, monthRecordDates })
                 }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
