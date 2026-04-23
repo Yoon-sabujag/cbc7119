@@ -19,10 +19,10 @@ const DOW_LABELS = ['일','월','화','수','목','금','토']
 const DOW_COLORS = ['#52525b','#22c55e','#3b82f6','#f59e0b','#0ea5e9','#8b5cf6','#52525b']
 
 // 일정 카테고리 → 실제 체크포인트 카테고리 매핑
-// 방화문 점검은 피난계단 점검과 동시 수행, 컴프레셔는 DIV와 동시 수행
+// 방화문 점검은 피난계단 점검과 동시 수행되므로 기록이 '특별피난계단' 카테고리에 남는다.
+// (컴프레셔/DIV 는 카드가 분리돼 있고 카테고리도 독립 → 매핑하지 않는다.)
 const CATEGORY_ALIAS: Record<string, string> = {
   '방화문': '특별피난계단',
-  '컴프레셔': 'DIV',
 }
 
 /**
@@ -152,7 +152,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         )
     `).bind(today).first<{n:number}>()
 
-    // 점검 기록 + 접근불가(default_result) 항목 합산
+    // 점검 기록 + 자동완료(default_result 또는 description '[접근불가]') 항목 합산
     const inspDoneRecords = await env.DB.prepare(`
       SELECT COUNT(DISTINCT cr.checkpoint_id) as n
       FROM check_records cr
@@ -165,7 +165,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     `).bind(today, today).first<{n:number}>()
     const inspDoneAuto = await env.DB.prepare(`
       SELECT COUNT(*) as n FROM check_points cp
-      WHERE cp.is_active=1 AND cp.default_result IS NOT NULL
+      WHERE cp.is_active=1
+        AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%')
         AND cp.category IN (
           SELECT inspection_category FROM schedule_items
           WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
@@ -307,7 +308,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           AND cr.result IN ('normal','caution')
       `).bind(cpCategory, monthStart, monthEnd).first<{n:number}>()
       const autoN = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND cp.default_result IS NOT NULL AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
+        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%') AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
       ).bind(cpCategory, cpCategory, monthStart, monthEnd).first<{n:number}>()
 
       const total = cpTotal
