@@ -388,7 +388,13 @@ export default function DashboardPage() {
       <main style={{
         flex:1, minHeight:0, overflowY:'auto',
         display:'grid',
-        gridTemplateRows:'auto auto auto 1fr auto',
+        // Android: row 5(월간 도넛)을 minmax(140px, auto)로 최소크기 명시.
+        // scroll-container 자식의 intrinsic height 0 버그로 auto 트랙이 너무
+        // 작게 계산되는 걸 우회. 1fr(오늘 일정)이 그만큼 줄어드는 대신
+        // 월간 현황이 완전히 표시됨.
+        gridTemplateRows: IS_ANDROID
+          ? 'auto auto auto 1fr minmax(140px, auto)'
+          : 'auto auto auto 1fr auto',
         gap:7, padding:'7px 11px',
       }}>
 
@@ -505,7 +511,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ⑤ 이번 달 점검 현황 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both', minHeight: IS_ANDROID ? 140 : undefined }}>
+        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
             <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
             <span style={{ fontSize:9.5, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
