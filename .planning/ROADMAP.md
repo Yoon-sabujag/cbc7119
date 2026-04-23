@@ -63,6 +63,10 @@ Full details: `.planning/milestones/v1.3-ROADMAP.md`
 - [x] **Phase 21: Documents Page UI** — DocumentsPage 라우트로 소방계획서·소방훈련자료 업로드(admin)/다운로드(전체)/연도별 이력 조회
 - [ ] **Phase 22: 업무수행기록표 Form + Excel Output** — `work_logs` 테이블 + 폼 입력 페이지 + 기존 양식 호환 xlsx-js-style 출력 + 월별 재출력
 
+### 🧯 Ops Observation Fixes (retroactive)
+
+- [x] **Phase 23: Observation-Mode Bug Fixes** — 2026-04-23~24 운영 관찰 중 발견된 3건 즉시 수정 (푸시 cron 침묵 복구 / 교육 알림 D-60 재설계 + 신규교육 트리거 추가 / 대시보드-모바일 점검 카드 기준 통일). GSD 밖에서 작업 후 소급 기록. 세부: `.planning/phases/23-obs-mode-bugfixes/`
+
 ## Phase Details
 
 <details>
