@@ -2,11 +2,12 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { floorPlanMarkerApi, inspectionApi, extinguisherApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
+import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { InspectionRevisitPopup, type RevisitVariant } from '../components/InspectionRevisitPopup'
 // import PdfFloorPlan from '../components/PdfFloorPlan'
 // import SvgFloorPlan from '../components/SvgFloorPlan'
 
@@ -224,6 +225,12 @@ export default function FloorPlanPage() {
   const [dragPos, setDragPos] = useState<{ x_pct: number; y_pct: number } | null>(null) // 드래그 중 실시간 위치
   const [editMarker, setEditMarker] = useState(false) // 마커 수정 모달
   const [inspectModal, setInspectModal] = useState(false) // 인라인 점검 모달
+  // ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 가드) ──
+  const [revisitPopup, setRevisitPopup] = useState<{
+    variant:   RevisitVariant
+    checkedAt: string
+    recordId?: string
+  } | null>(null)
   const [inspectExtDetail, setInspectExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [inspectResult, setInspectResult] = useState<'normal' | 'caution' | 'bad'>('normal')
   const [inspectMemo, setInspectMemo] = useState('')
@@ -305,6 +312,17 @@ export default function FloorPlanPage() {
     refetchInterval: 10_000,
   })
   const markers = markersQuery.data ?? []
+
+  // ── 이번 달 schedule_items — 재진입 팝업 판정에 사용 ──
+  const currentMonth = (() => {
+    const n = new Date()
+    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`
+  })()
+  const { data: scheduleItems = [] } = useQuery({
+    queryKey: ['schedule-month', currentMonth],
+    queryFn: () => scheduleApi.getByMonth(currentMonth),
+    staleTime: 60_000,
+  })
 
   const createMutation = useMutation({
     mutationFn: (body: Parameters<typeof floorPlanMarkerApi.create>[0]) => floorPlanMarkerApi.create(body),
@@ -902,11 +920,72 @@ export default function FloorPlanPage() {
 
         const canInspect = !isDesktop && (planType === 'guidelamp' || !!selected.check_point_id)
         const canResolve = !isDesktop && !!selected.last_record_id && (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
+
+        // ── 재진입 팝업 판정 (점검 기록 입력 버튼 클릭 시) ──
+        // 마커 카테고리 → schedule_items 매핑은 plan_type 기준:
+        //   guidelamp → 유도등 (일반 점검 대상, 팝업 필요)
+        //   extinguisher → 소화기/소화전/완강기/DIV 등 (일반 점검 대상, 팝업 필요)
+        //   detector/sprinkler → 법정 점검 전용, 일반 점검 re-entry 팝업 대상 아님 (바로 입력 허용).
+        const planTypeToCategory = (() => {
+          if (planType === 'guidelamp') return '유도등'
+          if (planType === 'extinguisher') {
+            const map: Record<string, string> = {
+              fire_extinguisher: '소화기', ext_powder20: '소화기', ext_halogen: '소화기', ext_kitchen_k: '소화기',
+              indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV',
+            }
+            return map[selected.marker_type ?? ''] ?? null
+          }
+          return null
+        })()
+
+        const SCHED_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
+        const evalRevisit = (): { variant: RevisitVariant; checkedAt: string; recordId?: string } | null => {
+          if (!planTypeToCategory) return null
+          if (!selected.last_result) return null
+          if (!selected.last_inspected_at) return null
+          // 이번 달 해당 카테고리 일정 있어야 함
+          const matches = scheduleItems.filter(s => {
+            if (s.category !== 'inspect') return false
+            const ic = s.inspectionCategory ?? ''
+            if (ic === planTypeToCategory) return true
+            if (SCHED_ALIAS[ic] && SCHED_ALIAS[ic] === planTypeToCategory) return true
+            return false
+          })
+          if (matches.length === 0) return null
+          const recYmd = (selected.last_inspected_at as string).slice(0, 10)
+          const inPeriod = matches.some(s => {
+            const start = s.date
+            const end   = s.endDate ?? s.date
+            return recYmd >= start && recYmd <= end
+          })
+          if (!inPeriod) return null
+          const isPending = (selected.last_result === 'bad' || selected.last_result === 'caution') && selected.last_status !== 'resolved'
+          if (isPending) return {
+            variant:   'pending-action',
+            checkedAt: selected.last_inspected_at as string,
+            recordId:  selected.last_record_id as string | undefined,
+          }
+          return {
+            variant:   'completed',
+            checkedAt: selected.last_inspected_at as string,
+            recordId:  selected.last_record_id as string | undefined,
+          }
+        }
+
+        const openInspectModal = () => {
+          setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
+          inspectPhoto.reset(); setInspectExtDetail(null)
+          if (planType === 'extinguisher' && selected?.check_point_id) {
+            extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
+          }
+          setInspectModal(true)
+        }
+
         const actionButtons = (
           <div style={{ display: 'flex', gap: 8 }}>
             {canInspect && (
               <button
-                onClick={() => { setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom(''); inspectPhoto.reset(); setInspectExtDetail(null); if (planType === 'extinguisher' && selected?.check_point_id) { extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {}) } setInspectModal(true) }}
+                onClick={() => { const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal() }}
                 style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
               >
                 점검 기록 입력
@@ -1296,6 +1375,22 @@ export default function FloorPlanPage() {
                 {addSubmitting ? '등록 중...' : '추가'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 재진입 팝업 (일반 점검 완료/미조치 개소 진입 시) ── */}
+      {revisitPopup && (
+        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ position:'relative', width:'90%', maxWidth:320, minHeight:180 }}>
+            <InspectionRevisitPopup
+              variant={revisitPopup.variant}
+              checkedAt={revisitPopup.checkedAt}
+              inspectorName={'—'}
+              recordId={revisitPopup.recordId}
+              onClose={() => setRevisitPopup(null)}
+              onGoToRemediation={(recordId) => { setRevisitPopup(null); navigate('/remediation/' + recordId) }}
+            />
           </div>
         </div>
       )}
