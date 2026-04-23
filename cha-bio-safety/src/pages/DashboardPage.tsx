@@ -10,6 +10,11 @@ import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
+// Android Chrome은 overflow-x:auto + overflow-y:clip 조합에서도 element를
+// 2축 scroll container로 취급해 strip의 intrinsic height를 0으로 계산함.
+// iPhone Safari는 spec대로 처리되어 문제 없음. Android에만 min-height 강제.
+const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+
 const MOCK_SCHEDULE: DashboardScheduleItem[] = [
   { id:'1', title:'VIP 투어 업무협조',     date:'', time:'09:30', category:'event',   status:'in_progress', completed:false },
   { id:'2', title:'엘리베이터 5호기 수리', date:'', time:'14:00', category:'elevator', status:'pending',     completed:false },
@@ -508,7 +513,7 @@ export default function DashboardPage() {
           {monthly.length === 0 ? (
             <div style={{ padding:'14px 0', textAlign:'center', fontSize:11, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
           ) : (
-            <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12 }}>
+            <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, minHeight: IS_ANDROID ? 108 : undefined }}>
               {monthly.map((m, i) => (
                 <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
                   <Donut pct={m.pct} color={m.color} size={44} />
