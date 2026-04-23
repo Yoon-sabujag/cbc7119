@@ -13,7 +13,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   try {
-    // 1) 마커 목록
+    // 1) 마커 목록 (description 포함 — 접근불가 판정용 메모)
     const mWhere = floor ? 'WHERE floor = ? AND plan_type = ?' : 'WHERE plan_type = ?'
     const mBinds = floor ? [floor, planType] : [planType]
     const mRows = await env.DB.prepare(
