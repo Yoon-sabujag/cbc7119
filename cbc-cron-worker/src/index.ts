@@ -195,7 +195,7 @@ async function handleDailyNotifications(env: Env) {
   interface EduTarget { staffId: string; line: string }
   const eduTargets: EduTarget[] = []
 
-  // 소방 보수교육: target(today+60일) 이 신규교육일 + 2N년 과 동일한 사람만 대상
+  // 소방 실무교육: target(today+60일) 이 신규교육일 + 2N년 과 동일한 사람만 대상
   const [ty, tm, td] = today.split('-').map(Number)
   const targetDate = new Date(Date.UTC(ty, tm - 1, td + 60))
   for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; completed_at: string }[]) {
@@ -208,7 +208,7 @@ async function handleDailyNotifications(env: Env) {
       && targetDate.getUTCDate() === initDate.getUTCDate()
     if (!matches) continue
     const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
-    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 보수교육` })
+    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 실무교육` })
   }
   for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
     eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 교육` })
