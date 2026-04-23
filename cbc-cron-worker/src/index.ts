@@ -281,81 +281,6 @@ async function handleEventNotifications(env: Env) {
   await Promise.allSettled(sends)
 }
 
-// ── 진단용 15분 주기 푸시 (임시) ──────────────────────
-// 모든 구독자에게 현재 KST 시각을 담은 테스트 알림을 발송. 근무/설정 필터
-// 없이 항상 발송. 원인 진단 후 제거할 것.
-async function handleDiagnosticNotification(env: Env) {
-  const subs = await env.DB.prepare(
-    'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
-  ).all<PushSubRow>()
-
-  const kstNow = new Date(Date.now() + 9 * 3600 * 1000)
-  const timeStr = kstNow.toISOString().slice(11, 16)
-
-  console.log(`[diagnostic] firing at ${timeStr} KST, subs=${subs.results?.length ?? 0}`)
-
-  const sends: Promise<void>[] = []
-  for (const sub of (subs.results ?? [])) {
-    sends.push(sendPush(env, sub, {
-      title: '진단 푸시',
-      body: `cron 정상 동작 (${timeStr} KST)`,
-      type: 'diagnostic',
-    }))
-  }
-  await Promise.allSettled(sends)
-
-  // ── 드라이런: handleDailyNotifications 로직을 실제 발송 없이 추적 ──
-  await dryRunDailyNotifications(env)
-}
-
-// 드라이런 전용 — 실제 push 대신 console.log. 단계마다 로그 찍어 어디서 throw 되는지 추적.
-async function dryRunDailyNotifications(env: Env) {
-  const tag = '[daily-dry]'
-  try {
-    const kstNow = new Date(Date.now() + 9 * 3600 * 1000)
-    const today = kstNow.toISOString().slice(0, 10)
-    const yesterday = new Date(kstNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10)
-    console.log(`${tag} start. today=${today} yesterday=${yesterday}`)
-
-    const workingIds = await getWorkingStaffIds(env, kstNow, today)
-    console.log(`${tag} workingIds=${JSON.stringify(Array.from(workingIds))}`)
-
-    const allDailySubs = await env.DB.prepare(
-      'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
-    ).all<PushSubRow>()
-    const subsResults = (allDailySubs.results ?? []).filter(s => workingIds.has(s.staff_id))
-    console.log(`${tag} allSubs=${allDailySubs.results?.length ?? 0} filtered=${subsResults.length}`)
-
-    const adminRows = await env.DB.prepare(
-      "SELECT id FROM staff WHERE role = 'admin' AND active = 1"
-    ).all<{ id: string }>()
-    const adminIds = new Set((adminRows.results ?? []).map(r => r.id))
-    console.log(`${tag} adminIds=${JSON.stringify(Array.from(adminIds))}`)
-
-    const [todaySchedules, yesterdayIncomplete, unresolvedFindings, upcomingEducation, elevatorEduExpiring] = await Promise.all([
-      env.DB.prepare(`SELECT title FROM schedule_items WHERE date = ? OR (date <= ? AND end_date >= ?)`).bind(today, today, today).all(),
-      env.DB.prepare(`SELECT title FROM schedule_items WHERE date = ? AND status != 'done'`).bind(yesterday).all(),
-      env.DB.prepare(`SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`).all(),
-      env.DB.prepare(`SELECT e.staff_id, s.name as staff_name, e.education_type, e.completed_at FROM education_records e JOIN staff s ON e.staff_id = s.id WHERE date(e.completed_at, '+2 years', '-30 days') = ?`).bind(today).all(),
-      env.DB.prepare(`SELECT id, name FROM staff WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL AND date(safety_mgr_edu_expire, '-30 days') = ?`).bind(today).all(),
-    ])
-    console.log(`${tag} queries: todaySchedules=${todaySchedules.results?.length ?? 0} yesterdayIncomplete=${yesterdayIncomplete.results?.length ?? 0} unresolvedFindings=${unresolvedFindings.results?.length ?? 0} upcomingEducation=${upcomingEducation.results?.length ?? 0} elevatorEduExpiring=${elevatorEduExpiring.results?.length ?? 0}`)
-
-    const wouldSend: string[] = []
-    for (const sub of subsResults) {
-      const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
-      if (prefs.daily_schedule && todaySchedules.results?.length) wouldSend.push(`${sub.staff_id}:daily_schedule`)
-      if (prefs.incomplete_schedule && yesterdayIncomplete.results?.length) wouldSend.push(`${sub.staff_id}:incomplete_schedule`)
-      if (prefs.unresolved_issue && unresolvedFindings.results?.length) wouldSend.push(`${sub.staff_id}:unresolved_issue`)
-    }
-    console.log(`${tag} would-send(working)=${wouldSend.length} ${JSON.stringify(wouldSend)}`)
-
-    console.log(`${tag} OK (no throw)`)
-  } catch (e: any) {
-    console.error(`${tag} THREW: ${e?.message ?? e} stack=${e?.stack ?? 'n/a'}`)
-  }
-}
-
 // ── Main export ──────────────────────────────────────
 export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -365,9 +290,6 @@ export default {
         break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
-        break
-      case '*/15 * * * *':
-        ctx.waitUntil(handleDiagnosticNotification(env))
         break
     }
   },
