@@ -958,3 +958,113 @@ FloorPlanPage.tsx 는 `useInspectionRevisitPopup` 을 쓰지 않고 자체 `useS
 ### 커밋
 
 - `b21e209` fix(260423-htx-07): 재진입 팝업 재노출 정책을 dismiss 기반으로 변경
+
+---
+
+## Task 10 — 이슈 G 정책 재정의 (dismiss 억제 완전 제거)
+
+### 사용자 재피드백
+
+> "팝업을 다시 띄우는게 맞지 않을까?"
+
+Task 9(Bug G) 에서 `lastShownCpRef` → `dismissedCpsRef` 로 옮긴 것도 여전히 사용자
+의도와 불일치. 사용자는 dismiss 를 "잠깐 안 보이게" 하는 일시 액션으로 보고,
+이후 **재방문 시 재노출** 이 기본 동작이 맞다는 입장.
+
+### Root Cause
+
+Task 9 구현의 `dismissedCpsRef: Set<string>` 는 "dismiss 한 cp 는 세션 내 이후
+재방문에서도 억제" 라는 정책을 유지했음. 이게 사용자 정신 모형과 어긋남.
+
+### 재설계 — 억제 자체 제거
+
+정책:
+- dismiss 는 **popup 을 닫는 일시 액션** 일 뿐. 어떤 상태도 영속화하지 않음.
+- useEffect 는 `checkpointId` 등 deps 가 변할 때마다 `compute()` 결과대로
+  `setPopupState`. 재방문 시 compute() 가 유의미 값 반환하면 자동 재노출.
+
+구현:
+
+```ts
+// 제거: dismissedCpsRef: useRef<Set<string>>(new Set())
+// 제거: useRef import
+
+useEffect(() => {
+  setPopupState(compute())
+}, [checkpointId, category, cpMetaKey, schedKey, excludeKey])
+
+const dismiss = useCallback(() => {
+  setPopupState(null)
+}, [])
+
+const evaluate = useCallback(() => {
+  setPopupState(compute())
+}, [compute])
+```
+
+### "같은 cp 에서 dismiss 직후 재노출" 바운스 없는 이유
+
+사용자 우려: Set 없이 dismiss 하면 같은 cp 에서 팝업이 즉시 다시 뜨지 않을까?
+
+답: **뜨지 않음.** 이유:
+
+- dismiss() 는 오직 `setPopupState(null)` 만 호출. useState 업데이트는 컴포넌트
+  재렌더를 유발하지만 useEffect deps (`checkpointId, category, cpMetaKey, schedKey,
+  excludeKey`) 는 전혀 변하지 않음.
+- React 의 useEffect 는 deps 배열이 이전 렌더와 Object.is 기준 동일하면 effect 를
+  **재실행하지 않음**.
+- 따라서 dismiss → 재렌더 → useEffect 재호출 안 됨 → setPopupState 재호출 없음
+  → popupState 는 null 유지.
+
+사용자가 cp 를 옮겼다가 돌아오면:
+- cp 이동 시 parent 에서 `checkpointId` 가 변경됨.
+- useEffect deps 중 `checkpointId` 변동 → effect 재실행 → compute() 재평가 →
+  결과 있으면 `setPopupState` 로 재노출.
+
+### 소비자 영향
+
+`useInspectionRevisitPopup` 소비자 (InspectionPage.tsx 내 9개 모달) 인터페이스
+`{ popupState, dismiss, evaluate }` **완전 호환** — 타입/시그니처 변경 없음.
+소비자 코드 수정 0건.
+
+`onGoToRemediation` 경로 (`dismiss(); navigate(...)`) 는 navigate 후 모달 자체가
+unmount 되므로 dismiss 가 단순 setPopupState(null) 로 변해도 동작 차이 없음.
+
+FloorPlanPage.tsx 는 자체 state 로 관리하므로 이 훅과 무관 — Task 9 과 동일.
+
+### 회귀 방지 체크 포인트
+
+- **정상 dismiss 경로**: cp A → popup 표시 → X 클릭 → setPopupState(null) → popup 사라짐.
+  같은 render cycle 에 있는 한 deps 불변 → useEffect 재호출 없음 → popup 유지 상태
+  null. **기존 Task 9 동작과 동일**.
+- **조치 이동 경로**: `onGoToRemediation(recordId) => { dismiss(); navigate(...) }` —
+  dismiss 후 navigate 로 모달 언마운트. Hook 자체가 파괴됨. **변화 없음**.
+- **Bug D 시나리오**: cp A → popup → cp B 이동. `checkpointId=B` 로 deps 변경 →
+  useEffect → compute(B)=null → setPopupState(null). **이전 popup 잔류 없음**.
+- **Bug G 원래 시나리오 (팝업 미dismiss → 이동 → 복귀)**: cp A → popup → cp B
+  (dismiss 없이) 이동 → cp A 복귀. checkpointId 변경 두 번 모두 effect 트리거.
+  최종 compute(A) 유의미 값 → popup 재노출. **해결**.
+- **이번 재정의 시나리오 (dismiss 후 → 이동 → 복귀)**: cp A → popup → X 클릭
+  (setPopupState(null)) → cp B 이동 (effect, compute(B)) → cp A 복귀 (effect,
+  compute(A) 유의미 값) → popup 재노출. **사용자 기대 부합**. Task 9 는 여기서 억제
+  해버렸음.
+- **초기 데이터 레이스**: 첫 effect run 에서 scheduleItems 비어 있으면 compute(A)=null
+  → setPopupState(null). 이후 데이터 도착 → `schedKey` 변경 → effect 재트리거 →
+  compute(A) 유의미 값 → 정상 표시. **기존 보존**.
+- **동일 cp 재렌더 바운스**: 같은 cp 에서 dismiss() 호출 후 parent 가 무관한
+  state 변경으로 재렌더 → useInspectionRevisitPopup 도 재실행되지만 deps 는 불변
+  → useEffect skip → popupState 는 null 유지. **Set 없이도 안전**.
+
+### 파일
+
+- `cha-bio-safety/src/hooks/useInspectionRevisitPopup.ts` (+13 / -20)
+
+### 검증
+
+- `node_modules/.bin/tsc --noEmit`: **0 errors**
+- `npm run build`: **success** (87 modules transformed, dist/sw.mjs 8.33 KiB gzip,
+  PWA precache 67 entries 5999.13 KiB)
+
+### 커밋
+
+- `cca8912` fix(260423-htx-08): 재진입 팝업 dismiss 억제 제거 — 재방문 시 항상 재노출
