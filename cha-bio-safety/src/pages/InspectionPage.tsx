@@ -1797,21 +1797,10 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
           </>
         )}
 
-        {/* 점검 폼 (재진입 팝업 부분 오버레이의 부모 — position:relative) */}
+        {/* 점검 폼 영역 — 개소 네비 카드는 항상 표시, 재진입 팝업은 입력 폼만 덮음 */}
         {currentPt && (
-          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:14 }}>
-            {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 점검 폼만 덮음) */}
-            {popupState && (
-              <InspectionRevisitPopup
-                variant={popupState.variant}
-                checkedAt={popupState.checkedAt}
-                inspectorName={popupState.inspectorName}
-                recordId={popupState.recordId}
-                onClose={dismiss}
-                onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
-              />
-            )}
-            {/* 개소 정보 + 이전/다음 네비 (standalone만) */}
+          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+            {/* 개소 정보 + 이전/다음 네비 (standalone만) — 팝업에 안 덮임 */}
             {mode !== 'from-div' && (() => {
               const seq = zone !== 'underground' && line ? DIV_LINE_SEQ[line] : null
               const canPrev = zone === 'underground' ? underPickIdx > 0 : lineIdx > 0
@@ -1840,7 +1829,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               )
             })()}
 
-            {/* from-div: 간단한 개소 정보 (가운데 정렬) */}
+            {/* from-div: 간단한 개소 정보 — 팝업에 안 덮임 */}
             {mode === 'from-div' && (
               <div style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', textAlign:'center' }}>
                 <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
@@ -1849,48 +1838,64 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               </div>
             )}
 
-            {/* 탱크 배수 / 컴프 오일 */}
-            <div style={{ display:'flex', gap:10 }}>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-                  탱크 배수
-                  {drainDPlus !== null && (
-                    <span style={{ fontSize:10, fontWeight:700, color: drainDPlus > 60 ? 'var(--warn)' : 'var(--t3)', background: drainDPlus > 60 ? 'rgba(245,158,11,.12)' : 'var(--bg3)', padding:'1px 6px', borderRadius:4 }}>D+{drainDPlus}</span>
-                  )}
-                  {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
-                </div>
-                <div style={{ display:'flex', gap:6 }}>
-                  <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
-                  <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: tankDrain==='yes' ? 1 : 0.45 }}>있음</button>
-                </div>
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
-                <div style={{ display:'flex', gap:6 }}>
-                  <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
-                  <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
-                </div>
-              </div>
-            </div>
+            {/* 입력 폼 서브 컨테이너 — 재진입 팝업 부분 오버레이의 부모 (position:relative)
+                H2 (260423-htx Task 5): 팝업이 '현재 개소' 네비 카드를 가리지 않고
+                입력 폼(탱크배수/오일/결과/특이사항) 영역만 덮도록 부모 범위를 축소. */}
+            <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:14 }}>
+              {popupState && (
+                <InspectionRevisitPopup
+                  variant={popupState.variant}
+                  checkedAt={popupState.checkedAt}
+                  inspectorName={popupState.inspectorName}
+                  recordId={popupState.recordId}
+                  onClose={dismiss}
+                  onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
+                />
+              )}
 
-            {/* 점검 결과 */}
-            <div>
-              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
-              <div style={{ display:'flex', gap:8 }}>
-                {(['normal','caution','bad'] as const).map(r => (
-                  <button key={r} onClick={() => setResult(r)}
-                    style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                    {resultLabel[r]}
-                  </button>
-                ))}
+              {/* 탱크 배수 / 컴프 오일 */}
+              <div style={{ display:'flex', gap:10 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+                    탱크 배수
+                    {drainDPlus !== null && (
+                      <span style={{ fontSize:10, fontWeight:700, color: drainDPlus > 60 ? 'var(--warn)' : 'var(--t3)', background: drainDPlus > 60 ? 'rgba(245,158,11,.12)' : 'var(--bg3)', padding:'1px 6px', borderRadius:4 }}>D+{drainDPlus}</span>
+                    )}
+                    {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
+                  </div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
+                    <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: tankDrain==='yes' ? 1 : 0.45 }}>있음</button>
+                  </div>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
+                    <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* 특이사항 + 사진 */}
-            <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
-                style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
-              <PhotoButton hook={photo} />
+              {/* 점검 결과 */}
+              <div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
+                <div style={{ display:'flex', gap:8 }}>
+                  {(['normal','caution','bad'] as const).map(r => (
+                    <button key={r} onClick={() => setResult(r)}
+                      style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                      {resultLabel[r]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 특이사항 + 사진 */}
+              <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
+                  style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
+                <PhotoButton hook={photo} />
+              </div>
             </div>
           </div>
         )}
@@ -2941,7 +2946,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     : pickerSourceCPs.filter(cp =>
         monthRecords[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
       ).length
-  const allDoneFloor = doneCount >= totalCount && totalCount > 0
+  // (H1 — '이 층 점검 완료' 배너/플래그 제거. 개소 카드의 doneCount/totalCount 표기만 유지.)
 
   // 선택된 소화전과 같은 location_no를 가진 비상콘센트 (소화전인 경우에만)
   const pairedBC = useMemo(() =>
@@ -3119,16 +3124,10 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       )}
 
       {/* ── 개소 선택 — DIV 스타일 박스 + 좌우 스와이프 ── */}
-      {/* floorCPs 가 1개뿐이어도 완료 배너는 보여야 하므로 >= 1 */}
-      {/* 층 전체가 완료된 상태에서도 피커는 계속 보여 줘야 한다 —
-         재진입 팝업 확인 후 '그래도 재점검' 이 필요한 사용자 흐름을 막으면 안 된다. */}
+      {/* H1 (260423-htx Task 5): '이 층 점검 완료 (N/N)' 배너 제거 —
+         개소 카드 첫줄의 `doneCount/totalCount 완료` 표기로 대체. */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
         <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
-          {allDoneFloor && (
-            <div style={{ textAlign:'center', padding:'4px 0 8px', color:'var(--safe)', fontSize:12, fontWeight:600 }}>
-              ✅ 이 층 점검 완료 ({doneCount}/{totalCount})
-            </div>
-          )}
           {pendingCPs.length >= 1 && (
             <div
               style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
@@ -3156,11 +3155,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
                   </>
                 )}
-                {selectedCP && monthRecords[selectedCP.id] && (
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:4, marginTop:6, padding:'2px 8px', borderRadius:999, background:'rgba(34,197,94,.15)', border:'1px solid rgba(34,197,94,.35)' }}>
-                    <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)' }}>✓ 점검 완료</span>
-                  </div>
-                )}
+                {/* H1 (260423-htx Task 5): '✓ 점검 완료' 초록 알약 제거 —
+                    개소 카드 첫줄 `doneCount/totalCount 완료` 표기로 대체. */}
               </div>
               <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
             </div>

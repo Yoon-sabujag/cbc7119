@@ -376,3 +376,162 @@ FOUND: cha-bio-safety/functions/api/inspections/records.ts
 
 - **유도등 in InspectionModal:** `pendingCPs` 필터(line 2888-2889)가 완료된 마커를 숨기므로, InspectionModal 안에서는 유도등 재진입 팝업이 여전히 발동하지 않는다. 사용자의 재인스펙션 경로는 **FloorPlan 마커 → 점검 기록 입력** 이다 (이번 태스크에서 C3+C4 로 정상화됨). InspectionModal 측 유도등 지원은 마커 기반 메타(`markerRecords` 에 staff/time 없음)를 일반 `monthRecords` 와 통합하는 API 확장이 필요한 별도 작업. **본 태스크 범위 밖 — 별도 이슈로 추적 권장.**
 - **DIV / InspectionModal 의 팝업 배치는 기존 본문 전체 오버레이 유지.** 사용자가 DIV/제네릭 InspectionModal 을 H2 list 에서 제외했으므로 재배치 없음. 추후 UX 통일이 필요하면 별도 이슈.
+
+---
+
+## 2차 검증 피드백 반영 (Task 5)
+
+2026-04-23 2차 프로덕션 검증에서 Task 4 수정이 대부분 실패로 판정됨. 사용자 지침에 따라 **조사 → 원인 기록 → 로그 심기 → 수정** 순서로 진행. 추측성 수정 회피.
+
+### 조사 결과 (Root Cause — 우선 코드·데이터 흐름 추적)
+
+#### C1 — 5개 카테고리 팝업 미발동 (소화기/DIV/댐퍼/연결송수관/유도등)
+
+**코드상 외형적 문제 발견 못함.** Task 4 에서 수정한 `lastShownCpRef` 타이밍 가드는 정상 동작 중 (ref 는 실제 popup 을 띄운 순간에만 세팅되고, 비동기 로딩 타이밍을 기다린 후 재평가됨 — `schedKey` / `cpMetaKey` deps 변경 시 effect 재실행되고 compute() 다시 호출). 훅 호출부(각 모달 line)와 hook body 양쪽 logic 모두 검토했으나 즉시 개선할 곳 없음.
+
+**가능한 원인 (데이터 레벨, DB 상태 확인 없이 추론 불가):**
+
+1. **프로덕션 schedule_items 에 해당 카테고리의 이번 달 일정이 없음** → `matches.length === 0 → null`. 특히 4/1~4/5 같이 "이미 끝난" 창만 있고 4/23 에는 활성 창이 없는 경우.
+2. **inspectionCategory 문자열 불일치** — schedule 입력 시 정확히 `'소화기'` 가 아니라 `'소화기 점검'` 처럼 추가 문구가 붙어 있으면 매칭 실패.
+3. **기록의 checkedAt 이 해당 일정 창 밖으로 저장됨** — 드물지만 월 경계/KST UTC 변환 이슈 가능성.
+
+→ **사용자가 요구한 대로 진단용 로그를 훅에 삽입.** localStorage.setItem('REVISIT_DBG','1') 로 활성화하면 각 체크포인트 결정 분기를 [revisit] 태그로 콘솔 출력. 2차 검증 중 몇 개 카테고리에서 콘솔을 확인하면 실제 어디서 막히는지 즉시 드러남.
+
+사용자 가설 ("ref 타이밍 / defaultResult / initial focus") 에 대한 검토:
+
+- **Ref 타이밍**: Task 4 수정으로 이미 방지됨. dismiss() 해도 `lastShownCpRef` 는 그대로라 같은 CP 반복 show 는 막되, 다른 cp 로 swipe/navigate 하면 재평가됨.
+- **initial focus가 완료 cp 스킵**: 맞음. `firstPending = findIndex(cp => !monthRecords[cp.id])`. 이게 소화기에서 팝업이 "처음 진입 시" 안 뜨는 한 원인. 단, 사용자가 swipe 해서 완료 cp 로 돌아가면 뜨긴 함. 이번 Task 에서 H1 제거로 완료 cp 도 항상 피커에 있으므로 swipe 경로는 가능.
+- **defaultResult / 접근불가**: 이건 pendingCPs 필터로 아예 제외되므로 영향 없음. 소화기 대부분은 이런 속성 없음.
+
+#### C2 — 월 계획 기간 밖 팝업 발동 (근본 원인 확정)
+
+**코드 재검증 결과**: `inPeriod` 로직은 "기록의 checkedAt 이 일정 창 안" 만 체크하고 "오늘이 일정 창 안" 은 체크하지 않았음. 즉 4/1~4/5 인 지난 일정에 4/3 에 저장된 기록이 있으면, 오늘(4/23)이 창 밖이어도 `inPeriod=true`.
+
+**사용자 의도**: "지금 소화전·비상콘센트 점검 기간" = **오늘 활성인 창만 인정**. 과거 창은 "지나간 점검"이라 팝업 대상 아님.
+
+→ **정책 강화 적용**: 훅에서 "오늘이 활성 창에 포함된 일정" 을 먼저 찾고, 그 일정 창 안에 기록이 있는지 확인. 활성 창이 없으면 반환 null.
+
+#### C3 — FloorPlan 기타 마커 미발동 + 신규 버그
+
+**기타 마커 미발동**: `planTypeToCategory` 가 detector→자동화재탐지설비, sprinkler→스프링클러설비 로 매핑은 되어 있음. 문제는 **프로덕션에서 `detector` / `sprinkler` 카테고리의 이번 달 schedule_items 가 없어 `matches.length === 0`**. C1 와 같은 데이터/스케줄 원인. → evalRevisit 에도 진단 로그 삽입하여 실환경 확인 가능하도록 함. C2 의 "활성 창" 강화도 같이 적용.
+
+**신규 버그**: 소화전/완강기 마커에서 팝업 뜨고 `확인` 누른 후 점검창이 안 뜸. **Root cause: 팝업 `onClose={() => setRevisitPopup(null)}` 가 단순히 팝업만 닫음 — 후속으로 `openInspectModal()` 호출 없음.** Task 4 plan 에서 "완료 팝업 확인 = 닫기만" 으로 결정했던 것을 사용자가 재수정 요청.
+
+#### H1 — "이 층 점검 완료" 잠금 기능 완전 제거
+
+Task 4 는 "피커는 유지하되 배너는 축소" 접근. 사용자는 **"없애라. 이미 ?/? 완료 표기가 있다"** 로 더 강경한 요구. 대상:
+
+- `✅ 이 층 점검 완료 (N/N)` 배너 (InspectionModal line 3127-3131)
+- `✓ 점검 완료` 초록 알약 (InspectionModal line 3159-3163)
+- `allDoneFloor` 변수 (line 2944) — 유일 참조처가 배너뿐이라 같이 삭제
+
+→ `(pickerIdx+1/N) · doneCount/totalCount 완료` 표기 (line 3146) 는 **유지** (사용자 원함).
+
+#### H2 — 컴프레셔 팝업 위치 어긋남 (근본 원인 확정)
+
+**코드 확인**: CompressorModal line 1802 의 `<div style={{ position:'relative', ... }}>` 래퍼가 `{currentPt && (<div>` 블록의 바로 안쪽에서 시작. 이 안에 **현재 개소 네비 카드(이전/다음 버튼, 층/개소 정보) + 탱크배수/오일/결과/특이사항 전부가 자식으로 포함**. → 팝업 `position:absolute; inset:0; zIndex:10` 이 이 전체를 덮음. 사용자가 "개소 선택 카드를 가리게 뜬다"는 증상의 정확한 원인.
+
+다른 4 개 모달 (Baeyeon/PowerPanel/ParkingGate/Damper) 는 상단에 자체 선택 UI (구역/층/항목) 가 position:relative 래퍼 **밖** 에 있어 문제 없음. 컴프레셔만 현재 개소 네비가 래퍼 **안** 에 있음.
+
+→ 외부 래퍼 `position:relative` 제거, 내부에 입력 폼(탱크배수/오일/결과/특이사항) 전용 `position:relative` 서브 컨테이너 추가. 팝업을 그 서브 컨테이너로 이동.
+
+### 적용 수정 (Commit Index)
+
+| # | Commit    | Type | 이슈      | 제목                                                            |
+| - | --------- | ---- | --------- | --------------------------------------------------------------- |
+| 1 | `c9d7541` | fix  | C2 + C1   | 훅에 "오늘 활성 창" 체크 강화 + 진단 로그 추가                   |
+| 2 | `c3669e9` | fix  | C3 신규   | FloorPlan 완료 팝업 확인 → inspect modal 자동 진입 + 진단 로그  |
+| 3 | `3198852` | fix  | H1        | '이 층 점검 완료' 배너/알약/변수 제거                            |
+| 4 | `f4e9532` | fix  | H2        | 컴프레셔 팝업 오버레이 범위를 입력 폼으로만 축소                  |
+
+### 변경 파일
+
+| File                                                        | 변경 유형 | 이슈        |
+| ----------------------------------------------------------- | --------- | ----------- |
+| `cha-bio-safety/src/hooks/useInspectionRevisitPopup.ts`     | 수정      | C2, C1(log) |
+| `cha-bio-safety/src/pages/FloorPlanPage.tsx`                | 수정      | C3, C2, log |
+| `cha-bio-safety/src/pages/InspectionPage.tsx`               | 수정      | H1, H2      |
+
+### 진단 로그 활용 방법
+
+프로덕션 배포 후 사용자가 실환경에서 "왜 팝업이 안 뜨는지" 자가진단할 수 있도록:
+
+```js
+// 브라우저 개발자 콘솔에서 실행
+localStorage.setItem('REVISIT_DBG', '1')
+// 페이지 새로고침 후 문제가 있는 카테고리 모달/마커 진입
+// 콘솔에 [revisit] 또는 [revisit-fp] 로그가 단계별로 출력됨
+```
+
+출력 예시:
+
+- `[revisit] 소화기 CP-EXT-5F-1 → skip: no schedule_items matching category { inspectCats: ['소화전','비상콘센트'] }`
+  → 스케줄에 소화기 일정이 아예 없음. 사용자가 스케줄 페이지에서 추가해야 함.
+- `[revisit] 컴프레셔 CP-COMP-8-1 → skip: no active schedule window today { todayYmd: '2026-04-23', windows: ['2026-04-01~2026-04-05'] }`
+  → 컴프레셔 일정 창이 이미 끝남. C2 의 의도된 동작.
+- `[revisit] DIV ... → SHOW completed { recYmd: '2026-04-10', status: 'open' }`
+  → 정상 팝업 발동. 여기까지 도달해야 팝업이 뜸.
+
+**디버깅 끝나면:** `localStorage.removeItem('REVISIT_DBG')` 로 끄면 성능 영향 0. 원인 파악 후 로그는 다음 퀵에서 제거 예정.
+
+### 정책 변경 요약 (잠긴 결정 업데이트)
+
+**이전 정책**: "완료 = 이번 달 schedule_items 점검 기간 내 기록"
+**강화된 정책 (Task 5)**: "완료 = **오늘이 활성 창 안인** 이번 달 schedule_items 점검 기간 내 기록"
+
+- 사용자의 "지금 소화전·비상콘센트 점검 기간" = 활성 창이라는 의도에 맞춤.
+- (가) completed / (나) pending-action 둘 다에 동일 적용.
+- 문구/버튼/CCTV·화재수신반 제외/접근불가 스킵은 변경 없음.
+
+### 내가 생각한 원인과 사용자 가설의 차이 (명시)
+
+- 사용자 가설 C1(소화기): "monthRecords 정상 populate 되는지?" / "initial focus 로 완료 cp 안 선택?" / "defaultResult 제외?"
+  → **내 진단**: ref 타이밍이나 filter 가 아니라 **schedule/데이터 레벨** 이 의심됨. 코드 자체에는 명백한 버그 없음. 로그로 실환경 확인 필요. 진단 없이는 수정 불가 (엉뚱한 fix 위험). **사용자 지침 "진단이 먼저"** 그대로 준수.
+- 사용자 가설 C2(월 계획 기간 밖): "scheduleItems 가 과거 달 포함?" / "`checkedAt` 의 YYYY-MM 체크?"
+  → **내 진단**: getByMonth 가 이번 달만 반환하는 건 맞음. 진짜 원인은 **이번 달 안의 "이미 끝난 창"** 에서 발동. 사용자가 제안한 "`meta.checkedAt` YYYY-MM 체크" 보다 "오늘이 활성 창 안" 이 더 정확한 조건. → 정책 강화 방향으로 적용.
+- 사용자 가설 C3 기타 마커: "어떤 state 가 hook 에 넘어가는지 로그 확인"
+  → **내 진단**: planTypeToCategory 매핑은 이미 detector/sprinkler 포함. 4월 스케줄에 해당 카테고리 일정이 없으면 legit 하게 skip. 진단 로그로 검증.
+- 사용자 가설 C3 신규 버그: "close 이후 modal open 트리거 누락"
+  → **정확.** 그대로 수정.
+
+### 건드리지 않은 것 (운영 관찰 모드 준수)
+
+- `inspection_sessions` / `check_records` DB 스키마, 저장 API, resolve API.
+- InspectionModal 의 저장 후 auto-next 로직, 소화기 리스트 오버레이, 유도등 증상 피커, DIV 트렌드 뷰, 컴프레셔 drain 로그.
+- CCTV·화재수신반 모달 전체.
+- FloorPlan 마커 CRUD, 드래그, 조치 플로우 (팝업 close 로직만 교체).
+- DivModal 의 팝업 위치 (H2 list 에서 제외됨).
+
+### 빌드/검증
+
+- `npx tsc --noEmit` → exit 0 ✓
+- `npm run build` → 10.38s 성공 ✓ (sw.js 생성, 67 PWA precache entries)
+
+### 남은 이슈 (사용자 재검증 시 체크)
+
+- **소화기/DIV/댐퍼/연결송수관 팝업 미발동**: 코드 수정 없이 **진단 로그만 추가**. 사용자가 `localStorage.setItem('REVISIT_DBG','1')` 켜고 해당 카테고리에 진입해 콘솔 결과 리포트 필요. 그 결과 ("no schedule match" vs "no active window today" vs "no monthRecord") 에 따라 다음 퀵에서 데이터 수정 또는 로직 수정 결정.
+- **FloorPlan detector/sprinkler 팝업 미발동**: 같은 구조. 로그로 검증.
+- **유도등 in InspectionModal**: Task 4 부터 알려진 구조적 제약. 여전히 범위 밖.
+
+### 2차 검증 체크포인트 (재검증 요청)
+
+1. **H1 제거** — InspectionModal 어떤 카테고리든 열어서:
+   - 상단 `✅ 이 층 점검 완료 (N/N)` 배너가 **없어야** 함.
+   - 선택된 개소 하단 `✓ 점검 완료` 초록 알약이 **없어야** 함.
+   - 개소 카드 첫줄 `개소 (N/M) · doneCount/totalCount 완료` 표기는 **있어야** 함.
+2. **H2 컴프레셔 팝업** — 이미 점검한 컴프레셔 개소 재진입:
+   - 팝업이 "개소 이전/다음 네비 카드" 를 **가리지 않아야** 함.
+   - 팝업이 "탱크배수/오일/결과/특이사항/저장" 폼 영역을 덮어야 함.
+3. **C2 활성 창 체크** — 과거 일정 창 (예: 4/1~4/5) 만 있는 카테고리 재진입:
+   - 팝업이 **뜨지 않아야** 함 (과거 창은 활성 아님).
+   - 반면 오늘이 포함된 창 (예: 4/20~4/30) 이 있는 카테고리 재진입:
+     - 팝업이 **떠야** 함.
+4. **C3 신규 버그** — FloorPlan 마커 (소화전/완강기):
+   - 이미 점검한 개소 마커 → "점검 기록 입력" 클릭 → 팝업 뜸 → **확인** 누르면 **점검 모달이 자동으로 열림**.
+   - pending 개소 → "이동" → remediation 페이지로 이동 (기존 그대로).
+   - pending 개소 → "취소" → 팝업만 닫힘 (기존 그대로, 사용자가 다시 버튼 눌러야 모달 뜸).
+5. **진단 로그** — 소화기/DIV/댐퍼/연결송수관 중 하나 선택해 콘솔 모드 활성화:
+   ```js
+   localStorage.setItem('REVISIT_DBG', '1')
+   ```
+   해당 카테고리 이미 점검한 개소에 재진입 → 콘솔에 `[revisit]` 또는 `[revisit-fp]` 로 분기 결과가 출력되는지 확인. 출력된 내용을 리포트 주시면 다음 퀵에서 근본 수정 가능.

@@ -65,10 +65,24 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
   )
   const excludeKey = (excludeCategories ?? ['CCTV', '화재수신반']).join('|')
 
+  // ── 진단용 로그 ──────────────────────────────────────
+  // Task 5 (2026-04-23): 프로덕션에서 소화기/DIV/댐퍼/연결송수관 등 특정 카테고리에서
+  // 팝업이 미발동되는 증상이 리포트됨. 재현이 어려워 훅 동작을 브라우저 콘솔에서 직접
+  // 관찰할 수 있도록 진단 로그를 추가. 원인이 파악되면 (또는 플래그가 불필요해지면)
+  // 이 로그는 제거할 수 있음. localStorage.setItem('REVISIT_DBG', '1') 로만 활성화.
+  const dbgEnabled = typeof window !== 'undefined' && (() => {
+    try { return window.localStorage.getItem('REVISIT_DBG') === '1' } catch { return false }
+  })()
+  const dbg = (reason: string, extra?: Record<string, unknown>) => {
+    if (!dbgEnabled) return
+    // eslint-disable-next-line no-console
+    console.log('[revisit]', category, checkpointId ?? 'none', '→', reason, extra ?? '')
+  }
+
   const compute = useCallback((): RevisitPopupState | null => {
-    if (!checkpointId) return null
+    if (!checkpointId) { dbg('skip: no checkpointId'); return null }
     const excl = excludeCategories ?? ['CCTV', '화재수신반']
-    if (category && excl.includes(category)) return null
+    if (category && excl.includes(category)) { dbg('skip: excluded category'); return null }
 
     // schedule_items 필터: 'inspect' + inspectionCategory 매칭
     // 방화문→특별피난계단 alias 역매핑 포함
@@ -79,23 +93,54 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
       if (SCHED_ALIAS[ic] && SCHED_ALIAS[ic] === category) return true
       return false
     })
-    if (matches.length === 0) return null
+    if (matches.length === 0) {
+      dbg('skip: no schedule_items matching category', {
+        scheduleItemsCount: scheduleItems.length,
+        inspectCats: scheduleItems.filter(s => s.category === 'inspect').map(s => s.inspectionCategory),
+      })
+      return null
+    }
 
     const meta = monthRecords[checkpointId]
-    if (!meta || !meta.result) return null
+    if (!meta || !meta.result) {
+      dbg('skip: no monthRecord for cp', { hasMeta: !!meta, meta })
+      return null
+    }
 
     const recYmd = toYmd(meta.checkedAt)
-    if (!recYmd) return null
+    if (!recYmd) { dbg('skip: unparseable checkedAt', { checkedAt: meta.checkedAt }); return null }
 
-    // 기록 날짜가 어떤 일정의 [date, endDate ?? date] 구간에 포함되는지
-    const inPeriod = matches.some(s => {
+    // ── 기간 체크: 두 조건 모두 만족해야 함 ──
+    // (1) 기록 날짜가 일정 구간 안에 포함 (원래 정책)
+    // (2) 오늘 날짜가 일정 구간 안에 포함 (Task 5 C2 fix — 현재 활성 점검 기간만)
+    //
+    // 사용자 의도 재확인: "지금 소화전·비상콘센트 점검 기간이다. 이 외 카테고리에서 팝업이
+    // 뜨면 안 된다." → 이번 달 스케줄 item 이어도 이미 끝난 창이면 팝업 미발동.
+    const todayYmd = (() => {
+      const now = new Date()
+      return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
+    })()
+    const activeMatch = matches.find(s => {
       const start = s.date
       const end   = s.endDate ?? s.date
-      return recYmd >= start && recYmd <= end
+      return todayYmd >= start && todayYmd <= end
     })
-    if (!inPeriod) return null
+    if (!activeMatch) {
+      dbg('skip: no active schedule window today', {
+        todayYmd,
+        windows: matches.map(s => `${s.date}~${s.endDate ?? s.date}`),
+      })
+      return null
+    }
+    // 기록 날짜가 "활성 창" 안에 있는지 확인 (정책: 이번 달 점검 기간 내 기록)
+    const inPeriod = recYmd >= activeMatch.date && recYmd <= (activeMatch.endDate ?? activeMatch.date)
+    if (!inPeriod) {
+      dbg('skip: record not in active window', { recYmd, active: `${activeMatch.date}~${activeMatch.endDate ?? activeMatch.date}` })
+      return null
+    }
 
     const isPending = (meta.result === 'bad' || meta.result === 'caution') && meta.status === 'open'
+    dbg(isPending ? 'SHOW pending-action' : 'SHOW completed', { recYmd, todayYmd, result: meta.result, status: meta.status })
     if (isPending) {
       return {
         show:          true,
