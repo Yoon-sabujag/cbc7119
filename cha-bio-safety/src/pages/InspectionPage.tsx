@@ -2896,16 +2896,13 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     return sohwaCPs.length > 0 ? sohwaCPs : floorCPs.filter(cp => cp.category === '비상콘센트')
   }, [isGuideLight, glMarkers, selectedZone, isSohwaGroup, floorCPs])
   // 피커 표시 대상: defaultResult 및 접근불가는 자동 정상 처리라 제외,
-  // 그 외 개소는 완료 여부와 무관하게 포함 (완료된 개소는 ✓ 뱃지 + 선택 시 팝업)
+  // 그 외 개소는 완료 여부와 무관하게 포함 (완료된 개소는 ✓ 뱃지 + 선택 시 팝업).
+  // 유도등 마커도 비-유도등과 동일하게 처리 (완료 마커를 피커에 남겨 재진입 팝업이 뜰 수 있게).
   const pendingCPs = useMemo(() => pickerSourceCPs.filter(cp => {
     if (cp.defaultResult) return false
     if (cp.description?.includes('접근불가')) return false
-    if (isGuideLight) {
-      const mid = cp.id.startsWith('MARKER:') ? cp.id.slice(7) : ''
-      return !markerRecords?.[mid]
-    }
     return true
-  }), [pickerSourceCPs, markerRecords, isGuideLight])
+  }), [pickerSourceCPs])
 
   // 초기 포커스: QR 지정이 있으면 그 개소, 없으면 첫 미완료, 전부 완료면 0
   useEffect(() => {
@@ -2925,10 +2922,12 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
   const currentSelCP = pendingCPs[pickerIdx] ?? null
 
-  // ── 재진입 팝업 (공통 훅) — 유도등은 마커 기반이라 제외 ──
+  // ── 재진입 팝업 (공통 훅) ──
+  // 유도등: cp.id = 'MARKER:{markerId}'. loadTodayRecords 가 monthRecords 에 같은 키로
+  // 엔트리를 병행 적재하므로, 훅에 그대로 넘기면 (가)/(나) 팝업이 동일하게 뜬다.
   const { popupState, dismiss } = useInspectionRevisitPopup({
-    checkpointId: isGuideLight ? null : (currentSelCP?.id ?? null),
-    category:     group.categories[0] ?? null,
+    checkpointId: currentSelCP?.id ?? null,
+    category:     isGuideLight ? '유도등' : (group.categories[0] ?? null),
     monthRecords,
     scheduleItems,
   })
@@ -3866,6 +3865,15 @@ export default function InspectionPage() {
       // 이번 달 전체 기록 (완료 판정 기준)
       // 팝업 우선순위: (나) 주의/불량 + status=open > (가) normal/resolved
       // 같은 체크포인트에 여러 기록이 있으면 pending-action 후보를 우선 선택.
+      // 유도등(마커 기반): 동일 기록을 'MARKER:{markerId}' 키로도 병행 저장하여
+      // InspectionModal 의 마커 피커가 useInspectionRevisitPopup 훅으로 팝업을 띄울 수 있게 한다.
+      const isPending = (e: MonthRecordEntry) =>
+        (e.result === 'bad' || e.result === 'caution') && e.status === 'open'
+      const upsert = (m: Record<string, MonthRecordEntry>, key: string, entry: MonthRecordEntry) => {
+        const prev = m[key]
+        if (!prev) { m[key] = entry; return }
+        if (!isPending(prev) && isPending(entry)) m[key] = entry
+      }
       const monthMap: Record<string, MonthRecordEntry> = {}
       for (const r of monthData) {
         const cpId = (r as any).checkpointId
@@ -3877,12 +3885,10 @@ export default function InspectionPage() {
           recordId:  (r as any).id,
           status:    ((r as any).status ?? 'open') as 'open' | 'resolved',
         }
-        const prev = monthMap[cpId]
-        const isPending = (e: MonthRecordEntry) =>
-          (e.result === 'bad' || e.result === 'caution') && e.status === 'open'
-        if (!prev) { monthMap[cpId] = entry; continue }
-        // 기존이 pending 이면 유지 (우선순위). 기존이 비-pending 이고 새로 들어온 게 pending 이면 교체.
-        if (!isPending(prev) && isPending(entry)) monthMap[cpId] = entry
+        upsert(monthMap, cpId, entry)
+        // 유도등 마커 병행 키
+        const mkId = (r as any).floorPlanMarkerId as string | null
+        if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
       }
       setRecords(map)
       setPrevDayRecords(prevMap)
@@ -3962,13 +3968,20 @@ export default function InspectionPage() {
     const sid = await ensureSession()
     await inspectionApi.submitRecord(sid, { checkpointId: cpId, result, memo: memo.trim() || undefined, photoKey, ...(extra ?? {}) })
     // 로컬 즉시 반영 + DB와 동기화
-    setRecords(prev => ({ ...prev, [cpId]: result }))
-    setMonthRecords(prev => ({ ...prev, [cpId]: {
-      result, checkedAt: new Date().toISOString(),
+    const nowIso = new Date().toISOString()
+    const localEntry: MonthRecordEntry = {
+      result, checkedAt: nowIso,
       staffName: staff?.name ?? undefined,
       // recordId 는 loadTodayRecords() 가 서버 응답으로 채워줌
       status: 'open',
-    }}))
+    }
+    setRecords(prev => ({ ...prev, [cpId]: result }))
+    setMonthRecords(prev => {
+      const next = { ...prev, [cpId]: localEntry }
+      // 유도등 마커 병행 키 — 재진입 팝업 즉시 동작 목적
+      if (extra?.floor_plan_marker_id) next['MARKER:' + extra.floor_plan_marker_id] = localEntry
+      return next
+    })
     setRecordCounts(prev => ({ ...prev, [cpId]: (prev[cpId] ?? 0) + 1 }))
     if (extra?.floor_plan_marker_id) {
       setMarkerRecords(prev => ({ ...prev, [extra.floor_plan_marker_id!]: result }))
