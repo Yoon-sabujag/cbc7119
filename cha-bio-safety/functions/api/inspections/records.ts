@@ -21,7 +21,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const result = await env.DB.prepare(`
     SELECT r.id, r.checkpoint_id, r.result, r.memo, r.photo_key, r.staff_id, r.checked_at,
            r.status, r.resolution_memo, r.resolution_photo_key, r.resolved_at, r.resolved_by,
-           r.guide_light_type, r.floor_plan_marker_id
+           r.guide_light_type, r.floor_plan_marker_id,
+           (SELECT s2.name FROM staff s2 WHERE s2.id = r.staff_id) AS staff_name
     FROM check_records r
     JOIN inspection_sessions s ON s.id = r.session_id
     ${whereSql}
@@ -44,6 +45,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     memo:               r.memo,
     photoKey:           r.photo_key,
     staffId:            r.staff_id,
+    staffName:          r.staff_name ?? null,
     checkedAt:          r.checked_at,
     status:             r.status ?? 'open',
     resolutionMemo:     r.resolution_memo,
