@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-20 - Completed quick task 260420-q10: 관리자 푸시 테스트 발송 기능 추가 (푸시 인프라 전체 정상화 확정)
+Last activity: 2026-04-23 - Completed quick task 260423-dzx: Galaxy S25 Android 레이아웃 버그 수정 (dvh + 근무자 칩 오버플로우)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -137,6 +137,7 @@ None yet.
 | 260420-npr | 검사 기록 탭 기존 UI 제거 (PDF 업로드/민원24 카드/모달 삭제, -985 lines) | 2026-04-20 | d7bec4c | [260420-npr-annual-cleanup](./quick/260420-npr-annual-cleanup/) |
 | 260420-p6l | 검사일정등록 제거 + 모바일 검사기록 연도피커/카드 펼침 (점검기록 패턴) | 2026-04-20 | d13da34 | [260420-p6l-schedule-removal-mobile-picker](./quick/260420-p6l-schedule-removal-mobile-picker/) |
 | 260420-q10 | 관리자 푸시 테스트 발송 기능 (/api/push/test + 설정 버튼 + README) | 2026-04-20 | 7f01d5a | [260420-q10-push-test](./quick/260420-q10-push-test/) |
+| 260423-dzx | Galaxy S25 Android 레이아웃 버그 수정 (Layout dvh → 100%, 근무자 칩 small) | 2026-04-23 | ddd724a | [260423-dzx-galaxy-s25-android-layout-dvh](./quick/260423-dzx-galaxy-s25-android-layout-dvh/) |
 
 ### Blockers/Concerns
 
