@@ -388,12 +388,12 @@ export default function DashboardPage() {
       <main style={{
         flex:1, minHeight:0, overflowY:'auto',
         display:'grid',
-        // Android: row 5(월간 도넛)을 명시적 140px로 고정.
-        // scroll-container 자식의 intrinsic height 0 버그 + minmax()의
-        // Chrome Android 재계산 이슈를 동시에 회피. 1fr(오늘 일정)이
-        // 그만큼 줄어들면서 월간 현황이 일관되게 표시됨.
+        // Android: row 5(월간 도넛)을 minmax(140px, auto)로 최소크기 명시.
+        // scroll-container 자식의 intrinsic height 0 버그로 auto 트랙이 너무
+        // 작게 계산되는 걸 우회. 1fr(오늘 일정)이 그만큼 줄어드는 대신
+        // 월간 현황이 완전히 표시됨.
         gridTemplateRows: IS_ANDROID
-          ? 'auto auto auto 1fr 140px'
+          ? 'auto auto auto 1fr minmax(140px, auto)'
           : 'auto auto auto 1fr auto',
         gap:7, padding:'7px 11px',
       }}>

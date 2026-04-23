@@ -57,13 +57,8 @@
             else if (h >= 700) { v.top = 44; v.bot = 34 }  // 노치 (X~14)
             else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
           }
-          // Android는 Samsung Chrome 등에서 env(safe-area-inset-bottom)가 0으로
-          // 리포트되는 경우 많음 → BottomNav 버튼과 시스템 제스처바 간 최소 갭만 확보
-          if (v.bot === 0 && /Android/i.test(navigator.userAgent)) {
-            v.bot = 12
-          }
           apply(v.top, v.bot)
-          return v.top > 0 || v.bot > 0
+          return v.top > 0
         }
 
         measure()
