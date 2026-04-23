@@ -14,6 +14,7 @@ import { InspectionRevisitPopup } from '../components/InspectionRevisitPopup'
 import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useInspectionRevisitPopup'
 import type { ScheduleItem } from '../types'
+import { computeCardCompletion } from '../utils/inspectionProgress'
 
 const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -4349,13 +4350,28 @@ export default function InspectionPage() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
               {CATEGORY_GROUPS.map((g, idx) => {
                 const isGL    = g.categories.includes('유도등')
-                // DIV/컴프레셔는 회당 2일 연속 점검 주기라 전일(및 전전일) 기록도 완료로 인정
-                const isMultiDay = g.categories.includes('DIV') || g.categories.includes('컴프레셔')
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const total   = isGL ? glMarkerCount : cps.length
-                const doneCnt = isGL
-                  ? Object.keys(markerRecords).length
-                  : cps.filter(cp => records[cp.id] || (isMultiDay && prevDayRecords[cp.id]) || cp.defaultResult || cp.description?.includes('[접근불가]')).length
+                // 카드 완료 판정은 대시보드와 동일 기준 (DISTINCT checkpoint_id + 자동완료).
+                // 유도등은 오늘을 포함하는 inspect 일정의 status='done' 이면 100% 바이패스,
+                // 아니면 markerRecords 기반 카운트. DIV/컴프레셔/소화전/비상콘센트/소화기는
+                // attribution window 기반 (computeCardCompletion 내부).
+                const todayKST = (() => {
+                  const n = new Date()
+                  return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`
+                })()
+                let doneCnt: number
+                if (isGL) {
+                  const glSchedDone = scheduleItems.some(s =>
+                    s.category === 'inspect' &&
+                    s.inspectionCategory === '유도등' &&
+                    s.status === 'done' &&
+                    s.date <= todayKST && (s.endDate ?? s.date) >= todayKST
+                  )
+                  doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
+                } else {
+                  doneCnt = computeCardCompletion({ cps, today: todayKST, records, monthRecords, scheduleItems })
+                }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
                 return (
