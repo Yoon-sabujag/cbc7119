@@ -37,9 +37,10 @@ export function InspectionRevisitPopup({
   const who = inspectorName || '—'
   const when = fmtDateTime(checkedAt)
 
+  // 문구 — 존칭 일관성 "에 의해" + 줄바꿈(\n) 반영
   const message = variant === 'completed'
-    ? `${when}에 ${who}이 이미 점검한 개소입니다.`
-    : `${when}에 ${who}에 의해 조치 대기중인 개소입니다. 조치 내용을 입력하시겠습니까?`
+    ? `${when}에 ${who}에 의해\n이미 점검한 개소입니다.`
+    : `${when}에 ${who}에 의해\n조치 대기중인 개소입니다.\n조치 내용을 입력하시겠습니까?`
 
   return (
     <div style={{
@@ -49,7 +50,7 @@ export function InspectionRevisitPopup({
       gap:10, padding:20,
     }}>
       <div style={{ fontSize:32 }}>⚠️</div>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.55 }}>
+      <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
         {message}
       </div>
 
