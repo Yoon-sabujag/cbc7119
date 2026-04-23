@@ -508,7 +508,7 @@ export default function DashboardPage() {
           {monthly.length === 0 ? (
             <div style={{ padding:'14px 0', textAlign:'center', fontSize:11, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
           ) : (
-            <div style={{ padding:'8px 10px 10px', display:'flex', flexWrap:'wrap', gap:12, justifyContent:'space-around' }}>
+            <div style={{ overflowX:'auto', overflowY:'hidden', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, height:118 }}>
               {monthly.map((m, i) => (
                 <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
                   <Donut pct={m.pct} color={m.color} size={44} />
