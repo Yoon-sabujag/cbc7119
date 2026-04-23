@@ -3889,6 +3889,9 @@ export default function InspectionPage() {
   // 팝업 판정에 checkedAt/staffName/recordId/status 가 필요해서 엔트리 맵으로 확장.
   // 기존 `monthRecords[cpId]` 는 truthy 체크로만 사용 중이라 호환 유지.
   const [monthRecords,     setMonthRecords]     = useState<Record<string, MonthRecordEntry>>({})
+  // 당월 normal/caution 기록을 cp.id 별 날짜 배열로 보관 — 카드 완료 카운트용.
+  // 대시보드 월간 카드와 동일 기준(DISTINCT checkpoint_id + result in normal/caution).
+  const [monthRecordDates, setMonthRecordDates] = useState<Record<string, string[]>>({})
   const [recordCounts,     setRecordCounts]     = useState<Record<string, number>>({})
   const [markerRecords,    setMarkerRecords]    = useState<Record<string, CheckResult>>({})
   const [recordMeta,       setRecordMeta]       = useState<Record<string, RecordMeta>>({})
@@ -3969,6 +3972,8 @@ export default function InspectionPage() {
         if (!isPending(prev) && isPending(entry)) m[key] = entry
       }
       const monthMap: Record<string, MonthRecordEntry> = {}
+      // 카드 완료 카운트용 — cp.id 별 당월 normal/caution 기록 날짜 배열
+      const monthDatesMap: Record<string, string[]> = {}
       for (const r of monthData) {
         const cpId = (r as any).checkpointId
         if (!cpId) continue
@@ -3990,10 +3995,20 @@ export default function InspectionPage() {
         // 유도등 마커 병행 키 — 기록(result 유효) 있을 때만 적재
         const mkId = (r as any).floorPlanMarkerId as string | null
         if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
+
+        // 대시보드와 동일한 완료 기준(normal/caution) 으로 날짜 인덱스 구축
+        if (rawResult === 'normal' || rawResult === 'caution') {
+          const checkedAt = entry.checkedAt
+          if (checkedAt) {
+            if (!monthDatesMap[cpId]) monthDatesMap[cpId] = []
+            monthDatesMap[cpId].push(checkedAt.slice(0, 10))
+          }
+        }
       }
       setRecords(map)
       setPrevDayRecords(prevMap)
       setMonthRecords(monthMap)
+      setMonthRecordDates(monthDatesMap)
       setRecordCounts(counts)
       setMarkerRecords(markerMap)
       setRecordMeta(meta)
@@ -4083,6 +4098,14 @@ export default function InspectionPage() {
       if (extra?.floor_plan_marker_id) next['MARKER:' + extra.floor_plan_marker_id] = localEntry
       return next
     })
+    // 카드 완료 카운트도 서버 응답 전 반영 (대시보드와 동일: normal/caution 만)
+    if (result === 'normal' || result === 'caution') {
+      setMonthRecordDates(prev => {
+        const next = { ...prev }
+        next[cpId] = [...(next[cpId] ?? []), nowIso.slice(0, 10)]
+        return next
+      })
+    }
     setRecordCounts(prev => ({ ...prev, [cpId]: (prev[cpId] ?? 0) + 1 }))
     if (extra?.floor_plan_marker_id) {
       setMarkerRecords(prev => ({ ...prev, [extra.floor_plan_marker_id!]: result }))
@@ -4372,7 +4395,7 @@ export default function InspectionPage() {
                   )
                   doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
                 } else {
-                  doneCnt = computeCardCompletion({ cps, today: todayKST, records, monthRecords, scheduleItems })
+                  doneCnt = computeCardCompletion({ cps, today: todayKST, monthRecordDates, scheduleItems })
                 }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
