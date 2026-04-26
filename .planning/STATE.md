@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-26 - Fast fix: api.ts 콜드 스타트 첫 저장 실패 회복 (fetch reject retry + JSON parse 안전화, 838dcdc)
+Last activity: 2026-04-26 - feat: telemetry_events 테이블 + /api/_telemetry/cold-retry endpoint (콜드 스타트 첫 저장 실패 자동 진단 인프라, 9c4b572 + migration 0073)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
