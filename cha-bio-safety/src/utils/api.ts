@@ -11,8 +11,27 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { token } = useAuthStore.getState()
   const headers: Record<string,string> = { 'Content-Type':'application/json', ...(init.headers as Record<string,string>) }
   if (token) headers['Authorization'] = `Bearer ${token}`
-  const res  = await fetch(`${BASE}${path}`, { ...init, headers })
-  const json = await res.json() as { success: boolean; data?: T; error?: string }
+
+  // 콜드 스타트 시 SW lifecycle race / 일시 네트워크 fail 회복용:
+  // fetch 자체가 reject (응답 미수신 = 서버 미도달) 한 경우만 1회 자동 retry.
+  // 응답 받은 후 4xx/5xx 는 retry 안 함 — POST/PUT 중복 저장 방지.
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, { ...init, headers })
+  } catch {
+    await new Promise(r => setTimeout(r, 200))
+    res = await fetch(`${BASE}${path}`, { ...init, headers })
+  }
+
+  // 응답 body 가 JSON 이 아닌 케이스 (Cloudflare HTML 에러 페이지, 빈 응답, SW
+  // 가 가로챈 fallback 등) 안전화 — SyntaxError 가 호출부로 새지 않게.
+  let json: { success: boolean; data?: T; error?: string }
+  try {
+    json = await res.json() as { success: boolean; data?: T; error?: string }
+  } catch {
+    throw new ApiError(res.status, `응답 파싱 실패 (status ${res.status})`)
+  }
+
   if (!res.ok || !json.success) {
     // 로그인 엔드포인트에서의 401은 리다이렉트 없이 에러만 throw (잘못된 비밀번호 등)
     if (res.status === 401 && !path.includes('/auth/login')) { useAuthStore.getState().logout(); window.location.href = '/login' }
