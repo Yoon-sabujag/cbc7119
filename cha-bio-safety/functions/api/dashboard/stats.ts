@@ -95,7 +95,8 @@ async function calcStreakDays(env: { DB: D1Database }, today: string): Promise<n
             WHERE cp.category = ?
               AND date(cr.checked_at) >= ?
               AND date(cr.checked_at) < ?
-              AND cr.result IN ('normal','caution')
+              -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+              AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
             LIMIT 1
           `).bind(cpCat, date, nextDate).first()
         } else {
@@ -104,7 +105,8 @@ async function calcStreakDays(env: { DB: D1Database }, today: string): Promise<n
             JOIN check_points cp ON cr.checkpoint_id = cp.id
             WHERE cp.category = ?
               AND date(cr.checked_at) >= ?
-              AND cr.result IN ('normal','caution')
+              -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+              AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
             LIMIT 1
           `).bind(cpCat, date).first()
         }
@@ -185,7 +187,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         `SELECT COUNT(DISTINCT cr.checkpoint_id) as n
          FROM check_records cr
          JOIN check_points cp ON cr.checkpoint_id=cp.id
-         WHERE cp.category=? AND cr.result IN ('normal','caution')
+         -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+         WHERE cp.category=? AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
            AND date(cr.checked_at) BETWEEN ? AND ?`
       ).bind(cat, blockStart, today).first<{ n: number }>()
       const autoQ = await env.DB.prepare(
@@ -310,7 +313,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           JOIN check_points cp ON cr.checkpoint_id = cp.id
           WHERE cp.category = ?
             AND date(cr.checked_at) BETWEEN ? AND ?
-            AND cr.result IN ('normal','caution')
+            -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+            AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
           LIMIT 1
         `).bind(cpCategory, monthStart, monthEnd).first()
         const isDone = (schedDone?.n ?? 0) > 0 || !!hasRecord
@@ -331,7 +335,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         FROM check_records cr
         JOIN check_points cp ON cr.checkpoint_id=cp.id
         WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
-          AND cr.result IN ('normal','caution')
+          -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+          AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
       `).bind(cpCategory, monthStart, monthEnd).first<{n:number}>()
       const autoN = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%') AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
@@ -414,7 +419,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
                   WHERE cp.category = ?
                     AND date(cr.checked_at) >= ?
                     AND date(cr.checked_at) < ?
-                    AND cr.result IN ('normal','caution')
+                    -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+                    AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
                   LIMIT 1
                 `).bind(cpCat, r.date, nextSched.date).first()
               } else {
@@ -424,7 +430,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
                   JOIN check_points cp ON cr.checkpoint_id = cp.id
                   WHERE cp.category = ?
                     AND date(cr.checked_at) >= ?
-                    AND cr.result IN ('normal','caution')
+                    -- 260426-f54: 완료 = normal | caution | (bad + resolved)
+                    AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
                   LIMIT 1
                 `).bind(cpCat, r.date).first()
               }
