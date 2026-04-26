@@ -94,7 +94,7 @@ const EMPTY_CP_FORM: CpFormState = {
 const ZONE_FLOORS: Record<string, string[]> = {
   office: ['8-1F', '8F', '7F', '6F', '5F', '3F', '2F', '1F'],
   research: ['8-1F', '8F', '7F', '6F', '5F', '3F', '2F', '1F'],
-  common: ['B1F', 'M', 'B2F', 'B3F', 'B4F', 'B5F'],
+  common: ['B1', 'M', 'B2', 'B3', 'B4', 'B5'],
 }
 
 interface ExtState {

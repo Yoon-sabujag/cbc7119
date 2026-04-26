@@ -27,13 +27,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (/^\d-\d$/.test(extFloor)) extFloor = '0' + extFloor[0] // '8-1' -> '08'
   else if (/^\d$/.test(extFloor)) extFloor = '0' + extFloor   // '7' -> '07'
 
+  // 지하층(B prefix) 은 zone='지' 컨벤션 강제 (UI 의 common→공 매핑 회피)
+  const extZone = /^B\d/i.test(extFloor) ? '지' : body.zone
+
   // 다음 seq_no / id 계산
   const maxSeq = await env.DB.prepare('SELECT MAX(seq_no) as m FROM extinguishers').first<{ m: number }>()
   const nextSeq = (maxSeq?.m ?? 0) + 1
   const cpId = `CP-FE-${String(nextSeq).padStart(4, '0')}`
 
   // 관리번호 자동 생성: zone-floor-번호
-  const mgmtPrefix = `${body.zone}-${extFloor}`
+  const mgmtPrefix = `${extZone}-${extFloor}`
   const maxMgmt = await env.DB.prepare(
     `SELECT mgmt_no FROM extinguishers WHERE mgmt_no LIKE ? ORDER BY mgmt_no DESC LIMIT 1`
   ).bind(`${mgmtPrefix}-%`).first<{ mgmt_no: string }>()
@@ -73,7 +76,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     `INSERT INTO extinguishers (id, check_point_id, seq_no, zone, floor, mgmt_no, location, type, approval_no, manufactured_at, manufacturer, prefix_code, seal_no, serial_no, note)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    nextSeq, cpId, nextSeq, body.zone, extFloor, mgmtNo, body.location, body.type,
+    nextSeq, cpId, nextSeq, extZone, extFloor, mgmtNo, body.location, body.type,
     body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null,
     body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null, body.note ?? null
   ).run()
