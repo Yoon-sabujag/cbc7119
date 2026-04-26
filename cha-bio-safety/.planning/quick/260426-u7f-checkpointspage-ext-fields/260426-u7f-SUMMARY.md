@@ -1,4 +1,5 @@
 ---
+status: complete
 phase: 260426-u7f
 plan: 01
 subsystem: checkpoints

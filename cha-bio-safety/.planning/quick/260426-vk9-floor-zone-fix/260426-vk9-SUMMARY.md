@@ -1,5 +1,5 @@
 ---
-status: incomplete
+status: complete
 phase: 260426-vk9-floor-zone-fix
 plan: 01
 subsystem: extinguisher-add
