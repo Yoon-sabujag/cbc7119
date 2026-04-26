@@ -3114,8 +3114,10 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     const firstIdx = pendingCPs.findIndex(cp => isIncomplete(cp, skipCpId))
     if (firstIdx >= 0) { setPickerIdx(firstIdx); return }
     if (selectedFloor && selectedZone) {
-      const nextFloor = availableFloors.find(f => {
-        if (f === selectedFloor) return false
+      // forward-only: 현재 층보다 뒤(availableFloors index 큰 쪽) 의 incomplete 층만 탐색.
+      // 이전 층의 잔여 incomplete 는 자동 복귀하지 않음 — 사용자 수동 탐색 (260427).
+      const currFloorIdx = availableFloors.indexOf(selectedFloor)
+      const nextFloor = (currFloorIdx >= 0 ? availableFloors.slice(currFloorIdx + 1) : []).find(f => {
         const fCPs = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
         return fCPs.some(cp => isIncomplete(cp, skipCpId))
       })
