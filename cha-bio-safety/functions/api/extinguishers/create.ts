@@ -65,27 +65,28 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
   const qrCode = `QR-${zoneChar}-${body.floor.replace(/F$/i, '')}-${String(qrSeq).padStart(2, '0')}`
 
-  // check_points INSERT — zone은 영문으로 변환 (CHECK 제약조건)
+  // check_points INSERT — zone은 영문으로 변환 (CHECK 제약조건). location_no=mgmt_no (기존 seed 컨벤션 일치).
+  // env.DB.batch 로 묶어 한 INSERT 가 실패하면 둘 다 롤백 → orphan check_points 방지.
   const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '공': 'common' }
   const zoneEn = zoneEnMap[body.zone] ?? body.zone
-  await env.DB.prepare(
-    `INSERT INTO check_points (id, qr_code, floor, zone, location, category, prefix_char, cert_no, serial_no, ext_type, approval_no, mfg_date, manufacturer)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    cpId, qrCode, body.floor, zoneEn, body.location, category,
-    body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null,
-    body.type, body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null
-  ).run()
-
-  // extinguishers INSERT
-  await env.DB.prepare(
-    `INSERT INTO extinguishers (id, check_point_id, seq_no, zone, floor, mgmt_no, location, type, approval_no, manufactured_at, manufacturer, prefix_code, seal_no, serial_no, note)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).bind(
-    nextSeq, cpId, nextSeq, extZone, extFloor, mgmtNo, body.location, body.type,
-    body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null,
-    body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null, body.note ?? null
-  ).run()
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO check_points (id, qr_code, floor, zone, location, location_no, category, prefix_char, cert_no, serial_no, ext_type, approval_no, mfg_date, manufacturer)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      cpId, qrCode, body.floor, zoneEn, body.location, mgmtNo, category,
+      body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null,
+      body.type, body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null
+    ),
+    env.DB.prepare(
+      `INSERT INTO extinguishers (id, check_point_id, seq_no, zone, floor, mgmt_no, location, type, approval_no, manufactured_at, manufacturer, prefix_code, seal_no, serial_no, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      nextSeq, cpId, nextSeq, extZone, extFloor, mgmtNo, body.location, body.type,
+      body.approval_no ?? null, body.manufactured_at ?? null, body.manufacturer ?? null,
+      body.prefix_code ?? null, body.seal_no ?? null, body.serial_no ?? null, body.note ?? null
+    ),
+  ])
 
   return Response.json({ success: true, data: { checkPointId: cpId, mgmtNo: mgmtNo } })
 }

@@ -697,6 +697,7 @@ export default function FloorPlanPage() {
     if (!addModal) return
     // 소화기 새로 등록 모드
     if (planType === 'extinguisher' && addExtMode === 'new') {
+      if (!addZone) { toast.error('구역을 선택하세요'); return }
       if (!newExt.location) { toast.error('위치를 입력하세요'); return }
       setAddSubmitting(true)
       try {
@@ -1349,6 +1350,26 @@ export default function FloorPlanPage() {
                     <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
                   </>
                 ) : (
+                  <>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역 *</div>
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                    {([
+                      { key: 'research', label: '연구동' },
+                      { key: 'office',   label: '사무동' },
+                      { key: 'common',   label: '지하'   },
+                    ] as const).map(z => (
+                      <button
+                        key={z.key}
+                        onClick={() => setAddZone(z.key)}
+                        style={{
+                          flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
+                          color: addZone === z.key ? '#fff' : 'var(--t2)',
+                          border: addZone === z.key ? 'none' : '1px solid var(--bd)',
+                        }}
+                      >{z.label}</button>
+                    ))}
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginBottom: 14 }}>
                     <div style={{ gridColumn: '1 / -1' }}>
                       <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>위치 *</div>
@@ -1386,6 +1407,7 @@ export default function FloorPlanPage() {
                         style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
                     </div>
                   </div>
+                  </>
                 )}
               </>
               )
