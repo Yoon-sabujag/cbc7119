@@ -40,6 +40,12 @@ function localYMD(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** 전날의 로컬 YMD (월/연 경계 안전) */
+function prevYMD(date: Date): string {
+  const p = new Date(date.getFullYear(), date.getMonth(), date.getDate() - 1)
+  return localYMD(p)
+}
+
 const SHIFT_LABEL: Record<RawShift, string> = { '당': '당', '비': '비', '주': '주', '휴': '휴' }
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
@@ -590,11 +596,13 @@ export default function StaffServicePage() {
       const dow = date.getDay()
       const raw = getRawShift(staffId, date)
       const leaveType = myLeaveMap[ymd]?.type
-      const provided = calcProvidedMeals(raw, leaveType, dow)
+      const isHoliday = !!holidayMap[ymd]
+      const isPrevDayHoliday = !!holidayMap[prevYMD(date)]
+      const provided = calcProvidedMeals(raw, leaveType, dow, isHoliday, isPrevDayHoliday)
       const skipped = mealMap[ymd] ?? 0
       totalProvided += provided
       totalSkipped += Math.min(skipped, provided)
-      totalAllowance += calcWeekendAllowance(raw, dow)
+      totalAllowance += calcWeekendAllowance(raw, dow, isHoliday, isPrevDayHoliday)
     }
 
     return {
@@ -603,7 +611,7 @@ export default function StaffServicePage() {
       totalSkipped,
       totalAllowance,
     }
-  }, [year, month, staffId, myLeaveMap, mealMap])
+  }, [year, month, staffId, myLeaveMap, mealMap, holidayMap])
 
   // ── Calendar days ─────────────────────────────────────────
   const calendarDays = useMemo(() => {
@@ -614,14 +622,14 @@ export default function StaffServicePage() {
 
     const days: Array<{
       date: Date | null; ymd: string; day: number; dow: number
-      isToday: boolean; isHoliday: boolean; holidayName: string; isWeekend: boolean
+      isToday: boolean; isHoliday: boolean; isPrevDayHoliday: boolean; holidayName: string; isWeekend: boolean
       rawShift: RawShift; myLeave: LeaveItem | null
       teamLeaveList: LeaveItem[]; skipped: number; provided: number
       hasInspect: boolean
     }> = []
 
     for (let i = 0; i < startDow; i++) {
-      days.push({ date: null, ymd: '', day: 0, dow: -1, isToday: false, isHoliday: false, holidayName: '', isWeekend: false, rawShift: '휴', myLeave: null, teamLeaveList: [], skipped: 0, provided: 0, hasInspect: false })
+      days.push({ date: null, ymd: '', day: 0, dow: -1, isToday: false, isHoliday: false, isPrevDayHoliday: false, holidayName: '', isWeekend: false, rawShift: '휴', myLeave: null, teamLeaveList: [], skipped: 0, provided: 0, hasInspect: false })
     }
 
     for (let d = 1; d <= lastDay.getDate(); d++) {
@@ -630,11 +638,14 @@ export default function StaffServicePage() {
       const dow = date.getDay()
       const raw = getRawShift(staffId, date)
       const myLeave = myLeaveMap[ymd] ?? null
-      const provided = calcProvidedMeals(raw, myLeave?.type, dow)
+      const isHoliday = !!holidayMap[ymd]
+      const isPrevDayHoliday = !!holidayMap[prevYMD(date)]
+      const provided = calcProvidedMeals(raw, myLeave?.type, dow, isHoliday, isPrevDayHoliday)
       days.push({
         date, ymd, day: d, dow,
         isToday: ymd === todayYMD,
-        isHoliday: !!holidayMap[ymd],
+        isHoliday,
+        isPrevDayHoliday,
         holidayName: holidayMap[ymd] ?? '',
         isWeekend: dow === 0 || dow === 6,
         rawShift: raw,
@@ -646,7 +657,7 @@ export default function StaffServicePage() {
       })
     }
     return days
-  }, [year, month, staffId, myLeaveMap, teamLeaveMap, mealMap, inspectDates, today])
+  }, [year, month, staffId, myLeaveMap, teamLeaveMap, mealMap, inspectDates, today, holidayMap])
 
   // ── Handlers ──────────────────────────────────────────────
   function prevMonth() {
@@ -1026,7 +1037,7 @@ export default function StaffServicePage() {
 
       {/* 주말 식대 */}
       {(() => {
-        const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow)
+        const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
         if (allow > 0) return (
           <div style={{ padding: '10px 14px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
             <span style={{ fontSize: 12, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
@@ -1673,7 +1684,7 @@ export default function StaffServicePage() {
 
             {/* Weekend allowance info */}
             {(() => {
-              const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow)
+              const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
               if (allow > 0) return (
                 <div style={{ marginBottom: 16, padding: '8px 12px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
                   <span style={{ fontSize: 11, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
