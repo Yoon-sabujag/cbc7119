@@ -50,7 +50,7 @@ $global:GROUPS = @(
     @{ name="5. 승강기 관련"; items=@(
         @{ key="elev_cert";       label="검사결과 및 성적서"; pattern='^PLACEHOLDER_ELEV_CERT$';                                      yearG=0; monthG=0 }
         @{ key="elev_periodic";   label="정기 점검";          pattern='^VFM_Maintenance.*\.pdf$';                                    yearG=0; monthG=0 }
-        @{ key="elev_quotation";  label="견적서";             pattern='^.*Quotation.*_(\d{4})(\d{2})\d{2}\d{6}\.pdf$';               yearG=1; monthG=2 }
+        @{ key="elev_quotation";  label="견적서";             pattern='^.*Quotation.*?(?:_(\d{4})(\d{2})\d{2}\d{6})?\.pdf$';         yearG=1; monthG=2 }
     )}
     @{ name="6. QR 코드"; items=@(
         @{ key="qr_ext_insp";   label="소화기점검용";       pattern='^소화기_점검용_QR\.pdf$';                                        yearG=0; monthG=0 }
