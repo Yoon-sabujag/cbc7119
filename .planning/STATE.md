@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-26 - Completed quick task 260426-f54 (점검 "완료" 정의 통일 — bad+resolved 인정)
+Last activity: 2026-04-26 - Fast fix: 접근불가 매칭 패턴 통일 (대괄호 유무 무관 includes/LIKE 매칭, 691c31a)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
