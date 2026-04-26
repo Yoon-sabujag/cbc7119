@@ -7,6 +7,27 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); this.name = 'ApiError' }
 }
 
+// 진단 telemetry — fire-and-forget. req() 를 거치지 않는 raw fetch 라서
+// retry 루프에 휘말리지 않음. 실패해도 무시 (.catch / try-catch).
+function reportTelemetry(eventType: string, path: string, status: number | null) {
+  try {
+    const staffId = useAuthStore.getState().staff?.id ?? null
+    fetch(`${BASE}/_telemetry/cold-retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ts:         new Date().toISOString(),
+        event_type: eventType,
+        path,
+        status,
+        staff_id:   staffId,
+        user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      }),
+      keepalive: true,
+    }).catch(() => {})
+  } catch { /* ignore */ }
+}
+
 async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { token } = useAuthStore.getState()
   const headers: Record<string,string> = { 'Content-Type':'application/json', ...(init.headers as Record<string,string>) }
@@ -16,12 +37,17 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   // fetch 자체가 reject (응답 미수신 = 서버 미도달) 한 경우만 1회 자동 retry.
   // 응답 받은 후 4xx/5xx 는 retry 안 함 — POST/PUT 중복 저장 방지.
   let res: Response
+  let didRetry = false
   try {
     res = await fetch(`${BASE}${path}`, { ...init, headers })
   } catch {
+    didRetry = true
     await new Promise(r => setTimeout(r, 200))
     res = await fetch(`${BASE}${path}`, { ...init, headers })
   }
+
+  // retry 가 실제로 발생했으면 진단용으로 telemetry 보고
+  if (didRetry) reportTelemetry('cold-retry', path, res.status)
 
   // 응답 body 가 JSON 이 아닌 케이스 (Cloudflare HTML 에러 페이지, 빈 응답, SW
   // 가 가로챈 fallback 등) 안전화 — SyntaxError 가 호출부로 새지 않게.
@@ -29,6 +55,7 @@ async function req<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     json = await res.json() as { success: boolean; data?: T; error?: string }
   } catch {
+    reportTelemetry('json-parse-fail', path, res.status)
     throw new ApiError(res.status, `응답 파싱 실패 (status ${res.status})`)
   }
 
