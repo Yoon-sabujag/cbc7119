@@ -154,10 +154,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         )
     `).bind(today).first<{n:number}>()
 
-    // 오늘 inspect 일정이 걸린 카테고리마다, 해당 카테고리의 "오늘 포함 연속 일정 블록"
-    // 시작일부터 오늘까지의 범위로 완료 개소를 집계한다.
-    // 예: 소화전이 4/22·4/23·4/24 세 날짜에 연속 등록돼 있고 오늘이 4/24면
-    //     block=[4/22, 4/24] 로 합산 → 월간 카드(97%)와 수치 정합.
+    // 오늘 inspect 일정이 걸린 카테고리마다 이번 달 전체 윈도우로 완료 개소를 집계.
+    // 260427: 직전 "연속 블록" 기준은 비연속 일정에서 오늘만 포함되어 월간 카드와 어긋나는
+    // 문제(예: 소화기 4/27 단일 일정 시 오늘만 카운트)가 있어 monthStart..monthEnd 로 통일.
+    // 월간 카드(monthlyItems) 및 점검 페이지 카테고리 카드와 동일한 윈도우.
+    const _monthStart = `${today.slice(0,7)}-01`
+    const _monthEnd   = (() => {
+      const [y, m] = today.split('-').map(Number)
+      const lastDay = new Date(y, m, 0).getDate()
+      return `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
+    })()
     const todayCats = await env.DB.prepare(
       `SELECT DISTINCT inspection_category FROM schedule_items
        WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL`
@@ -166,23 +172,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     let inspDoneN = 0
     for (const row of (todayCats.results ?? [])) {
       const cat = row.inspection_category
-      // 같은 카테고리의 직전 30일치 일정 날짜 수집 후 오늘로부터 연속 블록 시작일 계산
-      const prevDates = await env.DB.prepare(
-        `SELECT date FROM schedule_items
-         WHERE category='inspect' AND inspection_category=?
-           AND date <= ? AND date >= date(?, '-30 days')`
-      ).bind(cat, today, today).all<{ date: string }>()
-      const dateSet = new Set((prevDates.results ?? []).map(r => r.date))
-      let blockStart = today
-      // 달력 기준 연속 — 하루 전날 같은 카테고리 일정이 있으면 블록 확장
-      while (true) {
-        const d = new Date(blockStart + 'T00:00:00Z')
-        d.setUTCDate(d.getUTCDate() - 1)
-        const prev = d.toISOString().slice(0, 10)
-        if (dateSet.has(prev)) blockStart = prev
-        else break
-      }
-
       const recQ = await env.DB.prepare(
         `SELECT COUNT(DISTINCT cr.checkpoint_id) as n
          FROM check_records cr
@@ -190,7 +179,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
          -- 260426-f54: 완료 = normal | caution | (bad + resolved)
          WHERE cp.category=? AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
            AND date(cr.checked_at) BETWEEN ? AND ?`
-      ).bind(cat, blockStart, today).first<{ n: number }>()
+      ).bind(cat, _monthStart, _monthEnd).first<{ n: number }>()
       const autoQ = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points cp
          WHERE cp.is_active=1 AND cp.category=?
@@ -199,7 +188,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
              SELECT checkpoint_id FROM check_records
              WHERE date(checked_at) BETWEEN ? AND ?
            )`
-      ).bind(cat, blockStart, today).first<{ n: number }>()
+      ).bind(cat, _monthStart, _monthEnd).first<{ n: number }>()
       inspDoneN += (recQ?.n ?? 0) + (autoQ?.n ?? 0)
     }
     const inspDone = { n: inspDoneN }
