@@ -1,7 +1,8 @@
 import type { CheckPoint } from '../types'
 
 // 대시보드 월간 카드와 동일 기준의 완료 개수 계산 (모바일 일반점검 카드용).
-// - cp.defaultResult 또는 description '[접근불가]' 는 자동 완료
+// - cp.defaultResult 또는 description 에 '접근불가' 포함 시 자동 완료
+//   ('[접근불가]' 대괄호 형태와 '접근불가' 단순 형태 모두 인식 — includes 매칭)
 // - 그 외에는 당월 완료된 점검(normal | caution | bad+resolved) 기록이 하나라도 있으면 완료
 // - monthRecordDates: cp.id → 당월 완료 기록들의 YYYY-MM-DD 배열
 //   (호출자가 InspectionPage 라인 4014 에서 같은 룰로 채워야 정합) (260426-f54)
@@ -19,7 +20,7 @@ export function computeCardCompletion(options: {
   const completedIds = new Set<string>()
 
   for (const cp of cps) {
-    if (cp.defaultResult || cp.description?.includes('[접근불가]')) {
+    if (cp.defaultResult || cp.description?.includes('접근불가')) {
       completedIds.add(cp.id)
       continue
     }

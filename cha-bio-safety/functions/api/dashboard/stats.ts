@@ -194,7 +194,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       const autoQ = await env.DB.prepare(
         `SELECT COUNT(*) as n FROM check_points cp
          WHERE cp.is_active=1 AND cp.category=?
-           AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%')
+           AND (cp.default_result IS NOT NULL OR cp.description LIKE '%접근불가%')
            AND cp.id NOT IN (
              SELECT checkpoint_id FROM check_records
              WHERE date(checked_at) BETWEEN ? AND ?
@@ -339,7 +339,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
       `).bind(cpCategory, monthStart, monthEnd).first<{n:number}>()
       const autoN = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND (cp.default_result IS NOT NULL OR cp.description LIKE '%[접근불가]%') AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
+        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND (cp.default_result IS NOT NULL OR cp.description LIKE '%접근불가%') AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
       ).bind(cpCategory, cpCategory, monthStart, monthEnd).first<{n:number}>()
 
       const total = cpTotal

@@ -2972,7 +2972,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         return !!markerRecords?.[mid]
       }).length
     : pickerSourceCPs.filter(cp =>
-        monthRecords[cp.id] || cp.defaultResult || cp.description?.includes('[접근불가]')
+        monthRecords[cp.id] || cp.defaultResult || cp.description?.includes('접근불가')
       ).length
   // (H1 — '이 층 점검 완료' 배너/플래그 제거. 개소 카드의 doneCount/totalCount 표기만 유지.)
 
