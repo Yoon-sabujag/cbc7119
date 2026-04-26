@@ -31,8 +31,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const extZone = /^B\d/i.test(extFloor) ? '지' : body.zone
 
   // 다음 seq_no / id 계산
-  const maxSeq = await env.DB.prepare('SELECT MAX(seq_no) as m FROM extinguishers').first<{ m: number }>()
-  const nextSeq = (maxSeq?.m ?? 0) + 1
+  // 주의: cascade 삭제(quick-260426-rzy)는 ext 행만 삭제하고 check_points 는 is_active=0 으로 보존(점검 기록 무결성).
+  // 그래서 check_points 의 CP-FE-NNNN suffix 최대값도 고려해야 cpId 가 기존 soft-deleted CP 와 충돌하지 않음.
+  const maxExtSeq = (await env.DB.prepare('SELECT MAX(seq_no) as m FROM extinguishers').first<{ m: number }>())?.m ?? 0
+  const maxCpRow = await env.DB.prepare(
+    `SELECT id FROM check_points WHERE id LIKE 'CP-FE-%' ORDER BY id DESC LIMIT 1`
+  ).first<{ id: string }>()
+  const maxCpSeq = maxCpRow?.id ? parseInt(maxCpRow.id.split('-').pop()!, 10) || 0 : 0
+  const nextSeq = Math.max(maxExtSeq, maxCpSeq) + 1
   const cpId = `CP-FE-${String(nextSeq).padStart(4, '0')}`
 
   // 관리번호 자동 생성: zone-floor-번호
