@@ -2,13 +2,17 @@ import type { ShiftType } from '../types'
 
 // ── 공휴일 판정 ─────────────────────────────────────────
 import { isHoliday as _isHolidayKr } from '@hyunbinseo/holidays-kr'
+import { isFallbackHoliday } from './holidays'
 
 export function isKoreanHolidayOrWeekend(date: Date): boolean {
   const dow = date.getDay()
   if (dow === 0 || dow === 6) return true
+  // 1) 한국 법정공휴일 라이브러리
   try {
-    return _isHolidayKr(new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0))
-  } catch { return false }
+    if (_isHolidayKr(new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0))) return true
+  } catch { /* fall through */ }
+  // 2) 라이브러리가 누락하는 케이스 (예: 근로자의 날) 는 fallback 으로 보완
+  return isFallbackHoliday(date)
 }
 
 // ── 기준일 (3교대 사이클 기준점) ─────────────────────────
