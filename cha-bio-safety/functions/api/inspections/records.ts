@@ -29,9 +29,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     ORDER BY r.checked_at DESC
   `).bind(...binds).all<Record<string,unknown>>()
 
-  // 마커가 있으면 marker_id 기준, 없으면 checkpoint_id 기준 최신 1건만 유지
+  // 월 조회는 cycle window 매칭(260427-1dc)이 모든 record date 를 보아야 하므로 dedupe 안 함.
+  // 일자 조회는 기존대로 marker/checkpoint 기준 최신 1건만 유지.
+  const useDedup = !month
   const seen = new Set<string>()
   const rows = (result.results ?? []).filter(r => {
+    if (!useDedup) return true
     const key = (r.floor_plan_marker_id as string | null) ?? ('CP:' + (r.checkpoint_id as string))
     if (seen.has(key)) return false
     seen.add(key)

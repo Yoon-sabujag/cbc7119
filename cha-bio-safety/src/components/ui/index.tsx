@@ -203,7 +203,7 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
           fontFamily:'JetBrains Mono, monospace', fontSize: Math.max(8, Math.round(size * 0.18)), fontWeight:600,
           color: allZero ? 'var(--t3)' : 'var(--t2)', whiteSpace:'nowrap',
         }}>
-          {earlyPct}/{latePct}
+          {pct}%
         </div>
       </div>
     )

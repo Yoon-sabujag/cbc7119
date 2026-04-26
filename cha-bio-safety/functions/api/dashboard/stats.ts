@@ -444,11 +444,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
 
         const early_done = await cycleDone(earlyBlock)
         const late_done  = await cycleDone(lateBlock)
-        const total = cpTotal
-        const early_pct = total > 0 ? Math.min(Math.round((early_done / total) * 100), 100) : 0
-        const late_pct  = total > 0 ? Math.min(Math.round((late_done  / total) * 100), 100) : 0
-        // 호환성: pct = (early_pct + late_pct) / 2 (0~100), done = early_done + late_done
-        const pct = Math.round((early_pct + late_pct) / 2)
+        // 0~200% two-lap: total 은 두 cycle 합산 이벤트 수 (cpTotal × 2)
+        const total = cpTotal * 2
+        const done = early_done + late_done
+        const early_pct = cpTotal > 0 ? Math.min(Math.round((early_done / cpTotal) * 100), 100) : 0
+        const late_pct  = cpTotal > 0 ? Math.min(Math.round((late_done  / cpTotal) * 100), 100) : 0
+        const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
         const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
         const colorIdx = monthlyItems.length % ITEM_COLORS.length
         monthlyItems.push({
@@ -456,7 +457,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           pct,
           color: pct === 0 ? '#52525b' : ITEM_COLORS[colorIdx],
           total,
-          done: early_done + late_done,
+          done,
           // doubleCycle 메타 — 클라이언트가 두 색 overlay arc 렌더
           doubleCycle: true,
           early_done,
