@@ -1,4 +1,5 @@
 ---
+status: complete
 phase: 260426-jzp-qr-zoom-0-5x
 plan: 01
 subsystem: qr-scan

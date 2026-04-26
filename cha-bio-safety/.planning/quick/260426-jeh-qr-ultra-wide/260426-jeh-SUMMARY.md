@@ -1,4 +1,5 @@
 ---
+status: complete
 phase: 260426-jeh-qr-ultra-wide
 plan: 01
 subsystem: qr-scan
