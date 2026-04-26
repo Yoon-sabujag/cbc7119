@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-26 - Completed quick task 260426-cyv (5/1 노동절 인식 + 평일공휴일/공휴일직후토요일 식대 보정)
+Last activity: 2026-04-26 - Completed quick task 260426-f54 (점검 "완료" 정의 통일 — bad+resolved 인정)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -144,6 +144,7 @@ None yet.
 | 260424-7l2 | 유도등 마커 description 지원 — floor_plan_markers에 description 컬럼 추가(migration 0072) + InspectionModal/API 반영 | 2026-04-24 | 1a3f514 | [260424-7l2-guidelamp-marker-access-blocked](./quick/260424-7l2-guidelamp-marker-access-blocked/) |
 | 260424-7l3 | CheckpointsPage 마커 id 편집 라우팅 수정 (FPM- 프리픽스는 floorplan-markers PUT으로) + FloorPlan 접근불가 팝업 반영 | 2026-04-24 | 97cb3d8 | [260424-7l3-checkpointspage-marker-route](./quick/260424-7l3-checkpointspage-marker-route/) |
 | 260426-cyv | 5/1 노동절 공휴일 인식 버그 + 평일공휴일/공휴일직후토요일 식대 보정 (holidays.ts 통합 + mealCalc isHoliday/isPrevDayHoliday 옵션) | 2026-04-26 | 76a8aa5 | [260426-cyv-may-holiday-meal-fix](./quick/260426-cyv-may-holiday-meal-fix/) |
+| 260426-f54 | 점검 "완료" 정의 통일 — bad+resolved 도 완료로 인정 (카드/대시보드/층별 화면 일관화: isCpCompleted 헬퍼 + dashboard SQL 7곳 보정) | 2026-04-26 | b7e4c71 | [260426-f54-completion-rule-bad-resolved](./quick/260426-f54-completion-rule-bad-resolved/) |
 
 ### Blockers/Concerns
 
