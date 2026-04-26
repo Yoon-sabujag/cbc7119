@@ -40,8 +40,38 @@ export const onRequestPut: PagesFunction<Env> = async ({ params, request, env })
 }
 
 // DELETE /api/floorplan-markers/:id — 마커 삭제 (로그인한 전체 스태프)
+//
+// 소화기(plan_type='extinguisher' + check_point_id LIKE 'CP-FE-%')인 경우
+// floor_plan_markers / extinguishers / check_points.is_active 3 테이블을 atomic 으로 정리한다.
+// 그 외 마커(guidelamp/sprinkler/detector 등)는 기존과 동일하게 단일 DELETE 만 수행한다.
+//
+// 절대 금지: check_records 는 어떤 분기에서도 삭제하지 않는다 (점검 기록 보존 원칙).
 export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
   const id = params.id as string
-  await env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id).run()
+
+  const marker = await env.DB
+    .prepare('SELECT plan_type, check_point_id FROM floor_plan_markers WHERE id=?')
+    .bind(id)
+    .first<{ plan_type: string; check_point_id: string | null }>()
+
+  if (!marker) {
+    return Response.json({ success: false, error: '마커를 찾을 수 없습니다' }, { status: 404 })
+  }
+
+  const cpId = marker.check_point_id
+  const isExtCascade = marker.plan_type === 'extinguisher' && !!cpId && cpId.startsWith('CP-FE-')
+
+  if (isExtCascade) {
+    // D1 batch 는 atomic — 한 statement 실패 시 전체 롤백 (Cloudflare 공식 트랜잭션 의미론).
+    // extinguishers 는 is_active 컬럼이 없어 하드 DELETE 만 가능, check_points 는 is_active=0 으로 보존.
+    await env.DB.batch([
+      env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id),
+      env.DB.prepare('DELETE FROM extinguishers WHERE check_point_id=?').bind(cpId),
+      env.DB.prepare('UPDATE check_points SET is_active=0 WHERE id=?').bind(cpId),
+    ])
+  } else {
+    await env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id).run()
+  }
+
   return Response.json({ success: true })
 }

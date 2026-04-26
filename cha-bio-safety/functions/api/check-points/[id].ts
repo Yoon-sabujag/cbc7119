@@ -20,6 +20,10 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     if (!existing)
       return Response.json({ success: false, error: '점검포인트를 찾을 수 없습니다' }, { status: 404 })
 
+    // CP-FE-* 만 cascade — 다른 카테고리(자탐/스프링클러 등) 비활성화 흐름 보호
+    const willDeactivate = body.isActive === 0
+    const isExtCp = id.startsWith('CP-FE-')
+
     await env.DB.prepare(
       `UPDATE check_points SET
         location    = COALESCE(?1, location),
@@ -40,6 +44,15 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       body.isActive    !== undefined ? body.isActive : null,
       id,
     ).run()
+
+    // 소화기 점검개소 비활성화 시 floor_plan_markers / extinguishers cascade 정리.
+    // check_records 는 절대 건드리지 않음 (점검 기록 보존 원칙).
+    if (willDeactivate && isExtCp) {
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM extinguishers WHERE check_point_id=?').bind(id),
+        env.DB.prepare('DELETE FROM floor_plan_markers WHERE check_point_id=?').bind(id),
+      ])
+    }
 
     const updated = await env.DB.prepare(
       `SELECT id, qr_code, floor, zone, location, category, description, location_no, is_active, created_at
