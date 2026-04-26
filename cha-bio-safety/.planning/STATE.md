@@ -4,7 +4,7 @@ milestone: v1.1
 milestone_name: PWA 데스크톱 최적화
 status: executing
 stopped_at: Phase 12+13 complete, Phase 14 next
-last_updated: "2026-04-26T05:50:00Z"
+last_updated: "2026-04-26T11:21:00Z"
 last_activity: 2026-04-26
 progress:
   total_phases: 4
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-26 - Completed quick task 260426-kfj: QR 스캔 임시 진단 UI 제거 (260426-jzp 디버그 완료)
+Last activity: 2026-04-26 - Completed quick task 260426-rzy: 소화기 마커/점검개소 삭제 cascade 수정 + CP-FE-0362 라이브 D1 cleanup + production 배포
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -94,9 +94,10 @@ Recent decisions affecting current work:
 | 260426-jeh | QR 스캔이 iPhone 후면 초광각(0.5x) 카메라를 자동 선택하도록 수정 | 2026-04-26 | 9ceaa49 | [260426-jeh-qr-ultra-wide](./quick/260426-jeh-qr-ultra-wide/) |
 | 260426-jzp | QR 스캔 video track zoom 0.5x 강제 + 임시 진단 표시 (260426-jeh 후속, iOS 26 매크로 자동전환 우회) | 2026-04-26 | b02eb45 | [260426-jzp-qr-zoom-0-5x](./quick/260426-jzp-qr-zoom-0-5x/) |
 | 260426-kfj | QR 스캔 임시 진단 UI 제거 (260426-jzp 디버그 완료, ultra wide 자동선택 검증됨) | 2026-04-26 | 19c8da3 | [260426-kfj-qr-cleanup](./quick/260426-kfj-qr-cleanup/) |
+| 260426-rzy | 소화기 마커/점검개소 삭제 cascade 추가 + CP-FE-0362 고아 행 정리 + production 배포 | 2026-04-26 | d3d4d7a | [260426-rzy-cascade-fix](./quick/260426-rzy-cascade-fix/) |
 
 ## Session Continuity
 
-Last session: 2026-04-26T05:50:00Z
-Stopped at: QR 스캔 ultra wide 자동선택 + zoom 안전망 안정화 완료 (260426-jeh / jzp / kfj 3-quick 사이클)
+Last session: 2026-04-26T11:21:00Z
+Stopped at: 260426-rzy 소화기 cascade 삭제 fix 완료 (양쪽 진입점 cascade + 라이브 D1 고아 행 정리 + production 배포)
 Resume file: .planning/ROADMAP.md
