@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: PWA 데스크톱 최적화
 status: executing
 stopped_at: Phase 12+13 complete, Phase 14 next
-last_updated: "2026-04-05T16:53:57.834Z"
-last_activity: 2026-04-05
+last_updated: "2026-04-26T05:02:13Z"
+last_activity: 2026-04-26
 progress:
   total_phases: 4
   completed_phases: 1
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-20 - Completed quick task 260420-e72: 데스크톱 대시보드 승강기 고장 카드에 검사도래 배지 추가
+Last activity: 2026-04-26 - Completed quick task 260426-jeh: QR 스캔 페이지가 iPhone 후면 초광각(0.5x) 카메라를 자동 선택하도록 startCamera 수정
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -91,9 +91,10 @@ Recent decisions affecting current work:
 | 260410-h2u | StaffServicePage 휴가신청서 출력 기능 추가 - 3분할 레이아웃, 새 휴가종류, 엑셀/프린트 | 2026-04-10 | 8db68d9 | [260410-h2u-staffservicepage-3](./quick/260410-h2u-staffservicepage-3/) |
 | 260411-cwr | AdminPage 분리 - 직원관리/개소관리 독립 페이지 + 데스크톱 UI | 2026-04-11 | 9de63a7 | [260411-cwr-adminpage-ui](./quick/260411-cwr-adminpage-ui/) |
 | 260420-e72 | 데스크톱 대시보드 승강기 고장 카드에 검사도래 배지 추가 | 2026-04-20 | 72bd198 | [260420-e72-desktop-elev-insp-badge](./quick/260420-e72-desktop-elev-insp-badge/) |
+| 260426-jeh | QR 스캔이 iPhone 후면 초광각(0.5x) 카메라를 자동 선택하도록 수정 | 2026-04-26 | 9ceaa49 | [260426-jeh-qr-ultra-wide](./quick/260426-jeh-qr-ultra-wide/) |
 
 ## Session Continuity
 
-Last session: 2026-04-05T16:53:57.830Z
-Stopped at: Phase 12+13 complete, Phase 14 next
+Last session: 2026-04-26T05:02:13Z
+Stopped at: Quick task 260426-jeh complete (QR Ultra Wide auto-select); Task 2 deferred to user (실기기 + 프로덕션 배포 검증)
 Resume file: .planning/ROADMAP.md
