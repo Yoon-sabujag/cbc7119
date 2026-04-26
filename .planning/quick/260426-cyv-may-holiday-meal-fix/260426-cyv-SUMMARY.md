@@ -1,11 +1,12 @@
 ---
 quick_id: 260426-cyv
 slug: may-holiday-meal-fix
-status: incomplete   # T1+T2 done, T3 deploy + human verify pending
+status: complete
 date: 2026-04-26
 commits:
   - task_1_hash: b429fc3
   - task_2_hash: 76a8aa5
+  - docs_hash: 69d3ec2
 files_changed:
   - cha-bio-safety/src/utils/holidays.ts (NEW)
   - cha-bio-safety/src/utils/shiftCalc.ts
@@ -13,7 +14,9 @@ files_changed:
   - cha-bio-safety/src/pages/SchedulePage.tsx
   - cha-bio-safety/src/pages/StaffServicePage.tsx
 build: passed
-deployed: false   # orchestrator handles
+deployed: true
+deploy_url: https://66de7c65.cbc7119.pages.dev
+verified_by_user: 2026-04-26
 ---
 
 # Phase Quick 260426-cyv: 5월 노동절 인식 + 식대 보정 Summary
