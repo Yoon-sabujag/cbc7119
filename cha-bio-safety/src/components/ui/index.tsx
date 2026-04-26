@@ -143,19 +143,75 @@ export function RoleLabel({ text, color }: RoleLabelProps) {
 }
 
 // ─── 도넛 차트 ───────────────────────────────────────────
+// 260427-1dc: doubleCycle prop 추가 — DIV/컴프레셔 0~200% two-lap 시각화
+// (월초 cycle 색A 한 바퀴 → 월말 cycle 색B 가 같은 위치에 overlay)
+// doubleCycle 미전달 시 기존 단일 arc 동작 100% 보존 (backward compat).
 interface DonutProps {
   pct: number
   color: string
   size?: number
   strokeWidth?: number
+  doubleCycle?: {
+    earlyPct: number
+    latePct: number
+    earlyColor: string
+    lateColor: string
+  }
 }
-export function Donut({ pct, color, size = 40, strokeWidth = 5 }: DonutProps) {
+export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: DonutProps) {
   const r    = (size - strokeWidth * 2) / 2
   const circ = 2 * Math.PI * r
-  const dash = (pct / 100) * circ
   const cx   = size / 2
-  const zero = pct === 0
 
+  if (doubleCycle) {
+    const { earlyPct, latePct, earlyColor, lateColor } = doubleCycle
+    const earlyDash = (Math.min(earlyPct, 100) / 100) * circ
+    const lateDash  = (Math.min(latePct, 100) / 100) * circ
+    const allZero = earlyPct === 0 && latePct === 0
+    return (
+      <div style={{ position:'relative', width:size, height:size }}>
+        <svg
+          width={size} height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          style={{ transform:'rotate(-90deg)' }}
+        >
+          {/* 배경 트랙 */}
+          <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--bg4)" strokeWidth={strokeWidth} />
+          {/* 월초 arc — 색A (한 바퀴 채우면 100%) */}
+          {earlyPct > 0 && (
+            <circle
+              cx={cx} cy={cx} r={r} fill="none"
+              stroke={earlyColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${earlyDash.toFixed(2)} ${(circ - earlyDash).toFixed(2)}`}
+            />
+          )}
+          {/* 월말 arc — 색B 가 같은 시작점에서 overlay (두 번째 바퀴 시각화) */}
+          {latePct > 0 && (
+            <circle
+              cx={cx} cy={cx} r={r} fill="none"
+              stroke={lateColor}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${lateDash.toFixed(2)} ${(circ - lateDash).toFixed(2)}`}
+            />
+          )}
+        </svg>
+        <div style={{
+          position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
+          fontFamily:'JetBrains Mono, monospace', fontSize: Math.max(8, Math.round(size * 0.18)), fontWeight:600,
+          color: allZero ? 'var(--t3)' : 'var(--t2)', whiteSpace:'nowrap',
+        }}>
+          {earlyPct}/{latePct}
+        </div>
+      </div>
+    )
+  }
+
+  // ── 기존 단일 arc 동작 (변경 금지) ──
+  const dash = (pct / 100) * circ
+  const zero = pct === 0
   return (
     <div style={{ position:'relative', width:size, height:size }}>
       <svg

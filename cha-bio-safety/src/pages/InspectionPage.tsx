@@ -4398,7 +4398,11 @@ export default function InspectionPage() {
           <>
             <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, letterSpacing:'0.05em' }}>점검 항목 선택</div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
-              {CATEGORY_GROUPS.map((g, idx) => {
+              {(() => {
+                // 260427-1dc: cycle window 분기용 today (KST local). 다른 today 로컬과 충돌 방지로 별도 이름.
+                const _n = new Date()
+                const _todayForCycle = `${_n.getFullYear()}-${String(_n.getMonth()+1).padStart(2,'0')}-${String(_n.getDate()).padStart(2,'0')}`
+                return CATEGORY_GROUPS.map((g, idx) => {
                 const isGL    = g.categories.includes('유도등')
                 const cps     = allCheckpoints.filter(cp => g.categories.includes(cp.category))
                 const total   = isGL ? glMarkerCount : cps.length
@@ -4415,7 +4419,8 @@ export default function InspectionPage() {
                   )
                   doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
                 } else {
-                  doneCnt = computeCardCompletion({ cps, monthRecordDates })
+                  // 260427-1dc: DIV/컴프레셔만 cycle window 분기 (computeCardCompletion 안에서)
+                  doneCnt = computeCardCompletion({ cps, monthRecordDates, scheduleItems, today: _todayForCycle })
                 }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
@@ -4433,7 +4438,8 @@ export default function InspectionPage() {
                     </div>
                   </div>
                 )
-              })}
+              })
+              })()}
             </div>
           </>
         )}

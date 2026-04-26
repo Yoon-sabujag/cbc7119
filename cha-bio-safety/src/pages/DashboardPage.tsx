@@ -23,7 +23,21 @@ const MOCK_SCHEDULE: DashboardScheduleItem[] = [
   { id:'5', title:'3층 소화기 교체 확인',  date:'',              category:'task',    status:'pending',     completed:false },
 ]
 
-interface MonthlyItem { label:string; pct:number; color:string; total:number; done:number }
+// 260427-1dc: doubleCycle 메타 추가 (DIV/컴프레셔 two-lap overlay 도넛용)
+interface MonthlyItem {
+  label: string
+  pct: number
+  color: string
+  total: number
+  done: number
+  doubleCycle?: boolean
+  early_done?: number
+  late_done?: number
+  early_pct?: number
+  late_pct?: number
+  early_color?: string
+  late_color?: string
+}
 
 export default function DashboardPage() {
   const navigate  = useNavigate()
@@ -252,7 +266,21 @@ export default function DashboardPage() {
                       <div key={ri} style={{ display:'flex', justifyContent:'space-evenly' }}>
                         {row.map((m, i) => (
                           <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, minWidth:0 }}>
-                            <Donut pct={m.pct} color={m.color} size={52} />
+                            {m.doubleCycle ? (
+                              <Donut
+                                pct={m.pct}
+                                color={m.color}
+                                size={52}
+                                doubleCycle={{
+                                  earlyPct: m.early_pct ?? 0,
+                                  latePct:  m.late_pct  ?? 0,
+                                  earlyColor: m.early_color ?? 'var(--info)',
+                                  lateColor:  m.late_color  ?? 'var(--warn)',
+                                }}
+                              />
+                            ) : (
+                              <Donut pct={m.pct} color={m.color} size={52} />
+                            )}
                             <div style={{ fontSize:10, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
                             <div style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                           </div>
@@ -522,7 +550,21 @@ export default function DashboardPage() {
             <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, flex: IS_ANDROID ? 1 : undefined, height: IS_ANDROID ? 101 : undefined }}>
               {monthly.map((m, i) => (
                 <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
-                  <Donut pct={m.pct} color={m.color} size={44} />
+                  {m.doubleCycle ? (
+                    <Donut
+                      pct={m.pct}
+                      color={m.color}
+                      size={44}
+                      doubleCycle={{
+                        earlyPct: m.early_pct ?? 0,
+                        latePct:  m.late_pct  ?? 0,
+                        earlyColor: m.early_color ?? 'var(--info)',
+                        lateColor:  m.late_color  ?? 'var(--warn)',
+                      }}
+                    />
+                  ) : (
+                    <Donut pct={m.pct} color={m.color} size={44} />
+                  )}
                   <div style={{ fontSize:8, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
                   <div style={{ fontSize:8, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                 </div>
