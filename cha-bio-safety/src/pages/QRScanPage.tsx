@@ -98,9 +98,32 @@ export default function QRScanPage() {
     }
 
     try {
+      // ── Ultra Wide 카메라 자동 선택 (주로 iPhone 13 Pro 이상) ──
+      let cameras: { id: string; label: string }[] = []
+      try {
+        cameras = await Html5Qrcode.getCameras()
+      } catch {
+        // iOS Safari: 권한 부여 전이면 throw — 아래에서 프라임 시도
+      }
+      // 라벨이 비었거나 모두 generic 이면 권한 프라임 후 재조회
+      if (cameras.length === 0 || cameras.every(c => !c.label)) {
+        try {
+          const primeStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }
+          })
+          primeStream.getTracks().forEach(t => t.stop())
+          cameras = await Html5Qrcode.getCameras()
+        } catch {
+          // 권한 거부 / 미지원 — 폴백 분기로 진행
+        }
+      }
+      const ultraWide = cameras.find(c =>
+        /ultra[\s-]?wide|초광각|울트라/i.test(c.label || '')
+      )
+
       scannerRef.current = new Html5Qrcode(QR_REGION_ID)
       await scannerRef.current.start(
-        { facingMode: 'environment' },
+        ultraWide ? { deviceId: { exact: ultraWide.id } } : { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 240, height: 240 }, aspectRatio: 1.0 },
         async (decodedText) => {
           if (scannedRef.current) return
