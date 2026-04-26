@@ -2,8 +2,9 @@ import type { CheckPoint } from '../types'
 
 // 대시보드 월간 카드와 동일 기준의 완료 개수 계산 (모바일 일반점검 카드용).
 // - cp.defaultResult 또는 description '[접근불가]' 는 자동 완료
-// - 그 외에는 당월 normal/caution 기록이 하나라도 있으면 완료
-// - monthRecordDates: cp.id → 당월 normal/caution 기록들의 YYYY-MM-DD 배열
+// - 그 외에는 당월 완료된 점검(normal | caution | bad+resolved) 기록이 하나라도 있으면 완료
+// - monthRecordDates: cp.id → 당월 완료 기록들의 YYYY-MM-DD 배열
+//   (호출자가 InspectionPage 라인 4014 에서 같은 룰로 채워야 정합) (260426-f54)
 // - 유도등 처리는 이 함수 범위 밖 — 호출자가 scheduleItems.status='done' 바이패스로 처리
 //
 // 연속 다일 점검 카테고리(DIV/컴프레셔/소화전/비상콘센트/소화기)도 attribution window

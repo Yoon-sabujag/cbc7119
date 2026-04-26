@@ -16,6 +16,14 @@ import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useIn
 import type { ScheduleItem } from '../types'
 import { computeCardCompletion } from '../utils/inspectionProgress'
 
+// 완료 정의 통일 — 카드/대시보드/층별 화면 모두 동일 룰을 사용한다.
+// "완료" = normal | caution | (bad + status='resolved')
+// bad+open (조치 대기) 와 기록 없음은 미완료. (260426-f54)
+const isCpCompleted = (entry: MonthRecordEntry | undefined): boolean =>
+  entry?.result === 'normal' ||
+  entry?.result === 'caution' ||
+  (entry?.result === 'bad' && entry?.status === 'resolved')
+
 const NAV_BOTTOM = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
 // ── 층 분류 ───────────────────────────────────────────
@@ -3213,7 +3221,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           <div style={{ display:'flex', gap:5, overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
             {availableFloors.map(f => {
               const fCPs  = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
-              const fDone = fCPs.filter(cp => monthRecords[cp.id]).length
+              // 260426-f54: '점검 시도 있음' 이 아니라 '확정 완료' 를 카운트 (isCpCompleted 룰)
+              const fDone = fCPs.filter(cp => isCpCompleted(monthRecords[cp.id])).length
               const isSel = f === selectedFloor
               return (
                 <button key={f} onClick={() => handleFloorChange(f)} style={{ flexShrink:0, padding:'4px 12px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', border: isSel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', background: isSel ? 'var(--acl)' : 'var(--bg)', color: isSel ? '#fff' : 'var(--t2)', transition:'all .1s' }}>
@@ -4010,8 +4019,8 @@ export default function InspectionPage() {
         const mkId = (r as any).floorPlanMarkerId as string | null
         if (mkId) upsert(monthMap, 'MARKER:' + mkId, entry)
 
-        // 대시보드와 동일한 완료 기준(normal/caution) 으로 날짜 인덱스 구축
-        if (rawResult === 'normal' || rawResult === 'caution') {
+        // 대시보드와 동일한 완료 기준(normal/caution/bad-resolved) 으로 날짜 인덱스 구축 (260426-f54)
+        if (rawResult === 'normal' || rawResult === 'caution' || (rawResult === 'bad' && entry.status === 'resolved')) {
           const checkedAt = entry.checkedAt
           if (checkedAt) {
             if (!monthDatesMap[cpId]) monthDatesMap[cpId] = []
