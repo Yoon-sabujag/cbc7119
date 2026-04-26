@@ -29,80 +29,17 @@ const CATEGORY_ALIAS: Record<string, string> = {
 // — inspDoneN / monthlyItems 에서 cycle window 분기 적용 대상
 const CYCLE_CATEGORIES = new Set(['DIV', '컴프레셔'])
 
-// 이번 달 inspect 일정에서 today 가 속한(또는 가장 가까운 직전) 연속 블록 [first, last] 반환.
-// today 가 어떤 블록에도 속하지 않으면 today 이전의 가장 최근 블록(block_last < today) 반환.
-// 일정이 아예 없으면 폴백 [monthStart, monthEnd].
-async function getCycleRange(
-  env: { DB: D1Database },
-  cat: string,
-  today: string,
-  monthStart: string,
-  monthEnd: string,
-): Promise<[string, string]> {
-  const rows = await env.DB.prepare(
-    `SELECT DISTINCT date FROM schedule_items
-     WHERE category='inspect' AND inspection_category=?
-       AND date BETWEEN ? AND ? ORDER BY date ASC`
-  ).bind(cat, monthStart, monthEnd).all<{ date: string }>()
-  const sorted = (rows.results ?? []).map(r => r.date)
-  if (sorted.length === 0) return [monthStart, monthEnd]
-
-  const dayDiff = (a: string, b: string) => {
-    const da = new Date(a + 'T00:00:00Z').getTime()
-    const db = new Date(b + 'T00:00:00Z').getTime()
-    return Math.round((db - da) / 86400000)
-  }
-  const blocks: string[][] = []
-  let cur: string[] = []
-  for (const d of sorted) {
-    if (cur.length === 0 || dayDiff(cur[cur.length - 1], d) === 1) {
-      cur.push(d)
-    } else {
-      blocks.push(cur); cur = [d]
-    }
-  }
-  if (cur.length) blocks.push(cur)
-
-  // today 포함 블록
-  for (const b of blocks) {
-    if (today >= b[0] && today <= b[b.length - 1]) return [b[0], b[b.length - 1]]
-  }
-  // today 이전 가장 최근 블록 (block_last < today)
-  let candidate: string[] | null = null
-  for (const b of blocks) {
-    if (b[b.length - 1] < today) candidate = b
-  }
-  if (candidate) return [candidate[0], candidate[candidate.length - 1]]
-  return [monthStart, monthEnd]
+// 월을 반으로 분할: 1~15 (early) / 16~말일 (late).
+// schedule 일자 의존 없이 기계적 분할 — 일정 밖 점검 기록도 자연히 포함됨.
+function getCycleHalfRange(today: string, monthEnd: string): [string, string] {
+  const ym = today.slice(0, 7)
+  const day = Number(today.slice(8, 10))
+  return day <= 15 ? [`${ym}-01`, `${ym}-15`] : [`${ym}-16`, monthEnd]
 }
 
-// (monthlyItems 분기에서 사용) 이번 달 inspect 일정의 모든 연속 블록 반환.
-async function getMonthlyBlocks(
-  env: { DB: D1Database },
-  cat: string,
-  monthStart: string,
-  monthEnd: string,
-): Promise<string[][]> {
-  const rows = await env.DB.prepare(
-    `SELECT DISTINCT date FROM schedule_items
-     WHERE category='inspect' AND inspection_category=?
-       AND date BETWEEN ? AND ? ORDER BY date ASC`
-  ).bind(cat, monthStart, monthEnd).all<{ date: string }>()
-  const sorted = (rows.results ?? []).map(r => r.date)
-  if (sorted.length === 0) return []
-  const dayDiff = (a: string, b: string) => {
-    const da = new Date(a + 'T00:00:00Z').getTime()
-    const db = new Date(b + 'T00:00:00Z').getTime()
-    return Math.round((db - da) / 86400000)
-  }
-  const blocks: string[][] = []
-  let cur: string[] = []
-  for (const d of sorted) {
-    if (cur.length === 0 || dayDiff(cur[cur.length - 1], d) === 1) cur.push(d)
-    else { blocks.push(cur); cur = [d] }
-  }
-  if (cur.length) blocks.push(cur)
-  return blocks
+function getMonthHalves(monthStart: string, monthEnd: string): [[string, string], [string, string]] {
+  const ym = monthStart.slice(0, 7)
+  return [[`${ym}-01`, `${ym}-15`], [`${ym}-16`, monthEnd]]
 }
 
 /**
@@ -252,9 +189,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     let inspDoneN = 0
     for (const row of (todayCats.results ?? [])) {
       const cat = row.inspection_category
-      // 260427-1dc: DIV/컴프레셔는 cycle window (현재/직전 연속 블록), 그 외는 월 전체 윈도우
+      // 260427-1dc: DIV/컴프레셔는 월 반반(1~15 / 16~말) 분할, 그 외는 월 전체 윈도우
       const [startDate, endDate] = CYCLE_CATEGORIES.has(cat)
-        ? await getCycleRange(env, cat, today, _monthStart, _monthEnd)
+        ? getCycleHalfRange(today, _monthEnd)
         : [_monthStart, _monthEnd]
       const recQ = await env.DB.prepare(
         `SELECT COUNT(DISTINCT cr.checkpoint_id) as n
@@ -416,17 +353,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         continue
       }
 
-      // 260427-1dc: DIV/컴프레셔 — 0~200% two-lap (월초 cycle + 월말 cycle 별도 집계)
+      // 260427-1dc: DIV/컴프레셔 — 0~200% two-lap (월 반반 분할: 1~15 / 16~말)
       // 다른 카테고리는 아래 기존 로직 그대로 흐름 (회귀 없음)
       if (CYCLE_CATEGORIES.has(cpCategory)) {
-        const blocks = await getMonthlyBlocks(env, sched.inspection_category, monthStart, monthEnd)
-        const earlyBlock = blocks[0] ?? []
-        const lateBlock  = blocks[1] ?? []
+        const [earlyRange, lateRange] = getMonthHalves(monthStart, monthEnd)
 
-        const cycleDone = async (block: string[]): Promise<number> => {
-          if (block.length === 0) return 0
-          const s = block[0]
-          const e = block[block.length - 1]
+        const cycleDone = async (range: [string, string]): Promise<number> => {
+          const [s, e] = range
           const r = await env.DB.prepare(`
             SELECT COUNT(DISTINCT cr.checkpoint_id) as n
             FROM check_records cr
@@ -442,14 +375,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           return (r?.n ?? 0) + (a?.n ?? 0)
         }
 
-        const early_done = await cycleDone(earlyBlock)
-        const late_done  = await cycleDone(lateBlock)
+        const early_done = await cycleDone(earlyRange)
+        const late_done  = await cycleDone(lateRange)
         // 0~200% two-lap: total 은 두 cycle 합산 이벤트 수 (cpTotal × 2)
         const total = cpTotal * 2
         const done = early_done + late_done
         const early_pct = cpTotal > 0 ? Math.min(Math.round((early_done / cpTotal) * 100), 100) : 0
         const late_pct  = cpTotal > 0 ? Math.min(Math.round((late_done  / cpTotal) * 100), 100) : 0
-        const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
+        // 가운데 텍스트는 0~200% — 두 cycle 모두 완료 시 200% 표시
+        const pct = cpTotal > 0 ? Math.round((done / cpTotal) * 100) : 0
         const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
         const colorIdx = monthlyItems.length % ITEM_COLORS.length
         monthlyItems.push({

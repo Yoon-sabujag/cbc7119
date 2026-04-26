@@ -282,7 +282,7 @@ export default function DashboardPage() {
                               <Donut pct={m.pct} color={m.color} size={52} />
                             )}
                             <div style={{ fontSize:10, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
-                            <div style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                            <div style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                           </div>
                         ))}
                       </div>
@@ -566,7 +566,7 @@ export default function DashboardPage() {
                     <Donut pct={m.pct} color={m.color} size={44} />
                   )}
                   <div style={{ fontSize:8, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
-                  <div style={{ fontSize:8, color: m.pct === 100 ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                  <div style={{ fontSize:8, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                 </div>
               ))}
             </div>

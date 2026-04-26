@@ -4419,8 +4419,8 @@ export default function InspectionPage() {
                   )
                   doneCnt = glSchedDone ? total : Object.keys(markerRecords).length
                 } else {
-                  // 260427-1dc: DIV/컴프레셔만 cycle window 분기 (computeCardCompletion 안에서)
-                  doneCnt = computeCardCompletion({ cps, monthRecordDates, scheduleItems, today: _todayForCycle })
+                  // 260427-1dc: DIV/컴프레셔만 월 반반 분할 (1~15 / 16~말, computeCardCompletion 안에서)
+                  doneCnt = computeCardCompletion({ cps, monthRecordDates, today: _todayForCycle })
                 }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')

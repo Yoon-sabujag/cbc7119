@@ -165,9 +165,17 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
 
   if (doubleCycle) {
     const { earlyPct, latePct, earlyColor, lateColor } = doubleCycle
-    const earlyDash = (Math.min(earlyPct, 100) / 100) * circ
-    const lateDash  = (Math.min(latePct, 100) / 100) * circ
-    const allZero = earlyPct === 0 && latePct === 0
+    // 두 ring 분리 — 안쪽 = 월초, 바깥 = 월말. 각 ring 한 바퀴 = 100%, 둘 다 차면 200%.
+    // (시간순 안→밖 확장)
+    const ringStroke = Math.max(2, Math.round(strokeWidth * 0.55))
+    const ringGap    = Math.max(1, Math.round(strokeWidth * 0.25))
+    const outerR     = (size - ringStroke * 2) / 2
+    const innerR     = outerR - ringStroke - ringGap
+    const outerCirc  = 2 * Math.PI * outerR
+    const innerCirc  = 2 * Math.PI * innerR
+    const earlyDash  = (Math.min(earlyPct, 100) / 100) * innerCirc
+    const lateDash   = (Math.min(latePct, 100) / 100) * outerCirc
+    const allZero    = earlyPct === 0 && latePct === 0
     return (
       <div style={{ position:'relative', width:size, height:size }}>
         <svg
@@ -175,32 +183,32 @@ export function Donut({ pct, color, size = 40, strokeWidth = 5, doubleCycle }: D
           viewBox={`0 0 ${size} ${size}`}
           style={{ transform:'rotate(-90deg)' }}
         >
-          {/* 배경 트랙 */}
-          <circle cx={cx} cy={cx} r={r} fill="none" stroke="var(--bg4)" strokeWidth={strokeWidth} />
-          {/* 월초 arc — 색A (한 바퀴 채우면 100%) */}
-          {earlyPct > 0 && (
-            <circle
-              cx={cx} cy={cx} r={r} fill="none"
-              stroke={earlyColor}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeDasharray={`${earlyDash.toFixed(2)} ${(circ - earlyDash).toFixed(2)}`}
-            />
-          )}
-          {/* 월말 arc — 색B 가 같은 시작점에서 overlay (두 번째 바퀴 시각화) */}
+          {/* 바깥 ring 트랙 + 월말 arc */}
+          <circle cx={cx} cy={cx} r={outerR} fill="none" stroke="var(--bg4)" strokeWidth={ringStroke} />
           {latePct > 0 && (
             <circle
-              cx={cx} cy={cx} r={r} fill="none"
+              cx={cx} cy={cx} r={outerR} fill="none"
               stroke={lateColor}
-              strokeWidth={strokeWidth}
+              strokeWidth={ringStroke}
               strokeLinecap="round"
-              strokeDasharray={`${lateDash.toFixed(2)} ${(circ - lateDash).toFixed(2)}`}
+              strokeDasharray={`${lateDash.toFixed(2)} ${(outerCirc - lateDash).toFixed(2)}`}
+            />
+          )}
+          {/* 안쪽 ring 트랙 + 월초 arc */}
+          <circle cx={cx} cy={cx} r={innerR} fill="none" stroke="var(--bg4)" strokeWidth={ringStroke} />
+          {earlyPct > 0 && (
+            <circle
+              cx={cx} cy={cx} r={innerR} fill="none"
+              stroke={earlyColor}
+              strokeWidth={ringStroke}
+              strokeLinecap="round"
+              strokeDasharray={`${earlyDash.toFixed(2)} ${(innerCirc - earlyDash).toFixed(2)}`}
             />
           )}
         </svg>
         <div style={{
           position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center',
-          fontFamily:'JetBrains Mono, monospace', fontSize: Math.max(8, Math.round(size * 0.18)), fontWeight:600,
+          fontFamily:'JetBrains Mono, monospace', fontSize:10, fontWeight:600,
           color: allZero ? 'var(--t3)' : 'var(--t2)', whiteSpace:'nowrap',
         }}>
           {pct}%
