@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
-import { checkPointApi, floorPlanMarkerApi } from '../utils/api'
+import { checkPointApi, floorPlanMarkerApi, extinguisherApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { CheckPointFull, CheckPointUpdatePayload, BuildingZone } from '../types'
 
@@ -97,6 +97,17 @@ const ZONE_FLOORS: Record<string, string[]> = {
   common: ['B1F', 'M', 'B2F', 'B3F', 'B4F', 'B5F'],
 }
 
+interface ExtState {
+  type: string
+  manufacturer: string
+  manufactured_at: string
+  approval_no: string
+  prefix_code: string
+  seal_no: string
+  serial_no: string
+}
+const EMPTY_EXT: ExtState = { type: '', manufacturer: '', manufactured_at: '', approval_no: '', prefix_code: '', seal_no: '', serial_no: '' }
+
 function CheckPointModalContent({
   mode, cp, onClose,
 }: { mode: 'add' | 'edit'; cp?: CheckPointFull; onClose: () => void }) {
@@ -107,6 +118,8 @@ function CheckPointModalContent({
       : EMPTY_CP_FORM
   )
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
+  const [extForm, setExtForm] = useState<ExtState>(EMPTY_EXT)
+  const isExtCategory = form.category === '소화기'
 
   // 카테고리 선택 시 기존 데이터 기반 기본값 생성
   const { data: catCheckPoints } = useQuery({
@@ -150,12 +163,39 @@ function CheckPointModalContent({
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   const createMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      if (isExtCategory) {
+        // zone 영문 → 한글 (연/사/공) — FloorPlanPage 703~710 패턴 동일
+        const zoneMap: Record<string, string> = { research: '연', office: '사', common: '공' }
+        const zoneChar = zoneMap[form.zone] ?? '연'
+        return extinguisherApi.create({
+          floor: form.floor,
+          zone: zoneChar,
+          location: form.location,
+          type: extForm.type,
+          approval_no: extForm.approval_no || undefined,
+          manufactured_at: extForm.manufactured_at || undefined,
+          manufacturer: extForm.manufacturer || undefined,
+          prefix_code: extForm.prefix_code || undefined,
+          seal_no: extForm.seal_no || undefined,
+          serial_no: extForm.serial_no || undefined,
+        })
+      }
+      // 비-소화기: 기존 흐름 유지
       const id = `cp_${Date.now()}`
       const qrCode = `QR-${id}`
       return checkPointApi.create({ id, qrCode, floor: form.floor, zone: form.zone as BuildingZone, location: form.location, category: form.category, description: form.description || undefined, locationNo: form.locationNo || undefined })
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['check-points'] }); qc.invalidateQueries({ queryKey: ['check-point-categories'] }); toast.success('개소가 추가되었습니다'); onClose() },
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ['check-points'] })
+      qc.invalidateQueries({ queryKey: ['check-point-categories'] })
+      if (isExtCategory && data?.mgmtNo) {
+        toast.success(`소화기 등록 완료 (${data.mgmtNo})`)
+      } else {
+        toast.success('개소가 추가되었습니다')
+      }
+      onClose()
+    },
     onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
   })
 
@@ -206,7 +246,10 @@ function CheckPointModalContent({
     onError: () => toast.error('비활성화에 실패했습니다'),
   })
 
-  const canSave = form.location.trim() !== '' && form.category !== ''
+  const canSave =
+    form.location.trim() !== '' &&
+    form.category !== '' &&
+    (!isExtCategory || (extForm.type !== '' && form.zone !== '' && form.floor !== ''))
   const isBusy = createMutation.isPending || updateMutation.isPending
 
   function handleSave() {
@@ -250,18 +293,74 @@ function CheckPointModalContent({
             </select>
           </div>
         )}
+        {isExtCategory && (
+          <>
+            <div>
+              <label style={LABEL_STYLE}>종류 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
+                value={extForm.type}
+                onChange={e => setExtForm(p => ({ ...p, type: e.target.value }))}>
+                <option value="">종류 선택</option>
+                <option value="분말 20kg">분말 20kg</option>
+                <option value="분말 3.3kg">분말 3.3kg</option>
+                <option value="할로겐">할로겐</option>
+                <option value="K급">K급</option>
+              </select>
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>제조업체</label>
+              <input style={INPUT_STYLE} value={extForm.manufacturer}
+                onChange={e => setExtForm(p => ({ ...p, manufacturer: e.target.value }))}
+                placeholder="예: 한울방재" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>제조년월</label>
+              <input style={INPUT_STYLE} value={extForm.manufactured_at}
+                onChange={e => setExtForm(p => ({ ...p, manufactured_at: e.target.value }))}
+                placeholder="예: 2024-04 (YYYY-MM)" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>형식승인번호</label>
+              <input style={INPUT_STYLE} value={extForm.approval_no}
+                onChange={e => setExtForm(p => ({ ...p, approval_no: e.target.value }))}
+                placeholder="예: 수소10-19-11" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>접두문자</label>
+              <input style={INPUT_STYLE} value={extForm.prefix_code}
+                onChange={e => setExtForm(p => ({ ...p, prefix_code: e.target.value }))}
+                placeholder="예: BEQV" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>증지번호</label>
+              <input style={INPUT_STYLE} value={extForm.seal_no}
+                onChange={e => setExtForm(p => ({ ...p, seal_no: e.target.value }))}
+                placeholder="예: 72605" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>제조번호</label>
+              <input style={INPUT_STYLE} value={extForm.serial_no}
+                onChange={e => setExtForm(p => ({ ...p, serial_no: e.target.value }))}
+                placeholder="예: 68605" />
+            </div>
+          </>
+        )}
         <div>
           <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
           <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
         </div>
-        <div>
-          <label style={LABEL_STYLE}>위치번호</label>
-          <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001 (선택)" />
-        </div>
-        <div>
-          <label style={LABEL_STYLE}>설명</label>
-          <input style={INPUT_STYLE} value={form.description} onChange={setField('description')} placeholder="메모 (선택)" />
-        </div>
+        {!isExtCategory && (
+          <>
+            <div>
+              <label style={LABEL_STYLE}>위치번호</label>
+              <input style={INPUT_STYLE} value={form.locationNo} onChange={setField('locationNo')} placeholder="001 (선택)" />
+            </div>
+            <div>
+              <label style={LABEL_STYLE}>설명</label>
+              <input style={INPUT_STYLE} value={form.description} onChange={setField('description')} placeholder="메모 (선택)" />
+            </div>
+          </>
+        )}
       </div>
 
       {!confirmDeactivate ? (
