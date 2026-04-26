@@ -34,6 +34,13 @@ export default function QRScanPage() {
   const [memo,       setMemo]       = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [scanning,   setScanning]   = useState(false)
+  // 🐞 debug — Ultra Wide / zoom 진단. 디버그 완료 후 제거 예정 (260426-jzp)
+  const [diag, setDiag] = useState<{
+    cams: string[]
+    pick: string
+    zoom: string
+    caps: string
+  }>({ cams: [], pick: '', zoom: '', caps: '' })
 
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const scannedRef = useRef(false)
@@ -133,6 +140,34 @@ export default function QRScanPage() {
         },
         () => { /* 스캔 실패 무시 */ }
       )
+
+      // ── zoom 0.5x 강제 (iPhone Ultra Wide 첫 흐림 단계 제거) — 260426-jzp ──
+      let zoomResult = 'unsupported'
+      let capsRange = ''
+      try {
+        const videoEl = document.querySelector(`#${QR_REGION_ID} video`) as HTMLVideoElement | null
+        const stream  = videoEl?.srcObject as MediaStream | null
+        const track   = stream?.getVideoTracks?.()[0]
+        if (track) {
+          const caps = (track.getCapabilities?.() ?? {}) as MediaTrackCapabilities & { zoom?: { min: number; max: number } }
+          if (caps.zoom) {
+            capsRange = `${caps.zoom.min}–${caps.zoom.max}x`
+            const target = Math.max(caps.zoom.min, 0.5)  // iOS 16/26 에서 보통 0.5 가 min
+            await track.applyConstraints({ advanced: [{ zoom: target } as any] })
+            zoomResult = `${target}x ✓`
+          }
+        }
+      } catch (e: any) {
+        zoomResult = `failed: ${e?.message || 'unknown'}`
+      }
+
+      setDiag({
+        cams: cameras.map(c => c.label || '(no label)'),
+        pick: ultraWide?.label || 'fallback (environment)',
+        zoom: zoomResult,
+        caps: capsRange || '—',
+      })
+
       setScanning(true)
     } catch (e: any) {
       if (e?.message?.includes('permission') || e?.message?.includes('NotAllowed')) {
@@ -266,6 +301,19 @@ export default function QRScanPage() {
             ) : (
               <div style={{ fontSize:12, color:'var(--t2)', textAlign:'center' }}>
                 QR 코드를 카메라에 비춰주세요
+              </div>
+            )}
+
+            {/* 🐞 debug — Ultra Wide / zoom 진단. 디버그 완료 후 제거 예정 (260426-jzp) */}
+            {diag.cams.length > 0 && (
+              <div style={{
+                width:'100%', maxWidth:320,
+                fontSize:9, color:'var(--t3)', lineHeight:1.5,
+                fontFamily:'JetBrains Mono,monospace', wordBreak:'break-all',
+              }}>
+                🐞 cams: {diag.cams.join(', ')}<br/>
+                🐞 pick: {diag.pick}<br/>
+                🐞 zoom: {diag.zoom} (caps: {diag.caps})
               </div>
             )}
 
