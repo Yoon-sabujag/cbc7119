@@ -4,7 +4,7 @@ milestone: v1.4
 milestone_name: 문서 관리
 status: executing
 stopped_at: Phase 22 UI-SPEC approved
-last_updated: "2026-04-28T04:30:00.000Z"
+last_updated: "2026-04-28T06:50:00.000Z"
 last_activity: 2026-04-28
 progress:
   total_phases: 11
@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-28 - Completed quick task 260428-id1: B1 비상콘센트 CP-B1-6-BC 4월 누락 기록 D1 INSERT 회복 (154/154)
+Last activity: 2026-04-28 - Completed quick task 260428-lha: FloorPlanPage 평면도 모달에 paired BC 입력 섹션 추가 (db7ced6, 배포 완료)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -146,6 +146,7 @@ None yet.
 | 260426-cyv | 5/1 노동절 공휴일 인식 버그 + 평일공휴일/공휴일직후토요일 식대 보정 (holidays.ts 통합 + mealCalc isHoliday/isPrevDayHoliday 옵션) | 2026-04-26 | 76a8aa5 | [260426-cyv-may-holiday-meal-fix](./quick/260426-cyv-may-holiday-meal-fix/) |
 | 260426-f54 | 점검 "완료" 정의 통일 — bad+resolved 도 완료로 인정 (카드/대시보드/층별 화면 일관화: isCpCompleted 헬퍼 + dashboard SQL 7곳 보정) | 2026-04-26 | b7e4c71 | [260426-f54-completion-rule-bad-resolved](./quick/260426-f54-completion-rule-bad-resolved/) |
 | 260428-id1 | B1 비상콘센트 CP-B1-6-BC 4월 누락 기록 회복 (D1 INSERT, SH 짝꿍과 동일 timestamp/staff/result, 154/154 회복) | 2026-04-28 | 9a3887d | [260428-id1-recover-cp-b1-6-bc-april](./quick/260428-id1-recover-cp-b1-6-bc-april/) |
+| 260428-lha | FloorPlanPage 평면도 모달에 paired 비상콘센트(BC) 입력 섹션 + 직렬 저장 추가 (4-27 박보융 BC 누락 사고 재발 방지, 단일 파일 +94/-3) | 2026-04-28 | db7ced6 | [260428-lha-floorplanpage-paired-bc-modal](./quick/260428-lha-floorplanpage-paired-bc-modal/) |
 
 ### Blockers/Concerns
 
