@@ -1574,6 +1574,46 @@ export default function FloorPlanPage() {
               <PhotoButton hook={inspectPhoto} label="촬영" noCapture />
             </div>
 
+            {/* paired 비상콘센트 (소화전 마커 + 같은 location_no BC 매핑이 있을 때만 노출) */}
+            {pairedBC && (
+              <>
+                <div style={{ height:1, background:'var(--bd)', margin:'10px 0' }} />
+                <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)', marginBottom:10 }}>
+                  <div style={{ fontSize:10, color:'var(--t3)' }}>{pairedBC.category}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{pairedBC.location}</div>
+                  {pairedBC.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{pairedBC.description}</div>}
+                </div>
+                <div style={{ marginBottom:10 }}>
+                  <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>비상콘센트 점검 결과</div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    {([['normal','정상','#22c55e'],['caution','주의','#eab308'],['bad','불량','#ef4444']] as const).map(([val, label, color]) => (
+                      <button key={val} onClick={() => setInspectBcResult(val)} style={{
+                        flex:1, padding:'10px 4px', borderRadius:10, fontSize:12, fontWeight:700, cursor:'pointer',
+                        background: inspectBcResult === val ? color + '22' : 'var(--bg3)',
+                        color: inspectBcResult === val ? color : 'var(--t3)',
+                        border: inspectBcResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
+                    <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
+                    <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+                  </div>
+                  <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                    <textarea
+                      value={inspectBcMemo}
+                      onChange={e => setInspectBcMemo(e.target.value)}
+                      placeholder="특이사항을 입력하세요"
+                      style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+                    />
+                    <PhotoButton hook={inspectBcPhoto} label="촬영" noCapture />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setInspectModal(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 취소
