@@ -117,6 +117,7 @@ function Layout() {
   const dateOnly = datetime.split('  ')[0] // "4.1(화)" 부분만
   const pageTitle = PAGE_TITLES[location.pathname] || ''
   const isDashboard = location.pathname === '/dashboard'
+  const isQrScan    = location.pathname === '/inspection/qr'
 
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
@@ -162,7 +163,16 @@ function Layout() {
           <GlobalHeader
             title={isDashboard ? dateOnly : pageTitle}
             onMenuOpen={() => setSideOpen(true)}
-            rightSlot={isDashboard ? <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{dashboardRightSlot}{settingsGearBtn}</div> : settingsGearBtn}
+            rightSlot={
+              isDashboard ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{dashboardRightSlot}{settingsGearBtn}</div>
+              ) : isQrScan ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div id="qr-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
+                  {settingsGearBtn}
+                </div>
+              ) : settingsGearBtn
+            }
           />
         )}
         {/* 모바일 전용: SideMenu 드로어 */}
