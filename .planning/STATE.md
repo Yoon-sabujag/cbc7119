@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: 문서 관리
 status: executing
 stopped_at: Phase 22 UI-SPEC approved
-last_updated: "2026-04-11T07:01:00.772Z"
-last_activity: 2026-04-11
+last_updated: "2026-04-28T04:30:00.000Z"
+last_activity: 2026-04-28
 progress:
   total_phases: 11
   completed_phases: 10
@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-26 - feat: telemetry_events 테이블 + /api/_telemetry/cold-retry endpoint (콜드 스타트 첫 저장 실패 자동 진단 인프라, 9c4b572 + migration 0073)
+Last activity: 2026-04-28 - Completed quick task 260428-id1: B1 비상콘센트 CP-B1-6-BC 4월 누락 기록 D1 INSERT 회복 (154/154)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -145,6 +145,7 @@ None yet.
 | 260424-7l3 | CheckpointsPage 마커 id 편집 라우팅 수정 (FPM- 프리픽스는 floorplan-markers PUT으로) + FloorPlan 접근불가 팝업 반영 | 2026-04-24 | 97cb3d8 | [260424-7l3-checkpointspage-marker-route](./quick/260424-7l3-checkpointspage-marker-route/) |
 | 260426-cyv | 5/1 노동절 공휴일 인식 버그 + 평일공휴일/공휴일직후토요일 식대 보정 (holidays.ts 통합 + mealCalc isHoliday/isPrevDayHoliday 옵션) | 2026-04-26 | 76a8aa5 | [260426-cyv-may-holiday-meal-fix](./quick/260426-cyv-may-holiday-meal-fix/) |
 | 260426-f54 | 점검 "완료" 정의 통일 — bad+resolved 도 완료로 인정 (카드/대시보드/층별 화면 일관화: isCpCompleted 헬퍼 + dashboard SQL 7곳 보정) | 2026-04-26 | b7e4c71 | [260426-f54-completion-rule-bad-resolved](./quick/260426-f54-completion-rule-bad-resolved/) |
+| 260428-id1 | B1 비상콘센트 CP-B1-6-BC 4월 누락 기록 회복 (D1 INSERT, SH 짝꿍과 동일 timestamp/staff/result, 154/154 회복) | 2026-04-28 | 9a3887d | [260428-id1-recover-cp-b1-6-bc-april](./quick/260428-id1-recover-cp-b1-6-bc-april/) |
 
 ### Blockers/Concerns
 
