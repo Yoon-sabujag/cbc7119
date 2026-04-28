@@ -334,7 +334,7 @@ function MobileReportsPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>점검 기록 출력</span>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>점검 일지 출력</span>
 
         {/* 연도 선택 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>

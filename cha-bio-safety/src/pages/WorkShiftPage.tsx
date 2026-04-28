@@ -91,7 +91,7 @@ export default function WorkShiftPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월 근무표</span>
+        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월간 출근부</span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}

@@ -74,10 +74,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/staff-service': '연차 및 식사',
   '/schedule': '월간 점검 계획',
   '/reports': '점검 일지 출력',
-  '/daily-report': '일일업무일지',
-  '/workshift': '근무표',
+  '/daily-report': '일일 업무 일지',
+  '/workshift': '월간 출근부',
   '/leave': '연차 관리',
-  '/floorplan': '건물 도면',
+  '/floorplan': '소방 시설 도면',
   '/div': 'DIV 압력 관리',
   '/qr-print': 'QR 코드 출력',
   '/meal': '식사 관리',
@@ -87,7 +87,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/legal': '소방 점검 관리',
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
-  '/worklog': '업무수행기록표',
+  '/worklog': '업무 수행 기록표',
 }
 
 function Layout() {

@@ -748,7 +748,7 @@ export default function FloorPlanPage() {
         <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>건물 도면</span>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>소방 시설 도면</span>
         {canEditMarker && (
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}

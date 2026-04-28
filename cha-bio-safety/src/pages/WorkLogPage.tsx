@@ -738,7 +738,7 @@ export default function WorkLogPage() {
         {/* 좌측 편집 패널 */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>업무수행기록표</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>업무 수행 기록표</span>
             {monthNav}
           </div>
           {formContent}
@@ -805,7 +805,7 @@ export default function WorkLogPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>업무수행기록표</span>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>업무 수행 기록표</span>
         {monthNav}
       </header>
 

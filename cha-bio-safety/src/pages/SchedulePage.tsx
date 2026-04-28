@@ -424,7 +424,7 @@ export default function SchedulePage() {
       <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)' }}>
         {/* 상단 헤더 */}
         <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:8, flexShrink:0, background:'var(--bg2)' }}>
-          <span style={{ flex:1, fontSize:15, fontWeight:700, color:'var(--t1)' }}>점검 계획 관리</span>
+          <span style={{ flex:1, fontSize:15, fontWeight:700, color:'var(--t1)' }}>월간 점검 계획</span>
           <button onClick={handlePlanDownload} disabled={planLoading}
             style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
             <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
@@ -464,7 +464,7 @@ export default function SchedulePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>점검 계획 관리</span>
+        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월간 점검 계획</span>
         <button onClick={handlePlanDownload} disabled={planLoading}
           style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
           <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>

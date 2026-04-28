@@ -408,7 +408,7 @@ export default function DailyReportPage() {
         <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
           {/* 데스크톱 날짜 네비게이터 */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>일일업무일지</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>일일 업무 일지</span>
             {dateNav}
           </div>
           {formContent}
@@ -454,7 +454,7 @@ export default function DailyReportPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
           </svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>일일업무일지</span>
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>일일 업무 일지</span>
         {dateNav}
       </header>
 
