@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-26 - Completed quick task 260426-vk9: 지하층 floor 형식 + 소화기 zone 매핑 fix + production 배포
+Last activity: 2026-04-28 - Completed quick task 260428-er6: 사이드 메뉴 라벨과 페이지 헤더 표기 통일
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -97,6 +97,7 @@ Recent decisions affecting current work:
 | 260426-rzy | 소화기 마커/점검개소 삭제 cascade 추가 + CP-FE-0362 고아 행 정리 + production 배포 | 2026-04-26 | d3d4d7a | [260426-rzy-cascade-fix](./quick/260426-rzy-cascade-fix/) |
 | 260426-u7f | CheckpointsPage 개소 추가 모달 — 카테고리=소화기 시 종류/제조정보 등 7필드 + extinguisherApi.create 라우팅 | 2026-04-26 | a539828 | [260426-u7f-checkpointspage-ext-fields](./quick/260426-u7f-checkpointspage-ext-fields/) |
 | 260426-vk9 | 지하층 floor 형식('B1F'~'B5F'→'B1'~'B5') + 소화기 zone 매핑('지' 강제) 보정 | 2026-04-26 | d604771 | [260426-vk9-floor-zone-fix](./quick/260426-vk9-floor-zone-fix/) |
+| 260428-er6 | 사이드 메뉴 라벨과 페이지 헤더 표기 통일 (사이드 메뉴 기준) | 2026-04-28 | e6480d7 | [260428-er6-menu-header-titles](./quick/260428-er6-menu-header-titles/) |
 
 ## Session Continuity
 
