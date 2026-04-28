@@ -3285,15 +3285,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
             접근불가 구역 — 자동 정상 처리
           </div>
         )}
-        {/* 개소가 1개인 경우 정보 표시 (유도등 제외 — 유도등은 마커 기반 피커) */}
-        {selectedCP && floorCPs.length <= 1 && !isExtinguisher && !isGuideLight && (
-          <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
-            <div style={{ fontSize:10, color:'var(--t3)' }}>{selectedCP.category}</div>
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{selectedCP.location}</div>
-            {selectedCP.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{selectedCP.description}</div>}
-          </div>
-        )}
-
         {/* ── 소화기 상세정보 ── */}
         {isExtinguisher && selectedCP && extDetail && (() => {
           // 분말 소화기 교체 주기: 제조 후 10년
