@@ -240,6 +240,11 @@ export default function FloorPlanPage() {
   const [inspectSymptomCustom, setInspectSymptomCustom] = useState('')
   const [inspectSubmitting, setInspectSubmitting] = useState(false)
   const inspectPhoto = usePhotoUpload()
+  // ── paired BC (소화전 마커일 때 같은 location_no 의 비상콘센트를 함께 점검) ──
+  const inspectBcPhoto = usePhotoUpload()
+  const [inspectBcResult, setInspectBcResult] = useState<'normal' | 'caution' | 'bad'>('normal')
+  const [inspectBcMemo, setInspectBcMemo] = useState('')
+  const [pairedBC, setPairedBC] = useState<any | null>(null)
   const [resolveModal, setResolveModal] = useState(false)
   const [resolveMemo, setResolveMemo] = useState('')
   const [resolveActionPick, setResolveActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
@@ -283,6 +288,35 @@ export default function FloorPlanPage() {
       setResolveMaterialCount('')
     }
   }, [resolveActionPick, resolveModal, planType, selected])
+
+  // ── paired BC 식별 (소화전 마커 진입 시 같은 location_no 의 비상콘센트 조회) ──
+  // InspectionPage 페어 모달과 동일한 룰. extinguisher plan + indoor_hydrant 마커 + check_point_id 가 있을 때만.
+  // BC 매핑이 없거나 모달이 닫히면 항상 null.
+  useEffect(() => {
+    let cancelled = false
+    if (!inspectModal || !selected || planType !== 'extinguisher' || selected.marker_type !== 'indoor_hydrant' || !selected.check_point_id) {
+      setPairedBC(null)
+      return
+    }
+    inspectionApi.getCheckpoints(selected.floor).then((all: any[]) => {
+      if (cancelled) return
+      const sh = all.find(cp => cp.id === selected.check_point_id)
+      if (!sh || !sh.locationNo) { setPairedBC(null); return }
+      const bc = all.find(cp => cp.category === '비상콘센트' && cp.locationNo === sh.locationNo)
+      setPairedBC(bc ?? null)
+    }).catch(() => { if (!cancelled) setPairedBC(null) })
+    return () => { cancelled = true }
+  }, [inspectModal, selected?.id, planType, selected?.marker_type, selected?.check_point_id, selected?.floor])
+
+  // 모달이 닫히면 BC state 초기화
+  useEffect(() => {
+    if (!inspectModal) {
+      setPairedBC(null)
+      setInspectBcResult('normal')
+      setInspectBcMemo('')
+      inspectBcPhoto.reset()
+    }
+  }, [inspectModal])
 
   // ── 핀치줌 상태 ───────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null)
@@ -1000,6 +1034,7 @@ export default function FloorPlanPage() {
         const openInspectModal = () => {
           setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
           inspectPhoto.reset(); setInspectExtDetail(null)
+          setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
           if (planType === 'extinguisher' && selected?.check_point_id) {
             extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
           }
@@ -1444,6 +1479,7 @@ export default function FloorPlanPage() {
                 if (wasCompleted && selected) {
                   setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
                   inspectPhoto.reset(); setInspectExtDetail(null)
+                  setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
                   if (planType === 'extinguisher' && selected.check_point_id) {
                     extinguisherApi.getDetail(selected.check_point_id).then(d => setInspectExtDetail(d)).catch(() => {})
                   }
@@ -1543,7 +1579,7 @@ export default function FloorPlanPage() {
                 취소
               </button>
               <button
-                disabled={inspectSubmitting || inspectPhoto.uploading || isAccessBlocked}
+                disabled={inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked}
                 onClick={async () => {
                   setInspectSubmitting(true)
                   try {
@@ -1578,6 +1614,21 @@ export default function FloorPlanPage() {
                       photoKey: photoKey ?? undefined,
                       ...extra,
                     })
+                    // ── paired BC 동시 저장 (소화전 마커일 때만, BC 매핑 있을 때만) ──
+                    // SH 저장이 throw 하면 catch 가 잡아서 이 블록은 자동 스킵.
+                    // atomic 보장은 out-of-scope (서버 batch endpoint 별도 phase).
+                    if (pairedBC) {
+                      const bcPhotoKey = await inspectBcPhoto.upload()
+                      await inspectionApi.submitRecord(sid, {
+                        checkpointId: pairedBC.id,
+                        result: inspectBcResult,
+                        memo: inspectBcMemo.trim() || undefined,
+                        photoKey: bcPhotoKey ?? undefined,
+                      })
+                    }
+                    inspectBcPhoto.reset()
+                    setInspectBcResult('normal')
+                    setInspectBcMemo('')
                     toast.success('점검 기록 저장됨')
                     setInspectModal(false)
                     setSelected(null)
@@ -1588,9 +1639,9 @@ export default function FloorPlanPage() {
                     setInspectSubmitting(false)
                   }
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading || isAccessBlocked) ? 'default' : 'pointer' }}
+                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'default' : 'pointer' }}
               >
-                {inspectPhoto.uploading ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
+                {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
               </button>
             </div>
           </div>
