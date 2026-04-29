@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>소화기 마커 경고 표시 시안</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif;
+    background: #1a1d23; color: #e6edf3;
+  }
+  h1 { font-size: 18px; font-weight: 700; margin: 0 0 4px; }
+  h2 { font-size: 13px; font-weight: 600; color: #8b949e; margin: 28px 0 12px; }
+  .note { font-size: 12px; color: #8b949e; margin: 0 0 20px; line-height: 1.6; }
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .card {
+    background: #22272e; border: 1px solid #2d333b; border-radius: 10px;
+    padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .label {
+    font-size: 11px; font-weight: 700; color: #adbac7;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .label .ko { font-size: 13px; color: #e6edf3; text-transform: none; letter-spacing: 0; margin-top: 2px; }
+  .marker-bg {
+    /* simulate floor plan light area */
+    background: #d9d2c4;
+    width: 180px; height: 110px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; gap: 22px;
+    position: relative;
+  }
+  .swatch-row { display: flex; gap: 8px; align-items: center; font-size: 10px; color: #8b949e; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+
+  /* base marker = filled circle 13px (matches current fire_extinguisher) */
+  .m {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #22c55e; /* normal=safe (green); will be overridden per state */
+    box-shadow: 0 0 0 0 #fff;
+    position: relative;
+    display: inline-block;
+  }
+  /* normal — base inspection color, white stroke */
+  .m.normal  { background: #22c55e; box-shadow: 0 0 0 1.5px #fff; }
+  /* warn — yellow stroke, 1.5px */
+  .m.warn    { background: #22c55e; box-shadow: 0 0 0 1.5px #eab308; }
+  /* imminent — orange stroke, 2px */
+  .m.imm     { background: #22c55e; box-shadow: 0 0 0 2px   #f97316; }
+  /* danger — red stroke, 2.5px + extra signals */
+  .m.danger  { background: #22c55e; box-shadow: 0 0 0 2.5px #ef4444; }
+
+  /* danger 보조표식 옵션 A: 우상단 작은 ! 배지 */
+  .m.danger.opt-a::after {
+    content: "!";
+    position: absolute;
+    top: -8px; right: -8px;
+    width: 12px; height: 12px;
+    background: #ef4444;
+    color: #fff;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    font-size: 9px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  /* danger 보조표식 옵션 B: 펄스 애니메이션 (외곽 링이 깜박) */
+  .m.danger.opt-b {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 2.5px #ef4444, 0 0 0 2.5px rgba(239,68,68,0.0); }
+    50%      { box-shadow: 0 0 0 2.5px #ef4444, 0 0 0 7px   rgba(239,68,68,0.35); }
+  }
+
+  /* 도넛형 ext_powder20 — outer filled circle + inner hole */
+  .m20 {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 1.5px #fff;
+    position: relative;
+  }
+  .m20::before {
+    content: ""; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 5px; height: 5px; border: 1.2px solid #fff; border-radius: 50%;
+  }
+  .m20.warn   { box-shadow: 0 0 0 1.5px #eab308; }
+  .m20.imm    { box-shadow: 0 0 0 2px   #f97316; }
+  .m20.danger { box-shadow: 0 0 0 2.5px #ef4444; }
+
+  /* legend bar from list page */
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .pill {
+    padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700;
+    border: 1px solid;
+  }
+  .pill.warn   { color: #a16207; background: rgba(234,179,8,0.12);  border-color: rgba(234,179,8,0.4); }
+  .pill.imm    { color: #c2410c; background: rgba(249,115,22,0.12); border-color: rgba(249,115,22,0.4); }
+  .pill.danger { color: #dc2626; background: rgba(239,68,68,0.12);  border-color: rgba(239,68,68,0.4); }
+
+  /* big preview helper */
+  .big { transform: scale(2.6); transform-origin: center; }
+</style>
+</head>
+<body>
+
+<h1>소화기 마커 — 연한 경고 색 시안 (옵션 3)</h1>
+<p class="note">
+  도면에서의 실제 마커 크기는 13px (zoom 시 가변). 비교를 위해 좌측은 실제 크기, 우측 큰 카드는 2.6x 확대.<br>
+  바탕은 도면 이미지처럼 연한 베이지(#d9d2c4)로 시뮬레이션. 마커 채움색은 점검 결과 색(예시는 정상=초록)을 그대로 두고 <b>외곽선 색만 변경</b>.
+</p>
+
+<div class="legend">
+  <span class="pill warn">연한도래 (9년~)</span>
+  <span class="pill imm">연한임박 (9.5년~)</span>
+  <span class="pill danger">연한초과 (10년~)</span>
+</div>
+
+<h2>1. 실제 크기 비교 — 분말 3.3kg (●)</h2>
+<div class="grid">
+  <div class="card">
+    <div class="label">정상 (white 1.5px) <span class="ko">기존 그대로</span></div>
+    <div class="marker-bg"><div class="m normal"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한도래 (yellow 1.5px) <span class="ko">색만</span></div>
+    <div class="marker-bg"><div class="m warn"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한임박 (orange 2px) <span class="ko">색 + 두께↑</span></div>
+    <div class="marker-bg"><div class="m imm"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한초과 A (red 2.5px + ! 배지)</div>
+    <div class="marker-bg"><div class="m danger opt-a"></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한초과 B (red 2.5px + 펄스)</div>
+    <div class="marker-bg"><div class="m danger opt-b"></div></div>
+  </div>
+</div>
+
+<h2>2. 확대 비교 (2.6x) — 디테일 확인용</h2>
+<div class="grid">
+  <div class="card">
+    <div class="label">정상</div>
+    <div class="marker-bg"><div class="big"><div class="m normal"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한도래</div>
+    <div class="marker-bg"><div class="big"><div class="m warn"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한임박</div>
+    <div class="marker-bg"><div class="big"><div class="m imm"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한초과 A — ! 배지</div>
+    <div class="marker-bg"><div class="big"><div class="m danger opt-a"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한초과 B — 펄스</div>
+    <div class="marker-bg"><div class="big"><div class="m danger opt-b"></div></div></div>
+  </div>
+</div>
+
+<h2>3. 분말 20kg (◎ 도넛) 마커 적용 예</h2>
+<div class="grid">
+  <div class="card">
+    <div class="label">정상</div>
+    <div class="marker-bg"><div class="big"><div class="m20 normal"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한도래</div>
+    <div class="marker-bg"><div class="big"><div class="m20 warn"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한임박</div>
+    <div class="marker-bg"><div class="big"><div class="m20 imm"></div></div></div>
+  </div>
+  <div class="card">
+    <div class="label">연한초과</div>
+    <div class="marker-bg"><div class="big"><div class="m20 danger"></div></div></div>
+  </div>
+</div>
+
+<h2>4. 한 도면에 섞여 있는 모습 (실제 크기, 7개 마커 시뮬레이션)</h2>
+<div class="card" style="align-items: stretch;">
+  <div class="marker-bg" style="width: 100%; height: 180px; justify-content: space-around;">
+    <div class="m normal" style="position:absolute;left:10%;top:30%"></div>
+    <div class="m normal" style="position:absolute;left:25%;top:60%"></div>
+    <div class="m warn"   style="position:absolute;left:40%;top:25%"></div>
+    <div class="m normal" style="position:absolute;left:55%;top:55%"></div>
+    <div class="m imm"    style="position:absolute;left:70%;top:35%"></div>
+    <div class="m danger opt-a" style="position:absolute;left:85%;top:65%"></div>
+    <div class="m20 normal" style="position:absolute;left:18%;top:75%"></div>
+  </div>
+  <div class="swatch-row">
+    <span class="swatch" style="background:#fff"></span>정상
+    <span class="swatch" style="background:#eab308"></span>연한도래
+    <span class="swatch" style="background:#f97316"></span>연한임박
+    <span class="swatch" style="background:#ef4444"></span>연한초과
+  </div>
+</div>
+
+<p class="note" style="margin-top:24px">
+  <b>시안 평가 요점</b><br>
+  • 색만 보면 13px 마커에선 주황/빨강 구분이 약함 — 두께 차등(1.5/2/2.5px)으로 보강<br>
+  • A안 (! 배지) — 정적, 한눈에 식별. 마커 우상단에 12px 배지가 추가되어 살짝 차지하는 공간 있음<br>
+  • B안 (펄스) — 동적, 강하게 시선 끌지만 마커 많을 때 산만할 수 있음<br>
+  • 둘 다 색 + 두께 차등은 공통 적용
+</p>
+
+</body>
+</html>

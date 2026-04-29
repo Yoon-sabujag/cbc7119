@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-28 - Completed quick task 260428-hbh: QRScanPage 데드 코드 제거 + GlobalHeader 통합
+Last activity: 2026-04-29 - Completed quick task 260429-mao: 도면 분말 소화기 마커 연한 경고 강조 (A안)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -99,6 +99,7 @@ Recent decisions affecting current work:
 | 260426-vk9 | 지하층 floor 형식('B1F'~'B5F'→'B1'~'B5') + 소화기 zone 매핑('지' 강제) 보정 | 2026-04-26 | d604771 | [260426-vk9-floor-zone-fix](./quick/260426-vk9-floor-zone-fix/) |
 | 260428-er6 | 사이드 메뉴 라벨과 페이지 헤더 표기 통일 (사이드 메뉴 기준) | 2026-04-28 | e6480d7 | [260428-er6-menu-header-titles](./quick/260428-er6-menu-header-titles/) |
 | 260428-hbh | QRScanPage 데드 코드 제거(found/form/done stage) + GlobalHeader portal 통합 | 2026-04-28 | 3a231a5 | [260428-hbh-qrscanpage-cleanup](./quick/260428-hbh-qrscanpage-cleanup/) |
+| 260429-mao | 도면 분말 소화기 마커 연한 경고 강조 (A안) — stroke 색·두께 + danger ! 배지, 헬퍼 추출 | 2026-04-29 | 5a2005d | [260429-mao-ext-marker-warning](./quick/260429-mao-ext-marker-warning/) |
 
 ## Session Continuity
 
