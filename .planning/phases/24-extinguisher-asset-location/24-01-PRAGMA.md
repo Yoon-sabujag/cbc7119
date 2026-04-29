@@ -69,3 +69,59 @@ FROM extinguishers;
 - [x] 3개 신규 인덱스 (idx_extinguishers_status, idx_extinguishers_cp_active, idx_check_records_ext) — 기존 인덱스와 충돌 없음 (CREATE INDEX IF NOT EXISTS로 작성)
 
 → Migration 0079 SQL을 PLAN.md의 기본 형태 그대로 작성 (SKIPPED 주석 분기 불필요).
+
+---
+
+## Post-migration verification
+
+**Applied at:** 2026-04-30 07:36 KST
+**Apply summary:** 6 queries executed (ALTER 2 + CREATE INDEX 3 + UPDATE 1) — 15,398 rows read, 6,873 rows written, 1,528 changes. DB size: 21.96 → 22.30 MB.
+
+### 1. extinguishers PRAGMA — `status` 컬럼 존재 확인
+
+18 columns total. `status` added at cid=17 (TEXT NOT NULL DEFAULT 'active'). ✓
+
+### 2. check_records PRAGMA — `extinguisher_id` 컬럼 존재 확인
+
+19 columns total. `extinguisher_id` added at cid=18 (INTEGER, nullable). ✓
+
+### 3. extinguishers status 분포
+
+```
+SELECT COUNT(*) AS total, SUM(CASE WHEN status='active' THEN 1 ELSE 0 END) AS active FROM extinguishers;
+-- total: 448, active: 448
+```
+
+→ All 448 rows backfilled to `status='active'` (DEFAULT) ✓
+
+### 4. CP-FE-% 점검 기록 백필 결과
+
+```
+SELECT COUNT(*) AS total, SUM(CASE WHEN extinguisher_id IS NULL THEN 1 ELSE 0 END) AS nulls
+FROM check_records
+WHERE checkpoint_id LIKE 'CP-FE-%';
+-- total: 1527, nulls: 2
+```
+
+→ NULL ratio: **2 / 1527 = 0.13%** (≤ 5% threshold) ✓
+→ 2 historical records did not match a current extinguishers row (likely pre-existing orphans — preserved as-is per check_records DELETE 금지 룰).
+
+### 5. 신규 인덱스 3개 존재 확인
+
+```
+SELECT name FROM sqlite_master WHERE type='index' AND name IN (...);
+```
+
+- idx_extinguishers_status ✓
+- idx_extinguishers_cp_active ✓
+- idx_check_records_ext ✓
+
+### Outcome
+
+All 5 verification queries passed. Migration 0079 successfully applied to production D1.
+
+- New columns: `extinguishers.status` (NOT NULL DEFAULT 'active'), `check_records.extinguisher_id` (nullable)
+- New indexes: idx_extinguishers_status, idx_extinguishers_cp_active, idx_check_records_ext
+- Backfill: 1,525 of 1,527 CP-FE-% records linked to current ext.id (99.87%)
+
+Plan 02 (Backend API) can proceed — both new columns are usable in queries.
