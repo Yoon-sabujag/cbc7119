@@ -1273,12 +1273,6 @@ export default function FloorPlanPage() {
       {/* ── 범례 — BottomNav 사이즈(54 + safe-area) 기본, 항목 많으면 wrap 으로 자동 확장.
              각 row 는 양끝 정렬(space-between), 폭 부족시 두 줄로 wrap. 가로 스크롤 없음. ── */}
       {(() => {
-        // 범례 전용 단축 라벨 (마커 모양으로 충분히 식별 가능한 항목은 prefix 제거)
-        const SHORT_LABEL: Record<string, string> = {
-          fire_extinguisher: '3.3kg',
-          ext_powder20:      '20kg',
-          ext_kitchen_k:     'K급',
-        }
         const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }
         const labelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--t2)', fontWeight: 500, whiteSpace: 'nowrap' }
         const rowStyle: React.CSSProperties = {
@@ -1309,7 +1303,7 @@ export default function FloorPlanPage() {
               {currentMarkerTypes.map(mt => (
                 <div key={mt.key} style={itemStyle}>
                   <MarkerIcon markerType={mt.key} color="#888" size={13} />
-                  <span style={labelStyle}>{SHORT_LABEL[mt.key] ?? mt.label.join('')}</span>
+                  <span style={labelStyle}>{mt.label.join('')}</span>
                 </div>
               ))}
             </div>
