@@ -33,16 +33,35 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
       ).bind(sessionId, checkpointId).first<{id:string}>()
 
       if (existing) {
+        // Phase 24: 소화기 카테고리면 UPDATE 시에도 현재 매핑된 ext_id 스냅샷 갱신
+        let extIdForUpdate: number | null = null
+        if (cp?.category === '소화기') {
+          const currentExt = await env.DB.prepare(
+            "SELECT id FROM extinguishers WHERE check_point_id=? AND status='active' LIMIT 1"
+          ).bind(checkpointId).first<{id:number}>()
+          extIdForUpdate = currentExt?.id ?? null
+        }
         await env.DB.prepare(
-          `UPDATE check_records SET result=?,memo=?,photo_key=COALESCE(?,photo_key),checked_at=datetime('now','+9 hours') WHERE id=?`
-        ).bind(result, memo??null, photoKey??null, existing.id).run()
+          `UPDATE check_records SET result=?,memo=?,photo_key=COALESCE(?,photo_key),extinguisher_id=?,checked_at=datetime('now','+9 hours') WHERE id=?`
+        ).bind(result, memo??null, photoKey??null, extIdForUpdate, existing.id).run()
         return Response.json({ success:true, data:{ id:existing.id, updated:true } })
       }
     }
+
+    // Phase 24: 소화기 카테고리면 INSERT 직전에 현재 매핑된 active ext_id 를 스냅샷으로 기록.
+    // 클라이언트 값은 무시 — race condition 방지를 위해 서버가 직접 SELECT.
+    let extinguisherIdSnapshot: number | null = null
+    if (cp?.category === '소화기') {
+      const currentExt = await env.DB.prepare(
+        "SELECT id FROM extinguishers WHERE check_point_id=? AND status='active' LIMIT 1"
+      ).bind(checkpointId).first<{id:number}>()
+      extinguisherIdSnapshot = currentExt?.id ?? null
+    }
+
     const id = nanoid()
     await env.DB.prepare(
-      `INSERT INTO check_records (id,session_id,checkpoint_id,staff_id,result,memo,photo_key,guide_light_type,floor_plan_marker_id,checked_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,datetime('now','+9 hours'),datetime('now','+9 hours'))`
-    ).bind(id, sessionId, checkpointId, staffId, result, memo??null, photoKey??null, guide_light_type??null, floor_plan_marker_id??null).run()
+      `INSERT INTO check_records (id,session_id,checkpoint_id,staff_id,result,memo,photo_key,guide_light_type,floor_plan_marker_id,extinguisher_id,checked_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now','+9 hours'),datetime('now','+9 hours'))`
+    ).bind(id, sessionId, checkpointId, staffId, result, memo??null, photoKey??null, guide_light_type??null, floor_plan_marker_id??null, extinguisherIdSnapshot).run()
     return Response.json({ success:true, data:{ id, created:true } }, { status:201 })
   } catch (e: any) {
     console.error('check_records save error:', e)

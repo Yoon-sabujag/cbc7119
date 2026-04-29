@@ -3,9 +3,9 @@ import type { Env } from '../../_middleware'
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const body = await request.json<{
-    floor: string       // check_points용 (예: '7F', '8-1F', 'B1')
-    zone: string        // '연' | '사' | '공'
-    location: string
+    floor?: string      // check_points용 (예: '7F', '8-1F', 'B1')
+    zone?: string       // '연' | '사' | '공'
+    location?: string
     type: string        // '분말' 등
     approval_no?: string
     manufactured_at?: string
@@ -15,8 +15,35 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     serial_no?: string
     note?: string
     category?: string   // 기본 '소화기'
+    skip_marker?: boolean  // Phase 24: 자산만 등록 모드 (check_point_id=NULL)
   }>()
 
+  // Phase 24: skip_marker 모드 — 자산만 등록 (check_point_id=NULL, status='active')
+  if (body.skip_marker === true) {
+    if (!body.type) return Response.json({ success:false, error:'종류는 필수입니다' }, { status:400 })
+
+    const result = await env.DB.prepare(`
+      INSERT INTO extinguishers (
+        check_point_id, type, prefix_code, seal_no, serial_no,
+        approval_no, manufactured_at, manufacturer, status,
+        created_at, updated_at
+      ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 'active',
+                datetime('now','+9 hours'), datetime('now','+9 hours'))
+    `).bind(
+      body.type,
+      body.prefix_code ?? null,
+      body.seal_no ?? null,
+      body.serial_no ?? null,
+      body.approval_no ?? null,
+      body.manufactured_at ?? null,
+      body.manufacturer ?? null,
+    ).run()
+
+    const newId = result.meta?.last_row_id
+    return Response.json({ success:true, data:{ extinguisherId: newId } })
+  }
+
+  // 기존 흐름 (마커 + 자산 동시 등록) — 도면 페이지 옛 호출용 (deprecate but kept).
   if (!body.floor || !body.zone || !body.location || !body.type)
     return Response.json({ success: false, error: '필수 항목 누락' }, { status: 400 })
 
