@@ -1270,7 +1270,7 @@ export default function FloorPlanPage() {
       })()}
       </div>
 
-      {/* ── 범례 — 두 행 강제 (Row 1: 마커 종류, Row 2: 점검 상태 + 연한). 좁은 화면 대응 컴팩트 사이즈 + 라벨 단축. ── */}
+      {/* ── 범례 — BottomNav 사이즈만큼 영역 확보 (54px + safe area). 두 행, 시원한 간격. ── */}
       {(() => {
         // 범례 전용 단축 라벨 (마커 모양으로 충분히 식별 가능한 항목은 prefix 제거)
         const SHORT_LABEL: Record<string, string> = {
@@ -1278,42 +1278,56 @@ export default function FloorPlanPage() {
           ext_powder20:      '20kg',
           ext_kitchen_k:     'K급',
         }
+        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5 }
+        const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--t2)', fontWeight: 500 }
         return (
-          <div style={{ flexShrink: 0, background: 'var(--bg2)', borderTop: '1px solid var(--bd)' }}>
-            {/* Row 1: 마커 종류 */}
-            <div style={{ padding: '5px 8px 2px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div
+            data-no-print
+            style={{
+              flexShrink: 0,
+              background: 'var(--bg2)',
+              borderTop: '1px solid var(--bd)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-evenly',
+              minHeight: 54,
+            }}
+          >
+            {/* Row 1: 마커 종류 — 항목 간 균등 분포 */}
+            <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'space-between' }}>
               {currentMarkerTypes.map(mt => (
-                <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <MarkerIcon markerType={mt.key} color="#888" size={12} />
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>{SHORT_LABEL[mt.key] ?? mt.label.join('')}</span>
+                <div key={mt.key} style={itemStyle}>
+                  <MarkerIcon markerType={mt.key} color="#888" size={14} />
+                  <span style={labelStyle}>{SHORT_LABEL[mt.key] ?? mt.label.join('')}</span>
                 </div>
               ))}
             </div>
             {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 연한 */}
-            <div style={{ padding: '2px 8px 5px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               {['normal', 'caution', 'fault', 'resolved'].map(s => (
-                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[s] }} />
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
+                <div key={s} style={itemStyle}>
+                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[s] }} />
+                  <span style={labelStyle}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
                 </div>
               ))}
               {planType === 'extinguisher' && (
                 <>
-                  <div style={{ width: 1, height: 10, background: 'var(--bd)', margin: '0 1px' }} />
+                  <div style={{ width: 1, height: 14, background: 'var(--bd)', margin: '0 4px' }} />
                   {(['warn', 'imminent', 'danger'] as const).map(w => {
                     const stroke = REPLACE_WARNING_STROKE[w]
                     const label = { warn: '도래', imminent: '임박', danger: '초과' }[w]
                     return (
-                      <div key={w} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <div key={w} style={itemStyle}>
                         <MarkerIcon
                           markerType="fire_extinguisher"
                           color="#888"
-                          size={12}
+                          size={14}
                           strokeColor={stroke.color}
                           strokeWidth={stroke.width}
                           dangerBadge={w === 'danger'}
                         />
-                        <span style={{ fontSize: 10, color: 'var(--t3)' }}>{label}</span>
+                        <span style={labelStyle}>{label}</span>
                       </div>
                     )
                   })}
