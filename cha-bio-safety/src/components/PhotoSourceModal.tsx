@@ -34,7 +34,8 @@ export function PhotoSourceModal({ open, onClose, onCamera, onAlbum }: Props) {
       <div onClick={e => e.stopPropagation()} style={{
         width: '100%', maxWidth: 400, background: 'var(--bg)',
         borderRadius: '16px 16px 0 0',
-        padding: '20px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingTop: 20, paddingLeft: 16, paddingRight: 16,
+        paddingBottom: 'calc(54px + var(--sab, env(safe-area-inset-bottom, 0px)) + 12px + 16px)',
       }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 16, textAlign: 'center' }}>
           사진 선택
