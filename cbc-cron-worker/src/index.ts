@@ -444,6 +444,48 @@ async function handleEventNotifications(env: Env) {
   }
 }
 
+// ── Diagnostic: send to ALL subs (bypasses working filter) ─────
+// ⚠️ 진단용 — Apple Push endpoint 응답까지 telemetry 로 보기 위함.
+// 검증 종료 후 본 함수 + */2 cron 라우팅 함께 제거.
+async function handleDiagnosticAllSubs(env: Env): Promise<void> {
+  await logTelemetry(env, 'cron-diag-enter', { detail: '*/2 diagnostic — bypasses working filter' })
+  try {
+    const allSubs = await env.DB.prepare(
+      'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
+    ).all<PushSubRow>()
+    const rows = allSubs.results ?? []
+    await logTelemetry(env, 'cron-diag-start', {
+      detail: JSON.stringify({
+        allSubsCount: rows.length,
+        endpoints: rows.map(r => ({
+          staff_id: r.staff_id,
+          host: (() => { try { return new URL(r.endpoint).host } catch { return null } })(),
+        })),
+      }),
+    })
+    const sends: Promise<void>[] = []
+    for (const sub of rows) {
+      sends.push(sendPush(env, sub, {
+        title: '[진단] 자동발송 점검',
+        body: '관리자 진단용 임시 푸시입니다',
+        type: 'diagnostic',
+      }))
+    }
+    const settled = await Promise.allSettled(sends)
+    const fulfilled = settled.filter(s => s.status === 'fulfilled').length
+    const rejected = settled.filter(s => s.status === 'rejected').length
+    await logTelemetry(env, 'cron-diag-end', {
+      detail: JSON.stringify({ sendsCount: sends.length, fulfilled, rejected }),
+    })
+  } catch (e) {
+    await logTelemetry(env, 'cron-diag-error', {
+      detail: `${(e as Error)?.message ?? e}
+${(e as Error)?.stack ?? ''}`.slice(0, 1500),
+    })
+    throw e
+  }
+}
+
 // ── Access-blocked auto-complete (every day 15:00 KST = 06:00 UTC) ─────
 async function handleAccessBlockedAutoComplete(env: Env): Promise<void> {
   // KST 오늘 날짜 (UTC+9). UTC 06:00 발동 → KST 15:00 (같은 날).
@@ -535,6 +577,10 @@ export default {
     switch (controller.cron) {
       case '45 23 * * *':
         ctx.waitUntil(handleDailyNotifications(env))
+        break
+      // 진단용 임시 cron — 검증 종료 후 wrangler.toml 의 "*/2 * * * *" 와 함께 제거.
+      case '*/2 * * * *':
+        ctx.waitUntil(handleDiagnosticAllSubs(env))
         break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
