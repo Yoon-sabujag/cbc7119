@@ -41,6 +41,7 @@ const DocumentsPage             = lazy(() => import('./pages/DocumentsPage'))
 const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
 const StaffManagePage           = lazy(() => import('./pages/StaffManagePage'))
 const CheckpointsPage           = lazy(() => import('./pages/CheckpointsPage'))
+const ExtinguishersListPage     = lazy(() => import('./pages/ExtinguishersListPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -88,6 +89,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/annual-plan': '연간 업무 추진 계획',
   '/documents': '소방계획서/훈련자료',
   '/worklog': '업무 수행 기록표',
+  '/extinguishers': '소화기 관리',
 }
 
 function Layout() {
@@ -233,6 +235,7 @@ function Layout() {
               <Route path="/daily-report"  element={<Auth><DailyReportPage /></Auth>} />
               <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
               <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
+              <Route path="/extinguishers" element={<Auth><ExtinguishersListPage /></Auth>} />
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
 
