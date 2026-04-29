@@ -210,10 +210,16 @@ export interface ExtinguisherDetail {
   seal_no: string | null
   serial_no: string | null
   note: string | null
+  // Phase 24 추가 필드
+  status?: 'active' | '폐기'
+  cp_location?: string | null
+  cp_floor?: string | null
+  cp_zone?: string | null
+  cp_qr_code?: string | null
 }
 
 export interface ExtinguisherListResponse {
-  items: (ExtinguisherDetail & { seq_no: number; cp_id: string })[]
+  items: (ExtinguisherDetail & { id: number; seq_no: number; cp_id: string | null; has_records?: number | boolean })[]
   stats: { type: string; cnt: number }[]
   zones: string[]
   floors: string[]
@@ -223,21 +229,49 @@ export interface ExtinguisherListResponse {
 export const extinguisherApi = {
   getDetail: (checkPointId: string) =>
     api.get<ExtinguisherDetail | null>(`/extinguishers/${checkPointId}`),
-  list: (params?: { floor?: string; zone?: string; type?: string; q?: string }) => {
+  list: (params?: {
+    floor?: string
+    zone?: string
+    type?: string
+    q?: string
+    status?: 'active' | '폐기'
+    mapping?: 'mapped' | 'unmapped' | 'disposed'
+  }) => {
     const qs = new URLSearchParams()
     if (params?.floor) qs.set('floor', params.floor)
     if (params?.zone) qs.set('zone', params.zone)
     if (params?.type) qs.set('type', params.type)
     if (params?.q) qs.set('q', params.q)
+    if (params?.status) qs.set('status', params.status)
+    if (params?.mapping) qs.set('mapping', params.mapping)
     const q = qs.toString()
     return api.get<ExtinguisherListResponse>(`/extinguishers${q ? '?' + q : ''}`)
   },
+  // Phase 24: 정보 수정 (변경 필드 ≤ 3 검증은 서버 enforce)
+  update: (id: number, data: Partial<Pick<ExtinguisherDetail, 'type'|'prefix_code'|'seal_no'|'serial_no'|'approval_no'|'manufactured_at'|'manufacturer'>>) =>
+    api.put<{ changed?: number; noop?: boolean }>(`/extinguishers/${id}`, data),
+  // Phase 24: 위치 매핑
+  assign: (id: number, checkPointId: string) =>
+    api.post<void>(`/extinguishers/${id}/assign`, { check_point_id: checkPointId }),
+  // Phase 24: 위치 분리 (status 유지, idempotent)
+  unassign: (id: number) =>
+    api.post<{ noop?: boolean }>(`/extinguishers/${id}/unassign`, {}),
+  // Phase 24: 두 자산 위치 스왑 (atomic)
+  swap: (id: number, otherId: number) =>
+    api.post<void>(`/extinguishers/${id}/swap`, { other_extinguisher_id: otherId }),
+  // Phase 24: 폐기 처리 (status='폐기' + check_point_id=NULL, idempotent)
+  dispose: (id: number) =>
+    api.post<{ noop?: boolean }>(`/extinguishers/${id}/dispose`, {}),
+  // Phase 24: hard delete (미매핑+미점검만 허용)
+  remove: (id: number) =>
+    api.delete<void>(`/extinguishers/${id}`),
   create: (data: {
-    floor: string; zone: string; location: string; type: string;
+    floor?: string; zone?: string; location?: string; type: string;
     approval_no?: string; manufactured_at?: string; manufacturer?: string;
     prefix_code?: string; seal_no?: string; serial_no?: string; note?: string;
     category?: string;
-  }) => api.post<{ checkPointId: string; mgmtNo: string }>('/extinguishers/create', data),
+    skip_marker?: boolean;  // Phase 24: 자산만 등록 모드
+  }) => api.post<{ checkPointId: string; mgmtNo: string } | { extinguisherId: number }>('/extinguishers/create', data),
 }
 
 export const staffApi = {
