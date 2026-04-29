@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type ExtinguisherListResponse, type FloorPlanMarker } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
@@ -3194,9 +3194,14 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
         </div>
         {isExtinguisher && (
-          <button onClick={() => setShowExtList(true)} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
-            리스트
-          </button>
+          <>
+            <button onClick={() => navigate('/extinguishers')} style={{ height:32, padding:'0 12px', borderRadius:8, background:'var(--acl)', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+              + 새로 등록
+            </button>
+            <button onClick={() => setShowExtList(true)} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+              리스트
+            </button>
+          </>
         )}
       </div>
 
