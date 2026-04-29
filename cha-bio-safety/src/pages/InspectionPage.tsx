@@ -4041,7 +4041,7 @@ export default function InspectionPage() {
     if (!CATEGORY_GROUPS[selectedGroupIdx].categories.includes('완강기')) return
 
     const inaccessible = allCheckpoints.filter(
-      cp => cp.category === '완강기' && cp.description === '접근불가' && !records[cp.id]
+      cp => cp.category === '완강기' && cp.description === '접근불가' && !monthRecords[cp.id]
     )
     if (inaccessible.length === 0) { wkAutoRef.current = true; return }
 
@@ -4069,7 +4069,7 @@ export default function InspectionPage() {
     if (!CATEGORY_GROUPS[selectedGroupIdx].categories.includes('소화기')) return
 
     const inaccessible = allCheckpoints.filter(
-      cp => cp.category === '소화기' && cp.description?.includes('[접근불가]') && !records[cp.id]
+      cp => cp.category === '소화기' && cp.description?.includes('[접근불가]') && !monthRecords[cp.id]
     )
     if (inaccessible.length === 0) { feAutoRef.current = true; return }
 
