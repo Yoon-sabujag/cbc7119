@@ -198,6 +198,7 @@ export const floorPlanMarkerApi = {
 }
 
 export interface ExtinguisherDetail {
+  id?: number
   mgmt_no: string
   zone: string
   floor: string

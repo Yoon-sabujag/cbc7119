@@ -287,7 +287,7 @@ ARCHIVED_PHASES_END -->
 **Goal:** 도면 마커는 영구 위치, 소화기는 위치에 배치/교체되는 자산으로 분리. 소화기 교체·이동·폐기 추적 가능하게 한다 (5월 법정점검 준비).
 **Requirements**: EXT-04, EXT-05 (TBD)
 **Depends on:** Phase 22
-**Plans:** 1/6 plans executed
+**Plans:** 2/6 plans executed
 
 **Success Criteria:**
 1. 소화기 리스트 페이지에서 신규 등록·수정(≤3필드)·삭제·폐기·분리 가능
@@ -300,7 +300,7 @@ ARCHIVED_PHASES_END -->
 
 Plans:
 - [x] 24-01-PLAN.md — Migration 0079_extinguisher_asset_split.sql (status + extinguisher_id 컬럼 + 인덱스 + 백필)
-- [ ] 24-02-PLAN.md — Backend API (assign/unassign/swap/dispose/PUT/DELETE) + records 스냅샷 + cascade 정책 변경 + extinguisherApi 확장
+- [x] 24-02-PLAN.md — Backend API (assign/unassign/swap/dispose/PUT/DELETE) + records 스냅샷 + cascade 정책 변경 + extinguisherApi 확장
 - [ ] 24-03-PLAN.md — ExtinguishersListPage + 메뉴/라우트 wiring + sketches (filter bar + 카드 4상태 + 5종 모달)
 - [ ] 24-04-PLAN.md — FloorPlanPage 마커 모달 단순화 + ❓ 빈 마커 + 범례 미배치 + URL state machine + 점검 카드 sub-action
 - [ ] 24-05-PLAN.md — InspectionPage + 새로 등록 버튼 + extDetail 카드 sub-action (정보 수정 / 분리)
