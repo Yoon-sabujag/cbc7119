@@ -2990,6 +2990,58 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const [extDetail, setExtDetail] = useState<ExtinguisherDetail | null>(null)
   const [showExtList, setShowExtList] = useState(false)
 
+  // ── Phase 24: 정보 수정 / 분리 모달 상태 ──
+  const [editExtModalOpen, setEditExtModalOpen] = useState<ExtinguisherDetail | null>(null)
+  const [unassignConfirmExt, setUnassignConfirmExt] = useState<ExtinguisherDetail | null>(null)
+  // 정보 수정 모달 로컬 입력 상태
+  const [editExtForm, setEditExtForm] = useState<{
+    type: string; prefix_code: string; seal_no: string; serial_no: string;
+    approval_no: string; manufactured_at: string; manufacturer: string;
+  }>({ type:'', prefix_code:'', seal_no:'', serial_no:'', approval_no:'', manufactured_at:'', manufacturer:'' })
+
+  // editExtModalOpen 이 열릴 때 원본 값으로 초기화
+  useEffect(() => {
+    if (editExtModalOpen) {
+      setEditExtForm({
+        type:          editExtModalOpen.type          ?? '',
+        prefix_code:   editExtModalOpen.prefix_code   ?? '',
+        seal_no:       editExtModalOpen.seal_no       ?? '',
+        serial_no:     editExtModalOpen.serial_no     ?? '',
+        approval_no:   editExtModalOpen.approval_no   ?? '',
+        manufactured_at: editExtModalOpen.manufactured_at ?? '',
+        manufacturer:  editExtModalOpen.manufacturer  ?? '',
+      })
+    }
+  }, [editExtModalOpen?.mgmt_no])
+
+  const qcInspection = useQueryClient()
+
+  const updateExtMutation = useMutation({
+    mutationFn: ({ id, fields }: { id: number; fields: Record<string, string | null> }) =>
+      extinguisherApi.update(id, fields as any),
+    onSuccess: () => {
+      qcInspection.invalidateQueries({ queryKey: ['extinguishers'] })
+      // 현재 CP 의 extDetail 도 갱신
+      if (selectedCP) {
+        extinguisherApi.getDetail(selectedCP.id).then(d => setExtDetail(d)).catch(() => {})
+      }
+      toast.success('수정 완료')
+      setEditExtModalOpen(null)
+    },
+    onError: (e: any) => toast.error(e?.message ?? '요청 실패'),
+  })
+
+  const unassignExtMutation = useMutation({
+    mutationFn: (id: number) => extinguisherApi.unassign(id),
+    onSuccess: () => {
+      qcInspection.invalidateQueries({ queryKey: ['extinguishers'] })
+      setExtDetail(null)
+      toast.success('분리 완료')
+      setUnassignConfirmExt(null)
+    },
+    onError: (e: any) => toast.error(e?.message ?? '요청 실패'),
+  })
+
   // CP 바뀌면 기존 기록 로드 (없으면 기본값 '정상') + 사진 초기화
   useEffect(() => {
     if (selectedCP) {
@@ -3321,6 +3373,23 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                   {rwStyle[replaceWarning].text}
                 </div>
               )}
+              {/* ── Phase 24: 정보 수정 / 소화기 분리 sub-action row ── */}
+              {extDetail.id != null && (
+                <div style={{ display:'flex', gap:8, marginTop:8 }}>
+                  <button
+                    onClick={() => setEditExtModalOpen(extDetail)}
+                    style={{ flex:1, height:36, borderRadius:8, fontSize:12, fontWeight:700,
+                      background:'var(--bg3)', color:'var(--t1)', border:'1px solid var(--bd2)', cursor:'pointer' }}>
+                    정보 수정
+                  </button>
+                  <button
+                    onClick={() => setUnassignConfirmExt(extDetail)}
+                    style={{ flex:1, height:36, borderRadius:8, fontSize:12, fontWeight:700,
+                      background:'rgba(239,68,68,.08)', color:'var(--danger)', border:'1px solid rgba(239,68,68,.3)', cursor:'pointer' }}>
+                    소화기 분리
+                  </button>
+                </div>
+              )}
               {extDetail.note && (
                 <div style={{ marginTop:6, fontSize:11, color:'var(--t2)', background:'rgba(245,158,11,.08)', padding:'4px 8px', borderRadius:4 }}>
                   {extDetail.note}
@@ -3463,6 +3532,144 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
       {/* ── 소화기 리스트 풀스크린 오버레이 ── */}
       {showExtList && <ExtinguisherListOverlay onClose={() => setShowExtList(false)} />}
+
+      {/* ── Phase 24: 정보 수정 모달 ── */}
+      {editExtModalOpen != null && (() => {
+        const orig = editExtModalOpen
+        const EDITABLE_FIELDS = ['type','prefix_code','seal_no','serial_no','approval_no','manufactured_at','manufacturer'] as const
+        const norm = (v: string | null | undefined) => (v === '' || v === undefined) ? null : v
+        const changedCount = EDITABLE_FIELDS.filter(f => norm(editExtForm[f]) !== norm(orig[f])).length
+        const counterChip = (() => {
+          if (changedCount === 0) return { bg:'var(--bg3)', color:'var(--t3)' }
+          if (changedCount <= 3)  return { bg:'rgba(59,130,246,.15)', color:'var(--acl)' }
+          return { bg:'rgba(239,68,68,.15)', color:'var(--danger)' }
+        })()
+        const EXT_TYPES = ['분말', 'CO2', '할론', '포', '청정']
+        const inputStyle = (field: string): React.CSSProperties => ({
+          width:'100%', height:40, padding:'0 12px', borderRadius:8,
+          background:'var(--bg3)', color:'var(--t1)', fontSize:13, marginBottom:14,
+          border: norm(editExtForm[field as typeof EDITABLE_FIELDS[number]]) !== norm(orig[field as typeof EDITABLE_FIELDS[number]])
+            ? '1px solid var(--acl)' : '1px solid var(--bd2)',
+          boxSizing:'border-box' as const,
+        })
+        const canSave = changedCount >= 1 && changedCount <= 3
+        return (
+          <div
+            style={{ position:'absolute', inset:0, zIndex:40, background:'rgba(0,0,0,0.6)',
+              display:'flex', alignItems:'center', justifyContent:'center' }}
+            onClick={() => setEditExtModalOpen(null)}
+          >
+            <div
+              style={{ width:'90%', maxWidth:360, background:'var(--bg2)', borderRadius:16,
+                padding:20, border:'1px solid var(--bd2)', maxHeight:'80vh', overflowY:'auto' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* 헤더 */}
+              <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:16 }}>
+                <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>정보 수정</span>
+                <span style={{ display:'inline-flex', padding:'2px 8px', borderRadius:5, fontSize:11, fontWeight:700,
+                  background:counterChip.bg, color:counterChip.color }}>
+                  변경: {changedCount} / 3
+                </span>
+              </div>
+              {changedCount > 3 && (
+                <div style={{ fontSize:11, color:'var(--danger)', marginBottom:12 }}>
+                  4개 이상 변경하려면 「폐기 후 재등록」을 사용하세요.
+                </div>
+              )}
+              {/* 종류 — 3열 버튼 그리드 */}
+              <div style={{ fontSize:11, color:'var(--t3)', marginBottom:6 }}>종류</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginBottom:14 }}>
+                {EXT_TYPES.map(t => (
+                  <button key={t} onClick={() => setEditExtForm(f => ({ ...f, type:t }))}
+                    style={{ padding:'8px 0', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer',
+                      background: editExtForm.type === t ? 'var(--acl)' : 'var(--bg3)',
+                      color: editExtForm.type === t ? '#fff' : 'var(--t2)',
+                      border: editExtForm.type === t ? 'none' : '1px solid var(--bd)' }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+              {/* 텍스트 필드 */}
+              {([
+                { field:'prefix_code',   label:'접두문자' },
+                { field:'seal_no',       label:'증지번호' },
+                { field:'serial_no',     label:'제조번호' },
+                { field:'approval_no',   label:'형식승인' },
+                { field:'manufactured_at', label:'제조년월' },
+                { field:'manufacturer',  label:'제조업체' },
+              ] as const).map(({ field, label }) => (
+                <div key={field}>
+                  <div style={{ fontSize:11, color:'var(--t3)', marginBottom:6 }}>{label}</div>
+                  <input
+                    value={editExtForm[field]}
+                    onChange={e => setEditExtForm(f => ({ ...f, [field]: e.target.value }))}
+                    style={inputStyle(field)}
+                  />
+                </div>
+              ))}
+              {/* 액션 */}
+              <div style={{ display:'flex', gap:8, marginTop:16 }}>
+                <button onClick={() => setEditExtModalOpen(null)}
+                  style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)',
+                    color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                  취소
+                </button>
+                <button
+                  disabled={!canSave}
+                  onClick={() => {
+                    if (!canSave || orig.id == null) return
+                    const fields: Record<string, string | null> = {}
+                    EDITABLE_FIELDS.forEach(f => {
+                      if (norm(editExtForm[f]) !== norm(orig[f])) fields[f] = norm(editExtForm[f])
+                    })
+                    updateExtMutation.mutate({ id: orig.id, fields })
+                  }}
+                  style={{ flex:1, height:42, borderRadius:10, border:'none',
+                    background: canSave ? 'var(--acl)' : 'var(--bd2)',
+                    color: canSave ? '#fff' : 'var(--t3)',
+                    fontSize:13, fontWeight:700,
+                    cursor: canSave ? 'pointer' : 'not-allowed' }}>
+                  저장
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* ── Phase 24: 소화기 분리 confirm 모달 ── */}
+      {unassignConfirmExt != null && (
+        <div
+          style={{ position:'absolute', inset:0, zIndex:40, background:'rgba(0,0,0,0.6)',
+            display:'flex', alignItems:'center', justifyContent:'center' }}
+          onClick={() => setUnassignConfirmExt(null)}
+        >
+          <div
+            style={{ width:'90%', maxWidth:360, background:'var(--bg2)', borderRadius:16,
+              padding:20, border:'1px solid var(--bd2)', maxHeight:'80vh', overflowY:'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)', marginBottom:16 }}>소화기 분리</div>
+            <div style={{ fontSize:13, fontWeight:400, color:'var(--t2)', marginBottom:16 }}>
+              「{unassignConfirmExt.cp_location ?? unassignConfirmExt.location ?? unassignConfirmExt.mgmt_no}」 위치에서 분리합니다. 자산은 미배치 상태로 유지됩니다.
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setUnassignConfirmExt(null)}
+                style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)',
+                  color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                취소
+              </button>
+              <button
+                onClick={() => { if (unassignConfirmExt.id != null) unassignExtMutation.mutate(unassignConfirmExt.id) }}
+                style={{ flex:1, height:42, borderRadius:10, border:'none',
+                  background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                분리
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
