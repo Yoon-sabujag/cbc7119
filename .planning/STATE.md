@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: 문서 관리
 status: executing
 stopped_at: Phase 22 UI-SPEC approved
-last_updated: "2026-04-28T06:50:00.000Z"
-last_activity: 2026-04-28
+last_updated: "2026-04-29T07:30:00.000Z"
+last_activity: 2026-04-29
 progress:
   total_phases: 11
   completed_phases: 10
@@ -63,7 +63,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 Phase: **운영 관찰 모드** (기능 개발 일단락 상태 — 2026-04-20)
 Plan: N/A (신규 개발 중단)
 Status: 실전 검증 대기 중
-Last activity: 2026-04-28 - Completed quick task 260428-lha: FloorPlanPage 평면도 모달에 paired BC 입력 섹션 추가 (db7ced6, 배포 완료)
+Last activity: 2026-04-29 - Completed quick task 260429-meq + fast PhotoSourceModal padding 보강 (35a498e, 배포 완료)
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -147,6 +147,7 @@ None yet.
 | 260426-f54 | 점검 "완료" 정의 통일 — bad+resolved 도 완료로 인정 (카드/대시보드/층별 화면 일관화: isCpCompleted 헬퍼 + dashboard SQL 7곳 보정) | 2026-04-26 | b7e4c71 | [260426-f54-completion-rule-bad-resolved](./quick/260426-f54-completion-rule-bad-resolved/) |
 | 260428-id1 | B1 비상콘센트 CP-B1-6-BC 4월 누락 기록 회복 (D1 INSERT, SH 짝꿍과 동일 timestamp/staff/result, 154/154 회복) | 2026-04-28 | 9a3887d | [260428-id1-recover-cp-b1-6-bc-april](./quick/260428-id1-recover-cp-b1-6-bc-april/) |
 | 260428-lha | FloorPlanPage 평면도 모달에 paired 비상콘센트(BC) 입력 섹션 + 직렬 저장 추가 (4-27 박보융 BC 누락 사고 재발 방지, 단일 파일 +94/-3) | 2026-04-28 | db7ced6 | [260428-lha-floorplanpage-paired-bc-modal](./quick/260428-lha-floorplanpage-paired-bc-modal/) |
+| 260429-meq | 승강기 고장 접수/수리 완료 모달 사진 첨부 5장 지원 (migration 0074 elevator_faults photo_keys + repair_photo_keys, 3개 모달 MultiPhotoUpload 통합) | 2026-04-29 | 97fd14f | [260429-meq-elevator-fault-photo-upload](./quick/260429-meq-elevator-fault-photo-upload/) |
 
 ### Blockers/Concerns
 
@@ -167,3 +168,4 @@ Resume file: .planning/phases/22-form-excel-output/22-UI-SPEC.md
 *Milestone v1.3 shipped: 2026-04-08*
 *Milestone v1.4 roadmap created: 2026-04-08*
 | 2026-04-20 | fast | 직원관리 직급순 정렬 | ✅ |
+| 2026-04-29 | fast | PhotoSourceModal 취소 버튼이 BottomNav에 가려지지 않게 padding-bottom 보강 (35a498e) | ✅ |
