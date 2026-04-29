@@ -1137,7 +1137,11 @@ export default function FloorPlanPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             {canInspect && (
               <button
-                onClick={() => { const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal() }}
+                onClick={() => {
+                  // 접근불가 마커는 점검완료 팝업 건너뛰고 바로 AccessBlockedPopup 만 표시
+                  if (selected?.description?.includes('접근불가')) { openInspectModal(); return }
+                  const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal()
+                }}
                 style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
               >
                 점검 기록 입력
