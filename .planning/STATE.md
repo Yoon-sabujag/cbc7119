@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: 문서 관리
 status: executing
 stopped_at: Phase 24 UI-SPEC approved
-last_updated: "2026-04-29T18:54:07.331Z"
-last_activity: 2026-04-29 -- Phase 24 execution started
+last_updated: "2026-04-29T19:30:00.000Z"
+last_activity: 2026-04-29 -- debug cron-push-not-firing resolved (root cause: 사용자 PWA 미설치, 서버 정상)
 progress:
   total_phases: 12
   completed_phases: 10
