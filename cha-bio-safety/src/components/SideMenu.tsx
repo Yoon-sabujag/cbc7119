@@ -25,10 +25,11 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
     { label: '승강기 관리', path: '/elevator',       badge: 0, soon: false },
   ]},
   { section: '시설 관리', items: [
-    { label: 'DIV 압력 관리',   path: '/div',        badge: 0, soon: false },
-    { label: '소방 시설 도면',   path: '/floorplan',  badge: 0, soon: false },
-    { label: '소방 점검 관리',   path: '/legal',      badge: 0, soon: false },
-    { label: '소방 시설 추가',  path: '/checkpoints', badge: 0, soon: false, role: 'admin' },
+    { label: 'DIV 압력 관리',   path: '/div',           badge: 0, soon: false },
+    { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
+    { label: '소화기',          path: '/extinguishers', badge: 0, soon: false },  // Phase 24
+    { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
+    { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
   ]},
   { section: '문서 관리', items: [
     { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
