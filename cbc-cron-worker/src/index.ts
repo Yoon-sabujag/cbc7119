@@ -336,6 +336,91 @@ async function handleEventNotifications(env: Env) {
   await Promise.allSettled(sends)
 }
 
+// ── Access-blocked auto-complete (every day 15:00 KST = 06:00 UTC) ─────
+async function handleAccessBlockedAutoComplete(env: Env): Promise<void> {
+  // KST 오늘 날짜 (UTC+9). UTC 06:00 발동 → KST 15:00 (같은 날).
+  const now = new Date()
+  const kstMs = now.getTime() + 9 * 3600_000
+  const kst = new Date(kstMs)
+  const today = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-${String(kst.getUTCDate()).padStart(2, '0')}`
+  const yyyymm = today.slice(0, 7)
+
+  // 1) 이번 달 카테고리별 마지막 점검일 + 그 날의 assignee_id 조회
+  //    (같은 카테고리/같은 날에 schedule_items 행이 여러 건이어도 MIN(assignee_id) 로 안정적 1행 보장)
+  //    cl.last_date = today 인 카테고리만 추림 → 오늘이 마지막 점검일이 아니면 빈 결과.
+  const catRows = await env.DB.prepare(
+    `WITH cat_last AS (
+       SELECT inspection_category, MAX(date) AS last_date
+       FROM schedule_items
+       WHERE inspection_category IS NOT NULL
+         AND substr(date, 1, 7) = ?
+       GROUP BY inspection_category
+     )
+     SELECT cl.inspection_category AS category,
+            MIN(si.assignee_id)    AS assignee_id
+     FROM cat_last cl
+     JOIN schedule_items si
+       ON si.inspection_category = cl.inspection_category
+      AND si.date = cl.last_date
+     WHERE cl.last_date = ?
+     GROUP BY cl.inspection_category`
+  ).bind(yyyymm, today).all<{ category: string; assignee_id: string | null }>()
+
+  const targets = (catRows.results ?? []).filter(r => !!r.category)
+  if (targets.length === 0) return
+
+  // 2) 카테고리별 처리
+  for (const row of targets) {
+    const category = row.category
+    const assigneeId = row.assignee_id
+    if (!assigneeId) {
+      console.warn(`[access-blocked-auto] ${category}: assignee_id NULL — skip`)
+      continue
+    }
+
+    // 2a) 자동완료 대상 cp: description 에 '접근불가' 포함 + active + 이번 달 미기록
+    const cpRows = await env.DB.prepare(
+      `SELECT id FROM check_points
+       WHERE category = ?
+         AND description LIKE '%접근불가%'
+         AND is_active = 1
+         AND id NOT IN (
+           SELECT checkpoint_id FROM check_records
+           WHERE substr(checked_at, 1, 7) = ?
+         )`
+    ).bind(category, yyyymm).all<{ id: string }>()
+
+    const cpIds = (cpRows.results ?? []).map(r => r.id)
+    if (cpIds.length === 0) {
+      console.log(`[access-blocked-auto] ${category}: 0 cps (already complete)`)
+      continue
+    }
+
+    // 2b) 카테고리당 inspection_session 1건 + check_records N건 atomic insert
+    const sessionId = crypto.randomUUID()
+
+    const sessionStmt = env.DB.prepare(
+      `INSERT INTO inspection_sessions (id, date, floor, zone, staff_id, created_at)
+       VALUES (?, ?, NULL, NULL, ?, datetime('now'))`
+    ).bind(sessionId, today, assigneeId)
+
+    const recordStmts = cpIds.map(cpId =>
+      env.DB.prepare(
+        `INSERT INTO check_records (id, session_id, checkpoint_id, staff_id, result, memo, checked_at, created_at, status)
+         VALUES (?, ?, ?, ?, 'normal', '접근불가 개소 자동 정상처리', datetime('now'), datetime('now'), 'open')`
+      ).bind(crypto.randomUUID(), sessionId, cpId, assigneeId)
+    )
+
+    try {
+      await env.DB.batch([sessionStmt, ...recordStmts])
+      console.log(`[access-blocked-auto] ${category}: ${cpIds.length} cps auto-completed (assignee=${assigneeId}, session=${sessionId})`)
+    } catch (e) {
+      console.error(`[access-blocked-auto] ${category}: batch failed`, e)
+      // 카테고리 단위로만 fail — 다음 카테고리는 계속 진행
+    }
+  }
+}
+
 // ── Main export ──────────────────────────────────────
 export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
@@ -345,6 +430,9 @@ export default {
         break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
+        break
+      case '0 6 * * *':
+        ctx.waitUntil(handleAccessBlockedAutoComplete(env))
         break
     }
   },
