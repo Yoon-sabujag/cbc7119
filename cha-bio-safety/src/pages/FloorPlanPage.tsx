@@ -1290,12 +1290,12 @@ export default function FloorPlanPage() {
               flexShrink: 0,
               background: 'var(--bg2)',
               borderTop: '1px solid var(--bd)',
-              padding: '8px 12px 26px',
+              padding: '1px 12px 26px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               gap: 8,
-              minHeight: 100,
+              minHeight: 93,
             }}
           >
             {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
