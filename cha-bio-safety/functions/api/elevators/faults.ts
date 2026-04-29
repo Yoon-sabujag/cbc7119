@@ -37,17 +37,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     repairedAt?: string
     repairDetail?: string
     isResolved?: boolean
+    photoKeys?: string[]
   }>()
 
   const id = nanoid()
   await env.DB.prepare(`
     INSERT INTO elevator_faults
-      (id, elevator_id, reported_by, fault_at, symptoms, repair_company, repaired_at, repair_detail, is_resolved, created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,datetime('now','+9 hours'))
+      (id, elevator_id, reported_by, fault_at, symptoms, repair_company, repaired_at, repair_detail, is_resolved, photo_keys, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now','+9 hours'))
   `).bind(
     id, body.elevatorId, staffId, body.faultAt, body.symptoms,
     body.repairCompany ?? null, body.repairedAt ?? null, body.repairDetail ?? null,
-    body.isResolved ? 1 : 0
+    body.isResolved ? 1 : 0,
+    JSON.stringify(body.photoKeys ?? [])
   ).run()
 
   // 고장 시 승강기 상태 fault로 업데이트
@@ -76,13 +78,20 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
     repairCompany?: string
     repairedAt: string
     repairDetail: string
+    repairPhotoKeys?: string[]
   }>()
 
   await env.DB.prepare(`
     UPDATE elevator_faults
-    SET is_resolved=1, repair_company=?, repaired_at=?, repair_detail=?
+    SET is_resolved=1, repair_company=?, repaired_at=?, repair_detail=?, repair_photo_keys=?
     WHERE id=?
-  `).bind(body.repairCompany ?? null, body.repairedAt, body.repairDetail, body.id).run()
+  `).bind(
+    body.repairCompany ?? null,
+    body.repairedAt,
+    body.repairDetail,
+    JSON.stringify(body.repairPhotoKeys ?? []),
+    body.id
+  ).run()
 
   // 해당 승강기의 미해결 고장이 없으면 normal로 복구
   const fault = await env.DB.prepare(
