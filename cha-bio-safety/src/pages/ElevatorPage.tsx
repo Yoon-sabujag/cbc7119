@@ -61,6 +61,8 @@ interface ElevatorFault {
   elevator_location: string
   elevator_number: number
   elevator_type: string
+  photo_keys?: string                 // JSON string from D1 (e.g. '["abc","def"]')
+  repair_photo_keys?: string          // JSON string from D1
 }
 interface ElevatorInspection {
   id: string
@@ -1930,6 +1932,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
   const [faultFloor,   setFaultFloor]   = useState('')
   const [hasPassenger, setHasPassenger] = useState(false)
   const [symptoms,     setSymptoms]     = useState('')
+  const [photoKeys,    setPhotoKeys]    = useState<string[]>([])
 
   const isElev = evKind === 'elevator'
   const floors = elevatorId ? (EV_FLOORS[elevatorId] ?? []) : []
@@ -1943,7 +1946,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
   const handleSubmit = () => {
     const floorPart = faultFloor ? `[${faultFloor}] ` : ''
     const passPart  = isElev && hasPassenger ? '[승객탑승] ' : ''
-    onSubmit({ elevatorId, faultAt:faultAt+':00', symptoms:`${floorPart}${passPart}${symptoms}`, isResolved:false })
+    onSubmit({ elevatorId, faultAt:faultAt+':00', symptoms:`${floorPart}${passPart}${symptoms}`, photoKeys, isResolved:false })
   }
 
   return (
@@ -1990,6 +1993,8 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
               <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
             </Field>
 
+            <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
+
             <a href={TKE_TEL} style={{ textDecoration:'none', display:'block' }}>
               <button
                 onClick={handleSubmit}
@@ -2016,6 +2021,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   const [faultFloor,   setFaultFloor]   = useState('')
   const [hasPassenger, setHasPassenger] = useState(false)
   const [symptoms,     setSymptoms]     = useState('')
+  const [photoKeys,    setPhotoKeys]    = useState<string[]>([])
 
   const isElev = evKind === 'elevator'
   const floors = elevatorId ? (EV_FLOORS[elevatorId] ?? []) : []
@@ -2028,7 +2034,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   const handleSubmit = () => {
     const floorPart = faultFloor ? `[${faultFloor}] ` : ''
     const passPart  = isElev && hasPassenger ? '[승객탑승] ' : ''
-    onSubmit({ elevatorId, faultAt:faultAt+':00', symptoms:`${floorPart}${passPart}${symptoms}`, isResolved:false })
+    onSubmit({ elevatorId, faultAt:faultAt+':00', symptoms:`${floorPart}${passPart}${symptoms}`, photoKeys, isResolved:false })
   }
 
   return (
@@ -2086,6 +2092,8 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
               <Field label="증상">
                 <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={4} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
               </Field>
+
+              <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
             </>
           )}
         </div>
@@ -2111,9 +2119,10 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
 function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
   fault:ElevatorFault; onClose:()=>void; onSubmit:(b:any)=>void; loading:boolean
 }) {
-  const [repairCompany, setRepairCompany] = useState('TKE')
-  const [repairedAt,    setRepairedAt]    = useState(nowKstLocal())
-  const [repairDetail,  setRepairDetail]  = useState('')
+  const [repairCompany,    setRepairCompany]    = useState('TKE')
+  const [repairedAt,       setRepairedAt]       = useState(nowKstLocal())
+  const [repairDetail,     setRepairDetail]     = useState('')
+  const [repairPhotoKeys,  setRepairPhotoKeys]  = useState<string[]>([])
 
   const pureSymptoms = fault.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
 
@@ -2133,8 +2142,9 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         <Field label="수리 내용">
           <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 내용" style={{ ...inputSt, resize:'none' }} />
         </Field>
+        <MultiPhotoUpload label="수리 사진" keys={repairPhotoKeys} setKeys={setRepairPhotoKeys} />
         <button
-          onClick={() => onSubmit({ id:fault.id, repairCompany, repairedAt:repairedAt+':00', repairDetail })}
+          onClick={() => onSubmit({ id:fault.id, repairCompany, repairedAt:repairedAt+':00', repairDetail, repairPhotoKeys })}
           disabled={!repairDetail.trim()||loading}
           style={{ ...primaryBtnSt, opacity:(!repairDetail.trim()||loading)?0.5:1 }}
         >
