@@ -1296,7 +1296,7 @@ export default function FloorPlanPage() {
               flexShrink: 0,
               background: 'var(--bg2)',
               borderTop: '1px solid var(--bd)',
-              padding: '8px 12px',
+              padding: '8px 12px 13px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
