@@ -536,11 +536,6 @@ export default {
       case '45 23 * * *':
         ctx.waitUntil(handleDailyNotifications(env))
         break
-      // 진단용 임시 cron — daily handler 를 즉시 발화시켜 telemetry 수집.
-      // ⚠️ 진단 끝나면 wrangler.toml 의 "*/2 * * * *" 와 함께 반드시 제거.
-      case '*/2 * * * *':
-        ctx.waitUntil(handleDailyNotifications(env))
-        break
       case '*/5 * * * *':
         ctx.waitUntil(handleEventNotifications(env))
         break
