@@ -15,6 +15,7 @@ import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useInspectionRevisitPopup'
 import type { ScheduleItem } from '../types'
 import { computeCardCompletion } from '../utils/inspectionProgress'
+import { getReplaceWarning } from '../utils/extinguisher'
 
 // 완료 정의 통일 — 카드/대시보드/층별 화면 모두 동일 룰을 사용한다.
 // "완료" = normal | caution | (bad + status='resolved')
@@ -3287,20 +3288,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         )}
         {/* ── 소화기 상세정보 ── */}
         {isExtinguisher && selectedCP && extDetail && (() => {
-          // 분말 소화기 교체 주기: 제조 후 10년
-          let replaceWarning: 'danger' | 'imminent' | 'warn' | null = null
-          if (extDetail.type?.includes('분말') && extDetail.manufactured_at) {
-            const [y, m] = extDetail.manufactured_at.split('-').map(Number)
-            if (y && m) {
-              const expiry = new Date(y + 10, m - 1)
-              const imm = new Date(expiry); imm.setMonth(imm.getMonth() - 6)
-              const warn = new Date(expiry); warn.setFullYear(warn.getFullYear() - 1)
-              const now = new Date()
-              if (now >= expiry) replaceWarning = 'danger'
-              else if (now >= imm) replaceWarning = 'imminent'
-              else if (now >= warn) replaceWarning = 'warn'
-            }
-          }
+          // 분말 소화기 교체 주기: 제조 후 10년 (헬퍼 위임 — src/utils/extinguisher.ts)
+          const replaceWarning = getReplaceWarning(extDetail.type, extDetail.manufactured_at)
           const rwStyle = {
             danger:   { bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)', color:'#dc2626', text:'연한 초과 — 즉시 교체 필요' },
             imminent: { bg:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', color:'#c2410c', text:'연한 임박 — 교체 시급' },
@@ -3490,18 +3479,9 @@ function ExtinguisherListOverlay({ onClose }: { onClose: () => void }) {
   }, [filter])
 
   // 교체 필요 판별: danger(초과) > imminent(6개월) > warn(1년)
+  // (헬퍼 위임 — src/utils/extinguisher.ts, 시그니처 유지로 호출처 무변화)
   function getReplaceStatus(item: any): 'danger' | 'imminent' | 'warn' | null {
-    if (!item.type?.includes('분말') || !item.manufactured_at) return null
-    const [y, m] = item.manufactured_at.split('-').map(Number)
-    if (!y || !m) return null
-    const expiry = new Date(y + 10, m - 1)
-    const imm = new Date(expiry); imm.setMonth(imm.getMonth() - 6)
-    const warn = new Date(expiry); warn.setFullYear(warn.getFullYear() - 1)
-    const now = new Date()
-    if (now >= expiry) return 'danger'
-    if (now >= imm) return 'imminent'
-    if (now >= warn) return 'warn'
-    return null
+    return getReplaceWarning(item?.type, item?.manufactured_at)
   }
 
   // 만료일 계산 (정렬용)

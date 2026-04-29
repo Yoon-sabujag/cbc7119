@@ -1,8 +1,9 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
+import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
@@ -90,108 +91,164 @@ function getMarkerStatus(m: FloorPlanMarker): string {
 }
 
 // ── 마커 SVG 렌더링 ────────────────────────────────────
-function MarkerIcon({ markerType, color, size = 20 }: { markerType: string | null; color: string; size?: number }) {
+// strokeColor/strokeWidth/dangerBadge 는 분말 소화기 (fire_extinguisher, ext_powder20)
+// 에서만 의미있게 사용된다. 다른 마커는 기존 하드코딩 stroke 그대로 유지 (외형 무변화).
+function MarkerIcon({
+  markerType, color, size = 20,
+  strokeColor = '#fff', strokeWidth = 1.5, dangerBadge = false,
+}: {
+  markerType: string | null; color: string; size?: number;
+  strokeColor?: string; strokeWidth?: number; dangerBadge?: boolean;
+}) {
   const s = size
   const hs = s / 2
+  let svg: JSX.Element
   switch (markerType) {
     case 'wall_exit': // ■ 사각형
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><rect x={1} y={1} width={s-2} height={s-2} rx={2} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><rect x={1} y={1} width={s-2} height={s-2} rx={2} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     case 'ceiling_exit': // 역사다리꼴 (위가 넓고 아래가 좁음)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`1,2 ${s-1},2 ${s*0.75},${s-2} ${s*0.25},${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'stair_corridor': // ◆ 마름모 + 가로 흰선 (상하 삼각만 색 변경)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},1 ${s-1},${hs} ${hs},${s-1} 1,${hs}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
           <line x1={1} y1={hs} x2={s-1} y2={hs} stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'hallway_corridor': // ◆ 마름모 + 세로 흰선 (좌우 삼각만 색 변경)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},1 ${s-1},${hs} ${hs},${s-1} 1,${hs}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
           <line x1={hs} y1={1} x2={hs} y2={s-1} stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'room_corridor': // ▽ 역삼각형
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`1,2 ${s-1},2 ${hs},${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`1,2 ${s-1},2 ${hs},${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     case 'seat_corridor': // ● 원형
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     // ── 감지기 마커 ──
     case 'smoke_detector': // ◉ 큰 원 + 점 (연기감지기)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <circle cx={hs} cy={hs} r={hs-1} fill="none" stroke={color} strokeWidth={2}/>
           <circle cx={hs} cy={hs} r={3} fill={color}/>
         </svg>
       )
+      break
     case 'heat_detector': // △ 삼각형 (열감지기)
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     // ── 스프링클러 마커 ──
     case 'closed_head': // ● 채운 원 (작게)
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs*0.65} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs*0.65} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     case 'open_head': // ○ 빈 원
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs*0.65} fill="none" stroke={color} strokeWidth={2.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs*0.65} fill="none" stroke={color} strokeWidth={2.5}/></svg>
+      break
     case 'king_head': // ◎ 이중 원 (헤드왕)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/>
           <circle cx={hs} cy={hs} r={hs*0.45} fill="none" stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'test_valve': // ▣ 사각+십자
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <rect x={2} y={2} width={s-4} height={s-4} rx={2} fill={color} stroke="#fff" strokeWidth={1.5}/>
           <line x1={hs} y1={3} x2={hs} y2={s-3} stroke="#fff" strokeWidth={1.5}/>
           <line x1={3} y1={hs} x2={s-3} y2={hs} stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     // ── 소화기·소화전 마커 ──
-    case 'fire_extinguisher': // ● 원 (분말3.3kg)
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
-    case 'ext_powder20': // ◎ 도넛 (분말20kg)
-      return (
+    case 'fire_extinguisher': // ● 원 (분말3.3kg) — 외곽 stroke 만 prop 화 (교체 연한 강조)
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke={strokeColor} strokeWidth={strokeWidth}/></svg>
+      break
+    case 'ext_powder20': // ◎ 도넛 (분말20kg) — 외곽 stroke 만 prop 화. 안쪽 도넛 흰선은 시각 정체성이라 #fff/1.5 유지
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
-          <circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/>
+          <circle cx={hs} cy={hs} r={hs-1} fill={color} stroke={strokeColor} strokeWidth={strokeWidth}/>
           <circle cx={hs} cy={hs} r={hs*0.4} fill="none" stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'ext_halogen': // ▲ 삼각 (할로겐)
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     case 'ext_kitchen_k': // △ 삼각+구멍 (K급주방)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},2 ${s-1},${s-2} 1,${s-2}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
           <circle cx={hs} cy={hs*1.15} r={hs*0.3} fill="none" stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'indoor_hydrant': // ⬡ 육각 (소화전)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},1 ${s-2},${hs*0.5} ${s-2},${hs*1.5} ${hs},${s-1} 2,${hs*1.5} 2,${hs*0.5}`} fill={color} stroke="#fff" strokeWidth={1.5}/>
         </svg>
       )
+      break
     case 'descending_lifeline': // ◇ 빈 마름모 (완강기)
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},1 ${s-1},${hs} ${hs},${s-1} 1,${hs}`} fill="none" stroke={color} strokeWidth={2.5}/>
         </svg>
       )
+      break
     case 'div_marker': // ■ 사각 (DIV)
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><rect x={1} y={1} width={s-2} height={s-2} rx={2} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><rect x={1} y={1} width={s-2} height={s-2} rx={2} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      break
     case 'flame': // ★ 별
-      return (
+      svg = (
         <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
           <polygon points={`${hs},1 ${hs*1.24},${hs*0.72} ${s-1},${hs*0.72} ${hs*1.38},${hs*1.18} ${hs*1.58},${s-1} ${hs},${hs*1.42} ${hs*0.42},${s-1} ${hs*0.62},${hs*1.18} 1,${hs*0.72} ${hs*0.76},${hs*0.72}`} fill={color} stroke="#fff" strokeWidth={1}/>
         </svg>
       )
+      break
     default:
-      return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
+      svg = <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}><circle cx={hs} cy={hs} r={hs-1} fill={color} stroke="#fff" strokeWidth={1.5}/></svg>
   }
+
+  if (!dangerBadge) return svg
+
+  // danger 마커 — 우상단 ! 배지 (시안 A안). pointerEvents:none 으로 클릭 통과.
+  return (
+    <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
+      {svg}
+      <div style={{
+        position: 'absolute',
+        top: -8,
+        right: -8,
+        width: 12,
+        height: 12,
+        background: '#ef4444',
+        border: '1.5px solid #fff',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 9,
+        fontWeight: 900,
+        color: '#fff',
+        lineHeight: 1,
+        pointerEvents: 'none',
+      }}>!</div>
+    </div>
+  )
 }
 
 // ── 도면 파일 경로 ──────────────────────────────────────
@@ -348,6 +405,27 @@ export default function FloorPlanPage() {
     refetchInterval: 10_000,
   })
   const markers = markersQuery.data ?? []
+
+  // ── 분말 소화기 교체 연한 강조용 데이터 ─────────────────
+  // planType=extinguisher 일 때만 floor 별 소화기 데이터 fetch.
+  const extListQuery = useQuery({
+    queryKey: ['extinguishers', floor],
+    queryFn: () => extinguisherApi.list({ floor }),
+    enabled: planType === 'extinguisher',
+    staleTime: 300_000, // 5분
+  })
+
+  // check_point_id → ReplaceWarning Map (분말 마커 강조 lookup 용)
+  const cpIdToWarning = useMemo(() => {
+    const map = new Map<string, NonNullable<ReplaceWarning>>()
+    if (planType !== 'extinguisher') return map
+    const items = extListQuery.data?.items ?? []
+    for (const it of items) {
+      const w = getReplaceWarning(it.type, it.manufactured_at)
+      if (w && it.cp_id) map.set(it.cp_id, w)
+    }
+    return map
+  }, [extListQuery.data, planType])
 
   // ── 이번 달 schedule_items — 재진입 팝업 판정에 사용 ──
   const currentMonth = (() => {
@@ -922,7 +1000,21 @@ export default function FloorPlanPage() {
                     pointerEvents: 'auto',
                   }}
                 >
-                  <MarkerIcon markerType={m.marker_type} color={color} size={13} />
+                  {(() => {
+                    const isPowder = m.marker_type === 'fire_extinguisher' || m.marker_type === 'ext_powder20'
+                    const warning = isPowder && m.check_point_id ? (cpIdToWarning.get(m.check_point_id) ?? null) : null
+                    const stroke = warning ? REPLACE_WARNING_STROKE[warning] : { color: '#fff', width: 1.5 }
+                    return (
+                      <MarkerIcon
+                        markerType={m.marker_type}
+                        color={color}
+                        size={13}
+                        strokeColor={stroke.color}
+                        strokeWidth={stroke.width}
+                        dangerBadge={warning === 'danger'}
+                      />
+                    )
+                  })()}
                 </div>
               )
             })}
