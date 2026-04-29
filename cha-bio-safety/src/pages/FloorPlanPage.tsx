@@ -1281,6 +1281,28 @@ export default function FloorPlanPage() {
             <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '조치완료' }[s]}</span>
           </div>
         ))}
+        {planType === 'extinguisher' && (
+          <>
+            <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
+            {(['warn', 'imminent', 'danger'] as const).map(w => {
+              const stroke = REPLACE_WARNING_STROKE[w]
+              const label = { warn: '연한도래', imminent: '연한임박', danger: '연한초과' }[w]
+              return (
+                <div key={w} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <MarkerIcon
+                    markerType="fire_extinguisher"
+                    color="#888"
+                    size={14}
+                    strokeColor={stroke.color}
+                    strokeWidth={stroke.width}
+                    dangerBadge={w === 'danger'}
+                  />
+                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>{label}</span>
+                </div>
+              )
+            })}
+          </>
+        )}
         <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
       </div>
 
