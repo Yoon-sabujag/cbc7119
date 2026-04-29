@@ -1654,12 +1654,20 @@ export default function FloorPlanPage() {
         // InspectionPage InspectionModal 과 동일한 UX. FloorPlanPage 는 단일 마커 기반
         // 이라 확인 = 모달 닫기 (다음 마커 네비게이션 없음).
         const isAccessBlocked = !!selected.description?.includes('접근불가')
+        // 접근불가 개소: 폼 렌더링 생략하고 팝업만 표시. plan type 무관하게
+        // 일정한 사이즈(유도등 모달 자연 높이 ≈ 290px)로 통일.
+        if (isAccessBlocked) {
+          return (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
+              <div style={{ position: 'relative', width: '90%', maxWidth: 340, height: 290, background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+                <AccessBlockedPopup onConfirm={() => { setInspectModal(false); setSelected(null) }} />
+              </div>
+            </div>
+          )
+        }
         return (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
           <div style={{ position: 'relative', width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            {isAccessBlocked && (
-              <AccessBlockedPopup onConfirm={() => { setInspectModal(false); setSelected(null) }} />
-            )}
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
               {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
