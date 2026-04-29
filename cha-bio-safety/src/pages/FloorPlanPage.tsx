@@ -1266,44 +1266,49 @@ export default function FloorPlanPage() {
       })()}
       </div>
 
-      {/* ── 범례 ─────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, padding: '7px 12px', background: 'var(--bg2)', borderTop: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {currentMarkerTypes.map(mt => (
-          <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <MarkerIcon markerType={mt.key} color="#888" size={14} />
-            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{mt.label.join('')}</span>
-          </div>
-        ))}
-        <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
-        {['normal', 'caution', 'fault', 'resolved'].map(s => (
-          <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[s] }} />
-            <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '조치완료' }[s]}</span>
-          </div>
-        ))}
-        {planType === 'extinguisher' && (
-          <>
-            <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
-            {(['warn', 'imminent', 'danger'] as const).map(w => {
-              const stroke = REPLACE_WARNING_STROKE[w]
-              const label = { warn: '연한도래', imminent: '연한임박', danger: '연한초과' }[w]
-              return (
-                <div key={w} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <MarkerIcon
-                    markerType="fire_extinguisher"
-                    color="#888"
-                    size={14}
-                    strokeColor={stroke.color}
-                    strokeWidth={stroke.width}
-                    dangerBadge={w === 'danger'}
-                  />
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>{label}</span>
-                </div>
-              )
-            })}
-          </>
-        )}
-        <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
+      {/* ── 범례 — 두 행 강제 (Row 1: 마커 종류, Row 2: 점검 상태 + 연한 + 안내) ── */}
+      <div style={{ flexShrink: 0, background: 'var(--bg2)', borderTop: '1px solid var(--bd)' }}>
+        {/* Row 1: 마커 종류 */}
+        <div style={{ padding: '6px 12px 2px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {currentMarkerTypes.map(mt => (
+            <div key={mt.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <MarkerIcon markerType={mt.key} color="#888" size={14} />
+              <span style={{ fontSize: 10, color: 'var(--t3)' }}>{mt.label.join('')}</span>
+            </div>
+          ))}
+        </div>
+        {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 연한 + 안내 */}
+        <div style={{ padding: '2px 12px 6px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {['normal', 'caution', 'fault', 'resolved'].map(s => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: STATUS_COLOR[s] }} />
+              <span style={{ fontSize: 10, color: 'var(--t3)' }}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '조치완료' }[s]}</span>
+            </div>
+          ))}
+          {planType === 'extinguisher' && (
+            <>
+              <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px' }} />
+              {(['warn', 'imminent', 'danger'] as const).map(w => {
+                const stroke = REPLACE_WARNING_STROKE[w]
+                const label = { warn: '연한도래', imminent: '연한임박', danger: '연한초과' }[w]
+                return (
+                  <div key={w} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <MarkerIcon
+                      markerType="fire_extinguisher"
+                      color="#888"
+                      size={14}
+                      strokeColor={stroke.color}
+                      strokeWidth={stroke.width}
+                      dangerBadge={w === 'danger'}
+                    />
+                    <span style={{ fontSize: 10, color: 'var(--t3)' }}>{label}</span>
+                  </div>
+                )
+              })}
+            </>
+          )}
+          <span style={{ fontSize: 10, color: 'var(--t3)', marginLeft: 'auto' }}>핀치 확대 · 드래그 이동</span>
+        </div>
       </div>
 
       {/* ── 마커 수정 모달 ───────────────────────────── */}
