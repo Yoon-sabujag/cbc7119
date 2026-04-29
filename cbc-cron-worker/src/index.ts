@@ -24,6 +24,33 @@ interface NotifPrefs {
   event_5min: boolean
 }
 
+// ── Telemetry helper ─────────────────────────────────
+// 진단용 영구 로깅. cron worker 는 console.log 가 wrangler tail 종료 후 사라지므로
+// telemetry_events 테이블에 직접 INSERT 하여 사후 분석 가능하게 한다.
+async function logTelemetry(
+  env: Env,
+  event_type: string,
+  opts: { status?: number | null; staff_id?: string | null; detail?: string | null } = {}
+): Promise<void> {
+  try {
+    await env.DB.prepare(
+      `INSERT INTO telemetry_events (ts, event_type, path, status, staff_id, user_agent, detail)
+       VALUES (?, ?, NULL, ?, ?, NULL, ?)`
+    )
+      .bind(
+        new Date().toISOString(),
+        event_type,
+        opts.status ?? null,
+        opts.staff_id ?? null,
+        opts.detail ?? null,
+      )
+      .run()
+  } catch (e) {
+    // 텔레메트리 자체가 실패해도 본 흐름은 영향 없게 swallow.
+    console.error('[telemetry] insert failed', e)
+  }
+}
+
 // ── Send push utility ────────────────────────────────
 async function sendPush(
   env: Env,
@@ -45,12 +72,38 @@ async function sendPush(
       headers: pushData.headers,
       body: pushData.body,
     })
+    // 모든 응답을 telemetry 로 기록 — 410/404 외 swallow 되는 case 도 가시화.
+    let bodySnippet: string | null = null
+    if (res.status >= 400) {
+      try {
+        const txt = await res.clone().text()
+        bodySnippet = txt.slice(0, 300)
+      } catch {
+        bodySnippet = '(unreadable body)'
+      }
+    }
+    await logTelemetry(env, 'cron-daily-push', {
+      status: res.status,
+      staff_id: sub.staff_id,
+      detail: JSON.stringify({
+        type: payload.type,
+        statusText: res.statusText,
+        endpoint_host: (() => {
+          try { return new URL(sub.endpoint).host } catch { return null }
+        })(),
+        body: bodySnippet,
+      }),
+    })
     if (res.status === 410 || res.status === 404) {
       // Subscription expired — clean up from D1
       await env.DB.prepare('DELETE FROM push_subscriptions WHERE id = ?').bind(sub.id).run()
     }
   } catch (e) {
     console.error(`Push failed for ${sub.staff_id}:`, e)
+    await logTelemetry(env, 'cron-daily-push-throw', {
+      staff_id: sub.staff_id,
+      detail: `${(e as Error)?.message ?? e}\n${(e as Error)?.stack ?? ''}`.slice(0, 1000),
+    })
   }
 }
 
@@ -106,176 +159,219 @@ async function handleDailyNotifications(env: Env) {
   const today = kstNow.toISOString().slice(0, 10)
   const yesterday = new Date(kstNow.getTime() - 24 * 3600 * 1000).toISOString().slice(0, 10)
 
-  // 근무 중인 직원만 필터
-  const workingIds = await getWorkingStaffIds(env, kstNow, today)
+  await logTelemetry(env, 'cron-daily-enter', {
+    detail: JSON.stringify({ today, yesterday, kstNow: kstNow.toISOString() }),
+  })
 
-  const allDailySubs = await env.DB.prepare(
-    'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
-  ).all<PushSubRow>()
+  try {
+    // 근무 중인 직원만 필터
+    const workingIds = await getWorkingStaffIds(env, kstNow, today)
 
-  const subs = { results: (allDailySubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
+    const allDailySubs = await env.DB.prepare(
+      'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
+    ).all<PushSubRow>()
 
-  // 소방안전관리자(admin) staff_id 조회
-  const adminRows = await env.DB.prepare(
-    "SELECT id FROM staff WHERE role = 'admin' AND active = 1"
-  ).all<{ id: string }>()
-  const adminIds = new Set((adminRows.results ?? []).map(r => r.id))
+    const subs = { results: (allDailySubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
 
-  if (!subs.results.length && !(allDailySubs.results ?? []).length) return
+    // 소방안전관리자(admin) staff_id 조회
+    const adminRows = await env.DB.prepare(
+      "SELECT id FROM staff WHERE role = 'admin' AND active = 1"
+    ).all<{ id: string }>()
+    const adminIds = new Set((adminRows.results ?? []).map(r => r.id))
 
-  // Batch queries for daily notification types
-  const [
-    todaySchedules,
-    yesterdayIncomplete,
-    unresolvedFindings,
-    upcomingEducation,
-    elevatorEduExpiring,
-    fireInitialDue,
-    elevatorInitialDue,
-  ] = await Promise.all([
-    // 금일 점검 일정 (date range supported via end_date)
-    env.DB.prepare(
-      `SELECT title FROM schedule_items WHERE date = ? OR (date <= ? AND end_date >= ?)`
-    ).bind(today, today, today).all(),
-    // 전일 미완료 점검 (status != 'done')
-    env.DB.prepare(
-      `SELECT title FROM schedule_items WHERE date = ? AND status != 'done'`
-    ).bind(yesterday).all(),
-    // 미조치 항목 (status = 'bad' AND resolved_at IS NULL)
-    env.DB.prepare(
-      `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
-    ).all(),
-    // 소방 실무교육 D-60: 신규교육일 기준 +2년*N 주기로 고정 (화재예방법 실무교육
-    // 이수 기한 기준). 매칭은 JS 단에서 수행 — 모든 initial 행을 조회한다.
-    env.DB.prepare(
-      `SELECT e.staff_id, s.name as staff_name, s.role, e.completed_at
-       FROM education_records e JOIN staff s ON e.staff_id = s.id
-       WHERE e.education_type = 'initial'`
-    ).all<{ staff_id: string; staff_name: string; role: string; completed_at: string }>(),
-    // 승강기 실무교육(재교육) D-60: safety_mgr_edu_expire 만료 60일 전
-    env.DB.prepare(
-      `SELECT id, name FROM staff
-       WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL
-         AND date(safety_mgr_edu_expire, '-60 days') = ?`
-    ).bind(today).all<{ id: string; name: string }>(),
-    // 소방 신규교육 D-60: appointed_at + 6개월 - 60일 = 오늘, 그리고
-    // education_records 에 initial 이 아직 없는 사람만
-    env.DB.prepare(
-      `SELECT s.id, s.name, s.role
-       FROM staff s
-       WHERE s.active = 1
-         AND s.appointed_at IS NOT NULL
-         AND date(s.appointed_at, '+6 months', '-60 days') = ?
-         AND NOT EXISTS (
-           SELECT 1 FROM education_records e
-           WHERE e.staff_id = s.id AND e.education_type = 'initial'
-         )`
-    ).bind(today).all<{ id: string; name: string; role: string }>(),
-    // 승강기 신규교육 D-60: safety_mgr_appointed_at + 3개월 - 60일 = 오늘,
-    // 그리고 safety_mgr_edu_dt 가 아직 비어있는 사람만
-    env.DB.prepare(
-      `SELECT id, name FROM staff
-       WHERE active = 1
-         AND elevator_safety_manager = 1
-         AND safety_mgr_appointed_at IS NOT NULL
-         AND safety_mgr_edu_dt IS NULL
-         AND date(safety_mgr_appointed_at, '+3 months', '-60 days') = ?`
-    ).bind(today).all<{ id: string; name: string }>(),
-  ])
-
-  const sends: Promise<void>[] = []
-
-  for (const sub of subs.results) {
-    const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
-
-    // D-02: 금일 점검 일정
-    if (prefs.daily_schedule && todaySchedules.results?.length) {
-      sends.push(sendPush(env, sub, {
-        title: '오늘의 점검 일정',
-        body: `${todaySchedules.results.length}건의 점검 일정이 있습니다`,
-        type: 'daily_schedule',
-      }))
+    if (!subs.results.length && !(allDailySubs.results ?? []).length) {
+      await logTelemetry(env, 'cron-daily-end', {
+        detail: JSON.stringify({ reason: 'no-subs', workingIds: [...workingIds], allSubsCount: 0 }),
+      })
+      return
     }
 
-    // D-03: 전일 미완료 점검
-    if (prefs.incomplete_schedule && yesterdayIncomplete.results?.length) {
-      sends.push(sendPush(env, sub, {
-        title: '미완료 점검 알림',
-        body: `어제 ${yesterdayIncomplete.results.length}건의 점검이 미완료되었습니다`,
-        type: 'incomplete_schedule',
-      }))
-    }
+    // Batch queries for daily notification types
+    const [
+      todaySchedules,
+      yesterdayIncomplete,
+      unresolvedFindings,
+      upcomingEducation,
+      elevatorEduExpiring,
+      fireInitialDue,
+      elevatorInitialDue,
+    ] = await Promise.all([
+      // 금일 점검 일정 (date range supported via end_date)
+      env.DB.prepare(
+        `SELECT title FROM schedule_items WHERE date = ? OR (date <= ? AND end_date >= ?)`
+      ).bind(today, today, today).all(),
+      // 전일 미완료 점검 (status != 'done')
+      env.DB.prepare(
+        `SELECT title FROM schedule_items WHERE date = ? AND status != 'done'`
+      ).bind(yesterday).all(),
+      // 미조치 항목 (status = 'bad' AND resolved_at IS NULL)
+      env.DB.prepare(
+        `SELECT id FROM check_records WHERE status = 'bad' AND resolved_at IS NULL`
+      ).all(),
+      // 소방 실무교육 D-60: 신규교육일 기준 +2년*N 주기로 고정 (화재예방법 실무교육
+      // 이수 기한 기준). 매칭은 JS 단에서 수행 — 모든 initial 행을 조회한다.
+      env.DB.prepare(
+        `SELECT e.staff_id, s.name as staff_name, s.role, e.completed_at
+         FROM education_records e JOIN staff s ON e.staff_id = s.id
+         WHERE e.education_type = 'initial'`
+      ).all<{ staff_id: string; staff_name: string; role: string; completed_at: string }>(),
+      // 승강기 실무교육(재교육) D-60: safety_mgr_edu_expire 만료 60일 전
+      env.DB.prepare(
+        `SELECT id, name FROM staff
+         WHERE elevator_safety_manager = 1 AND safety_mgr_edu_expire IS NOT NULL
+           AND date(safety_mgr_edu_expire, '-60 days') = ?`
+      ).bind(today).all<{ id: string; name: string }>(),
+      // 소방 신규교육 D-60: appointed_at + 6개월 - 60일 = 오늘, 그리고
+      // education_records 에 initial 이 아직 없는 사람만
+      env.DB.prepare(
+        `SELECT s.id, s.name, s.role
+         FROM staff s
+         WHERE s.active = 1
+           AND s.appointed_at IS NOT NULL
+           AND date(s.appointed_at, '+6 months', '-60 days') = ?
+           AND NOT EXISTS (
+             SELECT 1 FROM education_records e
+             WHERE e.staff_id = s.id AND e.education_type = 'initial'
+           )`
+      ).bind(today).all<{ id: string; name: string; role: string }>(),
+      // 승강기 신규교육 D-60: safety_mgr_appointed_at + 3개월 - 60일 = 오늘,
+      // 그리고 safety_mgr_edu_dt 가 아직 비어있는 사람만
+      env.DB.prepare(
+        `SELECT id, name FROM staff
+         WHERE active = 1
+           AND elevator_safety_manager = 1
+           AND safety_mgr_appointed_at IS NOT NULL
+           AND safety_mgr_edu_dt IS NULL
+           AND date(safety_mgr_appointed_at, '+3 months', '-60 days') = ?`
+      ).bind(today).all<{ id: string; name: string }>(),
+    ])
 
-    // D-04: 미조치 항목
-    if (prefs.unresolved_issue && unresolvedFindings.results?.length) {
-      sends.push(sendPush(env, sub, {
-        title: '미조치 항목 알림',
-        body: `${unresolvedFindings.results.length}건의 미조치 항목이 있습니다`,
-        type: 'unresolved_issue',
-      }))
-    }
+    await logTelemetry(env, 'cron-daily-start', {
+      detail: JSON.stringify({
+        today,
+        yesterday,
+        subsCount: subs.results.length,
+        allSubsCount: (allDailySubs.results ?? []).length,
+        workingIds: [...workingIds],
+        adminIds: [...adminIds],
+        todaySchedulesCount: todaySchedules.results?.length ?? 0,
+        yesterdayIncompleteCount: yesterdayIncomplete.results?.length ?? 0,
+        unresolvedFindingsCount: unresolvedFindings.results?.length ?? 0,
+        upcomingEducationCount: upcomingEducation.results?.length ?? 0,
+        elevatorEduExpiringCount: elevatorEduExpiring.results?.length ?? 0,
+        fireInitialDueCount: fireInitialDue.results?.length ?? 0,
+        elevatorInitialDueCount: elevatorInitialDue.results?.length ?? 0,
+      }),
+    })
 
-    // D-02 ~ D-04 는 근무자 전원 대상 (위에서 처리)
-  }
+    const sends: Promise<void>[] = []
 
-  // D-05: 교육 D-60 — 당사자 + 소방안전관리자(admin)에게만 발송
-  const allSubs = allDailySubs.results ?? []
-  const adminSubs = allSubs.filter(s => adminIds.has(s.staff_id))
-
-  // 교육 만기 대상자별 알림 구성
-  interface EduTarget { staffId: string; line: string }
-  const eduTargets: EduTarget[] = []
-
-  // 소방 실무교육: target(today+60일) 이 신규교육일 + 2N년 과 동일한 사람만 대상
-  const [ty, tm, td] = today.split('-').map(Number)
-  const targetDate = new Date(Date.UTC(ty, tm - 1, td + 60))
-  for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; completed_at: string }[]) {
-    const [iy, im, id] = r.completed_at.split('-').map(Number)
-    const initDate = new Date(Date.UTC(iy, im - 1, id))
-    const yearDiff = targetDate.getUTCFullYear() - initDate.getUTCFullYear()
-    const matches = yearDiff >= 2
-      && yearDiff % 2 === 0
-      && targetDate.getUTCMonth() === initDate.getUTCMonth()
-      && targetDate.getUTCDate() === initDate.getUTCDate()
-    if (!matches) continue
-    const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
-    eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 실무교육` })
-  }
-  for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
-    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 재교육` })
-  }
-
-  // 소방 신규교육 D-60: 선임 후 6개월 이내 이수 기한. initial 기록 없는 사람만.
-  for (const r of (fireInitialDue.results ?? []) as { id: string; name: string; role: string }[]) {
-    const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
-    eduTargets.push({ staffId: r.id, line: `${r.name}님 ${roleLabel} 신규교육` })
-  }
-
-  // 승강기 신규교육 D-60: 선임 후 3개월 이내 이수 기한. safety_mgr_edu_dt 미등록자만.
-  for (const r of (elevatorInitialDue.results ?? []) as { id: string; name: string }[]) {
-    eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 신규교육` })
-  }
-
-  if (eduTargets.length > 0) {
-    const body = eduTargets.map(t => t.line).join(', ') + '이 60일 후 만기됩니다'
-    // 수신 대상: 당사자 + admin (중복 제거)
-    const recipientIds = new Set<string>()
-    for (const t of eduTargets) recipientIds.add(t.staffId)
-    for (const id of adminIds) recipientIds.add(id)
-
-    for (const sub of allSubs) {
-      if (!recipientIds.has(sub.staff_id)) continue
+    for (const sub of subs.results) {
       const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
-      if (!prefs.education_reminder) continue
-      sends.push(sendPush(env, sub, {
-        title: '교육 만기 알림 (D-60)',
-        body,
-        type: 'education_reminder',
-      }))
-    }
-  }
 
-  await Promise.allSettled(sends)
+      // D-02: 금일 점검 일정
+      if (prefs.daily_schedule && todaySchedules.results?.length) {
+        sends.push(sendPush(env, sub, {
+          title: '오늘의 점검 일정',
+          body: `${todaySchedules.results.length}건의 점검 일정이 있습니다`,
+          type: 'daily_schedule',
+        }))
+      }
+
+      // D-03: 전일 미완료 점검
+      if (prefs.incomplete_schedule && yesterdayIncomplete.results?.length) {
+        sends.push(sendPush(env, sub, {
+          title: '미완료 점검 알림',
+          body: `어제 ${yesterdayIncomplete.results.length}건의 점검이 미완료되었습니다`,
+          type: 'incomplete_schedule',
+        }))
+      }
+
+      // D-04: 미조치 항목
+      if (prefs.unresolved_issue && unresolvedFindings.results?.length) {
+        sends.push(sendPush(env, sub, {
+          title: '미조치 항목 알림',
+          body: `${unresolvedFindings.results.length}건의 미조치 항목이 있습니다`,
+          type: 'unresolved_issue',
+        }))
+      }
+
+      // D-02 ~ D-04 는 근무자 전원 대상 (위에서 처리)
+    }
+
+    // D-05: 교육 D-60 — 당사자 + 소방안전관리자(admin)에게만 발송
+    const allSubs = allDailySubs.results ?? []
+    const adminSubs = allSubs.filter(s => adminIds.has(s.staff_id))
+
+    // 교육 만기 대상자별 알림 구성
+    interface EduTarget { staffId: string; line: string }
+    const eduTargets: EduTarget[] = []
+
+    // 소방 실무교육: target(today+60일) 이 신규교육일 + 2N년 과 동일한 사람만 대상
+    const [ty, tm, td] = today.split('-').map(Number)
+    const targetDate = new Date(Date.UTC(ty, tm - 1, td + 60))
+    for (const r of (upcomingEducation.results ?? []) as { staff_id: string; staff_name: string; role: string; completed_at: string }[]) {
+      const [iy, im, id] = r.completed_at.split('-').map(Number)
+      const initDate = new Date(Date.UTC(iy, im - 1, id))
+      const yearDiff = targetDate.getUTCFullYear() - initDate.getUTCFullYear()
+      const matches = yearDiff >= 2
+        && yearDiff % 2 === 0
+        && targetDate.getUTCMonth() === initDate.getUTCMonth()
+        && targetDate.getUTCDate() === initDate.getUTCDate()
+      if (!matches) continue
+      const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
+      eduTargets.push({ staffId: r.staff_id, line: `${r.staff_name}님 ${roleLabel} 실무교육` })
+    }
+    for (const r of (elevatorEduExpiring.results ?? []) as { id: string; name: string }[]) {
+      eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 재교육` })
+    }
+
+    // 소방 신규교육 D-60: 선임 후 6개월 이내 이수 기한. initial 기록 없는 사람만.
+    for (const r of (fireInitialDue.results ?? []) as { id: string; name: string; role: string }[]) {
+      const roleLabel = r.role === 'admin' ? '소방안전관리자' : '소방안전관리 보조자'
+      eduTargets.push({ staffId: r.id, line: `${r.name}님 ${roleLabel} 신규교육` })
+    }
+
+    // 승강기 신규교육 D-60: 선임 후 3개월 이내 이수 기한. safety_mgr_edu_dt 미등록자만.
+    for (const r of (elevatorInitialDue.results ?? []) as { id: string; name: string }[]) {
+      eduTargets.push({ staffId: r.id, line: `${r.name}님 승강기안전관리자 신규교육` })
+    }
+
+    if (eduTargets.length > 0) {
+      const body = eduTargets.map(t => t.line).join(', ') + '이 60일 후 만기됩니다'
+      // 수신 대상: 당사자 + admin (중복 제거)
+      const recipientIds = new Set<string>()
+      for (const t of eduTargets) recipientIds.add(t.staffId)
+      for (const id of adminIds) recipientIds.add(id)
+
+      for (const sub of allSubs) {
+        if (!recipientIds.has(sub.staff_id)) continue
+        const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
+        if (!prefs.education_reminder) continue
+        sends.push(sendPush(env, sub, {
+          title: '교육 만기 알림 (D-60)',
+          body,
+          type: 'education_reminder',
+        }))
+      }
+    }
+
+    await logTelemetry(env, 'cron-daily-dispatch', {
+      detail: JSON.stringify({ sendsCount: sends.length, eduTargetsCount: eduTargets.length }),
+    })
+
+    const settled = await Promise.allSettled(sends)
+    const fulfilled = settled.filter(s => s.status === 'fulfilled').length
+    const rejected = settled.filter(s => s.status === 'rejected').length
+    await logTelemetry(env, 'cron-daily-end', {
+      detail: JSON.stringify({ sendsCount: sends.length, fulfilled, rejected }),
+    })
+  } catch (e) {
+    await logTelemetry(env, 'cron-daily-error', {
+      detail: `${(e as Error)?.message ?? e}\n${(e as Error)?.stack ?? ''}`.slice(0, 1500),
+    })
+    throw e
+  }
 }
 
 // ── Event notifications (every 5 min) ────────────────
@@ -284,56 +380,68 @@ async function handleEventNotifications(env: Env) {
   const today = kstNow.toISOString().slice(0, 10)
   const nowMinutes = kstNow.getUTCHours() * 60 + kstNow.getUTCMinutes()
 
-  // Find events (category = 'event') with a time set, scheduled for today
-  const events = await env.DB.prepare(
-    `SELECT id, title, time FROM schedule_items
-     WHERE date = ? AND time IS NOT NULL AND category = 'event'`
-  ).bind(today).all<{ id: string; title: string; time: string }>()
+  try {
+    // Find events (category = 'event') with a time set, scheduled for today
+    const events = await env.DB.prepare(
+      `SELECT id, title, time FROM schedule_items
+       WHERE date = ? AND time IS NOT NULL AND category = 'event'`
+    ).bind(today).all<{ id: string; title: string; time: string }>()
 
-  if (!events.results?.length) return
+    if (!events.results?.length) return
 
-  // 근무 중인 직원만 필터
-  const workingIds = await getWorkingStaffIds(env, kstNow, today)
+    // 근무 중인 직원만 필터
+    const workingIds = await getWorkingStaffIds(env, kstNow, today)
 
-  const allEventSubs = await env.DB.prepare(
-    'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
-  ).all<PushSubRow>()
+    const allEventSubs = await env.DB.prepare(
+      'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions'
+    ).all<PushSubRow>()
 
-  const subs = { results: (allEventSubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
-  if (!subs.results.length) return
+    const subs = { results: (allEventSubs.results ?? []).filter(s => workingIds.has(s.staff_id)) }
+    if (!subs.results.length) return
 
-  const sends: Promise<void>[] = []
+    const sends: Promise<void>[] = []
 
-  for (const evt of events.results) {
-    const timeStr = evt.time // "HH:MM" format
-    const [h, m] = timeStr.split(':').map(Number)
-    const eventMinutes = h * 60 + m
-    const diff = eventMinutes - nowMinutes
+    for (const evt of events.results) {
+      const timeStr = evt.time // "HH:MM" format
+      const [h, m] = timeStr.split(':').map(Number)
+      const eventMinutes = h * 60 + m
+      const diff = eventMinutes - nowMinutes
 
-    for (const sub of subs.results) {
-      const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
+      for (const sub of subs.results) {
+        const prefs: NotifPrefs = JSON.parse(sub.notification_preferences)
 
-      // D-06: 행사 15분 전 (window 13~17 to absorb 5-min cron jitter)
-      if (prefs.event_15min && diff >= 13 && diff <= 17) {
-        sends.push(sendPush(env, sub, {
-          title: '행사 15분 전',
-          body: `${evt.title} 시작까지 약 15분 남았습니다`,
-          type: 'event_15min',
-        }))
-      }
+        // D-06: 행사 15분 전 (window 13~17 to absorb 5-min cron jitter)
+        if (prefs.event_15min && diff >= 13 && diff <= 17) {
+          sends.push(sendPush(env, sub, {
+            title: '행사 15분 전',
+            body: `${evt.title} 시작까지 약 15분 남았습니다`,
+            type: 'event_15min',
+          }))
+        }
 
-      // D-07: 행사 5분 전 (window 3~7)
-      if (prefs.event_5min && diff >= 3 && diff <= 7) {
-        sends.push(sendPush(env, sub, {
-          title: '행사 5분 전',
-          body: `${evt.title}이(가) 곧 시작됩니다`,
-          type: 'event_5min',
-        }))
+        // D-07: 행사 5분 전 (window 3~7)
+        if (prefs.event_5min && diff >= 3 && diff <= 7) {
+          sends.push(sendPush(env, sub, {
+            title: '행사 5분 전',
+            body: `${evt.title}이(가) 곧 시작됩니다`,
+            type: 'event_5min',
+          }))
+        }
       }
     }
-  }
 
-  await Promise.allSettled(sends)
+    if (sends.length > 0) {
+      await logTelemetry(env, 'cron-event-dispatch', {
+        detail: JSON.stringify({ sendsCount: sends.length, eventsCount: events.results.length }),
+      })
+    }
+    await Promise.allSettled(sends)
+  } catch (e) {
+    await logTelemetry(env, 'cron-event-error', {
+      detail: `${(e as Error)?.message ?? e}\n${(e as Error)?.stack ?? ''}`.slice(0, 1500),
+    })
+    throw e
+  }
 }
 
 // ── Access-blocked auto-complete (every day 15:00 KST = 06:00 UTC) ─────
@@ -426,6 +534,11 @@ export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
     switch (controller.cron) {
       case '45 23 * * *':
+        ctx.waitUntil(handleDailyNotifications(env))
+        break
+      // 진단용 임시 cron — daily handler 를 즉시 발화시켜 telemetry 수집.
+      // ⚠️ 진단 끝나면 wrangler.toml 의 "*/2 * * * *" 와 함께 반드시 제거.
+      case '*/2 * * * *':
         ctx.waitUntil(handleDailyNotifications(env))
         break
       case '*/5 * * * *':
