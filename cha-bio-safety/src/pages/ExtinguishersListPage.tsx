@@ -24,7 +24,7 @@ const norm = (v: any) => (v === '' || v === undefined || v === null) ? null : St
 
 function getMappingState(item: Item): 'unmapped-clean' | 'unmapped-inspected' | 'mapped' | 'disposed' {
   if (item.status === '폐기') return 'disposed'
-  if (item.check_point_id) return 'mapped'
+  if (item.cp_id) return 'mapped'
   if (item.has_records) return 'unmapped-inspected'
   return 'unmapped-clean'
 }
@@ -500,7 +500,7 @@ function ExtinguisherCard({
   let badgeBg = '', badgeColor = '', badgeLabel = ''
   if (state === 'disposed') {
     badgeBg = 'rgba(245,158,11,.15)'; badgeColor = 'var(--warn)'; badgeLabel = '폐기'
-  } else if (item.check_point_id) {
+  } else if (item.cp_id) {
     badgeBg = 'rgba(59,130,246,.15)'; badgeColor = 'var(--acl)'; badgeLabel = '매핑됨'
   } else {
     badgeBg = 'rgba(239,68,68,.15)'; badgeColor = 'var(--danger)'; badgeLabel = '미배치'
@@ -547,7 +547,7 @@ function ExtinguisherCard({
 
       {/* Row 3: location */}
       <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>
-        {item.check_point_id
+        {item.cp_id
           ? `📍 ${item.cp_zone ?? ''} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
           : '위치 미지정'}
       </div>
