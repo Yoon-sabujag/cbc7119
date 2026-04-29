@@ -1270,7 +1270,8 @@ export default function FloorPlanPage() {
       })()}
       </div>
 
-      {/* ── 범례 — BottomNav 사이즈만큼 영역 확보 (54px + safe area). 두 행, 시원한 간격. ── */}
+      {/* ── 범례 — BottomNav 사이즈(54 + safe-area) 기본, 항목 많으면 wrap 으로 자동 확장.
+             각 row 는 양끝 정렬(space-between), 폭 부족시 두 줄로 wrap. 가로 스크롤 없음. ── */}
       {(() => {
         // 범례 전용 단축 라벨 (마커 모양으로 충분히 식별 가능한 항목은 prefix 제거)
         const SHORT_LABEL: Record<string, string> = {
@@ -1278,16 +1279,15 @@ export default function FloorPlanPage() {
           ext_powder20:      '20kg',
           ext_kitchen_k:     'K급',
         }
-        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }
+        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }
         const labelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--t2)', fontWeight: 500, whiteSpace: 'nowrap' }
         const rowStyle: React.CSSProperties = {
-          padding: '0 10px',
           display: 'flex',
           alignItems: 'center',
-          gap: 9,
-          flexWrap: 'nowrap',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          gap: '6px 8px',
+          width: '100%',
         }
         return (
           <div
@@ -1296,14 +1296,15 @@ export default function FloorPlanPage() {
               flexShrink: 0,
               background: 'var(--bg2)',
               borderTop: '1px solid var(--bd)',
-              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+              padding: '8px 12px calc(14px + var(--sab, 0px) - 6px)',
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-evenly',
-              height: 54,
+              justifyContent: 'space-between',
+              gap: 8,
+              minHeight: 'calc(54px + var(--sab, 0px))',
             }}
           >
-            {/* Row 1: 마커 종류 — 한 줄 강제, 폭 부족 시 가로 스크롤 */}
+            {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
             <div style={rowStyle}>
               {currentMarkerTypes.map(mt => (
                 <div key={mt.key} style={itemStyle}>
