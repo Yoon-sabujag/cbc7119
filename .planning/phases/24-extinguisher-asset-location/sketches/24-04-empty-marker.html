@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>24-04 빈 마커 ❓ 렌더 Sketch</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #1c2128;
+      --bg4: #22272e;
+      --bd: rgba(255,255,255,0.07);
+      --bd2: rgba(255,255,255,0.13);
+      --t1: #e6edf3;
+      --t2: #8b949e;
+      --t3: #6e7681;
+      --acl: #3b82f6;
+      --safe: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+    }
+    body {
+      background: var(--bg);
+      color: var(--t1);
+      font-family: 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 24px 16px;
+    }
+    h2 { font-size: 16px; font-weight: 700; color: var(--t1); margin: 0 0 4px 0; }
+    p { font-size: 12px; color: var(--t2); margin: 0 0 20px 0; }
+    .section { margin-bottom: 32px; }
+    .section-title {
+      font-size: 13px; font-weight: 700; color: var(--t2);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--bd); padding-bottom: 6px;
+    }
+
+    /* ── 미니 도면 컨테이너 ── */
+    .floorplan-container {
+      background: #1a1f2b;
+      border: 1px solid var(--bd);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+    }
+    .floorplan-bg {
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px
+      ),
+      repeating-linear-gradient(
+        90deg, transparent, transparent 39px, rgba(255,255,255,0.04) 39px, rgba(255,255,255,0.04) 40px
+      );
+      border-radius: 6px;
+      position: relative;
+    }
+    .floor-label {
+      position: absolute;
+      top: 6px; left: 8px;
+      font-size: 10px; color: var(--t3); font-weight: 500;
+    }
+
+    /* ── 마커 래퍼 ── */
+    .marker-wrap {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+    }
+    .marker-label-popup {
+      position: absolute;
+      bottom: 26px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg2);
+      border: 1px solid var(--bd2);
+      border-radius: 6px;
+      padding: 3px 7px;
+      font-size: 10px; color: var(--t1); white-space: nowrap;
+      pointer-events: none;
+    }
+
+    /* ── 마커 비교 카드 ── */
+    .markers-grid {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-top: 16px;
+    }
+    .marker-card {
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      min-width: 90px;
+    }
+    .marker-card .name { font-size: 11px; color: var(--t2); font-weight: 500; text-align: center; }
+    .marker-card .note { font-size: 10px; color: var(--t3); text-align: center; }
+
+    /* ── 범례 미리보기 ── */
+    .legend-preview {
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      border-radius: 10px;
+      padding: 8px 12px 26px;
+      display: flex; flex-direction: column; gap: 8px;
+      min-height: 93px;
+      max-width: 400px;
+    }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 6px 8px;
+      width: 100%;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+    }
+    .legend-label {
+      font-size: 10.5px; color: var(--t2); font-weight: 500; white-space: nowrap;
+    }
+    .legend-divider {
+      width: 1px; height: 12px; background: var(--bd); margin: 0 2px; flex-shrink: 0;
+    }
+
+    /* ── 크기 비교 ── */
+    .size-compare {
+      display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap;
+      background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px;
+      padding: 16px; max-width: 400px;
+    }
+    .size-item {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+    }
+    .size-label { font-size: 10px; color: var(--t3); }
+    .badge {
+      background: rgba(239,68,68,.12);
+      color: var(--danger);
+      font-size: 10px; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>24-04 빈 마커 ❓ 렌더 Sketch</h2>
+<p>소화기 미배치(빈) 마커 시각 사양 검증 — UI-SPEC §빈 마커 spec LOCKED 값 적용</p>
+
+<!-- ── Section A: 미니 도면 위에 마커 비교 배치 ── -->
+<div class="section">
+  <div class="section-title">A. 도면 위 마커 비교 배치 (실제 canvas 크기 기준)</div>
+  <div class="floorplan-container">
+    <div class="floorplan-bg">
+      <span class="floor-label">5F — 연구동</span>
+
+      <!-- ❓ 빈 마커 (미배치) -->
+      <div class="marker-wrap" style="left:20%;top:30%;">
+        <div class="marker-label-popup">5번계단 뒤 (미배치)</div>
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="10" fill="#ef4444"/>
+          <text x="10" y="16.2" font-size="12" fill="#fff" text-anchor="middle"
+            font-weight="700" style="text-shadow: 0 1px 2px rgba(0,0,0,0.45)">?</text>
+        </svg>
+      </div>
+
+      <!-- 정상(normal) #22c55e -->
+      <div class="marker-wrap" style="left:42%;top:25%;">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="9" fill="#22c55e" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 주의(caution) #eab308 -->
+      <div class="marker-wrap" style="left:60%;top:50%;">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="9" fill="#eab308" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 불량(bad) #ef4444 — 일반 불량 마커 (빈 마커와 다름: stroke 있음) -->
+      <div class="marker-wrap" style="left:78%;top:30%;">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="9" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 완료(resolved) #3b82f6 -->
+      <div class="marker-wrap" style="left:35%;top:65%;">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="9" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/>
+        </svg>
+      </div>
+
+      <!-- 두 번째 ❓ 빈 마커 -->
+      <div class="marker-wrap" style="left:65%;top:70%;">
+        <svg width="20" height="20" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="10" fill="#ef4444"/>
+          <text x="10" y="16.2" font-size="12" fill="#fff" text-anchor="middle"
+            font-weight="700" style="text-shadow: 0 1px 2px rgba(0,0,0,0.45)">?</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:8px;font-size:11px;color:var(--t3)">
+    빨간 ❓ = 미배치 마커 · 초록 원 = 정상 · 노랑 원 = 주의 · 빨강 원(stroke있음) = 불량 · 파랑 원 = 완료
+  </p>
+</div>
+
+<!-- ── Section B: 마커 사양 비교 카드 ── -->
+<div class="section">
+  <div class="section-title">B. 마커 5종 사양 비교 (20px 캔버스 기준)</div>
+  <div class="markers-grid">
+
+    <!-- 빈 마커 (미배치) — LOCKED spec -->
+    <div class="marker-card" style="border-color:rgba(239,68,68,0.4);">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="10" fill="#ef4444"/>
+        <text x="10" y="16.2" font-size="12" fill="#fff" text-anchor="middle"
+          font-weight="700" style="text-shadow: 0 1px 2px rgba(0,0,0,0.45)">?</text>
+      </svg>
+      <span class="name">미배치<br>(빈 마커)</span>
+      <span class="badge">신규</span>
+      <span class="note">fill #ef4444<br>❓ 60% size<br>no stroke</span>
+    </div>
+
+    <!-- 정상 -->
+    <div class="marker-card">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="#22c55e" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <span class="name">정상</span>
+      <span class="note">fill #22c55e<br>stroke #fff</span>
+    </div>
+
+    <!-- 주의 -->
+    <div class="marker-card">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="#eab308" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <span class="name">주의</span>
+      <span class="note">fill #eab308<br>stroke #fff</span>
+    </div>
+
+    <!-- 불량 -->
+    <div class="marker-card">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <span class="name">불량</span>
+      <span class="note">fill #ef4444<br>stroke #fff<br>(미배치와 구분)</span>
+    </div>
+
+    <!-- 완료 -->
+    <div class="marker-card">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="9" fill="#3b82f6" stroke="#fff" stroke-width="1.5"/>
+      </svg>
+      <span class="name">완료</span>
+      <span class="note">fill #3b82f6<br>stroke #fff</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Section C: 두 가지 크기 (canvas 20px vs legend 13px) ── -->
+<div class="section">
+  <div class="section-title">C. 빈 마커 두 사이즈 — 20px (도면) vs 13px (범례)</div>
+  <div class="size-compare">
+    <div class="size-item">
+      <svg width="20" height="20" viewBox="0 0 20 20">
+        <circle cx="10" cy="10" r="10" fill="#ef4444"/>
+        <text x="10" y="16.2" font-size="12" fill="#fff" text-anchor="middle"
+          font-weight="700" style="text-shadow: 0 1px 2px rgba(0,0,0,0.45)">?</text>
+      </svg>
+      <span class="size-label">20px (도면)</span>
+      <span class="size-label">glyph 12px</span>
+    </div>
+    <div class="size-item">
+      <svg width="13" height="13" viewBox="0 0 13 13">
+        <circle cx="6.5" cy="6.5" r="6.5" fill="#ef4444"/>
+        <text x="6.5" y="10.5" font-size="8" fill="#fff" text-anchor="middle"
+          font-weight="700" style="text-shadow: 0 1px 2px rgba(0,0,0,0.45)">?</text>
+      </svg>
+      <span class="size-label">13px (범례)</span>
+      <span class="size-label">glyph 8px</span>
+    </div>
+    <div class="size-item" style="opacity:0.4;">
+      <svg width="9" height="9" viewBox="0 0 9 9">
+        <circle cx="4.5" cy="4.5" r="4.5" fill="#22c55e"/>
+      </svg>
+      <span class="size-label">9px (범례 일반)</span>
+      <span class="size-label">상태 점</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Section D: 범례 Row 2 업데이트 미리보기 ── -->
+<div class="section">
+  <div class="section-title">D. 범례 Row 2 — 미배치 항목 삽입 후 모습 (iPhone SE 375px 기준)</div>
+  <div style="max-width:375px;">
+    <div class="legend-preview">
+      <!-- Row 1: 마커 종류 (예시) -->
+      <div class="legend-row">
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <circle cx="6.5" cy="6.5" r="5.5" fill="#888" stroke="#fff" stroke-width="1.5"/>
+          </svg>
+          <span class="legend-label">분말3.3kg</span>
+        </div>
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <circle cx="6.5" cy="6.5" r="5.5" fill="#888" stroke="#fff" stroke-width="1.5"/>
+            <circle cx="6.5" cy="6.5" r="2.5" fill="none" stroke="#fff" stroke-width="1.5"/>
+          </svg>
+          <span class="legend-label">분말20kg</span>
+        </div>
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <polygon points="6.5,1 12,11 1,11" fill="#888" stroke="#fff" stroke-width="1.5"/>
+          </svg>
+          <span class="legend-label">할로겐</span>
+        </div>
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <polygon points="6.5,1 12,6.5 6.5,12 1,6.5 6.5,1 12,11 1,11 6.5,12" fill="none" stroke="#888" stroke-width="2.5"/>
+          </svg>
+          <span class="legend-label">완강기</span>
+        </div>
+      </div>
+
+      <!-- Row 2: 점검 상태 + 미배치 -->
+      <div class="legend-row">
+        <!-- 정상 -->
+        <div class="legend-item">
+          <div style="width:9px;height:9px;border-radius:50%;background:#22c55e;"></div>
+          <span class="legend-label">정상</span>
+        </div>
+        <!-- 주의 -->
+        <div class="legend-item">
+          <div style="width:9px;height:9px;border-radius:50%;background:#eab308;"></div>
+          <span class="legend-label">주의</span>
+        </div>
+        <!-- 불량 -->
+        <div class="legend-item">
+          <div style="width:9px;height:9px;border-radius:50%;background:#ef4444;"></div>
+          <span class="legend-label">불량</span>
+        </div>
+        <!-- 완료 -->
+        <div class="legend-item">
+          <div style="width:9px;height:9px;border-radius:50%;background:#3b82f6;"></div>
+          <span class="legend-label">완료</span>
+        </div>
+        <!-- ★ 미배치 (NEW) — 완료 다음, divider 앞 -->
+        <div class="legend-item">
+          <div style="width:13px;height:13px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;position:relative;">
+            <span style="font-size:9px;font-weight:700;color:#fff;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,0.45);">?</span>
+          </div>
+          <span class="legend-label" style="color:#8b949e;">미배치</span>
+        </div>
+        <!-- divider -->
+        <div class="legend-divider"></div>
+        <!-- 도래 -->
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <circle cx="6.5" cy="6.5" r="5.5" fill="#888" stroke="#f59e0b" stroke-width="1.5"/>
+          </svg>
+          <span class="legend-label">도래</span>
+        </div>
+        <!-- 임박 -->
+        <div class="legend-item">
+          <svg width="13" height="13" viewBox="0 0 13 13">
+            <circle cx="6.5" cy="6.5" r="5.5" fill="#888" stroke="#ef4444" stroke-width="1.5"/>
+          </svg>
+          <span class="legend-label">임박</span>
+        </div>
+        <!-- 초과 -->
+        <div class="legend-item" style="position:relative;">
+          <div style="position:relative;display:inline-block;line-height:0;">
+            <svg width="13" height="13" viewBox="0 0 13 13">
+              <circle cx="6.5" cy="6.5" r="5.5" fill="#888" stroke="#ef4444" stroke-width="2"/>
+            </svg>
+            <div style="position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:#ef4444;border:1px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6px;font-weight:900;color:#fff;line-height:1;">!</div>
+          </div>
+          <span class="legend-label">초과</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:8px;font-size:11px;color:var(--t3);">
+    「미배치」 항목이 「완료」 다음, 기존 divider (연한 경계) 앞에 삽입됨.<br>
+    flex-wrap으로 iPhone SE(375px)에서 자연스럽게 두 줄로 wrap됨.
+  </p>
+</div>
+
+<!-- ── Section E: 주의 사항 ── -->
+<div class="section">
+  <div class="section-title">E. 구현 주의사항</div>
+  <ul style="font-size:12px;color:var(--t2);line-height:1.8;padding-left:16px;margin:0;">
+    <li><strong style="color:var(--t1);">빈 마커 판단:</strong> <code style="color:var(--acl);">marker.check_point_id === null</code> OR 해당 cp에 active extinguisher 없음</li>
+    <li><strong style="color:var(--t1);">stroke 없음:</strong> 미배치 마커는 stroke 없음 — 불량(bad) 마커(stroke #fff 있음)와 시각 구분</li>
+    <li><strong style="color:var(--t1);">❓ vs ?:</strong> SVG &lt;text&gt; 에서 emoji ❓ 는 폰트 누락 시 □ 표시 위험 → ASCII ? 로 구현 권장</li>
+    <li><strong style="color:var(--t1);">text-shadow:</strong> <code style="color:var(--acl);">0 1px 2px rgba(0,0,0,0.45)</code> — SVG text style 속성으로 적용</li>
+    <li><strong style="color:var(--t1);">범례 LOCKED:</strong> rowStyle/itemStyle/labelStyle 변경 금지. padding '1px 12px 26px', minHeight 100 유지</li>
+  </ul>
+</div>
+
+</body>
+</html>
