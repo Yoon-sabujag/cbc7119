@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-05)
 Phase: 13
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-04-29 - Completed quick task 260429-n1e: 소화기 접근불가 개소 자동완료 + 14개 cp 마이그레이션
+Last activity: 2026-04-29 - Completed quick task 260429-qd8: 접근불가 개소 자동완료 cron 추가 (cbc-cron-worker)
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -101,6 +101,7 @@ Recent decisions affecting current work:
 | 260428-hbh | QRScanPage 데드 코드 제거(found/form/done stage) + GlobalHeader portal 통합 | 2026-04-28 | 3a231a5 | [260428-hbh-qrscanpage-cleanup](./quick/260428-hbh-qrscanpage-cleanup/) |
 | 260429-mao | 도면 분말 소화기 마커 연한 경고 강조 (A안) — stroke 색·두께 + danger ! 배지, 헬퍼 추출 | 2026-04-29 | 5a2005d | [260429-mao-ext-marker-warning](./quick/260429-mao-ext-marker-warning/) |
 | 260429-n1e | 소화기 접근불가 개소 자동완료 + 13개 cp 마이그레이션 (분말 9 + 할로겐 4, 완강기 패턴 적용) | 2026-04-29 | 7a9d3e7 | [260429-n1e-extinguisher-inaccessible](./quick/260429-n1e-extinguisher-inaccessible/) |
+| 260429-qd8 | 접근불가 개소 자동완료 cron 추가 (cbc-cron-worker, 매일 KST 15:00, 그 달 마지막 점검일 카테고리 일괄 처리) | 2026-04-29 | e5e1994 | [260429-qd8-access-blocked-cron](./quick/260429-qd8-access-blocked-cron/) |
 
 ## Session Continuity
 
