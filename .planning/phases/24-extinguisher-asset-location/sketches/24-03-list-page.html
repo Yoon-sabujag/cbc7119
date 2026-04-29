@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ExtinguishersListPage Sketch — Phase 24-03</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2128;
+    --bg4: #22272e;
+    --bd: rgba(255,255,255,0.07);
+    --bd2: rgba(255,255,255,0.13);
+    --t1: #e6edf3;
+    --t2: #8b949e;
+    --t3: #6e7681;
+    --acl: #3b82f6;
+    --info: #0ea5e9;
+    --safe: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --fire: #f97316;
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans KR', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--t1);
+    min-height: 100vh;
+  }
+  @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* Layout Wrapper */
+  .page {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Page Header */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    padding: 0 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--bd);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .page-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--t1);
+  }
+  .btn-new-register {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: var(--acl);
+    border: none;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* 마커 동행 배너 */
+  .marker-banner {
+    padding: 8px 12px;
+    background: rgba(14,165,233,.10);
+    border-bottom: 1px solid rgba(14,165,233,.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--info);
+    flex-shrink: 0;
+  }
+  .marker-banner .dismiss {
+    background: transparent;
+    border: 1px solid rgba(14,165,233,.35);
+    color: var(--info);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Filter Bar */
+  .filter-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--bd);
+    flex-shrink: 0;
+  }
+  /* Row 1: mapping tab chips */
+  .filter-row1 {
+    display: flex;
+  }
+  .tab-chip {
+    flex: 1;
+    height: 44px;
+    border: none;
+    background: transparent;
+    color: var(--t3);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-chip.active {
+    background: var(--bg4);
+    color: var(--t1);
+    border-bottom: 2px solid var(--acl);
+  }
+  /* Row 2: selects + search */
+  .filter-row2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+  }
+  .filter-select {
+    height: 32px;
+    padding: 0 8px;
+    background: var(--bg3);
+    border: 1px solid var(--bd2);
+    border-radius: 8px;
+    color: var(--t2);
+    font-size: 12px;
+    flex: 1;
+    min-width: 80px;
+    cursor: pointer;
+  }
+  .filter-search {
+    flex: 2;
+    min-width: 120px;
+    height: 32px;
+    padding: 0 10px;
+    background: var(--bg3);
+    border: 1px solid var(--bd2);
+    border-radius: 8px;
+    color: var(--t1);
+    font-size: 12px;
+  }
+  .filter-search::placeholder { color: var(--t3); }
+
+  /* Card Grid */
+  .card-grid {
+    flex: 1;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    overflow-y: auto;
+    padding-bottom: calc(var(--sab) + 70px);
+  }
+  @media (min-width: 768px) {
+    .card-grid { grid-template-columns: 1fr 1fr; }
+    .page { max-width: 1200px; }
+  }
+  @media (min-width: 1024px) {
+    .card-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  /* Card Base */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .card.expanded {
+    border: 1.5px solid var(--acl);
+  }
+  .card.disposed {
+    background: var(--bg3);
+    opacity: 0.6;
+  }
+
+  /* Card rows */
+  .card-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-type {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--t1);
+    flex: 1;
+  }
+  .mapping-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5;
+    flex-shrink: 0;
+    border-radius: 5px;
+  }
+  .badge-unmapped { background: rgba(239,68,68,.15); color: var(--danger); }
+  .badge-mapped   { background: rgba(59,130,246,.15); color: var(--acl); }
+  .badge-disposed { background: rgba(245,158,11,.15); color: var(--warn); }
+
+  .card-serials {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--t2);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-location {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--t3);
+  }
+  .warning-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 5px;
+    align-self: flex-start;
+  }
+  .warn-chip { background: rgba(245,158,11,.15); color: var(--warn); border: 1px solid rgba(245,158,11,.3); }
+  .danger-chip { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
+
+  /* Expanded detail block */
+  .card-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 12px;
+    font-size: 11px;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--bd);
+  }
+  .detail-field { display: flex; flex-direction: column; gap: 1px; }
+  .detail-label { color: var(--t3); font-weight: 400; }
+  .detail-value { color: var(--t1); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+  .detail-value.kr { font-family: inherit; }
+
+  /* Action row */
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .card-actions button {
+    flex: 1;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--bg3);
+    color: var(--t1);
+    border: 1px solid var(--bd2);
+  }
+  .card-actions .btn-danger {
+    color: var(--danger);
+    border: 1px solid rgba(239,68,68,.3);
+    background: rgba(239,68,68,.08);
+  }
+  .card-actions .btn-acl {
+    color: #fff;
+    border: none;
+    background: var(--acl);
+  }
+  .card-disposed-label {
+    font-size: 11px;
+    color: var(--t3);
+    text-align: center;
+    padding: 4px 0;
+  }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 60px 16px;
+  }
+  .empty-heading { font-size: 16px; font-weight: 700; color: var(--t1); }
+  .empty-body { font-size: 12px; color: var(--t2); text-align: center; line-height: 1.6; }
+
+  /* Skeleton */
+  .skeleton {
+    background: var(--bg3);
+    border-radius: 12px;
+    height: 88px;
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  /* Bottom Nav placeholder */
+  .bottomnav-placeholder {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(54px + var(--sab));
+    background: var(--bg2);
+    border-top: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding-bottom: var(--sab);
+    z-index: 50;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    color: var(--t3);
+    padding: 4px 8px;
+  }
+  .nav-item.active { color: var(--acl); }
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  /* Label annotation (sketch-only) */
+  .annotation {
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    color: #888;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .section-label {
+    font-size: 10px;
+    color: #555;
+    background: #0d1117;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ─── Page Header ────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <h1>소화기 관리</h1>
+    <button class="btn-new-register">+ 새로 등록</button>
+  </div>
+
+  <!-- ─── 마커 동행 배너 (present when ?fromMarker= exists) ──────────── -->
+  <div class="marker-banner">
+    <span>ⓘ &nbsp;「연구동 B1F-E1」 위치에 자동 매핑됩니다.</span>
+    <button class="dismiss">동행 해제</button>
+  </div>
+  <!-- /marker-banner -->
+
+  <!-- ─── Filter Bar ─────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <!-- Row 1: Mapping tab chips -->
+    <div class="filter-row1">
+      <button class="tab-chip active">전체</button>
+      <button class="tab-chip">미배치</button>
+      <button class="tab-chip">매핑</button>
+      <button class="tab-chip">폐기</button>
+    </div>
+    <!-- Row 2: Zone/Floor/Type + Search -->
+    <div class="filter-row2">
+      <select class="filter-select">
+        <option>구역 전체</option>
+        <option>연구동</option>
+        <option>사무동</option>
+        <option>지하</option>
+      </select>
+      <select class="filter-select">
+        <option>층 전체</option>
+        <option>B1F</option>
+        <option>1F</option>
+        <option>2F</option>
+      </select>
+      <select class="filter-select">
+        <option>종류 전체</option>
+        <option>분말</option>
+        <option>이산화탄소</option>
+        <option>할로겐</option>
+      </select>
+      <input type="text" class="filter-search" placeholder="🔍 증지번호·제조번호 검색">
+    </div>
+  </div>
+  <!-- /filter-bar -->
+
+  <!-- ─── Card Grid ─────────────────────────────────────────────────── -->
+  <div class="card-grid">
+
+    <!-- ── State A: 미배치 + 미점검 (collapsed) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State A — 미배치 + 미점검 (collapsed)</div>
+    <div class="card">
+      <div class="card-row1">
+        <span class="card-type">분말 (3.3kg)</span>
+        <span class="mapping-badge badge-unmapped">미배치</span>
+      </div>
+      <div class="card-serials">증지: 2023-0451 · 제조번호: ABC-12345</div>
+      <div class="card-location">위치 미지정</div>
+    </div>
+
+    <!-- ── State B: 미배치 + 점검 있음 (collapsed) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State B — 미배치 + 점검 있음 (collapsed)</div>
+    <div class="card">
+      <div class="card-row1">
+        <span class="card-type">분말 (3.3kg)</span>
+        <span class="mapping-badge badge-unmapped">미배치</span>
+      </div>
+      <div class="card-serials">증지: 2021-0892 · 제조번호: DEF-78901</div>
+      <div class="card-location">위치 미지정</div>
+      <div>
+        <span class="warning-chip danger-chip">⚠️ 교체 초과</span>
+      </div>
+    </div>
+
+    <!-- ── State C: 매핑됨 (expanded) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State C — 매핑됨 (expanded)</div>
+    <div class="card expanded">
+      <div class="card-row1">
+        <span class="card-type">분말 (3.3kg)</span>
+        <span class="mapping-badge badge-mapped">매핑됨</span>
+      </div>
+      <div class="card-serials">증지: 2022-1103 · 제조번호: GHI-22233</div>
+      <div class="card-location">📍 연구동 B1F · 연구동지하소화기함-A</div>
+      <div>
+        <span class="warning-chip warn-chip">⚠️ 교체 도래</span>
+      </div>
+
+      <!-- Expanded detail block -->
+      <div class="card-detail">
+        <div class="detail-field">
+          <span class="detail-label">접두문자</span>
+          <span class="detail-value">A</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">형식승인</span>
+          <span class="detail-value">KFI-P-22-0011</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조년월</span>
+          <span class="detail-value">2022-03</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조업체</span>
+          <span class="detail-value kr">한국소방(주)</span>
+        </div>
+      </div>
+
+      <!-- Action row: 매핑됨 state -->
+      <div class="card-actions">
+        <button>정보 수정</button>
+        <button class="btn-danger">소화기 분리</button>
+      </div>
+    </div>
+
+    <!-- ── State D: 폐기 (collapsed) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State D — 폐기 (collapsed)</div>
+    <div class="card disposed">
+      <div class="card-row1">
+        <span class="card-type">이산화탄소 (3.2kg)</span>
+        <span class="mapping-badge badge-disposed">폐기</span>
+      </div>
+      <div class="card-serials">증지: 2014-0077 · 제조번호: CO2-55555</div>
+      <div class="card-location">위치 미지정</div>
+    </div>
+
+    <!-- ── State A (expanded): 미배치 + 미점검 — 삭제 버튼 ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State A expanded — 미배치 + 미점검 → 「삭제」 button</div>
+    <div class="card expanded">
+      <div class="card-row1">
+        <span class="card-type">분말 (3.3kg)</span>
+        <span class="mapping-badge badge-unmapped">미배치</span>
+      </div>
+      <div class="card-serials">증지: 2025-0102 · 제조번호: NEW-00001</div>
+      <div class="card-location">위치 미지정</div>
+
+      <div class="card-detail">
+        <div class="detail-field">
+          <span class="detail-label">접두문자</span>
+          <span class="detail-value">B</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">형식승인</span>
+          <span class="detail-value">KFI-P-25-0001</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조년월</span>
+          <span class="detail-value">2025-01</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조업체</span>
+          <span class="detail-value kr">신규소방산업(주)</span>
+        </div>
+      </div>
+
+      <!-- Action row: 미배치 + 미점검 → 정보수정 / 배치 / 삭제(danger) -->
+      <div class="card-actions">
+        <button>정보 수정</button>
+        <button>소화기 배치</button>
+        <button class="btn-danger">삭제</button>
+      </div>
+    </div>
+
+    <!-- ── State B (expanded): 미배치 + 점검O → 폐기 버튼 ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State B expanded — 미배치 + 점검 있음 → 「폐기」 button</div>
+    <div class="card expanded">
+      <div class="card-row1">
+        <span class="card-type">분말 (3.3kg)</span>
+        <span class="mapping-badge badge-unmapped">미배치</span>
+      </div>
+      <div class="card-serials">증지: 2014-0891 · 제조번호: OLD-11111</div>
+      <div class="card-location">위치 미지정</div>
+      <div>
+        <span class="warning-chip danger-chip">⚠️ 교체 초과</span>
+      </div>
+
+      <div class="card-detail">
+        <div class="detail-field">
+          <span class="detail-label">접두문자</span>
+          <span class="detail-value">C</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">형식승인</span>
+          <span class="detail-value">KFI-P-14-0033</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조년월</span>
+          <span class="detail-value">2014-06</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조업체</span>
+          <span class="detail-value kr">구형소방기기(주)</span>
+        </div>
+      </div>
+
+      <!-- Action row: 미배치 + 점검O → 정보수정 / 배치 / 폐기(danger) -->
+      <div class="card-actions">
+        <button>정보 수정</button>
+        <button>소화기 배치</button>
+        <button class="btn-danger">폐기</button>
+      </div>
+    </div>
+
+    <!-- ── State D (expanded): 폐기됨 → 조회만 ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">State D expanded — 폐기됨 → 조회만 (no action buttons)</div>
+    <div class="card expanded disposed">
+      <div class="card-row1">
+        <span class="card-type">이산화탄소 (3.2kg)</span>
+        <span class="mapping-badge badge-disposed">폐기</span>
+      </div>
+      <div class="card-serials">증지: 2014-0077 · 제조번호: CO2-55555</div>
+      <div class="card-location">위치 미지정</div>
+
+      <div class="card-detail">
+        <div class="detail-field">
+          <span class="detail-label">접두문자</span>
+          <span class="detail-value">D</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">형식승인</span>
+          <span class="detail-value">KFI-C-14-0009</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조년월</span>
+          <span class="detail-value">2014-02</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">제조업체</span>
+          <span class="detail-value kr">구형소방기기(주)</span>
+        </div>
+      </div>
+
+      <!-- No action buttons for disposed state -->
+      <div class="card-disposed-label">폐기된 자산입니다.</div>
+    </div>
+
+    <!-- ── Empty State (필터 결과 없음) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">Empty State — no matching extinguishers</div>
+    <div class="empty-state" style="grid-column: 1/-1;">
+      <div class="empty-heading">해당하는 소화기가 없습니다</div>
+      <div class="empty-body">필터를 조정하거나 우상단 「+ 새로 등록」 으로 새 자산을 추가해 주세요.</div>
+    </div>
+
+    <!-- ── Skeleton (loading) ── -->
+    <div class="section-label" style="grid-column: 1/-1; margin-bottom: -4px;">Skeleton (loading state — 3 cards)</div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+
+  </div><!-- /card-grid -->
+
+  <!-- ─── BottomNav Placeholder ─────────────────────────────────────── -->
+  <!-- paddingBottom: calc(var(--sab) + 70px) on card-grid clears this -->
+  <div class="bottomnav-placeholder">
+    <div class="nav-item">
+      <div class="nav-icon">🏠</div>
+      <span>대시보드</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">🔍</div>
+      <span>점검</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon">🧯</div>
+      <span>소화기</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">🔔</div>
+      <span>조치</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">☰</div>
+      <span>메뉴</span>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// Interactive: toggle card expand on click (sketch demo)
+document.querySelectorAll('.card').forEach(card => {
+  if (card.classList.contains('disposed')) return
+  card.addEventListener('click', function() {
+    // Don't toggle on button clicks
+    if (event.target.closest('button')) return
+    this.classList.toggle('expanded')
+  })
+})
+// Tab chip interactive
+document.querySelectorAll('.tab-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.tab-chip').forEach(c => c.classList.remove('active'))
+    this.classList.add('active')
+  })
+})
+</script>
+</body>
+</html>
