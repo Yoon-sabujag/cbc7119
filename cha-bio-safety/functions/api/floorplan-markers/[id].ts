@@ -62,11 +62,13 @@ export const onRequestDelete: PagesFunction<Env> = async ({ params, env }) => {
   const isExtCascade = marker.plan_type === 'extinguisher' && !!cpId && cpId.startsWith('CP-FE-')
 
   if (isExtCascade) {
+    // Phase 24: 자산은 *unassign 만* (status='active' 유지). 자산 행 자체는 보존.
+    // 사용자가 명시적으로 폐기를 원하면 ExtinguishersListPage 의 「폐기」 버튼 사용.
+    // 절대 금지: check_records 는 어떤 분기에서도 DELETE 하지 않는다.
     // D1 batch 는 atomic — 한 statement 실패 시 전체 롤백 (Cloudflare 공식 트랜잭션 의미론).
-    // extinguishers 는 is_active 컬럼이 없어 하드 DELETE 만 가능, check_points 는 is_active=0 으로 보존.
     await env.DB.batch([
       env.DB.prepare('DELETE FROM floor_plan_markers WHERE id=?').bind(id),
-      env.DB.prepare('DELETE FROM extinguishers WHERE check_point_id=?').bind(cpId),
+      env.DB.prepare("UPDATE extinguishers SET check_point_id=NULL, updated_at=datetime('now','+9 hours') WHERE check_point_id=?").bind(cpId),
       env.DB.prepare('UPDATE check_points SET is_active=0 WHERE id=?').bind(cpId),
     ])
   } else {
