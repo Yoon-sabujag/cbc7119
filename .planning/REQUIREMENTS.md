@@ -22,6 +22,11 @@
 - [ ] **WORKLOG-02**: 사용자가 "엑셀 출력" 버튼을 탭하면 기존 양식 파일과 동일한 레이아웃의 .xlsx 파일이 다운로드된다 (xlsx-js-style 기반)
 - [ ] **WORKLOG-03**: 작성한 업무수행기록표 데이터는 D1에 저장되어 이후 월별 조회/재출력이 가능하다 (`work_logs` 테이블)
 
+### 소화기 자산 관리 (Phase 24, 5월 법정점검 준비 예외)
+
+- [ ] **EXT-04**: 도면 마커는 영구 위치, 소화기는 위치에 배치/교체되는 자산으로 분리된다 (`floor_plan_markers`/`check_points` ↔ `extinguishers` 1:N 관계). `extinguishers.status ∈ {'active','폐기'}`, `check_records.extinguisher_id` 컬럼이 추가되고 기존 1:1 매핑은 손실 없이 보존된다 (마이그레이션 + 백필)
+- [ ] **EXT-05**: 사용자가 소화기 리스트 페이지(`/extinguishers`)에서 신규 등록·정보 수정(≤3 필드)·매핑(assign)·분리(unassign)·스왑(swap)·폐기(soft, status='폐기')·하드 삭제(미매핑+미점검 한정)를 처리할 수 있고, 도면 페이지의 ❓ 빈 마커는 점검 모드에서 매핑 유도 동선과 연결된다 (양방향 마커 동행)
+
 ## Future Requirements
 
 ### 관리자 페이지 개선 (다음 마일스톤)
@@ -53,12 +58,14 @@
 | WORKLOG-01 | Phase 22 | Pending |
 | WORKLOG-02 | Phase 22 | Pending |
 | WORKLOG-03 | Phase 22 | Pending |
+| EXT-04 | Phase 24 | Pending |
+| EXT-05 | Phase 24 | Pending |
 
-**Note:** Phase 20 builds the storage/API infrastructure that DOC-01..06 depend on; Phase 21 delivers the user-facing UI that fulfills DOC-01..06. DOC-07 (metadata table) is anchored at Phase 20 since the schema lands there.
+**Note:** Phase 20 builds the storage/API infrastructure that DOC-01..06 depend on; Phase 21 delivers the user-facing UI that fulfills DOC-01..06. DOC-07 (metadata table) is anchored at Phase 20 since the schema lands there. Phase 24 (EXT-04/EXT-05) is a 5월 법정점검 준비 예외 — 운영 관찰 모드에도 불구하고 데이터 모델 재설계가 필요해 진행.
 
 **Coverage:**
-- v1.4 requirements: 10 total
-- Mapped to phases: 10 ✓
+- v1.4 requirements: 12 total
+- Mapped to phases: 12 ✓
 - Unmapped: 0 ✓
 
 ---

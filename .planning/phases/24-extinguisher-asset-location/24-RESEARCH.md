@@ -693,37 +693,43 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
 | A7 | 백필 정책은 *현재 매핑된 ext_id 추정* (정책 A) 를 추천 — 1:1 매핑 시점이라 안전 [ASSUMED — CONTEXT 가 둘 다 허용] | §Example 1 §Open Questions | 정책 B(NULL 유지)도 가능. 사용자 확인 필요. |
 | A8 | Phase 22 의존성은 *코드 충돌 없음* — Phase 22 는 `work_logs` 테이블 + `/worklog` 페이지로 본 phase 와 disjoint [VERIFIED — 22-01-PLAN.md 검토] | §depends_on | 안전. |
 
-## Open Questions
+## Open Questions (RESOLVED — 2026-04-30, codified in PLAN.md set 24-01..24-06)
 
 1. **운영 D1 의 실제 컬럼 상태는?**
    - What we know: 마이그레이션 파일에는 `extinguishers.status` 와 `check_records.extinguisher_id` 가 없음. 그러나 다른 컬럼들(예: `check_records.floor_plan_marker_id`)도 마이그레이션 파일에 없는데 코드는 사용 중 → 미문서화 ALTER 의 가능성 존재.
    - What's unclear: prod D1 에 *이미* `status` 가 추가되어 있을 가능성.
    - Recommendation: **plan 의 wave 1 task 0** 으로 `wrangler d1 execute --remote --command "PRAGMA table_info(extinguishers)"` + `PRAGMA table_info(check_records)` 실행 → 결과를 task 결과에 인라인 기록 → 마이그레이션 SQL 을 그 결과 기반으로 작성.
+   - **RESOLVED:** Plan 24-01 Task 1 (checkpoint:human-action) 으로 채택. `PRAGMA table_info(extinguishers)` + `PRAGMA table_info(check_records)` 결과를 wave 1 SUMMARY 에 인라인 기록한 뒤 마이그레이션 SQL 을 기록 기반으로 확정.
 
 2. **백필 정책: A (추정 채움) vs B (NULL 유지)?**
    - What we know: CONTEXT 가 둘 다 허용. 1:1 매핑 보존 시점이므로 추정 정확도는 매우 높음.
    - What's unclear: 사용자가 *과거 점검 기록은 자산 추적 안 됨* 으로 둘지, *현재 매핑 가정으로 채워서 일관성 우선* 으로 갈지.
    - Recommendation: **정책 A 추천**. 5월 법정점검 시 *제출 일지* 가 ext_id 기반 트레이서를 사용한다면 일관성이 중요. 단, plan 단계에서 1줄 확인.
+   - **RESOLVED: 정책 A.** Plan 24-01 의 마이그레이션 SQL 이 현재 1:1 매핑 기반으로 `check_records.extinguisher_id` 백필 (`UPDATE check_records SET extinguisher_id = (SELECT e.id FROM extinguishers e WHERE e.check_point_id = check_records.checkpoint_id) WHERE checkpoint_id LIKE 'CP-FE-%' AND extinguisher_id IS NULL`).
 
 3. **`extinguishers/create` 의 처리?**
    - What we know: CONTEXT 가 "deprecate 가능. 리팩토링 시점은 plan 단계에서 결정" 명시.
    - What's unclear: 본 phase 에서 (a) 제거 vs (b) `skip_marker` 모드 추가 vs (c) 별도 신규 엔드포인트 `POST /api/extinguishers` (마커 없이 자산만) 추가 후 기존은 deprecate 표시만.
    - Recommendation: **(c) 안 — 신규 엔드포인트 추가, 기존은 보존**. 도면 페이지에서 옛 흐름 호출 코드를 제거하면 자연스럽게 사용 안 함. 후속 phase 에서 제거.
+   - **RESOLVED: (b) 변형 — `extinguishers/create` 에 `skip_marker:true` 모드 추가 후 기존 마커-동시-등록 흐름 호출 코드는 도면에서 제거.** 별도 엔드포인트 신설보다 변경 면적이 작고 기존 1회용 호출(있다면)에도 영향 없음. Plan 24-02 Task 1 에 명시.
 
 4. **마커 삭제 시 자산 처리 정책 변경?**
    - What we know: 현재 `floorplan-markers/[id].ts:67` 가 마커 삭제 시 `extinguishers DELETE` 까지 cascade.
    - What's unclear: 본 phase 에서 *마커 삭제 = 자산 unassign 만* 으로 바꿀지(권장), 아니면 cascade 유지(자산도 폐기 처리)할지.
    - Recommendation: **마커 삭제 = unassign(check_point_id=NULL) 만**. 자산은 status='active' 보존. 사용자가 명시적으로 자산 폐기를 원하면 리스트 페이지에서 처리. plan 에서 명시 task.
+   - **RESOLVED: 마커 삭제 = unassign 만 (cascade DELETE 제거).** Plan 24-02 Task 1 의 `floorplan-markers/[id].ts` DELETE 핸들러 수정으로 채택. 자산은 `status='active'` 보존, `check_point_id=NULL` 로만 처리.
 
 5. **빈 마커 ❓ 의 정확한 SVG/색?**
    - What we know: CONTEXT: 색 빨강 `#ef4444` / `var(--danger)`, 모양 ❓. 범례 status row 에 「미배치」 추가.
    - What's unclear: 기존 `MARKER_TYPES_MAP` 구조(SVG 케이스 분기)에 어떻게 끼워 넣을지. **「디자인 변경 전 상의 필수」 메모리 룰 적용 — sketch 먼저**.
    - Recommendation: plan 의 UI 작업 task 시작 전 `sketch/` 에 HTML 시안 작성 → 사용자 승인 → 인라인 적용.
+   - **RESOLVED: UI-SPEC §Empty Marker 에서 LOCKED — 색 `#ef4444`, 심볼 `?` (Korean ❓ 대신 ASCII `?` for SVG-friendly), 외곽 stroke 동일.** Plan 24-04 Task 1 (sketch checkpoint:human-action) 에서 sketch HTML 시안 작성 → 사용자 승인 후 Plan 24-04 Task 2 에서 `MarkerIcon` 빈-매핑 분기 인라인 적용. 「디자인 변경 전 상의 필수」 메모리 룰 강제 준수.
 
 6. **assign API 의 충돌 시 응답 — 자동 swap 안내 vs 클라이언트 사이드 처리?**
    - What we know: CONTEXT 의 "매핑된 다른 소화기 클릭 → 위치 스왑" 흐름.
    - What's unclear: 클라이언트가 *명시적으로* swap 엔드포인트를 호출하는지(권장), 아니면 assign 이 *암묵적으로 swap* 으로 동작하는지.
    - Recommendation: **명시적 분리** — assign 은 빈 위치만, 충돌 시 409 + `hint:'swap'` 반환. 클라이언트가 사용자에게 "X 위치 소화기. 서로 바꿀까요?" confirm → swap 호출. 이미 §Example 2 에 반영.
+   - **RESOLVED: 명시적 분리 — assign 은 충돌 시 409 + `{hint:'swap', other_extinguisher_id}` 반환.** 클라이언트는 confirm 후 별도 swap 엔드포인트 호출. Plan 24-02 Task 2 (assign 핸들러) + Plan 24-04 Task 2 (도면 클라이언트 confirm 흐름) 에서 채택. swap 은 항상 D1 `env.DB.batch([...])` atomic.
 
 ## Environment Availability
 
@@ -855,13 +861,13 @@ export const onRequestGet: PagesFunction<{ DB: D1Database }> = async ({ request,
 | Pitfalls | HIGH | 운영 메모리 룰 + 코드 cascade 실제 검증 |
 | Migration SQL | MEDIUM | 패턴은 검증, prod 컬럼 상태 미확인 (Open Q1) |
 
-### Open Questions
-1. 운영 D1 의 실제 컬럼 상태 (PRAGMA 검증 필수)
-2. 백필 정책 A vs B (사용자 확정)
-3. `extinguishers/create` 처리(보존/분리/제거)
-4. 마커 삭제 시 자산 cascade 변경 (권장: unassign)
-5. ❓ 마커 SVG 디자인 (sketch 우선)
-6. assign 충돌 시 클라이언트 swap 호출 명시성
+### Open Questions (RESOLVED — see §Open Questions section above)
+1. 운영 D1 의 실제 컬럼 상태 → **RESOLVED:** Plan 24-01 Task 1 PRAGMA 검증 task
+2. 백필 정책 → **RESOLVED: 정책 A** (현재 1:1 매핑 기반 추정 채움)
+3. `extinguishers/create` 처리 → **RESOLVED: skip_marker 모드 추가** (Plan 24-02 Task 1)
+4. 마커 삭제 시 자산 cascade → **RESOLVED: unassign 만** (Plan 24-02 Task 1)
+5. ❓ 마커 SVG 디자인 → **RESOLVED:** UI-SPEC LOCKED + Plan 24-04 sketch checkpoint
+6. assign 충돌 시 응답 → **RESOLVED: 409 + hint:'swap'** (Plan 24-02 + 24-04)
 
 ### Ready for Planning
 Research complete. 플래너는 이 RESEARCH.md 와 CONTEXT.md 를 입력으로 (a) `0079` 마이그레이션 + 백엔드 wave, (b) `ExtinguishersListPage` wave, (c) FloorPlanPage/InspectionPage 통합 wave 의 3-wave PLAN.md 들을 작성 가능. **Open Question 1 은 wave 1 의 첫 task** 로 끼워 넣어 plan 작성과 동시에 해소.
