@@ -3897,6 +3897,7 @@ export default function InspectionPage() {
   const [syncedAt,         setSyncedAt]         = useState<Date | null>(null)
   const [resolveTarget,    setResolveTarget]    = useState<{ cpId: string; recordId: string; result: CheckResult; photoKey?: string; memo?: string } | null>(null)
   const wkAutoRef = useRef(false)
+  const feAutoRef = useRef(false)
   const [detailTarget,     setDetailTarget]     = useState<{ cpId: string } | null>(null)
 
   // ── 이번 달 schedule_items — 재진입 팝업 판정에 사용 (SummaryCard 와 queryKey 공유) ──
@@ -4059,6 +4060,34 @@ export default function InspectionPage() {
         )
         loadTodayRecords()
       } catch { wkAutoRef.current = false }
+    })()
+  }, [selectedGroupIdx, allCheckpoints]) // eslint-disable-line
+
+  // 소화기 카테고리 선택 시 접근불가 개소 자동 정상처리 (1회)
+  useEffect(() => {
+    if (selectedGroupIdx === null || feAutoRef.current || allCheckpoints.length === 0) return
+    if (!CATEGORY_GROUPS[selectedGroupIdx].categories.includes('소화기')) return
+
+    const inaccessible = allCheckpoints.filter(
+      cp => cp.category === '소화기' && cp.description?.includes('[접근불가]') && !records[cp.id]
+    )
+    if (inaccessible.length === 0) { feAutoRef.current = true; return }
+
+    feAutoRef.current = true
+    ;(async () => {
+      try {
+        const sid = await ensureSession()
+        await Promise.all(
+          inaccessible.map(cp =>
+            inspectionApi.submitRecord(sid, {
+              checkpointId: cp.id,
+              result: 'normal',
+              memo: '접근불가 개소 자동 정상처리',
+            })
+          )
+        )
+        loadTodayRecords()
+      } catch { feAutoRef.current = false }
     })()
   }, [selectedGroupIdx, allCheckpoints]) // eslint-disable-line
 
