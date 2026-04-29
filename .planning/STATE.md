@@ -94,6 +94,10 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 24 added (2026-04-30): 소화기 자산-위치 분리 — 5월 법정점검 준비. 운영 관찰 모드 예외 진행. CONTEXT.md 작성됨.
+
 ### Decisions
 
 Carried from prior milestones:
