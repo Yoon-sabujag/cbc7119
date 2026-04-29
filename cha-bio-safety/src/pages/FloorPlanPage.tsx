@@ -821,6 +821,7 @@ export default function FloorPlanPage() {
           manufacturer: newExt.manufacturer || undefined, prefix_code: newExt.prefix_code || undefined,
           seal_no: newExt.seal_no || undefined, serial_no: newExt.serial_no || undefined,
         })
+        if (!('checkPointId' in res)) { toast.error('소화기 등록 응답 형식 오류'); return }
         createMutation.mutate({
           floor, plan_type: planType, marker_type: addMarkerType,
           x_pct: addModal.x_pct, y_pct: addModal.y_pct,
