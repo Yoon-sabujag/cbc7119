@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
@@ -265,9 +265,16 @@ export default function FloorPlanPage() {
   const isDesktop = useIsDesktop()
   const isAdmin = staff?.role === 'admin'
 
-  const [planType, setPlanType] = useState<PlanType>('guidelamp')
+  const [searchParams] = useSearchParams()
+  const [planType, setPlanType] = useState<PlanType>(() => {
+    const pt = searchParams.get('planType') as PlanType | null
+    return (pt && PLAN_TYPES.find(p => p.key === pt)) ? pt : 'guidelamp'
+  })
   const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
-  const [floor, setFloor] = useState('8-1F')
+  const [floor, setFloor] = useState<string>(() => {
+    const f = searchParams.get('floor')
+    return (f && FLOORS.includes(f)) ? f : '8-1F'
+  })
   const [selected, setSelected] = useState<FloorPlanMarker | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [addModal, setAddModal] = useState<{ x_pct: number; y_pct: number } | null>(null)
@@ -276,9 +283,16 @@ export default function FloorPlanPage() {
   const [addLabel, setAddLabel] = useState('')
   const [addCheckpointId, setAddCheckpointId] = useState<string | null>(null)
   const [addCheckpoints, setAddCheckpoints] = useState<any[]>([])
-  const [addExtMode, setAddExtMode] = useState<'existing' | 'new'>('existing')
-  const [newExt, setNewExt] = useState({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
   const [addSubmitting, setAddSubmitting] = useState(false)
+  // ── Phase 24: URL state (placingExtinguisher モード) ──
+  const placingExtId = searchParams.get('placingExtinguisher')
+  const isPlacingMode = !!placingExtId
+  // ── Phase 24: 소화기 분리 confirm ──
+  const [unassignConfirm, setUnassignConfirm] = useState<ExtinguisherDetail | null>(null)
+  // ── Phase 24: 미배치 ❓ 마커 클릭 안내 (점검 모드) ──
+  const [emptyMarkerModal, setEmptyMarkerModal] = useState<FloorPlanMarker | null>(null)
+  // ── Phase 24: placing 확인 모달 ──
+  const [placingConfirm, setPlacingConfirm] = useState<FloorPlanMarker | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragPos, setDragPos] = useState<{ x_pct: number; y_pct: number } | null>(null) // 드래그 중 실시간 위치
   const [editMarker, setEditMarker] = useState(false) // 마커 수정 모달
@@ -312,8 +326,7 @@ export default function FloorPlanPage() {
   const [editLabel, setEditLabel] = useState('')
   const [editMarkerType, setEditMarkerType] = useState<MarkerType>('wall_exit')
   const [editZone, setEditZone] = useState<'research' | 'office' | 'common'>('research')
-  const [editCheckpointId, setEditCheckpointId] = useState<string | null>(null)
-  const [checkpoints, setCheckpoints] = useState<any[]>([]) // 현재 층 개소 목록
+  const [checkpoints, setCheckpoints] = useState<any[]>([]) // 현재 층 개소 목록 (비소화기 타입용)
 
   const MARKER_TYPE_KO: Record<string,string> = {
     ceiling_exit: '천장피난구',
@@ -455,6 +468,26 @@ export default function FloorPlanPage() {
     retry: 2,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] }); setSelected(null); toast.success('마커 삭제됨') },
     onError: (e: any) => toast.error(e.message ?? '마커 삭제 실패'),
+  })
+
+  // Phase 24: 소화기 배치/분리 mutation
+  const assignMutation = useMutation({
+    mutationFn: ({ extId, cpId }: { extId: number; cpId: string }) => extinguisherApi.assign(extId, cpId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['extinguishers', floor] })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+      toast.success('소화기 배치 완료')
+    },
+    onError: (e: any) => toast.error(e.message ?? '배치 실패'),
+  })
+  const unassignMutation = useMutation({
+    mutationFn: (extId: number) => extinguisherApi.unassign(extId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['extinguishers', floor] })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType] })
+      toast.success('소화기 분리 완료')
+    },
+    onError: (e: any) => toast.error(e.message ?? '분리 실패'),
   })
 
   // ── 핀치줌 핸들러 ─────────────────────────────────────
@@ -650,8 +683,6 @@ export default function FloorPlanPage() {
         const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
         setAddMarkerType(firstType as MarkerType)
         setAddCheckpointId(null)
-        setAddExtMode('existing')
-        setNewExt({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
         loadAddCheckpoints(firstType)
       }
       longPressPos.current = null
@@ -663,6 +694,31 @@ export default function FloorPlanPage() {
     e.stopPropagation()
     // 데스크톱 편집 모드에서는 mouseUp에서 선택 처리 (드래그 충돌 방지)
     if (isDesktop && editMode) return
+
+    // Phase 24: 소화기 배치 모드 — 마커 클릭 시 배치 확인 모달 또는 toast
+    if (isPlacingMode && planType === 'extinguisher') {
+      const items = extListQuery.data?.items ?? []
+      const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
+      if (isEmpty) {
+        // 미배치 마커 클릭 → 배치 확인
+        setPlacingConfirm(m)
+      } else {
+        // 이미 소화기가 있는 개소 클릭 → 안내 toast
+        toast('이미 소화기가 배치된 개소입니다', { icon: 'ℹ️' })
+      }
+      return
+    }
+
+    // Phase 24: 점검 모드에서 미배치 마커 클릭 → 안내 모달
+    if (planType === 'extinguisher' && !editMode) {
+      const items = extListQuery.data?.items ?? []
+      const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
+      if (isEmpty) {
+        setEmptyMarkerModal(m)
+        return
+      }
+    }
+
     setSelected(m)
   }
 
@@ -771,8 +827,6 @@ export default function FloorPlanPage() {
       const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
       setAddMarkerType(firstType as MarkerType)
       setAddCheckpointId(null)
-      setAddExtMode('existing')
-      setNewExt({ location: '', type: '분말', approval_no: '', manufactured_at: '', manufacturer: '', prefix_code: '', seal_no: '', serial_no: '' })
       loadAddCheckpoints(firstType)
     }
   }, [isDesktop, editMode, currentMarkerTypes])
@@ -805,36 +859,11 @@ export default function FloorPlanPage() {
   }
 
   // ── 마커 추가 제출 ────────────────────────────────────
+  // Phase 24: extinguisher plan type 은 개소명(label) + 구역 만 입력. 마커 위치만 등록, 소화기 매핑은 별도.
   async function submitAddMarker() {
     if (!addModal) return
-    // 소화기 새로 등록 모드
-    if (planType === 'extinguisher' && addExtMode === 'new') {
-      if (!addZone) { toast.error('구역을 선택하세요'); return }
-      if (!newExt.location) { toast.error('위치를 입력하세요'); return }
-      setAddSubmitting(true)
-      try {
-        const zoneMap: Record<string, string> = { research: '연', office: '사', common: '공' }
-        const zoneChar = zoneMap[addZone] ?? '연'
-        const res = await extinguisherApi.create({
-          floor, zone: zoneChar, location: newExt.location, type: newExt.type,
-          approval_no: newExt.approval_no || undefined, manufactured_at: newExt.manufactured_at || undefined,
-          manufacturer: newExt.manufacturer || undefined, prefix_code: newExt.prefix_code || undefined,
-          seal_no: newExt.seal_no || undefined, serial_no: newExt.serial_no || undefined,
-        })
-        if (!('checkPointId' in res)) { toast.error('소화기 등록 응답 형식 오류'); return }
-        createMutation.mutate({
-          floor, plan_type: planType, marker_type: addMarkerType,
-          x_pct: addModal.x_pct, y_pct: addModal.y_pct,
-          label: addLabel || undefined, check_point_id: res.checkPointId,
-        })
-        toast.success(`소화기 등록 완료 (${res.mgmtNo})`)
-        setAddModal(null)
-      } catch (e: any) {
-        toast.error(e.message ?? '소화기 등록 실패')
-      } finally {
-        setAddSubmitting(false)
-      }
-      return
+    if (planType === 'extinguisher') {
+      if (!addLabel.trim()) { toast.error('개소명을 입력하세요'); return }
     }
     createMutation.mutate({
       floor,
@@ -844,7 +873,7 @@ export default function FloorPlanPage() {
       y_pct: addModal.y_pct,
       label: addLabel || undefined,
       check_point_id: addCheckpointId || undefined,
-      zone: planType === 'guidelamp' ? addZone : undefined,
+      zone: (planType === 'guidelamp' || planType === 'extinguisher') ? addZone : undefined,
     })
     setAddModal(null)
   }
@@ -945,6 +974,12 @@ export default function FloorPlanPage() {
             {isDesktop ? '더블클릭으로 마커 추가 · 마커를 드래그하여 이동 · 클릭하여 선택' : '길게 누르면 마커 추가 · 마커를 터치하여 선택/삭제'}
           </div>
         )}
+        {/* Phase 24: 소화기 배치 모드 안내 배너 */}
+        {isPlacingMode && !editMode && (
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '7px 12px', background: 'rgba(239,68,68,0.9)', fontSize: 11, color: '#fff', fontWeight: 700, textAlign: 'center', pointerEvents: 'none' }}>
+            배치할 위치(개소)를 선택하세요 — 뒤로가기로 취소
+          </div>
+        )}
 
         {planReady ? (
           <div
@@ -1002,6 +1037,20 @@ export default function FloorPlanPage() {
                   }}
                 >
                   {(() => {
+                    // Phase 24: 빈 마커 (미배치) 판단 — extinguisher plan type only
+                    if (planType === 'extinguisher') {
+                      const items = extListQuery.data?.items ?? []
+                      const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
+                      if (isEmpty) {
+                        return (
+                          <svg width={13} height={13} viewBox="0 0 13 13">
+                            <circle cx="6.5" cy="6.5" r="6.5" fill="#ef4444"/>
+                            <text x="6.5" y="10.5" fontSize={8} fill="#fff" textAnchor="middle"
+                              fontWeight={700} style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}>?</text>
+                          </svg>
+                        )
+                      }
+                    }
                     const isPowder = m.marker_type === 'fire_extinguisher' || m.marker_type === 'ext_powder20'
                     const warning = isPowder && m.check_point_id ? (cpIdToWarning.get(m.check_point_id) ?? null) : null
                     const stroke = warning ? REPLACE_WARNING_STROKE[warning] : { color: '#fff', width: 1.5 }
@@ -1036,12 +1085,7 @@ export default function FloorPlanPage() {
           setEditLabel(selected.label ?? '')
           setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
           setEditZone(((selected as any).zone as 'research' | 'office' | 'common') ?? 'research')
-          setEditCheckpointId(selected.check_point_id)
-          if (planType === 'extinguisher') {
-            const markerCatMap: Record<string, string> = { fire_extinguisher: '소화기', ext_powder20: '소화기', ext_halogen: '소화기', ext_kitchen_k: '소화기', indoor_hydrant: '소화전', descending_lifeline: '완강기', div_marker: 'DIV' }
-            const markerCat = markerCatMap[selected.marker_type ?? ''] ?? '소화기'
-            inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === markerCat))).catch(() => setCheckpoints([]))
-          } else {
+          if (planType !== 'extinguisher') {
             const cat = { detector: '자동화재탐지설비', sprinkler: '스프링클러설비', guidelamp: '유도등' }[planType] ?? '유도등'
             inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === cat))).catch(() => setCheckpoints([]))
           }
@@ -1316,6 +1360,15 @@ export default function FloorPlanPage() {
                   <span style={labelStyle}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
                 </div>
               ))}
+              {/* Phase 24: 미배치 마커 범례 */}
+              {planType === 'extinguisher' && (
+                <div style={itemStyle}>
+                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 6, fontWeight: 700, color: '#fff', lineHeight: 1 }}>?</span>
+                  </div>
+                  <span style={labelStyle}>미배치</span>
+                </div>
+              )}
               {planType === 'extinguisher' && (
                 <>
                   <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px', flexShrink: 0 }} />
@@ -1349,7 +1402,7 @@ export default function FloorPlanPage() {
           <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>마커 수정</div>
 
-            {planType === 'guidelamp' && (
+            {(planType === 'guidelamp' || planType === 'extinguisher') && (
               <>
                 <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역</div>
                 <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
@@ -1373,7 +1426,7 @@ export default function FloorPlanPage() {
               </>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '소화기 종류' }[planType]}</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
               {currentMarkerTypes.map(mt => (
                 <button
@@ -1393,7 +1446,7 @@ export default function FloorPlanPage() {
               ))}
             </div>
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>라벨</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{planType === 'extinguisher' ? '개소명' : '라벨'}</div>
             <input
               value={editLabel}
               onChange={e => setEditLabel(e.target.value)}
@@ -1401,22 +1454,35 @@ export default function FloorPlanPage() {
               style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
             />
 
-            {planType !== 'guidelamp' && (
-              <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
-                <select
-                  value={editCheckpointId ?? ''}
-                  onChange={e => setEditCheckpointId(e.target.value || null)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
-                >
-                  <option value="">연결 안 함</option>
-                  {checkpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id) || cp.id === editCheckpointId).map((cp: any) => (
-                    <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
-                  ))}
-                </select>
-                <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
-              </>
-            )}
+            {/* Phase 24: extinguisher plan type — 소화기 관련 액션 버튼 (점검 개소 연결 셀렉터 제거) */}
+            {planType === 'extinguisher' && (() => {
+              const items = extListQuery.data?.items ?? []
+              const mappedExt = selected.check_point_id
+                ? items.find(it => it.cp_id === selected.check_point_id && it.status !== '폐기')
+                : null
+              if (mappedExt) {
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                      <button
+                        onClick={() => { setUnassignConfirm(mappedExt as ExtinguisherDetail); setEditMarker(false) }}
+                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,.3)' }}
+                      >소화기 분리</button>
+                    </div>
+                  </>
+                )
+              }
+              // 미배치 마커 — 소화기 배치 버튼
+              return (
+                <button
+                  onClick={() => {
+                    setEditMarker(false)
+                    navigate(`/extinguishers?fromMarker=${selected.check_point_id ?? ''}&zone=${(selected as any).zone ?? ''}&floor=${selected.floor ?? floor}`)
+                  }}
+                  style={{ width: '100%', height: 42, borderRadius: 10, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 14 }}
+                >소화기 배치</button>
+              )
+            })()}
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setEditMarker(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -1429,8 +1495,7 @@ export default function FloorPlanPage() {
                     body: {
                       label: editLabel || undefined,
                       marker_type: editMarkerType,
-                      check_point_id: editCheckpointId,
-                      zone: planType === 'guidelamp' ? editZone : undefined,
+                      zone: (planType === 'guidelamp' || planType === 'extinguisher') ? editZone : undefined,
                     }
                   }, {
                     onSuccess: () => { setEditMarker(false); setSelected(null); toast.success('마커 수정됨') }
@@ -1475,12 +1540,12 @@ export default function FloorPlanPage() {
               </>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '소화기 종류' }[planType]}</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
               {currentMarkerTypes.map(mt => (
                 <button
                   key={mt.key}
-                  onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddExtMode('existing'); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
+                  onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
                   style={{
                     padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                     background: addMarkerType === mt.key ? 'var(--acl)' : 'var(--bg3)',
@@ -1495,109 +1560,47 @@ export default function FloorPlanPage() {
               ))}
             </div>
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>라벨 (선택)</div>
-            <input
-              value={addLabel}
-              onChange={e => setAddLabel(e.target.value)}
-              placeholder="예: 피난구 B5-01"
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
-            />
-
-            {planType === 'extinguisher' && (() => {
-              const isExtType = ['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'].includes(addMarkerType)
-              return (
+            {/* Phase 24: extinguisher plan type — 개소명 + 구역 만 입력 */}
+            {planType === 'extinguisher' ? (
               <>
-                {isExtType && (
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                    {([['existing', '기존 개소 연결'], ['new', '새로 등록']] as const).map(([mode, label]) => (
-                      <button key={mode} onClick={() => { setAddExtMode(mode); setAddCheckpointId(null) }} style={{
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>개소명 *</div>
+                <input
+                  value={addLabel}
+                  onChange={e => setAddLabel(e.target.value)}
+                  placeholder="예: 5번계단 뒤"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역 *</div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {([
+                    { key: 'research', label: '연구동' },
+                    { key: 'office',   label: '사무동' },
+                    { key: 'common',   label: '지하'   },
+                  ] as const).map(z => (
+                    <button
+                      key={z.key}
+                      onClick={() => setAddZone(z.key)}
+                      style={{
                         flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                        background: addExtMode === mode ? 'var(--acl)' : 'var(--bg3)',
-                        color: addExtMode === mode ? '#fff' : 'var(--t2)',
-                        border: addExtMode === mode ? 'none' : '1px solid var(--bd)',
-                      }}>{label}</button>
-                    ))}
-                  </div>
-                )}
-
-                {(!isExtType || addExtMode === 'existing') ? (
-                  <>
-                    <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 개소 연결</div>
-                    <select
-                      value={addCheckpointId ?? ''}
-                      onChange={e => setAddCheckpointId(e.target.value || null)}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
-                    >
-                      <option value="">연결 안 함</option>
-                      {addCheckpoints.filter((cp: any) => !markers.some(m => m.check_point_id === cp.id)).map((cp: any) => (
-                        <option key={cp.id} value={cp.id}>{cp.prefixChar && cp.certNo ? `${cp.prefixChar}-${cp.certNo}-${cp.location}` : `${cp.locationNo ?? cp.id} — ${cp.location}`} ({cp.category})</option>
-                      ))}
-                    </select>
-                    <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 14 }}>개소를 연결하면 "점검 기록 입력" 버튼이 표시됩니다</div>
-                  </>
-                ) : (
-                  <>
-                  <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역 *</div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                    {([
-                      { key: 'research', label: '연구동' },
-                      { key: 'office',   label: '사무동' },
-                      { key: 'common',   label: '지하'   },
-                    ] as const).map(z => (
-                      <button
-                        key={z.key}
-                        onClick={() => setAddZone(z.key)}
-                        style={{
-                          flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
-                          color: addZone === z.key ? '#fff' : 'var(--t2)',
-                          border: addZone === z.key ? 'none' : '1px solid var(--bd)',
-                        }}
-                      >{z.label}</button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginBottom: 14 }}>
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>위치 *</div>
-                      <input value={newExt.location} onChange={e => setNewExt(p => ({ ...p, location: e.target.value }))} placeholder="예: 5번계단 뒤"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조업체</div>
-                      <input value={newExt.manufacturer} onChange={e => setNewExt(p => ({ ...p, manufacturer: e.target.value }))} placeholder="예: 한울방재"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조년월</div>
-                      <input value={newExt.manufactured_at} onChange={e => setNewExt(p => ({ ...p, manufactured_at: e.target.value }))} placeholder="예: 2024-04"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>형식승인</div>
-                      <input value={newExt.approval_no} onChange={e => setNewExt(p => ({ ...p, approval_no: e.target.value }))} placeholder="예: 수소10-19-11"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>접두문자</div>
-                      <input value={newExt.prefix_code} onChange={e => setNewExt(p => ({ ...p, prefix_code: e.target.value }))} placeholder="예: BEQV"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>증지번호</div>
-                      <input value={newExt.seal_no} onChange={e => setNewExt(p => ({ ...p, seal_no: e.target.value }))} placeholder="예: 72605"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>제조번호</div>
-                      <input value={newExt.serial_no} onChange={e => setNewExt(p => ({ ...p, serial_no: e.target.value }))} placeholder="예: 68605"
-                        style={{ width: '100%', padding: '9px 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box' }} />
-                    </div>
-                  </div>
-                  </>
-                )}
+                        background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
+                        color: addZone === z.key ? '#fff' : 'var(--t2)',
+                        border: addZone === z.key ? 'none' : '1px solid var(--bd)',
+                      }}
+                    >{z.label}</button>
+                  ))}
+                </div>
               </>
-              )
-            })()}
+            ) : (
+              <>
+                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>라벨 (선택)</div>
+                <input
+                  value={addLabel}
+                  onChange={e => setAddLabel(e.target.value)}
+                  placeholder="예: 피난구 B5-01"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
+                />
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setAddModal(null)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
@@ -1675,7 +1678,7 @@ export default function FloorPlanPage() {
             </div>
 
             {planType === 'extinguisher' && inspectExtDetail && (
-              <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)', marginBottom:14 }}>
+              <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)', marginBottom:8 }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
                   <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.location}</span></div>
                   <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufacturer ?? '-'}</span></div>
@@ -1686,6 +1689,25 @@ export default function FloorPlanPage() {
                   <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.serial_no ?? '-'}</span></div>
                   {selected?.check_point_id && <div><span style={{ color:'var(--t3)' }}>ID </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{selected.check_point_id}</span></div>}
                 </div>
+              </div>
+            )}
+            {/* Phase 24: 소화기 정보 수정 + 분리 서브액션 행 */}
+            {planType === 'extinguisher' && inspectExtDetail && (
+              <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+                <button
+                  onClick={() => {
+                    setInspectModal(false)
+                    navigate(`/extinguishers/${inspectExtDetail.id}`)
+                  }}
+                  style={{ flex:1, height:32, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                >정보 수정</button>
+                <button
+                  onClick={() => {
+                    setInspectModal(false)
+                    setUnassignConfirm(inspectExtDetail)
+                  }}
+                  style={{ flex:1, height:32, borderRadius:8, background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.3)', color:'var(--danger,#ef4444)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                >소화기 분리</button>
               </div>
             )}
 
@@ -1849,6 +1871,83 @@ export default function FloorPlanPage() {
       })()}
 
       {/* ── 인라인 조치 모달 ────────────────────── */}
+      {/* ── Phase 24: 소화기 분리 확인 모달 ──────────────── */}
+      {unassignConfirm && (
+        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setUnassignConfirm(null)}>
+          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 분리</div>
+            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
+              <span style={{ fontWeight:600, color:'var(--t1)' }}>{unassignConfirm.location}</span>에서 소화기를 분리하면 이 개소는 미배치 상태가 됩니다.
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setUnassignConfirm(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
+              <button
+                disabled={unassignMutation.isPending}
+                onClick={() => {
+                  if (!unassignConfirm.id) { toast.error('소화기 ID가 없습니다'); return }
+                  unassignMutation.mutate(unassignConfirm.id, {
+                    onSuccess: () => { setUnassignConfirm(null); setSelected(null) }
+                  })
+                }}
+                style={{ flex:1, height:42, borderRadius:10, background:unassignMutation.isPending ? 'var(--bd2)' : 'rgba(239,68,68,0.85)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:unassignMutation.isPending ? 'default' : 'pointer' }}
+              >{unassignMutation.isPending ? '처리 중...' : '분리'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Phase 24: 미배치 마커 안내 모달 (점검 모드) ──── */}
+      {emptyMarkerModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setEmptyMarkerModal(null)}>
+          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 미배치</div>
+            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
+              <span style={{ fontWeight:600, color:'var(--t1)' }}>{emptyMarkerModal.label || '이 개소'}</span>에 소화기가 배치되지 않았습니다.<br/>
+              소화기 관리 페이지에서 배치할 수 있습니다.
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setEmptyMarkerModal(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>닫기</button>
+              <button
+                onClick={() => {
+                  const m = emptyMarkerModal
+                  setEmptyMarkerModal(null)
+                  navigate(`/extinguishers?fromMarker=${m.check_point_id ?? ''}&zone=${(m as any).zone ?? ''}&floor=${m.floor ?? floor}`)
+                }}
+                style={{ flex:1, height:42, borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+              >소화기 배치하기</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Phase 24: 소화기 배치 확인 모달 (placing 모드) ── */}
+      {placingConfirm && isPlacingMode && (
+        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setPlacingConfirm(null)}>
+          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 배치</div>
+            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
+              <span style={{ fontWeight:600, color:'var(--t1)' }}>{placingConfirm.label || '이 개소'}</span>에 소화기를 배치하시겠습니까?
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setPlacingConfirm(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
+              <button
+                disabled={assignMutation.isPending}
+                onClick={() => {
+                  const cpId = placingConfirm.check_point_id
+                  if (!cpId || !placingExtId) { toast.error('개소 정보가 없습니다'); setPlacingConfirm(null); return }
+                  const extIdNum = parseInt(placingExtId, 10)
+                  if (isNaN(extIdNum)) { toast.error('소화기 ID가 올바르지 않습니다'); setPlacingConfirm(null); return }
+                  assignMutation.mutate({ extId: extIdNum, cpId }, {
+                    onSuccess: () => { setPlacingConfirm(null); navigate(-1) }
+                  })
+                }}
+                style={{ flex:1, height:42, borderRadius:10, background:assignMutation.isPending ? 'var(--bd2)' : 'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:assignMutation.isPending ? 'default' : 'pointer' }}
+              >{assignMutation.isPending ? '처리 중...' : '배치'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {resolveModal && selected?.last_record_id && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setResolveModal(false)}>
           <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
