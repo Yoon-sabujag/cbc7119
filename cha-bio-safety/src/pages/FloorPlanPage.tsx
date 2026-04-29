@@ -1278,8 +1278,17 @@ export default function FloorPlanPage() {
           ext_powder20:      '20kg',
           ext_kitchen_k:     'K급',
         }
-        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5 }
-        const labelStyle: React.CSSProperties = { fontSize: 11, color: 'var(--t2)', fontWeight: 500 }
+        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }
+        const labelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--t2)', fontWeight: 500, whiteSpace: 'nowrap' }
+        const rowStyle: React.CSSProperties = {
+          padding: '0 10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+        }
         return (
           <div
             data-no-print
@@ -1291,20 +1300,20 @@ export default function FloorPlanPage() {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-evenly',
-              minHeight: 54,
+              height: 54,
             }}
           >
-            {/* Row 1: 마커 종류 — 항목 간 균등 분포 */}
-            <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            {/* Row 1: 마커 종류 — 한 줄 강제, 폭 부족 시 가로 스크롤 */}
+            <div style={rowStyle}>
               {currentMarkerTypes.map(mt => (
                 <div key={mt.key} style={itemStyle}>
-                  <MarkerIcon markerType={mt.key} color="#888" size={14} />
+                  <MarkerIcon markerType={mt.key} color="#888" size={13} />
                   <span style={labelStyle}>{SHORT_LABEL[mt.key] ?? mt.label.join('')}</span>
                 </div>
               ))}
             </div>
             {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 연한 */}
-            <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <div style={rowStyle}>
               {['normal', 'caution', 'fault', 'resolved'].map(s => (
                 <div key={s} style={itemStyle}>
                   <div style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[s] }} />
@@ -1313,7 +1322,7 @@ export default function FloorPlanPage() {
               ))}
               {planType === 'extinguisher' && (
                 <>
-                  <div style={{ width: 1, height: 14, background: 'var(--bd)', margin: '0 4px' }} />
+                  <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px', flexShrink: 0 }} />
                   {(['warn', 'imminent', 'danger'] as const).map(w => {
                     const stroke = REPLACE_WARNING_STROKE[w]
                     const label = { warn: '도래', imminent: '임박', danger: '초과' }[w]
@@ -1322,7 +1331,7 @@ export default function FloorPlanPage() {
                         <MarkerIcon
                           markerType="fire_extinguisher"
                           color="#888"
-                          size={14}
+                          size={13}
                           strokeColor={stroke.color}
                           strokeWidth={stroke.width}
                           dangerBadge={w === 'danger'}
