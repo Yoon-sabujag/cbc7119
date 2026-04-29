@@ -1301,7 +1301,7 @@ export default function FloorPlanPage() {
               flexDirection: 'column',
               justifyContent: 'space-between',
               gap: 8,
-              minHeight: 54,
+              minHeight: 100,
             }}
           >
             {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
