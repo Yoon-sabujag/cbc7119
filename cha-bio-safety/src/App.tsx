@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -293,54 +293,7 @@ function Layout() {
 
         {/* 모바일 전용: BottomNav */}
         {!isDesktop && showNav && <BottomNav unresolvedCount={unresolvedCount} />}
-
-        {/* 임시 디버그 오버레이 — 안드로이드 모바일 한정. ?nodebug 로 끔 */}
-        {!isDesktop && showNav && !location.search.includes('nodebug') && <SafeAreaDebug />}
       </div>
-    </div>
-  )
-}
-
-function SafeAreaDebug() {
-  const [info, setInfo] = useState<Record<string, string>>({})
-  useEffect(() => {
-    const tick = () => {
-      const root = document.documentElement
-      const nav = document.querySelector('nav') as HTMLElement | null
-      const main = document.querySelector('main') as HTMLElement | null
-      const cs = window.getComputedStyle(root)
-      const navRect = nav?.getBoundingClientRect()
-      const mainRect = main?.getBoundingClientRect()
-      // FAB 후보: nav 바로 위 형제거나 main 마지막 자식
-      const allFixed = Array.from(document.querySelectorAll('button, div')).filter(el => {
-        const s = window.getComputedStyle(el as HTMLElement)
-        return s.background.includes('239, 68, 68') || s.background.includes('991b1b')
-      })
-      const fab = allFixed[0] as HTMLElement | undefined
-      const fabRect = fab?.getBoundingClientRect()
-      setInfo({
-        sab: cs.getPropertyValue('--sab').trim() || '0',
-        navTop: navRect ? `${navRect.top.toFixed(0)}` : '?',
-        navH: navRect ? `${navRect.height.toFixed(0)}` : '?',
-        mainBot: mainRect ? `${mainRect.bottom.toFixed(0)}` : '?',
-        mainPB: main ? window.getComputedStyle(main).paddingBottom.replace('px','') : '?',
-        fabTop: fabRect ? `${fabRect.top.toFixed(0)}` : 'X',
-        fabBot: fabRect ? `${fabRect.bottom.toFixed(0)}` : 'X',
-        vh: `${window.innerHeight}`,
-      })
-    }
-    tick()
-    const id = setInterval(tick, 500)
-    return () => clearInterval(id)
-  }, [])
-  return (
-    <div style={{
-      position: 'fixed', top: 'calc(var(--sat, 0px) + 60px)', left: 4, zIndex: 9999,
-      background: 'rgba(0,0,0,0.9)', color: '#0f0', padding: '6px 8px', borderRadius: 6,
-      fontFamily: 'JetBrains Mono, monospace', fontSize: 10, lineHeight: 1.4, pointerEvents: 'none',
-      maxWidth: '70vw', whiteSpace: 'pre',
-    }}>
-      sab={info.sab}{'\n'}vh={info.vh}{'\n'}navTop={info.navTop} navH={info.navH}{'\n'}mainBot={info.mainBot} mainPB={info.mainPB}{'\n'}fabTop={info.fabTop} fabBot={info.fabBot}
     </div>
   )
 }
