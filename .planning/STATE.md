@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-03 - Completed quick task 260502-wet: 스프링클러 2F 도면 PNG 교체 (1F·3F 톤 매칭) + production 배포 + 알고리즘 메모리 저장
+Last activity: 2026-05-03 - Completed quick task 260503-2t5: 점검·조치 자동화 5종 + 분말 3.3kg 표기 통일 + 자동화 패턴 메모리 저장
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -104,6 +104,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 ### Roadmap Evolution
 
 | 260502-wet | 스프링클러 2F 도면 PNG 교체 — DWG→PDF 신규 도면 4000×2946 RGBA (pdftocairo -transp + 그레이 흰색화 + alpha 부스트 + 컬러 +1px dilation), 1F·3F 톤 매칭, ?v=18 캐시버스팅, 알고리즘 메모리 저장 | 2026-05-03 | (final) | [260502-wet-2f-png-pdf-4000px-png](./quick/260502-wet-2f-png-pdf-4000px-png/) |
+| 260503-2t5 | 점검·조치 자동화 5종 (유도등 회귀 + 소화기/소화전/방화셔터/전실제연댐퍼 신규) + 분말 → 분말 3.3kg DB+UI 통일 (D1 416행 마이그레이션) | 2026-05-03 | (multi) | [260503-2t5-3-3kg](./quick/260503-2t5-3-3kg/) |
 - Phase 24 added (2026-04-30): 소화기 자산-위치 분리 — 5월 법정점검 준비. 운영 관찰 모드 예외 진행. CONTEXT.md 작성됨.
 - Phase 24 shipped (2026-05-02): v0.2.1 production 배포 + 7개 success criteria UAT 모두 PASS. extinguishers.status + check_records.extinguisher_id 추가, /extinguishers 페이지 신설, 빈 ❓ 마커 + 범례 미배치 항목, 양방향 마커 동행 동선. UAT 중 발견된 12건 fix 모두 즉시 적용 완료(잔존 quick task 없음).
 
