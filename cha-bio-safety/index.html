@@ -58,22 +58,28 @@
             else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
           }
           apply(v.top, v.bot)
-          return v.top > 0
+          return v.top > 0 || v.bot > 0
         }
 
         measure()
 
-        // env()가 늦게 초기화되는 경우 재시도
+        // env()가 늦게 초기화되는 경우 재시도 (캐시 초기화 직후 첫 로드 케이스)
+        // top/bot 이 모두 0 이면 retry. 한쪽만 0 이어도 의심스러우면 retry.
         window.addEventListener('DOMContentLoaded', function () {
-          if (!measure()) {
-            setTimeout(measure, 100)
-            setTimeout(measure, 500)
-          }
+          measure()
+          setTimeout(measure, 100)
+          setTimeout(measure, 500)
+          setTimeout(measure, 1500)
         })
+        window.addEventListener('load', function () { measure() })
 
         window.addEventListener('orientationchange', function () { setTimeout(measure, 150) })
         if (window.screen && window.screen.orientation) {
           window.screen.orientation.addEventListener('change', function () { setTimeout(measure, 150) })
+        }
+        // 안드로이드 BottomNav 영역 확보용 — viewport 변경(주소창 펼침/접힘)에도 재측정
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', function () { setTimeout(measure, 50) })
         }
       })()
     </script>
