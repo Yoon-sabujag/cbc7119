@@ -309,7 +309,7 @@ export default function ExtinguishersListPage() {
               borderRadius: 6, cursor: 'pointer', flexShrink: 0,
             }}
           >
-            동행 해제
+            취소
           </button>
         </div>
       )}
