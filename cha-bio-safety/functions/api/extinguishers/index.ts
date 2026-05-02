@@ -23,8 +23,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   WHERE 1=1`
   const params: (string|number)[] = []
 
-  if (floor) { sql += ` AND e.floor = ?`; params.push(floor) }
-  if (zone) { sql += ` AND e.zone = ?`; params.push(zone) }
+  // Phase 24: 매핑된 자산은 cp 가 위치 source — skip_marker 등록 자산은 ext.floor=NULL.
+  // COALESCE 로 cp.floor 우선, 없으면 ext.floor (historical, 분리 후 보존) 사용.
+  if (floor) { sql += ` AND COALESCE(cp.floor, e.floor) = ?`; params.push(floor) }
+  if (zone) {
+    // ext.zone 은 한글('연','사','공','지'), cp.zone 은 영문('research','office','common').
+    // 사용자 dropdown 은 ext.zone 한글값으로 채움 — cp.zone 을 한글로 매핑해서 비교.
+    sql += ` AND COALESCE(
+      CASE cp.zone WHEN 'research' THEN '연' WHEN 'office' THEN '사' WHEN 'common' THEN '공' ELSE cp.zone END,
+      e.zone
+    ) = ?`
+    params.push(zone)
+  }
   if (type) { sql += ` AND e.type = ?`; params.push(type) }
   if (search) { sql += ` AND (e.serial_no LIKE ? OR e.mgmt_no LIKE ?)`; params.push(`%${search}%`, `%${search}%`) }
 
