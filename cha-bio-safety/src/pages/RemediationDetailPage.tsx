@@ -72,7 +72,7 @@ export default function RemediationDetailPage() {
       setMaterialName(GL_TYPE_LABEL[record?.guideLightType ?? ''] ?? '')
       setMaterialCount('1')
     } else if (actionPick === '예비전원 교체') {
-      setMaterialName('예비전원')
+      setMaterialName('예비전원 4.8V')
       setMaterialCount('1')
     } else {
       setMaterialName('')
