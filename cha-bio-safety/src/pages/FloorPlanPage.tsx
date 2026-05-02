@@ -76,6 +76,19 @@ const EXTINGUISHER_ADD_OPTIONS: { key: ExtinguisherType; label: [string, string]
 // 소화기 자산-위치 분리 대상 marker_type (빈 마커 ❓ 판정에 사용)
 const EXT_ASSET_MARKER_TYPES = new Set<string>(['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'])
 
+// 자산 type → 마커 시각용 marker_type 매핑. 매핑된 자산이 있으면 그 type 으로 마커 모양 결정.
+function extTypeToMarkerType(extType: string | null | undefined): string {
+  switch (extType) {
+    case '분말 20kg': return 'ext_powder20'
+    case '할로겐':    return 'ext_halogen'
+    case 'K급':       return 'ext_kitchen_k'
+    case '분말':
+    case '강화액':
+    case '이산화탄소':
+    default:          return 'fire_extinguisher'
+  }
+}
+
 type MarkerType = GuidelampType | DetectorType | SprinklerType | ExtinguisherType
 const MARKER_TYPES_MAP: Record<PlanType, { key: string; label: [string, string] }[]> = {
   guidelamp: GUIDELAMP_MARKER_TYPES,
@@ -280,10 +293,12 @@ export default function FloorPlanPage() {
     const pt = searchParams.get('planType') as PlanType | null
     return (pt && PLAN_TYPES.find(p => p.key === pt)) ? pt : 'guidelamp'
   })
-  // 마커 추가 모달의 옵션. extinguisher plan type 은 4종(소화기/소화전/완강기/DIV)만 — 분말 종류는 자산 등록에서 결정.
-  const currentMarkerTypes = planType === 'extinguisher'
+  // 라벨/시각 lookup용 — 항상 전체 marker_type (extinguisher 7종 포함). 자산-위치 분리 후에도 기존 marker_type 데이터 보존.
+  const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
+  // 마커 「추가」 모달 노출 옵션. extinguisher 는 4종(소화기/소화전/완강기/DIV)만 — 분말 종류는 자산 등록에서 결정.
+  const addOptionMarkerTypes = planType === 'extinguisher'
     ? EXTINGUISHER_ADD_OPTIONS
-    : (MARKER_TYPES_MAP[planType] ?? [])
+    : currentMarkerTypes
   const [floor, setFloor] = useState<string>(() => {
     const f = searchParams.get('floor')
     return (f && FLOORS.includes(f)) ? f : '8-1F'
@@ -451,6 +466,16 @@ export default function FloorPlanPage() {
     for (const it of items) {
       const w = getReplaceWarning(it.type, it.manufactured_at)
       if (w && it.cp_id) map.set(it.cp_id, w)
+    }
+    return map
+  }, [extListQuery.data, planType])
+
+  // Phase 24: cp_id → 배치된 active 자산의 type. 마커 시각이 자산 type 기반으로 분기되도록.
+  const cpIdToExtType = useMemo(() => {
+    const map = new Map<string, string>()
+    if (planType !== 'extinguisher') return map
+    for (const it of extListQuery.data?.items ?? []) {
+      if (it.cp_id && it.status !== '폐기' && it.type) map.set(it.cp_id, it.type)
     }
     return map
   }, [extListQuery.data, planType])
@@ -695,7 +720,7 @@ export default function FloorPlanPage() {
       if (xPct >= 0 && xPct <= 100 && yPct >= 0 && yPct <= 100) {
         setAddModal({ x_pct: Math.round(xPct * 100) / 100, y_pct: Math.round(yPct * 100) / 100 })
         setAddLabel('')
-        const firstType = currentMarkerTypes[0]?.key ?? 'wall_exit'
+        const firstType = addOptionMarkerTypes[0]?.key ?? 'wall_exit'
         setAddMarkerType(firstType as MarkerType)
         setAddCheckpointId(null)
         loadAddCheckpoints(firstType)
@@ -846,7 +871,7 @@ export default function FloorPlanPage() {
       setAddCheckpointId(null)
       loadAddCheckpoints(firstType)
     }
-  }, [isDesktop, editMode, currentMarkerTypes])
+  }, [isDesktop, editMode, addOptionMarkerTypes])
 
   // ── 데스크톱: 말풍선 위치 계산 ────────────────────────────
   function getBalloonPos(m: FloorPlanMarker) {
@@ -1069,12 +1094,18 @@ export default function FloorPlanPage() {
                         )
                       }
                     }
-                    const isPowder = m.marker_type === 'fire_extinguisher' || m.marker_type === 'ext_powder20'
+                    // Phase 24: 매핑된 ext 자산이 있으면 자산 type 기반으로 시각 분기.
+                    // 매핑 없거나 이외 marker_type 은 그대로 marker_type 시각 사용.
+                    const mappedExtType = m.check_point_id ? cpIdToExtType.get(m.check_point_id) : undefined
+                    const effectiveMarkerType = (planType === 'extinguisher' && mappedExtType && EXT_ASSET_MARKER_TYPES.has(m.marker_type ?? ''))
+                      ? extTypeToMarkerType(mappedExtType)
+                      : m.marker_type
+                    const isPowder = effectiveMarkerType === 'fire_extinguisher' || effectiveMarkerType === 'ext_powder20'
                     const warning = isPowder && m.check_point_id ? (cpIdToWarning.get(m.check_point_id) ?? null) : null
                     const stroke = warning ? REPLACE_WARNING_STROKE[warning] : { color: '#fff', width: 1.5 }
                     return (
                       <MarkerIcon
-                        markerType={m.marker_type}
+                        markerType={effectiveMarkerType}
                         color={color}
                         size={13}
                         strokeColor={stroke.color}
@@ -1096,7 +1127,8 @@ export default function FloorPlanPage() {
         {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
         {selected && !addModal && !editMarker && (() => {
         const statusColor = STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal
-        const markerLabel = selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
+        // Phase 24: cp_location (실제 위치명) 우선 표시. 없으면 사용자 라벨 → marker_type 라벨 fallback.
+        const markerLabel = selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
         const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[getMarkerStatus(selected)] ?? '미점검'
 
         const openEditMarkerModal = () => {
@@ -1446,7 +1478,7 @@ export default function FloorPlanPage() {
 
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
-              {currentMarkerTypes.map(mt => (
+              {addOptionMarkerTypes.map(mt => (
                 <button
                   key={mt.key}
                   onClick={() => setEditMarkerType(mt.key as MarkerType)}
@@ -1560,7 +1592,7 @@ export default function FloorPlanPage() {
 
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
-              {currentMarkerTypes.map(mt => (
+              {addOptionMarkerTypes.map(mt => (
                 <button
                   key={mt.key}
                   onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
@@ -1692,7 +1724,7 @@ export default function FloorPlanPage() {
           <div style={{ position: 'relative', width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
-              {selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
+              {selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
             </div>
 
             {planType === 'extinguisher' && inspectExtDetail && (

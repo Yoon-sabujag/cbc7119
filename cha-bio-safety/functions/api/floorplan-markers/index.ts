@@ -14,10 +14,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     // 1) 마커 목록 (description 포함 — 접근불가 판정용 메모)
-    const mWhere = floor ? 'WHERE floor = ? AND plan_type = ?' : 'WHERE plan_type = ?'
+    // Phase 24: cp.location 도 join 으로 노출 — 마커 클릭 시 위치명 표시 source.
+    const mWhere = floor ? 'WHERE m.floor = ? AND m.plan_type = ?' : 'WHERE m.plan_type = ?'
     const mBinds = floor ? [floor, planType] : [planType]
     const mRows = await env.DB.prepare(
-      `SELECT * FROM floor_plan_markers ${mWhere} ORDER BY floor ASC, created_at ASC`
+      `SELECT m.*, cp.location AS cp_location, cp.floor AS cp_floor, cp.zone AS cp_zone
+       FROM floor_plan_markers m
+       LEFT JOIN check_points cp ON cp.id = m.check_point_id
+       ${mWhere} ORDER BY m.floor ASC, m.created_at ASC`
     ).bind(...mBinds).all<Record<string, unknown>>()
     const data = mRows.results ?? []
 
