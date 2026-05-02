@@ -940,10 +940,20 @@ export default function FloorPlanPage() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
 
       {/* ── 헤더 ─────────────────────────────────────── */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-        </button>
+      {/* 데스크톱: height 54 + padding '0 20px', 뒤로가기 제거 (사이드바 nav). 모바일: 기존 유지 */}
+      <header style={{
+        flexShrink: 0,
+        ...(isDesktop
+          ? { height: 54, padding: '0 20px' }
+          : { padding: '8px 12px' }),
+        background: 'var(--bg2)', borderBottom: '1px solid var(--bd)',
+        display: 'flex', alignItems: 'center', gap: isDesktop ? 10 : 8,
+      }}>
+        {!isDesktop && (
+          <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+        )}
         <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>소방 시설 도면</span>
         {canEditMarker && (
           <button

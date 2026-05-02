@@ -937,12 +937,9 @@ export default function DivPage() {
   function renderDesktopLayout() {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-        {/* 헤더 */}
-        <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-          </button>
-          <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+        {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
+        <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
         </header>
 
         {/* 상단 알림 배너 */}

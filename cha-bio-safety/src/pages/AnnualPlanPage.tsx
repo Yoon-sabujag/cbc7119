@@ -106,19 +106,14 @@ export default function AnnualPlanPage() {
   if (isDesktop) {
     return (
       <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        {/* 상단: 설명 + 버튼들 */}
+        {/* 상단: 설명 + 버튼들 — 페이지 제목은 App.tsx 헤더에서 표시 */}
         <div style={{
-          flexShrink:0, padding:'16px 28px',
+          flexShrink:0, padding:'14px 28px',
           display:'flex', alignItems:'center', gap:12,
           borderBottom:'1px solid var(--bd)',
         }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>
-              {nextYear}년 연간 업무 추진 계획
-            </div>
-            <div style={{ fontSize:12, color:'var(--t3)', marginTop:3 }}>
-              표지 및 일정표 연도가 {nextYear}년으로 자동 설정됩니다.
-            </div>
+          <div style={{ flex:1, fontSize:12, color:'var(--t3)' }}>
+            대상 연도 <strong style={{ color:'var(--t1)', fontWeight:700 }}>{nextYear}년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
           </div>
           <button
             onClick={() => setCalibMode(m => !m)}

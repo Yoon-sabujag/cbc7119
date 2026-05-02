@@ -216,13 +216,13 @@ function Layout() {
             height: 54,
             display: 'flex',
             alignItems: 'center',
-            padding: '0 16px',
+            padding: '0 20px',
             background: 'var(--bg2)',
             borderBottom: '1px solid var(--bd)',
             flexShrink: 0,
           }}>
             <span style={{
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: 700,
               color: 'var(--t1)',
               flex: 1,

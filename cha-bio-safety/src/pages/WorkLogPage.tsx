@@ -735,10 +735,9 @@ export default function WorkLogPage() {
       <div style={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
         <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
-        {/* 좌측 편집 패널 */}
+        {/* 좌측 편집 패널 — 페이지 제목은 App.tsx 헤더에서 표시 */}
         <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>업무 수행 기록표</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
             {monthNav}
           </div>
           {formContent}
