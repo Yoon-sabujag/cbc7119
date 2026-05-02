@@ -751,7 +751,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         <input style={inputStyle} value={serialNo} onChange={e => setSerialNo(e.target.value)} placeholder="예: 104448" inputMode="numeric" />
 
         <FieldLabel>접두문자</FieldLabel>
-        <input style={inputStyle} value={prefixCode} onChange={e => setPrefixCode(e.target.value)} placeholder="예: BBPD" />
+        <input style={{ ...inputStyle, textTransform: 'uppercase' }} value={prefixCode} onChange={e => setPrefixCode(e.target.value.toUpperCase())} placeholder="예: BBPD" autoCapitalize="characters" />
 
         <FieldLabel>증지번호</FieldLabel>
         <input style={inputStyle} value={sealNo} onChange={e => setSealNo(e.target.value)} placeholder="예: 63848" inputMode="numeric" />
@@ -859,19 +859,11 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
           })}
         </div>
 
-        <FieldLabel>접두문자</FieldLabel>
-        <input style={{ ...inputStyle, borderColor: borderForField(item.prefix_code, prefixCode) }}
-          value={prefixCode} onChange={e => setPrefixCode(e.target.value)} />
+        <FieldLabel>제조업체</FieldLabel>
+        <input style={{ ...inputStyle, borderColor: borderForField(item.manufacturer, manufacturer) }}
+          value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
 
-        <FieldLabel>증지번호</FieldLabel>
-        <input style={{ ...inputStyle, borderColor: borderForField(item.seal_no, sealNo) }}
-          value={sealNo} onChange={e => setSealNo(e.target.value)} inputMode="numeric" />
-
-        <FieldLabel>제조번호</FieldLabel>
-        <input style={{ ...inputStyle, borderColor: borderForField(item.serial_no, serialNo) }}
-          value={serialNo} onChange={e => setSerialNo(e.target.value)} />
-
-        <FieldLabel>형식승인</FieldLabel>
+        <FieldLabel>형식승인번호</FieldLabel>
         <input style={{ ...inputStyle, borderColor: borderForField(item.approval_no, approvalNo) }}
           value={approvalNo} onChange={e => setApprovalNo(e.target.value)} />
 
@@ -879,9 +871,17 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
         <input style={{ ...inputStyle, borderColor: borderForField(item.manufactured_at, manufacturedAt) }}
           value={manufacturedAt} onChange={e => setManufacturedAt(e.target.value)} placeholder="YYYY-MM" />
 
-        <FieldLabel>제조업체</FieldLabel>
-        <input style={{ ...inputStyle, borderColor: borderForField(item.manufacturer, manufacturer) }}
-          value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
+        <FieldLabel>제조번호</FieldLabel>
+        <input style={{ ...inputStyle, borderColor: borderForField(item.serial_no, serialNo) }}
+          value={serialNo} onChange={e => setSerialNo(e.target.value)} inputMode="numeric" />
+
+        <FieldLabel>접두문자</FieldLabel>
+        <input style={{ ...inputStyle, borderColor: borderForField(item.prefix_code, prefixCode), textTransform: 'uppercase' }}
+          value={prefixCode} onChange={e => setPrefixCode(e.target.value.toUpperCase())} autoCapitalize="characters" />
+
+        <FieldLabel>증지번호</FieldLabel>
+        <input style={{ ...inputStyle, borderColor: borderForField(item.seal_no, sealNo) }}
+          value={sealNo} onChange={e => setSealNo(e.target.value)} inputMode="numeric" />
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
