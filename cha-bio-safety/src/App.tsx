@@ -299,35 +299,45 @@ function Layout() {
 }
 
 function SafeAreaDebug() {
-  const [info, setInfo] = useState({ sab: '?', sat: '?', navH: '?', mainPB: '?', vh: '?', dvh: '?' })
+  const [info, setInfo] = useState<Record<string, string>>({})
   useEffect(() => {
     const tick = () => {
       const root = document.documentElement
       const nav = document.querySelector('nav') as HTMLElement | null
       const main = document.querySelector('main') as HTMLElement | null
       const cs = window.getComputedStyle(root)
+      const navRect = nav?.getBoundingClientRect()
+      const mainRect = main?.getBoundingClientRect()
+      // FAB 후보: nav 바로 위 형제거나 main 마지막 자식
+      const allFixed = Array.from(document.querySelectorAll('button, div')).filter(el => {
+        const s = window.getComputedStyle(el as HTMLElement)
+        return s.background.includes('239, 68, 68') || s.background.includes('991b1b')
+      })
+      const fab = allFixed[0] as HTMLElement | undefined
+      const fabRect = fab?.getBoundingClientRect()
       setInfo({
         sab: cs.getPropertyValue('--sab').trim() || '0',
-        sat: cs.getPropertyValue('--sat').trim() || '0',
-        navH: nav ? `${nav.getBoundingClientRect().height.toFixed(1)}` : '?',
-        mainPB: main ? window.getComputedStyle(main).paddingBottom : '?',
+        navTop: navRect ? `${navRect.top.toFixed(0)}` : '?',
+        navH: navRect ? `${navRect.height.toFixed(0)}` : '?',
+        mainBot: mainRect ? `${mainRect.bottom.toFixed(0)}` : '?',
+        mainPB: main ? window.getComputedStyle(main).paddingBottom.replace('px','') : '?',
+        fabTop: fabRect ? `${fabRect.top.toFixed(0)}` : 'X',
+        fabBot: fabRect ? `${fabRect.bottom.toFixed(0)}` : 'X',
         vh: `${window.innerHeight}`,
-        dvh: `${document.documentElement.clientHeight}`,
       })
     }
     tick()
     const id = setInterval(tick, 500)
-    window.addEventListener('resize', tick)
-    return () => { clearInterval(id); window.removeEventListener('resize', tick) }
+    return () => clearInterval(id)
   }, [])
   return (
     <div style={{
       position: 'fixed', top: 'calc(var(--sat, 0px) + 60px)', left: 4, zIndex: 9999,
-      background: 'rgba(0,0,0,0.85)', color: '#0f0', padding: '6px 8px', borderRadius: 6,
+      background: 'rgba(0,0,0,0.9)', color: '#0f0', padding: '6px 8px', borderRadius: 6,
       fontFamily: 'JetBrains Mono, monospace', fontSize: 10, lineHeight: 1.4, pointerEvents: 'none',
-      maxWidth: '60vw', whiteSpace: 'pre',
+      maxWidth: '70vw', whiteSpace: 'pre',
     }}>
-      sab={info.sab}{'\n'}sat={info.sat}{'\n'}navH={info.navH}{'\n'}mainPB={info.mainPB}{'\n'}vh={info.vh}/dvh={info.dvh}
+      sab={info.sab}{'\n'}vh={info.vh}{'\n'}navTop={info.navTop} navH={info.navH}{'\n'}mainBot={info.mainBot} mainPB={info.mainPB}{'\n'}fabTop={info.fabTop} fabBot={info.fabBot}
     </div>
   )
 }
