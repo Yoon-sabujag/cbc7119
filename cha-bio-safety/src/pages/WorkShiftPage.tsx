@@ -100,7 +100,7 @@ export default function WorkShiftPage() {
             </svg>
           </button>
         )}
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월간 출근부</span>
+        <span style={{ flex:1, fontSize: isDesktop ? 16 : 14, fontWeight:700, color:'var(--t1)' }}>월간 출근부</span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}

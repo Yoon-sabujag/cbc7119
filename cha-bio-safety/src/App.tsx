@@ -222,7 +222,7 @@ function Layout() {
             flexShrink: 0,
           }}>
             <span style={{
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: 700,
               color: 'var(--t1)',
               flex: 1,

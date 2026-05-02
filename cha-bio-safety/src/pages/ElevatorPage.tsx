@@ -603,7 +603,7 @@ export default function ElevatorPage() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
         <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>승강기 관리</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>승강기 관리</span>
           {unresolvedCount > 0 && (
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', background: 'rgba(239,68,68,.13)', border: '1px solid rgba(239,68,68,.25)', padding: '3px 10px', borderRadius: 20 }}>
               미해결 고장 {unresolvedCount}건

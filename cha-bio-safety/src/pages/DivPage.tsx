@@ -939,7 +939,7 @@ export default function DivPage() {
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
         {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
         <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+          <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
         </header>
 
         {/* 상단 알림 배너 */}
