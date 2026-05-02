@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type ExtinguisherListResponse, type FloorPlanMarker } from '../utils/api'
+import { inspectionApi, fireAlarmApi, extinguisherApi, remediationApi, scheduleApi, floorPlanMarkerApi, type ExtinguisherDetail, type FloorPlanMarker } from '../utils/api'
 import toast from 'react-hot-toast'
 import type { CheckPoint, CheckResult, Floor } from '../types'
 import { usePhotoUpload } from '../hooks/usePhotoUpload'
@@ -2989,7 +2989,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   // ── 소화기 상세정보 ──
   const isExtinguisher = group.categories.includes('소화기')
   const [extDetail, setExtDetail] = useState<ExtinguisherDetail | null>(null)
-  const [showExtList, setShowExtList] = useState(false)
 
   // ── Phase 24: 정보 수정 / 분리 모달 상태 ──
   const [editExtModalOpen, setEditExtModalOpen] = useState<ExtinguisherDetail | null>(null)
@@ -3251,7 +3250,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
             <button onClick={() => navigate('/extinguishers')} style={{ height:32, padding:'0 12px', borderRadius:8, background:'var(--acl)', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
               + 새로 등록
             </button>
-            <button onClick={() => setShowExtList(true)} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+            <button onClick={() => navigate('/extinguishers')} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
               리스트
             </button>
           </>
@@ -3531,9 +3530,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         </button>
       </div>
 
-      {/* ── 소화기 리스트 풀스크린 오버레이 ── */}
-      {showExtList && <ExtinguisherListOverlay onClose={() => setShowExtList(false)} />}
-
       {/* ── Phase 24: 정보 수정 모달 ── */}
       {editExtModalOpen != null && (() => {
         const orig = editExtModalOpen
@@ -3675,181 +3671,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-// ── 소화기 리스트 오버레이 ──────────────────────────────
-function ExtinguisherListOverlay({ onClose }: { onClose: () => void }) {
-  const [data, setData] = useState<ExtinguisherListResponse | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<{ floor?: string; zone?: string; type?: string; q?: string }>({})
-  const [replaceFilter, setReplaceFilter] = useState<'warn' | 'imminent' | 'danger' | false>(false)
-  const [selectedItem, setSelectedItem] = useState<any>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
-
-  useEffect(() => {
-    setLoading(true)
-    extinguisherApi.list(filter).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
-  }, [filter])
-
-  // 교체 필요 판별: danger(초과) > imminent(6개월) > warn(1년)
-  // (헬퍼 위임 — src/utils/extinguisher.ts, 시그니처 유지로 호출처 무변화)
-  function getReplaceStatus(item: any): 'danger' | 'imminent' | 'warn' | null {
-    return getReplaceWarning(item?.type, item?.manufactured_at)
-  }
-
-  // 만료일 계산 (정렬용)
-  function getExpiryMs(item: any): number {
-    if (!item.manufactured_at) return Infinity
-    const [y, m] = item.manufactured_at.split('-').map(Number)
-    if (!y || !m) return Infinity
-    return new Date(y + 10, m - 1).getTime()
-  }
-
-  const allItems = data?.items ?? []
-  const dangerCount = allItems.filter(i => getReplaceStatus(i) === 'danger').length
-  const imminentCount = allItems.filter(i => getReplaceStatus(i) === 'imminent').length
-  const warnCount = allItems.filter(i => getReplaceStatus(i) === 'warn').length
-  const displayItems = replaceFilter
-    ? allItems.filter(i => getReplaceStatus(i) === replaceFilter).sort((a, b) => getExpiryMs(a) - getExpiryMs(b))
-    : allItems
-
-  return (
-    <div style={{
-      position:'absolute', top:0, left:0, right:0, bottom:0,
-      zIndex:120, background:'var(--bg)',
-      display:'flex', flexDirection:'column',
-      transform: visible ? 'translateY(0)' : 'translateY(100%)',
-      transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
-    }}>
-
-      {/* 헤더 */}
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:20 }}>🧯</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>소화기 리스트</div>
-          <div style={{ fontSize:10, color:'var(--t3)' }}>{data ? `총 ${data.total}개` : '로딩 중...'}</div>
-        </div>
-        <button onClick={onClose} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>닫기</button>
-      </div>
-
-      {/* 종류별 요약 + 교체 경고 뱃지 */}
-      {data && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:5, flexWrap:'wrap' }}>
-          {data.stats.map(s => (
-            <button key={s.type} onClick={() => { setReplaceFilter(false); setFilter(f => f.type === s.type ? { ...f, type: undefined } : { ...f, type: s.type }) }} style={{
-              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:600, cursor:'pointer',
-              background: !replaceFilter && filter.type === s.type ? 'var(--acl)' : 'var(--bg3)',
-              color: !replaceFilter && filter.type === s.type ? '#fff' : 'var(--t2)',
-              border: !replaceFilter && filter.type === s.type ? 'none' : '1px solid var(--bd)',
-            }}>
-              {s.type} {s.cnt}
-            </button>
-          ))}
-          {(warnCount > 0 || imminentCount > 0 || dangerCount > 0) && (
-            <div style={{ width:1, height:18, background:'var(--bd)', margin:'0 2px', alignSelf:'center' }} />
-          )}
-          {warnCount > 0 && (
-            <button onClick={() => { setReplaceFilter(replaceFilter === 'warn' ? false : 'warn'); setFilter(f => ({ ...f, type: undefined })) }} style={{
-              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
-              background: replaceFilter === 'warn' ? 'rgba(234,179,8,.25)' : 'rgba(234,179,8,.08)',
-              color: '#a16207',
-              border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
-            }}>
-              연한도래 {warnCount}
-            </button>
-          )}
-          {imminentCount > 0 && (
-            <button onClick={() => { setReplaceFilter(replaceFilter === 'imminent' ? false : 'imminent'); setFilter(f => ({ ...f, type: undefined })) }} style={{
-              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
-              background: replaceFilter === 'imminent' ? 'rgba(249,115,22,.25)' : 'rgba(249,115,22,.08)',
-              color: '#c2410c',
-              border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
-            }}>
-              연한임박 {imminentCount}
-            </button>
-          )}
-          {dangerCount > 0 && (
-            <button onClick={() => { setReplaceFilter(replaceFilter === 'danger' ? false : 'danger'); setFilter(f => ({ ...f, type: undefined })) }} style={{
-              padding:'3px 8px', borderRadius:6, fontSize:10, fontWeight:700, cursor:'pointer',
-              background: replaceFilter === 'danger' ? 'rgba(239,68,68,.25)' : 'rgba(239,68,68,.08)',
-              color: '#dc2626',
-              border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
-            }}>
-              연한초과 {dangerCount}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* 필터 바 */}
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:5, alignItems:'center' }}>
-        <input
-          placeholder="제조번호 검색"
-          value={filter.q ?? ''}
-          onChange={e => setFilter(f => ({ ...f, q: e.target.value || undefined }))}
-          style={{ flex:1, minWidth:0, padding:'6px 8px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11, boxSizing:'border-box' }}
-        />
-        <select value={filter.zone ?? ''} onChange={e => setFilter(f => ({ ...f, zone: e.target.value || undefined }))} style={{ padding:'6px 6px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11 }}>
-          <option value="">구역</option>
-          {data?.zones.map(z => <option key={z} value={z}>{z}</option>)}
-        </select>
-        <select value={filter.floor ?? ''} onChange={e => setFilter(f => ({ ...f, floor: e.target.value || undefined }))} style={{ padding:'6px 6px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t1)', fontSize:11 }}>
-          <option value="">층</option>
-          {data?.floors.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
-      </div>
-
-      {/* 리스트 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'6px 14px' }}>
-        {loading ? (
-          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--t3)', fontSize:13 }}>로딩 중...</div>
-        ) : displayItems.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--t3)', fontSize:13 }}>결과 없음</div>
-        ) : displayItems.map(item => {
-          const rs = getReplaceStatus(item)
-          return (
-            <div
-              key={item.seq_no}
-              onClick={() => setSelectedItem(selectedItem?.seq_no === item.seq_no ? null : item)}
-              style={{
-                padding:'8px 10px', margin:'4px 0', borderRadius:10, cursor:'pointer',
-                background: selectedItem?.seq_no === item.seq_no ? 'var(--bg3)' : 'var(--bg2)',
-                border: rs === 'danger' ? '1px solid rgba(239,68,68,.4)' : rs === 'imminent' ? '1px solid rgba(249,115,22,.4)' : rs === 'warn' ? '1px solid rgba(234,179,8,.4)' : '1px solid var(--bd)',
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', minWidth:70 }}>{item.mgmt_no}</span>
-                <span style={{ fontSize:10, fontWeight:600, color:'#ef4444', background:'rgba(239,68,68,.1)', padding:'1px 5px', borderRadius:4 }}>{item.type}</span>
-                <span style={{ flex:1, fontSize:10, color:'var(--t3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.location}</span>
-                {rs === 'danger' && <span style={{ fontSize:9, fontWeight:700, color:'#dc2626', background:'rgba(239,68,68,.12)', padding:'1px 4px', borderRadius:3 }}>연한초과</span>}
-                {rs === 'imminent' && <span style={{ fontSize:9, fontWeight:700, color:'#c2410c', background:'rgba(249,115,22,.12)', padding:'1px 4px', borderRadius:3 }}>연한임박</span>}
-                {rs === 'warn' && <span style={{ fontSize:9, fontWeight:700, color:'#a16207', background:'rgba(234,179,8,.12)', padding:'1px 4px', borderRadius:3 }}>연한도래</span>}
-              </div>
-
-              {/* 펼침 상세 */}
-              {selectedItem?.seq_no === item.seq_no && (
-                <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'1fr 1fr', gap:'3px 12px', fontSize:11 }}>
-                  <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.manufacturer ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.manufactured_at ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.approval_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.prefix_code ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.seal_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{item.serial_no ?? '-'}</span></div>
-                  {item.note && <div style={{ gridColumn:'1/3', color:'var(--t2)', background:'rgba(245,158,11,.08)', padding:'3px 6px', borderRadius:4, marginTop:2 }}>{item.note}</div>}
-                  {rs && (() => {
-                    const s = { danger: { color:'#dc2626', text:'연한 초과 — 즉시 교체 필요' }, imminent: { color:'#c2410c', text:'연한 임박 — 교체 시급' }, warn: { color:'#a16207', text:'연한 도래 — 교체 준비 필요' } }
-                    return <div style={{ gridColumn:'1/3', marginTop:2, fontWeight:700, color: s[rs].color, fontSize:10 }}>{s[rs].text}</div>
-                  })()}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }

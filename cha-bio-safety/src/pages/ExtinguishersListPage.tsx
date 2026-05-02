@@ -119,10 +119,27 @@ export default function ExtinguishersListPage() {
     staleTime: 30_000,
   })
 
-  const items  = data?.items ?? []
+  const allItems = data?.items ?? []
   const zones  = data?.zones ?? []
   // 높은 층부터 낮은 층 순. backend 가 알파벳 순으로 보내도 frontend 가 다시 sort.
   const floors = [...(data?.floors ?? [])].sort((a, b) => floorOrder(b) - floorOrder(a))
+
+  // ── 연한 필터 (분말 10년 만료 기준 — warn/imminent/danger) ──
+  const [replaceFilter, setReplaceFilter] = useState<'warn' | 'imminent' | 'danger' | null>(null)
+  const replaceCounts = (() => {
+    let warn = 0, imm = 0, danger = 0
+    for (const it of allItems) {
+      if (it.status === '폐기') continue  // 폐기 자산은 연한 경고 무관
+      const w = getReplaceWarning(it.type, it.manufactured_at)
+      if (w === 'warn') warn++
+      else if (w === 'imminent') imm++
+      else if (w === 'danger') danger++
+    }
+    return { warn, imm, danger }
+  })()
+  const items = replaceFilter
+    ? allItems.filter(it => it.status !== '폐기' && getReplaceWarning(it.type, it.manufactured_at) === replaceFilter)
+    : allItems
 
   // ── Mutations ────────────────────────────────────────────────────────
   const updateMutation = useMutation({
@@ -415,6 +432,51 @@ export default function ExtinguishersListPage() {
             }}
           />
         </div>
+
+        {/* Row 3: 분말 소화기 연한 필터 chip — count > 0 인 항목만 노출 */}
+        {(replaceCounts.warn > 0 || replaceCounts.imm > 0 || replaceCounts.danger > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0 12px 8px' }}>
+            {replaceCounts.warn > 0 && (
+              <button
+                onClick={() => setReplaceFilter(replaceFilter === 'warn' ? null : 'warn')}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'warn' ? 'rgba(234,179,8,.25)' : 'rgba(234,179,8,.08)',
+                  color: '#a16207',
+                  border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
+                }}
+              >
+                연한 도래 {replaceCounts.warn}
+              </button>
+            )}
+            {replaceCounts.imm > 0 && (
+              <button
+                onClick={() => setReplaceFilter(replaceFilter === 'imminent' ? null : 'imminent')}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'imminent' ? 'rgba(249,115,22,.25)' : 'rgba(249,115,22,.08)',
+                  color: '#c2410c',
+                  border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
+                }}
+              >
+                임박 {replaceCounts.imm}
+              </button>
+            )}
+            {replaceCounts.danger > 0 && (
+              <button
+                onClick={() => setReplaceFilter(replaceFilter === 'danger' ? null : 'danger')}
+                style={{
+                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'danger' ? 'rgba(239,68,68,.25)' : 'rgba(239,68,68,.08)',
+                  color: '#b91c1c',
+                  border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
+                }}
+              >
+                초과 {replaceCounts.danger}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Card grid / states ─────────────────────────────────────── */}
