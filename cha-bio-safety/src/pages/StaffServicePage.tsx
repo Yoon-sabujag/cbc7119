@@ -934,10 +934,16 @@ export default function StaffServicePage() {
     const menu = menuData
 
     if (!menu) return null
-    // 식당은 주말·공휴일 운영 안 함 — PDF 에 그 날짜 메뉴가 들어있어도 표시 차단
+    // 식당 미운영일에는 표시 차단 — 일요일/공휴일/공휴일직후토요일 (mealCalc 운영규칙과 동일)
+    // 일반 토요일은 점심만 운영하므로 표시 허용 (시간대로 isLunch/isDinner 컨트롤)
     const dow = now.getDay()
-    if (dow === 0 || dow === 6) return null
+    if (dow === 0) return null
     if (holidayMap[todayStr]) return null
+    if (dow === 6) {
+      const yest = new Date(now); yest.setDate(yest.getDate() - 1)
+      const yestYMD = `${yest.getFullYear()}-${String(yest.getMonth()+1).padStart(2,'0')}-${String(yest.getDate()).padStart(2,'0')}`
+      if (holidayMap[yestYMD]) return null
+    }
     const isLunch = hm >= 480 && hm < 780
     const isDinner = hm >= 780 && hm < 1110
     if (!isLunch && !isDinner) return null

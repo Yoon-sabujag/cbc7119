@@ -143,14 +143,18 @@ def parse_text(text):
 def transpose_to_menus(dates, sections):
     menus = []
     for day_idx, date in enumerate(dates):
-        # 공휴일·일요일은 식당 미운영 → 추출 단계에서 스킵
-        # (PDF 가 6열 고정인데 day_idx 가 그대로 매핑되면 공휴일 컬럼에도 다음 영업일 메뉴가
-        #  잘못 들어가는 케이스가 있음. 안전하게 제외.)
+        # 식당 미운영일은 추출 단계에서 스킵 — 일요일/공휴일/공휴일직후토요일
+        # (mealCalc 운영규칙. 일반 토요일은 점심만 운영하므로 lunch_a 만 추출해 저장)
         dt = datetime.strptime(date, '%Y-%m-%d')
         if dt.weekday() == 6:        # 일요일
             continue
         if date in HOLIDAYS:         # 공휴일
             continue
+        # 토요일(weekday=5)이고 전날이 공휴일이면 차단
+        if dt.weekday() == 5:
+            prev = (dt - timedelta(days=1)).strftime('%Y-%m-%d')
+            if prev in HOLIDAYS:
+                continue
 
         la, lb, dn = [], [], []
 
