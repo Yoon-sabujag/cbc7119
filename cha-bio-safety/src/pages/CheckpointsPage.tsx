@@ -33,7 +33,7 @@ const CATEGORIES_FALLBACK = [
   'DIV', 'CCTV', '주차장비', '회전문',
 ]
 const ZONE_LABEL: Record<string, string> = {
-  office: '사무동', research: '연구동', common: '지하',
+  office: '사무동', research: '연구동', basement: '지하', common: '지하',  // 'common' is legacy (pre-0081)
 }
 
 // ── BottomSheet ──────────────────────────────────────────
@@ -274,7 +274,7 @@ function CheckPointModalContent({
         <div>
           <label style={LABEL_STYLE}>구역</label>
           <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--bd)' }}>
-            {(['office', 'research', 'common'] as const).map(z => (
+            {(['office', 'research', 'basement'] as const).map(z => (
               <button key={z} onClick={() => setForm(f => ({ ...f, zone: f.zone === z ? '' : z, floor: '' }))}
                 style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, transition: 'all 0.15s', background: form.zone === z ? 'var(--acl)' : 'var(--bg4)', color: form.zone === z ? '#fff' : 'var(--t3)' }}>
                 {ZONE_LABEL[z] ?? z}
@@ -469,7 +469,7 @@ export default function CheckpointsPage() {
     const y = Math.round((m as any).y_pct ?? 0)
     const locNo = `${fc}-${x}-${y}`
     return {
-      id: m.id, qrCode: '', floor: m.floor, zone: (m as any).zone ?? 'common',
+      id: m.id, qrCode: '', floor: m.floor, zone: (m as any).zone ?? 'basement',
       location: m.label || MARKER_TYPE_LABEL[(m as any).marker_type] || '유도등',
       category: '유도등', description: MARKER_TYPE_LABEL[(m as any).marker_type] ?? '',
       locationNo: locNo, isActive: 1, createdAt: (m as any).created_at ?? '',
@@ -478,14 +478,24 @@ export default function CheckpointsPage() {
   const isLoading = isGuidelamp ? glLoading : cpLoading
   const cpListRaw = isGuidelamp ? guidelampAsCp : (checkPoints ?? [])
   const cpList = cpListRaw.filter(cp => {
-    if (filterZone && cp.zone !== filterZone) return false
+    // 'basement' 와 'common' 은 동일 의미 (0081 마이그레이션 전후 호환).
+    if (filterZone) {
+      const eq = (a?: string, b?: string) => a === b ||
+        ((a === 'basement' || a === 'common') && (b === 'basement' || b === 'common'))
+      if (!eq(cp.zone, filterZone)) return false
+    }
     if (filterFloor && cp.floor !== filterFloor) return false
     return true
   })
 
   // 현재 데이터에서 사용 가능한 층 목록 (필터용)
   const FLOOR_ORDER = ['8-1F','8F','7F','6F','5F','3F','2F','1F','LOBBY','M','B1','B1F','B2','B2F','B3','B3F','B4','B4F','B5','B5F']
-  const availableFloors = [...new Set(cpListRaw.filter(cp => !filterZone || cp.zone === filterZone).map(cp => cp.floor).filter(Boolean))]
+  const availableFloors = [...new Set(cpListRaw.filter(cp => {
+    if (!filterZone) return true
+    const eq = (a?: string, b?: string) => a === b ||
+      ((a === 'basement' || a === 'common') && (b === 'basement' || b === 'common'))
+    return eq(cp.zone, filterZone)
+  }).map(cp => cp.floor).filter(Boolean))]
     .sort((a, b) => (FLOOR_ORDER.indexOf(a) === -1 ? 99 : FLOOR_ORDER.indexOf(a)) - (FLOOR_ORDER.indexOf(b) === -1 ? 99 : FLOOR_ORDER.indexOf(b)))
 
   if (me?.role !== 'admin') return null
@@ -523,7 +533,7 @@ export default function CheckpointsPage() {
             <option value="">전체 구역</option>
             <option value="office">사무동</option>
             <option value="research">연구동</option>
-            <option value="common">지하</option>
+            <option value="basement">지하</option>
           </select>
           <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
             style={{ height: 36, fontSize: 12, padding: '0 10px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer', appearance: 'none' as any }}>
@@ -558,7 +568,7 @@ export default function CheckpointsPage() {
                 <option value="">전체 구역</option>
                 <option value="office">사무동</option>
                 <option value="research">연구동</option>
-                <option value="common">지하</option>
+                <option value="basement">지하</option>
               </select>
               <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
                 style={{ flex: 1, height: 36, fontSize: 11, padding: '0 8px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer' }}>

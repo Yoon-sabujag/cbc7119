@@ -27,10 +27,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // COALESCE 로 cp.floor 우선, 없으면 ext.floor (historical, 분리 후 보존) 사용.
   if (floor) { sql += ` AND COALESCE(cp.floor, e.floor) = ?`; params.push(floor) }
   if (zone) {
-    // ext.zone 은 한글('연','사','공','지'), cp.zone 은 영문('research','office','common').
+    // ext.zone 은 한글('연','사','지'), cp.zone 은 영문('research','office','basement', legacy 'common').
     // 사용자 dropdown 은 ext.zone 한글값으로 채움 — cp.zone 을 한글로 매핑해서 비교.
     sql += ` AND COALESCE(
-      CASE cp.zone WHEN 'research' THEN '연' WHEN 'office' THEN '사' WHEN 'common' THEN '공' ELSE cp.zone END,
+      CASE cp.zone
+        WHEN 'research' THEN '연'
+        WHEN 'office'   THEN '사'
+        WHEN 'basement' THEN '지'
+        WHEN 'common'   THEN '지'
+        ELSE cp.zone
+      END,
       e.zone
     ) = ?`
     params.push(zone)

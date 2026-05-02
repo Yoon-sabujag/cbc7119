@@ -81,8 +81,8 @@ const ZONE_CONFIG: { key:ZoneKey; label:string; icon:string }[] = [
 function matchZone(cp: CheckPoint, zone: ZoneKey): boolean {
   if (zone === 'underground') return UNDER_SET.has(cp.floor)
   if (zone === 'office')      return cp.zone === 'office' && GROUND_SET.has(cp.floor)
-  // research: research zone + common zone on ground floors
-  return (cp.zone === 'research' || (cp.zone === 'common' && GROUND_SET.has(cp.floor)))
+  // research: research zone + basement(legacy 'common') zone on ground floors — 지상층의 공용공간 자산은 연구동에 합산.
+  return (cp.zone === 'research' || ((cp.zone === 'basement' || cp.zone === 'common') && GROUND_SET.has(cp.floor)))
 }
 
 function getAvailableZones(cps: CheckPoint[]): ZoneKey[] {
@@ -2884,10 +2884,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     if (isGuideLight) {
       if (!selectedZone) return []
       const zoneMatch = (mzone: string | null | undefined): boolean => {
-        if (selectedZone === 'underground') return mzone === 'common'
+        // 'common' 은 0081 이전 legacy 값 — 'basement' 와 동일 처리.
+        if (selectedZone === 'underground') return mzone === 'basement' || mzone === 'common'
         if (selectedZone === 'office')      return mzone === 'office'
         // research
-        return mzone === 'research' || mzone === 'common'
+        return mzone === 'research' || mzone === 'basement' || mzone === 'common'
       }
       return glMarkers
         .filter(m => zoneMatch((m as any).zone))

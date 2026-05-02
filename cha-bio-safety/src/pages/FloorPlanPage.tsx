@@ -307,7 +307,7 @@ export default function FloorPlanPage() {
   const [editMode, setEditMode] = useState(false)
   const [addModal, setAddModal] = useState<{ x_pct: number; y_pct: number } | null>(null)
   const [addMarkerType, setAddMarkerType] = useState<MarkerType>('wall_exit')
-  const [addZone, setAddZone] = useState<'research' | 'office' | 'common'>('research')
+  const [addZone, setAddZone] = useState<'research' | 'office' | 'basement' | 'common'>('research')
   const [addLabel, setAddLabel] = useState('')
   const [addCheckpointId, setAddCheckpointId] = useState<string | null>(null)
   const [addCheckpoints, setAddCheckpoints] = useState<any[]>([])
@@ -353,7 +353,7 @@ export default function FloorPlanPage() {
   const resolvePhoto = usePhotoUpload()
   const [editLabel, setEditLabel] = useState('')
   const [editMarkerType, setEditMarkerType] = useState<MarkerType>('wall_exit')
-  const [editZone, setEditZone] = useState<'research' | 'office' | 'common'>('research')
+  const [editZone, setEditZone] = useState<'research' | 'office' | 'basement' | 'common'>('research')
   const [checkpoints, setCheckpoints] = useState<any[]>([]) // 현재 층 개소 목록 (비소화기 타입용)
 
   const MARKER_TYPE_KO: Record<string,string> = {
@@ -1134,7 +1134,7 @@ export default function FloorPlanPage() {
         const openEditMarkerModal = () => {
           setEditLabel(selected.label ?? '')
           setEditMarkerType((selected.marker_type as MarkerType) ?? 'wall_exit')
-          setEditZone(((selected as any).zone as 'research' | 'office' | 'common') ?? 'research')
+          setEditZone(((selected as any).zone as 'research' | 'office' | 'basement' | 'common') ?? 'research')
           if (planType !== 'extinguisher') {
             const cat = { detector: '자동화재탐지설비', sprinkler: '스프링클러설비', guidelamp: '유도등' }[planType] ?? '유도등'
             inspectionApi.getCheckpoints(floor).then(all => setCheckpoints(all.filter((cp: any) => cp.category === cat))).catch(() => setCheckpoints([]))
@@ -1459,7 +1459,7 @@ export default function FloorPlanPage() {
                   {([
                     { key: 'research', label: '연구동' },
                     { key: 'office',   label: '사무동' },
-                    { key: 'common',   label: '지하'   },
+                    { key: 'basement', label: '지하'   },
                   ] as const).map(z => (
                     <button
                       key={z.key}
@@ -1574,7 +1574,7 @@ export default function FloorPlanPage() {
                   {([
                     { key: 'research', label: '연구동' },
                     { key: 'office',   label: '사무동' },
-                    { key: 'common',   label: '지하'   },
+                    { key: 'basement', label: '지하'   },
                   ] as const).map(z => (
                     <button
                       key={z.key}
@@ -1626,7 +1626,7 @@ export default function FloorPlanPage() {
                   {([
                     { key: 'research', label: '연구동' },
                     { key: 'office',   label: '사무동' },
-                    { key: 'common',   label: '지하'   },
+                    { key: 'basement', label: '지하'   },
                   ] as const).map(z => (
                     <button
                       key={z.key}

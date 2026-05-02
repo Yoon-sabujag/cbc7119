@@ -37,7 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, params, env }
     const maxSeq = maxRow?.id ? parseInt(maxRow.id.split('-').pop()!, 10) || 0 : 0
     cpId = `CP-FE-${String(maxSeq + 1).padStart(4, '0')}`
 
-    const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '공': 'common' }
+    const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '지': 'basement' }
     const zoneEn = marker.zone ? (zoneEnMap[marker.zone] ?? marker.zone) : null
     const location = marker.label ?? cpId
 

@@ -94,7 +94,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   // check_points INSERT — zone은 영문으로 변환 (CHECK 제약조건). location_no=mgmt_no (기존 seed 컨벤션 일치).
   // env.DB.batch 로 묶어 한 INSERT 가 실패하면 둘 다 롤백 → orphan check_points 방지.
-  const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '공': 'common' }
+  // 한글 ext.zone → 영문 cp.zone 매핑. '지하' 자산은 ext.zone='지' / cp.zone='basement' (0081 이후).
+  const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '지': 'basement' }
   const zoneEn = zoneEnMap[body.zone] ?? body.zone
   await env.DB.batch([
     env.DB.prepare(
