@@ -63,6 +63,7 @@ export interface RemediationRecord {
   materialsUsed: string | null
   guideLightType: string | null
   markerLabel: string | null
+  extinguisherType: string | null
   locationDetail: string | null
   resolvedAt: string | null
   resolvedBy: string | null

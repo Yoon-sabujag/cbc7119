@@ -13,12 +13,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
              cp.category, cp.location, cp.floor, cp.zone,
              s.name AS staff_name,
              rs.name AS resolved_by_name,
-             fpm.label AS marker_label
+             fpm.label AS marker_label,
+             ext.type AS ext_type
       FROM check_records r
       JOIN check_points cp ON cp.id = r.checkpoint_id
       LEFT JOIN staff s ON s.id = r.staff_id
       LEFT JOIN staff rs ON rs.id = r.resolved_by
       LEFT JOIN floor_plan_markers fpm ON fpm.id = r.floor_plan_marker_id
+      LEFT JOIN extinguishers ext ON ext.id = r.extinguisher_id
       WHERE r.id = ?
     `).bind(recordId).first<Record<string, string | null>>()
 
@@ -39,6 +41,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
         materialsUsed:        record.materials_used,
         guideLightType:       record.guide_light_type,
         markerLabel:          record.marker_label,
+        extinguisherType:     record.ext_type,
         locationDetail:       record.location_detail,
         resolvedAt:           record.resolved_at,
         resolvedBy:           record.resolved_by_name ?? record.resolved_by,
