@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 
 import { fmtKstDate as fmtDate, fmtKstDateTime as fmtDateTime } from '../utils/datetime'
 
-const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
 const zoneLabel = (zone: string) => ZONE_LABEL[zone] ?? zone
 
 // 기록 위치 표시 — 유도등이면 locationDetail/markerLabel 우선
