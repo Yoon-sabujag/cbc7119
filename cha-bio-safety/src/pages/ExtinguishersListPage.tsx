@@ -451,7 +451,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
                 }}
               >
-                교체 도래 {replaceCounts.warn}
+                ⚠️ 교체 도래 {replaceCounts.warn}
               </button>
             )}
             {replaceCounts.imm > 0 && (
@@ -464,7 +464,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
                 }}
               >
-                교체 임박 {replaceCounts.imm}
+                ⚠️ 교체 임박 {replaceCounts.imm}
               </button>
             )}
             {replaceCounts.danger > 0 && (
@@ -477,7 +477,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
                 }}
               >
-                교체 초과 {replaceCounts.danger}
+                ⚠️ 교체 초과 {replaceCounts.danger}
               </button>
             )}
           </div>
