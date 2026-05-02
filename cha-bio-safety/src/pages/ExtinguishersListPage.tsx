@@ -23,14 +23,14 @@ const EXTINGUISHER_TYPES = ['분말', '분말 20kg', '이산화탄소', '할로�
 // ── helpers ──────────────────────────────────────────────────────────
 const norm = (v: any) => (v === '' || v === undefined || v === null) ? null : String(v)
 
-// cp.zone 은 영문(research/office/common), ext.zone 은 한글(연/사/공/지). 사용자 표기 통일용.
+// cp.zone 은 영문(research/office/common), ext.zone 은 한글(연/사/지). 사용자 표기 통일용.
+// 운영 데이터 검증: cp.zone='common' 은 전부 B1-B5 지하층 → ext.zone='지' 와 동의어.
 function zoneLabelKo(z: string | null | undefined): string {
   if (!z) return ''
   switch (z) {
     case 'research': case '연': return '연구동'
     case 'office':   case '사': return '사무동'
-    case 'common':   case '공': return '공용'
-    case '지':                   return '지하'
+    case 'common':   case '지': return '지하'
     default:                     return z
   }
 }
