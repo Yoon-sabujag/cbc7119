@@ -17,7 +17,7 @@ const SKELETON_STYLE: React.CSSProperties = {
   animation: 'blink 2s ease-in-out infinite',
 }
 
-const EXTINGUISHER_TYPES = ['분말', '이산화탄소', '할로겐']
+const EXTINGUISHER_TYPES = ['분말', '분말 20kg', '이산화탄소', '할로겐', '강화액', 'K급']
 
 // ── helpers ──────────────────────────────────────────────────────────
 const norm = (v: any) => (v === '' || v === undefined || v === null) ? null : String(v)
@@ -536,16 +536,32 @@ function ExtinguisherCard({
         </span>
       </div>
 
-      {/* Row 2: 증지번호 · 제조번호 */}
-      <div style={{
-        fontSize: 13, fontWeight: 400, color: 'var(--t2)',
-        fontFamily: "'JetBrains Mono', monospace",
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
-        {[item.seal_no && `증지: ${item.seal_no}`, item.serial_no && `제조: ${item.serial_no}`].filter(Boolean).join(' · ') || item.mgmt_no}
-      </div>
+      {/* Row 2: 제조사 · 제조년월 */}
+      {(item.manufacturer || item.manufactured_at) && (
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--t2)' }}>
+          {[
+            item.manufacturer && `제조사: ${item.manufacturer}`,
+            item.manufactured_at && `제조년월: ${item.manufactured_at}`,
+          ].filter(Boolean).join(' · ')}
+        </div>
+      )}
 
-      {/* Row 3: location */}
+      {/* Row 3: 제조번호 · 접두문자 · 증지번호 */}
+      {(item.serial_no || item.prefix_code || item.seal_no) && (
+        <div style={{
+          fontSize: 12, fontWeight: 500, color: 'var(--t2)',
+          fontFamily: "'JetBrains Mono', monospace",
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {[
+            item.serial_no && `제조번호: ${item.serial_no}`,
+            item.prefix_code && `접두문자: ${item.prefix_code}`,
+            item.seal_no && `증지번호: ${item.seal_no}`,
+          ].filter(Boolean).join(' · ')}
+        </div>
+      )}
+
+      {/* Row 4: location */}
       <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>
         {item.cp_id
           ? `📍 ${item.cp_zone ?? ''} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
