@@ -66,10 +66,28 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       return Response.json({ success: false, error: 'menus 배열이 필요합니다' }, { status: 400 })
     }
 
+    // 공휴일 차단: 식당 미운영일은 PDF 파서/와치독에서 잘못 추출되어 들어와도 저장 안 함
+    const dates = body.menus.map(m => m.date).filter(Boolean)
+    const holidaySet = new Set<string>()
+    if (dates.length > 0) {
+      const placeholders = dates.map(() => '?').join(',')
+      const holidayRows = await env.DB.prepare(
+        `SELECT date FROM holidays WHERE date IN (${placeholders})`
+      ).bind(...dates).all<{ date: string }>()
+      for (const r of holidayRows.results ?? []) holidaySet.add(r.date)
+    }
+
     const results: { date: string; id: string }[] = []
+    const skippedHolidays: string[] = []
 
     for (const menu of body.menus) {
       if (!menu.date) continue
+      if (holidaySet.has(menu.date)) { skippedHolidays.push(menu.date); continue }
+      // 토요일·일요일 (식당 미운영) — Date 파싱 후 dow 체크
+      const dow = new Date(menu.date + 'T00:00:00+09:00').getDay()
+      if (dow === 0 || dow === 6) { skippedHolidays.push(menu.date); continue }
+      // 메뉴 셋 다 비어있으면 저장 안 함
+      if (!menu.lunch_a && !menu.lunch_b && !menu.dinner) continue
 
       // 기존 레코드 확인
       const existing = await env.DB.prepare(
