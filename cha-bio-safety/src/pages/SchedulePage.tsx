@@ -405,6 +405,7 @@ export default function SchedulePage() {
           onSaved={() => { invalidate(); toast.success('일정 추가됨') }}
           onDateChange={setSelDate}
           isDesktop={isDesktop}
+          holidays={holidays}
         />
       )}
       {editItem && (
@@ -628,8 +629,8 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
 }
 
 // ── 추가 모달 ────────────────────────────────────────────────
-function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesktop }: {
-  defaultDate: string; staffId: string; onClose: ()=>void; onSaved: ()=>void; onDateChange: (d: string) => void; isDesktop?: boolean
+function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesktop, holidays }: {
+  defaultDate: string; staffId: string; onClose: ()=>void; onSaved: ()=>void; onDateChange: (d: string) => void; isDesktop?: boolean; holidays: Record<string, string>
 }) {
   const [cat,        setCat]       = useState<ScheduleCategory>('inspect')
   const [insCat,     setInsCat]   = useState('')
@@ -674,6 +675,25 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
     ? Math.round((new Date(endDate).getTime() - new Date(date).getTime()) / 86400000) + 1
     : 0
 
+  // 범위 내 작업일 (주말·공휴일 제외) — 멀티데이 일정은 작업일별 개별 일정으로 분리 생성
+  const workingDays: string[] = (() => {
+    if (!date || !endDate || endDate < date) return []
+    const out: string[] = []
+    const [sy, sm, sd] = date.split('-').map(Number)
+    const start = new Date(sy, sm - 1, sd)
+    const [ey, em, ed] = endDate.split('-').map(Number)
+    const end = new Date(ey, em - 1, ed)
+    for (const cur = new Date(start); cur <= end; cur.setDate(cur.getDate() + 1)) {
+      const ymd = localYMD(cur)
+      const dow = cur.getDay()
+      if (dow === 0 || dow === 6) continue   // 일·토
+      if (holidays[ymd]) continue             // 공휴일
+      out.push(ymd)
+    }
+    return out
+  })()
+  const skippedCount = rangeDays > 0 ? rangeDays - workingDays.length : 0
+
   const handleSave = async () => {
     if (!date) { toast.error('날짜를 입력하세요'); return }
 
@@ -698,16 +718,33 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
     setSaving(true)
     try {
       const hasRange = endDate && endDate > date
-      await scheduleApi.create({
-        title:              finalTitle,
-        date,
-        time:               time || undefined,
-        category:           cat,
-        assigneeId:         staffId,
-        inspectionCategory: finalInsCat,
-        memo:               memo || undefined,
-        ...(hasRange ? { end_date: endDate } : {}),
-      })
+      if (hasRange) {
+        // 멀티데이: 작업일별로 개별 일정 생성, 주말·공휴일은 자동 제외
+        if (workingDays.length === 0) {
+          toast.error('선택한 범위에 영업일이 없습니다')
+          setSaving(false)
+          return
+        }
+        await Promise.all(workingDays.map(d => scheduleApi.create({
+          title:              finalTitle,
+          date:               d,
+          time:               time || undefined,
+          category:           cat,
+          assigneeId:         staffId,
+          inspectionCategory: finalInsCat,
+          memo:               memo || undefined,
+        })))
+      } else {
+        await scheduleApi.create({
+          title:              finalTitle,
+          date,
+          time:               time || undefined,
+          category:           cat,
+          assigneeId:         staffId,
+          inspectionCategory: finalInsCat,
+          memo:               memo || undefined,
+        })
+      }
       onSaved()
     } catch {
       toast.error('저장 실패')
@@ -890,8 +927,12 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           {/* N일 미리보기 */}
           {rangeDays > 1 && (
-            <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
-              {rangeDays}일 일정이 추가됩니다
+            <div style={{ fontSize:12, color: workingDays.length === 0 ? 'var(--danger)' : 'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+              {workingDays.length === 0
+                ? '선택 범위에 영업일이 없습니다'
+                : skippedCount > 0
+                  ? `${workingDays.length}일 일정이 추가됩니다 (주말·공휴일 ${skippedCount}일 제외)`
+                  : `${workingDays.length}일 일정이 추가됩니다`}
             </div>
           )}
 
