@@ -120,6 +120,7 @@ function Layout() {
   const pageTitle = PAGE_TITLES[location.pathname] || ''
   const isDashboard = location.pathname === '/dashboard'
   const isQrScan    = location.pathname === '/inspection/qr'
+  const isExtinguishers = location.pathname === '/extinguishers'
 
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
@@ -173,6 +174,11 @@ function Layout() {
                   <div id="qr-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
                   {settingsGearBtn}
                 </div>
+              ) : isExtinguishers ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div id="extinguishers-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
+                  {settingsGearBtn}
+                </div>
               ) : settingsGearBtn
             }
           />
@@ -205,6 +211,9 @@ function Layout() {
             }}>
               {isDashboard ? '대시보드' : pageTitle}
             </span>
+            {isExtinguishers && (
+              <div id="extinguishers-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
+            )}
           </header>
         )}
 

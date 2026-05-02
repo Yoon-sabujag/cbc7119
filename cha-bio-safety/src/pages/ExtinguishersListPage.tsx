@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { extinguisherApi, floorPlanMarkerApi, ExtinguisherDetail, ExtinguisherListResponse } from '../utils/api'
@@ -102,6 +103,17 @@ export default function ExtinguishersListPage() {
   const [confirmUnassign, setConfirmUnassign] = useState<Item | null>(null)
   const [swapTarget,      setSwapTarget]      = useState<{ from: Item; to: Item } | null>(null)
   const [expandedId,      setExpandedId]      = useState<number | null>(null)
+
+  // ── GlobalHeader 「+ 새로 등록」 portal slot ──
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    const find = () => document.getElementById('extinguishers-header-portal-slot')
+    setHeaderSlot(find())
+    if (!find()) {
+      const id = requestAnimationFrame(() => setHeaderSlot(find()))
+      return () => cancelAnimationFrame(id)
+    }
+  }, [])
 
   // ── List query ───────────────────────────────────────────────────────
   const apiParams = useMemo(() => ({
@@ -306,25 +318,18 @@ export default function ExtinguishersListPage() {
     }}>
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
-      {/* ─── Page header ──────────────────────────────────────────── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: isDesktop ? 56 : 48, padding: '0 16px',
-        background: 'var(--bg2)', borderBottom: '1px solid var(--bd)',
-        flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>소화기 관리</span>
+      {/* GlobalHeader 의 '설정' 버튼 좌측 슬롯에 「+ 새로 등록」 portal — 페이지 내 자체 헤더 없음. */}
+      {headerSlot && createPortal(
         <button
           onClick={() => setRegisterOpen(true)}
           style={{
-            height: 32, padding: '0 12px', borderRadius: 8,
+            height: 32, padding: '0 10px', borderRadius: 7,
             background: 'var(--acl)', border: 'none',
             color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
           }}
-        >
-          + 새로 등록
-        </button>
-      </div>
+        >+ 새로 등록</button>,
+        headerSlot,
+      )}
 
       {/* ─── 마커 동행 안내 배너 ────────────────────────────────────── */}
       {hasMarkerContext && (
@@ -446,7 +451,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
                 }}
               >
-                연한 도래 {replaceCounts.warn}
+                교체 도래 {replaceCounts.warn}
               </button>
             )}
             {replaceCounts.imm > 0 && (
@@ -459,7 +464,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
                 }}
               >
-                임박 {replaceCounts.imm}
+                교체 임박 {replaceCounts.imm}
               </button>
             )}
             {replaceCounts.danger > 0 && (
@@ -472,7 +477,7 @@ export default function ExtinguishersListPage() {
                   border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
                 }}
               >
-                초과 {replaceCounts.danger}
+                교체 초과 {replaceCounts.danger}
               </button>
             )}
           </div>
