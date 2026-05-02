@@ -67,12 +67,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     `SELECT type, COUNT(*) as cnt FROM extinguishers GROUP BY type ORDER BY cnt DESC`
   ).all()
 
+  // skip_marker 등록 자산은 ext.zone=NULL — dropdown 에 공백 옵션 안 뜨도록 필터.
   const { results: zones } = await env.DB.prepare(
-    `SELECT DISTINCT zone FROM extinguishers ORDER BY zone`
+    `SELECT DISTINCT zone FROM extinguishers WHERE zone IS NOT NULL AND zone != '' ORDER BY zone`
   ).all()
 
   const { results: floors } = await env.DB.prepare(
-    `SELECT DISTINCT floor FROM extinguishers ORDER BY floor`
+    `SELECT DISTINCT floor FROM extinguishers WHERE floor IS NOT NULL AND floor != '' ORDER BY floor`
   ).all()
 
   return Response.json({
