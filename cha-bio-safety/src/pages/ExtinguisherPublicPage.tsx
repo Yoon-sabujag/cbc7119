@@ -40,7 +40,7 @@ export default function ExtinguisherPublicPage() {
   if (error || !cp) return <div style={page}><div style={{ textAlign:'center', padding:40, color:'#333', fontSize:14 }}>{error ?? '데이터를 찾을 수 없습니다'}</div></div>
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
-  const typeText = ext?.type ? (ext.type + (ext.type === '분말' ? ' 3.3kg' : '')) : '-'
+  const typeText = ext?.type ?? '-'
   const ROW_H = 35 // 고정 행 높이 (이미지 230px / 7행 + 패딩)
 
   return (

@@ -19,7 +19,7 @@ const SKELETON_STYLE: React.CSSProperties = {
   animation: 'blink 2s ease-in-out infinite',
 }
 
-const EXTINGUISHER_TYPES = ['분말', '분말 20kg', '이산화탄소', '할로겐', '강화액', 'K급']
+const EXTINGUISHER_TYPES = ['분말 3.3kg', '분말 20kg', '이산화탄소', '할로겐', '강화액', 'K급']
 
 // ── helpers ──────────────────────────────────────────────────────────
 const norm = (v: any) => (v === '' || v === undefined || v === null) ? null : String(v)
@@ -829,7 +829,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
     } catch { return null }
   })()
 
-  const [type,          setType]          = useState<string>(lastReg?.type ?? '분말')
+  const [type,          setType]          = useState<string>(lastReg?.type ?? '분말 3.3kg')
   const [prefixCode,    setPrefixCode]    = useState(lastReg?.prefix_code ?? '')
   const [sealNo,        setSealNo]        = useState(lastReg?.seal_no ?? '')
   const [serialNo,      setSerialNo]      = useState(lastReg?.serial_no ?? '')

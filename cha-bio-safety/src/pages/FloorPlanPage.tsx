@@ -86,6 +86,7 @@ function extTypeToMarkerType(extType: string | null | undefined): string {
     case 'K급':
     case '강화액':    return 'ext_kitchen_k'
     case '분말':
+    case '분말 3.3kg':
     default:          return 'fire_extinguisher'
   }
 }

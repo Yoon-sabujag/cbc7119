@@ -3536,7 +3536,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           if (changedCount <= 3)  return { bg:'rgba(59,130,246,.15)', color:'var(--acl)' }
           return { bg:'rgba(239,68,68,.15)', color:'var(--danger)' }
         })()
-        const EXT_TYPES = ['분말', 'CO2', '할론', '포', '청정']
+        const EXT_TYPES = ['분말 3.3kg', '분말 20kg', '이산화탄소', '할로겐', '강화액', 'K급']
         const inputStyle = (field: string): React.CSSProperties => ({
           width:'100%', height:40, padding:'0 12px', borderRadius:8,
           background:'var(--bg3)', color:'var(--t1)', fontSize:13, marginBottom:14,
