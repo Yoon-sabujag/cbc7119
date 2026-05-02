@@ -15,8 +15,8 @@ function getCycleHalfRange(today: string): [string, string] {
 }
 
 // 대시보드 월간 카드와 동일 기준의 완료 개수 계산 (모바일 일반점검 카드용).
-// - cp.defaultResult 또는 description 에 '접근불가' 포함 시 자동 완료
-// - 그 외에는 기록 윈도우 안에 완료 기록(normal | caution | bad+resolved) 이 하나라도 있으면 완료
+// - 기록 윈도우 안에 완료 기록(normal | caution | bad+resolved) 이 하나라도 있으면 완료
+//   ([접근불가]/defaultResult 자동 완료는 제거 — cron 이 점검일에 실기록을 남김)
 // - DIV/컴프레셔 카테고리는 today 가 속한 반쪽 윈도우 (1~15 또는 16~말),
 //   다른 카테고리는 monthRecordDates 그대로 (월 전체).
 // - today 미전달 시 cycle 분기 비활성 (기존 monthly 동작 유지).
@@ -30,10 +30,6 @@ export function computeCardCompletion(options: {
   const completedIds = new Set<string>()
 
   for (const cp of cps) {
-    if (cp.defaultResult || cp.description?.includes('접근불가')) {
-      completedIds.add(cp.id)
-      continue
-    }
     const dates = monthRecordDates[cp.id] ?? []
     if (dates.length === 0) continue
 
