@@ -536,25 +536,29 @@ function ExtinguisherCard({
         </span>
       </div>
 
-      {/* Row 2: 제조사 · 제조년월 */}
-      {(item.manufacturer || item.manufactured_at) && (
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--t2)' }}>
+      {/* Row 2: 제조사 · 제조년월 · 제조번호 */}
+      {(item.manufacturer || item.manufactured_at || item.serial_no) && (
+        <div style={{
+          fontSize: 12, fontWeight: 500, color: 'var(--t2)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
           {[
             item.manufacturer && `제조사: ${item.manufacturer}`,
             item.manufactured_at && `제조년월: ${item.manufactured_at}`,
+            item.serial_no && `제조번호: ${item.serial_no}`,
           ].filter(Boolean).join(' · ')}
         </div>
       )}
 
-      {/* Row 3: 제조번호 · 접두문자 · 증지번호 */}
-      {(item.serial_no || item.prefix_code || item.seal_no) && (
+      {/* Row 3: 형식승인번호 · 접두문자 · 증지번호 */}
+      {(item.approval_no || item.prefix_code || item.seal_no) && (
         <div style={{
           fontSize: 12, fontWeight: 500, color: 'var(--t2)',
           fontFamily: "'JetBrains Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {[
-            item.serial_no && `제조번호: ${item.serial_no}`,
+            item.approval_no && `형식승인번호: ${item.approval_no}`,
             item.prefix_code && `접두문자: ${item.prefix_code}`,
             item.seal_no && `증지번호: ${item.seal_no}`,
           ].filter(Boolean).join(' · ')}
