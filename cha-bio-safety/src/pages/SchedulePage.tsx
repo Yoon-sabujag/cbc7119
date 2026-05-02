@@ -148,9 +148,18 @@ export default function SchedulePage() {
     staleTime: 10_000,
   })
 
-  // 범위 일정: 시작일~종료일 사이 모든 날짜에 표시
-  const matchesDate = (item: ScheduleItem, d: string) =>
-    d >= item.date && d <= (item.endDate ?? item.date)
+  // 범위 일정: 시작일~종료일 사이 날짜에 표시
+  // 단일 일자(end_date 없음)는 사용자가 명시적으로 그 날에 잡은 거라 주말/공휴일이라도 표시.
+  // 멀티데이 범위는 주말·공휴일을 자동 제외 — DB 는 단일 항목이지만 표시만 스킵.
+  const matchesDate = (item: ScheduleItem, d: string) => {
+    if (d < item.date || d > (item.endDate ?? item.date)) return false
+    if (!item.endDate || item.endDate === item.date) return true
+    const dt = new Date(d + 'T00:00:00')
+    const dow = dt.getDay()
+    if (dow === 0 || dow === 6) return false
+    if (holidays[d]) return false
+    return true
+  }
 
   const dayItems = useMemo(
     () => [...monthItems.filter(i => matchesDate(i, selDate))]
@@ -496,20 +505,27 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
   const firstDow = new Date(y, mo - 1, 1).getDay()
   const DOW = ['일','월','화','수','목','금','토']
 
-  // 날짜별 카테고리 매핑
+  // 날짜별 카테고리 매핑 — 멀티데이 범위는 주말·공휴일 제외
   const dayCatMap = useMemo(() => {
     const m: Record<number, Set<string>> = {}
     for (const item of items) {
       if (item.category !== 'inspect' || !item.inspectionCategory) continue
       const sd = parseInt(item.date.split('-')[2])
       const ed = item.endDate ? parseInt(item.endDate.split('-')[2]) : sd
+      const isRange = !!item.endDate && item.endDate !== item.date
       for (let d = sd; d <= ed; d++) {
+        if (isRange) {
+          const dateStr = `${curMonth}-${String(d).padStart(2, '0')}`
+          const dow = new Date(dateStr + 'T00:00:00').getDay()
+          if (dow === 0 || dow === 6) continue
+          if (holidays[dateStr]) continue
+        }
         if (!m[d]) m[d] = new Set()
         m[d].add(item.inspectionCategory)
       }
     }
     return m
-  }, [items])
+  }, [items, curMonth, holidays])
 
   const cellStyle: React.CSSProperties = {
     border: '1px solid var(--bd)', padding: '3px 1px', textAlign: 'center',
@@ -718,35 +734,20 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
     setSaving(true)
     try {
       const hasRange = endDate && endDate > date
-      // inspect 만 영업일별 개별 일정으로 분리 (매일 점검 기록 단위라 day-level 이 맞음)
-      // 소방/승강기/행사/업무는 한 회차가 N일에 걸치는 단일 이벤트 → end_date 로 단일 항목 저장
-      if (hasRange && cat === 'inspect') {
-        if (workingDays.length === 0) {
-          toast.error('선택한 범위에 영업일이 없습니다')
-          setSaving(false)
-          return
-        }
-        await Promise.all(workingDays.map(d => scheduleApi.create({
-          title:              finalTitle,
-          date:               d,
-          time:               time || undefined,
-          category:           cat,
-          assigneeId:         staffId,
-          inspectionCategory: finalInsCat,
-          memo:               memo || undefined,
-        })))
-      } else {
-        await scheduleApi.create({
-          title:              finalTitle,
-          date,
-          time:               time || undefined,
-          category:           cat,
-          assigneeId:         staffId,
-          inspectionCategory: finalInsCat,
-          memo:               memo || undefined,
-          ...(hasRange ? { end_date: endDate } : {}),
-        })
-      }
+      // 멀티데이 일정은 항상 단일 항목 + end_date 로 저장.
+      // (DIV/소화기/소화전 같이 한 회차가 N일에 걸쳐 진행되는 점검은 cycle/attribution window
+      //  기반 진행률 집계가 일정 1건 기준이라 day-split 하면 안 됨)
+      // 주말·공휴일 제외는 표시(matchesDate)에서 처리.
+      await scheduleApi.create({
+        title:              finalTitle,
+        date,
+        time:               time || undefined,
+        category:           cat,
+        assigneeId:         staffId,
+        inspectionCategory: finalInsCat,
+        memo:               memo || undefined,
+        ...(hasRange ? { end_date: endDate } : {}),
+      })
       onSaved()
     } catch {
       toast.error('저장 실패')
@@ -927,21 +928,13 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
             </div>
           </div>
 
-          {/* N일 미리보기 */}
+          {/* N일 미리보기 — 항상 단일 항목 + end_date 로 저장, 주말·공휴일은 표시에서만 제외 */}
           {rangeDays > 1 && (
-            cat === 'inspect' ? (
-              <div style={{ fontSize:12, color: workingDays.length === 0 ? 'var(--danger)' : 'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
-                {workingDays.length === 0
-                  ? '선택 범위에 영업일이 없습니다'
-                  : skippedCount > 0
-                    ? `${workingDays.length}일 일정이 추가됩니다 (주말·공휴일 ${skippedCount}일 제외)`
-                    : `${workingDays.length}일 일정이 추가됩니다`}
-              </div>
-            ) : (
-              <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
-                {rangeDays}일 범위로 1건 추가됩니다
-              </div>
-            )
+            <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+              {skippedCount > 0
+                ? `${rangeDays}일 범위로 1건 추가됩니다 (주말·공휴일 ${skippedCount}일은 표시에서 제외)`
+                : `${rangeDays}일 범위로 1건 추가됩니다`}
+            </div>
           )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
