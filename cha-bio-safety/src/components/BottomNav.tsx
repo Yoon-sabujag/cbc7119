@@ -44,9 +44,10 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
   return (
     <nav
       style={{
-        // App.tsx 콘텐츠 영역의 flex sibling 으로 in-flow 배치 — 캐시 초기화 등으로
-        // safe-area 가 늦게 채워지는 케이스에도 main 과 항상 자동 동기화됨.
-        flexShrink: 0,
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
         height: `calc(54px + ${PAD_BOTTOM})`,
         paddingBottom: PAD_BOTTOM,
         background: 'rgba(22,27,34,0.97)',
