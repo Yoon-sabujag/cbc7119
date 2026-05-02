@@ -50,9 +50,10 @@
   }
 
   body {
-    /* svh = 가장 작은 viewport (URL바 보이는 상태 기준). 항상 visible 영역 안.
-       Android Chrome 에서 cache clear 직후 dvh 가 lvh 값으로 캐시되는 케이스 회피. */
-    height: 100svh;
+    /* iOS Safari: dvh 정상, svh 는 브라우저탭에서 페이지가 viewport보다 짧음 → dvh
+       Android Chrome: 캐시 초기화 직후 dvh 가 lvh 값으로 일시 캐시되는 버그 → svh
+       UA 분기는 inline script 가 html.is-android 클래스 부여 → CSS 에서 override */
+    height: 100dvh;
     overflow: visible;
     margin: 0;
     padding: 0;
@@ -67,6 +68,8 @@
       height: 100vh;
     }
   }
+  html.is-android body { height: 100svh; }
+  html.is-android body { @media all and (display-mode: standalone) { height: 100vh; } }
 
   #root {
     width: 100%;

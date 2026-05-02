@@ -16,9 +16,10 @@
   </head>
   <body>
     <script>
-      // Android 전용 핀치줌 허용 — iOS는 기본 viewport(user-scalable=no) 유지
+      // Android 전용 핀치줌 허용 + html.is-android 클래스 — iOS는 기본 viewport(user-scalable=no) 유지
       ;(function () {
         if (/Android/i.test(navigator.userAgent)) {
+          document.documentElement.classList.add('is-android')
           var v = document.querySelector('meta[name=viewport]')
           if (v) v.setAttribute('content', 'width=device-width, viewport-fit=cover, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0')
         }
