@@ -34,7 +34,7 @@ export default function RemediationDetailPage() {
   const queryClient = useQueryClient()
   const [memo, setMemo] = useState('')
   const [actionPick, setActionPick] = useState<
-    '본체 교체' | '예비전원 교체' | '받침 교체' | '소화기 교체' | '직접 입력'
+    '본체 교체' | '예비전원 교체' | '받침 교체' | '소화기 교체' | '경종 교체' | '위치표시등 교체' | '호스걸이 교체' | '직접 입력'
   >('본체 교체')
   const [materialName, setMaterialName] = useState('')
   const [materialCount, setMaterialCount] = useState<string>('')
@@ -59,6 +59,7 @@ export default function RemediationDetailPage() {
 
   const isGuideLight = record?.category === '유도등'
   const isExtinguisher = record?.category === '소화기'
+  const isHydrant = record?.category === '소화전'
 
   // 점검 시 증상에 따라 기본 조치 선택 (유도등)
   useEffect(() => {
@@ -77,6 +78,16 @@ export default function RemediationDetailPage() {
     else if (sym === '연한 만료') setActionPick('소화기 교체')
     else setActionPick('직접 입력')
   }, [isExtinguisher, record?.id])
+
+  // 점검 시 증상에 따라 기본 조치 선택 (소화전)
+  useEffect(() => {
+    if (!isHydrant || !record) return
+    const sym = record.memo ?? ''
+    if (sym === '경종 파손') setActionPick('경종 교체')
+    else if (sym === '위치표시등 점등 이상') setActionPick('위치표시등 교체')
+    else if (sym === '호스걸이 파손') setActionPick('호스걸이 교체')
+    else setActionPick('직접 입력')
+  }, [isHydrant, record?.id])
 
   useEffect(() => {
     if (!isGuideLight) return
@@ -107,6 +118,24 @@ export default function RemediationDetailPage() {
       setMaterialCount('')
     }
   }, [actionPick, isExtinguisher, record?.extinguisherType])
+
+  // 소화전: 조치 → 자재 자동 채움
+  useEffect(() => {
+    if (!isHydrant) return
+    if (actionPick === '경종 교체') {
+      setMaterialName('경종')
+      setMaterialCount('1')
+    } else if (actionPick === '위치표시등 교체') {
+      setMaterialName('위치표시등')
+      setMaterialCount('1')
+    } else if (actionPick === '호스걸이 교체') {
+      setMaterialName('호스걸이')
+      setMaterialCount('1')
+    } else {
+      setMaterialName('')
+      setMaterialCount('')
+    }
+  }, [actionPick, isHydrant])
 
   const handleDelete = async () => {
     if (!confirm('이 점검 기록을 영구 삭제합니다. 되돌릴 수 없습니다. 진행할까요?')) return
@@ -142,6 +171,9 @@ export default function RemediationDetailPage() {
       finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
       if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
     } else if (isExtinguisher) {
+      finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
+      if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+    } else if (isHydrant) {
       finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
       if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
     } else {
@@ -359,8 +391,22 @@ export default function RemediationDetailPage() {
                 </div>
               )}
 
-              {/* 직접 입력 textarea — 유도등/소화기 외 항상 / 유도등·소화기에서 직접입력일 때만 */}
-              {((!isGuideLight && !isExtinguisher) || actionPick === '직접 입력') && (
+              {/* 소화전: 조치 피커 */}
+              {isHydrant && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {(['경종 교체', '위치표시등 교체', '호스걸이 교체', '직접 입력'] as const).map(opt => (
+                    <button key={opt} onClick={() => setActionPick(opt)} style={{
+                      flex: 1, padding: '10px 2px', borderRadius: 10, cursor: 'pointer',
+                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize: 11, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+              )}
+
+              {/* 직접 입력 textarea — 피커 카테고리 외 항상 / 피커 카테고리에서 직접입력일 때만 */}
+              {((!isGuideLight && !isExtinguisher && !isHydrant) || actionPick === '직접 입력') && (
                 <textarea
                   value={memo}
                   onChange={e => setMemo(e.target.value)}

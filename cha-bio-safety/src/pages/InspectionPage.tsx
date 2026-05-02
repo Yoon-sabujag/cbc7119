@@ -2813,6 +2813,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const [symptomPick,   setSymptomPick]   = useState<string>('점등 이상')
   const [symptomCustom, setSymptomCustom] = useState('')
   const [extSymptomPick, setExtSymptomPick] = useState<string>('받침 파손')
+  const [hydrantSymptomPick, setHydrantSymptomPick] = useState<string>('경종 파손')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -3209,6 +3210,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         }
       } else if (isExtinguisher && result !== 'normal') {
         finalMemo = extSymptomPick === '직접 입력' ? memo.trim() : extSymptomPick
+      } else if (selectedCP?.category === '소화전' && result !== 'normal') {
+        finalMemo = hydrantSymptomPick === '직접 입력' ? memo.trim() : hydrantSymptomPick
       }
       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
       if (pairedBC) {
@@ -3464,12 +3467,30 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               </div>
             )}
 
+            {/* 소화전: 증상 피커 */}
+            {selectedCP?.category === '소화전' && result !== 'normal' && (
+              <div style={{ marginTop:10 }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
+                <div style={{ display:'flex', gap:5 }}>
+                  {['경종 파손','위치표시등 점등 이상','호스걸이 파손','직접 입력'].map(s => (
+                    <button key={s} onClick={() => setHydrantSymptomPick(s)} style={{
+                      flex:1, padding:'8px 2px', borderRadius:10, cursor:'pointer',
+                      border: hydrantSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: hydrantSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize:10, fontWeight:700, color: hydrantSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
+                    }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 특이사항 + 증빙사진 (한 행) */}
             <div style={{ marginTop:10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
                 <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>
                   {(isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력')
                     || (isExtinguisher && result !== 'normal' && extSymptomPick === '직접 입력')
+                    || (selectedCP?.category === '소화전' && result !== 'normal' && hydrantSymptomPick === '직접 입력')
                     ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
                 </label>
                 <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
