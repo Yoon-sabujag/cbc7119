@@ -239,7 +239,25 @@ export default function ExtinguishersListPage() {
   }
 
   // ── 배치(assign) 클릭: 도면 페이지로 이동 ────────────────────────────
-  const handleAssignClick = (item: Item) => {
+  const handleAssignClick = async (item: Item) => {
+    // 동행 진입 (fromMarker 있음) — 도면 placing 단계 생략하고 즉시 배치 + 도면 복귀.
+    if (hasMarkerContext && fromMarker) {
+      try {
+        if (fromMarker.startsWith('FPM-')) {
+          await floorPlanMarkerApi.placeAsset(fromMarker, item.id)
+          qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+          qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
+        } else {
+          await assignMutation.mutateAsync({ id: item.id, cpId: fromMarker })
+        }
+        toast.success('소화기 배치 완료')
+        navigate(-1)
+      } catch (e: any) {
+        toast.error(e?.message ?? '배치 실패')
+      }
+      return
+    }
+    // 일반 진입 — 도면 placing 모드로 이동(사용자가 도면에서 마커 선택).
     const qs = new URLSearchParams()
     qs.set('planType', 'extinguisher')
     qs.set('placingExtinguisher', String(item.id))
