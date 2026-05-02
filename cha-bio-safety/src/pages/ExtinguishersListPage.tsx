@@ -43,12 +43,15 @@ export default function ExtinguishersListPage() {
   const hasMarkerContext = !!fromMarker
 
   // ── 필터 상태 ────────────────────────────────────────────────────────
+  // Phase 24: ?fromMarker= 진입 시 default tab='미배치' (배치 가능한 자산 우선),
+  //   floor/zone 필터는 강제 적용하지 않음 (미배치 자산은 ext.floor/cp.floor 모두 NULL).
   const [tab,  setTab]  = useState<MappingTab>(() => {
     const t = searchParams.get('tab')
-    return (t === 'unmapped' || t === 'mapped' || t === 'disposed') ? t : 'all'
+    if (t === 'unmapped' || t === 'mapped' || t === 'disposed') return t
+    return hasMarkerContext ? 'unmapped' : 'all'
   })
-  const [zone,  setZone]  = useState(ctxZone ?? '')
-  const [floor, setFloor] = useState(ctxFloor ?? '')
+  const [zone,  setZone]  = useState(hasMarkerContext ? '' : (ctxZone ?? ''))
+  const [floor, setFloor] = useState(hasMarkerContext ? '' : (ctxFloor ?? ''))
   const [type,  setType]  = useState('')
   const [q,     setQ]     = useState('')
 

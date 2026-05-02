@@ -109,16 +109,34 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data }) 
     return Response.json({ success: false, error: 'floor, plan_type, x_pct, y_pct 필수' }, { status: 400 })
   }
 
+  // Phase 24: extinguisher 자산 마커는 cp_id 자동 생성 — placing 동행 흐름에 fromMarker 가 cp_id 로 전달되어야 함.
+  const EXT_ASSET_MARKER_TYPES = new Set(['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'])
+  let cpId = body.check_point_id ?? null
+  if (!cpId && body.plan_type === 'extinguisher' && body.marker_type && EXT_ASSET_MARKER_TYPES.has(body.marker_type)) {
+    const maxRow = await env.DB.prepare(
+      `SELECT id FROM check_points WHERE id LIKE 'CP-FE-%' ORDER BY id DESC LIMIT 1`
+    ).first<{ id: string }>()
+    const maxSeq = maxRow?.id ? parseInt(maxRow.id.split('-').pop()!, 10) || 0 : 0
+    cpId = `CP-FE-${String(maxSeq + 1).padStart(4, '0')}`
+
+    const zoneEnMap: Record<string, string> = { '연': 'research', '사': 'office', '공': 'common' }
+    const zoneEn = body.zone ? (zoneEnMap[body.zone] ?? body.zone) : null
+    await env.DB.prepare(`
+      INSERT INTO check_points (id, qr_code, floor, zone, location, location_no, category)
+      VALUES (?, ?, ?, ?, ?, ?, '소화기')
+    `).bind(cpId, '', body.floor, zoneEn, body.label ?? null, body.label ?? cpId).run()
+  }
+
   const id = 'FPM-' + nanoid(12)
   await env.DB.prepare(`
     INSERT INTO floor_plan_markers (id, floor, plan_type, marker_type, x_pct, y_pct, label, check_point_id, zone, created_by)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id, body.floor, body.plan_type, body.marker_type ?? null,
-    body.x_pct, body.y_pct, body.label ?? null, body.check_point_id ?? null,
+    body.x_pct, body.y_pct, body.label ?? null, cpId,
     body.zone ?? null,
     (data as any).staffName ?? null
   ).run()
 
-  return Response.json({ success: true, data: { id } }, { status: 201 })
+  return Response.json({ success: true, data: { id, check_point_id: cpId } }, { status: 201 })
 }
