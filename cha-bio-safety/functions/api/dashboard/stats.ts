@@ -201,16 +201,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
          WHERE cp.category=? AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
            AND date(cr.checked_at) BETWEEN ? AND ?`
       ).bind(cat, startDate, endDate).first<{ n: number }>()
-      const autoQ = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points cp
-         WHERE cp.is_active=1 AND cp.category=?
-           AND (cp.default_result IS NOT NULL OR cp.description LIKE '%접근불가%')
-           AND cp.id NOT IN (
-             SELECT checkpoint_id FROM check_records
-             WHERE date(checked_at) BETWEEN ? AND ?
-           )`
-      ).bind(cat, startDate, endDate).first<{ n: number }>()
-      inspDoneN += (recQ?.n ?? 0) + (autoQ?.n ?? 0)
+      inspDoneN += (recQ?.n ?? 0)
     }
     const inspDone = { n: inspDoneN }
 
@@ -367,12 +358,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
             WHERE cp.category=? AND date(cr.checked_at) BETWEEN ? AND ?
               AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
           `).bind(cpCategory, s, e).first<{n:number}>()
-          const a = await env.DB.prepare(
-            `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1
-               AND (cp.default_result IS NOT NULL OR cp.description LIKE '%접근불가%')
-               AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr2 JOIN check_points cp2 ON cr2.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr2.checked_at) BETWEEN ? AND ?)`
-          ).bind(cpCategory, cpCategory, s, e).first<{n:number}>()
-          return (r?.n ?? 0) + (a?.n ?? 0)
+          return r?.n ?? 0
         }
 
         const early_done = await cycleDone(earlyRange)
@@ -413,12 +399,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           -- 260426-f54: 완료 = normal | caution | (bad + resolved)
           AND (cr.result IN ('normal','caution') OR (cr.result='bad' AND cr.status='resolved'))
       `).bind(cpCategory, monthStart, monthEnd).first<{n:number}>()
-      const autoN = await env.DB.prepare(
-        `SELECT COUNT(*) as n FROM check_points cp WHERE cp.category=? AND cp.is_active=1 AND (cp.default_result IS NOT NULL OR cp.description LIKE '%접근불가%') AND cp.id NOT IN (SELECT checkpoint_id FROM check_records cr JOIN check_points cp2 ON cr.checkpoint_id=cp2.id WHERE cp2.category=? AND date(cr.checked_at) BETWEEN ? AND ?)`
-      ).bind(cpCategory, cpCategory, monthStart, monthEnd).first<{n:number}>()
 
       const total = cpTotal
-      const done = (d?.n ?? 0) + (autoN?.n ?? 0)
+      const done = d?.n ?? 0
       const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
       const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
 
