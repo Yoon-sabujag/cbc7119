@@ -277,7 +277,7 @@ function MarkerIcon({
 
 // ── 도면 파일 경로 ──────────────────────────────────────
 function getFloorPlanUrl(planType: PlanType, floor: string) {
-  return `/floorplans/${planType}/${floor}.png?v=14`
+  return `/floorplans/${planType}/${floor}.png?v=15`
 }
 
 // ══════════════════════════════════════════════════════
