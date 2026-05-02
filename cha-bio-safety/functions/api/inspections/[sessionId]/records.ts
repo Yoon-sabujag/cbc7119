@@ -7,6 +7,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, data, pa
   const { sessionId } = params as { sessionId: string }
   const { checkpointId, result, memo, photoKey, guide_light_type, floor_plan_marker_id } = await request.json<{ checkpointId:string; result:string; memo?:string; photoKey?:string; guide_light_type?:string; floor_plan_marker_id?:string }>()
 
+  // [접근불가] 자동 정상처리 memo 는 cron 단독 — 클라이언트 경로 차단 (구 번들 잔존 방어)
+  if (memo === '접근불가 개소 자동 정상처리') {
+    return Response.json({ success:false, error:'접근불가 자동 처리는 서버 cron 으로만 수행됩니다' }, { status:403 })
+  }
+
   try {
     const exists = await env.DB.prepare('SELECT id FROM inspection_sessions WHERE id=? LIMIT 1').bind(sessionId).first()
     if (!exists) return Response.json({ success:false, error:'세션 없음' }, { status:404 })
