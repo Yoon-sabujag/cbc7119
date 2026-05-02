@@ -3246,14 +3246,9 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
         </div>
         {isExtinguisher && (
-          <>
-            <button onClick={() => navigate('/extinguishers')} style={{ height:32, padding:'0 12px', borderRadius:8, background:'var(--acl)', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
-              + 새로 등록
-            </button>
-            <button onClick={() => navigate('/extinguishers')} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
-              리스트
-            </button>
-          </>
+          <button onClick={() => navigate('/extinguishers')} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+            리스트
+          </button>
         )}
       </div>
 
