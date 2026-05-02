@@ -40,7 +40,7 @@ function usePersistedCollapse(key: string, defaultCollapsed = true): [boolean, (
   return [collapsed, setCollapsed]
 }
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../stores/authStore'
 import { authApi, pushApi, staffApi, NotificationPreferences } from '../utils/api'
@@ -147,10 +147,14 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
 // ── 이름 변경 모달 ───────────────────────────────────
 function NameEditModal({ currentName, onClose, onSave }: { currentName: string; onClose: () => void; onSave: (name: string) => void }) {
   const [editName, setEditName] = useState(currentName)
+  const qc = useQueryClient()
 
   const mutation = useMutation({
     mutationFn: () => authApi.updateProfile({ name: editName.trim() }),
-    onSuccess: (data) => { onSave(data.name); onClose() },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['staff-list'] })
+      onSave(data.name); onClose()
+    },
     onError: (e: any) => toast.error(e?.message || '이름 변경에 실패했습니다'),
   })
 
@@ -180,6 +184,7 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
   const { staff, updateStaff } = useAuthStore()
   const { data: staffList = [] } = useStaffList()
   const staffFull = staffList.find(s => s.id === staff?.id)
+  const qc = useQueryClient()
 
   const [name, setName] = useState(staff?.name ?? '')
   const [phone, setPhone] = useState(staffFull?.phone ?? '')
@@ -197,6 +202,8 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
     mutationFn: () => authApi.updateProfile({ phone, email }),
     onSuccess: (data) => {
       updateStaff({ name: data.name })
+      // 5분 staleTime 으로 캐시된 staff-list 를 즉시 무효화 — 폼 재진입 시 최신 phone/email 반영
+      qc.invalidateQueries({ queryKey: ['staff-list'] })
       toast.success('개인정보가 수정되었습니다')
       onDone()
     },
