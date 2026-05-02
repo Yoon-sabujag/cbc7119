@@ -155,6 +155,19 @@ export default function ExtinguishersListPage() {
       const newId = (created as any).extinguisherId as number | undefined
       if (!newId) throw new Error('등록 결과에 ID 없음')
 
+      // 연속 등록 편의: 직전 등록 값을 localStorage에 저장 (다음 모달 prefill)
+      try {
+        localStorage.setItem('cbc24:lastRegisteredExt', JSON.stringify({
+          type: fields.type ?? null,
+          manufacturer: fields.manufacturer ?? null,
+          approval_no: fields.approval_no ?? null,
+          manufactured_at: fields.manufactured_at ?? null,
+          serial_no: fields.serial_no ?? null,
+          prefix_code: fields.prefix_code ?? null,
+          seal_no: fields.seal_no ?? null,
+        }))
+      } catch { /* ignore quota */ }
+
       if (hasMarkerContext && fromMarker) {
         await assignMutation.mutateAsync({ id: newId, cpId: fromMarker })
         toast.success('등록 완료 — 위치 자동 배치됨')
@@ -536,8 +549,8 @@ function ExtinguisherCard({
         </span>
       </div>
 
-      {/* Row 2: 제조번호 · 접두문자 · 증지번호 (상세 펼침에 나머지 필드 노출) */}
-      {(item.serial_no || item.prefix_code || item.seal_no) && (
+      {/* Row 2: 제조번호 · 증지번호 (상세 펼침에 나머지 필드 노출) */}
+      {(item.serial_no || item.seal_no) && (
         <div style={{
           fontSize: 12, fontWeight: 500, color: 'var(--t2)',
           fontFamily: "'JetBrains Mono', monospace",
@@ -545,7 +558,6 @@ function ExtinguisherCard({
         }}>
           {[
             item.serial_no && `제조번호: ${item.serial_no}`,
-            item.prefix_code && `접두문자: ${item.prefix_code}`,
             item.seal_no && `증지번호: ${item.seal_no}`,
           ].filter(Boolean).join(' · ')}
         </div>
@@ -665,13 +677,21 @@ interface RegisterModalProps {
 }
 
 function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit }: RegisterModalProps) {
-  const [type,          setType]          = useState<string>('분말')
-  const [prefixCode,    setPrefixCode]    = useState('')
-  const [sealNo,        setSealNo]        = useState('')
-  const [serialNo,      setSerialNo]      = useState('')
-  const [approvalNo,    setApprovalNo]    = useState('')
-  const [manufacturedAt, setManufacturedAt] = useState('')
-  const [manufacturer,  setManufacturer]  = useState('')
+  // 연속 등록 편의: 직전 등록 값을 localStorage에서 로드해 default value로 사용
+  const lastReg = (() => {
+    try {
+      const raw = localStorage.getItem('cbc24:lastRegisteredExt')
+      return raw ? JSON.parse(raw) as Record<string, string | null> : null
+    } catch { return null }
+  })()
+
+  const [type,          setType]          = useState<string>(lastReg?.type ?? '분말')
+  const [prefixCode,    setPrefixCode]    = useState(lastReg?.prefix_code ?? '')
+  const [sealNo,        setSealNo]        = useState(lastReg?.seal_no ?? '')
+  const [serialNo,      setSerialNo]      = useState(lastReg?.serial_no ?? '')
+  const [approvalNo,    setApprovalNo]    = useState(lastReg?.approval_no ?? '')
+  const [manufacturedAt, setManufacturedAt] = useState(lastReg?.manufactured_at ?? '')
+  const [manufacturer,  setManufacturer]  = useState(lastReg?.manufacturer ?? '')
 
   const handleSubmit = () => {
     if (!type) { toast.error('종류를 선택해 주세요'); return }
@@ -728,7 +748,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         <input style={inputStyle} value={manufacturedAt} onChange={e => setManufacturedAt(e.target.value)} placeholder="예: 2016-11" />
 
         <FieldLabel>제조번호</FieldLabel>
-        <input style={inputStyle} value={serialNo} onChange={e => setSerialNo(e.target.value)} placeholder="예: 104448" />
+        <input style={inputStyle} value={serialNo} onChange={e => setSerialNo(e.target.value)} placeholder="예: 104448" inputMode="numeric" />
 
         <FieldLabel>접두문자</FieldLabel>
         <input style={inputStyle} value={prefixCode} onChange={e => setPrefixCode(e.target.value)} placeholder="예: BBPD" />
