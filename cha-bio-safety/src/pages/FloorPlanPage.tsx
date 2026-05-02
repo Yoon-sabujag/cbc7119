@@ -289,7 +289,7 @@ export default function FloorPlanPage() {
   const isDesktop = useIsDesktop()
   const isAdmin = staff?.role === 'admin'
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [planType, setPlanType] = useState<PlanType>(() => {
     const pt = searchParams.get('planType') as PlanType | null
     return (pt && PLAN_TYPES.find(p => p.key === pt)) ? pt : 'guidelamp'
@@ -304,6 +304,17 @@ export default function FloorPlanPage() {
     const f = searchParams.get('floor')
     return (f && FLOORS.includes(f)) ? f : '8-1F'
   })
+
+  // Phase 24: planType / floor 변경 시 URL 도 sync — back 으로 돌아올 때 state 보존.
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('planType', planType)
+      next.set('floor', floor)
+      return next
+    }, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planType, floor])
   const [selected, setSelected] = useState<FloorPlanMarker | null>(null)
   const [editMode, setEditMode] = useState(false)
   const [addModal, setAddModal] = useState<{ x_pct: number; y_pct: number } | null>(null)

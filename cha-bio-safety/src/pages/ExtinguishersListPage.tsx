@@ -227,7 +227,8 @@ export default function ExtinguishersListPage() {
         }
         toast.success('등록 완료 — 위치 자동 배치됨')
         setRegisterOpen(false)
-        navigate(-1)
+        // 명시적 URL — navigate(-1) 은 도면 URL state 가 비어있을 때 default(유도등 첫층)로 떨어짐.
+        navigate(`/floorplan?planType=extinguisher${ctxFloor ? `&floor=${ctxFloor}` : ''}`)
       } else {
         toast.success('등록 완료')
         setRegisterOpen(false)
@@ -251,7 +252,7 @@ export default function ExtinguishersListPage() {
           await assignMutation.mutateAsync({ id: item.id, cpId: fromMarker })
         }
         toast.success('소화기 배치 완료')
-        navigate(-1)
+        navigate(`/floorplan?planType=extinguisher${ctxFloor ? `&floor=${ctxFloor}` : ''}`)
       } catch (e: any) {
         toast.error(e?.message ?? '배치 실패')
       }
