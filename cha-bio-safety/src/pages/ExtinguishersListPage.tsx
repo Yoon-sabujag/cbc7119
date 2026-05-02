@@ -23,6 +23,18 @@ const EXTINGUISHER_TYPES = ['분말', '분말 20kg', '이산화탄소', '할로�
 // ── helpers ──────────────────────────────────────────────────────────
 const norm = (v: any) => (v === '' || v === undefined || v === null) ? null : String(v)
 
+// cp.zone 은 영문(research/office/common), ext.zone 은 한글(연/사/공/지). 사용자 표기 통일용.
+function zoneLabelKo(z: string | null | undefined): string {
+  if (!z) return ''
+  switch (z) {
+    case 'research': case '연': return '연구동'
+    case 'office':   case '사': return '사무동'
+    case 'common':   case '공': return '공용'
+    case '지':                   return '지하'
+    default:                     return z
+  }
+}
+
 function getMappingState(item: Item): 'unmapped-clean' | 'unmapped-inspected' | 'mapped' | 'disposed' {
   if (item.status === '폐기') return 'disposed'
   if (item.cp_id) return 'mapped'
@@ -466,7 +478,7 @@ export default function ExtinguishersListPage() {
       {confirmUnassign && (
         <ConfirmModal
           title="소화기 분리"
-          body={`「${confirmUnassign.cp_location ?? confirmUnassign.cp_zone ?? '해당 위치'}」 위치에서 분리합니다. 자산은 미배치 상태로 유지됩니다.`}
+          body={`「${confirmUnassign.cp_location ?? (zoneLabelKo(confirmUnassign.cp_zone) || '해당 위치')}」 위치에서 분리합니다. 자산은 미배치 상태로 유지됩니다.`}
           primaryLabel="분리"
           primaryStyle="acl"
           onConfirm={() => unassignMutation.mutate(confirmUnassign.id)}
@@ -505,7 +517,7 @@ export default function ExtinguishersListPage() {
       {swapTarget && (
         <ConfirmModal
           title="위치 스왑"
-          body={`「${swapTarget.to.cp_location ?? swapTarget.to.cp_zone ?? '해당 위치'}」 위치 소화기와 서로 바꿉니다. 양쪽 배치가 동시에 변경됩니다.`}
+          body={`「${swapTarget.to.cp_location ?? (zoneLabelKo(swapTarget.to.cp_zone) || '해당 위치')}」 위치 소화기와 서로 바꿉니다. 양쪽 배치가 동시에 변경됩니다.`}
           primaryLabel="스왑"
           primaryStyle="acl"
           onConfirm={() => swapMutation.mutate({ id: swapTarget.from.id, otherId: swapTarget.to.id })}
@@ -594,7 +606,7 @@ function ExtinguisherCard({
       {/* Row 4: location */}
       <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>
         {item.cp_id
-          ? `📍 ${item.cp_zone ?? ''} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
+          ? `📍 ${zoneLabelKo(item.cp_zone)} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
           : '위치 미지정'}
       </div>
 
