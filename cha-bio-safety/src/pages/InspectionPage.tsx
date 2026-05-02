@@ -2815,6 +2815,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const [extSymptomPick, setExtSymptomPick] = useState<string>('받침 파손')
   const [hydrantSymptomPick, setHydrantSymptomPick] = useState<string>('경종 파손')
   const [shutterSymptomPick, setShutterSymptomPick] = useState<string>('방화셔터 라인 표시 필요')
+  const [damperSymptomPick, setDamperSymptomPick] = useState<string>('기판 조작 불량')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -3215,6 +3216,8 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         finalMemo = hydrantSymptomPick === '직접 입력' ? memo.trim() : hydrantSymptomPick
       } else if (selectedCP?.category === '방화셔터' && result !== 'normal') {
         finalMemo = shutterSymptomPick === '직접 입력' ? memo.trim() : shutterSymptomPick
+      } else if (selectedCP?.category === '전실제연댐퍼' && result !== 'normal') {
+        finalMemo = damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick
       }
       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
       if (pairedBC) {
@@ -3504,6 +3507,23 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               </div>
             )}
 
+            {/* 전실제연댐퍼: 증상 피커 */}
+            {selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && (
+              <div style={{ marginTop:10 }}>
+                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
+                <div style={{ display:'flex', gap:5 }}>
+                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => (
+                    <button key={s} onClick={() => setDamperSymptomPick(s)} style={{
+                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
+                      border: damperSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: damperSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize:11, fontWeight:700, color: damperSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
+                    }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* 특이사항 + 증빙사진 (한 행) */}
             <div style={{ marginTop:10 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
@@ -3512,6 +3532,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     || (isExtinguisher && result !== 'normal' && extSymptomPick === '직접 입력')
                     || (selectedCP?.category === '소화전' && result !== 'normal' && hydrantSymptomPick === '직접 입력')
                     || (selectedCP?.category === '방화셔터' && result !== 'normal' && shutterSymptomPick === '직접 입력')
+                    || (selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && damperSymptomPick === '직접 입력')
                     ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
                 </label>
                 <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>

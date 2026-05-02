@@ -34,7 +34,7 @@ export default function RemediationDetailPage() {
   const queryClient = useQueryClient()
   const [memo, setMemo] = useState('')
   const [actionPick, setActionPick] = useState<
-    '본체 교체' | '예비전원 교체' | '받침 교체' | '소화기 교체' | '경종 교체' | '위치표시등 교체' | '호스걸이 교체' | '방화셔터 라인 표시함' | '연동제어기 기판 교체' | '직접 입력'
+    '본체 교체' | '예비전원 교체' | '받침 교체' | '소화기 교체' | '경종 교체' | '위치표시등 교체' | '호스걸이 교체' | '방화셔터 라인 표시함' | '연동제어기 기판 교체' | '기판 교체' | '모터 교체' | '직접 입력'
   >('본체 교체')
   const [materialName, setMaterialName] = useState('')
   const [materialCount, setMaterialCount] = useState<string>('')
@@ -61,6 +61,7 @@ export default function RemediationDetailPage() {
   const isExtinguisher = record?.category === '소화기'
   const isHydrant = record?.category === '소화전'
   const isFireShutter = record?.category === '방화셔터'
+  const isSmokeDamper = record?.category === '전실제연댐퍼'
 
   // 점검 시 증상에 따라 기본 조치 선택 (유도등)
   useEffect(() => {
@@ -98,6 +99,15 @@ export default function RemediationDetailPage() {
     else if (sym === '연동제어기 기판 작동 불') setActionPick('연동제어기 기판 교체')
     else setActionPick('직접 입력')
   }, [isFireShutter, record?.id])
+
+  // 점검 시 증상에 따라 기본 조치 선택 (전실제연댐퍼)
+  useEffect(() => {
+    if (!isSmokeDamper || !record) return
+    const sym = record.memo ?? ''
+    if (sym === '기판 조작 불량') setActionPick('기판 교체')
+    else if (sym === '모터 기능 이상') setActionPick('모터 교체')
+    else setActionPick('직접 입력')
+  }, [isSmokeDamper, record?.id])
 
   useEffect(() => {
     if (!isGuideLight) return
@@ -162,6 +172,21 @@ export default function RemediationDetailPage() {
     }
   }, [actionPick, isFireShutter])
 
+  // 전실제연댐퍼: 조치 → 자재 자동 채움
+  useEffect(() => {
+    if (!isSmokeDamper) return
+    if (actionPick === '기판 교체') {
+      setMaterialName('제연댐퍼 작동 기판')
+      setMaterialCount('1')
+    } else if (actionPick === '모터 교체') {
+      setMaterialName('제연댐퍼 모터')
+      setMaterialCount('1')
+    } else {
+      setMaterialName('')
+      setMaterialCount('')
+    }
+  }, [actionPick, isSmokeDamper])
+
   const handleDelete = async () => {
     if (!confirm('이 점검 기록을 영구 삭제합니다. 되돌릴 수 없습니다. 진행할까요?')) return
     try {
@@ -202,6 +227,9 @@ export default function RemediationDetailPage() {
       finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
       if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
     } else if (isFireShutter) {
+      finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
+      if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+    } else if (isSmokeDamper) {
       finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
       if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
     } else {
@@ -447,8 +475,22 @@ export default function RemediationDetailPage() {
                 </div>
               )}
 
+              {/* 전실제연댐퍼: 조치 피커 */}
+              {isSmokeDamper && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {(['기판 교체', '모터 교체', '직접 입력'] as const).map(opt => (
+                    <button key={opt} onClick={() => setActionPick(opt)} style={{
+                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
+                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+              )}
+
               {/* 직접 입력 textarea — 피커 카테고리 외 항상 / 피커 카테고리에서 직접입력일 때만 */}
-              {((!isGuideLight && !isExtinguisher && !isHydrant && !isFireShutter) || actionPick === '직접 입력') && (
+              {((!isGuideLight && !isExtinguisher && !isHydrant && !isFireShutter && !isSmokeDamper) || actionPick === '직접 입력') && (
                 <textarea
                   value={memo}
                   onChange={e => setMemo(e.target.value)}
