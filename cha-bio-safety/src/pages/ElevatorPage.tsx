@@ -435,6 +435,11 @@ export default function ElevatorPage() {
       setTab('fault')
       setFromDashboard(true)
     }
+    // 대시보드 '승강기 고장' 카드 → 고장 탭 자동 선택
+    const t = params.get('tab')
+    if (t === 'fault') {
+      setTab('fault')
+    }
   }, [location.search])
 
   const evMap = Object.fromEntries(elevators.map(e => [e.id, e]))

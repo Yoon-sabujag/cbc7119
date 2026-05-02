@@ -3899,8 +3899,10 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
 export default function InspectionPage() {
   const { staff } = useAuthStore()
   const isDesktop = useIsDesktop()
+  const navigate = useNavigate()
   const routeLocation = useLocation()
   const qrCheckpoint = (routeLocation.state as any)?.qrCheckpoint as CheckPoint | undefined
+  const autoSelectCategory = (routeLocation.state as any)?.autoSelectCategory as string | undefined
 
   // 데스크톱 전용 상태
   const [desktopCategoryIdx, setDesktopCategoryIdx] = useState<number | null>(null)
@@ -4056,6 +4058,19 @@ export default function InspectionPage() {
       if (qrCheckpoint) {
         const groupIdx = CATEGORY_GROUPS.findIndex(g => g.categories.includes(qrCheckpoint.category))
         if (groupIdx >= 0) setSelectedGroupIdx(groupIdx)
+      }
+      // 대시보드 '점검 미완료' 카드에서 넘어온 경우 — 오늘 일정의 점검 카테고리 자동 선택
+      if (autoSelectCategory) {
+        // schedule.inspection_category 와 cp.category alias — 백엔드(stats.ts) 와 동일 매핑
+        const SCHED_TO_CP_ALIAS: Record<string, string> = { '방화문': '특별피난계단' }
+        const cat = SCHED_TO_CP_ALIAS[autoSelectCategory] ?? autoSelectCategory
+        const groupIdx = CATEGORY_GROUPS.findIndex(g => g.categories.includes(cat))
+        if (groupIdx >= 0) {
+          if (isDesktop) setDesktopCategoryIdx(groupIdx)
+          else setSelectedGroupIdx(groupIdx)
+        }
+        // state 비워서 모달 닫고 재렌더 시 재오픈 방지
+        navigate(routeLocation.pathname, { replace: true, state: {} })
       }
     }).catch(() => setLoading(false))
   }, []) // eslint-disable-line

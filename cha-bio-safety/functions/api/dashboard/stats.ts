@@ -512,6 +512,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
               status:    r.status,
               completed,
               memo:      r.memo ?? undefined,
+              inspectionCategory: r.inspection_category ?? undefined,
             }
           })
         ),

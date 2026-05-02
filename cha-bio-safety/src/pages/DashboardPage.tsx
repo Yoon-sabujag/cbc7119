@@ -128,15 +128,23 @@ export default function DashboardPage() {
 
   const CAT_COLOR: Record<string,string> = { event:'var(--fire)', repair:'var(--danger)', inspect:'var(--acl)', task:'var(--t3)', elevator:'#f97316', fire:'#ef4444' }
 
+  // '점검 미완료' 카드 → 점검 페이지에서 자동 선택할 카테고리
+  // (오늘 일정 중 첫 inspect 항목의 inspection_category)
+  const todayInspectCategory =
+    schedule.find(s => s.category === 'inspect' && s.inspectionCategory)?.inspectionCategory
+  const goToInspection = () => {
+    navigate('/inspection', todayInspectCategory ? { state: { autoSelectCategory: todayInspectCategory } } : undefined)
+  }
+
   const isDesktop = useIsDesktop()
 
   // ── 데스크톱 레이아웃 ──────────────────────────────────────
   if (isDesktop) {
     const statCards = [
-      { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', path:'/inspection' },
-      { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   path:'/remediation' },
-      { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   path:'/schedule' },
-      { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', path:'/elevator' },
+      { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', onClick: goToInspection },
+      { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   onClick: () => navigate('/remediation?tab=open') },
+      { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   onClick: () => navigate('/schedule') },
+      { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator') },
     ]
     const tools = [
       { icon:'🗺️', label:'도면 점검',    desc:'층별 도면 · 유도등 · 감지기',  bg:'rgba(59,130,246,.1)',  path:'/floorplan' },
@@ -211,7 +219,7 @@ export default function DashboardPage() {
         {/* Row 2: 통계 카드 4열 (전폭) */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
           {statCards.map(c => (
-            <div key={c.label} onClick={() => navigate(c.path)} style={{
+            <div key={c.label} onClick={c.onClick} style={{
               background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16,
               padding:'20px 22px', cursor:'pointer', position:'relative', overflow:'hidden',
               transition:'border-color .15s, transform .15s',
@@ -463,12 +471,12 @@ export default function DashboardPage() {
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
             {[
-              { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', accent:'var(--danger)' },
-              { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   accent:'var(--warn)'   },
-              { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   accent:'var(--info)'   },
-              { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', accent: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)' },
+              { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', accent:'var(--danger)', onClick: goToInspection },
+              { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   accent:'var(--warn)',   onClick: () => navigate('/remediation?tab=open') },
+              { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   accent:'var(--info)',   onClick: () => navigate('/schedule') },
+              { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', accent: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator?tab=fault') },
             ].map(c => (
-              <div key={c.label} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'8px 8px 10px', display:'flex', flexDirection:'column', gap:4, position:'relative', overflow:'hidden', cursor:'pointer' }}>
+              <div key={c.label} onClick={c.onClick} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'8px 8px 10px', display:'flex', flexDirection:'column', gap:4, position:'relative', overflow:'hidden', cursor:'pointer' }}>
                 <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.label}</div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:2, flexWrap:'wrap' }}>
                   <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:600, lineHeight:1, color:c.color }}>{c.val}</span>
