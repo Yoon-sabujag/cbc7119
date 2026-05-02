@@ -3,6 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 // 캐시 초기화 직후 첫 로드 시 --sab 가 0 으로 굳을 수 있어 env() 를 백업으로 함께 사용
 const SAB_SAFE = 'max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))'
+// Android 는 제스처바(~20-24px) 보장을 위해 최소 24px floor 적용
+// (sab 정상 측정 시 sab+12 가 더 크면 그쪽 사용 — iOS 노치 폰에서는 sab=34 라 상시 sab+12 우세)
+const PAD_BOTTOM = IS_ANDROID
+  ? `max(24px, calc(${SAB_SAFE} + 12px))`
+  : SAB_SAFE
 
 type NavKey = 'dashboard' | 'inspection' | 'qr' | 'remediation' | 'elevator'
 
@@ -43,8 +48,8 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
         // App.tsx 콘텐츠 영역의 flex sibling 으로 in-flow 배치 — 캐시 초기화 등으로
         // safe-area 가 늦게 채워지는 케이스에도 main 과 항상 자동 동기화됨.
         flexShrink: 0,
-        height: IS_ANDROID ? `calc(54px + ${SAB_SAFE} + 12px)` : `calc(54px + ${SAB_SAFE})`,
-        paddingBottom: IS_ANDROID ? `calc(${SAB_SAFE} + 12px)` : SAB_SAFE,
+        height: `calc(54px + ${PAD_BOTTOM})`,
+        paddingBottom: PAD_BOTTOM,
         background: 'rgba(22,27,34,0.97)',
         borderTop: '1px solid var(--bd)',
         boxSizing: 'border-box',
