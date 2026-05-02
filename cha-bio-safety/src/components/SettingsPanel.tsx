@@ -233,7 +233,10 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>입사일</div>
-          <input value={staffFull?.appointedAt ?? '-'} readOnly style={READONLY_STYLE} />
+          <input value={(() => {
+            const p = (staff?.id ?? '').slice(0, 8)
+            return /^[0-9]{8}$/.test(p) ? `${p.slice(0,4)}-${p.slice(4,6)}-${p.slice(6,8)}` : (staffFull?.appointedAt ?? '-')
+          })()} readOnly style={READONLY_STYLE} />
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>직책</div>

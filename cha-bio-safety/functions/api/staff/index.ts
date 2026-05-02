@@ -49,22 +49,29 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     if (!body.id?.trim() || !body.name?.trim() || !body.role || !body.title?.trim())
       return Response.json({ success: false, error: '필수 항목을 모두 입력하세요' }, { status: 400 })
 
+    // 사번 = YYYYMMDD + 시퀀스. 입사일은 사번 앞 8자리에서 자동 도출 (body.appointedAt 무시)
+    const trimmedId = body.id.trim()
+    const idPrefix = trimmedId.slice(0, 8)
+    const appointedAt = /^[0-9]{8}$/.test(idPrefix)
+      ? `${idPrefix.slice(0,4)}-${idPrefix.slice(4,6)}-${idPrefix.slice(6,8)}`
+      : null
+
     // 기본 비밀번호: 사번 뒷 4자리 (plain: prefix)
-    const passwordHash = 'plain:' + body.id.slice(-4)
+    const passwordHash = 'plain:' + trimmedId.slice(-4)
     const now = nowKstSql()
 
     await env.DB.prepare(
       `INSERT INTO staff (id, name, role, title, password_hash, phone, email, appointed_at, active, shift_offset, shift_fixed, created_at, updated_at)
        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10, ?11, ?11)`
     ).bind(
-      body.id.trim(),
+      trimmedId,
       body.name.trim(),
       body.role,
       body.title.trim(),
       passwordHash,
       body.phone ?? null,
       body.email ?? null,
-      body.appointedAt ?? null,
+      appointedAt,
       body.shiftOffset !== undefined ? body.shiftOffset : null,
       body.shiftFixed ?? null,
       now,
@@ -72,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const created = await env.DB.prepare(
       `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, shift_offset, shift_fixed, created_at FROM staff WHERE id = ?1`
-    ).bind(body.id.trim()).first<Record<string, unknown>>()
+    ).bind(trimmedId).first<Record<string, unknown>>()
 
     return Response.json({
       success: true,

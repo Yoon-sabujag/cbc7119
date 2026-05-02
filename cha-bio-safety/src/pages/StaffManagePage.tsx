@@ -221,13 +221,16 @@ function StaffModalContent({
           <input style={INPUT_STYLE} value={form.email} onChange={setField('email')} placeholder="email@example.com" type="email" />
         </div>
         <div>
-          <label style={LABEL_STYLE}>선임일자</label>
-          <input style={INPUT_STYLE} value={form.appointedAt} onChange={e => {
-            const v = e.target.value.replace(/[^0-9]/g, '')
-            if (v.length <= 4) setForm(f => ({ ...f, appointedAt: v }))
-            else if (v.length <= 6) setForm(f => ({ ...f, appointedAt: v.slice(0,4) + '-' + v.slice(4) }))
-            else setForm(f => ({ ...f, appointedAt: v.slice(0,4) + '-' + v.slice(4,6) + '-' + v.slice(6,8) }))
-          }} placeholder="2024-01-15" inputMode="numeric" maxLength={10} />
+          <label style={LABEL_STYLE}>입사일 <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--t3)' }}>(사번 앞 8자리에서 자동)</span></label>
+          <input
+            style={{ ...INPUT_STYLE, opacity: 0.5, cursor: 'not-allowed' }}
+            value={(() => {
+              const p = (form.id ?? '').slice(0, 8)
+              return /^[0-9]{8}$/.test(p) ? `${p.slice(0,4)}-${p.slice(4,6)}-${p.slice(6,8)}` : ''
+            })()}
+            placeholder="사번 입력 시 자동 채워짐"
+            readOnly
+          />
         </div>
         <div>
           <label style={LABEL_STYLE}>직책</label>

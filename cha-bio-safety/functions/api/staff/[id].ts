@@ -48,13 +48,19 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     const id = params.id as string
     const body = await request.json<{
       name?: string; role?: string; title?: string;
-      phone?: string; email?: string; appointedAt?: string; active?: number;
+      phone?: string; email?: string; active?: number;
       shiftOffset?: number | null; shiftFixed?: string | null;
     }>()
 
     const existing = await env.DB.prepare('SELECT id FROM staff WHERE id = ?1').bind(id).first()
     if (!existing)
       return Response.json({ success: false, error: '직원을 찾을 수 없습니다' }, { status: 404 })
+
+    // 사번 = YYYYMMDD + 시퀀스. 입사일은 사번 앞 8자리에서 자동 도출 (사번 불변 → 항상 같은 값)
+    const idPrefix = id.slice(0, 8)
+    const appointedAt = /^[0-9]{8}$/.test(idPrefix)
+      ? `${idPrefix.slice(0,4)}-${idPrefix.slice(4,6)}-${idPrefix.slice(6,8)}`
+      : null
 
     const now = nowKstSql()
 
@@ -77,7 +83,7 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       body.title  ?? null,
       body.phone  !== undefined ? body.phone : null,
       body.email  !== undefined ? body.email : null,
-      body.appointedAt !== undefined ? body.appointedAt : null,
+      appointedAt,
       body.active !== undefined ? body.active : null,
       now,
       id,
