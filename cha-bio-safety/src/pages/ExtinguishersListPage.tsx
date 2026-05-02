@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { extinguisherApi, ExtinguisherDetail, ExtinguisherListResponse } from '../utils/api'
+import { extinguisherApi, floorPlanMarkerApi, ExtinguisherDetail, ExtinguisherListResponse } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE } from '../utils/extinguisher'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
@@ -54,6 +55,18 @@ export default function ExtinguishersListPage() {
   const [floor, setFloor] = useState(hasMarkerContext ? '' : (ctxFloor ?? ''))
   const [type,  setType]  = useState('')
   const [q,     setQ]     = useState('')
+
+  // ── 동행 진입 시 필터 자동 리셋 (이미 페이지에 머물러 있던 경우 useState 초기값으로는 안 잡힘) ──
+  useEffect(() => {
+    if (hasMarkerContext) {
+      setTab('unmapped')
+      setZone('')
+      setFloor('')
+      setType('')
+      setQ('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromMarker])
 
   // ── 모달 상태 ────────────────────────────────────────────────────────
   const [registerOpen,    setRegisterOpen]    = useState(false)
@@ -177,7 +190,14 @@ export default function ExtinguishersListPage() {
       } catch { /* ignore quota */ }
 
       if (hasMarkerContext && fromMarker) {
-        await assignMutation.mutateAsync({ id: newId, cpId: fromMarker })
+        // Phase 24: fromMarker 가 FPM-* 이면 marker 기반 배치 (cp 자동 생성), 그 외(CP-FE-*)는 기존 assign.
+        if (fromMarker.startsWith('FPM-')) {
+          await floorPlanMarkerApi.placeAsset(fromMarker, newId)
+          qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+          qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
+        } else {
+          await assignMutation.mutateAsync({ id: newId, cpId: fromMarker })
+        }
         toast.success('등록 완료 — 위치 자동 배치됨')
         setRegisterOpen(false)
         navigate(-1)

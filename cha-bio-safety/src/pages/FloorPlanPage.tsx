@@ -1522,12 +1522,13 @@ export default function FloorPlanPage() {
                   </>
                 )
               }
-              // 미배치 마커 — 소화기 배치 버튼
+              // 미배치 마커 — 소화기 배치 버튼. fromMarker 는 marker_id (FPM-) 또는 cp_id (CP-FE-) 둘 다 지원.
               return (
                 <button
                   onClick={() => {
                     setEditMarker(false)
-                    navigate(`/extinguishers?fromMarker=${selected.check_point_id ?? ''}&zone=${(selected as any).zone ?? ''}&floor=${selected.floor ?? floor}`)
+                    const ref = selected.check_point_id || selected.id
+                    navigate(`/extinguishers?fromMarker=${ref}&zone=${(selected as any).zone ?? ''}&floor=${selected.floor ?? floor}`)
                   }}
                   style={{ width: '100%', height: 42, borderRadius: 10, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 14 }}
                 >소화기 배치</button>
@@ -1961,7 +1962,8 @@ export default function FloorPlanPage() {
                 onClick={() => {
                   const m = emptyMarkerModal
                   setEmptyMarkerModal(null)
-                  navigate(`/extinguishers?fromMarker=${m.check_point_id ?? ''}&zone=${(m as any).zone ?? ''}&floor=${m.floor ?? floor}`)
+                  const ref = m.check_point_id || m.id
+                  navigate(`/extinguishers?fromMarker=${ref}&zone=${(m as any).zone ?? ''}&floor=${m.floor ?? floor}`)
                 }}
                 style={{ flex:1, height:42, borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
               >소화기 배치하기</button>
@@ -1982,14 +1984,23 @@ export default function FloorPlanPage() {
               <button onClick={() => setPlacingConfirm(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
               <button
                 disabled={assignMutation.isPending}
-                onClick={() => {
-                  const cpId = placingConfirm.check_point_id
-                  if (!cpId || !placingExtId) { toast.error('개소 정보가 없습니다'); setPlacingConfirm(null); return }
+                onClick={async () => {
+                  const m = placingConfirm
+                  if (!placingExtId) { toast.error('소화기 ID가 없습니다'); setPlacingConfirm(null); return }
                   const extIdNum = parseInt(placingExtId, 10)
                   if (isNaN(extIdNum)) { toast.error('소화기 ID가 올바르지 않습니다'); setPlacingConfirm(null); return }
-                  assignMutation.mutate({ extId: extIdNum, cpId }, {
-                    onSuccess: () => { setPlacingConfirm(null); navigate(-1) }
-                  })
+                  // Phase 24: cp_id 가 있으면 기존 assign, 없으면 marker 기반 placeAsset (cp 자동 생성).
+                  try {
+                    if (m.check_point_id) {
+                      await assignMutation.mutateAsync({ extId: extIdNum, cpId: m.check_point_id })
+                    } else {
+                      await floorPlanMarkerApi.placeAsset(m.id, extIdNum)
+                      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+                      qc.invalidateQueries({ queryKey: ['floorplan-markers', floor, planType], refetchType: 'all' })
+                      toast.success('소화기 배치 완료')
+                    }
+                    setPlacingConfirm(null); navigate(-1)
+                  } catch (e: any) { toast.error(e?.message ?? '배치 실패') }
                 }}
                 style={{ flex:1, height:42, borderRadius:10, background:assignMutation.isPending ? 'var(--bd2)' : 'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:assignMutation.isPending ? 'default' : 'pointer' }}
               >{assignMutation.isPending ? '처리 중...' : '배치'}</button>

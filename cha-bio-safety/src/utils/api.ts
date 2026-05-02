@@ -199,6 +199,9 @@ export const floorPlanMarkerApi = {
     api.put<void>(`/floorplan-markers/${id}`, body),
   delete: (id: string) =>
     api.delete<void>(`/floorplan-markers/${id}`),
+  // Phase 24: 빈 마커에 자산 배치 — cp 자동 생성 + ext 매핑 + marker update 를 atomic 으로
+  placeAsset: (markerId: string, extinguisherId: number) =>
+    api.post<{ check_point_id: string }>(`/floorplan-markers/${markerId}/place-asset`, { extinguisher_id: extinguisherId }),
 }
 
 export interface ExtinguisherDetail {
