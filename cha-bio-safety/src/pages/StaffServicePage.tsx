@@ -928,6 +928,10 @@ export default function StaffServicePage() {
     const menu = menuData
 
     if (!menu) return null
+    // 식당은 주말·공휴일 운영 안 함 — PDF 에 그 날짜 메뉴가 들어있어도 표시 차단
+    const dow = now.getDay()
+    if (dow === 0 || dow === 6) return null
+    if (holidayMap[todayStr]) return null
     const isLunch = hm >= 480 && hm < 780
     const isDinner = hm >= 780 && hm < 1110
     if (!isLunch && !isDinner) return null
