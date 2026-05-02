@@ -718,8 +718,9 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
     setSaving(true)
     try {
       const hasRange = endDate && endDate > date
-      if (hasRange) {
-        // 멀티데이: 작업일별로 개별 일정 생성, 주말·공휴일은 자동 제외
+      // inspect 만 영업일별 개별 일정으로 분리 (매일 점검 기록 단위라 day-level 이 맞음)
+      // 소방/승강기/행사/업무는 한 회차가 N일에 걸치는 단일 이벤트 → end_date 로 단일 항목 저장
+      if (hasRange && cat === 'inspect') {
         if (workingDays.length === 0) {
           toast.error('선택한 범위에 영업일이 없습니다')
           setSaving(false)
@@ -743,6 +744,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
           assigneeId:         staffId,
           inspectionCategory: finalInsCat,
           memo:               memo || undefined,
+          ...(hasRange ? { end_date: endDate } : {}),
         })
       }
       onSaved()
@@ -927,13 +929,19 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           {/* N일 미리보기 */}
           {rangeDays > 1 && (
-            <div style={{ fontSize:12, color: workingDays.length === 0 ? 'var(--danger)' : 'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
-              {workingDays.length === 0
-                ? '선택 범위에 영업일이 없습니다'
-                : skippedCount > 0
-                  ? `${workingDays.length}일 일정이 추가됩니다 (주말·공휴일 ${skippedCount}일 제외)`
-                  : `${workingDays.length}일 일정이 추가됩니다`}
-            </div>
+            cat === 'inspect' ? (
+              <div style={{ fontSize:12, color: workingDays.length === 0 ? 'var(--danger)' : 'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+                {workingDays.length === 0
+                  ? '선택 범위에 영업일이 없습니다'
+                  : skippedCount > 0
+                    ? `${workingDays.length}일 일정이 추가됩니다 (주말·공휴일 ${skippedCount}일 제외)`
+                    : `${workingDays.length}일 일정이 추가됩니다`}
+              </div>
+            ) : (
+              <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+                {rangeDays}일 범위로 1건 추가됩니다
+              </div>
+            )
           )}
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
