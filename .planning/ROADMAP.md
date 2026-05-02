@@ -285,9 +285,9 @@ ARCHIVED_PHASES_END -->
 ### Phase 24: 소화기 자산-위치 분리 (위치-자산 데이터 모델 재설계)
 
 **Goal:** 도면 마커는 영구 위치, 소화기는 위치에 배치/교체되는 자산으로 분리. 소화기 교체·이동·폐기 추적 가능하게 한다 (5월 법정점검 준비).
-**Requirements**: EXT-04, EXT-05 (TBD)
+**Requirements**: EXT-04, EXT-05 (Complete)
 **Depends on:** Phase 22
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans complete — shipped 2026-05-02 v0.2.1
 
 **Success Criteria:**
 1. 소화기 리스트 페이지에서 신규 등록·수정(≤3필드)·삭제·폐기·분리 가능
@@ -304,7 +304,7 @@ Plans:
 - [x] 24-03-PLAN.md — ExtinguishersListPage + 메뉴/라우트 wiring + sketches (filter bar + 카드 4상태 + 5종 모달)
 - [x] 24-04-PLAN.md — FloorPlanPage 마커 모달 단순화 + ❓ 빈 마커 + 범례 미배치 + URL state machine + 점검 카드 sub-action
 - [x] 24-05-PLAN.md — InspectionPage + 새로 등록 버튼 + extDetail 카드 sub-action (정보 수정 / 분리)
-- [ ] 24-06-PLAN.md — Production deploy (--branch=production) + version bump + 7 success criteria UAT
+- [x] 24-06-PLAN.md — Production deploy (--branch=production) + version bump + 7 success criteria UAT
 
 ---
 *Roadmap created: 2026-03-28*

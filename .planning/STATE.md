@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 문서 관리
-status: executing
+status: milestone_complete
 stopped_at: Phase 24 UI-SPEC approved
-last_updated: "2026-04-29T19:30:00.000Z"
-last_activity: 2026-04-29 -- debug cron-push-not-firing resolved (root cause: 사용자 PWA 미설치, 서버 정상)
+last_updated: "2026-05-02T13:34:00.000Z"
+last_activity: 2026-05-02 -- Phase 24 shipped (extinguisher asset-location split, v0.2.1)
 progress:
   total_phases: 12
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 31
   completed_plans: 25
-  percent: 81
+  percent: 92
 ---
 
 # Project State: CHA Bio Complex Fire Safety System
@@ -66,10 +66,10 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 
 ## Current Position
 
-Phase: 24 (extinguisher-asset-location) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 24
-Last activity: 2026-04-29 -- Phase 24 execution started
+Phase: 24
+Plan: Not started
+Status: Milestone complete
+Last activity: 2026-05-02
 
 Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 
@@ -89,6 +89,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 | 21. Documents Page UI | — | — | — |
 | 22. 업무수행기록표 Form + Excel | — | — | — |
 | 22 | 2 | - | - |
+| 24 | 6 | - | - |
 
 *Updated after each plan completion*
 | Phase 20 P01 | 4 | 2 tasks | 2 files |
@@ -103,6 +104,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4, 0/3 phases)
 ### Roadmap Evolution
 
 - Phase 24 added (2026-04-30): 소화기 자산-위치 분리 — 5월 법정점검 준비. 운영 관찰 모드 예외 진행. CONTEXT.md 작성됨.
+- Phase 24 shipped (2026-05-02): v0.2.1 production 배포 + 7개 success criteria UAT 모두 PASS. extinguishers.status + check_records.extinguisher_id 추가, /extinguishers 페이지 신설, 빈 ❓ 마커 + 범례 미배치 항목, 양방향 마커 동행 동선. UAT 중 발견된 12건 fix 모두 즉시 적용 완료(잔존 quick task 없음).
 
 ### Decisions
 
@@ -129,6 +131,13 @@ v1.4 roadmap decisions:
 - [Phase 20]: No admin gate on list/download per D-19 — all authenticated staff can read documents
 - [Phase 20]: Migration 0046 applied to production D1 before deploy — documents table live at cha-bio-db
 - [Phase 21]: migrateLegacyMenuConfig forward-merges missing DEFAULT_SIDE_MENU items (Phase 18 bug fix)
+- [Phase 24]: 자산-위치 분리 — 마커는 영구 위치, ext 는 status('active'/'폐기') + check_point_id 가변 자산. ≤3 필드 변경 룰 백엔드 enforce. 빈 마커 cp 자동 생성 안 함(자산 배치 시점에만 cp 생성, 점검 대상 노출 가드).
+- [Phase 24]: floorplan-markers DELETE cascade 정책 변경 — ext 자산은 unassign 만, 자산 행 보존.
+- [Phase 24]: marker_id 기반 placing endpoint(`POST /api/floorplan-markers/:id/place-asset`) — atomic batch (cp 생성 + ext 매핑 + marker update). cp_id 없는 빈 마커도 자산 배치 가능.
+- [Phase 24]: 마커 시각이 자산 type 기반 분기(분말/분말 20kg/할로겐/K급, 강화액→K급, 이산화탄소→할로겐). marker_type 자체는 fire_extinguisher default 로 두고 자산이 결정.
+- [Phase 24]: cp.zone CHECK 제약 제거 + 'common' → 'basement' 정리(0081 마이그레이션) — 의미 부합. 향후 zone 추가 시 마이그레이션 불필요.
+- [Phase 24]: extinguishers.check_point_id NOT NULL 제거(0080 마이그레이션) — skip_marker 등록 + dispose/unassign NULL set 가능.
+- [Phase 24]: floor/zone 필터 COALESCE(cp, ext) — 매핑된 자산이 ext.floor=NULL 이어도 cp.floor 기준 매치.
 
 ### Pending Todos
 
