@@ -50,7 +50,9 @@
   }
 
   body {
-    height: 100dvh;
+    /* svh = 가장 작은 viewport (URL바 보이는 상태 기준). 항상 visible 영역 안.
+       Android Chrome 에서 cache clear 직후 dvh 가 lvh 값으로 캐시되는 케이스 회피. */
+    height: 100svh;
     overflow: visible;
     margin: 0;
     padding: 0;
@@ -60,7 +62,7 @@
     background: var(--bg);
     color: var(--t1);
 
-    /* iOS PWA standalone: dvh가 불안정하므로 vh 사용 */
+    /* iOS PWA standalone: dvh/svh 가 불안정하므로 vh 사용 */
     @media all and (display-mode: standalone) {
       height: 100vh;
     }

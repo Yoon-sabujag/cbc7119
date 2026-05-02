@@ -168,7 +168,10 @@ function Layout() {
   return (
     <div style={{
       display: 'flex',
-      height: '100dvh',
+      // 100svh = smallest viewport height (URL바 보일 때 기준). 항상 visible viewport 안.
+      // 100dvh 는 Android Chrome 캐시 초기화 직후 일시적으로 lvh 값으로 캐시되어
+      // 페이지가 viewport 보다 커지는 케이스가 있어 svh 로 고정.
+      height: '100svh',
       overflow: 'hidden',
     }}>
       {/* 데스크톱: 280px 고정 사이드바 */}
