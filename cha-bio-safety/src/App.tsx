@@ -66,6 +66,9 @@ const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift
 // 데스크톱: 로그인/스플래시만 nav 숨김 — 나머지는 모두 사이드바 표시
 const DESKTOP_NO_NAV_PATHS = ['/', '/login']
 
+// 데스크톱: 페이지가 자체 풍부한 헤더(액션 버튼 등)를 가져 App.tsx 의 제목 헤더가 중복인 경로
+const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift']
+
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',
   '/inspection': '일반 점검',
@@ -208,7 +211,7 @@ function Layout() {
         )}
 
         {/* 데스크톱: 간소화된 헤더 — 사이드바 로고와 높이 일치 */}
-        {isDesktop && showNav && (
+        {isDesktop && showNav && !DESKTOP_HEADER_HIDE_PATHS.includes(location.pathname) && (
           <header data-no-print style={{
             height: 54,
             display: 'flex',
