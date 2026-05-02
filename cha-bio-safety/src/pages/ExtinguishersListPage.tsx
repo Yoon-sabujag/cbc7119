@@ -341,7 +341,7 @@ export default function ExtinguishersListPage() {
           fontSize: 11, color: 'var(--info)',
           flexShrink: 0, gap: 8,
         }}>
-          <span>ⓘ &nbsp;{ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}</span>
+          <span>ⓘ &nbsp;{ctxZone ? `「${zoneLabelKo(ctxZone)} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}</span>
           <button
             onClick={dismissMarkerContext}
             style={{
@@ -873,7 +873,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         {/* 마커 동행 배너 */}
         {hasMarkerContext && (
           <div style={{ ...infoBannerStyle, marginBottom: 14 }}>
-            {ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}
+            {ctxZone ? `「${zoneLabelKo(ctxZone)} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}
           </div>
         )}
 
