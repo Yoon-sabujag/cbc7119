@@ -327,6 +327,9 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
 
   const sheets: { name: string; fn: string }[] = []
 
+  // 시트명 중복 검출용 (Excel 은 같은 이름 시트 2개 이상이면 "복구됨" 처리)
+  const usedNames = new Set<string>()
+
   checkRaw.forEach((loc: any, idx: number) => {
     const fn        = `ck${idx + 1}.xml`
     // 개소번호/개소명 형식 (작성법 준수)
@@ -335,9 +338,21 @@ export async function generateCheckExcel(year: number, checkRaw: any[], category
     const locId = isGas
       ? `${(loc.location_no ?? '').replace(/-\d+$/, '')} ${loc.location ?? ''}`
       : (loc.location_no ?? loc.location ?? '')
-    // 시트명: Excel 금지문자 제거
-    const rawName = isGas ? locId : (loc.location ?? `개소${idx + 1}`)
-    const sheetName = rawName.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31)
+    // 시트명: location_no + location 조합으로 유일성 확보 (소화전/비상콘센트 같이
+    // 층마다 동일 location 텍스트가 반복되는 카테고리에서 시트명 중복 방지).
+    // 청정소화약제는 locId 자체가 "7F 가스소화약제실" 형태로 이미 유일.
+    const rawName = isGas
+      ? locId
+      : ((loc.location_no && loc.location) ? `${loc.location_no} ${loc.location}` : (loc.location_no || loc.location || `개소${idx + 1}`))
+    let sheetName = rawName.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31)
+    // 안전망: 정제 후에도 충돌하면 suffix 부여
+    if (usedNames.has(sheetName)) {
+      let suffix = 2
+      const base = sheetName.slice(0, 28) // (N) 자리 확보
+      while (usedNames.has(`${base} (${suffix})`)) suffix++
+      sheetName = `${base} (${suffix})`
+    }
+    usedNames.add(sheetName)
 
     let xml = templateXml
     xml = xml.replace(/(<pageSetup\b[^>]*?) r:id="[^"]*"/g, '$1')
