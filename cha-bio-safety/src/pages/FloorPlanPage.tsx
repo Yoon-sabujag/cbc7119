@@ -77,14 +77,15 @@ const EXTINGUISHER_ADD_OPTIONS: { key: ExtinguisherType; label: [string, string]
 const EXT_ASSET_MARKER_TYPES = new Set<string>(['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'])
 
 // 자산 type → 마커 시각용 marker_type 매핑. 매핑된 자산이 있으면 그 type 으로 마커 모양 결정.
+// 사용자 결정: 강화액 = K급 모양, 이산화탄소 = 할로겐 모양 (기존 마커 SVG 재사용).
 function extTypeToMarkerType(extType: string | null | undefined): string {
   switch (extType) {
     case '분말 20kg': return 'ext_powder20'
-    case '할로겐':    return 'ext_halogen'
-    case 'K급':       return 'ext_kitchen_k'
+    case '할로겐':
+    case '이산화탄소': return 'ext_halogen'
+    case 'K급':
+    case '강화액':    return 'ext_kitchen_k'
     case '분말':
-    case '강화액':
-    case '이산화탄소':
     default:          return 'fire_extinguisher'
   }
 }
