@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -290,7 +290,44 @@ function Layout() {
 
         {/* 모바일 전용: BottomNav */}
         {!isDesktop && showNav && <BottomNav unresolvedCount={unresolvedCount} />}
+
+        {/* 임시 디버그 오버레이 — 안드로이드 모바일 한정. ?nodebug 로 끔 */}
+        {!isDesktop && showNav && !location.search.includes('nodebug') && <SafeAreaDebug />}
       </div>
+    </div>
+  )
+}
+
+function SafeAreaDebug() {
+  const [info, setInfo] = useState({ sab: '?', sat: '?', navH: '?', mainPB: '?', vh: '?', dvh: '?' })
+  useEffect(() => {
+    const tick = () => {
+      const root = document.documentElement
+      const nav = document.querySelector('nav') as HTMLElement | null
+      const main = document.querySelector('main') as HTMLElement | null
+      const cs = window.getComputedStyle(root)
+      setInfo({
+        sab: cs.getPropertyValue('--sab').trim() || '0',
+        sat: cs.getPropertyValue('--sat').trim() || '0',
+        navH: nav ? `${nav.getBoundingClientRect().height.toFixed(1)}` : '?',
+        mainPB: main ? window.getComputedStyle(main).paddingBottom : '?',
+        vh: `${window.innerHeight}`,
+        dvh: `${document.documentElement.clientHeight}`,
+      })
+    }
+    tick()
+    const id = setInterval(tick, 500)
+    window.addEventListener('resize', tick)
+    return () => { clearInterval(id); window.removeEventListener('resize', tick) }
+  }, [])
+  return (
+    <div style={{
+      position: 'fixed', top: 'calc(var(--sat, 0px) + 60px)', left: 4, zIndex: 9999,
+      background: 'rgba(0,0,0,0.85)', color: '#0f0', padding: '6px 8px', borderRadius: 6,
+      fontFamily: 'JetBrains Mono, monospace', fontSize: 10, lineHeight: 1.4, pointerEvents: 'none',
+      maxWidth: '60vw', whiteSpace: 'pre',
+    }}>
+      sab={info.sab}{'\n'}sat={info.sat}{'\n'}navH={info.navH}{'\n'}mainPB={info.mainPB}{'\n'}vh={info.vh}/dvh={info.dvh}
     </div>
   )
 }
