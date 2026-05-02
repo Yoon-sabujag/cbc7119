@@ -33,7 +33,9 @@ export default function RemediationDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [memo, setMemo] = useState('')
-  const [actionPick, setActionPick] = useState<'본체 교체' | '예비전원 교체' | '직접 입력'>('본체 교체')
+  const [actionPick, setActionPick] = useState<
+    '본체 교체' | '예비전원 교체' | '받침 교체' | '소화기 교체' | '직접 입력'
+  >('본체 교체')
   const [materialName, setMaterialName] = useState('')
   const [materialCount, setMaterialCount] = useState<string>('')
   const [submitting, setSubmitting] = useState(false)
@@ -56,8 +58,9 @@ export default function RemediationDetailPage() {
   })
 
   const isGuideLight = record?.category === '유도등'
+  const isExtinguisher = record?.category === '소화기'
 
-  // 점검 시 증상에 따라 기본 조치 선택
+  // 점검 시 증상에 따라 기본 조치 선택 (유도등)
   useEffect(() => {
     if (!isGuideLight || !record) return
     const sym = record.memo ?? ''
@@ -65,6 +68,15 @@ export default function RemediationDetailPage() {
     else if (sym === '예비전원 이상') setActionPick('예비전원 교체')
     else setActionPick('직접 입력')
   }, [isGuideLight, record?.id])
+
+  // 점검 시 증상에 따라 기본 조치 선택 (소화기)
+  useEffect(() => {
+    if (!isExtinguisher || !record) return
+    const sym = record.memo ?? ''
+    if (sym === '받침 파손') setActionPick('받침 교체')
+    else if (sym === '연한 만료') setActionPick('소화기 교체')
+    else setActionPick('직접 입력')
+  }, [isExtinguisher, record?.id])
 
   useEffect(() => {
     if (!isGuideLight) return
@@ -79,6 +91,22 @@ export default function RemediationDetailPage() {
       setMaterialCount('')
     }
   }, [actionPick, isGuideLight, record?.guideLightType])
+
+  // 소화기: 조치 → 자재 자동 채움
+  useEffect(() => {
+    if (!isExtinguisher) return
+    if (actionPick === '받침 교체') {
+      setMaterialName('소화기 받침')
+      setMaterialCount('1')
+    } else if (actionPick === '소화기 교체') {
+      const t = (record?.extinguisherType ?? '').trim()
+      setMaterialName(t ? `${t} 소화기` : '소화기')
+      setMaterialCount('1')
+    } else {
+      setMaterialName('')
+      setMaterialCount('')
+    }
+  }, [actionPick, isExtinguisher, record?.extinguisherType])
 
   const handleDelete = async () => {
     if (!confirm('이 점검 기록을 영구 삭제합니다. 되돌릴 수 없습니다. 진행할까요?')) return
@@ -108,9 +136,12 @@ export default function RemediationDetailPage() {
   }
 
   const handleResolve = async () => {
-    // 유도등이면 피커, 아니면 직접 입력 메모 사용
+    // 유도등/소화기는 피커, 그 외 카테고리는 직접 입력 메모 사용
     let finalMemo = ''
     if (isGuideLight) {
+      finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
+      if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
+    } else if (isExtinguisher) {
       finalMemo = actionPick === '직접 입력' ? memo.trim() : actionPick
       if (!finalMemo) { toast.error('조치 내용을 입력하세요'); return }
     } else {
@@ -314,8 +345,22 @@ export default function RemediationDetailPage() {
                 </div>
               )}
 
-              {/* 직접 입력 textarea — 비유도등 항상 / 유도등에서 직접입력일 때만 */}
-              {(!isGuideLight || actionPick === '직접 입력') && (
+              {/* 소화기: 조치 피커 */}
+              {isExtinguisher && (
+                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                  {(['받침 교체', '소화기 교체', '직접 입력'] as const).map(opt => (
+                    <button key={opt} onClick={() => setActionPick(opt)} style={{
+                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
+                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
+                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
+                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
+                    }}>{opt}</button>
+                  ))}
+                </div>
+              )}
+
+              {/* 직접 입력 textarea — 유도등/소화기 외 항상 / 유도등·소화기에서 직접입력일 때만 */}
+              {((!isGuideLight && !isExtinguisher) || actionPick === '직접 입력') && (
                 <textarea
                   value={memo}
                   onChange={e => setMemo(e.target.value)}
