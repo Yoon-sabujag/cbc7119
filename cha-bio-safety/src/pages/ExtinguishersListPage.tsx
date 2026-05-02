@@ -232,7 +232,7 @@ export default function ExtinguishersListPage() {
           fontSize: 11, color: 'var(--info)',
           flexShrink: 0, gap: 8,
         }}>
-          <span>ⓘ &nbsp;{ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 매핑됩니다.` : '해당 위치에 자동 매핑됩니다.'}</span>
+          <span>ⓘ &nbsp;{ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}</span>
           <button
             onClick={dismissMarkerContext}
             style={{
@@ -252,8 +252,8 @@ export default function ExtinguishersListPage() {
         <div style={{ display: 'flex' }}>
           {([
             { key: 'all',      label: '전체' },
+            { key: 'mapped',   label: '배치' },
             { key: 'unmapped', label: '미배치' },
-            { key: 'mapped',   label: '매핑' },
             { key: 'disposed', label: '폐기' },
           ] as const).map(t => (
             <button
@@ -438,7 +438,7 @@ export default function ExtinguishersListPage() {
       {confirmDispose && (
         <ConfirmModal
           title="소화기 폐기"
-          body="이 자산은 폐기 처리되어 더 이상 매핑할 수 없습니다. 점검 이력은 보존됩니다."
+          body="이 자산은 폐기 처리되어 더 이상 배치할 수 없습니다. 점검 이력은 보존됩니다."
           primaryLabel="폐기"
           primaryStyle="danger"
           onConfirm={() => disposeMutation.mutate(confirmDispose.id)}
@@ -464,7 +464,7 @@ export default function ExtinguishersListPage() {
       {swapTarget && (
         <ConfirmModal
           title="위치 스왑"
-          body={`「${swapTarget.to.cp_location ?? swapTarget.to.cp_zone ?? '해당 위치'}」 위치 소화기와 서로 바꿉니다. 양쪽 매핑이 동시에 변경됩니다.`}
+          body={`「${swapTarget.to.cp_location ?? swapTarget.to.cp_zone ?? '해당 위치'}」 위치 소화기와 서로 바꿉니다. 양쪽 배치가 동시에 변경됩니다.`}
           primaryLabel="스왑"
           primaryStyle="acl"
           onConfirm={() => swapMutation.mutate({ id: swapTarget.from.id, otherId: swapTarget.to.id })}
@@ -501,7 +501,7 @@ function ExtinguisherCard({
   if (state === 'disposed') {
     badgeBg = 'rgba(245,158,11,.15)'; badgeColor = 'var(--warn)'; badgeLabel = '폐기'
   } else if (item.cp_id) {
-    badgeBg = 'rgba(59,130,246,.15)'; badgeColor = 'var(--acl)'; badgeLabel = '매핑됨'
+    badgeBg = 'rgba(59,130,246,.15)'; badgeColor = 'var(--acl)'; badgeLabel = '배치됨'
   } else {
     badgeBg = 'rgba(239,68,68,.15)'; badgeColor = 'var(--danger)'; badgeLabel = '미배치'
   }
@@ -536,29 +536,15 @@ function ExtinguisherCard({
         </span>
       </div>
 
-      {/* Row 2: 제조사 · 제조년월 · 제조번호 */}
-      {(item.manufacturer || item.manufactured_at || item.serial_no) && (
-        <div style={{
-          fontSize: 12, fontWeight: 500, color: 'var(--t2)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {[
-            item.manufacturer && `제조사: ${item.manufacturer}`,
-            item.manufactured_at && `제조년월: ${item.manufactured_at}`,
-            item.serial_no && `제조번호: ${item.serial_no}`,
-          ].filter(Boolean).join(' · ')}
-        </div>
-      )}
-
-      {/* Row 3: 형식승인번호 · 접두문자 · 증지번호 */}
-      {(item.approval_no || item.prefix_code || item.seal_no) && (
+      {/* Row 2: 제조번호 · 접두문자 · 증지번호 (상세 펼침에 나머지 필드 노출) */}
+      {(item.serial_no || item.prefix_code || item.seal_no) && (
         <div style={{
           fontSize: 12, fontWeight: 500, color: 'var(--t2)',
           fontFamily: "'JetBrains Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {[
-            item.approval_no && `형식승인번호: ${item.approval_no}`,
+            item.serial_no && `제조번호: ${item.serial_no}`,
             item.prefix_code && `접두문자: ${item.prefix_code}`,
             item.seal_no && `증지번호: ${item.seal_no}`,
           ].filter(Boolean).join(' · ')}
@@ -605,7 +591,7 @@ function ExtinguisherCard({
           {/* Action row — state machine driven by has_records + check_point_id + status */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }} onClick={e => e.stopPropagation()}>
             {state === 'unmapped-clean' && (
-              // 미매핑 + 미점검: 정보 수정 / 소화기 배치 / 삭제
+              // 미배치 + 미점검: 정보 수정 / 소화기 배치 / 삭제
               <>
                 <button onClick={onEdit}   style={actionBtnStyle}>정보 수정</button>
                 <button onClick={onAssign} style={actionBtnStyle}>소화기 배치</button>
@@ -613,7 +599,7 @@ function ExtinguisherCard({
               </>
             )}
             {state === 'unmapped-inspected' && (
-              // 미매핑 + 점검O: 정보 수정 / 소화기 배치 / 폐기
+              // 미배치 + 점검O: 정보 수정 / 소화기 배치 / 폐기
               <>
                 <button onClick={onEdit}    style={actionBtnStyle}>정보 수정</button>
                 <button onClick={onAssign}  style={actionBtnStyle}>소화기 배치</button>
@@ -621,7 +607,7 @@ function ExtinguisherCard({
               </>
             )}
             {state === 'mapped' && (
-              // 매핑됨: 정보 수정 / 소화기 분리
+              // 배치됨: 정보 수정 / 소화기 분리
               <>
                 <button onClick={onEdit}    style={actionBtnStyle}>정보 수정</button>
                 <button onClick={onUnassign} style={{ ...actionBtnStyle, ...dangerBtnStyle }}>소화기 분리</button>
@@ -715,7 +701,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         {/* 마커 동행 배너 */}
         {hasMarkerContext && (
           <div style={{ ...infoBannerStyle, marginBottom: 14 }}>
-            {ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 매핑됩니다.` : '해당 위치에 자동 매핑됩니다.'}
+            {ctxZone ? `「${ctxZone} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}
           </div>
         )}
 
@@ -732,23 +718,23 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
           ))}
         </div>
 
-        <FieldLabel>접두문자</FieldLabel>
-        <input style={inputStyle} value={prefixCode} onChange={e => setPrefixCode(e.target.value)} placeholder="예: A" />
+        <FieldLabel>제조업체</FieldLabel>
+        <input style={inputStyle} value={manufacturer} onChange={e => setManufacturer(e.target.value)} placeholder="예: 한울방재" />
 
-        <FieldLabel>증지번호</FieldLabel>
-        <input style={inputStyle} value={sealNo} onChange={e => setSealNo(e.target.value)} placeholder="예: 2024-0001" inputMode="numeric" />
-
-        <FieldLabel>제조번호</FieldLabel>
-        <input style={inputStyle} value={serialNo} onChange={e => setSerialNo(e.target.value)} placeholder="예: ABC-12345" />
-
-        <FieldLabel>형식승인</FieldLabel>
-        <input style={inputStyle} value={approvalNo} onChange={e => setApprovalNo(e.target.value)} placeholder="예: KFI-P-24-0001" />
+        <FieldLabel>형식승인번호</FieldLabel>
+        <input style={inputStyle} value={approvalNo} onChange={e => setApprovalNo(e.target.value)} placeholder="예: 수소 10-19-3" />
 
         <FieldLabel>제조년월</FieldLabel>
-        <input style={inputStyle} value={manufacturedAt} onChange={e => setManufacturedAt(e.target.value)} placeholder="YYYY-MM" />
+        <input style={inputStyle} value={manufacturedAt} onChange={e => setManufacturedAt(e.target.value)} placeholder="예: 2016-11" />
 
-        <FieldLabel>제조업체</FieldLabel>
-        <input style={inputStyle} value={manufacturer} onChange={e => setManufacturer(e.target.value)} placeholder="예: 한국소방(주)" />
+        <FieldLabel>제조번호</FieldLabel>
+        <input style={inputStyle} value={serialNo} onChange={e => setSerialNo(e.target.value)} placeholder="예: 104448" />
+
+        <FieldLabel>접두문자</FieldLabel>
+        <input style={inputStyle} value={prefixCode} onChange={e => setPrefixCode(e.target.value)} placeholder="예: BBPD" />
+
+        <FieldLabel>증지번호</FieldLabel>
+        <input style={inputStyle} value={sealNo} onChange={e => setSealNo(e.target.value)} placeholder="예: 63848" inputMode="numeric" />
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
