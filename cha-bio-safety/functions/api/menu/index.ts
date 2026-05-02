@@ -69,15 +69,24 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     // 식당 미운영일 차단 — PDF 파서/와치독에서 잘못 추출되어 들어와도 저장 안 함
     // 미운영일: 일요일, 공휴일, 공휴일직후토요일 (mealCalc 운영규칙)
     // 일반 토요일은 점심만 운영하므로 lunch_a 만 들어와도 저장 OK
+    // CF Workers UTC 환경에서 dow 계산 정확히 — Date.UTC + getUTCDay 사용
+    const dowOf = (ymd: string): number => {
+      const [y, m, d] = ymd.split('-').map(Number)
+      return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+    }
+    const prevDayYMD = (ymd: string): string => {
+      const [y, m, d] = ymd.split('-').map(Number)
+      const dt = new Date(Date.UTC(y, m - 1, d - 1))
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`
+    }
+
     const dates = body.menus.map(m => m.date).filter(Boolean)
     const checkDates = new Set<string>()
     for (const d of dates) {
       checkDates.add(d)
       // 토요일이면 전날(금요일)도 holidays 조회 대상에 포함
-      const dt = new Date(d + 'T00:00:00+09:00')
-      if (dt.getDay() === 6) {
-        const prev = new Date(dt); prev.setDate(prev.getDate() - 1)
-        checkDates.add(`${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}-${String(prev.getDate()).padStart(2,'0')}`)
+      if (dowOf(d) === 6) {
+        checkDates.add(prevDayYMD(d))
       }
     }
     const holidaySet = new Set<string>()
@@ -96,13 +105,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     for (const menu of body.menus) {
       if (!menu.date) continue
       if (holidaySet.has(menu.date)) { skippedHolidays.push(menu.date); continue }
-      const dow = new Date(menu.date + 'T00:00:00+09:00').getDay()
+      const dow = dowOf(menu.date)
       if (dow === 0) { skippedHolidays.push(menu.date); continue }  // 일요일
       if (dow === 6) {
         // 공휴일 직후 토요일이면 차단 (식당 미운영)
-        const prev = new Date(menu.date + 'T00:00:00+09:00'); prev.setDate(prev.getDate() - 1)
-        const prevYMD = `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}-${String(prev.getDate()).padStart(2,'0')}`
-        if (holidaySet.has(prevYMD)) { skippedHolidays.push(menu.date); continue }
+        if (holidaySet.has(prevDayYMD(menu.date))) { skippedHolidays.push(menu.date); continue }
       }
       // 메뉴 셋 다 비어있으면 저장 안 함
       if (!menu.lunch_a && !menu.lunch_b && !menu.dinner) continue

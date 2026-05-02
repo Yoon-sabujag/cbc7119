@@ -432,20 +432,27 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       monthHolidays[r.date] = r.name
     }
 
+    // Cloudflare Workers 는 UTC 환경 — `new Date(ymd + 'T00:00:00+09:00').getDay()` 는
+    // UTC dow 를 반환해 9시간 시프트됨 (KST 월요일이 UTC 일요일로 잡힘).
+    // 캘린더 dow 는 timezone 무관 순수 날짜 산술이므로 Date.UTC + getUTCDay() 사용.
+    const dowOf = (ymd: string): number => {
+      const [y, m, d] = ymd.split('-').map(Number)
+      return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+    }
+
     const monthScheduleDates: Record<string, string[]> = {}
     for (const r of (monthDatesRows.results ?? [])) {
       const isRange = !!r.end_date && r.end_date !== r.date
       // 이번 달 범위로 클램프
       const sd = r.date < monthStart ? monthStart : r.date
       const ed = (r.end_date ?? r.date) > monthEnd ? monthEnd : (r.end_date ?? r.date)
-      // YYYY-MM-DD 문자열 비교는 안전. Date 객체 만들지 않고 일자만 카운트.
       const startDay = Number(sd.slice(8, 10))
       const endDay = Number(ed.slice(8, 10))
       const ymPrefix = monthStart.slice(0, 7) // 'YYYY-MM'
       for (let d = startDay; d <= endDay; d++) {
         const ymd = `${ymPrefix}-${String(d).padStart(2, '0')}`
         if (isRange) {
-          const dow = new Date(ymd + 'T00:00:00+09:00').getDay()
+          const dow = dowOf(ymd)
           if (dow === 0 || dow === 6) continue
           if (monthHolidays[ymd]) continue
         }
