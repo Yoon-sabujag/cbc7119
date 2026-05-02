@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -104,6 +104,31 @@ function Layout() {
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // BottomNav 실측 높이 — calc 식 sync 가 어떤 이유로 어긋나는 케이스 대비
+  // ResizeObserver 로 실제 렌더된 nav 높이를 main paddingBottom 에 직접 반영
+  const [navH, setNavH] = useState<number>(0)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    const update = () => {
+      const el = document.querySelector('nav[data-bottom-nav]') as HTMLElement | null
+      if (el) setNavH(el.getBoundingClientRect().height)
+      else setNavH(0)
+    }
+    update()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null
+    const el = document.querySelector('nav[data-bottom-nav]') as HTMLElement | null
+    if (ro && el) ro.observe(el)
+    // safe-area 변동(visualViewport 변경) 후에도 재측정
+    const onResize = () => update()
+    window.addEventListener('resize', onResize)
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', onResize)
+      if (window.visualViewport) window.visualViewport.removeEventListener('resize', onResize)
+    }
+  }, [isDesktop, location.pathname])
 
   const noNavPaths = isDesktop ? DESKTOP_NO_NAV_PATHS : MOBILE_NO_NAV_PATHS
   const showNav = isAuthenticated
@@ -246,7 +271,9 @@ function Layout() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          paddingBottom: (!isDesktop && showNav) ? NAV_PAD_BOTTOM : 0,
+          paddingBottom: (!isDesktop && showNav)
+            ? (navH > 0 ? `${navH}px` : NAV_PAD_BOTTOM)
+            : 0,
         }}>
           <Suspense fallback={<Loader />}>
             <Routes>

@@ -41,6 +41,7 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
 
   return (
     <nav
+      data-bottom-nav
       style={{
         position: 'fixed',
         bottom: 0,
