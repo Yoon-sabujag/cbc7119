@@ -704,27 +704,30 @@ function ExtinguisherCard({
         </div>
       )}
 
-      {/* Row 4: location */}
-      <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)' }}>
-        {item.cp_id
-          ? `📍 ${zoneLabelKo(item.cp_zone)} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
-          : '위치 미지정'}
-      </div>
-
-      {/* Row 4: warning chip */}
-      {warning && (
-        <div style={{ alignSelf: 'flex-start' }}>
+      {/* Row 3: location + warning chip (오른쪽 하단) — 한 줄에 배치해 카드 높이 절약 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{
+          fontSize: 11, fontWeight: 500, color: 'var(--t3)',
+          flex: 1, minWidth: 0,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {item.cp_id
+            ? `📍 ${zoneLabelKo(item.cp_zone)} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
+            : '위치 미지정'}
+        </span>
+        {warning && (
           <span style={{
             fontSize: 11, fontWeight: 700,
             padding: '2px 8px', borderRadius: 5,
             background: warning === 'danger' ? 'rgba(239,68,68,.15)' : 'rgba(245,158,11,.15)',
             color: warning === 'danger' ? 'var(--danger)' : 'var(--warn)',
             border: `1px solid ${warning === 'danger' ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`,
+            flexShrink: 0,
           }}>
             ⚠️ 교체 {warning === 'warn' ? '도래' : warning === 'imminent' ? '임박' : '초과'}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Expanded detail block */}
       {expanded && !isDisposed && (
