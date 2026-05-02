@@ -1108,10 +1108,7 @@ export default function StaffServicePage() {
   if (isDesktop) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-        {/* 헤더 */}
-        <div style={{ height: 48, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', padding: '0 16px', flexShrink: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>연차 및 식사 / 휴가신청서</span>
-        </div>
+        {/* 페이지 제목은 App.tsx 헤더에서 표시 */}
 
         {/* 3분할 본문 */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

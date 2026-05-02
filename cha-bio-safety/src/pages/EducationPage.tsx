@@ -501,15 +501,12 @@ export default function EducationPage() {
   if (isDesktop) {
     return (
       <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
-        {/* 좌측: 카드 목록 */}
+        {/* 좌측: 카드 목록 — 페이지 제목은 App.tsx 헤더에서 표시 */}
         <div style={{
           flex: 1, borderRight: '1px solid var(--bd)',
           display: 'flex', flexDirection: 'column', height: '100%',
         }}>
-          <div style={{ padding: '24px 24px 16px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>보수교육</div>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             {renderGroupedList()}
           </div>
         </div>

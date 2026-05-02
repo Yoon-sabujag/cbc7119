@@ -448,11 +448,8 @@ export default function LegalPage() {
       <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
         <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
-        {/* 좌측: 라운드 목록 */}
+        {/* 좌측: 라운드 목록 — 페이지 제목은 App.tsx 헤더에서 표시 */}
         <div style={{ width: 500, flexShrink: 0, borderRight: '1px solid var(--bd)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '16px 12px 8px' }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>소방 점검 관리</div>
-          </div>
           {roundList}
         </div>
 
