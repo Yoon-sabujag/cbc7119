@@ -56,6 +56,7 @@ const SPRINKLER_MARKER_TYPES: { key: SprinklerType; label: [string, string] }[] 
 
 // ── 소화기·소화전 마커 타입 ──────────────────────────────
 type ExtinguisherType = 'fire_extinguisher' | 'ext_powder20' | 'ext_halogen' | 'ext_kitchen_k' | 'indoor_hydrant' | 'descending_lifeline' | 'div_marker'
+// 마커 타입 enum (기존 데이터 + 렌더링 분기용 — 7종 그대로 유지)
 const EXTINGUISHER_MARKER_TYPES: { key: ExtinguisherType; label: [string, string] }[] = [
   { key: 'fire_extinguisher',    label: ['분말', '3.3kg']   },
   { key: 'ext_powder20',         label: ['분말', '20kg']    },
@@ -65,6 +66,15 @@ const EXTINGUISHER_MARKER_TYPES: { key: ExtinguisherType; label: [string, string
   { key: 'descending_lifeline',  label: ['완강기', '']      },
   { key: 'div_marker',           label: ['DIV', '']         },
 ]
+// 마커 「추가」 모달 옵션 (4종 — 분말 종류는 자산 등록/수정에서 결정, 마커 자체는 위치 placeholder)
+const EXTINGUISHER_ADD_OPTIONS: { key: ExtinguisherType; label: [string, string] }[] = [
+  { key: 'fire_extinguisher',   label: ['소화기', '빈 개소'] },
+  { key: 'indoor_hydrant',      label: ['소화전', '']        },
+  { key: 'descending_lifeline', label: ['완강기', '']        },
+  { key: 'div_marker',          label: ['DIV', '']           },
+]
+// 소화기 자산-위치 분리 대상 marker_type (빈 마커 ❓ 판정에 사용)
+const EXT_ASSET_MARKER_TYPES = new Set<string>(['fire_extinguisher', 'ext_powder20', 'ext_halogen', 'ext_kitchen_k'])
 
 type MarkerType = GuidelampType | DetectorType | SprinklerType | ExtinguisherType
 const MARKER_TYPES_MAP: Record<PlanType, { key: string; label: [string, string] }[]> = {
@@ -270,7 +280,10 @@ export default function FloorPlanPage() {
     const pt = searchParams.get('planType') as PlanType | null
     return (pt && PLAN_TYPES.find(p => p.key === pt)) ? pt : 'guidelamp'
   })
-  const currentMarkerTypes = MARKER_TYPES_MAP[planType] ?? []
+  // 마커 추가 모달의 옵션. extinguisher plan type 은 4종(소화기/소화전/완강기/DIV)만 — 분말 종류는 자산 등록에서 결정.
+  const currentMarkerTypes = planType === 'extinguisher'
+    ? EXTINGUISHER_ADD_OPTIONS
+    : (MARKER_TYPES_MAP[planType] ?? [])
   const [floor, setFloor] = useState<string>(() => {
     const f = searchParams.get('floor')
     return (f && FLOORS.includes(f)) ? f : '8-1F'
@@ -698,7 +711,8 @@ export default function FloorPlanPage() {
     // Phase 24: 소화기 배치 모드 — 마커 클릭 시 배치 확인 모달 또는 toast
     if (isPlacingMode && planType === 'extinguisher') {
       const items = extListQuery.data?.items ?? []
-      const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
+      const isExtAsset = EXT_ASSET_MARKER_TYPES.has(m.marker_type ?? '')
+      const isEmpty = isExtAsset && (!m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기'))
       if (isEmpty) {
         // 미배치 마커 클릭 → 배치 확인
         setPlacingConfirm(m)
@@ -712,7 +726,8 @@ export default function FloorPlanPage() {
     // Phase 24: 점검 모드에서 미배치 마커 클릭 → 안내 모달
     if (planType === 'extinguisher' && !editMode) {
       const items = extListQuery.data?.items ?? []
-      const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
+      const isExtAsset = EXT_ASSET_MARKER_TYPES.has(m.marker_type ?? '')
+      const isEmpty = isExtAsset && (!m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기'))
       if (isEmpty) {
         setEmptyMarkerModal(m)
         return
@@ -1037,8 +1052,9 @@ export default function FloorPlanPage() {
                   }}
                 >
                   {(() => {
-                    // Phase 24: 빈 마커 (미배치) 판단 — extinguisher plan type only
-                    if (planType === 'extinguisher') {
+                    // Phase 24: 빈 마커 (미배치) 판단 — extinguisher plan type 의 소화기 자산 마커만
+                    // 소화전/완강기/DIV는 자체 점검 대상이라 빈 마커 판정에서 제외.
+                    if (planType === 'extinguisher' && EXT_ASSET_MARKER_TYPES.has(m.marker_type ?? '')) {
                       const items = extListQuery.data?.items ?? []
                       const isEmpty = !m.check_point_id || !items.some(it => it.cp_id === m.check_point_id && it.status !== '폐기')
                       if (isEmpty) {
