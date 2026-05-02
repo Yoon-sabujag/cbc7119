@@ -93,12 +93,13 @@ export default function ExtinguishersListPage() {
     onError: (e: any) => toast.error(e?.message ?? '요청 실패'),
   })
 
+  // Phase 24: refetchType: 'all' — inactive query (e.g., 다른 floor 의 도면 query) 도 다음 mount 시 fresh.
   const assignMutation = useMutation({
     mutationFn: ({ id, cpId }: { id: number; cpId: string }) =>
       extinguisherApi.assign(id, cpId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['extinguishers'] })
-      qc.invalidateQueries({ queryKey: ['floorplan-markers'] })
+      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
     },
     onError: (e: any) => toast.error(e?.message ?? '요청 실패'),
   })
@@ -106,7 +107,8 @@ export default function ExtinguishersListPage() {
   const unassignMutation = useMutation({
     mutationFn: (id: number) => extinguisherApi.unassign(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['extinguishers'] })
+      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
       toast.success('분리 완료')
       setConfirmUnassign(null)
     },
@@ -117,7 +119,8 @@ export default function ExtinguishersListPage() {
     mutationFn: ({ id, otherId }: { id: number; otherId: number }) =>
       extinguisherApi.swap(id, otherId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['extinguishers'] })
+      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
       toast.success('스왑 완료')
       setSwapTarget(null)
     },
@@ -127,7 +130,8 @@ export default function ExtinguishersListPage() {
   const disposeMutation = useMutation({
     mutationFn: (id: number) => extinguisherApi.dispose(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['extinguishers'] })
+      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
       toast.success('폐기 완료')
       setConfirmDispose(null)
     },
@@ -137,7 +141,8 @@ export default function ExtinguishersListPage() {
   const removeMutation = useMutation({
     mutationFn: (id: number) => extinguisherApi.remove(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['extinguishers'] })
+      qc.invalidateQueries({ queryKey: ['extinguishers'], refetchType: 'all' })
+      qc.invalidateQueries({ queryKey: ['floorplan-markers'], refetchType: 'all' })
       toast.success('삭제 완료')
       setConfirmDelete(null)
     },

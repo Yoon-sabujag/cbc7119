@@ -434,11 +434,13 @@ export default function FloorPlanPage() {
 
   // ── 분말 소화기 교체 연한 강조용 데이터 ─────────────────
   // planType=extinguisher 일 때만 floor 별 소화기 데이터 fetch.
+  // Phase 24: 자산 배치/분리/폐기/등록 후 도면 재진입 시 즉시 fresh — 빈 마커 판정 stale 방지.
   const extListQuery = useQuery({
     queryKey: ['extinguishers', floor],
     queryFn: () => extinguisherApi.list({ floor }),
     enabled: planType === 'extinguisher',
-    staleTime: 300_000, // 5분
+    staleTime: 30_000,           // 5분 → 30초 (자산-위치 분리는 자주 변경)
+    refetchOnMount: 'always',    // 페이지 재진입 시 항상 refetch
   })
 
   // check_point_id → ReplaceWarning Map (분말 마커 강조 lookup 용)
