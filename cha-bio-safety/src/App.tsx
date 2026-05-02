@@ -60,6 +60,12 @@ function Loader() {
   )
 }
 
+// 안드로이드는 BottomNav 가 12px 더 높음 (제스처바 보정) — main paddingBottom 도 동일하게
+const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+const NAV_PAD_BOTTOM = IS_ANDROID
+  ? 'calc(54px + var(--sab, 0px) + 12px)'
+  : 'calc(54px + var(--sab, 0px))'
+
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
 const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan']
 
@@ -242,7 +248,7 @@ function Layout() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          paddingBottom: (!isDesktop && showNav) ? 'calc(54px + var(--sab, 0px))' : 0,
+          paddingBottom: (!isDesktop && showNav) ? NAV_PAD_BOTTOM : 0,
         }}>
           <Suspense fallback={<Loader />}>
             <Routes>
