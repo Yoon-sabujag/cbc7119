@@ -3617,21 +3617,21 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                   취소
                 </button>
                 <button
-                  disabled={!canSave}
                   onClick={() => {
-                    if (!canSave || orig.id == null) return
+                    if (!canSave || orig.id == null || updateExtMutation.isPending) return
                     const fields: Record<string, string | null> = {}
                     EDITABLE_FIELDS.forEach(f => {
                       if (norm(editExtForm[f]) !== norm(orig[f])) fields[f] = norm(editExtForm[f])
                     })
                     updateExtMutation.mutate({ id: orig.id, fields })
                   }}
+                  disabled={!canSave || updateExtMutation.isPending}
                   style={{ flex:1, height:42, borderRadius:10, border:'none',
-                    background: canSave ? 'var(--acl)' : 'var(--bd2)',
-                    color: canSave ? '#fff' : 'var(--t3)',
+                    background: (canSave && !updateExtMutation.isPending) ? 'var(--acl)' : 'var(--bd2)',
+                    color: (canSave && !updateExtMutation.isPending) ? '#fff' : 'var(--t3)',
                     fontSize:13, fontWeight:700,
-                    cursor: canSave ? 'pointer' : 'not-allowed' }}>
-                  저장
+                    cursor: (canSave && !updateExtMutation.isPending) ? 'pointer' : 'not-allowed' }}>
+                  {updateExtMutation.isPending ? '저장 중…' : '저장'}
                 </button>
               </div>
             </div>
@@ -3662,10 +3662,14 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 취소
               </button>
               <button
-                onClick={() => { if (unassignConfirmExt.id != null) unassignExtMutation.mutate(unassignConfirmExt.id) }}
+                onClick={() => { if (unassignConfirmExt.id != null && !unassignExtMutation.isPending) unassignExtMutation.mutate(unassignConfirmExt.id) }}
+                disabled={unassignExtMutation.isPending}
                 style={{ flex:1, height:42, borderRadius:10, border:'none',
-                  background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                분리
+                  background: unassignExtMutation.isPending ? 'var(--bd2)' : 'var(--acl)',
+                  color: unassignExtMutation.isPending ? 'var(--t3)' : '#fff',
+                  fontSize:13, fontWeight:700,
+                  cursor: unassignExtMutation.isPending ? 'not-allowed' : 'pointer' }}>
+                {unassignExtMutation.isPending ? '처리 중…' : '분리'}
               </button>
             </div>
           </div>

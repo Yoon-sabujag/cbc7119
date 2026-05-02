@@ -747,7 +747,7 @@ interface RegisterModalProps {
   ctxZone: string | null
   ctxFloor: string | null
   onClose: () => void
-  onSubmit: (fields: Partial<ExtinguisherDetail>) => void
+  onSubmit: (fields: Partial<ExtinguisherDetail>) => Promise<void> | void
 }
 
 function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit }: RegisterModalProps) {
@@ -766,18 +766,26 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
   const [approvalNo,    setApprovalNo]    = useState(lastReg?.approval_no ?? '')
   const [manufacturedAt, setManufacturedAt] = useState(lastReg?.manufactured_at ?? '')
   const [manufacturer,  setManufacturer]  = useState(lastReg?.manufacturer ?? '')
+  const [submitting,    setSubmitting]    = useState(false)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (submitting) return
     if (!type) { toast.error('종류를 선택해 주세요'); return }
-    onSubmit({
-      type,
-      prefix_code:    prefixCode || null,
-      seal_no:        sealNo     || null,
-      serial_no:      serialNo   || null,
-      approval_no:    approvalNo || null,
-      manufactured_at: manufacturedAt || null,
-      manufacturer:   manufacturer   || null,
-    } as any)
+    setSubmitting(true)
+    try {
+      await onSubmit({
+        type,
+        prefix_code:    prefixCode || null,
+        seal_no:        sealNo     || null,
+        serial_no:      serialNo   || null,
+        approval_no:    approvalNo || null,
+        manufactured_at: manufacturedAt || null,
+        manufacturer:   manufacturer   || null,
+      } as any)
+    } finally {
+      // 성공 시 부모가 모달 닫음 — 실패해서 모달 유지될 때만 buton 다시 활성화.
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -832,9 +840,15 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
 
         {/* Action row */}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button onClick={onClose} style={cancelBtnStyle}>취소</button>
-          <button onClick={handleSubmit} style={primaryBtnStyle}>
-            {hasMarkerContext ? '등록 후 배치' : '등록'}
+          <button onClick={onClose} disabled={submitting} style={cancelBtnStyle}>취소</button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={submitting
+              ? { ...primaryBtnStyle, background: 'var(--bd2)', color: 'var(--t3)', cursor: 'not-allowed' }
+              : primaryBtnStyle}
+          >
+            {submitting ? '등록 중…' : (hasMarkerContext ? '등록 후 배치' : '등록')}
           </button>
         </div>
       </div>
