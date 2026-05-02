@@ -3,10 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom'
 const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
 // 캐시 초기화 직후 첫 로드 시 --sab 가 0 으로 굳을 수 있어 env() 를 백업으로 함께 사용
 const SAB_SAFE = 'max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))'
-// Android 는 제스처바 클리어를 위해 +12px 추가. sab fallback 24px 은 inline measure() 에서 주입.
-const PAD_BOTTOM = IS_ANDROID
-  ? `calc(${SAB_SAFE} + 12px)`
-  : SAB_SAFE
+// 제스처바/홈인디케이터 보호: sab 값 그대로 사용 (Android 는 measure() 에서 24px fallback 주입)
+const PAD_BOTTOM = SAB_SAFE
 
 type NavKey = 'dashboard' | 'inspection' | 'qr' | 'remediation' | 'elevator'
 
