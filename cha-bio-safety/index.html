@@ -58,9 +58,10 @@
             else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
           }
           // env() 가 0 인 Android — 캐시 초기화 직후 첫 로드 시 timing 으로 0 이 굳는 케이스.
-          // 제스처바 보호 위해 24px fallback 주입. (재시도 측정에서 실값이 들어오면 덮어씀)
+          // 시스템 nav (3-button 또는 큰 제스처바 ~40px) 보호 위해 40px fallback 주입.
+          // 재시도 측정에서 실값(보통 24)이 들어오면 덮어씀 → 정상 케이스 영향 X.
           if (v.bot === 0 && /Android/i.test(navigator.userAgent)) {
-            v.bot = 24
+            v.bot = 40
           }
           apply(v.top, v.bot)
           return v.top > 0 || v.bot > 0
