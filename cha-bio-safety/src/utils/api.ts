@@ -92,6 +92,7 @@ export const dashboardApi = {
     monthlyItems: { label:string; pct:number; color:string; total:number; done:number }[]
     todayTarget: string
     monthScheduleDates: Record<string, string[]>
+    monthHolidays: Record<string, string>
   }>('/dashboard/stats'),
 }
 

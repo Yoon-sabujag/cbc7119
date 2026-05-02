@@ -415,17 +415,44 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     }
 
     // ── 이번 달 일정 날짜별 카테고리 (캘린더 dot용) ────
+    // 멀티데이 range 일정도 시작일~종료일 매일 펼쳐서 점 찍음 (이전엔 시작일에만 표시).
+    // 단, range 항목은 주말·공휴일 자동 제외 (SchedulePage matchesDate 와 동일한 룰).
     const monthDatesRows = await env.DB.prepare(`
-      SELECT date, category FROM schedule_items
-      WHERE date BETWEEN ? AND ?
+      SELECT date, end_date, category FROM schedule_items
+      WHERE date <= ? AND COALESCE(end_date, date) >= ?
       ORDER BY date ASC
-    `).bind(monthStart, monthEnd).all<{date:string; category:string}>()
+    `).bind(monthEnd, monthStart).all<{date:string; end_date:string|null; category:string}>()
+
+    // 이번 달 공휴일 맵 (range 일정 표시 제외 + 데스크톱 캘린더 공휴일 스타일링용)
+    const monthHolidayRows = await env.DB.prepare(
+      `SELECT date, name FROM holidays WHERE date BETWEEN ? AND ?`
+    ).bind(monthStart, monthEnd).all<{date:string; name:string}>()
+    const monthHolidays: Record<string, string> = {}
+    for (const r of (monthHolidayRows.results ?? [])) {
+      monthHolidays[r.date] = r.name
+    }
 
     const monthScheduleDates: Record<string, string[]> = {}
     for (const r of (monthDatesRows.results ?? [])) {
-      const day = r.date.slice(8, 10).replace(/^0/, '') // "01" → "1"
-      if (!monthScheduleDates[day]) monthScheduleDates[day] = []
-      if (!monthScheduleDates[day].includes(r.category)) monthScheduleDates[day].push(r.category)
+      const isRange = !!r.end_date && r.end_date !== r.date
+      // 이번 달 범위로 클램프
+      const sd = r.date < monthStart ? monthStart : r.date
+      const ed = (r.end_date ?? r.date) > monthEnd ? monthEnd : (r.end_date ?? r.date)
+      // YYYY-MM-DD 문자열 비교는 안전. Date 객체 만들지 않고 일자만 카운트.
+      const startDay = Number(sd.slice(8, 10))
+      const endDay = Number(ed.slice(8, 10))
+      const ymPrefix = monthStart.slice(0, 7) // 'YYYY-MM'
+      for (let d = startDay; d <= endDay; d++) {
+        const ymd = `${ymPrefix}-${String(d).padStart(2, '0')}`
+        if (isRange) {
+          const dow = new Date(ymd + 'T00:00:00+09:00').getDay()
+          if (dow === 0 || dow === 6) continue
+          if (monthHolidays[ymd]) continue
+        }
+        const dayKey = String(d)
+        if (!monthScheduleDates[dayKey]) monthScheduleDates[dayKey] = []
+        if (!monthScheduleDates[dayKey].includes(r.category)) monthScheduleDates[dayKey].push(r.category)
+      }
     }
 
     // ── 근무자 목록 ─────────────────────────────────────
@@ -526,6 +553,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         monthlyItems,
         todayTarget,
         monthScheduleDates,
+        monthHolidays,
       },
     })
   } catch (e) {

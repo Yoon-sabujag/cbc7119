@@ -169,6 +169,13 @@ export default function DashboardPage() {
     for (const [day, cats] of Object.entries(monthScheduleDates)) {
       calDayCategories[Number(day)] = cats
     }
+    // 공휴일 맵 (API 응답: 'YYYY-MM-DD' → name) — 일자만 추출해 day-key 로 변환
+    const monthHolidays: Record<string, string> = (data?.monthHolidays as Record<string,string>) ?? {}
+    const calDayHolidays: Record<number, string> = {}
+    for (const [ymd, name] of Object.entries(monthHolidays)) {
+      const [hy, hm, hd] = ymd.split('-').map(Number)
+      if (hy === calYear && hm === calMonth + 1) calDayHolidays[hd] = name
+    }
 
     return (
       <div style={{ width:'100%', height:'100%', overflow:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:16 }}>
@@ -341,14 +348,16 @@ export default function DashboardPage() {
                   const dow = (calStartDow + i) % 7
                   const isToday = d === calToday
                   const dayCats = calDayCategories[d] ?? []
+                  const holName = calDayHolidays[d]
+                  const isHoliday = !!holName
                   return (
-                    <div key={d} style={{ padding:'2px 0', position:'relative' }}>
+                    <div key={d} title={holName} style={{ padding:'2px 0', position:'relative' }}>
                       <div style={{
                         width:28, height:28, borderRadius:'50%', margin:'0 auto',
                         display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:12, fontWeight: isToday ? 700 : 400,
-                        color: isToday ? '#fff' : dow===0 ? 'var(--danger)' : dow===6 ? 'var(--info)' : 'var(--t1)',
-                        background: isToday ? 'var(--acl)' : 'transparent',
+                        fontSize:12, fontWeight: isToday || isHoliday ? 700 : 400,
+                        color: isToday ? '#fff' : (dow===0 || isHoliday) ? 'var(--danger)' : dow===6 ? 'var(--info)' : 'var(--t1)',
+                        background: isToday ? 'var(--acl)' : isHoliday ? 'rgba(239,68,68,0.08)' : 'transparent',
                       }}>
                         {d}
                       </div>
