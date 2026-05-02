@@ -265,27 +265,26 @@ export default function DashboardPage() {
               {monthly.length === 0 ? (
                 <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
               ) : (
-                <div style={{ padding:'16px 20px', display:'flex', flexDirection:'column', gap:14, flex:1, justifyContent:'center', overflowY:'auto' }}>
+                <div style={{ padding:'18px 24px', display:'flex', flexDirection:'column', gap:18, flex:1, justifyContent:'center', overflowY:'auto' }}>
                   {(() => {
+                    // 한 줄당 최대 7개 — 2줄에 균등 분배 (n≤7: 1줄, n≤14: 2줄, n>14: 3줄)
                     const rows: MonthlyItem[][] = []
                     const n = monthly.length
-                    if (n <= 7) { rows.push(monthly) }
-                    else {
-                      const mid = Math.ceil(n / 3)
-                      const side = Math.floor((n - mid) / 2)
-                      rows.push(monthly.slice(0, side))
-                      rows.push(monthly.slice(side, side + mid))
-                      rows.push(monthly.slice(side + mid))
+                    const cols = 7
+                    const numRows = Math.max(1, Math.ceil(n / cols))
+                    const perRow = Math.ceil(n / numRows)
+                    for (let i = 0; i < numRows; i++) {
+                      rows.push(monthly.slice(i * perRow, (i + 1) * perRow))
                     }
                     return rows.map((row, ri) => (
-                      <div key={ri} style={{ display:'flex', justifyContent:'space-evenly' }}>
+                      <div key={ri} style={{ display:'flex', justifyContent:'space-evenly', gap:8 }}>
                         {row.map((m, i) => (
-                          <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flex:1, minWidth:0 }}>
+                          <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, minWidth:0 }}>
                             {m.doubleCycle ? (
                               <Donut
                                 pct={m.pct}
                                 color={m.color}
-                                size={52}
+                                size={76}
                                 doubleCycle={{
                                   earlyPct: m.early_pct ?? 0,
                                   latePct:  m.late_pct  ?? 0,
@@ -294,10 +293,10 @@ export default function DashboardPage() {
                                 }}
                               />
                             ) : (
-                              <Donut pct={m.pct} color={m.color} size={52} />
+                              <Donut pct={m.pct} color={m.color} size={76} />
                             )}
-                            <div style={{ fontSize:10, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
-                            <div style={{ fontSize:10, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                            <div style={{ fontSize:11, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
+                            <div style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                           </div>
                         ))}
                       </div>
