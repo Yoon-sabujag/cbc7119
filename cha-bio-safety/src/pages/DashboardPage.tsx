@@ -184,7 +184,7 @@ export default function DashboardPage() {
           </div>
           {stats.streakDays > 0 && (
             <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.18)', padding:'5px 14px', borderRadius:20 }}>
-              연속 {stats.streakDays}일 달성
+              연속 {stats.streakDays}일 점검 달성
             </span>
           )}
         </div>
@@ -465,7 +465,7 @@ export default function DashboardPage() {
             <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>오늘 현황</span>
             {stats.streakDays > 0 && (
               <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:9.5, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'2px 7px', borderRadius:20 }}>
-                연속 {stats.streakDays}일 달성 🔥
+                연속 {stats.streakDays}일 점검 달성 🔥
               </span>
             )}
           </div>
