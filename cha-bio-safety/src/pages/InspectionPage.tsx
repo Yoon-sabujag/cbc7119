@@ -3355,7 +3355,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
           return (
             <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)' }}>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
-                <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.location}</span></div>
+                <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.location || (extDetail as any).cp_location || '-'}</span></div>
                 <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufacturer ?? '-'}</span></div>
                 <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufactured_at ?? '-'}</span></div>
                 <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.approval_no ?? '-'}</span></div>
