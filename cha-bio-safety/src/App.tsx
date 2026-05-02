@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -60,9 +60,11 @@ function Loader() {
   )
 }
 
-// BottomNav 와 동일한 식 — measure() 가 Android sab fallback 24 주입하므로 별도 +12 불필요
-const SAB_SAFE = 'max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))'
-const NAV_PAD_BOTTOM = `calc(54px + ${SAB_SAFE})`
+// 안드로이드는 BottomNav 가 12px 더 높음 (제스처바 보정) — main paddingBottom 도 동일하게
+const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
+const NAV_PAD_BOTTOM = IS_ANDROID
+  ? 'calc(54px + var(--sab, 0px) + 12px)'
+  : 'calc(54px + var(--sab, 0px))'
 
 // 모바일: 자체 헤더가 있는 페이지는 nav 숨김
 const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift', '/leave', '/floorplan', '/div', '/qr-print', '/daily-report', '/worklog', '/meal', '/education', '/legal', '/elevator/findings', '/annual-plan']
@@ -105,30 +107,6 @@ function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // BottomNav 실측 높이 — calc 식 sync 가 어떤 이유로 어긋나는 케이스 대비
-  // ResizeObserver 로 실제 렌더된 nav 높이를 main paddingBottom 에 직접 반영
-  const [navH, setNavH] = useState<number>(0)
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    const update = () => {
-      const el = document.querySelector('nav[data-bottom-nav]') as HTMLElement | null
-      if (el) setNavH(el.getBoundingClientRect().height)
-      else setNavH(0)
-    }
-    update()
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null
-    const el = document.querySelector('nav[data-bottom-nav]') as HTMLElement | null
-    if (ro && el) ro.observe(el)
-    // safe-area 변동(visualViewport 변경) 후에도 재측정
-    const onResize = () => update()
-    window.addEventListener('resize', onResize)
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize)
-    return () => {
-      ro?.disconnect()
-      window.removeEventListener('resize', onResize)
-      if (window.visualViewport) window.visualViewport.removeEventListener('resize', onResize)
-    }
-  }, [isDesktop, location.pathname])
 
   const noNavPaths = isDesktop ? DESKTOP_NO_NAV_PATHS : MOBILE_NO_NAV_PATHS
   const showNav = isAuthenticated
@@ -271,9 +249,7 @@ function Layout() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          paddingBottom: (!isDesktop && showNav)
-            ? (navH > 0 ? `${navH}px` : NAV_PAD_BOTTOM)
-            : 0,
+          paddingBottom: (!isDesktop && showNav) ? NAV_PAD_BOTTOM : 0,
         }}>
           <Suspense fallback={<Loader />}>
             <Routes>

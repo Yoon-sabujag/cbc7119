@@ -57,35 +57,23 @@
             else if (h >= 700) { v.top = 44; v.bot = 34 }  // 노치 (X~14)
             else               { v.top = 20; v.bot = 0  }  // 홈버튼 (SE 등)
           }
-          // env() 가 0 인 Android — 캐시 초기화 직후 첫 로드 시 timing 으로 0 이 굳는 케이스.
-          // 시스템 nav (3-button 또는 큰 제스처바 ~40px) 보호 위해 40px fallback 주입.
-          // 재시도 측정에서 실값(보통 24)이 들어오면 덮어씀 → 정상 케이스 영향 X.
-          if (v.bot === 0 && /Android/i.test(navigator.userAgent)) {
-            v.bot = 40
-          }
           apply(v.top, v.bot)
-          return v.top > 0 || v.bot > 0
+          return v.top > 0
         }
 
         measure()
 
-        // env()가 늦게 초기화되는 경우 재시도 (캐시 초기화 직후 첫 로드 케이스)
-        // top/bot 이 모두 0 이면 retry. 한쪽만 0 이어도 의심스러우면 retry.
+        // env()가 늦게 초기화되는 경우 재시도
         window.addEventListener('DOMContentLoaded', function () {
-          measure()
-          setTimeout(measure, 100)
-          setTimeout(measure, 500)
-          setTimeout(measure, 1500)
+          if (!measure()) {
+            setTimeout(measure, 100)
+            setTimeout(measure, 500)
+          }
         })
-        window.addEventListener('load', function () { measure() })
 
         window.addEventListener('orientationchange', function () { setTimeout(measure, 150) })
         if (window.screen && window.screen.orientation) {
           window.screen.orientation.addEventListener('change', function () { setTimeout(measure, 150) })
-        }
-        // 안드로이드 BottomNav 영역 확보용 — viewport 변경(주소창 펼침/접힘)에도 재측정
-        if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', function () { setTimeout(measure, 50) })
         }
       })()
     </script>

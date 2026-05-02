@@ -1,10 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const IS_ANDROID = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent)
-// 캐시 초기화 직후 첫 로드 시 --sab 가 0 으로 굳을 수 있어 env() 를 백업으로 함께 사용
-const SAB_SAFE = 'max(var(--sab, 0px), env(safe-area-inset-bottom, 0px))'
-// 제스처바/홈인디케이터 보호: sab 값 그대로 사용 (Android 는 measure() 에서 24px fallback 주입)
-const PAD_BOTTOM = SAB_SAFE
 
 type NavKey = 'dashboard' | 'inspection' | 'qr' | 'remediation' | 'elevator'
 
@@ -41,14 +37,13 @@ export function BottomNav({ unresolvedCount = 0 }: { unresolvedCount?: number })
 
   return (
     <nav
-      data-bottom-nav
       style={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
-        height: `calc(54px + ${PAD_BOTTOM})`,
-        paddingBottom: PAD_BOTTOM,
+        height: IS_ANDROID ? 'calc(54px + var(--sab, 0px) + 12px)' : 'calc(54px + var(--sab, 0px))',
+        paddingBottom: IS_ANDROID ? 'calc(var(--sab, 0px) + 12px)' : 'var(--sab, 0px)',
         background: 'rgba(22,27,34,0.97)',
         borderTop: '1px solid var(--bd)',
         boxSizing: 'border-box',
