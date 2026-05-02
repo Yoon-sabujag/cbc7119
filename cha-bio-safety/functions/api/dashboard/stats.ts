@@ -299,7 +299,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           `SELECT COUNT(*) as n FROM schedule_items WHERE date BETWEEN ? AND ? AND category='inspect' AND inspection_category='유도등' AND status='done'`
         ).bind(monthStart, monthEnd).first<{n:number}>()
         const isDone = (schedDoneQ?.n ?? 0) > 0
-        const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+        const label = sched.inspection_category ?? sched.title
         monthlyItems.push({
           label,
           pct: isDone ? 100 : 0,
@@ -333,7 +333,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
           LIMIT 1
         `).bind(cpCategory, monthStart, monthEnd).first()
         const isDone = (schedDone?.n ?? 0) > 0 || !!hasRecord
-        const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+        const label = sched.inspection_category ?? sched.title
         monthlyItems.push({
           label,
           pct: isDone ? 100 : 0,
@@ -370,7 +370,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
         const late_pct  = cpTotal > 0 ? Math.min(Math.round((late_done  / cpTotal) * 100), 100) : 0
         // 가운데 텍스트는 0~200% — 두 cycle 모두 완료 시 200% 표시
         const pct = cpTotal > 0 ? Math.round((done / cpTotal) * 100) : 0
-        const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+        const label = sched.inspection_category ?? sched.title
         const colorIdx = monthlyItems.length % ITEM_COLORS.length
         monthlyItems.push({
           label,
@@ -403,7 +403,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       const total = cpTotal
       const done = d?.n ?? 0
       const pct = total > 0 ? Math.min(Math.round((done / total) * 100), 100) : 0
-      const label = sched.title.length > 10 ? sched.title.slice(0, 10) + '…' : sched.title
+      const label = sched.inspection_category ?? sched.title
 
       monthlyItems.push({
         label,

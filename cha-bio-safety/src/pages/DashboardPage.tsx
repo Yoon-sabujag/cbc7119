@@ -265,7 +265,7 @@ export default function DashboardPage() {
               {monthly.length === 0 ? (
                 <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
               ) : (
-                <div style={{ padding:'18px 24px', display:'flex', flexDirection:'column', gap:18, flex:1, justifyContent:'center', overflowY:'auto' }}>
+                <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:32, flex:1, justifyContent:'center', overflowY:'auto' }}>
                   {(() => {
                     // 한 줄당 최대 7개 — 2줄에 균등 분배 (n≤7: 1줄, n≤14: 2줄, n>14: 3줄)
                     const rows: MonthlyItem[][] = []
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                             ) : (
                               <Donut pct={m.pct} color={m.color} size={76} />
                             )}
-                            <div style={{ fontSize:11, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all' }}>{m.label}</div>
+                            <div style={{ fontSize:11, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all', whiteSpace:'normal' }}>{m.label}</div>
                             <div style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                           </div>
                         ))}
