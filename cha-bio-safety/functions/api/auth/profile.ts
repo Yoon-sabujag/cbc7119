@@ -40,9 +40,9 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     binds.push(staffId)
 
     const sql = `UPDATE staff SET ${updates.join(', ')} WHERE id = ?`
-    let stmt = env.DB.prepare(sql)
-    for (let i = 0; i < binds.length; i++) stmt = stmt.bind(binds[i])
-    await stmt.run()
+    // D1 .bind() 는 매개변수를 한 번에 spread 로 전달해야 함 — 루프로 하나씩 부르면
+    // 매번 바인딩이 덮어써져 마지막 값만 들어가고 SQL 이 미바인딩 상태로 실행됨
+    await env.DB.prepare(sql).bind(...binds).run()
 
     // 업데이트된 정보 반환
     const row = await env.DB.prepare('SELECT name, phone, email FROM staff WHERE id = ?').bind(staffId).first<{ name: string; phone: string | null; email: string | null }>()
