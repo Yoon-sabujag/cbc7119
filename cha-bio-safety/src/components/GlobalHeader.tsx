@@ -2,9 +2,10 @@ interface GlobalHeaderProps {
   title: string
   onMenuOpen: () => void
   rightSlot?: React.ReactNode
+  leftSlot?: React.ReactNode  // 햄버거 대신 표시 (예: 뒤로가기 버튼)
 }
 
-export function GlobalHeader({ title, onMenuOpen, rightSlot }: GlobalHeaderProps) {
+export function GlobalHeader({ title, onMenuOpen, rightSlot, leftSlot }: GlobalHeaderProps) {
   return (
     <header style={{
       display: 'flex',
@@ -15,20 +16,22 @@ export function GlobalHeader({ title, onMenuOpen, rightSlot }: GlobalHeaderProps
       borderBottom: '1px solid var(--bd)',
       flexShrink: 0,
     }}>
-      <button
-        onClick={onMenuOpen}
-        aria-label="메뉴 열기"
-        style={{
-          width: 32, height: 32, borderRadius: 7,
-          background: 'var(--bg3)', border: 'none',
-          color: 'var(--t2)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
-      >
-        <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-      </button>
+      {leftSlot ?? (
+        <button
+          onClick={onMenuOpen}
+          aria-label="메뉴 열기"
+          style={{
+            width: 32, height: 32, borderRadius: 7,
+            background: 'var(--bg3)', border: 'none',
+            color: 'var(--t2)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      )}
       <span style={{
         flex: 1, textAlign: rightSlot ? 'left' : 'center',
         fontSize: 13, fontWeight: 700, color: 'var(--t1)',

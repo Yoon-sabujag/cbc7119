@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './stores/authStore'
@@ -96,6 +96,7 @@ function Layout() {
   const isDesktop = useIsDesktop()
   const { isAuthenticated } = useAuthStore()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const noNavPaths = isDesktop ? DESKTOP_NO_NAV_PATHS : MOBILE_NO_NAV_PATHS
   const showNav = isAuthenticated
@@ -125,6 +126,19 @@ function Layout() {
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t1)', whiteSpace: 'nowrap' }}>차바이오컴플렉스 방재팀</span>
+  )
+
+  // 뒤로가기 버튼 (햄버거 대신) — 직접 진입할 일 없는 페이지에서 사용
+  const backBtn = (
+    <button
+      onClick={() => navigate(-1)}
+      aria-label="뒤로가기"
+      style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </button>
   )
 
   // 모바일 전용: 설정 톱니바퀴 버튼
@@ -166,6 +180,7 @@ function Layout() {
           <GlobalHeader
             title={isDashboard ? dateOnly : pageTitle}
             onMenuOpen={() => setSideOpen(true)}
+            leftSlot={isExtinguishers ? backBtn : undefined}
             rightSlot={
               isDashboard ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{dashboardRightSlot}{settingsGearBtn}</div>

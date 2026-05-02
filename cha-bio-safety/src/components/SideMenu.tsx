@@ -27,7 +27,7 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '시설 관리', items: [
     { label: 'DIV 압력 관리',   path: '/div',           badge: 0, soon: false },
     { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
-    { label: '소화기',          path: '/extinguishers', badge: 0, soon: false },  // Phase 24
+    // 소화기 관리(/extinguishers)는 점검 페이지/도면 동행에서만 진입 — SideMenu 노출 안 함
     { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
     { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
   ]},
