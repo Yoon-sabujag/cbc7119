@@ -35,6 +35,20 @@ function zoneLabelKo(z: string | null | undefined): string {
   }
 }
 
+// 층 정렬용 — 높은 층 → 낮은 층 (8-1F, 8F, 7F, ..., 1F, B1, B2, ..., M).
+// natural sort 가 아닌 도메인 의미 기반 정렬.
+function floorOrder(f: string): number {
+  if (!f) return -1000
+  if (f === 'M') return -100  // 기계실 — 가장 아래
+  if (f.startsWith('B')) {
+    const n = parseInt(f.slice(1), 10)
+    return isNaN(n) ? -90 : -n  // B1=-1, B2=-2 ...
+  }
+  if (f === '8-1F') return 8.5
+  const n = parseInt(f.replace('F', ''), 10)
+  return isNaN(n) ? 0 : n
+}
+
 function getMappingState(item: Item): 'unmapped-clean' | 'unmapped-inspected' | 'mapped' | 'disposed' {
   if (item.status === '폐기') return 'disposed'
   if (item.cp_id) return 'mapped'
@@ -107,7 +121,8 @@ export default function ExtinguishersListPage() {
 
   const items  = data?.items ?? []
   const zones  = data?.zones ?? []
-  const floors = data?.floors ?? []
+  // 높은 층부터 낮은 층 순. backend 가 알파벳 순으로 보내도 frontend 가 다시 sort.
+  const floors = [...(data?.floors ?? [])].sort((a, b) => floorOrder(b) - floorOrder(a))
 
   // ── Mutations ────────────────────────────────────────────────────────
   const updateMutation = useMutation({

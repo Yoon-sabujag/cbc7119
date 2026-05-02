@@ -72,8 +72,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     `SELECT DISTINCT zone FROM extinguishers WHERE zone IS NOT NULL AND zone != '' ORDER BY zone`
   ).all()
 
+  // floor 는 ext.floor (그 시점 기록) + cp.floor (현재 매핑 위치) 양쪽 union.
+  // ext.floor='8F' 인 자산이 cp.floor='8-1F' 마커에 매핑된 경우(현재 4건) cp.floor 가 진실에 더 가까움.
   const { results: floors } = await env.DB.prepare(
-    `SELECT DISTINCT floor FROM extinguishers WHERE floor IS NOT NULL AND floor != '' ORDER BY floor`
+    `SELECT DISTINCT f FROM (
+       SELECT floor AS f FROM extinguishers WHERE floor IS NOT NULL AND floor != ''
+       UNION
+       SELECT cp.floor AS f FROM extinguishers e JOIN check_points cp ON cp.id = e.check_point_id
+         WHERE cp.floor IS NOT NULL AND cp.floor != ''
+     ) ORDER BY f`
   ).all()
 
   return Response.json({
@@ -82,7 +89,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       items: results,
       stats: stats,
       zones: zones.map((z: any) => z.zone),
-      floors: floors.map((f: any) => f.floor),
+      floors: floors.map((row: any) => row.f),
       total: results.length,
     }
   })
