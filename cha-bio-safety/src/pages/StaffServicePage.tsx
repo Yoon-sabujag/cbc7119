@@ -477,12 +477,18 @@ export default function StaffServicePage() {
       // 중식A: "중식" 헤더 ~ 중식B "중식" 헤더 (PLUS/CORNER/SALAD/SNACK 제외)
       // 중식B: 중식B "중식" 헤더 ~ PLUS 시작 (PLUS 이하 제외)
       // 석식: "석식" 헤더 ~ 석식 SALAD 시작 (석식SALAD/SNACK 제외)
-      const menus = colRanges.map(col => ({
-        date: col.ymd,
-        lunch_a: collectTexts(col.xMin, col.xMax, lunchTopY ?? lunchAY, lunchBTopY ?? lunchBY),
-        lunch_b: collectTexts(col.xMin, col.xMax, lunchBTopY ?? lunchBY, plusY ?? dinnerY!),
-        dinner: collectTexts(col.xMin, col.xMax, dinnerY!, dinnerSaladY ?? snackY ?? dinnerY! - 200),
-      }))
+      // 공휴일은 식당 미운영 → 추출 단계에서 스킵 (PDF 컬럼이 비어있어도 인접 컬럼 텍스트가
+      // x-range 어긋남으로 새어들어오는 케이스 방지)
+      const menus = colRanges
+        .filter(col => !holidayMap[col.ymd])
+        .map(col => ({
+          date: col.ymd,
+          lunch_a: collectTexts(col.xMin, col.xMax, lunchTopY ?? lunchAY, lunchBTopY ?? lunchBY),
+          lunch_b: collectTexts(col.xMin, col.xMax, lunchBTopY ?? lunchBY, plusY ?? dinnerY!),
+          dinner: collectTexts(col.xMin, col.xMax, dinnerY!, dinnerSaladY ?? snackY ?? dinnerY! - 200),
+        }))
+        // 모두 비어있으면 저장 안 함 — PDF 에 해당 날짜 컬럼이 있어도 메뉴가 없는 경우 차단
+        .filter(m => m.lunch_a || m.lunch_b || m.dinner)
 
       // 7) R2에 PDF 업로드
       const fd = new FormData()
@@ -502,7 +508,7 @@ export default function StaffServicePage() {
     } catch (err: any) {
       toast.error(err?.message ?? '식단표 분석 실패', { id: toastId })
     }
-  }, [qc])
+  }, [qc, holidayMap])
 
   const myLeaves = leaveData?.myLeaves ?? []
   const teamLeaves = leaveData?.teamLeaves ?? []
