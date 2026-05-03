@@ -3259,7 +3259,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         </div>
         {isExtinguisher && (
           <button onClick={() => navigate('/extinguishers')} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
-            리스트
+            소화기 관리
           </button>
         )}
       </div>
