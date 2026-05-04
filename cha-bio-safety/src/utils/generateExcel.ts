@@ -925,6 +925,8 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   wbXml = wbXml.replace(/<sheet[^>]*name="작성법"[^>]*\/>/g, '')
   // activeTab="1" → activeTab="0" (작성법 시트 삭제 후 탭 인덱스 보정)
   wbXml = wbXml.replace(/activeTab="1"/, 'activeTab="0"')
+  // firstSheet="1" → firstSheet="0" (작성법 시트 삭제 후 dangling pointer 방지 — Excel 복구 모드 트리거)
+  wbXml = wbXml.replace(/firstSheet="\d+"/, 'firstSheet="0"')
   files['xl/workbook.xml'] = strToU8(wbXml)
 
   // workbook.xml.rels: sheet2.xml relationship (rId2) 제거
@@ -1041,19 +1043,20 @@ export async function generateWorkLogExcel(yearMonth: string, data: import('../t
   xml = patchCell(xml, 'Y19', data.escape_result === 'ok'  ? '\u221A' : '')
   xml = patchCell(xml, 'Y21', data.escape_result === 'bad' ? '\u221A' : '')
 
-  // -- 조치내역 (다중 라인) --
-  xml = patchCell(xml, 'AA10', data.fire_action.replace(/\n/g, '&#10;'))
-  xml = patchCell(xml, 'AA14', data.escape_action.replace(/\n/g, '&#10;'))
+  // -- 조치내역 (다중 라인) — raw \n 으로 전달 (셀 wrapText 스타일이 줄바꿈 처리)
+  // patchCell 내부 esc() 가 & 를 &amp; 로 재이스케이프하므로 &#10; 엔티티는 사용 금지
+  xml = patchCell(xml, 'AA10', data.fire_action ?? '')
+  xml = patchCell(xml, 'AA14', data.escape_action ?? '')
 
   // -- 화기취급감독 결과/조치 --
   xml = patchCell(xml, 'Y26', data.gas_result === 'ok'  ? '\u221A' : '')
   xml = patchCell(xml, 'Y28', data.gas_result === 'bad' ? '\u221A' : '')
-  xml = patchCell(xml, 'AA17', (data.gas_action ?? '').replace(/\n/g, '&#10;'))
+  xml = patchCell(xml, 'AA17', data.gas_action ?? '')
 
   // -- 기타사항 결과/조치 --
   xml = patchCell(xml, 'Y33', data.etc_result === 'ok'  ? '\u221A' : '')
   xml = patchCell(xml, 'Y35', data.etc_result === 'bad' ? '\u221A' : '')
-  xml = patchCell(xml, 'AA24', (data.etc_action ?? '').replace(/\n/g, '&#10;'))
+  xml = patchCell(xml, 'AA24', data.etc_action ?? '')
 
   // -- 불량사항 개선보고 (작성법 기준) --
   // 보고일시: C40(연), E40(월), G40(일)
