@@ -18,6 +18,11 @@ const PATH_LABEL: Record<string, string> = (() => {
   return m
 })()
 
+// 메뉴 설정은 모바일 사이드바를 다룸 — 데스크톱 전용 아이템 (desktopOnly) 은 표시 대상에서 제외
+const DESKTOP_ONLY_PATHS = new Set(
+  MENU.flatMap(s => s.items).filter(i => i.desktopOnly).map(i => i.path),
+)
+
 // admin 전용 경로
 const ADMIN_PATHS = new Set(
   MENU.flatMap(s => s.items).filter(i => i.role === 'admin').map(i => i.path)
@@ -239,8 +244,9 @@ export function MenuSettingsSection() {
             )
           }
 
-          // item — MENU 에서 제거된 path (예: 폐기된 /extinguishers) 는 렌더 스킵
+          // item — MENU 에서 제거된 path 또는 desktopOnly 아이템은 렌더 스킵 (메뉴 설정은 모바일 전용)
           if (!(entry.path in PATH_LABEL)) return null
+          if (DESKTOP_ONLY_PATHS.has(entry.path)) return null
           const label = PATH_LABEL[entry.path]
           return (
             <div key={`i-${entry.path}`} style={{
