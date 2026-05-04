@@ -151,35 +151,12 @@ export default function StaffServicePage() {
   const [mobileOtherType, setMobileOtherType] = useState('')  // 모바일 기타 휴가
   const [mobileReason, setMobileReason] = useState('')  // 모바일 사유
 
-  // ── 휴가신청서 미리보기 캘리브레이션 ───────────────────────
-  // 마커 인덱스 (PDF 좌표 → 미리보기 % 매핑, generateLeaveRequest.ts 와 일치):
-  //   0=입사일, 1=생년월일, 2=성명, 3=기간시작, 4=기간종료, 5=기간일수,
-  //   6=체크_연차, 7=체크_경조, 8=체크_병가공상, 9=체크_병가사상,
-  //   10=체크_보건, 11=체크_공가, 12=체크_기타특별,
-  //   13=기타특별사유, 14=연락처, 15=신청일수, 16=사유기타사항
-  const LEAVE_CALIB_STEPS = [
-    { label: '입사일', color: '#ef4444' },
-    { label: '생년월일', color: '#dc2626' },
-    { label: '성명', color: '#3b82f6' },
-    { label: '기간시작', color: '#22c55e' },
-    { label: '기간종료', color: '#f59e0b' },
-    { label: '기간 일수', color: '#a855f7' },
-    { label: '체크 연차', color: '#000' },
-    { label: '체크 경조', color: '#000' },
-    { label: '체크 병가공상', color: '#000' },
-    { label: '체크 병가사상', color: '#000' },
-    { label: '체크 보건', color: '#000' },
-    { label: '체크 공가', color: '#000' },
-    { label: '체크 기타특별', color: '#000' },
-    { label: '기타특별 사유', color: '#6366f1' },
-    { label: '연락처', color: '#ec4899' },
-    { label: '신청일수', color: '#14b8a6' },
-    { label: '사유 기타사항', color: '#f97316' },
-  ] as const
-
-  // PDF 좌표를 미리보기 % 로 변환한 기본값 (page 595×841 pt 기준).
+  // ── 휴가신청서 미리보기 좌표 (PDF 좌표를 % 로 변환, generateLeaveRequest.ts 와 일치) ─
+  // 인덱스: 0=입사일, 1=생년월일, 2=성명, 3=기간시작, 4=기간종료, 5=기간일수,
+  //         6~12=체크박스 (연차/경조/병가공상/병가사상/보건/공가/기타특별),
+  //         13=기타특별사유, 14=연락처, 15=신청일수, 16=사유기타사항
   // ty(N) = baseline at top-down y=N. 시각적 중앙은 baseline - fontSize×0.25.
-  const LEAVE_PDF_DEFAULTS: Record<number, { x: number; y: number }> = {
+  const lp: Record<number, { x: number; y: number }> = {
     0:  { x: 80.34, y: 27.79 },  // 입사일       (cx=478, ty=237, sz=13)
     1:  { x: 80.34, y: 32.07 },  // 생년월일     (cx=478, ty=273, sz=13)
     2:  { x: 43.70, y: 31.81 },  // 성명         (cx=260, ty=271, sz=14)
@@ -198,97 +175,6 @@ export default function StaffServicePage() {
     15: { x: 62.86, y: 69.77 },  // 신청일수     (cx=374, ty=590, sz=13)
     16: { x: 55.38, y: 74.79 },  // 기타사항     (cx=329.5, ty=632, sz=12)
   }
-
-  type LeaveCalibData = Record<number, { x: number; y: number }>
-  const LEAVE_CALIB_KEY = 'calib_leave_request_v2'  // v1 (구 19마커) 무효화
-  const [leaveCalibMode, setLeaveCalibMode] = useState(false)
-  const [leaveCalibStep, setLeaveCalibStep] = useState(0)
-  const [leaveCalibPoints, setLeaveCalibPoints] = useState<(null | { x: number; y: number })[]>([])
-  const [leaveActivePoint, setLeaveActivePoint] = useState<{ x: number; y: number } | null>(null)
-  const leavePreviewRef = useRef<HTMLDivElement>(null)
-  const [leaveImgRect, setLeaveImgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
-
-  const loadLeaveCalib = (): LeaveCalibData => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LEAVE_CALIB_KEY) ?? '{}')
-      // 저장된 값이 있으면 PDF 기본값에 덮어씌움 (사용자 미세조정 우선)
-      return { ...LEAVE_PDF_DEFAULTS, ...saved }
-    } catch { return { ...LEAVE_PDF_DEFAULTS } }
-  }
-  const [leaveCalib, setLeaveCalib] = useState<LeaveCalibData>(loadLeaveCalib)
-
-  const measureLeaveImg = useCallback(() => {
-    const cont = leavePreviewRef.current
-    if (!cont) return
-    const img = cont.querySelector('img')
-    if (!img) return
-    const cr = cont.getBoundingClientRect()
-    const ir = img.getBoundingClientRect()
-    setLeaveImgRect({ left: ir.left - cr.left, top: ir.top - cr.top, width: ir.width, height: ir.height })
-  }, [])
-
-  useEffect(() => {
-    measureLeaveImg()
-    const obs = new ResizeObserver(() => measureLeaveImg())
-    if (leavePreviewRef.current) obs.observe(leavePreviewRef.current)
-    return () => obs.disconnect()
-  }, [measureLeaveImg])
-
-  const leaveClientToPct = useCallback((clientX: number, clientY: number) => {
-    if (!leaveImgRect) return null
-    const cont = leavePreviewRef.current
-    if (!cont) return null
-    const cb = cont.getBoundingClientRect()
-    const x = ((clientX - cb.left - leaveImgRect.left) / leaveImgRect.width) * 100
-    const y = ((clientY - cb.top - leaveImgRect.top) / leaveImgRect.height) * 100
-    return { x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) }
-  }, [leaveImgRect])
-
-  const SNAP_THRESHOLD = 1.5 // Y 좌표 차이 1.5% 이내면 스냅
-  const leaveCalibClick = useCallback((e: React.MouseEvent) => {
-    if (!leaveCalibMode) return
-    const pt = leaveClientToPct(e.clientX, e.clientY)
-    if (!pt) return
-    // 기존 확정된 포인트들의 Y에 스냅
-    const allYs = leaveCalibPoints.filter(Boolean).map(p => p!.y)
-    for (const y of allYs) {
-      if (Math.abs(pt.y - y) < SNAP_THRESHOLD) { pt.y = y; break }
-    }
-    setLeaveActivePoint(pt)
-  }, [leaveCalibMode, leaveClientToPct, leaveCalibPoints])
-
-  const leaveCalibConfirm = useCallback(() => {
-    if (!leaveActivePoint) return
-    const newPoints = [...leaveCalibPoints, leaveActivePoint]
-    setLeaveCalibPoints(newPoints)
-    setLeaveActivePoint(null)
-    if (leaveCalibStep + 1 >= LEAVE_CALIB_STEPS.length) {
-      const data: LeaveCalibData = {}
-      newPoints.forEach((pt, i) => { if (pt) data[i] = pt })
-      localStorage.setItem(LEAVE_CALIB_KEY, JSON.stringify(data))
-      setLeaveCalib(data)
-      setLeaveCalibMode(false); setLeaveCalibStep(0); setLeaveCalibPoints([])
-    } else {
-      setLeaveCalibStep(leaveCalibStep + 1)
-    }
-  }, [leaveActivePoint, leaveCalibPoints, leaveCalibStep])
-
-  const leaveCalibSkip = useCallback(() => {
-    const newPoints = [...leaveCalibPoints, null]
-    setLeaveCalibPoints(newPoints)
-    setLeaveActivePoint(null)
-    if (leaveCalibStep + 1 >= LEAVE_CALIB_STEPS.length) {
-      const data: LeaveCalibData = {}
-      newPoints.forEach((pt, i) => { if (pt) data[i] = pt })
-      localStorage.setItem(LEAVE_CALIB_KEY, JSON.stringify(data))
-      setLeaveCalib(data)
-      setLeaveCalibMode(false); setLeaveCalibStep(0); setLeaveCalibPoints([])
-    } else {
-      setLeaveCalibStep(leaveCalibStep + 1)
-    }
-  }, [leaveCalibPoints, leaveCalibStep])
-
-  const lp = leaveCalib
 
   // 반차 타입 판별
   const HALF_TYPES = new Set(['half_am', 'half_pm', 'official_half_am', 'official_half_pm'])
@@ -1322,70 +1208,16 @@ export default function StaffServicePage() {
             </button>
           </div>
 
-          {/* 우측: A4 미리보기 + 캘리브레이션 기반 오버레이 */}
-          <div
-            ref={leavePreviewRef}
-            onClick={leaveCalibClick}
-            style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, position: 'relative', cursor: leaveCalibMode ? 'crosshair' : 'default' }}
-          >
+          {/* 우측: A4 미리보기 + PDF 좌표 기반 값 오버레이 */}
+          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, position: 'relative' }}>
             <div style={{ position: 'relative', width: '100%', maxWidth: 595 }}>
-              {/* 캘리브레이션 버튼 (미리보기 안 상단) */}
-              <div style={{ position: 'absolute', top: 4, right: 4, zIndex: 20, display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setLeaveCalibMode(!leaveCalibMode); setLeaveCalibStep(0); setLeaveCalibPoints([]); setLeaveActivePoint(null) }}
-                  style={{
-                    padding: '3px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                    background: leaveCalibMode ? '#ef4444' : 'rgba(0,0,0,0.5)', color: '#fff',
-                    border: 'none', backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  {leaveCalibMode ? '취소' : '위치 보정'}
-                </button>
-                {leaveCalibMode && (
-                  <>
-                    <span style={{ fontSize: 10, color: '#fff', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-                      [{leaveCalibStep + 1}/{LEAVE_CALIB_STEPS.length}] {LEAVE_CALIB_STEPS[leaveCalibStep].label}
-                    </span>
-                    <button onClick={(e) => { e.stopPropagation(); leaveCalibConfirm() }} disabled={!leaveActivePoint}
-                      style={{ padding: '3px 12px', borderRadius: 6, fontSize: 10, fontWeight: 700, cursor: 'pointer', background: leaveActivePoint ? '#22c55e' : 'rgba(0,0,0,0.3)', color: '#fff', border: 'none' }}>
-                      확인
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); leaveCalibSkip() }}
-                      style={{ padding: '3px 12px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer', background: 'rgba(0,0,0,0.3)', color: '#fff', border: 'none' }}>
-                      건너뛰기
-                    </button>
-                  </>
-                )}
-              </div>
               <img
                 src="/templates/leave_request_preview.png"
                 alt="휴가신청서 미리보기"
-                onLoad={measureLeaveImg}
                 style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
               />
 
-              {/* 캘리브 모드: 활성 마커 + 기존 마커 */}
-              {leaveCalibMode && (
-                <>
-                  {leaveActivePoint && (
-                    <div style={{ position: 'absolute', left: `${leaveActivePoint.x}%`, top: `${leaveActivePoint.y}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 10 }}>
-                      <div style={{ position: 'absolute', left: -15, top: 0, width: 30, height: 2, background: LEAVE_CALIB_STEPS[leaveCalibStep].color, opacity: 0.8 }} />
-                      <div style={{ position: 'absolute', top: -15, left: 0, width: 2, height: 30, background: LEAVE_CALIB_STEPS[leaveCalibStep].color, opacity: 0.8 }} />
-                      <div style={{ width: 14, height: 14, borderRadius: '50%', background: LEAVE_CALIB_STEPS[leaveCalibStep].color, border: '2px solid #fff', boxShadow: '0 2px 6px rgba(0,0,0,0.4)', transform: 'translate(-50%, -50%)', position: 'absolute' }} />
-                    </div>
-                  )}
-                  {leaveCalibPoints.map((pt, i) => pt && (
-                    <div key={i} style={{ position: 'absolute', left: `${pt.x}%`, top: `${pt.y}%`, transform: 'translate(-50%, -50%)', pointerEvents: 'none' }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: LEAVE_CALIB_STEPS[i].color, border: '1px solid #fff', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transform: 'translate(-50%, -50%)', position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: '#fff', fontWeight: 900 }}>
-                        {i + 1}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* 값 오버레이 (캘리브 모드가 아닐 때) — PDF 와 동일한 단일 문자열 날짜 */}
-              {!leaveCalibMode && (() => {
+              {(() => {
                 const sid = staff?.id ?? ''
                 const hireDate = sid.length >= 8 ? `${sid.slice(0,4)}-${sid.slice(4,6)}-${sid.slice(6,8)}` : null
                 const fmtDate = (d: string) => {
