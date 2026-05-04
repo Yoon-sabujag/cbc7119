@@ -249,7 +249,12 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>생년월일</div>
-          <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={INPUT_STYLE} />
+          <input
+            type="date"
+            value={birthDate}
+            onChange={e => setBirthDate(e.target.value)}
+            style={{ ...INPUT_STYLE, WebkitAppearance: 'none', appearance: 'none', minWidth: 0, textAlign: 'left' }}
+          />
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>연락처</div>
