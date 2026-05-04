@@ -484,55 +484,40 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
           </div>
         )}
 
-        {/* 2열 그리드: 좌 DVR-01~06 / 우 DVR-07~12 */}
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-          {/* 왼쪽 열 */}
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            {CCTV_DVRS.slice(0, 6).map(dvr => {
-              const cp = cctvCPs.find(c => c.locationNo === dvr.no)
-              if (!cp) return null
-              const curResult = dvrResults[cp.id] ?? 'normal'
-              return (
-                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'6px 8px 5px', border:'1px solid var(--bd)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>{dvr.label}</span>
-                    <span style={{ fontSize:9, color:'var(--t3)' }}>{dvr.desc}</span>
-                  </div>
-                  <div style={{ display:'flex', gap:4 }}>
-                    {INSPECT_RESULT_OPTIONS.map(opt => (
-                      <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                        {opt.icon} {opt.label}
-                      </button>
-                    ))}
-                  </div>
+        {/* 2열 그리드: 절반씩 분할 (DVR 갯수에 따라 자동) */}
+        {(() => {
+          const half = Math.ceil(CCTV_DVRS.length / 2)
+          const renderCard = (dvr: typeof CCTV_DVRS[number]) => {
+            const cp = cctvCPs.find(c => c.locationNo === dvr.no)
+            if (!cp) return null
+            const curResult = dvrResults[cp.id] ?? 'normal'
+            return (
+              <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'6px 8px 5px', border:'1px solid var(--bd)' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>{dvr.label}</span>
+                  <span style={{ fontSize:9, color:'var(--t3)' }}>{dvr.desc}</span>
                 </div>
-              )
-            })}
-          </div>
-          {/* 오른쪽 열 */}
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-            {CCTV_DVRS.slice(6, 12).map(dvr => {
-              const cp = cctvCPs.find(c => c.locationNo === dvr.no)
-              if (!cp) return null
-              const curResult = dvrResults[cp.id] ?? 'normal'
-              return (
-                <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'6px 8px 5px', border:'1px solid var(--bd)' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>{dvr.label}</span>
-                    <span style={{ fontSize:9, color:'var(--t3)' }}>{dvr.desc}</span>
-                  </div>
-                  <div style={{ display:'flex', gap:4 }}>
-                    {INSPECT_RESULT_OPTIONS.map(opt => (
-                      <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                        {opt.icon} {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                <div style={{ display:'flex', gap:4 }}>
+                  {INSPECT_RESULT_OPTIONS.map(opt => (
+                    <button key={opt.value} onClick={() => setDvrResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
+                      {opt.icon} {opt.label}
+                    </button>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              </div>
+            )
+          }
+          return (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {CCTV_DVRS.slice(0, half).map(renderCard)}
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                {CCTV_DVRS.slice(half).map(renderCard)}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* 특이사항 + 사진 */}
         <div>

@@ -24,4 +24,5 @@ export const CCTV_DVRS: CctvDvr[] = [
   { no: 'DVR-10', label: 'DVR 10', desc: 'B4F (주차장)',       retention: '25+20일 (추정)',  channels: 15, ports: [{ p:4, cap:'2TB', replaced:'2025-08-19' }, { p:5, cap:'2TB', replaced:'2025-12-05' }, { p:6, cap:'1TB', replaced:'기존' }] },
   { no: 'DVR-11', label: 'DVR 11', desc: 'B5F (주차장)',       retention: '52일',           channels: 15, ports: [{ p:3, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
   { no: 'DVR-12', label: 'DVR 12', desc: '리서치프라자, 서버실', retention: '91일',           channels: 8,  ports: [{ p:2, cap:'2TB', replaced:'기존' }] },
+  { no: 'DVR-13', label: 'DVR 13', desc: '국제회의실, 대강당',   retention: '120일 (추정)',    channels: 7,  ports: [{ p:1, cap:'4TB', replaced:'2026-04-28' }] },
 ]
