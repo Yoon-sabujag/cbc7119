@@ -421,7 +421,7 @@ function CctvEquipmentInfoModal({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:120, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
       <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>📊</span>
+        <span style={{ fontSize:22, lineHeight:1 }}>📹</span>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>CCTV 녹화 설비 현황</div>
           <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>업데이트 {CCTV_INFO_UPDATED} · DVR 12대</div>
@@ -542,7 +542,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
           onClick={() => setShowInfo(true)}
           style={{ fontSize:11, fontWeight:700, padding:'6px 10px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4, flexShrink:0 }}
         >
-          📊 설비 현황
+          📹 설비 현황
         </button>
       </div>
       {showInfo && <CctvEquipmentInfoModal onClose={() => setShowInfo(false)} />}
