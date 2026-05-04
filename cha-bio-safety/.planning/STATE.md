@@ -109,3 +109,4 @@ Recent decisions affecting current work:
 Last session: 2026-04-26T13:55:00Z
 Stopped at: 260426-vk9 지하층 floor 형식 + 소화기 zone 매핑 fix 완료 (사용자 PWA 검증 대기, CP-FE-0449 정리 포함)
 Resume file: .planning/ROADMAP.md
+| 2026-05-04 | fast | InspectionPage 헤더 '리스트' → '소화기 관리' 변경 | ✅ |

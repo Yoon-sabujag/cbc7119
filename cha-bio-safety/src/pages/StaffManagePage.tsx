@@ -69,11 +69,11 @@ const LABEL_STYLE: React.CSSProperties = {
 // ── Staff Modal Content ─────────────────────────────────
 interface StaffFormState {
   name: string; id: string; phone: string; email: string;
-  appointedAt: string; title: string; role: Role;
+  appointedAt: string; birthDate: string; title: string; role: Role;
   shiftOffset: string; shiftFixed: string;
 }
 const EMPTY_STAFF_FORM: StaffFormState = {
-  name: '', id: '', phone: '', email: '', appointedAt: '', title: '', role: 'assistant',
+  name: '', id: '', phone: '', email: '', appointedAt: '', birthDate: '', title: '', role: 'assistant',
   shiftOffset: '', shiftFixed: '',
 }
 
@@ -154,7 +154,7 @@ function StaffModalContent({
   const qc = useQueryClient()
   const [form, setForm] = useState<StaffFormState>(
     mode === 'edit' && staff
-      ? { name: staff.name, id: staff.id, phone: staff.phone ?? '', email: staff.email ?? '', appointedAt: staff.appointedAt ?? '', title: staff.title, role: staff.role, shiftOffset: staff.shiftOffset !== null ? String(staff.shiftOffset) : '', shiftFixed: staff.shiftFixed ?? '' }
+      ? { name: staff.name, id: staff.id, phone: staff.phone ?? '', email: staff.email ?? '', appointedAt: staff.appointedAt ?? '', birthDate: staff.birthDate ?? '', title: staff.title, role: staff.role, shiftOffset: staff.shiftOffset !== null ? String(staff.shiftOffset) : '', shiftFixed: staff.shiftFixed ?? '' }
       : EMPTY_STAFF_FORM
   )
   const [confirmReset, setConfirmReset] = useState(false)
@@ -164,7 +164,7 @@ function StaffModalContent({
     setForm(f => ({ ...f, [k]: e.target.value }))
 
   const createMutation = useMutation({
-    mutationFn: () => staffApi.create({ id: form.id, name: form.name, role: form.role, title: form.title, phone: form.phone || undefined, email: form.email || undefined, appointedAt: form.appointedAt || undefined }),
+    mutationFn: () => staffApi.create({ id: form.id, name: form.name, role: form.role, title: form.title, phone: form.phone || undefined, email: form.email || undefined, appointedAt: form.appointedAt || undefined, birthDate: form.birthDate || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['staff-list'] }); toast.success('직원이 추가되었습니다'); onClose() },
     onError: () => toast.error('저장에 실패했습니다. 입력값을 확인해 주세요'),
   })
@@ -195,7 +195,7 @@ function StaffModalContent({
     if (mode === 'add') {
       createMutation.mutate()
     } else {
-      updateMutation.mutate({ name: form.name, role: form.role, title: form.title, phone: form.phone || undefined, email: form.email || undefined, appointedAt: form.appointedAt || undefined })
+      updateMutation.mutate({ name: form.name, role: form.role, title: form.title, phone: form.phone || undefined, email: form.email || undefined, appointedAt: form.appointedAt || undefined, birthDate: form.birthDate || null })
     }
   }
 
@@ -231,6 +231,10 @@ function StaffModalContent({
             placeholder="사번 입력 시 자동 채워짐"
             readOnly
           />
+        </div>
+        <div>
+          <label style={LABEL_STYLE}>생년월일 <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--t3)' }}>(휴가신청서 자동 채움)</span></label>
+          <input style={INPUT_STYLE} value={form.birthDate} onChange={setField('birthDate')} type="date" />
         </div>
         <div>
           <label style={LABEL_STYLE}>직책</label>

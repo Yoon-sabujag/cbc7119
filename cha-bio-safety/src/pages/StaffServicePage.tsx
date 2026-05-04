@@ -144,7 +144,6 @@ export default function StaffServicePage() {
   // ── 휴가신청서 폼 state (desktop only) ──────────────────────
   const staffFull = staffList.find(s => s.id === (staff?.id ?? '')) as StaffFull | undefined
   const [docLeaveType, setDocLeaveType] = useState<string>('')
-  const [docPhone, setDocPhone] = useState<string>('')
   const [docStartDate, setDocStartDate] = useState<string>('')
   const [docEndDate, setDocEndDate] = useState<string>('')
   const [docOtherReason, setDocOtherReason] = useState<string>('')
@@ -273,11 +272,6 @@ export default function StaffServicePage() {
     return { x: pa.x + (pb.x - pa.x) * frac, y: pa.y }
   }
 
-  // staffFull.phone이 로드되면 docPhone 초기화
-  useEffect(() => {
-    if (staffFull?.phone && !docPhone) setDocPhone(staffFull.phone)
-  }, [staffFull?.phone])
-
   // 반차 타입 판별
   const HALF_TYPES = new Set(['half_am', 'half_pm', 'official_half_am', 'official_half_pm'])
   const isHalfType = HALF_TYPES.has(docLeaveType)
@@ -317,7 +311,8 @@ export default function StaffServicePage() {
         staffName: staff.name,
         staffId: staff.id,
         hireDate: `${staff.id.slice(0,4)}-${staff.id.slice(4,6)}-${staff.id.slice(6,8)}`,
-        phone: docPhone,
+        birthDate: staffFull?.birthDate ?? undefined,
+        phone: staffFull?.phone ?? '',
         leaveType: excelType,
         otherReason: docOtherReason,
         reason: docReason,
@@ -330,7 +325,7 @@ export default function StaffServicePage() {
     } catch (err: any) {
       toast.error(err?.message ?? '생성 실패', { id: toastId })
     }
-  }, [staff, docStartDate, docEndDate, docPhone, docLeaveType, docOtherReason, docReason, docDays])
+  }, [staff, docStartDate, docEndDate, staffFull?.phone, staffFull?.birthDate, docLeaveType, docOtherReason, docReason, docDays])
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
   const staffId = staff?.id ?? ''
@@ -1236,22 +1231,6 @@ export default function StaffServicePage() {
               </div>
             )}
 
-            {/* 휴대전화번호 */}
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>휴가중 연락처</div>
-              <input
-                type="tel"
-                value={docPhone}
-                onChange={e => setDocPhone(e.target.value)}
-                placeholder="010-0000-0000"
-                style={{
-                  width: '100%', padding: '6px 8px', borderRadius: 8,
-                  border: '1px solid var(--bd)', background: 'var(--bg)',
-                  color: 'var(--t1)', fontSize: 12,
-                }}
-              />
-            </div>
-
             {/* 휴가 신청 버튼 */}
             <button
               onClick={async () => {
@@ -1311,7 +1290,7 @@ export default function StaffServicePage() {
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
             >
-              엑셀 다운로드
+              PDF 다운로드
             </button>
             <button
               onClick={() => window.print()}
@@ -1437,7 +1416,7 @@ export default function StaffServicePage() {
                     {docDays > 0 && ovAt(lp[7], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
                     {cp && <div style={{ position: 'absolute', left: `${cp.x}%`, top: `${cp.y}%`, transform: 'translate(-50%, -50%)', width: 12, height: 12, background: '#000' }} />}
                     {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[15], docOtherReason)}
-                    {docPhone && ovAt(lp[16], docPhone)}
+                    {staffFull?.phone && ovAt(lp[16], staffFull.phone)}
                     {docDays > 0 && ovAt(lp[17], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
                     {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[18], docReason)}
                   </>
@@ -1664,7 +1643,7 @@ export default function StaffServicePage() {
                     휴가 신청
                   </button>
 
-                  {/* 엑셀 다운로드 */}
+                  {/* PDF 다운로드 */}
                   <button onClick={handleLeaveDownload}
                     style={{ width: '100%', padding: '10px 0', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     휴가신청서 다운로드

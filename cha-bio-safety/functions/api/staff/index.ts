@@ -6,7 +6,7 @@ import { nowKstSql } from '../../utils/kst'
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
     const rows = await env.DB.prepare(
-      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, shift_offset, shift_fixed, created_at
+      `SELECT id, name, role, title, phone, email, appointed_at, birth_date, active, shift_type, shift_offset, shift_fixed, created_at
        FROM staff ORDER BY name ASC`
     ).all<Record<string, unknown>>()
 
@@ -18,6 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
       phone:       r.phone ?? null,
       email:       r.email ?? null,
       appointedAt: r.appointed_at ?? null,
+      birthDate:   r.birth_date ?? null,
       active:      r.active ?? 1,
       shiftType:   r.shift_type ?? null,
       shiftOffset: r.shift_offset ?? null,
@@ -42,7 +43,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
     const body = await request.json<{
       id: string; name: string; role: string; title: string;
-      phone?: string; email?: string; appointedAt?: string;
+      phone?: string; email?: string; appointedAt?: string; birthDate?: string;
       shiftOffset?: number; shiftFixed?: string;
     }>()
 
@@ -61,8 +62,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     const now = nowKstSql()
 
     await env.DB.prepare(
-      `INSERT INTO staff (id, name, role, title, password_hash, phone, email, appointed_at, active, shift_offset, shift_fixed, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 1, ?9, ?10, ?11, ?11)`
+      `INSERT INTO staff (id, name, role, title, password_hash, phone, email, appointed_at, birth_date, active, shift_offset, shift_fixed, created_at, updated_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 1, ?10, ?11, ?12, ?12)`
     ).bind(
       trimmedId,
       body.name.trim(),
@@ -72,13 +73,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       body.phone ?? null,
       body.email ?? null,
       appointedAt,
+      body.birthDate ?? null,
       body.shiftOffset !== undefined ? body.shiftOffset : null,
       body.shiftFixed ?? null,
       now,
     ).run()
 
     const created = await env.DB.prepare(
-      `SELECT id, name, role, title, phone, email, appointed_at, active, shift_type, shift_offset, shift_fixed, created_at FROM staff WHERE id = ?1`
+      `SELECT id, name, role, title, phone, email, appointed_at, birth_date, active, shift_type, shift_offset, shift_fixed, created_at FROM staff WHERE id = ?1`
     ).bind(trimmedId).first<Record<string, unknown>>()
 
     return Response.json({
@@ -91,6 +93,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         phone:       created!.phone ?? null,
         email:       created!.email ?? null,
         appointedAt: created!.appointed_at ?? null,
+        birthDate:   created!.birth_date ?? null,
         active:      created!.active ?? 1,
         shiftType:   created!.shift_type ?? null,
         shiftOffset: created!.shift_offset ?? null,

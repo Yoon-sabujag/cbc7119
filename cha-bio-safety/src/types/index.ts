@@ -25,11 +25,11 @@ export interface ApiResponse<T> { success:boolean; data?:T; error?:string }
 
 export interface StaffFull {
   id: string; name: string; role: Role; title: string;
-  phone: string | null; email: string | null; appointedAt: string | null;
+  phone: string | null; email: string | null; appointedAt: string | null; birthDate: string | null;
   active: number; shiftType: string | null; shiftOffset: number | null; shiftFixed: string | null; createdAt: string;
 }
-export interface StaffCreatePayload { id: string; name: string; role: Role; title: string; phone?: string; email?: string; appointedAt?: string; shiftOffset?: number; shiftFixed?: string }
-export interface StaffUpdatePayload { name?: string; role?: Role; title?: string; phone?: string; email?: string; appointedAt?: string; active?: number; shiftOffset?: number | null; shiftFixed?: string | null }
+export interface StaffCreatePayload { id: string; name: string; role: Role; title: string; phone?: string; email?: string; appointedAt?: string; birthDate?: string; shiftOffset?: number; shiftFixed?: string }
+export interface StaffUpdatePayload { name?: string; role?: Role; title?: string; phone?: string; email?: string; appointedAt?: string; birthDate?: string | null; active?: number; shiftOffset?: number | null; shiftFixed?: string | null }
 
 export interface CheckPointFull {
   id: string; qrCode: string; floor: string; zone: BuildingZone;
