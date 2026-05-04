@@ -28,7 +28,7 @@ $global:GROUPS = @(
     )}
     @{ name="2. 각종 운영 문서"; items=@(
         @{ key="shift";         label="월별근무표";         pattern='^(\d{4})년_(\d{1,2})월_근무표\.xlsx$';                            yearG=1; monthG=2 }
-        @{ key="leave";         label="휴가신청서";         pattern='^휴가신청서_.+_(\d{4})(\d{2})\d{2}\.xlsx$';                      yearG=1; monthG=2 }
+        @{ key="leave";         label="휴가신청서";         pattern='^휴가신청서_.+_(\d{4})(\d{2})\d{2}\.pdf$';                       yearG=1; monthG=2 }
     )}
     @{ name="3. 점검 및 조치"; items=@(
         @{ key="remed";         label="일상점검조치";       pattern='^조치보고서_.+_(\d{4})(\d{2})\d{2}\.html$';                      yearG=1; monthG=2 }
