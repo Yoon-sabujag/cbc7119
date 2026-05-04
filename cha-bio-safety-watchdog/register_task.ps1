@@ -87,5 +87,6 @@ Write-Host "     - Auto-start 30s after logon"
 Write-Host "     - Health check every 2 min, auto-restart if dead"
 Write-Host ""
 
-Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+schtasks /Run /TN $taskName 2>$null | Out-Null
 Write-Host "[OK] First run triggered." -ForegroundColor Cyan
+exit 0
