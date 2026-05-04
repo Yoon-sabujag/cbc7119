@@ -1,6 +1,13 @@
 ﻿# CHA Bio Complex - Download File Auto-Organizer
 # Windows 7+ (PowerShell 2.0+ / .NET 3.5+)
 
+# ── 단일 인스턴스 잠금 — 작업 스케줄러 keepalive 가 중복 실행해도 안전 ──
+$global:WatchdogMutex = New-Object System.Threading.Mutex($false, "Global\CHA_Bio_Watchdog_Single_Instance")
+if (-not $global:WatchdogMutex.WaitOne(0)) {
+    # 이미 다른 인스턴스 실행 중 — 조용히 종료
+    exit 0
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
