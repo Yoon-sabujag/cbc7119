@@ -42,7 +42,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
     // ── 해당 날짜에 조치 완료된 점검 항목 (불량/주의) ──────
     const remediations = await ctx.env.DB.prepare(
-      `SELECT r.id, r.result, r.memo, r.resolution_memo, r.materials_used, r.location_detail, r.resolved_at,
+      `SELECT r.id, r.result, r.memo, r.resolution_memo, r.materials_used, r.location_detail, r.guide_light_type, r.resolved_at,
               cp.category, cp.location, cp.floor, cp.zone,
               fpm.label AS marker_label
        FROM check_records r

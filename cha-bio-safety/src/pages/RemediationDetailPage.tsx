@@ -112,10 +112,11 @@ export default function RemediationDetailPage() {
   useEffect(() => {
     if (!isGuideLight) return
     if (actionPick === '본체 교체') {
-      setMaterialName(GL_TYPE_LABEL[record?.guideLightType ?? ''] ?? '')
+      const t = GL_TYPE_LABEL[record?.guideLightType ?? ''] ?? ''
+      setMaterialName(t ? `${t} 유도등` : '유도등')
       setMaterialCount('1')
     } else if (actionPick === '예비전원 교체') {
-      setMaterialName('예비전원 4.8V')
+      setMaterialName('예비전원 4.8V 유도등')
       setMaterialCount('1')
     } else {
       setMaterialName('')

@@ -376,7 +376,16 @@ function buildTasks(
   }
 
   // 오늘 조치 완료된 점검 항목 (불량/주의)
-  const ZONE_KO: Record<string,string> = { office: '사무동', research: '연구동', common: '공용' }
+  const ZONE_KO: Record<string,string> = { office: '사무동', research: '연구동', common: '공용', basement: '지하' }
+  // 유도등 타입 라벨 (RemediationDetailPage 와 동일 매핑)
+  const GL_TYPE_LABEL: Record<string,string> = {
+    ceiling_exit: '천장피난구',
+    wall_exit: '벽부피난구',
+    room_passage: '거실통로',
+    corridor_passage: '복도통로',
+    stair_passage: '계단통로',
+    audience_passage: '객석통로',
+  }
   for (const r of (remediations ?? [])) {
     const floor = r.floor ?? ''
     const cat = r.category ?? ''
@@ -385,13 +394,15 @@ function buildTasks(
     const locationDetail = r.location_detail ?? ''
     const zoneKo = ZONE_KO[r.zone ?? ''] ?? ''
     const reso = r.resolution_memo ?? ''
-    // 유도등: location_detail > marker_label > loc 우선순위
+    // 유도등: location_detail > marker_label > loc 우선순위, 타입 라벨을 카테고리 앞에 붙임
     const isGL = cat === '유도등'
     const spot = locationDetail || markerLabel || loc
+    const glType = isGL ? (GL_TYPE_LABEL[r.guide_light_type ?? ''] ?? '') : ''
     const place = isGL
       ? [zoneKo, floor, spot].filter(Boolean).join(' ')
       : [floor, loc].filter(Boolean).join(' ')
-    const parts = [place, cat, reso].filter(Boolean).join(' ')
+    const catWithType = isGL && glType ? `${glType} ${cat}` : cat
+    const parts = [place, catWithType, reso].filter(Boolean).join(' ')
     tasks.push({ number: num++, content: parts })
   }
 
@@ -492,6 +503,8 @@ export function buildDailyReportData(
     .map((m: string) => `- ${String(m).trim()}`)
     .join('\n')
   const autoNotes = autoMaterials ? `[소모 자재]\n${autoMaterials}` : ''
+  // 사용자 입력 notes 와 자동 [소모 자재] 둘 다 보존: 모두 있으면 빈 줄로 구분, 한쪽만 있으면 그것만
+  const combinedNotes = notes && autoNotes ? `${notes}\n\n${autoNotes}` : (notes || autoNotes)
 
   return {
     date,
@@ -502,6 +515,6 @@ export function buildDailyReportData(
     tomorrowTasks,
     todayText,
     tomorrowText,
-    notes: notes || autoNotes,
+    notes: combinedNotes,
   }
 }
