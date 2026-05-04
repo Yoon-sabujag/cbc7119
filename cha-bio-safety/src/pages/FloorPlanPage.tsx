@@ -1889,10 +1889,13 @@ export default function FloorPlanPage() {
                     let finalMemo = inspectMemo
                     const extra: any = {}
                     if (planType === 'guidelamp') {
-                      // 유도등: 마커 floor+zone으로 check_point 조회
+                      // 유도등: 마커 floor+zone 으로 check_point 조회.
+                      // zone 불일치 시 (예: B층 마커 zone='common' vs CP zone='basement',
+                      // 또는 zone=null 마커) 같은 층의 첫 번째 유도등 CP 로 fallback.
                       const all = await inspectionApi.getCheckpoints(selected.floor)
-                      const gl = (all as any[]).find(cp => cp.category === '유도등' && cp.zone === (selected as any).zone)
-                      if (!gl) { toast.error('유도등 개소를 찾을 수 없습니다'); setInspectSubmitting(false); return }
+                      const guideLightCps = (all as any[]).filter(cp => cp.category === '유도등')
+                      if (guideLightCps.length === 0) { toast.error('이 층에 유도등 개소가 없습니다'); setInspectSubmitting(false); return }
+                      const gl = guideLightCps.find(cp => cp.zone === (selected as any).zone) ?? guideLightCps[0]
                       cpId = gl.id
                       extra.floor_plan_marker_id = selected.id
                       extra.guide_light_type = glType
