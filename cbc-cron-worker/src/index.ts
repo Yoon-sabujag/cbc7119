@@ -550,11 +550,43 @@ async function handleAccessBlockedAutoComplete(env: Env): Promise<void> {
     await logTelemetry(env, 'cron-ab-end', {
       detail: JSON.stringify({ today, targets: targets.length, summary }),
     })
+
+    // 담당자 (윤종엽 2022051052) 에게 결과 푸시 — actual auto-complete 발생 또는 비정상 상태일 때만
+    const okItems = summary.filter(s => s.status === 'ok' && s.cp_count > 0)
+    const issueItems = summary.filter(s => s.status === 'batch-fail' || s.status === 'skip-no-assignee')
+    if (okItems.length > 0 || issueItems.length > 0) {
+      const okText = okItems.map(s => `${s.category} ${s.cp_count}건`).join(', ')
+      const issueText = issueItems.map(s => `${s.category}(${s.status})`).join(', ')
+      const body =
+        (okText ? `자동 완료: ${okText}` : '') +
+        (okText && issueText ? '\n' : '') +
+        (issueText ? `⚠ 문제: ${issueText}` : '')
+      await sendPushToOwner(env, '접근불가 자동 처리', body)
+    }
   } catch (e: any) {
     await logTelemetry(env, 'cron-ab-error', {
       detail: JSON.stringify({ today, error: String(e?.message ?? e), stack: e?.stack ?? null }),
     })
+    await sendPushToOwner(env, '⚠ 접근불가 자동 처리 실패', String(e?.message ?? e).slice(0, 200))
     throw e
+  }
+}
+
+// 담당자 (윤종엽 2022051052) 에게만 푸시 발송 — cron-ab 진단용
+const OWNER_STAFF_ID = '2022051052'
+async function sendPushToOwner(env: Env, title: string, body: string): Promise<void> {
+  try {
+    const subs = await env.DB.prepare(
+      'SELECT id, staff_id, endpoint, p256dh, auth, notification_preferences FROM push_subscriptions WHERE staff_id = ?'
+    ).bind(OWNER_STAFF_ID).all<PushSubRow>()
+    const sends = (subs.results ?? []).map(sub =>
+      sendPush(env, sub, { title, body, type: 'cron-ab-result' })
+    )
+    await Promise.allSettled(sends)
+  } catch (e: any) {
+    await logTelemetry(env, 'cron-ab-push-throw', {
+      detail: String(e?.message ?? e).slice(0, 500),
+    })
   }
 }
 
