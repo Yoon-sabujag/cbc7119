@@ -16,6 +16,7 @@ import { useInspectionRevisitPopup, type MonthRecordEntry } from '../hooks/useIn
 import type { ScheduleItem } from '../types'
 import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
+import { CCTV_DVRS } from '../utils/cctv'
 
 // 완료 정의 통일 — 카드/대시보드/층별 화면 모두 동일 룰을 사용한다.
 // "완료" = normal | caution | (bad + status='resolved')
@@ -395,79 +396,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
 }
 
 // ── CCTV DVR 점검 모달 ───────────────────────────────────
-// 설비 상세는 작업용/점검 항목 정리/CCTV 녹화 설비 현황 251205.xlsx 기준
-type CctvPort = { p: number; cap: string; replaced: string }
-const CCTV_DVRS: { no: string; label: string; desc: string; retention: string; channels: number; ports: CctvPort[] }[] = [
-  { no: 'DVR-01', label: 'DVR 1',  desc: '8F, 7F',            retention: '50일',           channels: 16, ports: [{ p:4, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-02', label: 'DVR 2',  desc: '6F, 5F',            retention: '50일',           channels: 16, ports: [{ p:4, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-03', label: 'DVR 3',  desc: '5F, 2F',            retention: '20+20일 (추정)',  channels: 16, ports: [{ p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'2TB', replaced:'2025-12-05' }] },
-  { no: 'DVR-04', label: 'DVR 4',  desc: '3F',                retention: '50일',           channels: 16, ports: [{ p:3, cap:'2TB', replaced:'기존' }, { p:4, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-05', label: 'DVR 5',  desc: '3F, 2F',            retention: '23+20일 (추정)',  channels: 14, ports: [{ p:4, cap:'2TB', replaced:'기존' }, { p:6, cap:'2TB', replaced:'2025-12-05' }] },
-  { no: 'DVR-06', label: 'DVR 6',  desc: '1F, B1F',           retention: '56일',           channels: 15, ports: [{ p:3, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-07', label: 'DVR 7',  desc: 'B1F, B2F',          retention: '21+40일 (추정)',  channels: 15, ports: [{ p:4, cap:'2TB', replaced:'2025-12-05' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'2TB', replaced:'2025-12-05' }] },
-  { no: 'DVR-08', label: 'DVR 8',  desc: 'B2F~B4F',           retention: '12+40일 (추정)',  channels: 14, ports: [{ p:4, cap:'2TB', replaced:'2025-12-05' }, { p:5, cap:'2TB', replaced:'2025-12-05' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-09', label: 'DVR 9',  desc: 'B3F (주차장)',       retention: '55일',           channels: 14, ports: [{ p:4, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-10', label: 'DVR 10', desc: 'B4F (주차장)',       retention: '25+20일 (추정)',  channels: 15, ports: [{ p:4, cap:'2TB', replaced:'2025-08-19' }, { p:5, cap:'2TB', replaced:'2025-12-05' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-11', label: 'DVR 11', desc: 'B5F (주차장)',       retention: '52일',           channels: 15, ports: [{ p:3, cap:'2TB', replaced:'기존' }, { p:5, cap:'2TB', replaced:'기존' }, { p:6, cap:'1TB', replaced:'기존' }] },
-  { no: 'DVR-12', label: 'DVR 12', desc: '리서치프라자, 서버실', retention: '91일',           channels: 8,  ports: [{ p:2, cap:'2TB', replaced:'기존' }] },
-]
-const CCTV_INFO_UPDATED = '2025-12-05'
-
-function CctvEquipmentInfoModal({ onClose }: { onClose: () => void }) {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
-  const close = () => { setVisible(false); setTimeout(onClose, 240) }
-
-  return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:120, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>📹</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>CCTV 녹화 설비 현황</div>
-          <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>업데이트 {CCTV_INFO_UPDATED} · DVR 12대</div>
-        </div>
-        <button onClick={close} style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg)', color:'var(--t2)', fontSize:18, fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>✕</button>
-      </div>
-
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-        {CCTV_DVRS.map(dvr => {
-          const totalCap = dvr.ports.reduce((s, p) => s + (p.cap.endsWith('TB') ? parseFloat(p.cap) : 0), 0)
-          const isEstimate = dvr.retention.includes('추정')
-          return (
-            <div key={dvr.no} style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)' }}>
-              <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:6 }}>
-                <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{dvr.label}</span>
-                <span style={{ fontSize:10, fontWeight:600, color:'var(--t3)' }}>{dvr.channels}ch</span>
-                <span style={{ flex:1 }} />
-                <span style={{ fontSize:11, fontWeight:700, padding:'2px 7px', borderRadius:5, background: isEstimate ? 'rgba(234,179,8,.12)' : 'rgba(34,197,94,.1)', color: isEstimate ? '#a16207' : 'var(--safe)', border: `1px solid ${isEstimate ? 'rgba(234,179,8,.3)' : 'rgba(34,197,94,.25)'}` }}>{dvr.retention}</span>
-              </div>
-              <div style={{ fontSize:11, color:'var(--t2)', marginBottom:8 }}>
-                <span style={{ color:'var(--t3)' }}>녹화구역 </span>{dvr.desc}
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'auto 1fr 1fr', gap:'4px 10px', fontSize:11, background:'var(--bg)', borderRadius:7, padding:'7px 10px', border:'1px solid var(--bd)' }}>
-                <div style={{ color:'var(--t3)', fontWeight:600 }}>포트</div>
-                <div style={{ color:'var(--t3)', fontWeight:600 }}>용량</div>
-                <div style={{ color:'var(--t3)', fontWeight:600 }}>교체일자</div>
-                {dvr.ports.flatMap(p => {
-                  const isReplaced = p.replaced !== '기존'
-                  return [
-                    <div key={`p-${p.p}`}     style={{ color:'var(--t1)', fontWeight:700 }}>#{p.p}</div>,
-                    <div key={`c-${p.p}`}     style={{ color:'var(--t1)' }}>{p.cap}</div>,
-                    <div key={`r-${p.p}`}     style={{ color: isReplaced ? '#1d4ed8' : 'var(--t2)', fontWeight: isReplaced ? 700 : 400 }}>{p.replaced}</div>,
-                  ]
-                })}
-              </div>
-              <div style={{ fontSize:10, color:'var(--t3)', marginTop:6, textAlign:'right' }}>합계 {totalCap}TB · 포트 {dvr.ports.length}개</div>
-            </div>
-          )
-        })}
-        <div style={{ fontSize:10, color:'var(--t3)', textAlign:'center', padding:'8px 0 4px' }}>
-          출처: CCTV 녹화 설비 현황 {CCTV_INFO_UPDATED}
-        </div>
-      </div>
-    </div>
-  )
-}
+// 설비 상세 데이터는 src/utils/cctv.ts. 설비 현황 페이지: /cctv
 
 function CctvModal({ allCheckpoints, records, onClose, onSave }: {
   allCheckpoints: CheckPoint[]
@@ -476,13 +405,13 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
   onSave:         (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
 }) {
   const photo = usePhotoUpload()
+  const navigate = useNavigate()
   const [dvrResults,  setDvrResults]  = useState<Record<string, CheckResult>>({})
   const [memo,        setMemo]        = useState('')
   const [submitting,  setSubmitting]  = useState(false)
   const [justSaved,   setJustSaved]   = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [visible,     setVisible]     = useState(false)
-  const [showInfo,    setShowInfo]    = useState(false)
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -539,13 +468,12 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
           <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.1)', borderRadius:6, padding:'3px 8px', border:'1px solid rgba(34,197,94,.2)' }}>✓ 완료</div>
         )}
         <button
-          onClick={() => setShowInfo(true)}
+          onClick={() => navigate('/cctv')}
           style={{ fontSize:11, fontWeight:700, padding:'6px 10px', borderRadius:8, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:4, flexShrink:0 }}
         >
           📹 설비 현황
         </button>
       </div>
-      {showInfo && <CctvEquipmentInfoModal onClose={() => setShowInfo(false)} />}
 
       {/* 스크롤 영역 */}
       <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>

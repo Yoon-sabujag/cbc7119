@@ -42,6 +42,7 @@ const WorkLogPage               = lazy(() => import('./pages/WorkLogPage'))
 const StaffManagePage           = lazy(() => import('./pages/StaffManagePage'))
 const CheckpointsPage           = lazy(() => import('./pages/CheckpointsPage'))
 const ExtinguishersListPage     = lazy(() => import('./pages/ExtinguishersListPage'))
+const CctvInfoPage              = lazy(() => import('./pages/CctvInfoPage'))
 
 const qc = new QueryClient({
   defaultOptions:{ queries:{ staleTime:30_000, retry:(n,e:any)=>n<2&&e?.status!==401 } }
@@ -99,6 +100,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/documents': '소방계획서/훈련자료',
   '/worklog': '업무 수행 기록표',
   '/extinguishers': '소화기 관리',
+  '/cctv': 'CCTV 현황',
 }
 
 function Layout() {
@@ -132,6 +134,7 @@ function Layout() {
   const isDashboard = location.pathname === '/dashboard'
   const isQrScan    = location.pathname === '/inspection/qr'
   const isExtinguishers = location.pathname === '/extinguishers'
+  const isCctv          = location.pathname === '/cctv'
 
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
@@ -192,7 +195,7 @@ function Layout() {
           <GlobalHeader
             title={isDashboard ? dateOnly : pageTitle}
             onMenuOpen={() => setSideOpen(true)}
-            leftSlot={isExtinguishers ? backBtn : undefined}
+            leftSlot={(isExtinguishers || isCctv) ? backBtn : undefined}
             rightSlot={
               isDashboard ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{dashboardRightSlot}{settingsGearBtn}</div>
@@ -272,6 +275,7 @@ function Layout() {
               <Route path="/workshift"     element={<Auth><WorkShiftPage /></Auth>} />
               <Route path="/floorplan"     element={<Auth><FloorPlanPage /></Auth>} />
               <Route path="/extinguishers" element={<Auth><ExtinguishersListPage /></Auth>} />
+              <Route path="/cctv" element={<Auth><CctvInfoPage /></Auth>} />
               <Route path="/div"           element={<Auth><DivPage /></Auth>} />
               <Route path="/qr-print"      element={<Auth><QRPrintPage /></Auth>} />
 
