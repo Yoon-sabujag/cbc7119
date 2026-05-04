@@ -237,8 +237,18 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      // 사진은 계단실 단위 메타에 가깝다. 모든 층 record 에 동일 photoKey 를 박으면
+      // 상세 진입 시 전층이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 층,
+      // 없으면 첫 층 1건에만 attach.
+      const photoTargetCp = photoKey
+        ? (swCPs.find(cp => {
+            const r = floorResults[cp.id] ?? 'normal'
+            return r === 'caution' || r === 'bad'
+          }) ?? swCPs[0])
+        : null
       for (const cp of swCPs) {
-        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, photoKey ?? undefined)
+        const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
+        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, keyForCp ?? undefined)
       }
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
