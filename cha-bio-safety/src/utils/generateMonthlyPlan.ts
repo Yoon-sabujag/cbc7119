@@ -35,18 +35,26 @@ const PLAN_ROWS: PlanRow[] = [
 const DOW = ['일','월','화','수','목','금','토']
 
 // 셀 주소 헬퍼 (0-indexed row/col → "D14" 등)
-function cellAddr(r: number, c: number): string {
+function colLetter(c: number): string {
   let col = ''
   let cc = c
   while (cc >= 0) {
     col = String.fromCharCode(65 + (cc % 26)) + col
     cc = Math.floor(cc / 26) - 1
   }
-  return `${col}${r + 1}`
+  return col
+}
+function cellAddr(r: number, c: number): string {
+  return `${colLetter(c)}${r + 1}`
 }
 
 // ── 메인 함수 ───────────────────────────────────────────────────
-export async function generateMonthlyPlan(year: number, month: number, returnBlob?: boolean): Promise<Blob | void> {
+export async function generateMonthlyPlan(
+  year: number,
+  month: number,
+  holidays: Record<string, string> = {},
+  returnBlob?: boolean,
+): Promise<Blob | void> {
   const { unzipSync, zipSync, strToU8, strFromU8 } = await import('fflate')
 
   // 1) 템플릿 fetch
@@ -139,6 +147,25 @@ export async function generateMonthlyPlan(year: number, month: number, returnBlo
           break  // 한 셀에 하나만
         }
       }
+    }
+  }
+
+  // ── 공휴일 셀 주황 음영 — 토/일 CF 와 동일한 dxfId=6 사용 ─────────
+  // 새 conditionalFormatting 블록을 추가해 날짜(row 12) + 요일(row 13) 두 행에 적용
+  const holidayCells: string[] = []
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ymd = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    if (holidays[ymd]) {
+      const col = colLetter(3 + d - 1)
+      holidayCells.push(`${col}12`, `${col}13`)
+    }
+  }
+  if (holidayCells.length > 0) {
+    const cfBlock = `<conditionalFormatting sqref="${holidayCells.join(' ')}"><cfRule type="expression" dxfId="6" priority="10"><formula>TRUE</formula></cfRule></conditionalFormatting>`
+    const lastCf = xml.lastIndexOf('</conditionalFormatting>')
+    if (lastCf >= 0) {
+      const ins = lastCf + '</conditionalFormatting>'.length
+      xml = xml.slice(0, ins) + cfBlock + xml.slice(ins)
     }
   }
 

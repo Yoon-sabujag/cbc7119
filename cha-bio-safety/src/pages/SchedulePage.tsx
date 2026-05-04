@@ -225,7 +225,7 @@ export default function SchedulePage() {
     const [y, mo] = curMonth.split('-').map(Number)
     setPlanLoading(true)
     try {
-      await generateMonthlyPlan(y, mo)
+      await generateMonthlyPlan(y, mo, holidays)
       toast.success('엑셀이 다운로드됐습니다')
     } catch (e: any) {
       toast.error(e?.message ?? '생성 중 오류')
