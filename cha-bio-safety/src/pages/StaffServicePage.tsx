@@ -152,19 +152,17 @@ export default function StaffServicePage() {
   const [mobileReason, setMobileReason] = useState('')  // 모바일 사유
 
   // ── 휴가신청서 미리보기 캘리브레이션 ───────────────────────
-  // 마커: 0=입사일yy, 1=입사일dd, 2=성명, 3=기간시작yy, 4=기간시작dd,
-  //       5=기간종료yy, 6=기간종료dd, 7=기간일수,
-  //       8=체크_연차, 9=체크_경조, 10=체크_병가공상, 11=체크_병가사상,
-  //       12=체크_보건, 13=체크_공가, 14=체크_기타특별,
-  //       15=기타특별사유, 16=연락처, 17=신청일수, 18=사유기타사항
+  // 마커 인덱스 (PDF 좌표 → 미리보기 % 매핑, generateLeaveRequest.ts 와 일치):
+  //   0=입사일, 1=생년월일, 2=성명, 3=기간시작, 4=기간종료, 5=기간일수,
+  //   6=체크_연차, 7=체크_경조, 8=체크_병가공상, 9=체크_병가사상,
+  //   10=체크_보건, 11=체크_공가, 12=체크_기타특별,
+  //   13=기타특별사유, 14=연락처, 15=신청일수, 16=사유기타사항
   const LEAVE_CALIB_STEPS = [
-    { label: '입사일 년', color: '#ef4444' },
-    { label: '입사일 일', color: '#ef4444' },
+    { label: '입사일', color: '#ef4444' },
+    { label: '생년월일', color: '#dc2626' },
     { label: '성명', color: '#3b82f6' },
-    { label: '기간시작 년', color: '#22c55e' },
-    { label: '기간시작 일', color: '#22c55e' },
-    { label: '기간종료 년', color: '#f59e0b' },
-    { label: '기간종료 일', color: '#f59e0b' },
+    { label: '기간시작', color: '#22c55e' },
+    { label: '기간종료', color: '#f59e0b' },
     { label: '기간 일수', color: '#a855f7' },
     { label: '체크 연차', color: '#000' },
     { label: '체크 경조', color: '#000' },
@@ -179,8 +177,30 @@ export default function StaffServicePage() {
     { label: '사유 기타사항', color: '#f97316' },
   ] as const
 
+  // PDF 좌표를 미리보기 % 로 변환한 기본값 (page 595×841 pt 기준).
+  // ty(N) = baseline at top-down y=N. 시각적 중앙은 baseline - fontSize×0.25.
+  const LEAVE_PDF_DEFAULTS: Record<number, { x: number; y: number }> = {
+    0:  { x: 80.34, y: 27.79 },  // 입사일       (cx=478, ty=237, sz=13)
+    1:  { x: 80.34, y: 32.07 },  // 생년월일     (cx=478, ty=273, sz=13)
+    2:  { x: 43.70, y: 31.81 },  // 성명         (cx=260, ty=271, sz=14)
+    3:  { x: 38.99, y: 37.66 },  // 기간시작     (cx=232, ty=320, sz=13)
+    4:  { x: 57.82, y: 37.66 },  // 기간종료     (cx=344, ty=320, sz=13)
+    5:  { x: 69.75, y: 37.66 },  // 기간 일수    (cx=415, ty=320, sz=13)
+    6:  { x: 23.44, y: 44.20 },  // 체크 연차      (box center 139.45, 371.7)
+    7:  { x: 40.75, y: 43.88 },  // 체크 경조      (box center 242.45, 369.0)
+    8:  { x: 56.60, y: 43.88 },  // 체크 병가공상  (box center 336.75, 369.0)
+    9:  { x: 77.32, y: 43.88 },  // 체크 병가사상  (box center 460.05, 369.0)
+    10: { x: 23.49, y: 48.79 },  // 체크 보건      (box center 139.75, 410.3)
+    11: { x: 40.75, y: 48.79 },  // 체크 공가      (box center 242.45, 410.3)
+    12: { x: 56.60, y: 48.79 },  // 체크 기타특별  (box center 336.75, 410.3)
+    13: { x: 76.47, y: 48.78 },  // 기타특별 사유 (cx=455, ty=413, sz=11)
+    14: { x: 55.29, y: 60.83 },  // 연락처       (cx=329.0, ty=514.8, sz=13)
+    15: { x: 62.86, y: 69.77 },  // 신청일수     (cx=374, ty=590, sz=13)
+    16: { x: 55.38, y: 74.79 },  // 기타사항     (cx=329.5, ty=632, sz=12)
+  }
+
   type LeaveCalibData = Record<number, { x: number; y: number }>
-  const LEAVE_CALIB_KEY = 'calib_leave_request'
+  const LEAVE_CALIB_KEY = 'calib_leave_request_v2'  // v1 (구 19마커) 무효화
   const [leaveCalibMode, setLeaveCalibMode] = useState(false)
   const [leaveCalibStep, setLeaveCalibStep] = useState(0)
   const [leaveCalibPoints, setLeaveCalibPoints] = useState<(null | { x: number; y: number })[]>([])
@@ -189,7 +209,11 @@ export default function StaffServicePage() {
   const [leaveImgRect, setLeaveImgRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
 
   const loadLeaveCalib = (): LeaveCalibData => {
-    try { return JSON.parse(localStorage.getItem(LEAVE_CALIB_KEY) ?? '{}') } catch { return {} }
+    try {
+      const saved = JSON.parse(localStorage.getItem(LEAVE_CALIB_KEY) ?? '{}')
+      // 저장된 값이 있으면 PDF 기본값에 덮어씌움 (사용자 미세조정 우선)
+      return { ...LEAVE_PDF_DEFAULTS, ...saved }
+    } catch { return { ...LEAVE_PDF_DEFAULTS } }
   }
   const [leaveCalib, setLeaveCalib] = useState<LeaveCalibData>(loadLeaveCalib)
 
@@ -264,13 +288,7 @@ export default function StaffServicePage() {
     }
   }, [leaveCalibPoints, leaveCalibStep])
 
-  // 캘리브 포인트로부터 보간 계산
   const lp = leaveCalib
-  const interp = (a: number, b: number, idx: number, frac: number) => {
-    const pa = lp[a], pb = lp[b]
-    if (!pa || !pb) return null
-    return { x: pa.x + (pb.x - pa.x) * frac, y: pa.y }
-  }
 
   // 반차 타입 판별
   const HALF_TYPES = new Set(['half_am', 'half_pm', 'official_half_am', 'official_half_pm'])
@@ -1366,59 +1384,42 @@ export default function StaffServicePage() {
                 </>
               )}
 
-              {/* 값 오버레이 (캘리브 모드가 아닐 때) */}
+              {/* 값 오버레이 (캘리브 모드가 아닐 때) — PDF 와 동일한 단일 문자열 날짜 */}
               {!leaveCalibMode && (() => {
                 const sid = staff?.id ?? ''
-                const hp = sid.length >= 8 ? [sid.slice(0,4), sid.slice(4,6), sid.slice(6,8)] : null
-                const sp = docStartDate ? docStartDate.split('-') : null
-                const ep = docEndDate ? docEndDate.split('-') : null
+                const hireDate = sid.length >= 8 ? `${sid.slice(0,4)}-${sid.slice(4,6)}-${sid.slice(6,8)}` : null
+                const fmtDate = (d: string) => {
+                  const [y, m, dd] = d.split('-')
+                  return `${y.slice(2)}.${String(parseInt(m)).padStart(2,'0')}.${String(parseInt(dd)).padStart(2,'0')}`
+                }
                 const ovAt = (p: { x: number; y: number } | undefined, text: string, extra?: React.CSSProperties) =>
                   p ? <span key={`${p.x}-${p.y}-${text}`} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)', fontSize: 10, fontWeight: 700, color: '#111', whiteSpace: 'nowrap', fontFamily: "'Noto Sans KR', sans-serif", ...extra }}>{text}</span> : null
 
-                // 입사일: 0=yy, 1=dd → mm 보간
-                const hireMm = lp[0] && lp[1] ? { x: lp[0].x + (lp[1].x - lp[0].x) * 0.5, y: lp[0].y } : undefined
-                // 기간시작: 3=yy, 4=dd → mm 보간
-                const startMm = lp[3] && lp[4] ? { x: lp[3].x + (lp[4].x - lp[3].x) * 0.5, y: lp[3].y } : undefined
-                // 기간종료: 5=yy, 6=dd → mm 보간
-                const endMm = lp[5] && lp[6] ? { x: lp[5].x + (lp[6].x - lp[5].x) * 0.5, y: lp[5].y } : undefined
-
-                // 체크박스: 8=연차, 9=병가사상 → 경조/병가공상 보간, 10=보건, 11=기타특별 → 공가 보간
-                // 8=연차, 9=경조, 10=병가공상, 11=병가사상, 12=보건, 13=공가, 14=기타특별
                 const checkMap: Record<string, { x: number; y: number } | undefined> = {
-                  annual: lp[8], half_am: lp[8], half_pm: lp[8],
-                  condolence: lp[9],
-                  sick_work: lp[10],
-                  sick_personal: lp[11],
-                  health: lp[12],
-                  official: lp[13], official_half_am: lp[13], official_half_pm: lp[13],
-                  other_special: lp[14],
+                  annual: lp[6], half_am: lp[6], half_pm: lp[6],
+                  condolence: lp[7],
+                  sick_work: lp[8],
+                  sick_personal: lp[9],
+                  health: lp[10],
+                  official: lp[11], official_half_am: lp[11], official_half_pm: lp[11],
+                  other_special: lp[12],
                 }
                 const cp = checkMap[docLeaveType]
+                const daysStr = docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1)
 
                 return (
                   <>
-                    {hp && <>
-                      {ovAt(lp[0], hp[0].slice(2))}
-                      {ovAt(hireMm, String(parseInt(hp[1])))}
-                      {ovAt(lp[1], String(parseInt(hp[2])))}
-                    </>}
+                    {hireDate && ovAt(lp[0], fmtDate(hireDate))}
+                    {staffFull?.birthDate && ovAt(lp[1], fmtDate(staffFull.birthDate))}
                     {staff && ovAt(lp[2], staff.name)}
-                    {sp && <>
-                      {ovAt(lp[3], sp[0].slice(2))}
-                      {ovAt(startMm, String(parseInt(sp[1])))}
-                      {ovAt(lp[4], String(parseInt(sp[2])))}
-                    </>}
-                    {ep && <>
-                      {ovAt(lp[5], ep[0].slice(2))}
-                      {ovAt(endMm, String(parseInt(ep[1])))}
-                      {ovAt(lp[6], String(parseInt(ep[2])))}
-                    </>}
-                    {docDays > 0 && ovAt(lp[7], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
+                    {docStartDate && ovAt(lp[3], fmtDate(docStartDate))}
+                    {docEndDate && ovAt(lp[4], fmtDate(docEndDate))}
+                    {docDays > 0 && ovAt(lp[5], daysStr)}
                     {cp && <div style={{ position: 'absolute', left: `${cp.x}%`, top: `${cp.y}%`, transform: 'translate(-50%, -50%)', width: 12, height: 12, background: '#000' }} />}
-                    {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[15], docOtherReason)}
-                    {staffFull?.phone && ovAt(lp[16], staffFull.phone)}
-                    {docDays > 0 && ovAt(lp[17], docDays % 1 === 0 ? String(docDays) : docDays.toFixed(1))}
-                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[18], docReason)}
+                    {docLeaveType === 'other_special' && docOtherReason && ovAt(lp[13], docOtherReason)}
+                    {staffFull?.phone && ovAt(lp[14], staffFull.phone)}
+                    {docDays > 0 && ovAt(lp[15], daysStr)}
+                    {!ANNUAL_TYPES.has(docLeaveType) && docReason && ovAt(lp[16], docReason)}
                   </>
                 )
               })()}
