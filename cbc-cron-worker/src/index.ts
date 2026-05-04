@@ -453,79 +453,108 @@ async function handleAccessBlockedAutoComplete(env: Env): Promise<void> {
   const today = `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, '0')}-${String(kst.getUTCDate()).padStart(2, '0')}`
   const yyyymm = today.slice(0, 7)
 
-  // 1) 이번 달 카테고리별 마지막 점검일 + 그 날의 assignee_id 조회
-  //    (같은 카테고리/같은 날에 schedule_items 행이 여러 건이어도 MIN(assignee_id) 로 안정적 1행 보장)
-  //    cl.last_date = today 인 카테고리만 추림 → 오늘이 마지막 점검일이 아니면 빈 결과.
-  const catRows = await env.DB.prepare(
-    `WITH cat_last AS (
-       SELECT inspection_category, MAX(date) AS last_date
-       FROM schedule_items
-       WHERE inspection_category IS NOT NULL
-         AND substr(date, 1, 7) = ?
-       GROUP BY inspection_category
-     )
-     SELECT cl.inspection_category AS category,
-            MIN(si.assignee_id)    AS assignee_id
-     FROM cat_last cl
-     JOIN schedule_items si
-       ON si.inspection_category = cl.inspection_category
-      AND si.date = cl.last_date
-     WHERE cl.last_date = ?
-     GROUP BY cl.inspection_category`
-  ).bind(yyyymm, today).all<{ category: string; assignee_id: string | null }>()
+  await logTelemetry(env, 'cron-ab-enter', {
+    detail: JSON.stringify({ today, kstNow: kst.toISOString() }),
+  })
 
-  const targets = (catRows.results ?? []).filter(r => !!r.category)
-  if (targets.length === 0) return
+  try {
+    // 1) 이번 달 카테고리별 마지막 점검일 + 그 날의 assignee_id 조회
+    //    (같은 카테고리/같은 날에 schedule_items 행이 여러 건이어도 MIN(assignee_id) 로 안정적 1행 보장)
+    //    cl.last_date = today 인 카테고리만 추림 → 오늘이 마지막 점검일이 아니면 빈 결과.
+    const catRows = await env.DB.prepare(
+      `WITH cat_last AS (
+         SELECT inspection_category, MAX(date) AS last_date
+         FROM schedule_items
+         WHERE inspection_category IS NOT NULL
+           AND substr(date, 1, 7) = ?
+         GROUP BY inspection_category
+       )
+       SELECT cl.inspection_category AS category,
+              MIN(si.assignee_id)    AS assignee_id
+       FROM cat_last cl
+       JOIN schedule_items si
+         ON si.inspection_category = cl.inspection_category
+        AND si.date = cl.last_date
+       WHERE cl.last_date = ?
+       GROUP BY cl.inspection_category`
+    ).bind(yyyymm, today).all<{ category: string; assignee_id: string | null }>()
 
-  // 2) 카테고리별 처리
-  for (const row of targets) {
-    const category = row.category
-    const assigneeId = row.assignee_id
-    if (!assigneeId) {
-      console.warn(`[access-blocked-auto] ${category}: assignee_id NULL — skip`)
-      continue
+    const targets = (catRows.results ?? []).filter(r => !!r.category)
+    if (targets.length === 0) {
+      await logTelemetry(env, 'cron-ab-end', {
+        detail: JSON.stringify({ today, reason: 'no-last-day-categories', targets: 0 }),
+      })
+      return
     }
 
-    // 2a) 자동완료 대상 cp: description 에 '접근불가' 포함 + active + 이번 달 미기록
-    const cpRows = await env.DB.prepare(
-      `SELECT id FROM check_points
-       WHERE category = ?
-         AND description LIKE '%접근불가%'
-         AND is_active = 1
-         AND id NOT IN (
-           SELECT checkpoint_id FROM check_records
-           WHERE substr(checked_at, 1, 7) = ?
-         )`
-    ).bind(category, yyyymm).all<{ id: string }>()
+    const summary: { category: string; cp_count: number; session_id?: string; status: string }[] = []
 
-    const cpIds = (cpRows.results ?? []).map(r => r.id)
-    if (cpIds.length === 0) {
-      console.log(`[access-blocked-auto] ${category}: 0 cps (already complete)`)
-      continue
+    // 2) 카테고리별 처리
+    for (const row of targets) {
+      const category = row.category
+      const assigneeId = row.assignee_id
+      if (!assigneeId) {
+        console.warn(`[access-blocked-auto] ${category}: assignee_id NULL — skip`)
+        summary.push({ category, cp_count: 0, status: 'skip-no-assignee' })
+        continue
+      }
+
+      // 2a) 자동완료 대상 cp: description 에 '접근불가' 포함 + active + 이번 달 미기록
+      const cpRows = await env.DB.prepare(
+        `SELECT id FROM check_points
+         WHERE category = ?
+           AND description LIKE '%접근불가%'
+           AND is_active = 1
+           AND id NOT IN (
+             SELECT checkpoint_id FROM check_records
+             WHERE substr(checked_at, 1, 7) = ?
+           )`
+      ).bind(category, yyyymm).all<{ id: string }>()
+
+      const cpIds = (cpRows.results ?? []).map(r => r.id)
+      if (cpIds.length === 0) {
+        console.log(`[access-blocked-auto] ${category}: 0 cps (already complete)`)
+        summary.push({ category, cp_count: 0, status: 'noop' })
+        continue
+      }
+
+      // 2b) 카테고리당 inspection_session 1건 + check_records N건 atomic insert
+      const sessionId = crypto.randomUUID()
+
+      const sessionStmt = env.DB.prepare(
+        `INSERT INTO inspection_sessions (id, date, floor, zone, staff_id, created_at)
+         VALUES (?, ?, NULL, NULL, ?, datetime('now'))`
+      ).bind(sessionId, today, assigneeId)
+
+      const recordStmts = cpIds.map(cpId =>
+        env.DB.prepare(
+          `INSERT INTO check_records (id, session_id, checkpoint_id, staff_id, result, memo, checked_at, created_at, status)
+           VALUES (?, ?, ?, ?, 'normal', '접근불가 개소 자동 정상처리', datetime('now'), datetime('now'), 'open')`
+        ).bind(crypto.randomUUID(), sessionId, cpId, assigneeId)
+      )
+
+      try {
+        await env.DB.batch([sessionStmt, ...recordStmts])
+        console.log(`[access-blocked-auto] ${category}: ${cpIds.length} cps auto-completed (assignee=${assigneeId}, session=${sessionId})`)
+        summary.push({ category, cp_count: cpIds.length, session_id: sessionId, status: 'ok' })
+      } catch (e: any) {
+        console.error(`[access-blocked-auto] ${category}: batch failed`, e)
+        summary.push({ category, cp_count: cpIds.length, status: 'batch-fail' })
+        await logTelemetry(env, 'cron-ab-error', {
+          detail: JSON.stringify({ today, category, error: String(e?.message ?? e) }),
+        })
+        // 카테고리 단위로만 fail — 다음 카테고리는 계속 진행
+      }
     }
 
-    // 2b) 카테고리당 inspection_session 1건 + check_records N건 atomic insert
-    const sessionId = crypto.randomUUID()
-
-    const sessionStmt = env.DB.prepare(
-      `INSERT INTO inspection_sessions (id, date, floor, zone, staff_id, created_at)
-       VALUES (?, ?, NULL, NULL, ?, datetime('now'))`
-    ).bind(sessionId, today, assigneeId)
-
-    const recordStmts = cpIds.map(cpId =>
-      env.DB.prepare(
-        `INSERT INTO check_records (id, session_id, checkpoint_id, staff_id, result, memo, checked_at, created_at, status)
-         VALUES (?, ?, ?, ?, 'normal', '접근불가 개소 자동 정상처리', datetime('now'), datetime('now'), 'open')`
-      ).bind(crypto.randomUUID(), sessionId, cpId, assigneeId)
-    )
-
-    try {
-      await env.DB.batch([sessionStmt, ...recordStmts])
-      console.log(`[access-blocked-auto] ${category}: ${cpIds.length} cps auto-completed (assignee=${assigneeId}, session=${sessionId})`)
-    } catch (e) {
-      console.error(`[access-blocked-auto] ${category}: batch failed`, e)
-      // 카테고리 단위로만 fail — 다음 카테고리는 계속 진행
-    }
+    await logTelemetry(env, 'cron-ab-end', {
+      detail: JSON.stringify({ today, targets: targets.length, summary }),
+    })
+  } catch (e: any) {
+    await logTelemetry(env, 'cron-ab-error', {
+      detail: JSON.stringify({ today, error: String(e?.message ?? e), stack: e?.stack ?? null }),
+    })
+    throw e
   }
 }
 
