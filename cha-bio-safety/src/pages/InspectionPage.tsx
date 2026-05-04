@@ -1947,7 +1947,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
   const photo = usePhotoUpload()
   const navigate = useNavigate()
   const [zone,        setZone]        = useState<PPZone | null>(null)
-  const [selectedId,  setSelectedId]  = useState<string>('')
+  const [pickerIdx,   setPickerIdx]   = useState<number>(0)
   const [result,      setResult]      = useState<CheckResult>('normal')
   const [memo,        setMemo]        = useState('')
   const [submitting,  setSubmitting]  = useState(false)
@@ -1964,21 +1964,23 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       .filter(cp => cp.category === '소방용전원공급반' && cp.locationNo?.startsWith(PP_ZONE_PREFIX[zone]))
       .sort((a, b) => FLOOR_ORDER.indexOf(a.floor) - FLOOR_ORDER.indexOf(b.floor))
   }, [zone, allCheckpoints])
-  const selectedCP = selectedId ? (allCheckpoints.find(cp => cp.id === selectedId) ?? null) : null
+  const selectedCP = zoneCPs[pickerIdx] ?? null
   const isDone     = selectedCP ? !!records[selectedCP.id] : false
+  const doneCount  = zoneCPs.filter(cp => records[cp.id]).length
+  const totalCount = zoneCPs.length
 
   const prevZone = useRef(zone)
   useEffect(() => {
     if (prevZone.current !== zone) {
       prevZone.current = zone
-      setSelectedId(''); setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+      setPickerIdx(0); setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
     }
   }) // eslint-disable-line
 
-  const prevId = useRef(selectedId)
+  const prevIdx = useRef(pickerIdx)
   useEffect(() => {
-    if (prevId.current !== selectedId) {
-      prevId.current = selectedId
+    if (prevIdx.current !== pickerIdx) {
+      prevIdx.current = pickerIdx
       setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
     }
   }) // eslint-disable-line
@@ -2040,22 +2042,33 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
         </div>
       </div>
 
-      {/* 위치 드롭박스 */}
-      {zone && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>위치 선택</div>
-          <select
-            value={selectedId}
-            onChange={e => setSelectedId(e.target.value)}
-            style={{ width:'100%', padding:'10px 12px', borderRadius:10, background:'var(--bg)', border:'1px solid var(--bd2)', color: selectedId ? 'var(--t1)' : 'var(--t3)', fontSize:13, fontFamily:'inherit', outline:'none', appearance:'none', cursor:'pointer' }}
+      {/* 개소 선택 — DIV 스타일 카드 + 좌우 스와이프 */}
+      {zone && zoneCPs.length >= 1 && (
+        <div style={{ padding:'10px 14px 8px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
+          <div
+            style={{ background:'var(--bg)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+            onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
+            onTouchEnd={e => {
+              const sx = (e.currentTarget as any)._swX
+              if (sx == null) return
+              const dx = e.changedTouches[0].clientX - sx
+              if (dx > 40 && pickerIdx > 0) setPickerIdx(pickerIdx - 1)
+              else if (dx < -40 && pickerIdx < zoneCPs.length - 1) setPickerIdx(pickerIdx + 1)
+            }}
           >
-            <option value=''>위치를 선택하세요</option>
-            {zoneCPs.map(cp => (
-              <option key={cp.id} value={cp.id}>
-                {cp.location}{records[cp.id] ? ' ✓' : ''}
-              </option>
-            ))}
-          </select>
+            <button
+              onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }}
+              style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx > 0 ? 1 : 0.3 }}
+            >‹</button>
+            <div style={{ flex:1, textAlign:'center' }}>
+              <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>개소 ({pickerIdx + 1}/{totalCount}) · {doneCount}/{totalCount} 완료</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
+            </div>
+            <button
+              onClick={() => { if (pickerIdx < zoneCPs.length - 1) setPickerIdx(pickerIdx + 1) }}
+              style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < zoneCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < zoneCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < zoneCPs.length - 1 ? 1 : 0.3 }}
+            >›</button>
+          </div>
         </div>
       )}
 
@@ -2063,9 +2076,6 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
         {!zone && (
           <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>구역을 선택해 주세요</div>
-        )}
-        {zone && !selectedId && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>
         )}
 
         {selectedCP && (
