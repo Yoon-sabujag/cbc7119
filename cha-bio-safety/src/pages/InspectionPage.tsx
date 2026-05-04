@@ -1519,9 +1519,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>배수</div>
                 <div style={{ display:'flex', gap:6 }}>
                   <button onClick={() => setDrain('none')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='none' ? 'var(--bg)' : 'transparent', color: drain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: drain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: drain==='none' ? 1 : 0.45 }}>없음</button>
+                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='none' ? 'var(--bg)' : 'var(--bg3)', color: drain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: drain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: drain==='none' ? 1 : 1 }}>없음</button>
                   <button onClick={() => setDrain('yes')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: drain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: drain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: drain==='yes' ? 1 : 0.45 }}>있음</button>
+                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='yes' ? 'rgba(59,130,246,.18)' : 'var(--bg3)', color: drain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: drain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd2)', opacity: drain==='yes' ? 1 : 1 }}>있음</button>
                 </div>
               </div>
               <div style={{ flex:1 }}>
@@ -1875,15 +1875,15 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
                     {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
                   </div>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
-                    <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: tankDrain==='yes' ? 1 : 0.45 }}>있음</button>
+                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'var(--bg3)', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='none' ? 1 : 1 }}>없음</button>
+                    <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'var(--bg3)', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='yes' ? 1 : 1 }}>있음</button>
                   </div>
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
-                    <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
+                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'var(--bg3)', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: oil==='sufficient' ? 1 : 1 }}>충분함</button>
+                    <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'var(--bg3)', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd2)', opacity: oil==='refill' ? 1 : 1 }}>보충함</button>
                   </div>
                 </div>
               </div>
