@@ -1102,9 +1102,9 @@ export default function StaffServicePage() {
                           gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
                           padding: '7px 4px', borderRadius: 6, fontSize: 11, fontWeight: 600,
                           cursor: 'pointer', textAlign: 'center',
-                          background: isRegistered ? 'rgba(34,197,94,0.25)' : active ? 'var(--ac)' : 'var(--bg3)',
+                          background: isRegistered ? 'rgba(34,197,94,0.25)' : active ? 'var(--acl)' : 'var(--bg3)',
                           color: isRegistered ? '#22c55e' : active ? '#fff' : 'var(--t2)',
-                          border: isRegistered ? '2px solid #22c55e' : active ? '1px solid var(--ac)' : '1px solid var(--bd)',
+                          border: isRegistered ? '2px solid #22c55e' : active ? '1px solid var(--acl)' : '1px solid var(--bd)',
                         }}
                       >
                         {lt.label}{isRegistered ? ' ✓' : ''}
@@ -1407,9 +1407,9 @@ export default function StaffServicePage() {
                                 <button key={b.type} onClick={() => setDocLeaveType(b.type)}
                                   style={{
                                     padding: '8px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
-                                    background: isReg ? 'rgba(34,197,94,0.25)' : isSel ? 'var(--ac)' : 'var(--bg3)',
+                                    background: isReg ? 'rgba(34,197,94,0.25)' : isSel ? 'var(--acl)' : 'var(--bg3)',
                                     color: isReg ? '#22c55e' : isSel ? '#fff' : 'var(--t2)',
-                                    border: isReg ? '2px solid #22c55e' : isSel ? '1px solid var(--ac)' : '1px solid var(--bd)',
+                                    border: isReg ? '2px solid #22c55e' : isSel ? '1px solid var(--acl)' : '1px solid var(--bd)',
                                   }}>
                                   {b.label}{isReg ? ' ✓' : ''}
                                 </button>
