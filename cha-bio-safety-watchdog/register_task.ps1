@@ -1,24 +1,23 @@
-# CHA Bio Watchdog — 작업 스케줄러 등록
-# 트리거: 로그온 30초 후 + 매 2분마다 keepalive 호출
-# Settings: 실패시 1분 후 재시도 (최대 3회), 숨김창
+﻿# CHA Bio Watchdog - Register Scheduled Task
+# Trigger: 30s after logon + every 2 min keepalive
+# Settings: Hidden window, restart on failure (1 min interval x3)
 
 $scriptDir = $PSScriptRoot
 $keepalive = Join-Path $scriptDir "watchdog_keepalive.ps1"
 $taskName = "CHA Bio File Organizer"
 
 if (-not (Test-Path $keepalive)) {
-    Write-Error "watchdog_keepalive.ps1 가 없습니다: $keepalive"
+    Write-Error "watchdog_keepalive.ps1 not found: $keepalive"
     exit 1
 }
 
 $user = "$env:USERDOMAIN\$env:USERNAME"
 
-# XML 직접 생성 — 무한 반복 (Duration 생략) 은 cmdlet 으로 표현 어려움
 $xml = @"
 <?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>CHA Bio File Organizer 자동시작 + keepalive</Description>
+    <Description>CHA Bio File Organizer auto-start with keepalive</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -73,22 +72,20 @@ $xml = @"
 $tmpXml = Join-Path $env:TEMP "cha-bio-task.xml"
 [System.IO.File]::WriteAllText($tmpXml, $xml, [System.Text.Encoding]::Unicode)
 
-# 기존 작업 있으면 삭제 후 재등록
 schtasks /Delete /TN $taskName /F 2>$null | Out-Null
 $result = schtasks /Create /TN $taskName /XML $tmpXml /F
 Remove-Item $tmpXml -Force -ErrorAction SilentlyContinue
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "작업 등록 실패: $result"
+    Write-Error "Register failed: $result"
     exit $LASTEXITCODE
 }
 
 Write-Host ""
-Write-Host "✅ 작업 스케줄러 등록 완료" -ForegroundColor Green
-Write-Host "   - PC 시작 + 로그인 30초 후 자동 실행"
-Write-Host "   - 매 2분마다 살아있는지 확인, 죽었으면 자동 재시작"
+Write-Host "[OK] Scheduled task registered." -ForegroundColor Green
+Write-Host "     - Auto-start 30s after logon"
+Write-Host "     - Health check every 2 min, auto-restart if dead"
 Write-Host ""
 
-# 즉시 첫 실행
 Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-Write-Host "지금 즉시 watchdog 첫 실행 trigger 됨." -ForegroundColor Cyan
+Write-Host "[OK] First run triggered." -ForegroundColor Cyan
