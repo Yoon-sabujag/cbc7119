@@ -10,7 +10,7 @@ import { getRawShift, SHIFT_COLOR, DOW_KO, type RawShift } from '../utils/shiftC
 import { calcProvidedMeals, calcWeekendAllowance } from '../utils/mealCalc'
 import { HOLIDAYS_FALLBACK } from '../utils/holidays'
 import * as pdfjsLib from 'pdfjs-dist'
-import { generateLeaveRequest } from '../utils/generateLeaveRequest'
+import { generateLeaveRequest, printLeaveRequest } from '../utils/generateLeaveRequest'
 import type { StaffFull } from '../types'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
@@ -198,38 +198,52 @@ export default function StaffServicePage() {
   // 기간 일수 = 신청일수 = 근무일수 (반차는 0.5 적용)
   const docDays = isHalfType ? docRawWorkDays * 0.5 : docRawWorkDays
 
-  const handleLeaveDownload = useCallback(async () => {
-    if (!staff || !docStartDate || !docEndDate) {
-      toast.error('기간을 입력하세요')
-      return
+  const buildLeaveData = useCallback(() => {
+    if (!staff || !docStartDate || !docEndDate) return null
+    const excelTypeMap: Record<string, string> = {
+      half_am: 'annual', half_pm: 'annual',
+      official_half_am: 'official', official_half_pm: 'official',
     }
+    const excelType = excelTypeMap[docLeaveType] ?? docLeaveType
+    return {
+      staffName: staff.name,
+      staffId: staff.id,
+      hireDate: `${staff.id.slice(0,4)}-${staff.id.slice(4,6)}-${staff.id.slice(6,8)}`,
+      birthDate: staffFull?.birthDate ?? undefined,
+      phone: staffFull?.phone ?? '',
+      leaveType: excelType,
+      otherReason: docOtherReason,
+      reason: docReason,
+      startDate: docStartDate,
+      endDate: docEndDate,
+      totalDays: docDays,
+      workDays: docDays,
+    }
+  }, [staff, docStartDate, docEndDate, staffFull?.phone, staffFull?.birthDate, docLeaveType, docOtherReason, docReason, docDays])
+
+  const handleLeaveDownload = useCallback(async () => {
+    const data = buildLeaveData()
+    if (!data) { toast.error('기간을 입력하세요'); return }
     const toastId = toast.loading('휴가신청서 생성 중...')
     try {
-      // half_am/half_pm → annual, official_half_am/pm → official (엑셀 양식에 맞게 매핑)
-      const excelTypeMap: Record<string, string> = {
-        half_am: 'annual', half_pm: 'annual',
-        official_half_am: 'official', official_half_pm: 'official',
-      }
-      const excelType = excelTypeMap[docLeaveType] ?? docLeaveType
-      await generateLeaveRequest({
-        staffName: staff.name,
-        staffId: staff.id,
-        hireDate: `${staff.id.slice(0,4)}-${staff.id.slice(4,6)}-${staff.id.slice(6,8)}`,
-        birthDate: staffFull?.birthDate ?? undefined,
-        phone: staffFull?.phone ?? '',
-        leaveType: excelType,
-        otherReason: docOtherReason,
-        reason: docReason,
-        startDate: docStartDate,
-        endDate: docEndDate,
-        totalDays: docDays,
-        workDays: docDays,
-      })
+      await generateLeaveRequest(data)
       toast.success('휴가신청서 다운로드 완료', { id: toastId })
     } catch (err: any) {
       toast.error(err?.message ?? '생성 실패', { id: toastId })
     }
-  }, [staff, docStartDate, docEndDate, staffFull?.phone, staffFull?.birthDate, docLeaveType, docOtherReason, docReason, docDays])
+  }, [buildLeaveData])
+
+  const handleLeavePrint = useCallback(async () => {
+    const data = buildLeaveData()
+    if (!data) { toast.error('기간을 입력하세요'); return }
+    const toastId = toast.loading('인쇄 준비 중...')
+    try {
+      await printLeaveRequest(data)
+      toast.success('새 탭에서 인쇄 다이얼로그가 열립니다', { id: toastId })
+    } catch (err: any) {
+      toast.error(err?.message ?? '인쇄 실패', { id: toastId })
+    }
+  }, [buildLeaveData])
 
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`
   const staffId = staff?.id ?? ''
@@ -1190,14 +1204,14 @@ export default function StaffServicePage() {
               onClick={handleLeaveDownload}
               style={{
                 width: '100%', padding: '10px 0', borderRadius: 8,
-                background: 'var(--ac)', color: '#fff', border: 'none',
+                background: 'var(--acl)', color: '#fff', border: 'none',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
             >
               PDF 다운로드
             </button>
             <button
-              onClick={() => window.print()}
+              onClick={handleLeavePrint}
               style={{
                 width: '100%', padding: '10px 0', borderRadius: 8,
                 background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)',

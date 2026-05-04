@@ -78,7 +78,7 @@ const CHECKBOX_POS: Record<string, { x: number; y: number }> = {
 const BOX_W = 17.5
 const BOX_H = 18
 
-export async function generateLeaveRequest(data: LeaveRequestData): Promise<void> {
+export async function buildLeaveRequestBlob(data: LeaveRequestData): Promise<Blob> {
   const [pdfRes, fontRegRes, fontBoldRes] = await Promise.all([
     fetch('/templates/leave_request.pdf'),
     fetch('/fonts/NanumGothic.ttf'),
@@ -149,10 +149,12 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
     drawCentered(page, data.reason, fontBold, 12, 329.5, ty(632.0))
   }
 
-  // ── 출력 ──────────────────────────────────────────────────────────
   const out = await pdfDoc.save()
-  const blob = new Blob([out as BlobPart], { type: 'application/pdf' })
+  return new Blob([out as BlobPart], { type: 'application/pdf' })
+}
 
+export async function generateLeaveRequest(data: LeaveRequestData): Promise<void> {
+  const blob = await buildLeaveRequestBlob(data)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -161,4 +163,25 @@ export async function generateLeaveRequest(data: LeaveRequestData): Promise<void
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+// 새 탭에 PDF 열고 자동 print 다이얼로그 띄움
+export async function printLeaveRequest(data: LeaveRequestData): Promise<void> {
+  const blob = await buildLeaveRequestBlob(data)
+  const url = URL.createObjectURL(blob)
+  const w = window.open(url, '_blank')
+  if (!w) {
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    throw new Error('팝업이 차단되었습니다. 브라우저 설정에서 허용해주세요.')
+  }
+  // PDF 뷰어 로드 후 자동 print. 일부 브라우저는 onload 가 안 떠서 fallback timer 도 사용
+  let printed = false
+  const triggerPrint = () => {
+    if (printed) return
+    printed = true
+    try { w.focus(); w.print() } catch { /* ignore */ }
+  }
+  w.addEventListener('load', triggerPrint)
+  setTimeout(triggerPrint, 1500)
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
