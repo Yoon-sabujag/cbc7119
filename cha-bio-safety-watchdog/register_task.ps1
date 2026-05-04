@@ -15,7 +15,7 @@ $user = "$env:USERDOMAIN\$env:USERNAME"
 
 $xml = @"
 <?xml version="1.0" encoding="UTF-16"?>
-<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
     <Description>CHA Bio File Organizer auto-start with keepalive</Description>
   </RegistrationInfo>
