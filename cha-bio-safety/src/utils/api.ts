@@ -424,7 +424,6 @@ export const DEFAULT_SIDE_MENU: SideMenuEntry[] = [
   { type: 'divider', id: 'd-facility', title: '시설 관리' },
   { type: 'item', path: '/div',            visible: true },
   { type: 'item', path: '/floorplan',      visible: true },
-  { type: 'item', path: '/extinguishers',  visible: true },  // Phase 24
   { type: 'item', path: '/legal',          visible: true },
   { type: 'item', path: '/checkpoints',    visible: true },
   { type: 'divider', id: 'd-docs',     title: '문서 관리' },

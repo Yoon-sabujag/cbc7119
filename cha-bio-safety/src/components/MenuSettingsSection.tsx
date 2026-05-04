@@ -239,8 +239,9 @@ export function MenuSettingsSection() {
             )
           }
 
-          // item
-          const label = PATH_LABEL[entry.path] ?? entry.path
+          // item — MENU 에서 제거된 path (예: 폐기된 /extinguishers) 는 렌더 스킵
+          if (!(entry.path in PATH_LABEL)) return null
+          const label = PATH_LABEL[entry.path]
           return (
             <div key={`i-${entry.path}`} style={{
               display: 'flex', alignItems: 'center', gap: 8,

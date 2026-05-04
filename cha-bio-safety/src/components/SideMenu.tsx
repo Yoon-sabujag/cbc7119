@@ -26,8 +26,7 @@ export const MENU: { section: string; items: MenuItem[] }[] = [
   ]},
   { section: '시설 관리', items: [
     { label: 'DIV 압력 관리',   path: '/div',           badge: 0, soon: false },
-    // 소화기 관리: 데스크톱만 노출. 모바일은 점검 페이지/도면 동행으로 진입 (기존 동작 유지)
-    { label: '소화기 관리',      path: '/extinguishers', badge: 0, soon: false, desktopOnly: true },
+    // 소화기 관리(/extinguishers) 는 사이드 메뉴에서 제외 — 점검>소화기 헤더 우측 버튼으로 진입
     { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
     { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
     { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
