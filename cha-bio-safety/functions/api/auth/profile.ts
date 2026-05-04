@@ -10,7 +10,7 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     if (!staffId)
       return Response.json({ success: false, error: '인증이 필요합니다' }, { status: 401 })
 
-    const body = await ctx.request.json<{ name?: string; phone?: string; email?: string }>()
+    const body = await ctx.request.json<{ name?: string; phone?: string; email?: string; birthDate?: string | null }>()
 
     const updates: string[] = []
     const binds: (string | null)[] = []
@@ -30,6 +30,10 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
       updates.push('email = ?')
       binds.push(body.email?.trim() || null)
     }
+    if (body.birthDate !== undefined) {
+      updates.push('birth_date = ?')
+      binds.push(body.birthDate?.trim() || null)
+    }
 
     if (updates.length === 0)
       return Response.json({ success: false, error: '변경할 항목이 없습니다' }, { status: 400 })
@@ -45,9 +49,9 @@ export const onRequestPut: PagesFunction<Env> = async (ctx) => {
     await env.DB.prepare(sql).bind(...binds).run()
 
     // 업데이트된 정보 반환
-    const row = await env.DB.prepare('SELECT name, phone, email FROM staff WHERE id = ?').bind(staffId).first<{ name: string; phone: string | null; email: string | null }>()
+    const row = await env.DB.prepare('SELECT name, phone, email, birth_date FROM staff WHERE id = ?').bind(staffId).first<{ name: string; phone: string | null; email: string | null; birth_date: string | null }>()
 
-    return Response.json({ success: true, data: { name: row?.name ?? '', phone: row?.phone ?? null, email: row?.email ?? null } })
+    return Response.json({ success: true, data: { name: row?.name ?? '', phone: row?.phone ?? null, email: row?.email ?? null, birthDate: row?.birth_date ?? null } })
   } catch (e) {
     console.error('profile update error:', e)
     return Response.json({ success: false, error: '서버 오류가 발생했습니다' }, { status: 500 })

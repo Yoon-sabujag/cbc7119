@@ -189,17 +189,19 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState(staff?.name ?? '')
   const [phone, setPhone] = useState(staffFull?.phone ?? '')
   const [email, setEmail] = useState(staffFull?.email ?? '')
+  const [birthDate, setBirthDate] = useState(staffFull?.birthDate ?? '')
 
   // staffFull 로드 후 초기값 반영
   useEffect(() => {
     if (staffFull) {
       setPhone(staffFull.phone ?? '')
       setEmail(staffFull.email ?? '')
+      setBirthDate(staffFull.birthDate ?? '')
     }
   }, [staffFull])
 
   const mutation = useMutation({
-    mutationFn: () => authApi.updateProfile({ phone, email }),
+    mutationFn: () => authApi.updateProfile({ phone, email, birthDate: birthDate || null }),
     onSuccess: (data) => {
       updateStaff({ name: data.name })
       // 5분 staleTime 으로 캐시된 staff-list 를 즉시 무효화 — 폼 재진입 시 최신 phone/email 반영
@@ -231,12 +233,12 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
           <input value={staff?.id ?? ''} readOnly style={READONLY_STYLE} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>연락처</div>
-          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" style={INPUT_STYLE} />
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>직책</div>
+          <input value={staff?.title ?? '-'} readOnly style={READONLY_STYLE} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이메일</div>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={INPUT_STYLE} />
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>역할</div>
+          <input value={staff?.role === 'admin' ? '관리자' : '보조자'} readOnly style={READONLY_STYLE} />
         </div>
         <div>
           <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>입사일</div>
@@ -246,12 +248,16 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
           })()} readOnly style={READONLY_STYLE} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>직책</div>
-          <input value={staff?.title ?? '-'} readOnly style={READONLY_STYLE} />
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>생년월일</div>
+          <input type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)} style={INPUT_STYLE} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>역할</div>
-          <input value={staff?.role === 'admin' ? '관리자' : '보조자'} readOnly style={READONLY_STYLE} />
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>연락처</div>
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" style={INPUT_STYLE} />
+        </div>
+        <div>
+          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이메일</div>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={INPUT_STYLE} />
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
           <button onClick={onDone} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
@@ -768,7 +774,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           <div style={{ padding: '12px 13px 5px' }}>
             <SectionHeader label="계정" collapsed={accountCollapsed} onToggle={() => setAccountCollapsed(c => !c)} />
             {!accountCollapsed && (<>
-              <Row label="개인정보 수정" sub="연락처, 이메일" onClick={() => setShowProfileEdit(true)}>
+              <Row label="개인정보 수정" sub="연락처, 이메일, 생년월일" onClick={() => setShowProfileEdit(true)}>
                 <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
               </Row>
               <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
