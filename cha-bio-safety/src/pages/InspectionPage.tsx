@@ -1308,7 +1308,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex:99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <span style={{ fontSize:48 }}>✅</span>
       <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
-      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--primary)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
     </div>
   )
 
@@ -1519,7 +1519,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>배수</div>
                 <div style={{ display:'flex', gap:6 }}>
                   <button onClick={() => setDrain('none')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='none' ? 'var(--bg)' : 'transparent', color: drain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: drain==='none' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: drain==='none' ? 1 : 0.45 }}>없음</button>
+                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='none' ? 'var(--bg)' : 'transparent', color: drain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: drain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: drain==='none' ? 1 : 0.45 }}>없음</button>
                   <button onClick={() => setDrain('yes')}
                     style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: drain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: drain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: drain==='yes' ? 1 : 0.45 }}>있음</button>
                 </div>
@@ -1566,7 +1566,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
         <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
         {currentPt && (
           <button onClick={handleSave} disabled={saving || digits.slice(0, totalDigitSlots).some(d => d === '')}
-            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--bd)' : 'var(--primary)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer' }}>
+            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--bd)' : 'var(--acl)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer' }}>
             {saving ? '저장 중...' :
               zone === 'underground'
                 ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
@@ -1748,7 +1748,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
     <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <span style={{ fontSize:48 }}>✅</span>
       <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
-      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--primary)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
     </div>
   )
 
@@ -1875,14 +1875,14 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
                     {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
                   </div>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
+                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'transparent', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: tankDrain==='none' ? 1 : 0.45 }}>없음</button>
                     <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'transparent', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd)', opacity: tankDrain==='yes' ? 1 : 0.45 }}>있음</button>
                   </div>
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
                   <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--primary)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
+                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'transparent', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd)', opacity: oil==='sufficient' ? 1 : 0.45 }}>충분함</button>
                     <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'transparent', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd)', opacity: oil==='refill' ? 1 : 0.45 }}>보충함</button>
                   </div>
                 </div>
