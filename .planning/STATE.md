@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-04 - Completed quick task 260505-c9d: 특별피난계단 점검 사진 전층 중복 저장 버그 수정 (StairwellModal.handleSave photoKey 분배 1건 대표화)
+Last activity: 2026-05-05 - Completed quick task 260505-cib: CCTV / Damper stair 모달도 같은 batch-save 사진 분배 버그 수정 (260505-c9d 후속, batch-save 패턴 sweep 완료)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -170,6 +170,7 @@ None yet.
 | 260428-lha | FloorPlanPage 평면도 모달에 paired 비상콘센트(BC) 입력 섹션 + 직렬 저장 추가 (4-27 박보융 BC 누락 사고 재발 방지, 단일 파일 +94/-3) | 2026-04-28 | db7ced6 | [260428-lha-floorplanpage-paired-bc-modal](./quick/260428-lha-floorplanpage-paired-bc-modal/) |
 | 260429-meq | 승강기 고장 접수/수리 완료 모달 사진 첨부 5장 지원 (migration 0074 elevator_faults photo_keys + repair_photo_keys, 3개 모달 MultiPhotoUpload 통합) | 2026-04-29 | 97fd14f | [260429-meq-elevator-fault-photo-upload](./quick/260429-meq-elevator-fault-photo-upload/) |
 | 260505-c9d | 특별피난계단 점검 사진이 전층 record에 중복 저장되던 버그 수정 — StairwellModal.handleSave photoKey 분배를 1건 대표 부여(caution/bad 우선 → 첫 층)로 변경 | 2026-05-04 | d5fbf55 | [260505-c9d-stairwell-photo-fix](./quick/260505-c9d-stairwell-photo-fix/) |
+| 260505-cib | CCTV / Damper stair 모달도 같은 batch-save 패턴 — CctvModal.handleSave (DVR 13대) + DamperModal.handleStairSave (전실제연댐퍼 stair) 에 동일 정책(caution/bad 우선 → 첫 cp) 적용. coverage sweep 완료. | 2026-05-05 | 509b62a | [260505-cib-cctv-damper-stair](./quick/260505-cib-cctv-damper-stair/) |
 
 ### Blockers/Concerns
 
