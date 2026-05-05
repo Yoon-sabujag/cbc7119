@@ -453,8 +453,18 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      // DVR 13대 일괄 점검이라 사진 1장이 의도. 모든 record 에 같은 photoKey 를 박으면
+      // 상세 진입 시 전 DVR 이 같은 사진을 표시하므로, caution/bad 가 있으면 그 첫 cp,
+      // 없으면 첫 cp 1건에만 attach.
+      const photoTargetCp = photoKey
+        ? (cctvCPs.find(cp => {
+            const r = dvrResults[cp.id] ?? 'normal'
+            return r === 'caution' || r === 'bad'
+          }) ?? cctvCPs[0])
+        : null
       for (const cp of cctvCPs) {
-        await onSave(cp.id, dvrResults[cp.id] ?? 'normal', memo, photoKey ?? undefined)
+        const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
+        await onSave(cp.id, dvrResults[cp.id] ?? 'normal', memo, keyForCp ?? undefined)
       }
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
@@ -2471,8 +2481,18 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
+      // 계단전실 한 동을 층별로 일괄 점검. 사진은 stair 단위 메타에 가까우므로
+      // 모든 층 record 에 동일 photoKey 가 박혀 상세 전 record 가 같은 사진을 표시하지 않도록,
+      // caution/bad 가 있으면 그 첫 층, 없으면 첫 층 1건에만 attach.
+      const photoTargetCp = photoKey
+        ? (stairCPs.find(cp => {
+            const r = floorResults[cp.id] ?? 'normal'
+            return r === 'caution' || r === 'bad'
+          }) ?? stairCPs[0])
+        : null
       for (const cp of stairCPs) {
-        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, photoKey ?? undefined)
+        const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
+        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, keyForCp ?? undefined)
       }
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
