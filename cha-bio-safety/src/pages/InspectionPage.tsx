@@ -1035,7 +1035,7 @@ function DivTrendSubview({ point, records, onClose }: {
 
 function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, scheduleItems }: {
   onClose: () => void
-  onSaveRecord: (cpId: string, result: CheckResult, memo: string) => Promise<void>
+  onSaveRecord: (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
   initialLocationNo?: string
   monthRecords:  Record<string, MonthRecordEntry>
   scheduleItems: ScheduleItem[]
@@ -1226,7 +1226,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       // 점검 기록 연동 — 해당 층 체크포인트에 결과 반영
       const cpId = DIV_PT_CP[currentPt.id]
       if (cpId) {
-        await onSaveRecord(cpId, result, memo || '').catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
+        await onSaveRecord(cpId, result, memo || '', photoKey ?? undefined).catch(() => {/* 점검 기록 실패해도 압력 저장은 유지 */})
       }
 
       resetForm()
@@ -1607,7 +1607,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 // ── 컴프레셔 점검 모달 ──────────────────────────────────
 function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'standalone', monthRecords, scheduleItems }: {
   onClose: () => void
-  onSaveRecord: (cpId: string, result: CheckResult, memo: string) => Promise<void>
+  onSaveRecord: (cpId: string, result: CheckResult, memo: string, photoKey?: string) => Promise<void>
   initialLocationNo?: string
   mode?: 'standalone' | 'from-div'
   monthRecords:  Record<string, MonthRecordEntry>
@@ -1725,7 +1725,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       }
 
       const cpId = COMP_PT_CP[currentPt.id]
-      if (cpId) await onSaveRecord(cpId, result, memo || '').catch(() => {})
+      if (cpId) await onSaveRecord(cpId, result, memo || '', photoKey ?? undefined).catch(() => {})
 
       resetForm()
 
@@ -4764,7 +4764,7 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── 써머리 카드 ────────────────────────────────────────────
-const ZONE_LBL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+const ZONE_LBL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
 
 function InspectionSummaryCard({ categoryIdx, allRecords }: { categoryIdx: number; allRecords: any[] }) {
   const group = CATEGORY_GROUPS[categoryIdx]
@@ -4848,7 +4848,7 @@ function InspectionSummaryCard({ categoryIdx, allRecords }: { categoryIdx: numbe
         } catch { return null }
       }
 
-      const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+      const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
       const title = group.labels.join(', ')
 
       // 정상 사진 행
@@ -5111,7 +5111,7 @@ function DesktopInspectionView({
     { value: 0,  label: '전체' },
   ]
 
-  const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+  const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
   const fmtDate = fmtKstDate
   const fmtDateTime = fmtKstDateTime
 

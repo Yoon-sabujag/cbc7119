@@ -7,7 +7,7 @@ import { PhotoButton } from '../components/PhotoButton'
 import { useAuthStore } from '../stores/authStore'
 import toast from 'react-hot-toast'
 
-const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', common: '공용' }
+const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
 
 import { fmtKstDateTime as fmtDate } from '../utils/datetime'
 
