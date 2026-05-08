@@ -26,7 +26,7 @@ git checkout -b redesign/01-dashboard
 ## 진행 상황
 
 ### 1차 — 메인 워크플로우 (5개)
-- [ ] [01-dashboard](./01-dashboard/01-dashboard.md) — `/dashboard`
+- [x] [01-dashboard](./01-dashboard/01-dashboard.md) — `/dashboard`
 - [ ] [02-inspection](./02-inspection/02-inspection.md) — `/inspection` ⚠️ 5346 라인, 가장 큰 파일
 - [ ] [03-qr-scan](./03-qr-scan/03-qr-scan.md) — `/inspection/qr`
 - [ ] [04-remediation](./04-remediation/04-remediation.md) — `/remediation`
