@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { Map as MapIcon, BarChart3, Siren, Users } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
 import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
@@ -136,6 +137,14 @@ export default function DashboardPage() {
     navigate('/inspection', todayInspectCategory ? { state: { autoSelectCategory: todayInspectCategory } } : undefined)
   }
 
+  // 공통 tools 배열 — Lucide 아이콘 + §7.1 일관성 (배경/색 강조 제거)
+  const tools = [
+    { Icon: MapIcon,    label:'도면 점검',    desc:'층별 도면 보기\n유도등·감지기·소화기', descDesktop:'층별 도면 · 유도등 · 감지기',  path:'/floorplan' },
+    { Icon: BarChart3,  label:'DIV 트렌드',   desc:'측정점 선택\n압력 트렌드 차트',         descDesktop:'측정점 압력 트렌드 차트',        path:'/div'        },
+    { Icon: Siren,      label:'고장 접수',    desc:'승강기 고장 접수\nTKE 자동 연결',        descDesktop:'승강기 고장 접수 · TKE 연결',    path:'/elevator?modal=fault_new' },
+    { Icon: Users,      label:'직원 서비스',  desc:'연차·식사 이용\n근무표 기반 통합',       descDesktop:'연차 · 식사 · 근무표 통합',     path:'/staff-service' },
+  ]
+
   const isDesktop = useIsDesktop()
 
   // ── 데스크톱 레이아웃 ──────────────────────────────────────
@@ -145,12 +154,6 @@ export default function DashboardPage() {
       { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   onClick: () => navigate('/remediation?tab=open') },
       { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   onClick: () => navigate('/schedule') },
       { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator') },
-    ]
-    const tools = [
-      { icon:'🗺️', label:'도면 점검',    desc:'층별 도면 · 유도등 · 감지기',  bg:'rgba(59,130,246,.1)',  path:'/floorplan' },
-      { icon:'📈', label:'DIV 트렌드',   desc:'측정점 압력 트렌드 차트',      bg:'rgba(14,165,233,.1)',  path:'/div' },
-      { icon:'🚨', label:'고장 접수',     desc:'승강기 고장 접수 · TKE 연결',  bg:'rgba(239,68,68,.1)',   path:'/elevator?modal=fault_new' },
-      { icon:'🍱', label:'직원 서비스',   desc:'연차 · 식사 · 근무표 통합',    bg:'rgba(34,197,94,.1)',   path:'/staff-service' },
     ]
 
     // 미니 캘린더 데이터
@@ -178,44 +181,42 @@ export default function DashboardPage() {
     }
 
     return (
-      <div style={{ width:'100%', height:'100%', overflow:'auto', padding:'20px 28px', display:'flex', flexDirection:'column', gap:16 }}>
+      <div className="w-full h-full overflow-auto px-7 py-5 flex flex-col gap-4">
 
         {/* Row 0: 근무자 칩 + 연속 달성 */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
-            <div style={{ display:'flex', gap:6 }}>{admin.map(s => <DutyChip key={s.id} staff={s} />)}</div>
-            <div style={{ width:1, height:22, background:'var(--bd)', margin:'0 6px' }} />
+            <div className="flex gap-1.5">{admin.map(s => <DutyChip key={s.id} staff={s} />)}</div>
+            <div className="w-px h-[22px] bg-border-default mx-1.5" />
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
-            <div style={{ display:'flex', gap:6 }}>{assistant.map(s => <DutyChip key={s.id} staff={s} />)}</div>
+            <div className="flex gap-1.5">{assistant.map(s => <DutyChip key={s.id} staff={s} />)}</div>
           </div>
           {stats.streakDays > 0 && (
-            <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.18)', padding:'5px 14px', borderRadius:20 }}>
+            <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe px-3.5 py-1 rounded-pill">
               연속 {stats.streakDays}일 점검 달성
             </span>
           )}
         </div>
 
         {/* Row 1: 전폭 배너 — 오늘 점검 대상 + 수신반 */}
-        <div style={{
-          background:'linear-gradient(135deg,rgba(37,99,235,.10),rgba(14,165,233,.05))',
-          border:'1px solid rgba(59,130,246,.15)', borderRadius:16,
-          padding:'18px 24px', display:'flex', alignItems:'center', gap:20,
-        }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--info)', flexShrink:0, animation:'blink 2s ease-in-out infinite' }} />
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--info)', letterSpacing:'.05em', textTransform:'uppercase' }}>오늘 점검 대상</div>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:4, lineHeight:1.4 }}>{todayTarget}</div>
+        <div
+          className="rounded-lg border border-info-bar/30 px-6 py-4 flex items-center gap-5 bg-[linear-gradient(135deg,rgba(37,99,235,.10),rgba(14,165,233,.05))]"
+        >
+          <div className="w-2 h-2 rounded-full bg-info-bar shrink-0 animate-[blink_2s_ease-in-out_infinite]" />
+          <div className="flex-1">
+            <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
+            <div className="text-body-sm font-bold text-text-primary mt-1 leading-snug">{todayTarget}</div>
           </div>
           {latestAlarm && (
             <>
-              <div style={{ width:1, height:36, background:'rgba(59,130,246,.15)', flexShrink:0 }} />
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'#ef4444', letterSpacing:'.05em', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:6 }}>
-                  <div style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', animation:'blink 1s ease-in-out infinite' }} />
+              <div className="w-px h-9 bg-info-bar/20 shrink-0" />
+              <div className="text-right shrink-0">
+                <div className="text-caption font-bold text-danger-bar uppercase tracking-wider flex items-center justify-end gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-danger-bar animate-[blink_1s_ease-in-out_infinite]" />
                   최근 수신반 이력
                 </div>
-                <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', marginTop:4 }}>
+                <div className="text-body-sm font-bold text-text-primary mt-1">
                   {latestAlarm.location || '장소 미기록'}
                 </div>
               </div>
@@ -317,10 +318,12 @@ export default function DashboardPage() {
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--bd2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)'; e.currentTarget.style.transform = 'none' }}>
-                  <div style={{ width:44, height:44, borderRadius:12, background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>{t.icon}</div>
+                  <div style={{ width:44, height:44, borderRadius:12, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <t.Icon size={22} style={{ color:'var(--t2)' }} />
+                  </div>
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
-                    <div style={{ fontSize:11, color:'var(--t3)', marginTop:3, lineHeight:1.3 }}>{t.desc}</div>
+                    <div style={{ fontSize:12, color:'var(--t3)', marginTop:3, lineHeight:1.3 }}>{t.descDesktop}</div>
                   </div>
                 </div>
               ))}
@@ -337,7 +340,7 @@ export default function DashboardPage() {
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, textAlign:'center' }}>
                 {['일','월','화','수','목','금','토'].map(d => (
-                  <div key={d} style={{ fontSize:10, fontWeight:700, color: d==='일'?'var(--danger)':d==='토'?'var(--info)':'var(--t3)', padding:'3px 0' }}>{d}</div>
+                  <div key={d} style={{ fontSize:12, fontWeight:700, color: d==='일'?'var(--danger)':d==='토'?'var(--info)':'var(--t3)', padding:'3px 0' }}>{d}</div>
                 ))}
                 {Array.from({ length: calStartDow }, (_, i) => (
                   <div key={`e${i}`} />
@@ -386,13 +389,13 @@ export default function DashboardPage() {
                   <>
                     {timed.length > 0 && (
                       <>
-                        <div style={{ padding:'8px 16px 4px', fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em' }}>시간 확정</div>
+                        <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em' }}>시간 확정</div>
                         {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
                       </>
                     )}
                     {untimed.length > 0 && (
                       <>
-                        <div style={{ padding:'8px 16px 4px', fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', borderTop: timed.length > 0 ? '1px solid var(--bd)' : 'none' }}>시간 미정</div>
+                        <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', borderTop: timed.length > 0 ? '1px solid var(--bd)' : 'none' }}>시간 미정</div>
                         {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
                       </>
                     )}
@@ -408,20 +411,20 @@ export default function DashboardPage() {
 
   // ── 모바일 레이아웃 ──────────────────────────────────────
   return (
-    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
 
       {/* ══ 근무자 칩 바 ══ */}
-      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'6px 12px' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+      <div className="shrink-0 bg-surface-raised border-b border-border-default px-3 py-1.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
             <RoleLabel text="관리자" color="rgba(245,158,11,0.75)" />
-            <div style={{ display:'flex', gap:5 }}>
+            <div className="flex gap-1.5">
               {admin.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} small />)}
             </div>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+          <div className="flex items-center gap-1.5">
             <RoleLabel text="보조자" color="rgba(110,118,129,0.65)" />
-            <div style={{ display:'flex', gap:5 }}>
+            <div className="flex gap-1.5">
               {assistant.map(s => <DutyChip key={s.id} staff={s} onClick={() => s.phone && setContactStaff(s)} small />)}
             </div>
           </div>
@@ -429,40 +432,36 @@ export default function DashboardPage() {
       </div>
 
       {/* ══ 메인 그리드 ══ */}
-      <main style={{
-        flex:1, minHeight:0, overflowY:'auto',
-        display:'grid',
-        // Android: row 5(월간 도넛)을 minmax(140px, auto)로 최소크기 명시.
-        // scroll-container 자식의 intrinsic height 0 버그로 auto 트랙이 너무
-        // 작게 계산되는 걸 우회. 1fr(오늘 일정)이 그만큼 줄어드는 대신
-        // 월간 현황이 완전히 표시됨.
-        gridTemplateRows: IS_ANDROID
-          ? 'auto auto auto 1fr minmax(140px, auto)'
-          : 'auto auto auto 1fr auto',
-        gap:7, padding:'7px 11px',
-      }}>
+      <main
+        className="flex-1 min-h-0 overflow-y-auto grid gap-[7px] px-[11px] py-[7px]"
+        // gridTemplateRows 는 IS_ANDROID 동적 분기 — 인라인 허용 키
+        style={{
+          gridTemplateRows: IS_ANDROID
+            ? 'auto auto auto 1fr minmax(140px, auto)'
+            : 'auto auto auto 1fr auto',
+        }}
+      >
 
         {/* ① 오늘 점검 대상 배너 */}
-        <div style={{
-          background:'linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))',
-          border:'1px solid rgba(59,130,246,.22)', borderRadius:12,
-          padding:'8px 13px', display:'flex', alignItems:'center', gap:9,
-          animation:'slideUp .28s ease-out',
-        }}>
-          <div style={{ width:6, height:6, borderRadius:'50%', background:'var(--info)', flexShrink:0, animation:'blink 2s ease-in-out infinite' }} />
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:9, fontWeight:700, color:'var(--info)', letterSpacing:'.05em', textTransform:'uppercase' }}>오늘 점검 대상</div>
-            <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1, lineHeight:1.2 }}>{todayTarget}</div>
+        <div
+          className="rounded-md border border-info-bar/30 px-3 py-2 flex items-center gap-2.5 bg-[linear-gradient(100deg,rgba(37,99,235,.17),rgba(14,165,233,.08))]"
+          // animation 은 keyframe — Tailwind 정의 안 됨, 인라인 허용 키
+          style={{ animation:'slideUp .28s ease-out' }}
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-info-bar shrink-0 animate-[blink_2s_ease-in-out_infinite]" />
+          <div className="flex-1">
+            <div className="text-caption font-bold text-info-bar uppercase tracking-wider">오늘 점검 대상</div>
+            <div className="text-label font-bold text-text-primary mt-0.5 leading-tight">{todayTarget}</div>
           </div>
           {latestAlarm && (
             <>
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'#ef4444', letterSpacing:'.05em' }}>최근 수신반 이력</div>
-                <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1, lineHeight:1.2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:150 }}>
+              <div className="text-right shrink-0">
+                <div className="text-caption font-bold text-danger-bar uppercase tracking-wider">최근 수신반 이력</div>
+                <div className="text-label font-bold text-text-primary mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">
                   {latestAlarm.location || '장소 미기록'}
                 </div>
               </div>
-              <div style={{ width:6, height:6, borderRadius:'50%', background:'#ef4444', flexShrink:0, animation:'blink 1s ease-in-out infinite' }} />
+              <div className="w-1.5 h-1.5 rounded-full bg-danger-bar shrink-0 animate-[blink_1s_ease-in-out_infinite]" />
             </>
           )}
         </div>
@@ -470,9 +469,9 @@ export default function DashboardPage() {
         {/* ② 오늘 현황 */}
         <div style={{ animation:'slideUp .28s .06s ease-out both' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>오늘 현황</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>오늘 현황</span>
             {stats.streakDays > 0 && (
-              <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:9.5, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'2px 7px', borderRadius:20 }}>
+              <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'2px 7px', borderRadius:20 }}>
                 연속 {stats.streakDays}일 점검 달성 🔥
               </span>
             )}
@@ -485,10 +484,10 @@ export default function DashboardPage() {
               { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', accent: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator?tab=fault') },
             ].map(c => (
               <div key={c.label} onClick={c.onClick} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'8px 8px 10px', display:'flex', flexDirection:'column', gap:4, position:'relative', overflow:'hidden', cursor:'pointer' }}>
-                <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.label}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:'var(--t3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.label}</div>
                 <div style={{ display:'flex', alignItems:'baseline', gap:2, flexWrap:'wrap' }}>
                   <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:600, lineHeight:1, color:c.color }}>{c.val}</span>
-                  <span style={{ fontSize:9.5, color:'var(--t3)' }}>{c.sub}</span>
+                  <span style={{ fontSize:12, color:'var(--t3)' }}>{c.sub}</span>
                 </div>
                 <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2, borderRadius:'0 0 12px 12px', background:c.accent }} />
               </div>
@@ -496,7 +495,7 @@ export default function DashboardPage() {
           </div>
           {stats.elevInspDueSoon > 0 && (
             <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
-              <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:11, fontWeight:600 }}>
+              <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:12, fontWeight:600 }}>
                 검사도래 {stats.elevInspDueSoon}
               </span>
             </div>
@@ -506,15 +505,10 @@ export default function DashboardPage() {
         {/* ③ 빠른 도구 모음 */}
         <div style={{ animation:'slideUp .28s .12s ease-out both' }}>
           <div style={{ display:'flex', alignItems:'center', marginBottom:5 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>빠른 도구 모음</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>빠른 도구 모음</span>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:7 }}>
-            {[
-              { icon:'🗺️', label:'도면 점검',    desc:'층별 도면 보기\n유도등·감지기·소화기', bg:'rgba(59,130,246,.13)', path:'/floorplan' },
-              { icon:'📈', label:'DIV 트렌드',   desc:'측정점 선택\n압력 트렌드 차트',  bg:'rgba(14,165,233,.13)', path:'/div'        },
-              { icon:'🚨', label:'고장 접수',     desc:'승강기 고장 접수\nTKE 자동 연결', bg:'rgba(239,68,68,.13)',  path:'/elevator?modal=fault_new' },
-              { icon:'🍱', label:'직원 서비스',   desc:'연차·식사 이용\n근무표 기반 통합',  bg:'rgba(34,197,94,.13)',  path:'/staff-service' },
-            ].map(t => (
+            {tools.map(t => (
               <div
                 key={t.label}
                 onClick={() => navigate(t.path)}
@@ -522,10 +516,12 @@ export default function DashboardPage() {
                 onMouseEnter={e => { e.currentTarget.style.background='var(--bg3)'; e.currentTarget.style.borderColor='var(--bd2)' }}
                 onMouseLeave={e => { e.currentTarget.style.background='var(--bg2)'; e.currentTarget.style.borderColor='var(--bd)'  }}
               >
-                <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:t.bg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>{t.icon}</div>
+                <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <t.Icon size={18} style={{ color:'var(--t2)' }} />
+                </div>
                 <div>
-                  <div style={{ fontSize:12.5, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
-                  <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:2, lineHeight:1.3, whiteSpace:'pre-line' }}>{t.desc}</div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
+                  <div style={{ fontSize:12, color:'var(--t3)', marginTop:2, lineHeight:1.3, whiteSpace:'pre-line' }}>{t.desc}</div>
                 </div>
               </div>
             ))}
@@ -535,19 +531,19 @@ export default function DashboardPage() {
         {/* ④ 오늘 일정 */}
         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:0, animation:'slideUp .28s .16s ease-out both' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>오늘 일정</span>
-            <span style={{ fontSize:9.5, color:'var(--t3)', background:'var(--bg3)', padding:'1px 7px', borderRadius:9 }}>{schedule.length}건</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>오늘 일정</span>
+            <span style={{ fontSize:12, color:'var(--t3)', background:'var(--bg3)', padding:'1px 7px', borderRadius:9 }}>{schedule.length}건</span>
           </div>
           <div style={{ overflowY:'auto', flex:1 }}>
             {timed.length > 0 && (
               <>
-                <div style={{ padding:'4px 10px 2px', fontSize:8, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase' }}>⏰ 시간 확정</div>
+                <div style={{ padding:'4px 10px 2px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase' }}>⏰ 시간 확정</div>
                 {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}
             {untimed.length > 0 && (
               <>
-                <div style={{ padding:'4px 10px 2px', fontSize:8, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', borderTop:'1px solid var(--bd)', marginTop:2 }}>📋 시간 미정</div>
+                <div style={{ padding:'4px 10px 2px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', borderTop:'1px solid var(--bd)', marginTop:2 }}>📋 시간 미정</div>
                 {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}
@@ -557,11 +553,11 @@ export default function DashboardPage() {
         {/* ⑤ 이번 달 점검 현황 */}
         <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both', height: IS_ANDROID ? 125 : undefined }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
-            <span style={{ fontSize:9.5, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
+            <span style={{ fontSize:12, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
           </div>
           {monthly.length === 0 ? (
-            <div style={{ padding:'14px 0', textAlign:'center', fontSize:11, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
+            <div style={{ padding:'14px 0', textAlign:'center', fontSize:12, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
           ) : (
             <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, flex: IS_ANDROID ? 1 : undefined, height: IS_ANDROID ? 101 : undefined }}>
               {monthly.map((m, i) => (
@@ -581,8 +577,8 @@ export default function DashboardPage() {
                   ) : (
                     <Donut pct={m.pct} color={m.color} size={44} />
                   )}
-                  <div style={{ fontSize:8, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
-                  <div style={{ fontSize:8, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                  <div style={{ fontSize:12, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
+                  <div style={{ fontSize:12, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
                 </div>
               ))}
             </div>
@@ -668,13 +664,13 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
       onMouseEnter={e => (e.currentTarget.style.background = item.completed ? 'rgba(34,197,94,.12)' : 'var(--bg3)')}
       onMouseLeave={e => (e.currentTarget.style.background = item.completed ? 'rgba(34,197,94,.08)' : 'transparent')}
     >
-      <div style={{ fontFamily:'JetBrains Mono,monospace', fontSize:9, color:'var(--t3)', width:30, flexShrink:0, paddingTop:1 }}>
+      <div style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, color:'var(--t3)', width:30, flexShrink:0, paddingTop:1 }}>
         {item.time ?? '—'}
       </div>
       <div style={{ width:2, borderRadius:2, flexShrink:0, alignSelf:'stretch', minHeight:20, background: catColor[item.category] ?? 'var(--t3)' }} />
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.title}</div>
-        {item.memo && <div style={{ fontSize:9, color:'var(--t3)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.memo}</div>}
+        <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.title}</div>
+        {item.memo && <div style={{ fontSize:12, color:'var(--t3)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.memo}</div>}
       </div>
       <StatusBadge status={item.completed ? 'done' : item.status} />
       {item.completed && (
@@ -686,7 +682,7 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
         <button
           onClick={(e) => { e.stopPropagation(); onManualComplete?.(item) }}
           style={{
-            fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:5,
+            fontSize:12, fontWeight:700, padding:'2px 6px', borderRadius:5,
             background:'var(--bg3)', color:'var(--t3)', border:'1px solid var(--bd)',
             cursor:'pointer', flexShrink:0, whiteSpace:'nowrap'
           }}
