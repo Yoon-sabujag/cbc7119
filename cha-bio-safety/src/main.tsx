@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import './utils/pwaInstall' // side-effect: beforeinstallprompt 조기 캡처
+import { initTheme } from './utils/theme'
+
+initTheme()
 
 // Polyfill: Promise.withResolvers + Promise.try (Chrome < 128, Windows 7 등)
 if (typeof (Promise as any).withResolvers !== 'function') {

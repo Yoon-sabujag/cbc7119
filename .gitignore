@@ -8,3 +8,9 @@ stitch-mobile-spec.md
 캡쳐/
 승강기검사서/
 작업용/
+
+# 디자인 시스템 입력 자료 (부모 루트 작업용, 앱 번들과 무관)
+design-system-v0.1/
+
+# 핸드오프 번들 zip (unzipped 사본이 같은 폴더에 있음)
+cha-bio-safety/docs/redesign-context/**/*.zip
