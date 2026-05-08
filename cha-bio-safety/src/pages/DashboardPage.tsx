@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { Map as MapIcon, BarChart3, Siren, Users } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { dashboardApi, scheduleApi, fireAlarmApi } from '../utils/api'
-import { DutyChip, RoleLabel, Donut, StatusBadge, CatBar } from '../components/ui'
+import { DutyChip, RoleLabel, Donut, CatBar } from '../components/ui'
 import type { DashboardScheduleItem, Staff } from '../types'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
@@ -756,7 +756,7 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
         <div className="text-label font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">{item.title}</div>
         {item.memo && <div className="text-caption text-text-tertiary mt-px whitespace-nowrap overflow-hidden text-ellipsis">{item.memo}</div>}
       </div>
-      <StatusBadge status={item.completed ? 'done' : item.status} />
+      <ScheduleStatusPill status={item.completed ? 'done' : item.status} />
       {item.completed && (
         <svg width={16} height={16} viewBox="0 0 16 16" fill="none" className="shrink-0">
           <path d="M3 8.5L6.5 12L13 4" stroke="var(--status-safe-bar)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
@@ -767,9 +767,26 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
           onClick={(e) => { e.stopPropagation(); onManualComplete?.(item) }}
           className="text-caption font-bold px-1.5 py-0.5 rounded-sm bg-surface-sunken text-text-tertiary border border-border-default cursor-pointer shrink-0 whitespace-nowrap hover:bg-surface-active transition-colors"
         >
-          완료
+          완료 처리
         </button>
       )}
     </div>
+  )
+}
+
+// 일정 상태 pill — 완료처리 버튼과 동일 사이즈(text-caption + px-1.5 py-0.5 + border)
+// ui/StatusBadge(8px) 는 사이즈가 너무 작아 시안과 어긋나서 페이지 로컬 컴포넌트로 대체
+function ScheduleStatusPill({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    pending:     { label: '예정',   cls: 'bg-surface-sunken text-text-tertiary border-border-default' },
+    in_progress: { label: '진행중', cls: 'bg-warning-bg text-warning border-warning-bar/30' },
+    done:        { label: '완료',   cls: 'bg-safe-bg text-safe border-safe-bar/30' },
+    overdue:     { label: '지연',   cls: 'bg-danger-bg text-danger border-danger-bar/30' },
+  }
+  const s = map[status] ?? map.pending
+  return (
+    <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap border ${s.cls}`}>
+      {s.label}
+    </span>
   )
 }
