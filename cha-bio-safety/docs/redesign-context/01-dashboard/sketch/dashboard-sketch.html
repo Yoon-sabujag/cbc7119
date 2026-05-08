@@ -1,0 +1,2561 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>대시보드 재디자인 시안 v0.1.1</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 (다크/라이트 두 :root 블록)
+     * 시안에서는 [data-theme="dark"] / [data-theme="light"] 컨테이너 안에서
+     * 자식 요소가 var(--surface-page) 등을 참조하면 해당 컨테이너 토큰을 사용.
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+
+      /* alias (DashboardPage.tsx 가 사용) */
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+      --c-day:   var(--duty-day);
+      --c-night: var(--duty-night);
+      --c-off:   var(--duty-off);
+      --c-leave: var(--duty-leave);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+      --c-day:   var(--duty-day);
+      --c-night: var(--duty-night);
+      --c-off:   var(--duty-off);
+      --c-leave: var(--duty-leave);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 시안 메타 스타일
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+    .viewport-mobile  { width: 375px; height: 812px; }
+    .viewport-desktop { width: 1280px; height: 800px; }
+
+    /* 토큰 컨테이너 안에서는 색을 토큰으로 강제 — Tailwind 텍스트 컬러 우선순위 회피 */
+    .viewport-frame * { font-family: inherit; }
+
+    /* 가로 스크롤 스크롤바 숨김 (월간 도넛) */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* skeleton 펄스 애니메이션 */
+    @keyframes pulse-soft { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
+    .skel { animation: pulse-soft 1.6s ease-in-out infinite; background: var(--surface-active); border-radius: 8px; }
+
+    /* 깜빡 dot */
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+    .blink { animation: blink 2s ease-in-out infinite; }
+    .blink-fast { animation: blink 1s ease-in-out infinite; }
+
+    /* 카드 hover (시각 데모) */
+    .card-hover:hover {
+      border-color: var(--border-strong) !important;
+      transform: translateY(-1px);
+      transition: border-color .15s, transform .15s;
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  메모리 룰 — 시각 디자인 결정의 source of truth (HTML 주석으로 명시)
+  ----------------------------------------------------------------------------
+  - Dashboard 그리드 1fr은 의도적 (핀치줌 원복 깜빡임 방지). minmax(0,1fr) 금지.
+  - 월간 도넛은 가로 스크롤 (overflow-x:auto + flex no-wrap). flex-wrap 금지.
+  - BottomNav 하단 갭은 height + paddingBottom 증가 패턴 (bottom 으로 띄우거나
+    버튼 압축 금지).
+  - viewport 단위 분기 — Android 100svh / iOS Safari 100dvh / iOS PWA 100vh.
+  - 9/10/11px 폰트 사용 금지 (노안 친화).
+  - v0.1.1 §6 Progress Color Rule:
+      0%        → --text-tertiary (회색, opacity 0.6 카드)
+      1~49%     → --status-warning-bar (노랑)
+      50~99%    → --accent (파랑)
+      100%      → --status-safe-bar (초록)
+  - v0.1.1 §7 Stat Card 좌측 3px 색바 + 위험 임계치 조건부 danger.
+  - v0.1.1 §8 카테고리 아이콘 모두 회색 통일 — 진척률은 좌측 색바로만.
+  ============================================================================
+-->
+
+<body class="p-8">
+
+  <!-- ============================================================
+       시안 헤더
+       ============================================================ -->
+  <header class="max-w-[1400px] mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-2">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-09</span>
+      <span class="meta-label">redesign/01-dashboard</span>
+    </div>
+    <h1 class="text-3xl font-semibold text-white">CHA Bio Complex — 대시보드 재디자인 시안</h1>
+    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+      모바일 375×812 / 데스크톱 1280×800 · 라이트/다크 동시 비교 · DashboardPage.tsx 1:1 매핑 ·
+      v0.1.1 §6 Progress Color Rule, §7 Stat Card, §8 Iconography 적용 · loading / error(신규) / empty 상태 포함
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4-grid: 모바일 다크 | 모바일 라이트 (위)
+                데스크톱 다크 | 데스크톱 라이트 (아래)
+       ============================================================ -->
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: 모바일 두 테마
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">Mobile · Dark · 375 × 812</span>
+        <span class="meta-label">Mobile · Light · 375 × 812</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔═══════════════════════════════╗
+             ║   MOBILE  DARK                ║
+             ╚═══════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary);">
+
+            <!-- ① 상단 헤더 바 -->
+            <div class="flex items-center justify-between px-3 py-2 flex-shrink-0"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="flex items-center gap-2">
+                <button class="p-1" aria-label="메뉴" style="color:var(--text-secondary)">
+                  <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div>
+                  <div class="text-caption font-semibold" style="color:var(--text-tertiary)">CHA Bio Complex</div>
+                  <div class="text-label font-semibold" style="color:var(--text-primary)">방재팀 대시보드</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="relative p-2" style="color:var(--text-secondary)">
+                  <i data-lucide="bell" class="w-5 h-5"></i>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background:var(--status-danger-bar)"></span>
+                </button>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold"
+                     style="background:var(--accent); color:var(--text-on-accent)">윤</div>
+              </div>
+            </div>
+
+            <!-- ② 근무자 칩 바 (DutyChip 4명 + 연차/공가) -->
+            <div class="flex-shrink-0 px-3 py-1.5"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="flex items-center justify-between gap-1">
+                <!-- 관리자 -->
+                <div class="flex items-center gap-1">
+                  <div class="flex flex-col items-center" style="line-height:1.45">
+                    <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">관</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">리</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">자</span>
+                  </div>
+                  <!-- DutyChip: 주간 -->
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 8px 3px 3px; border:1px solid rgba(245,158,11,.28); background:rgba(245,158,11,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-day); font-size:11px; font-weight:700">김</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">김주간</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-day)">주간</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 보조자 -->
+                <div class="flex items-center gap-1">
+                  <div class="flex flex-col items-center" style="line-height:1.45">
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">보</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">조</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">자</span>
+                  </div>
+                  <!-- DutyChip: 당직 -->
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(239,68,68,.28); background:rgba(239,68,68,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-night); font-size:11px; font-weight:700">이</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">이당직</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-night)">당직</span>
+                    </div>
+                  </div>
+                  <!-- DutyChip: 비번 -->
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(59,130,246,.28); background:rgba(59,130,246,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-off); font-size:11px; font-weight:700">박</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">박비번</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-off)">비번</span>
+                    </div>
+                  </div>
+                  <!-- DutyChip: 연차 (full) -->
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(34,197,94,.28); background:rgba(34,197,94,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:#22c55e; font-size:11px; font-weight:700">정</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">정연차</span>
+                      <span style="font-size:9px; font-weight:600; color:#22c55e">연차</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ③ 메인 그리드: 5행 단일컬럼 1fr (메모리 룰) -->
+            <main class="flex-1 min-h-0 overflow-y-auto" style="display:grid; grid-template-rows:auto auto auto 1fr auto; gap:7px; padding:7px 11px;">
+
+              <!-- ③-1 오늘 점검 대상 배너 + 수신반 48h -->
+              <div class="rounded-[12px] flex items-center gap-2 px-3 py-2"
+                   style="background:linear-gradient(100deg, rgba(37,99,235,.17), rgba(14,165,233,.08)); border:1px solid rgba(59,130,246,.22);">
+                <div class="w-1.5 h-1.5 rounded-full blink flex-shrink-0" style="background:var(--info)"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold uppercase" style="font-size:12px; color:var(--info); letter-spacing:.05em">오늘 점검 대상</div>
+                  <div class="font-bold leading-tight mt-0.5" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검 · B5~8층 34개 측정점</div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="font-bold uppercase" style="font-size:12px; color:#ef4444; letter-spacing:.05em">수신반 48h</div>
+                  <div class="font-bold mt-0.5" style="font-size:13px; color:var(--t1)">B2 주차장 동측</div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full blink-fast flex-shrink-0" style="background:#ef4444"></div>
+              </div>
+
+              <!-- ③-2 오늘 현황 통계 4종 -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">오늘 현황</span>
+                  <span class="font-mono font-semibold rounded-[20px] px-2 py-0.5"
+                        style="font-size:12px; color:var(--safe); background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.2)">연속 12일 점검 달성 🔥</span>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <!-- 점검 미완료 (danger 임계치) -->
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">미완료</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--danger)">28</span>
+                      <span style="font-size:12px; color:var(--t3)">/34</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                  </div>
+                  <!-- 미조치 (fire 임계치) -->
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">미조치</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--fire)">7</span>
+                      <span style="font-size:12px; color:var(--t3)">건</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-fire-bar)"></div>
+                  </div>
+                  <!-- 오늘 일정 -->
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">일정</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--info)">3</span>
+                      <span style="font-size:12px; color:var(--t3)">건</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-info-bar)"></div>
+                  </div>
+                  <!-- 승강기 고장 (1대 → danger) -->
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">승강기</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--danger)">1</span>
+                      <span style="font-size:12px; color:var(--t3)">대</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ③-3 빠른 도구 4종 -->
+              <div>
+                <div class="flex items-center mb-1.5">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">빠른 도구 모음</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <!-- 도면 점검 -->
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="map" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">도면 점검</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">층별 도면 보기</div>
+                    </div>
+                  </div>
+                  <!-- DIV 트렌드 -->
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">DIV 트렌드</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">압력 트렌드 차트</div>
+                    </div>
+                  </div>
+                  <!-- 고장 접수 (fire 강조) -->
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--status-fire-bg); color:var(--status-fire)">
+                      <i data-lucide="siren" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">고장 접수</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">TKE 자동 연결</div>
+                    </div>
+                  </div>
+                  <!-- 직원 서비스 -->
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="users" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">직원 서비스</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">연차·식사 통합</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ③-4 오늘 일정 (시간 확정 / 시간 미정) -->
+              <div class="rounded-[12px] overflow-hidden flex flex-col min-h-0"
+                   style="background:var(--bg2); border:1px solid var(--bd);">
+                <div class="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
+                     style="border-bottom:1px solid var(--bd);">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">오늘 일정</span>
+                  <span class="rounded-[9px] px-2 py-0.5"
+                        style="font-size:12px; color:var(--t3); background:var(--bg3)">5건</span>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <!-- 시간 확정 헤더 -->
+                  <div class="px-2.5 py-1 font-bold uppercase"
+                       style="font-size:12px; color:var(--t3); letter-spacing:.06em">⏰ 시간 확정</div>
+                  <!-- 일정 행: pending -->
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">09:30</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--fire); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">VIP 투어 업무협조</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(245,158,11,.15); color:var(--warn)">진행중</span>
+                  </div>
+                  <!-- pending -->
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">14:00</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:#f97316; min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">엘리베이터 5호기 수리</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                    <button class="font-bold flex-shrink-0 rounded px-1.5 py-0.5 whitespace-nowrap"
+                            style="font-size:12px; background:var(--bg3); color:var(--t3); border:1px solid var(--bd)">완료</button>
+                  </div>
+                  <!-- pending -->
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">16:00</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">소방 종합점검 협의</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                  </div>
+                  <!-- 시간 미정 헤더 -->
+                  <div class="px-2.5 py-1 font-bold uppercase"
+                       style="font-size:12px; color:var(--t3); letter-spacing:.06em; border-top:1px solid var(--bd)">📋 시간 미정</div>
+                  <!-- overdue -->
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">—</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(239,68,68,.13); color:var(--danger)">지연</span>
+                  </div>
+                  <!-- completed (배경 초록) -->
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="background:rgba(34,197,94,.08); border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">—</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--t3); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">3층 소화기 교체 확인</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(34,197,94,.13); color:var(--safe)">완료</span>
+                    <i data-lucide="check" class="w-4 h-4 flex-shrink-0" style="color:var(--safe)"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ③-5 이번 달 점검 현황 (가로 스크롤) -->
+              <!-- 메모리: 월간 도넛 가로 스크롤 의도. flex-wrap 금지 -->
+              <div class="rounded-[12px] overflow-hidden flex flex-col"
+                   style="background:var(--bg2); border:1px solid var(--bd);">
+                <div class="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
+                     style="border-bottom:1px solid var(--bd);">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">이번 달 점검 현황</span>
+                  <span style="font-size:12px; color:var(--t3)">2026년 5월</span>
+                </div>
+                <div class="no-scrollbar flex gap-3 px-2.5 py-2.5"
+                     style="overflow-x:auto; overflow-y:hidden;">
+                  <!-- 자탐 12% (1~49 노랑) -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="12.82 93.95"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">12%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">자탐</div>
+                    <div style="font-size:12px; color:var(--t3)">2/16</div>
+                  </div>
+                  <!-- DIV doubleCycle (1주차 60% / 2주차 25%) -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;" title="DIV doubleCycle two-lap">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <!-- outer ring (2주차 / late 25%) -->
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.42 94.25"></circle>
+                        <!-- inner ring (1주차 / early 60%) -->
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="60.32 40.21"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:9px; color:var(--t2)">42%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">DIV</div>
+                    <div style="font-size:12px; color:var(--t3)">14/34</div>
+                  </div>
+                  <!-- 컴프 doubleCycle (1주차 60% / 2주차 25%) — DIV와 같이 점검 -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;" title="컴프 doubleCycle two-lap">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.42 94.25"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="60.32 40.21"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:9px; color:var(--t2)">42%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">컴프</div>
+                    <div style="font-size:12px; color:var(--t3)">14/34</div>
+                  </div>
+                  <!-- 유도등 30% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="32.04 74.74"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">30%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">유도등</div>
+                    <div style="font-size:12px; color:var(--t3)">3/10</div>
+                  </div>
+                  <!-- 소화기 62% (50~99 파랑) -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="66.23 40.55"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">62%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">소화기</div>
+                    <div style="font-size:12px; color:var(--t3)">5/8</div>
+                  </div>
+                  <!-- 옥내소화전 100% (safe 초록) -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="106.78 0"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-safe-bar)">100%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--safe); line-height:1.3">옥내소화전</div>
+                    <div style="font-size:12px; color:var(--safe)">8/8</div>
+                  </div>
+                  <!-- 방화셔터 0% (회색 + opacity 0.6) — v0.1.1 §6.3 -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px; opacity:0.6">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="#2a2f37" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 106.78"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--t3)">0%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">방화셔터</div>
+                    <div style="font-size:12px; color:var(--t3)">0/4</div>
+                  </div>
+                  <!-- 전실제연댐퍼 18% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="19.22 87.56"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">18%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">전실댐퍼</div>
+                    <div style="font-size:12px; color:var(--t3)">2/11</div>
+                  </div>
+                  <!-- 특별피난계단 75% (50~99 파랑) -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="80.09 26.69"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">75%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">피난계단</div>
+                    <div style="font-size:12px; color:var(--t3)">3/4</div>
+                  </div>
+                  <!-- CCTV 95% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="101.45 5.34"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">95%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">CCTV</div>
+                    <div style="font-size:12px; color:var(--t3)">19/20</div>
+                  </div>
+                  <!-- 승강기 100% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="106.78 0"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-safe-bar)">100%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--safe); line-height:1.3">승강기</div>
+                    <div style="font-size:12px; color:var(--safe)">12/12</div>
+                  </div>
+                  <!-- 비상콘센트 0% — opacity 0.6 -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px; opacity:0.6">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--t3)">0%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">비상콘센트</div>
+                    <div style="font-size:12px; color:var(--t3)">0/6</div>
+                  </div>
+                  <!-- 스프링클러 88% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="93.97 12.81"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">88%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">스프링클러</div>
+                    <div style="font-size:12px; color:var(--t3)">22/25</div>
+                  </div>
+                </div>
+              </div>
+
+            </main>
+
+            <!-- ④ BottomNav (메모리: height + paddingBottom 패턴) -->
+            <nav class="flex items-center justify-around flex-shrink-0"
+                 style="background:var(--surface-raised); border-top:1px solid var(--border-default); height:64px; padding-bottom:8px;">
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center"
+                      style="color:var(--accent)">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span style="font-size:12px; font-weight:600">홈</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center"
+                      style="color:var(--text-tertiary)">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span style="font-size:12px">점검</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center"
+                      style="color:var(--text-tertiary)">
+                <i data-lucide="map" class="w-5 h-5"></i>
+                <span style="font-size:12px">도면</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center relative"
+                      style="color:var(--text-tertiary)">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span style="font-size:12px">조치</span>
+                <span class="absolute top-2 right-[28%] w-4 h-4 rounded-full flex items-center justify-center"
+                      style="background:var(--status-fire-bar); color:white; font-size:10px; font-weight:700">7</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center"
+                      style="color:var(--text-tertiary)">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+                <span style="font-size:12px">메뉴</span>
+              </button>
+            </nav>
+
+          </div>
+        </div>
+        <!-- /MOBILE DARK -->
+
+        <!-- ╔═══════════════════════════════╗
+             ║   MOBILE  LIGHT               ║
+             ║   (구조 동일, 토큰만 라이트)  ║
+             ╚═══════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary);">
+
+            <!-- 헤더 -->
+            <div class="flex items-center justify-between px-3 py-2 flex-shrink-0"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="flex items-center gap-2">
+                <button class="p-1" style="color:var(--text-secondary)"><i data-lucide="menu" class="w-5 h-5"></i></button>
+                <div>
+                  <div class="text-caption font-semibold" style="color:var(--text-tertiary)">CHA Bio Complex</div>
+                  <div class="text-label font-semibold" style="color:var(--text-primary)">방재팀 대시보드</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="relative p-2" style="color:var(--text-secondary)">
+                  <i data-lucide="bell" class="w-5 h-5"></i>
+                  <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background:var(--status-danger-bar)"></span>
+                </button>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold"
+                     style="background:var(--accent); color:var(--text-on-accent)">윤</div>
+              </div>
+            </div>
+
+            <!-- 근무자 칩 바 -->
+            <div class="flex-shrink-0 px-3 py-1.5"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center gap-1">
+                  <div class="flex flex-col items-center" style="line-height:1.45">
+                    <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">관</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">리</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">자</span>
+                  </div>
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 8px 3px 3px; border:1px solid rgba(180,83,9,.35); background:rgba(180,83,9,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-day); font-size:11px; font-weight:700">김</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">김주간</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-day)">주간</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <div class="flex flex-col items-center" style="line-height:1.45">
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.8)">보</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.8)">조</span>
+                    <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.8)">자</span>
+                  </div>
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(185,28,28,.35); background:rgba(185,28,28,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-night); font-size:11px; font-weight:700">이</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">이당직</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-night)">당직</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(31,111,235,.35); background:rgba(31,111,235,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:var(--c-off); font-size:11px; font-weight:700">박</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">박비번</span>
+                      <span style="font-size:9px; font-weight:600; color:var(--c-off)">비번</span>
+                    </div>
+                  </div>
+                  <!-- 공가 (official_full) -->
+                  <div class="flex items-center gap-1 rounded-[22px] flex-shrink-0"
+                       style="padding:3px 6px 3px 3px; border:1px solid rgba(249,115,22,.35); background:rgba(249,115,22,.08)">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                         style="background:#f97316; font-size:11px; font-weight:700">한</div>
+                    <div class="flex flex-col" style="gap:1px">
+                      <span style="font-size:11px; font-weight:700; color:var(--t1)">한공가</span>
+                      <span style="font-size:9px; font-weight:600; color:#f97316">공가</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 메인 그리드 -->
+            <main class="flex-1 min-h-0 overflow-y-auto" style="display:grid; grid-template-rows:auto auto auto 1fr auto; gap:7px; padding:7px 11px;">
+
+              <!-- 배너 -->
+              <div class="rounded-[12px] flex items-center gap-2 px-3 py-2"
+                   style="background:linear-gradient(100deg, rgba(31,111,235,.10), rgba(14,165,233,.06)); border:1px solid rgba(31,111,235,.22);">
+                <div class="w-1.5 h-1.5 rounded-full blink flex-shrink-0" style="background:var(--info)"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold uppercase" style="font-size:12px; color:var(--info); letter-spacing:.05em">오늘 점검 대상</div>
+                  <div class="font-bold leading-tight mt-0.5" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검 · B5~8층 34개 측정점</div>
+                </div>
+                <div class="text-right flex-shrink-0">
+                  <div class="font-bold uppercase" style="font-size:12px; color:var(--danger); letter-spacing:.05em">수신반 48h</div>
+                  <div class="font-bold mt-0.5" style="font-size:13px; color:var(--t1)">B2 주차장 동측</div>
+                </div>
+                <div class="w-1.5 h-1.5 rounded-full blink-fast flex-shrink-0" style="background:var(--danger)"></div>
+              </div>
+
+              <!-- 통계 4종 -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">오늘 현황</span>
+                  <span class="font-mono font-semibold rounded-[20px] px-2 py-0.5"
+                        style="font-size:12px; color:var(--safe); background:rgba(21,128,61,.1); border:1px solid rgba(21,128,61,.2)">연속 12일 점검 달성 🔥</span>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">미완료</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--danger)">28</span>
+                      <span style="font-size:12px; color:var(--t3)">/34</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                  </div>
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">미조치</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--fire)">7</span>
+                      <span style="font-size:12px; color:var(--t3)">건</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-fire-bar)"></div>
+                  </div>
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">일정</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--info)">3</span>
+                      <span style="font-size:12px; color:var(--t3)">건</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-info-bar)"></div>
+                  </div>
+                  <div class="rounded-[12px] relative overflow-hidden cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:8px 8px 10px;">
+                    <div class="font-bold truncate" style="font-size:12px; color:var(--t3)">승강기</div>
+                    <div class="flex items-baseline gap-0.5 flex-wrap mt-1">
+                      <span class="font-mono font-semibold leading-none" style="font-size:20px; color:var(--danger)">1</span>
+                      <span style="font-size:12px; color:var(--t3)">대</span>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 빠른 도구 -->
+              <div>
+                <div class="flex items-center mb-1.5">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">빠른 도구 모음</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="map" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">도면 점검</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">층별 도면 보기</div>
+                    </div>
+                  </div>
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">DIV 트렌드</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">압력 트렌드 차트</div>
+                    </div>
+                  </div>
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--status-fire-bg); color:var(--status-fire)">
+                      <i data-lucide="siren" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">고장 접수</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">TKE 자동 연결</div>
+                    </div>
+                  </div>
+                  <div class="rounded-[12px] flex items-center gap-2.5 cursor-pointer card-hover"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:11px 12px;">
+                    <div class="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0"
+                         style="background:var(--surface-sunken); color:var(--text-secondary)">
+                      <i data-lucide="users" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                      <div class="font-bold" style="font-size:13px; color:var(--t1)">직원 서비스</div>
+                      <div style="font-size:12px; color:var(--t3); line-height:1.3">연차·식사 통합</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 오늘 일정 -->
+              <div class="rounded-[12px] overflow-hidden flex flex-col min-h-0"
+                   style="background:var(--bg2); border:1px solid var(--bd);">
+                <div class="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
+                     style="border-bottom:1px solid var(--bd);">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">오늘 일정</span>
+                  <span class="rounded-[9px] px-2 py-0.5"
+                        style="font-size:12px; color:var(--t3); background:var(--bg3)">5건</span>
+                </div>
+                <div class="overflow-y-auto flex-1">
+                  <div class="px-2.5 py-1 font-bold uppercase"
+                       style="font-size:12px; color:var(--t3); letter-spacing:.06em">⏰ 시간 확정</div>
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">09:30</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--fire); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">VIP 투어 업무협조</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:var(--status-warning-bg); color:var(--status-warning)">진행중</span>
+                  </div>
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">14:00</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:#f97316; min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">엘리베이터 5호기 수리</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                  </div>
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">16:00</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">소방 종합점검 협의</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                  </div>
+                  <div class="px-2.5 py-1 font-bold uppercase"
+                       style="font-size:12px; color:var(--t3); letter-spacing:.06em; border-top:1px solid var(--bd)">📋 시간 미정</div>
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">—</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:var(--status-danger-bg); color:var(--status-danger)">지연</span>
+                  </div>
+                  <div class="flex items-start gap-1.5 px-2.5 py-1.5 cursor-pointer"
+                       style="background:var(--status-safe-bg); border-bottom:1px solid var(--bd);">
+                    <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:12px; color:var(--t3); width:36px">—</div>
+                    <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--t3); min-height:20px"></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold truncate" style="font-size:13px; color:var(--t1)">3층 소화기 교체 확인</div>
+                    </div>
+                    <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5"
+                          style="font-size:12px; background:var(--status-safe-bg); color:var(--status-safe)">완료</span>
+                    <i data-lucide="check" class="w-4 h-4 flex-shrink-0" style="color:var(--safe)"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 월간 도넛 (가로 스크롤, 라이트) — 13 카테고리 동일 -->
+              <div class="rounded-[12px] overflow-hidden flex flex-col"
+                   style="background:var(--bg2); border:1px solid var(--bd);">
+                <div class="flex items-center justify-between px-3 py-1.5 flex-shrink-0"
+                     style="border-bottom:1px solid var(--bd);">
+                  <span class="font-bold" style="font-size:12px; color:var(--t2)">이번 달 점검 현황</span>
+                  <span style="font-size:12px; color:var(--t3)">2026년 5월</span>
+                </div>
+                <div class="no-scrollbar flex gap-3 px-2.5 py-2.5"
+                     style="overflow-x:auto; overflow-y:hidden;">
+                  <!-- 자탐 12% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="12.82 93.95"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">12%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">자탐</div>
+                    <div style="font-size:12px; color:var(--t3)">2/16</div>
+                  </div>
+                  <!-- DIV doubleCycle two-lap -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;" title="DIV doubleCycle two-lap">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.42 94.25"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="60.32 40.21"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:9px; color:var(--t2)">42%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">DIV</div>
+                    <div style="font-size:12px; color:var(--t3)">14/34</div>
+                  </div>
+                  <!-- 컴프 -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;" title="컴프 doubleCycle two-lap">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.42 94.25"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                        <circle cx="22" cy="22" r="16" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="60.32 40.21"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:9px; color:var(--t2)">42%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">컴프</div>
+                    <div style="font-size:12px; color:var(--t3)">14/34</div>
+                  </div>
+                  <!-- 유도등 30% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="32.04 74.74"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">30%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">유도등</div>
+                    <div style="font-size:12px; color:var(--t3)">3/10</div>
+                  </div>
+                  <!-- 소화기 62% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="66.23 40.55"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">62%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">소화기</div>
+                    <div style="font-size:12px; color:var(--t3)">5/8</div>
+                  </div>
+                  <!-- 옥내소화전 100% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="106.78 0"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-safe-bar)">100%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--safe); line-height:1.3">옥내소화전</div>
+                    <div style="font-size:12px; color:var(--safe)">8/8</div>
+                  </div>
+                  <!-- 방화셔터 0% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px; opacity:0.6">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--t3)">0%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">방화셔터</div>
+                    <div style="font-size:12px; color:var(--t3)">0/4</div>
+                  </div>
+                  <!-- 전실댐퍼 18% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="19.22 87.56"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-warning-bar)">18%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">전실댐퍼</div>
+                    <div style="font-size:12px; color:var(--t3)">2/11</div>
+                  </div>
+                  <!-- 피난계단 75% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="80.09 26.69"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">75%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">피난계단</div>
+                    <div style="font-size:12px; color:var(--t3)">3/4</div>
+                  </div>
+                  <!-- CCTV 95% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="101.45 5.34"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">95%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">CCTV</div>
+                    <div style="font-size:12px; color:var(--t3)">19/20</div>
+                  </div>
+                  <!-- 승강기 100% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="106.78 0"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--status-safe-bar)">100%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--safe); line-height:1.3">승강기</div>
+                    <div style="font-size:12px; color:var(--safe)">12/12</div>
+                  </div>
+                  <!-- 비상콘센트 0% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px; opacity:0.6">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--t3)">0%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">비상콘센트</div>
+                    <div style="font-size:12px; color:var(--t3)">0/6</div>
+                  </div>
+                  <!-- 스프링클러 88% -->
+                  <div class="flex flex-col items-center gap-1 flex-shrink-0" style="min-width:64px">
+                    <div class="relative" style="width:44px; height:44px;">
+                      <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                        <circle cx="22" cy="22" r="17" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="93.97 12.81"></circle>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold"
+                           style="font-size:10px; color:var(--accent)">88%</div>
+                    </div>
+                    <div class="text-center" style="font-size:12px; color:var(--t3); line-height:1.3">스프링클러</div>
+                    <div style="font-size:12px; color:var(--t3)">22/25</div>
+                  </div>
+                </div>
+              </div>
+
+            </main>
+
+            <!-- BottomNav (라이트) -->
+            <nav class="flex items-center justify-around flex-shrink-0"
+                 style="background:var(--surface-raised); border-top:1px solid var(--border-default); height:64px; padding-bottom:8px;">
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center" style="color:var(--accent)">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span style="font-size:12px; font-weight:600">홈</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+                <span style="font-size:12px">점검</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="map" class="w-5 h-5"></i>
+                <span style="font-size:12px">도면</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center relative" style="color:var(--text-tertiary)">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span style="font-size:12px">조치</span>
+                <span class="absolute top-2 right-[28%] w-4 h-4 rounded-full flex items-center justify-center"
+                      style="background:var(--status-fire-bar); color:white; font-size:10px; font-weight:700">7</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 flex-1 h-full justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+                <span style="font-size:12px">메뉴</span>
+              </button>
+            </nav>
+
+          </div>
+        </div>
+        <!-- /MOBILE LIGHT -->
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 2: 데스크톱 다크
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">Desktop · Dark · 1280 × 800</span>
+      </div>
+
+      <div class="flex justify-center">
+        <!-- ╔═══════════════════════════════╗
+             ║   DESKTOP  DARK               ║
+             ╚═══════════════════════════════╝ -->
+        <div class="viewport-frame viewport-desktop" data-theme="dark">
+          <div class="flex h-full" style="background:var(--surface-page); color:var(--text-primary);">
+
+            <!-- 좌측 사이드바 (데스크톱 — 메모리: 데스크톱은 사이드바, 모바일은 BottomNav) -->
+            <aside class="flex flex-col items-center py-4 flex-shrink-0"
+                   style="width:64px; background:var(--surface-raised); border-right:1px solid var(--border-default); gap:8px;">
+              <div class="w-10 h-10 rounded-[10px] flex items-center justify-center font-bold mb-3"
+                   style="background:var(--accent); color:var(--text-on-accent); font-size:14px">CHA</div>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center"
+                      style="background:var(--accent); color:var(--text-on-accent)" title="대시보드">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center"
+                      style="color:var(--text-tertiary)" title="점검">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center"
+                      style="color:var(--text-tertiary)" title="도면">
+                <i data-lucide="map" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center relative"
+                      style="color:var(--text-tertiary)" title="조치">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span class="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                      style="background:var(--status-fire-bar); color:white; font-size:10px; font-weight:700">7</span>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center"
+                      style="color:var(--text-tertiary)" title="일정">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+              </button>
+              <div class="flex-1"></div>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                   style="background:var(--surface-active); color:var(--text-primary); font-size:13px">윤</div>
+            </aside>
+
+            <!-- 본문 -->
+            <div class="flex-1 min-w-0 flex flex-col" style="padding:20px 28px; gap:16px;">
+
+              <!-- 상단: 인사말 + 근무자 칩 -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <div style="font-size:14px; color:var(--t3)">2026년 5월 9일 토요일 · 좋은 아침입니다</div>
+                  <div style="font-size:22px; font-weight:600; color:var(--t1); margin-top:2px">윤종엽님 · 방재팀 보조자</div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <!-- 관리자 칩 -->
+                  <div class="flex items-center gap-2">
+                    <div class="flex flex-col items-center" style="line-height:1.45">
+                      <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">관</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">리</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(245,158,11,0.75)">자</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(245,158,11,.28); background:rgba(245,158,11,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-day); font-size:12px; font-weight:700">김</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">김주간</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-day)">주간</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="w-px h-6" style="background:var(--bd)"></div>
+                  <!-- 보조자 칩 3개 -->
+                  <div class="flex items-center gap-2">
+                    <div class="flex flex-col items-center" style="line-height:1.45">
+                      <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">보</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">조</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(110,118,129,0.65)">자</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(239,68,68,.28); background:rgba(239,68,68,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-night); font-size:12px; font-weight:700">이</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">이당직</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-night)">당직</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(59,130,246,.28); background:rgba(59,130,246,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-off); font-size:12px; font-weight:700">박</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">박비번</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-off)">비번</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(34,197,94,.28); background:rgba(34,197,94,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:#22c55e; font-size:12px; font-weight:700">정</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">정연차</span>
+                        <span style="font-size:9px; font-weight:600; color:#22c55e">연차</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="font-mono font-semibold rounded-[20px] px-3 py-1"
+                        style="font-size:12px; color:var(--safe); background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.18)">연속 12일 점검 달성</span>
+                </div>
+              </div>
+
+              <!-- 배너: 오늘 점검 + 수신반 (전폭) -->
+              <div class="rounded-[16px] flex items-center gap-5"
+                   style="background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(14,165,233,.05)); border:1px solid rgba(59,130,246,.15); padding:18px 24px;">
+                <div class="w-2 h-2 rounded-full blink flex-shrink-0" style="background:var(--info)"></div>
+                <div class="flex-1">
+                  <div class="font-bold uppercase" style="font-size:12px; color:var(--info); letter-spacing:.05em">오늘 점검 대상</div>
+                  <div class="font-bold leading-tight mt-1" style="font-size:16px; color:var(--t1)">전 층 DIV 격주 점검 · B5~8층 34개 측정점 · 김주간 담당</div>
+                </div>
+                <div class="w-px h-9 flex-shrink-0" style="background:rgba(59,130,246,.15)"></div>
+                <div class="text-right flex-shrink-0">
+                  <div class="font-bold uppercase flex items-center justify-end gap-1.5" style="font-size:12px; color:var(--danger); letter-spacing:.05em">
+                    <div class="w-1.5 h-1.5 rounded-full blink-fast" style="background:var(--danger)"></div>
+                    최근 수신반 이력
+                  </div>
+                  <div class="font-bold mt-1" style="font-size:14px; color:var(--t1)">B2 주차장 동측 화재신호 (12분 전)</div>
+                </div>
+              </div>
+
+              <!-- 통계 카드 4종 (가로 4열) -->
+              <div class="grid grid-cols-4 gap-3.5">
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">점검 미완료</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--danger)">28</span>
+                    <span style="font-size:14px; color:var(--t3)">/34</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">미조치 항목</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--fire)">7</span>
+                    <span style="font-size:14px; color:var(--t3)">건</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-fire-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">오늘 일정</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--info)">3</span>
+                    <span style="font-size:14px; color:var(--t3)">건</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-info-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">승강기 고장</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--danger)">1</span>
+                    <span style="font-size:14px; color:var(--t3)">대</span>
+                  </div>
+                  <div class="flex justify-end mt-2">
+                    <span class="rounded-md px-1.5 py-0.5"
+                          style="background:var(--status-warning-bg); color:var(--status-warning); font-size:12px; font-weight:600">검사도래 2</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                </div>
+              </div>
+
+              <!-- 2-col: 좌(점검현황+빠른도구) | 우(미니캘린더+일정 sticky) -->
+              <div class="flex gap-4 flex-1 min-h-0">
+
+                <!-- 좌측 -->
+                <div class="flex-1 flex flex-col gap-4 min-w-0">
+
+                  <!-- 이번 달 점검 현황 (데스크톱은 grid-7col 2줄) -->
+                  <!-- 메모리: 데스크톱은 그리드 펼침 OK. 모바일은 무조건 가로 스크롤. -->
+                  <div class="rounded-[16px] overflow-hidden flex flex-col flex-1"
+                       style="background:var(--bg2); border:1px solid var(--bd);">
+                    <div class="flex items-center justify-between px-5 py-3 flex-shrink-0"
+                         style="border-bottom:1px solid var(--bd);">
+                      <span class="font-bold" style="font-size:14px; color:var(--t1)">이번 달 점검 현황</span>
+                      <span style="font-size:13px; color:var(--t3)">2026년 5월</span>
+                    </div>
+                    <div class="px-6 py-5 flex flex-col gap-7 flex-1 justify-center overflow-y-auto">
+                      <!-- 1행: 7개 -->
+                      <div class="flex justify-evenly gap-2">
+                        <!-- 자탐 12% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="24.88 182.41"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">12%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">자탐</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">2/16</div>
+                        </div>
+                        <!-- DIV doubleCycle -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="54.98 164.93"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="109.33 72.89"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:12px; color:var(--t2)">42%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">DIV (격주)</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">14/34</div>
+                        </div>
+                        <!-- 컴프 doubleCycle -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="54.98 164.93"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="109.33 72.89"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:12px; color:var(--t2)">42%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">컴프 (격주)</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">14/34</div>
+                        </div>
+                        <!-- 유도등 30% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="62.20 145.09"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">30%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">유도등</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">3/10</div>
+                        </div>
+                        <!-- 소화기 62% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="128.55 78.74"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">62%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">소화기</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">5/8</div>
+                        </div>
+                        <!-- 옥내소화전 100% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.29 0"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-safe-bar)">100%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--safe)">옥내소화전</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--safe)">8/8</div>
+                        </div>
+                        <!-- 방화셔터 0% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0" style="opacity:0.6">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--t3)">0%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">방화셔터</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">0/4</div>
+                        </div>
+                      </div>
+                      <!-- 2행 -->
+                      <div class="flex justify-evenly gap-2">
+                        <!-- 전실댐퍼 18% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="37.31 169.98"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">18%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">전실제연댐퍼</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">2/11</div>
+                        </div>
+                        <!-- 피난계단 75% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="155.47 51.82"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">75%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">특별피난계단</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">3/4</div>
+                        </div>
+                        <!-- CCTV 95% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="196.93 10.36"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">95%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">CCTV</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">19/20</div>
+                        </div>
+                        <!-- 승강기 100% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.29 0"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-safe-bar)">100%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--safe)">승강기</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--safe)">12/12</div>
+                        </div>
+                        <!-- 비상콘센트 0% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0" style="opacity:0.6">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--t3)">0%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">비상콘센트</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">0/6</div>
+                        </div>
+                        <!-- 스프링클러 88% -->
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="182.42 24.87"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">88%</div>
+                          </div>
+                          <div class="text-center" style="font-size:13px; color:var(--t2)">스프링클러</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">22/25</div>
+                        </div>
+                        <!-- placeholder for symmetry -->
+                        <div class="flex-1 min-w-0"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 빠른 도구 (가로 4열) -->
+                  <div class="grid grid-cols-4 gap-3 flex-shrink-0">
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="map" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">도면 점검</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">층별 도면 · 유도등 · 감지기</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">DIV 트렌드</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">측정점 압력 트렌드 차트</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--status-fire-bg); color:var(--status-fire)">
+                        <i data-lucide="siren" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">고장 접수</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">승강기 고장 · TKE 연결</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">직원 서비스</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">연차 · 식사 · 근무표 통합</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 우측 sticky panel: 미니 캘린더 + 오늘 일정 (340px) -->
+                <div class="flex flex-col gap-4 flex-shrink-0" style="width:340px;">
+
+                  <!-- 미니 캘린더 -->
+                  <div class="rounded-[16px] flex-shrink-0"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:16px 14px;">
+                    <div class="text-center font-bold mb-2.5" style="font-size:13px; color:var(--t1)">2026년 5월</div>
+                    <div class="grid grid-cols-7 gap-0.5 text-center">
+                      <div style="font-size:12px; font-weight:700; color:var(--danger); padding:3px 0">일</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">월</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">화</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">수</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">목</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">금</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--info); padding:3px 0">토</div>
+                      <!-- 5월 1일은 금 (offset 5) -->
+                      <div></div><div></div><div></div><div></div><div></div>
+                      <!-- 5/1 (금) — 근로자의 날 빨강 -->
+                      <div class="relative" style="padding:2px 0">
+                        <div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">1</div>
+                        <div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"></div>
+                      </div>
+                      <div class="relative" style="padding:2px 0">
+                        <div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">2</div>
+                        <div class="flex justify-center gap-0.5 mt-0.5" style="height:5px">
+                          <div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div>
+                        </div>
+                      </div>
+                      <!-- 3-9 -->
+                      <div class="relative" style="padding:2px 0">
+                        <div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">3</div>
+                        <div style="height:5px"></div>
+                      </div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">4</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div><div class="w-1 h-1 rounded-full" style="background:var(--fire)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)" title="어린이날">5</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">6</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">7</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">8</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:#f97316"></div></div></div>
+                      <!-- 5/9 토 — 오늘 -->
+                      <div class="relative" style="padding:2px 0">
+                        <div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold text-white" style="font-size:12px; background:var(--accent)">9</div>
+                        <div class="flex justify-center gap-0.5 mt-0.5" style="height:5px">
+                          <div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div>
+                          <div class="w-1 h-1 rounded-full" style="background:var(--fire)"></div>
+                          <div class="w-1 h-1 rounded-full" style="background:#f97316"></div>
+                        </div>
+                      </div>
+                      <!-- 10-31 generic -->
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">10</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">11</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">12</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">13</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">14</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)" title="부처님오신날">15</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">16</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">17</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">18</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div><div class="w-1 h-1 rounded-full" style="background:var(--fire)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">19</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">20</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">21</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">22</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">23</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">24</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">25</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">26</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">27</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">28</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">29</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">30</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(239,68,68,0.08)">31</div><div style="height:5px"></div></div>
+                    </div>
+                    <!-- 범례 -->
+                    <div class="flex items-center justify-center gap-3 mt-3 pt-3" style="border-top:1px solid var(--bd)">
+                      <span class="flex items-center gap-1" style="font-size:12px; color:var(--t3)"><span class="w-1.5 h-1.5 rounded-full" style="background:var(--acl)"></span>점검</span>
+                      <span class="flex items-center gap-1" style="font-size:12px; color:var(--t3)"><span class="w-1.5 h-1.5 rounded-full" style="background:var(--fire)"></span>이벤트</span>
+                      <span class="flex items-center gap-1" style="font-size:12px; color:var(--t3)"><span class="w-1.5 h-1.5 rounded-full" style="background:#f97316"></span>승강기</span>
+                    </div>
+                  </div>
+
+                  <!-- 오늘 일정 sticky -->
+                  <div class="rounded-[16px] overflow-hidden flex flex-col flex-1 min-h-0"
+                       style="background:var(--bg2); border:1px solid var(--bd);">
+                    <div class="flex items-center justify-between px-4 py-3 flex-shrink-0"
+                         style="border-bottom:1px solid var(--bd);">
+                      <span class="font-bold" style="font-size:13px; color:var(--t1)">오늘 일정</span>
+                      <span class="rounded-[10px] px-2.5 py-0.5"
+                            style="font-size:12px; color:var(--t3); background:var(--bg3)">5건</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1">
+                      <div class="px-4 py-2 font-bold uppercase" style="font-size:12px; color:var(--t3); letter-spacing:.06em">시간 확정</div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">09:30</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--fire); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">VIP 투어 업무협조</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(245,158,11,.15); color:var(--warn)">진행중</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">14:00</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:#f97316; min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">엘리베이터 5호기 수리</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">16:00</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">소방 종합점검 협의</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                      </div>
+                      <div class="px-4 py-2 font-bold uppercase" style="font-size:12px; color:var(--t3); letter-spacing:.06em; border-top:1px solid var(--bd)">시간 미정</div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">—</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(239,68,68,.13); color:var(--danger)">지연</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="background:rgba(34,197,94,.08);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">—</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--t3); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">3층 소화기 교체 확인</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(34,197,94,.13); color:var(--safe)">완료</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- /DESKTOP DARK -->
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 3: 데스크톱 라이트
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">Desktop · Light · 1280 × 800</span>
+      </div>
+
+      <div class="flex justify-center">
+        <!-- ╔═══════════════════════════════╗
+             ║   DESKTOP  LIGHT              ║
+             ╚═══════════════════════════════╝ -->
+        <div class="viewport-frame viewport-desktop" data-theme="light">
+          <div class="flex h-full" style="background:var(--surface-page); color:var(--text-primary);">
+
+            <!-- 사이드바 (라이트) -->
+            <aside class="flex flex-col items-center py-4 flex-shrink-0"
+                   style="width:64px; background:var(--surface-raised); border-right:1px solid var(--border-default); gap:8px;">
+              <div class="w-10 h-10 rounded-[10px] flex items-center justify-center font-bold mb-3"
+                   style="background:var(--accent); color:var(--text-on-accent); font-size:14px">CHA</div>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center"
+                      style="background:var(--accent); color:var(--text-on-accent)" title="대시보드">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="map" class="w-5 h-5"></i>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center relative" style="color:var(--text-tertiary)">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                <span class="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center"
+                      style="background:var(--status-fire-bar); color:white; font-size:10px; font-weight:700">7</span>
+              </button>
+              <button class="w-12 h-12 rounded-[10px] flex flex-col items-center justify-center" style="color:var(--text-tertiary)">
+                <i data-lucide="calendar" class="w-5 h-5"></i>
+              </button>
+              <div class="flex-1"></div>
+              <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold"
+                   style="background:var(--surface-active); color:var(--text-primary); font-size:13px">윤</div>
+            </aside>
+
+            <!-- 본문 (라이트) -->
+            <div class="flex-1 min-w-0 flex flex-col" style="padding:20px 28px; gap:16px;">
+
+              <!-- 헤더 -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <div style="font-size:14px; color:var(--t3)">2026년 5월 9일 토요일 · 좋은 아침입니다</div>
+                  <div style="font-size:22px; font-weight:600; color:var(--t1); margin-top:2px">윤종엽님 · 방재팀 보조자</div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <div class="flex flex-col items-center" style="line-height:1.45">
+                      <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">관</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">리</span>
+                      <span style="font-size:8px; font-weight:700; color:rgba(180,83,9,0.85)">자</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(180,83,9,.35); background:rgba(180,83,9,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-day); font-size:12px; font-weight:700">김</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">김주간</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-day)">주간</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="w-px h-6" style="background:var(--bd)"></div>
+                  <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(185,28,28,.35); background:rgba(185,28,28,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-night); font-size:12px; font-weight:700">이</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">이당직</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-night)">당직</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(31,111,235,.35); background:rgba(31,111,235,.08)">
+                      <div class="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                           style="background:var(--c-off); font-size:12px; font-weight:700">박</div>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">박비번</span>
+                        <span style="font-size:9px; font-weight:600; color:var(--c-off)">비번</span>
+                      </div>
+                    </div>
+                    <!-- 반차 (half_pm) — DutyChip half-circle 시각화 -->
+                    <div class="flex items-center gap-1.5 rounded-[22px]"
+                         style="padding:4px 10px 4px 4px; border:1px solid rgba(34,197,94,.35); background:rgba(34,197,94,.08)">
+                      <svg width="32" height="32" viewBox="0 0 32 32" style="border-radius:50%; overflow:hidden">
+                        <circle cx="16" cy="16" r="16" fill="var(--c-leave)"></circle>
+                        <defs>
+                          <clipPath id="hc-pm-d">
+                            <polygon points="32,0 32,32 0,32"></polygon>
+                          </clipPath>
+                        </defs>
+                        <circle cx="16" cy="16" r="16" fill="#22c55e" clip-path="url(#hc-pm-d)"></circle>
+                        <line x1="0" y1="32" x2="32" y2="0" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"></line>
+                        <text x="16" y="16" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="12" font-weight="700">최</text>
+                      </svg>
+                      <div class="flex flex-col" style="gap:1px">
+                        <span style="font-size:12px; font-weight:700; color:var(--t1)">최반차</span>
+                        <span style="font-size:9px; font-weight:600; color:#22c55e">반차(오후)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="font-mono font-semibold rounded-[20px] px-3 py-1"
+                        style="font-size:12px; color:var(--safe); background:rgba(21,128,61,.08); border:1px solid rgba(21,128,61,.18)">연속 12일 점검 달성</span>
+                </div>
+              </div>
+
+              <!-- 배너 -->
+              <div class="rounded-[16px] flex items-center gap-5"
+                   style="background:linear-gradient(135deg,rgba(31,111,235,.10),rgba(14,165,233,.06)); border:1px solid rgba(31,111,235,.18); padding:18px 24px;">
+                <div class="w-2 h-2 rounded-full blink flex-shrink-0" style="background:var(--info)"></div>
+                <div class="flex-1">
+                  <div class="font-bold uppercase" style="font-size:12px; color:var(--info); letter-spacing:.05em">오늘 점검 대상</div>
+                  <div class="font-bold leading-tight mt-1" style="font-size:16px; color:var(--t1)">전 층 DIV 격주 점검 · B5~8층 34개 측정점 · 김주간 담당</div>
+                </div>
+                <div class="w-px h-9 flex-shrink-0" style="background:rgba(31,111,235,.18)"></div>
+                <div class="text-right flex-shrink-0">
+                  <div class="font-bold uppercase flex items-center justify-end gap-1.5" style="font-size:12px; color:var(--danger); letter-spacing:.05em">
+                    <div class="w-1.5 h-1.5 rounded-full blink-fast" style="background:var(--danger)"></div>
+                    최근 수신반 이력
+                  </div>
+                  <div class="font-bold mt-1" style="font-size:14px; color:var(--t1)">B2 주차장 동측 화재신호 (12분 전)</div>
+                </div>
+              </div>
+
+              <!-- 통계 4종 (라이트) -->
+              <div class="grid grid-cols-4 gap-3.5">
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">점검 미완료</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--danger)">28</span>
+                    <span style="font-size:14px; color:var(--t3)">/34</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">미조치 항목</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--fire)">7</span>
+                    <span style="font-size:14px; color:var(--t3)">건</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-fire-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">오늘 일정</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--info)">3</span>
+                    <span style="font-size:14px; color:var(--t3)">건</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-info-bar)"></div>
+                </div>
+                <div class="rounded-[16px] relative overflow-hidden cursor-pointer card-hover"
+                     style="background:var(--bg2); border:1px solid var(--bd); padding:20px 22px;">
+                  <div class="font-bold mb-2.5" style="font-size:13px; color:var(--t3)">승강기 고장</div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="font-mono font-semibold leading-none" style="font-size:36px; color:var(--danger)">1</span>
+                    <span style="font-size:14px; color:var(--t3)">대</span>
+                  </div>
+                  <div class="absolute bottom-0 left-0 right-0 h-[3px]" style="background:var(--status-danger-bar)"></div>
+                </div>
+              </div>
+
+              <!-- 2-col -->
+              <div class="flex gap-4 flex-1 min-h-0">
+                <div class="flex-1 flex flex-col gap-4 min-w-0">
+
+                  <!-- 점검 현황 (라이트, 13 카테고리, 2행) -->
+                  <div class="rounded-[16px] overflow-hidden flex flex-col flex-1"
+                       style="background:var(--bg2); border:1px solid var(--bd);">
+                    <div class="flex items-center justify-between px-5 py-3 flex-shrink-0"
+                         style="border-bottom:1px solid var(--bd);">
+                      <span class="font-bold" style="font-size:14px; color:var(--t1)">이번 달 점검 현황</span>
+                      <span style="font-size:13px; color:var(--t3)">2026년 5월</span>
+                    </div>
+                    <div class="px-6 py-5 flex flex-col gap-7 flex-1 justify-center">
+                      <div class="flex justify-evenly gap-2">
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="24.88 182.41"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">12%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">자탐</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">2/16</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;" title="DIV doubleCycle two-lap">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="54.98 164.93"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="109.33 72.89"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:12px; color:var(--t2)">42%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">DIV (격주)</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">14/34</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;" title="컴프 doubleCycle two-lap">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="35" fill="none" stroke="var(--status-warning-bar)" stroke-width="3" stroke-linecap="round" stroke-dasharray="54.98 164.93"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--bg4)" stroke-width="3"></circle>
+                              <circle cx="38" cy="38" r="29" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="109.33 72.89"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:12px; color:var(--t2)">42%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">컴프 (격주)</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">14/34</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="62.20 145.09"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">30%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">유도등</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">3/10</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="128.55 78.74"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">62%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">소화기</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">5/8</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.29 0"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-safe-bar)">100%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--safe)">옥내소화전</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--safe)">8/8</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0" style="opacity:0.6">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--t3)">0%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">방화셔터</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">0/4</div>
+                        </div>
+                      </div>
+                      <div class="flex justify-evenly gap-2">
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-warning-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="37.31 169.98"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-warning-bar)">18%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">전실제연댐퍼</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">2/11</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="155.47 51.82"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">75%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">특별피난계단</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">3/4</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="196.93 10.36"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">95%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">CCTV</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">19/20</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--status-safe-bar)" stroke-width="5" stroke-linecap="round" stroke-dasharray="207.29 0"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--status-safe-bar)">100%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--safe)">승강기</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--safe)">12/12</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0" style="opacity:0.6">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--t3)">0%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">비상콘센트</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">0/6</div>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5 flex-1 min-w-0">
+                          <div class="relative" style="width:76px; height:76px;">
+                            <svg width="76" height="76" viewBox="0 0 76 76" style="transform:rotate(-90deg)">
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--bg4)" stroke-width="5"></circle>
+                              <circle cx="38" cy="38" r="33" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="182.42 24.87"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center font-mono font-semibold" style="font-size:13px; color:var(--accent)">88%</div>
+                          </div>
+                          <div style="font-size:13px; color:var(--t2)">스프링클러</div>
+                          <div class="font-mono font-semibold" style="font-size:12px; color:var(--t3)">22/25</div>
+                        </div>
+                        <div class="flex-1 min-w-0"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 빠른 도구 (라이트) -->
+                  <div class="grid grid-cols-4 gap-3 flex-shrink-0">
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="map" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">도면 점검</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">층별 도면 · 유도등 · 감지기</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">DIV 트렌드</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">측정점 압력 트렌드 차트</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--status-fire-bg); color:var(--status-fire)">
+                        <i data-lucide="siren" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">고장 접수</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">승강기 고장 · TKE 연결</div>
+                      </div>
+                    </div>
+                    <div class="rounded-[14px] flex flex-col items-center gap-2.5 cursor-pointer card-hover text-center"
+                         style="background:var(--bg2); border:1px solid var(--bd); padding:16px;">
+                      <div class="w-11 h-11 rounded-[12px] flex items-center justify-center"
+                           style="background:var(--surface-sunken); color:var(--text-secondary)">
+                        <i data-lucide="users" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <div class="font-bold" style="font-size:13px; color:var(--t1)">직원 서비스</div>
+                        <div style="font-size:12px; color:var(--t3); margin-top:2px; line-height:1.3">연차 · 식사 · 근무표 통합</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 우측 sticky panel (라이트) -->
+                <div class="flex flex-col gap-4 flex-shrink-0" style="width:340px;">
+
+                  <!-- 미니 캘린더 (라이트, 압축 — 주요 dot만) -->
+                  <div class="rounded-[16px] flex-shrink-0"
+                       style="background:var(--bg2); border:1px solid var(--bd); padding:16px 14px;">
+                    <div class="text-center font-bold mb-2.5" style="font-size:13px; color:var(--t1)">2026년 5월</div>
+                    <div class="grid grid-cols-7 gap-0.5 text-center">
+                      <div style="font-size:12px; font-weight:700; color:var(--danger); padding:3px 0">일</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">월</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">화</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">수</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">목</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--t3); padding:3px 0">금</div>
+                      <div style="font-size:12px; font-weight:700; color:var(--info); padding:3px 0">토</div>
+                      <div></div><div></div><div></div><div></div><div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)" title="근로자의 날">1</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">2</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)">3</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">4</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div><div class="w-1 h-1 rounded-full" style="background:var(--fire)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)" title="어린이날">5</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">6</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">7</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">8</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:#f97316"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold text-white" style="font-size:12px; background:var(--accent)">9</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div><div class="w-1 h-1 rounded-full" style="background:var(--fire)"></div><div class="w-1 h-1 rounded-full" style="background:#f97316"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)">10</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">11</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">12</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">13</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">14</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)" title="부처님오신날">15</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">16</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)">17</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">18</div><div class="flex justify-center gap-0.5 mt-0.5" style="height:5px"><div class="w-1 h-1 rounded-full" style="background:var(--acl)"></div></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">19</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">20</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">21</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">22</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">23</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)">24</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">25</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">26</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">27</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">28</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--t1)">29</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center" style="font-size:12px; color:var(--info)">30</div><div style="height:5px"></div></div>
+                      <div class="relative" style="padding:2px 0"><div class="w-7 h-7 rounded-full mx-auto flex items-center justify-center font-bold" style="font-size:12px; color:var(--danger); background:rgba(153,27,27,0.08)">31</div><div style="height:5px"></div></div>
+                    </div>
+                  </div>
+
+                  <!-- 오늘 일정 sticky (라이트) -->
+                  <div class="rounded-[16px] overflow-hidden flex flex-col flex-1 min-h-0"
+                       style="background:var(--bg2); border:1px solid var(--bd);">
+                    <div class="flex items-center justify-between px-4 py-3 flex-shrink-0"
+                         style="border-bottom:1px solid var(--bd);">
+                      <span class="font-bold" style="font-size:13px; color:var(--t1)">오늘 일정</span>
+                      <span class="rounded-[10px] px-2.5 py-0.5"
+                            style="font-size:12px; color:var(--t3); background:var(--bg3)">5건</span>
+                    </div>
+                    <div class="overflow-y-auto flex-1">
+                      <div class="px-4 py-2 font-bold uppercase" style="font-size:12px; color:var(--t3); letter-spacing:.06em">시간 확정</div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">09:30</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--fire); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">VIP 투어 업무협조</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:var(--status-warning-bg); color:var(--status-warning)">진행중</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">14:00</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:#f97316; min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">엘리베이터 5호기 수리</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">16:00</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">소방 종합점검 협의</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:rgba(110,118,129,.18); color:var(--t3)">예정</span>
+                      </div>
+                      <div class="px-4 py-2 font-bold uppercase" style="font-size:12px; color:var(--t3); letter-spacing:.06em; border-top:1px solid var(--bd)">시간 미정</div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="border-bottom:1px solid var(--bd);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">—</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--acl); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">전 층 DIV 격주 점검</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:var(--status-danger-bg); color:var(--status-danger)">지연</span>
+                      </div>
+                      <div class="flex items-start gap-1.5 px-4 py-2 cursor-pointer" style="background:var(--status-safe-bg);">
+                        <div class="font-mono pt-0.5 flex-shrink-0" style="font-size:13px; color:var(--t3); width:42px">—</div>
+                        <div class="w-0.5 self-stretch flex-shrink-0 rounded" style="background:var(--t3); min-height:20px"></div>
+                        <div class="flex-1 min-w-0">
+                          <div class="font-semibold" style="font-size:13px; color:var(--t1)">3층 소화기 교체 확인</div>
+                        </div>
+                        <span class="font-bold flex-shrink-0 rounded px-1.5 py-0.5" style="font-size:12px; background:var(--status-safe-bg); color:var(--status-safe)">완료</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- /DESKTOP LIGHT -->
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 4: 상태 변형 (loading / error / empty)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">상태 변형 — Loading · Error (신규 제안) · Empty</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-6 max-w-[1200px] mx-auto">
+
+        <!-- ─── LOADING (skeleton) ─── -->
+        <div class="viewport-frame" data-theme="dark" style="height:auto;">
+          <div class="flex flex-col" style="background:var(--surface-page); color:var(--text-primary); padding:16px; gap:12px;">
+            <div class="font-bold mb-1" style="font-size:13px; color:var(--t2)">⏳ Loading — Skeleton</div>
+            <!-- 통계 skeleton 4종 -->
+            <div class="grid grid-cols-2 gap-2">
+              <div class="rounded-[12px] relative overflow-hidden" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+                <div class="skel" style="height:10px; width:50%; margin-bottom:10px"></div>
+                <div class="skel" style="height:24px; width:35%"></div>
+              </div>
+              <div class="rounded-[12px] relative overflow-hidden" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+                <div class="skel" style="height:10px; width:50%; margin-bottom:10px"></div>
+                <div class="skel" style="height:24px; width:35%"></div>
+              </div>
+              <div class="rounded-[12px] relative overflow-hidden" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+                <div class="skel" style="height:10px; width:50%; margin-bottom:10px"></div>
+                <div class="skel" style="height:24px; width:35%"></div>
+              </div>
+              <div class="rounded-[12px] relative overflow-hidden" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+                <div class="skel" style="height:10px; width:50%; margin-bottom:10px"></div>
+                <div class="skel" style="height:24px; width:35%"></div>
+              </div>
+            </div>
+            <!-- 도넛 skeleton -->
+            <div class="rounded-[12px] flex gap-3 overflow-hidden" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+              <div class="flex flex-col items-center gap-1.5"><div class="skel rounded-full" style="width:44px; height:44px"></div><div class="skel" style="height:10px; width:32px"></div></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="skel rounded-full" style="width:44px; height:44px"></div><div class="skel" style="height:10px; width:32px"></div></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="skel rounded-full" style="width:44px; height:44px"></div><div class="skel" style="height:10px; width:32px"></div></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="skel rounded-full" style="width:44px; height:44px"></div><div class="skel" style="height:10px; width:32px"></div></div>
+              <div class="flex flex-col items-center gap-1.5"><div class="skel rounded-full" style="width:44px; height:44px"></div><div class="skel" style="height:10px; width:32px"></div></div>
+            </div>
+            <!-- 일정 행 skeleton -->
+            <div class="rounded-[12px] flex flex-col gap-2" style="background:var(--bg2); border:1px solid var(--bd); padding:12px;">
+              <div class="flex items-center gap-2"><div class="skel" style="width:36px; height:10px"></div><div class="skel flex-1" style="height:14px"></div></div>
+              <div class="flex items-center gap-2"><div class="skel" style="width:36px; height:10px"></div><div class="skel flex-1" style="height:14px"></div></div>
+              <div class="flex items-center gap-2"><div class="skel" style="width:36px; height:10px"></div><div class="skel flex-1" style="height:14px"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── ERROR (신규 제안 — 현재 페이지엔 명시 에러 UI 없음) ─── -->
+        <div class="viewport-frame" data-theme="dark" style="height:auto;">
+          <div class="flex flex-col" style="background:var(--surface-page); color:var(--text-primary); padding:16px; gap:12px;">
+            <div class="font-bold mb-1" style="font-size:13px; color:var(--danger)">⚠ Error — 신규 제안</div>
+            <!-- 통계 영역 에러 카드 -->
+            <div class="rounded-[12px] flex flex-col items-center gap-3"
+                 style="background:var(--status-danger-bg); border:1px solid rgba(239,68,68,0.3); padding:24px 16px;">
+              <i data-lucide="alert-circle" class="w-8 h-8" style="color:var(--status-danger)"></i>
+              <div class="text-center">
+                <div class="font-bold mb-1" style="font-size:14px; color:var(--status-danger)">통계 데이터를 불러올 수 없어요</div>
+                <div style="font-size:12px; color:var(--t2)">서버와의 연결이 일시적으로 끊겼습니다.</div>
+              </div>
+              <button class="rounded-[8px] px-4 py-2 font-semibold flex items-center gap-1.5"
+                      style="background:var(--accent); color:var(--text-on-accent); font-size:13px">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                다시 시도
+              </button>
+            </div>
+            <!-- 도넛 영역 에러 -->
+            <div class="rounded-[12px] flex flex-col items-center gap-2 text-center"
+                 style="background:var(--bg2); border:1px solid var(--bd); padding:20px;">
+              <i data-lucide="wifi-off" class="w-6 h-6" style="color:var(--status-danger)"></i>
+              <div style="font-size:13px; color:var(--t2)">월간 점검 현황을 불러오는 중 오류가 발생했습니다.</div>
+              <button class="rounded-[8px] px-3 py-1.5 font-semibold mt-1"
+                      style="background:var(--bg3); color:var(--t1); border:1px solid var(--bd); font-size:12px">
+                다시 시도
+              </button>
+            </div>
+            <!-- 일정 영역 에러 (인라인) -->
+            <div class="rounded-[12px] flex items-center gap-2"
+                 style="background:var(--status-warning-bg); border:1px solid rgba(245,158,11,0.3); padding:10px 12px;">
+              <i data-lucide="alert-triangle" class="w-4 h-4 flex-shrink-0" style="color:var(--status-warning)"></i>
+              <div class="flex-1" style="font-size:12px; color:var(--t1)">오늘 일정 요청 실패 — 캐시된 데이터 표시 중</div>
+              <button style="font-size:12px; color:var(--accent); font-weight:700">새로고침</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── EMPTY ─── -->
+        <div class="viewport-frame" data-theme="dark" style="height:auto;">
+          <div class="flex flex-col" style="background:var(--surface-page); color:var(--text-primary); padding:16px; gap:12px;">
+            <div class="font-bold mb-1" style="font-size:13px; color:var(--t2)">∅ Empty</div>
+            <!-- 오늘 일정 빈 -->
+            <div class="rounded-[12px] flex flex-col items-center gap-3 text-center"
+                 style="background:var(--bg2); border:1px solid var(--bd); padding:32px 16px;">
+              <i data-lucide="calendar-check" class="w-10 h-10" style="color:var(--t3); opacity:0.6"></i>
+              <div>
+                <div class="font-bold mb-1" style="font-size:14px; color:var(--t1)">오늘 일정 없음</div>
+                <div style="font-size:12px; color:var(--t3); line-height:1.5">예정된 점검 · 이벤트 · 수리 일정이<br>등록되지 않았습니다.</div>
+              </div>
+              <button class="rounded-[8px] px-3 py-1.5 font-semibold mt-1"
+                      style="background:var(--accent); color:var(--text-on-accent); font-size:12px">일정 추가</button>
+            </div>
+            <!-- 월간 도넛 빈 -->
+            <div class="rounded-[12px] flex flex-col items-center gap-2 text-center"
+                 style="background:var(--bg2); border:1px solid var(--bd); padding:24px 16px;">
+              <i data-lucide="bar-chart-3" class="w-8 h-8" style="color:var(--t3); opacity:0.5"></i>
+              <div class="font-bold" style="font-size:13px; color:var(--t2)">이번 달 점검 일정 없음</div>
+              <div style="font-size:12px; color:var(--t3); line-height:1.4">5월에 예정된 카테고리 점검이 없습니다.</div>
+            </div>
+            <!-- 미조치 0건 (긍정 빈) -->
+            <div class="rounded-[12px] flex items-center gap-2"
+                 style="background:var(--status-safe-bg); border:1px solid rgba(34,197,94,0.3); padding:10px 12px;">
+              <i data-lucide="check-circle-2" class="w-5 h-5 flex-shrink-0" style="color:var(--status-safe)"></i>
+              <div class="flex-1">
+                <div class="font-bold" style="font-size:13px; color:var(--status-safe)">미조치 항목 없음</div>
+                <div style="font-size:12px; color:var(--t2)">모든 항목이 조치 완료되었습니다.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 5: 디자인 룰 체크리스트 (시안 메타)
+         ───────────────────────────────────────────── -->
+    <section class="max-w-[1200px] mx-auto" style="margin-top:48px">
+      <div class="meta-label mb-4">v0.1.1 룰 시각 검증 체크리스트</div>
+      <div class="grid grid-cols-2 gap-6 text-sm leading-relaxed text-gray-300">
+        <div>
+          <h3 class="font-semibold text-white mb-2">§6 Progress Color Rule</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><span style="color:#22c55e">초록 (100%)</span> — 옥내소화전 8/8, 승강기 12/12</li>
+            <li><span style="color:#3b82f6">파랑 (50~99%)</span> — 소화기 62%, CCTV 95%, 스프링클러 88%</li>
+            <li><span style="color:#f59e0b">노랑 (1~49%)</span> — 자탐 12%, 유도등 30%, 전실댐퍼 18%</li>
+            <li><span style="color:#8b949e">회색 + opacity 0.6 (0%)</span> — 방화셔터, 비상콘센트</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-white mb-2">§7 Stat Card 좌측 3px 색바</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>점검 미완료 28/34 → danger 색바 (임계치 초과)</li>
+            <li>미조치 7건 → fire 색바 (1건 이상)</li>
+            <li>오늘 일정 3건 → info 색바 (정상)</li>
+            <li>승강기 고장 1대 → danger 색바 (1대 이상)</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-white mb-2">§8 Iconography (Lucide)</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>도면 점검 → <code>map</code> (회색 통일)</li>
+            <li>DIV 트렌드 → <code>bar-chart-3</code> (회색)</li>
+            <li>고장 접수 → <code>siren</code> (fire 강조)</li>
+            <li>직원 서비스 → <code>users</code> (회색)</li>
+            <li>BottomNav: layout-dashboard / clipboard-list / map / wrench / menu</li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="font-semibold text-white mb-2">DashboardPage.tsx 1:1 매핑</h3>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>근무자 칩 4명 (주간/당직/비번) + 연차/공가</li>
+            <li>두 배너 (오늘 점검 + 수신반 48h)</li>
+            <li>통계 카드 4종 (정상 + 임계치 변형)</li>
+            <li>빠른 도구 4종 / 오늘 일정 (시간 확정/미정/완료)</li>
+            <li>월간 도넛 13 카테고리 (DIV/컴프 doubleCycle two-lap)</li>
+            <li>데스크톱: 사이드바 + 미니 캘린더 + sticky 일정 패널</li>
+            <li>모바일: BottomNav 5탭 (height + paddingBottom 패턴)</li>
+            <li>loading skeleton / error (신규) / empty 3종</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // Lucide 아이콘 활성화
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+
+</body>
+</html>
