@@ -767,7 +767,7 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
           onClick={(e) => { e.stopPropagation(); onManualComplete?.(item) }}
           className="text-caption font-bold px-1.5 py-0.5 rounded-sm bg-surface-sunken text-text-tertiary border border-border-default cursor-pointer shrink-0 whitespace-nowrap hover:bg-surface-active transition-colors"
         >
-          완료 처리
+          완료
         </button>
       )}
     </div>
