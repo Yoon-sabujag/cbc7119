@@ -149,11 +149,47 @@ export default function DashboardPage() {
 
   // ── 데스크톱 레이아웃 ──────────────────────────────────────
   if (isDesktop) {
+    // §6.2 Stat Card negative rule:
+    // - 숫자 색은 위험 임계치(threshold) 일 때만 status 색
+    // - 정상치는 text-text-primary (흰색/검정)
+    // - 좌측 3px 색바: status 의 bar 변종 (오늘 일정은 회색)
     const statCards = [
-      { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', onClick: goToInspection },
-      { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   onClick: () => navigate('/remediation?tab=open') },
-      { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   onClick: () => navigate('/schedule') },
-      { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator') },
+      {
+        label: '점검 미완료',
+        val: String(incomplete),
+        sub: `/${stats.inspectTotal}`,
+        isThreshold: incomplete > 0,
+        thresholdColorClass: 'text-danger',
+        barClass: 'bg-danger-bar',  // incomplete 의 의미 자체가 위험
+        onClick: goToInspection,
+      },
+      {
+        label: '미조치 항목',
+        val: String(stats.unresolved),
+        sub: '건',
+        isThreshold: stats.unresolved > 0,
+        thresholdColorClass: 'text-fire',
+        barClass: 'bg-fire-bar',
+        onClick: () => navigate('/remediation?tab=open'),
+      },
+      {
+        label: '오늘 일정',
+        val: String(stats.scheduleCount),
+        sub: '건',
+        isThreshold: false,             // 정보 카드 — 항상 text-primary
+        thresholdColorClass: '',
+        barClass: 'bg-border-default',  // 회색
+        onClick: () => navigate('/schedule'),
+      },
+      {
+        label: '승강기 고장',
+        val: String(stats.elevatorFault),
+        sub: '대',
+        isThreshold: stats.elevatorFault > 0,
+        thresholdColorClass: 'text-danger',
+        barClass: stats.elevatorFault > 0 ? 'bg-danger-bar' : 'bg-safe-bar',
+        onClick: () => navigate('/elevator'),
+      },
     ]
 
     // 미니 캘린더 데이터
@@ -224,29 +260,27 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Row 2: 통계 카드 4열 (전폭) */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14 }}>
+        {/* Row 2: 통계 카드 4열 (§6.2 Stat Card negative rule) */}
+        <div className="grid grid-cols-4 gap-3.5">
           {statCards.map(c => (
-            <div key={c.label} onClick={c.onClick} style={{
-              background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16,
-              padding:'20px 22px', cursor:'pointer', position:'relative', overflow:'hidden',
-              transition:'border-color .15s, transform .15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--bd2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)'; e.currentTarget.style.transform = 'none' }}>
-              <div style={{ fontSize:12, fontWeight:600, color:'var(--t3)', marginBottom:10 }}>{c.label}</div>
-              <div style={{ display:'flex', alignItems:'baseline', gap:4 }}>
-                <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:36, fontWeight:700, lineHeight:1, color:c.color }}>{c.val}</span>
-                <span style={{ fontSize:14, color:'var(--t3)' }}>{c.sub}</span>
+            <div
+              key={c.label}
+              onClick={c.onClick}
+              className="bg-surface-raised border border-border-default rounded-lg px-5 py-5 cursor-pointer relative overflow-hidden hover:border-border-strong hover:-translate-y-px transition-all"
+            >
+              <div className="text-caption font-semibold text-text-tertiary mb-2.5">{c.label}</div>
+              <div className="flex items-baseline gap-1">
+                <span className={`font-mono text-[36px] font-bold leading-none ${c.isThreshold ? c.thresholdColorClass : 'text-text-primary'}`}>{c.val}</span>
+                <span className="text-body-sm text-text-tertiary">{c.sub}</span>
               </div>
               {c.label === '승강기 고장' && stats.elevInspDueSoon > 0 && (
-                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
-                  <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:11, fontWeight:600 }}>
+                <div className="flex justify-end mt-2">
+                  <span className="bg-warning-bg text-warning text-caption font-semibold px-1.5 py-0.5 rounded-sm">
                     검사도래 {stats.elevInspDueSoon}
                   </span>
                 </div>
               )}
-              <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:c.color, borderRadius:'0 0 16px 16px' }} />
+              <div className={`absolute bottom-0 left-0 right-0 h-[3px] rounded-b-lg ${c.barClass}`} />
             </div>
           ))}
         </div>
@@ -307,23 +341,20 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* 빠른 도구 모음 (가로 4열) */}
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, flexShrink:0 }}>
+            {/* 빠른 도구 모음 (가로 4열) — §7.1 일관성: 모두 회색 통일 */}
+            <div className="grid grid-cols-4 gap-3 shrink-0">
               {tools.map(t => (
-                <div key={t.label} onClick={() => navigate(t.path)}
-                  style={{
-                    background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14,
-                    padding:'16px', display:'flex', flexDirection:'column', alignItems:'center', gap:10,
-                    cursor:'pointer', transition:'border-color .15s, transform .15s', textAlign:'center',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--bd2)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)'; e.currentTarget.style.transform = 'none' }}>
-                  <div style={{ width:44, height:44, borderRadius:12, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <t.Icon size={22} style={{ color:'var(--t2)' }} />
+                <div
+                  key={t.label}
+                  onClick={() => navigate(t.path)}
+                  className="bg-surface-raised border border-border-default rounded-md p-4 flex flex-col items-center gap-2.5 text-center cursor-pointer hover:border-border-strong hover:-translate-y-px transition-all"
+                >
+                  <div className="w-11 h-11 rounded-md bg-surface-sunken flex items-center justify-center">
+                    <t.Icon size={22} className="text-text-secondary" />
                   </div>
                   <div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
-                    <div style={{ fontSize:12, color:'var(--t3)', marginTop:3, lineHeight:1.3 }}>{t.descDesktop}</div>
+                    <div className="text-label font-bold text-text-primary">{t.label}</div>
+                    <div className="text-caption text-text-tertiary mt-0.5 leading-snug">{t.descDesktop}</div>
                   </div>
                 </div>
               ))}
@@ -466,62 +497,103 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* ② 오늘 현황 */}
+        {/* ② 오늘 현황 — §6.2 Stat Card negative rule */}
         <div style={{ animation:'slideUp .28s .06s ease-out both' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>오늘 현황</span>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-caption font-bold text-text-secondary">오늘 현황</span>
             {stats.streakDays > 0 && (
-              <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:600, color:'var(--safe)', background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.2)', padding:'2px 7px', borderRadius:20 }}>
+              <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe px-2 py-0.5 rounded-pill">
                 연속 {stats.streakDays}일 점검 달성 🔥
               </span>
             )}
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
-            {[
-              { label:'점검 미완료', val: String(incomplete),           sub:`/${stats.inspectTotal}`, color:'var(--danger)', accent:'var(--danger)', onClick: goToInspection },
-              { label:'미조치 항목', val: String(stats.unresolved),     sub:'건',                     color:'var(--warn)',   accent:'var(--warn)',   onClick: () => navigate('/remediation?tab=open') },
-              { label:'오늘 일정',   val: String(stats.scheduleCount),  sub:'건',                     color:'var(--info)',   accent:'var(--info)',   onClick: () => navigate('/schedule') },
-              { label:'승강기 고장', val: String(stats.elevatorFault),  sub:'대',                     color: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', accent: stats.elevatorFault > 0 ? 'var(--danger)' : 'var(--safe)', onClick: () => navigate('/elevator?tab=fault') },
-            ].map(c => (
-              <div key={c.label} onClick={c.onClick} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'8px 8px 10px', display:'flex', flexDirection:'column', gap:4, position:'relative', overflow:'hidden', cursor:'pointer' }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'var(--t3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.label}</div>
-                <div style={{ display:'flex', alignItems:'baseline', gap:2, flexWrap:'wrap' }}>
-                  <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:600, lineHeight:1, color:c.color }}>{c.val}</span>
-                  <span style={{ fontSize:12, color:'var(--t3)' }}>{c.sub}</span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {(() => {
+              // §6.2 Stat Card negative rule:
+              // - 숫자 색은 위험 임계치 일 때만 status 색
+              // - 정상치는 text-text-primary
+              // - 좌측 색바: status 의 bar 변종 (오늘 일정은 회색)
+              const cardsMobile = [
+                {
+                  label: '점검 미완료',
+                  val: String(incomplete),
+                  sub: `/${stats.inspectTotal}`,
+                  isThreshold: incomplete > 0,
+                  thresholdColorClass: 'text-danger',
+                  barClass: 'bg-danger-bar',
+                  onClick: goToInspection,
+                },
+                {
+                  label: '미조치 항목',
+                  val: String(stats.unresolved),
+                  sub: '건',
+                  isThreshold: stats.unresolved > 0,
+                  thresholdColorClass: 'text-fire',
+                  barClass: 'bg-fire-bar',
+                  onClick: () => navigate('/remediation?tab=open'),
+                },
+                {
+                  label: '오늘 일정',
+                  val: String(stats.scheduleCount),
+                  sub: '건',
+                  isThreshold: false,
+                  thresholdColorClass: '',
+                  barClass: 'bg-border-default',
+                  onClick: () => navigate('/schedule'),
+                },
+                {
+                  label: '승강기 고장',
+                  val: String(stats.elevatorFault),
+                  sub: '대',
+                  isThreshold: stats.elevatorFault > 0,
+                  thresholdColorClass: 'text-danger',
+                  barClass: stats.elevatorFault > 0 ? 'bg-danger-bar' : 'bg-safe-bar',
+                  onClick: () => navigate('/elevator?tab=fault'),
+                },
+              ]
+              return cardsMobile.map(c => (
+                <div
+                  key={c.label}
+                  onClick={c.onClick}
+                  className="bg-surface-raised border border-border-default rounded-md px-2 pt-2 pb-2.5 flex flex-col gap-1 relative overflow-hidden cursor-pointer hover:border-border-strong transition-all"
+                >
+                  <div className="text-caption font-bold text-text-tertiary whitespace-nowrap overflow-hidden text-ellipsis">{c.label}</div>
+                  <div className="flex items-baseline gap-0.5 flex-wrap">
+                    <span className={`font-mono text-[20px] font-semibold leading-none ${c.isThreshold ? c.thresholdColorClass : 'text-text-primary'}`}>{c.val}</span>
+                    <span className="text-caption text-text-tertiary">{c.sub}</span>
+                  </div>
+                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 rounded-b-md ${c.barClass}`} />
                 </div>
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, height:2, borderRadius:'0 0 12px 12px', background:c.accent }} />
-              </div>
-            ))}
+              ))
+            })()}
           </div>
           {stats.elevInspDueSoon > 0 && (
-            <div style={{ display:'flex', justifyContent:'flex-end', marginTop:4 }}>
-              <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 6px', borderRadius:6, fontSize:12, fontWeight:600 }}>
+            <div className="flex justify-end mt-1">
+              <span className="bg-warning-bg text-warning text-caption font-semibold px-1.5 py-0.5 rounded-sm">
                 검사도래 {stats.elevInspDueSoon}
               </span>
             </div>
           )}
         </div>
 
-        {/* ③ 빠른 도구 모음 */}
+        {/* ③ 빠른 도구 모음 — §7.1 일관성: 모두 회색 통일 */}
         <div style={{ animation:'slideUp .28s .12s ease-out both' }}>
-          <div style={{ display:'flex', alignItems:'center', marginBottom:5 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>빠른 도구 모음</span>
+          <div className="flex items-center mb-1.5">
+            <span className="text-caption font-bold text-text-secondary">빠른 도구 모음</span>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:7 }}>
+          <div className="grid grid-cols-2 gap-2">
             {tools.map(t => (
               <div
                 key={t.label}
                 onClick={() => navigate(t.path)}
-                style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'11px 12px', display:'flex', alignItems:'center', gap:11, cursor:'pointer', transition:'all .13s' }}
-                onMouseEnter={e => { e.currentTarget.style.background='var(--bg3)'; e.currentTarget.style.borderColor='var(--bd2)' }}
-                onMouseLeave={e => { e.currentTarget.style.background='var(--bg2)'; e.currentTarget.style.borderColor='var(--bd)'  }}
+                className="bg-surface-raised border border-border-default rounded-md px-3 py-3 flex items-center gap-3 cursor-pointer hover:bg-surface-sunken hover:border-border-strong transition-all"
               >
-                <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <t.Icon size={18} style={{ color:'var(--t2)' }} />
+                <div className="w-[38px] h-[38px] rounded-md shrink-0 bg-surface-sunken flex items-center justify-center">
+                  <t.Icon size={18} className="text-text-secondary" />
                 </div>
-                <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{t.label}</div>
-                  <div style={{ fontSize:12, color:'var(--t3)', marginTop:2, lineHeight:1.3, whiteSpace:'pre-line' }}>{t.desc}</div>
+                <div className="min-w-0">
+                  <div className="text-label font-bold text-text-primary">{t.label}</div>
+                  <div className="text-caption text-text-tertiary mt-0.5 leading-snug whitespace-pre-line">{t.desc}</div>
                 </div>
               </div>
             ))}
