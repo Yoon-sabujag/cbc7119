@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .section { display: flex; gap: 12px; align-items: center; }
+  .section-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); width: 70px; flex-shrink: 0; }
+  .chips { display: flex; gap: 8px; flex: 1; }
+  .chip {
+    height: 40px;
+    padding: 0 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .mono { font-family: var(--font-mono); font-size: 11px; }
+</style>
+</head><body>
+  <div class="section">
+    <div class="section-label">Accent</div>
+    <div class="chips">
+      <div class="chip" style="background: var(--accent); color: var(--text-on-accent);">Default <span class="mono">#3b82f6</span></div>
+      <div class="chip" style="background: var(--accent-hover); color: var(--text-on-accent);">Hover <span class="mono">#60a5fa</span></div>
+      <div class="chip" style="background: var(--accent-active); color: var(--text-on-accent);">Active <span class="mono">#2563eb</span></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-label">Border</div>
+    <div class="chips">
+      <div class="chip" style="background: var(--surface-raised); border: 1px solid var(--border-default); color: var(--text-secondary);">Default <span class="mono">14% white</span></div>
+      <div class="chip" style="background: var(--surface-raised); border: 1px solid var(--border-strong); color: var(--text-secondary);">Strong <span class="mono">22% white</span></div>
+      <div class="chip" style="background: var(--surface-raised); border: 2px solid var(--border-focus); color: var(--text-link);">Focus <span class="mono">#3b82f6</span></div>
+    </div>
+  </div>
+</body></html>

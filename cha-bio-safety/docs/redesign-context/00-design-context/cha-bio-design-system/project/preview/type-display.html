@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; gap: 24px; }
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .font-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+</style>
+</head><body>
+  <div class="col">
+    <div class="font-label">Pretendard Variable — 한글</div>
+    <div style="font-size: 28px; font-weight: 500; color: var(--text-primary); letter-spacing: -0.02em;">
+      소방·시설 점검
+    </div>
+    <div style="font-size: 18px; font-weight: 500; color: var(--text-primary); line-height: 1.4;">
+      CHA Bio Complex 방재 시스템
+    </div>
+    <div style="font-size: 16px; font-weight: 400; color: var(--text-secondary); line-height: 1.7;">
+      산업용 방재 점검 및 조치 관리를 위한 사내 업무 도구입니다. 노안 친화 설계를 최우선으로 합니다.
+    </div>
+  </div>
+  <div class="col">
+    <div class="font-label">JetBrains Mono — 수치</div>
+    <div style="font-family: var(--font-mono); font-size: 36px; font-weight: 700; color: var(--status-danger); line-height: 1;">
+      12<span style="font-size: 14px; color: var(--text-tertiary); font-weight: 400;">/34</span>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 16px; font-weight: 400; color: var(--text-secondary); line-height: 1.7; font-variant-numeric: tabular-nums;">
+      1차압 2.45 MPa<br>
+      2차압 1.82 MPa<br>
+      챔버 0.31 MPa
+    </div>
+  </div>
+</body></html>

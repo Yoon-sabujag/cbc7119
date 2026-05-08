@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-label {
+    font-size: 13px;
+    font-weight: 600;
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .trio {
+    display: flex;
+    gap: 6px;
+    flex: 1;
+  }
+  .chip {
+    flex: 1;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+</style>
+</head><body>
+  <div class="status-row">
+    <div class="status-label" style="color: var(--status-safe);">정상 safe</div>
+    <div class="trio">
+      <div class="chip" style="background: var(--status-safe-bg); color: var(--status-safe);">foreground</div>
+      <div class="chip" style="background: var(--status-safe-bar); color: #fff;">bar</div>
+      <div class="chip" style="background: var(--status-safe-bg); border: 1px solid rgba(34,197,94,.3); color: var(--status-safe);">bg</div>
+    </div>
+  </div>
+  <div class="status-row">
+    <div class="status-label" style="color: var(--status-warning);">주의 warn</div>
+    <div class="trio">
+      <div class="chip" style="background: var(--status-warning-bg); color: var(--status-warning);">foreground</div>
+      <div class="chip" style="background: var(--status-warning-bar); color: #fff;">bar</div>
+      <div class="chip" style="background: var(--status-warning-bg); border: 1px solid rgba(245,158,11,.3); color: var(--status-warning);">bg</div>
+    </div>
+  </div>
+  <div class="status-row">
+    <div class="status-label" style="color: var(--status-danger);">불량 danger</div>
+    <div class="trio">
+      <div class="chip" style="background: var(--status-danger-bg); color: var(--status-danger);">foreground</div>
+      <div class="chip" style="background: var(--status-danger-bar); color: #fff;">bar</div>
+      <div class="chip" style="background: var(--status-danger-bg); border: 1px solid rgba(239,68,68,.3); color: var(--status-danger);">bg</div>
+    </div>
+  </div>
+  <div class="status-row">
+    <div class="status-label" style="color: var(--status-info);">정보 info</div>
+    <div class="trio">
+      <div class="chip" style="background: var(--status-info-bg); color: var(--status-info);">foreground</div>
+      <div class="chip" style="background: var(--status-info-bar); color: #fff;">bar</div>
+      <div class="chip" style="background: var(--status-info-bg); border: 1px solid rgba(14,165,233,.3); color: var(--status-info);">bg</div>
+    </div>
+  </div>
+  <div class="status-row">
+    <div class="status-label" style="color: var(--status-fire);">긴급 fire</div>
+    <div class="trio">
+      <div class="chip" style="background: var(--status-fire-bg); color: var(--status-fire);">foreground</div>
+      <div class="chip" style="background: var(--status-fire-bar); color: #fff;">bar</div>
+      <div class="chip" style="background: var(--status-fire-bg); border: 1px solid rgba(249,115,22,.3); color: var(--status-fire);">bg</div>
+    </div>
+  </div>
+</body></html>

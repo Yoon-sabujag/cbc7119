@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 16px; display: flex; gap: 16px; align-items: flex-start; }
+  .modal-shell { flex: 1; background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+  .modal-header { padding: 12px 16px; border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 10px; }
+  .modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .modal-footer { padding: 10px 14px; border-top: 1px solid var(--border-default); display: flex; gap: 8px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-sans); font-weight: 700; border: none; cursor: pointer; border-radius: var(--radius-sm); height: 40px; font-size: 13px; }
+  .sheet { flex: 0.8; background: var(--surface-raised); border-radius: var(--radius-lg) var(--radius-lg) 0 0; overflow: hidden; display: flex; flex-direction: column; }
+  .sheet-title { padding: 14px 16px; text-align: center; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .sheet-actions { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .hdr-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hdr-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head><body>
+  <!-- Modal -->
+  <div class="modal-shell">
+    <div class="modal-header">
+      <div class="hdr-icon" style="background: rgba(34,197,94,.12);"><svg viewBox="0 0 24 24" fill="none" stroke="none"><rect x="1" y="16" width="10" height="6" rx="1" fill="#22c55e"/><rect x="7" y="10" width="10" height="6" rx="1" fill="#22c55e"/><rect x="13" y="4" width="10" height="6" rx="1" fill="#22c55e"/></svg></div>
+      <div>
+        <div class="text-body" style="font-weight: 700; color: var(--text-primary);">특별피난계단</div>
+        <div class="text-caption" style="color: var(--text-tertiary);">피난·방화시설 · 방화문</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="text-label" style="font-weight: 600; color: var(--text-tertiary); letter-spacing: .04em;">계단실 선택</div>
+      <div style="display: flex; gap: 6px;">
+        <div style="flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;">1</div>
+        <div style="flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface-page);color:var(--text-secondary);">2</div>
+        <div style="flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface-page);color:var(--text-secondary);">3</div>
+        <div style="flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface-page);color:var(--text-secondary);">4</div>
+        <div style="flex:1;padding:7px 0;border-radius:8px;font-size:12px;font-weight:700;text-align:center;cursor:pointer;border:1px solid var(--border-strong);background:var(--surface-page);color:var(--text-secondary);">5</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" style="padding: 0 18px; background:var(--surface-page);border:1px solid var(--border-strong);color:var(--text-secondary);">닫기</button>
+      <button class="btn" style="flex:1;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);color:#fff;">계단실 1 점검 저장</button>
+    </div>
+  </div>
+
+  <!-- Action Sheet -->
+  <div class="sheet">
+    <div class="sheet-title">석현민</div>
+    <div class="sheet-actions">
+      <button class="btn" style="width:100%;background:var(--accent);color:#fff;">전화 걸기</button>
+      <button class="btn" style="width:100%;background:var(--surface-sunken);color:var(--text-primary);border:1px solid var(--border-default);">문자 보내기</button>
+      <button class="btn" style="width:100%;background:none;color:var(--text-tertiary);font-weight:600;height:36px;">취소</button>
+    </div>
+  </div>
+</body></html>

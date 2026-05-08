@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .row { display: flex; gap: 12px; align-items: center; }
+  .label { font-size: 12px; color: var(--text-tertiary); width: 80px; flex-shrink: 0; }
+  .input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: var(--input-height);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--input-padding-x);
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+  }
+  .input-placeholder { color: var(--text-disabled); }
+  .input-focused {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.15);
+  }
+  .input-value { color: var(--text-primary); }
+  .select-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .select-box {
+    width: 100%;
+    height: var(--input-height);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--input-padding-x);
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .textarea-box {
+    flex: 1;
+    height: 72px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    padding: 10px var(--input-padding-x);
+    font-size: 14px;
+    color: var(--text-disabled);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+</style>
+</head><body>
+  <div class="row">
+    <span class="label">Default</span>
+    <div class="input-wrap"><span class="input-placeholder">특이사항을 입력하세요</span></div>
+  </div>
+  <div class="row">
+    <span class="label">Focused</span>
+    <div class="input-wrap input-focused"><span class="input-value">B5층 DIV 2번 밸브 |</span></div>
+  </div>
+  <div class="row">
+    <span class="label">Select</span>
+    <div class="select-wrap">
+      <div class="select-box">
+        <span>전체 카테고리</span>
+        <span style="color: var(--text-tertiary); font-size: 12px;">▼</span>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <span class="label">Textarea</span>
+    <div class="textarea-box">특이사항을 입력하세요</div>
+  </div>
+</body></html>

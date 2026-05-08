@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .scale-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .scale-bar {
+    height: 24px;
+    border-radius: 4px;
+    background: var(--accent);
+    opacity: 0.25;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 6px;
+  }
+  .scale-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    width: 60px;
+    flex-shrink: 0;
+  }
+  .scale-val {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+  }
+</style>
+</head><body>
+  <div class="section-label">Primitive Scale (4의 배수)</div>
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div class="scale-row"><span class="scale-label">space-1</span><div class="scale-bar" style="width: 16px;"></div><span class="scale-val">4px</span></div>
+    <div class="scale-row"><span class="scale-label">space-2</span><div class="scale-bar" style="width: 32px;"></div><span class="scale-val">8px</span></div>
+    <div class="scale-row"><span class="scale-label">space-3</span><div class="scale-bar" style="width: 48px;"></div><span class="scale-val">12px</span></div>
+    <div class="scale-row"><span class="scale-label">space-4</span><div class="scale-bar" style="width: 64px;"></div><span class="scale-val">16px</span></div>
+    <div class="scale-row"><span class="scale-label">space-5</span><div class="scale-bar" style="width: 80px;"></div><span class="scale-val">20px</span></div>
+    <div class="scale-row"><span class="scale-label">space-6</span><div class="scale-bar" style="width: 96px;"></div><span class="scale-val">24px</span></div>
+    <div class="scale-row"><span class="scale-label">space-7</span><div class="scale-bar" style="width: 128px;"></div><span class="scale-val">32px</span></div>
+    <div class="scale-row"><span class="scale-label">space-8</span><div class="scale-bar" style="width: 192px;"></div><span class="scale-val">48px</span></div>
+  </div>
+</body></html>

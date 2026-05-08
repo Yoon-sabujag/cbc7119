@@ -1,0 +1,197 @@
+/**
+ * CHA Bio Complex 방재 시스템 — 디자인 토큰 v0.1.0
+ *
+ * 토큰 3계층 구조:
+ *   1. Primitive (--space-1, raw 값)            — 직접 사용 자제
+ *   2. Semantic (--surface-page, --text-primary) — 컴포넌트 코드는 이걸 쓴다
+ *   3. Component (--card-padding 등)            — 모바일/데스크톱 자동 분기
+ *
+ * 라이트/다크 전환은 :root[data-theme] attribute 기반.
+ * (theme.ts의 applyTheme() 호출로 자동 처리됨)
+ */
+
+/* ============================================================
+ * 다크 모드 (기본값)
+ * ============================================================ */
+:root,
+[data-theme="dark"] {
+  /* === Surface === */
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --surface-overlay: rgba(0, 0, 0, 0.6);
+
+  /* === Text (노안 대응 — secondary 명도 ↑) === */
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;  /* AAA 7.4:1 (구 #8b949e는 5.0:1 빠듯) */
+  --text-tertiary:   #8b949e;
+  --text-disabled:   #5d646e;
+  --text-on-accent:  #ffffff;
+  --text-link:       #58a6ff;
+
+  /* === Border === */
+  --border-default:  rgba(255, 255, 255, 0.14);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+  --border-focus:    #3b82f6;
+
+  /* === Accent === */
+  --accent:          #3b82f6;
+  --accent-hover:    #60a5fa;
+  --accent-active:   #2563eb;
+
+  /* === Status — foreground (텍스트, 아이콘) === */
+  --status-safe:     #4ade80;
+  --status-warning:  #fbbf24;
+  --status-danger:   #f87171;
+  --status-info:     #38bdf8;
+  --status-fire:     #fb923c;  /* 의미 고정: 조치 대기 / 긴급 */
+
+  /* === Status — bar (좌측 색바) === */
+  --status-safe-bar:    #22c55e;
+  --status-warning-bar: #f59e0b;
+  --status-danger-bar:  #ef4444;
+  --status-info-bar:    #0ea5e9;
+  --status-fire-bar:    #f97316;
+
+  /* === Status — bg (배지 채움) === */
+  --status-safe-bg:    rgba(34, 197, 94, 0.16);
+  --status-warning-bg: rgba(245, 158, 11, 0.16);
+  --status-danger-bg:  rgba(239, 68, 68, 0.16);
+  --status-info-bg:    rgba(14, 165, 233, 0.16);
+  --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+  /* === Duty (근무) === */
+  --duty-day:    #f59e0b;
+  --duty-night:  #ef4444;
+  --duty-off:    #3b82f6;
+  --duty-leave:  #6b7280;
+}
+
+/* ============================================================
+ * 라이트 모드
+ * ============================================================ */
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --surface-active:  #d8dee4;
+  --surface-overlay: rgba(0, 0, 0, 0.5);
+
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --text-disabled:   #afb8c1;
+  --text-on-accent:  #ffffff;
+  --text-link:       #0969da;
+
+  --border-default:  rgba(0, 0, 0, 0.14);
+  --border-strong:   rgba(0, 0, 0, 0.22);
+  --border-focus:    #1f6feb;
+
+  --accent:          #1f6feb;
+  --accent-hover:    #218bff;
+  --accent-active:   #0a52c4;
+
+  /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+  --status-safe:     #166534;
+  --status-warning:  #854d0e;
+  --status-danger:   #991b1b;
+  --status-info:     #075985;
+  --status-fire:     #9a3412;
+
+  --status-safe-bar:    #15803d;
+  --status-warning-bar: #b45309;
+  --status-danger-bar:  #b91c1c;
+  --status-info-bar:    #0369a1;
+  --status-fire-bar:    #c2410c;
+
+  --status-safe-bg:    #dcfce7;
+  --status-warning-bg: #fef3c7;
+  --status-danger-bg:  #fee2e2;
+  --status-info-bg:    #e0f2fe;
+  --status-fire-bg:    #ffedd5;
+
+  --duty-day:    #b45309;
+  --duty-night:  #b91c1c;
+  --duty-off:    #1f6feb;
+  --duty-leave:  #6b7280;
+}
+
+/* ============================================================
+ * Spacing — 4의 배수 8pt 그리드 (테마 무관)
+ * ============================================================ */
+:root {
+  /* Primitive scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 48px;
+
+  /* Component spacing — 모바일 기본 */
+  --card-padding:     14px;
+  --card-padding-sm:  10px;
+  --card-gap:         8px;
+  --modal-padding:    20px;
+  --section-gap:      24px;
+  --page-padding:     16px;
+  --input-height:     44px;
+  --input-padding-x:  14px;
+  --button-height:    44px;
+  --button-padding-x: 16px;
+}
+
+/* 데스크톱 — 768px 이상 */
+@media (min-width: 768px) {
+  :root {
+    --card-padding:     10px;
+    --card-padding-sm:  8px;
+    --card-gap:         6px;
+    --modal-padding:    24px;
+    --section-gap:      32px;
+    --page-padding:     24px;
+    --input-height:     40px;   /* 표준 36px이지만 미숙 사용자 배려 */
+    --input-padding-x:  14px;
+    --button-height:    40px;
+    --button-padding-x: 16px;
+  }
+}
+
+/* ============================================================
+ * Radius
+ * ============================================================ */
+:root {
+  --radius-sm:   8px;   /* input, button, sub-card */
+  --radius-md:   12px;  /* 표준 카드 */
+  --radius-lg:   16px;  /* 모달, 큰 panel */
+  --radius-pill: 99px;  /* 캡슐 배지, 칩 */
+}
+
+/* ============================================================
+ * 기존 코드 호환 alias (점진적 제거 대상)
+ * ============================================================ */
+:root {
+  --bg:     var(--surface-page);
+  --bg2:    var(--surface-raised);
+  --bg3:    var(--surface-sunken);
+  --bg4:    var(--surface-active);
+  --bd:     var(--border-default);
+  --bd2:    var(--border-strong);
+  --t1:     var(--text-primary);
+  --t2:     var(--text-secondary);
+  --t3:     var(--text-tertiary);
+  --acl:    var(--accent);
+  --info:   var(--status-info-bar);
+  --safe:   var(--status-safe-bar);
+  --warn:   var(--status-warning-bar);
+  --danger: var(--status-danger-bar);
+  --fire:   var(--status-fire-bar);
+  --c-day:   var(--duty-day);
+  --c-night: var(--duty-night);
+  --c-off:   var(--duty-off);
+  --c-leave: var(--duty-leave);
+}

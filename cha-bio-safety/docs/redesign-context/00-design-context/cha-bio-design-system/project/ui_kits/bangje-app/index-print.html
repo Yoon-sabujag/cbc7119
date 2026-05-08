@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>방재 시스템 — UI Kit (Print)</title>
+  <link rel="stylesheet" href="../../colors_and_type.css">
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    html, body, #root { width: 100%; height: auto; overflow: visible; }
+    body { background: #111318; }
+
+    .mode-bar, .theme-toggle { display: none !important; }
+
+    .phone-frame {
+      width: 390px; height: 844px;
+      border: 2px solid var(--border-strong);
+      border-radius: 40px;
+      overflow: hidden;
+      background: var(--surface-page);
+      display: flex; flex-direction: column;
+    }
+    .desktop-frame {
+      width: 1280px; height: 800px;
+      border: 2px solid var(--border-strong);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface-page);
+    }
+
+    .print-page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      break-after: page;
+      break-inside: avoid;
+      min-height: 100vh;
+    }
+    .print-page:last-child {
+      break-after: auto;
+    }
+    .page-label {
+      position: absolute;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 99px;
+      padding: 6px 20px;
+    }
+
+    @media print {
+      @page { size: landscape; margin: 0; }
+      body { background: #111318 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .print-page { page-break-after: always; min-height: auto; height: 100vh; padding: 20px; }
+      .print-page:last-child { page-break-after: auto; }
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="LucideIcons.jsx"></script>
+  <script type="text/babel" src="SharedComponents.jsx"></script>
+  <script type="text/babel" src="LoginScreen.jsx"></script>
+  <script type="text/babel" src="DashboardMobile.jsx"></script>
+  <script type="text/babel" src="DashboardDesktop.jsx"></script>
+  <script type="text/babel" src="InspectionMobile.jsx"></script>
+
+  <script type="text/babel">
+    function PrintApp() {
+      return (
+        <div>
+          {/* Page 1: Login */}
+          <div className="print-page" style={{ position: 'relative' }}>
+            <span className="page-label">로그인</span>
+            <div className="phone-frame">
+              <LoginScreen />
+            </div>
+          </div>
+
+          {/* Page 2: Mobile Dashboard */}
+          <div className="print-page" style={{ position: 'relative' }}>
+            <span className="page-label">모바일 대시보드</span>
+            <div className="phone-frame">
+              <DashboardMobile onNavigate={() => {}} />
+            </div>
+          </div>
+
+          {/* Page 3: Desktop Dashboard */}
+          <div className="print-page" style={{ position: 'relative' }}>
+            <span className="page-label">데스크톱 대시보드</span>
+            <div className="desktop-frame">
+              <DashboardDesktop onNavigate={() => {}} />
+            </div>
+          </div>
+
+          {/* Page 4: Inspection */}
+          <div className="print-page" style={{ position: 'relative' }}>
+            <span className="page-label">점검 — 카테고리 선택</span>
+            <div className="phone-frame">
+              <InspectionMobile onNavigate={() => {}} />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<PrintApp />);
+
+    // Auto-print after fonts + Babel scripts loaded
+    document.fonts.ready.then(() => {
+      setTimeout(() => { window.print(); }, 500);
+    });
+  </script>
+</body>
+</html>
