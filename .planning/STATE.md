@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-09 - Completed quick task 260509-3e3: redesign/01-dashboard 1단계 시안 HTML 작성 (사용자 검토 대기 중)
+Last activity: 2026-05-09 - Completed quick task 260509-5xl: redesign/01-dashboard 2단계 — DashboardPage.tsx v0.1.1 토큰+Tailwind 교체본 (사용자 시각 검증 대기 중)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -172,6 +172,7 @@ None yet.
 | 260505-c9d | 특별피난계단 점검 사진이 전층 record에 중복 저장되던 버그 수정 — StairwellModal.handleSave photoKey 분배를 1건 대표 부여(caution/bad 우선 → 첫 층)로 변경 | 2026-05-04 | d5fbf55 | [260505-c9d-stairwell-photo-fix](./quick/260505-c9d-stairwell-photo-fix/) |
 | 260505-cib | CCTV / Damper stair 모달도 같은 batch-save 패턴 — CctvModal.handleSave (DVR 13대) + DamperModal.handleStairSave (전실제연댐퍼 stair) 에 동일 정책(caution/bad 우선 → 첫 cp) 적용. coverage sweep 완료. | 2026-05-05 | 509b62a | [260505-cib-cctv-damper-stair](./quick/260505-cib-cctv-damper-stair/) |
 | 260509-3e3 | redesign/01-dashboard 1단계 — DashboardPage 재디자인 v0.1.1 시안 HTML (모바일/데스크톱 × 라이트/다크 4뷰포트, 모든 섹션 1:1 매핑 + loading/error/empty 상태) | 2026-05-09 | 376bcb2 | [260509-3e3-redesign-01-dashboard-sketch](./quick/260509-3e3-redesign-01-dashboard-sketch/) |
+| 260509-5xl | redesign/01-dashboard 2단계 — DashboardPage.tsx 시안 기반 v0.1.1 토큰 + Tailwind 교체본 (697→775줄, 인라인 style 10건 화이트리스트만, §6.2 negative rule + §7.1 일관성 정확 적용, 비즈니스 로직 100% 보존) | 2026-05-09 | 2786bf5 | [260509-5xl-redesign-01-dashboard-tsx](./quick/260509-5xl-redesign-01-dashboard-tsx/) |
 
 ### Blockers/Concerns
 
