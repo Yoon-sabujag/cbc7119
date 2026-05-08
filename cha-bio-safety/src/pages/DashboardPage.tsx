@@ -774,18 +774,18 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
   )
 }
 
-// 일정 상태 pill — 완료처리 버튼과 동일 사이즈(text-caption + px-1.5 py-0.5 + border)
-// ui/StatusBadge(8px) 는 사이즈가 너무 작아 시안과 어긋나서 페이지 로컬 컴포넌트로 대체
+// 일정 상태 pill — 완료처리 버튼과 같은 폰트/패딩 사이즈, 단 border 없음 (시안 의도:
+// 버튼만 테두리 강조로 클릭 시그널). ui/StatusBadge(8px) 는 너무 작아서 페이지 로컬 대체.
 function ScheduleStatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
-    pending:     { label: '예정',   cls: 'bg-surface-sunken text-text-tertiary border-border-default' },
-    in_progress: { label: '진행중', cls: 'bg-warning-bg text-warning border-warning-bar/30' },
-    done:        { label: '완료',   cls: 'bg-safe-bg text-safe border-safe-bar/30' },
-    overdue:     { label: '지연',   cls: 'bg-danger-bg text-danger border-danger-bar/30' },
+    pending:     { label: '예정',   cls: 'bg-surface-sunken text-text-tertiary' },
+    in_progress: { label: '진행중', cls: 'bg-warning-bg text-warning' },
+    done:        { label: '완료',   cls: 'bg-safe-bg text-safe' },
+    overdue:     { label: '지연',   cls: 'bg-danger-bg text-danger' },
   }
   const s = map[status] ?? map.pending
   return (
-    <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap border ${s.cls}`}>
+    <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap ${s.cls}`}>
       {s.label}
     </span>
   )
