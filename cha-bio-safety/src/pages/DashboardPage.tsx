@@ -744,7 +744,7 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
     : 'hover:bg-surface-sunken'
   return (
     <div className={`flex items-start gap-1.5 px-2.5 py-1.5 border-b border-border-default cursor-pointer transition-colors ${rowBgClass}`}>
-      <div className="font-mono text-caption text-text-tertiary w-[30px] shrink-0 pt-px">
+      <div className="font-mono text-caption text-text-tertiary w-[36px] lg:w-[42px] shrink-0 pt-0.5">
         {item.time ?? '—'}
       </div>
       {/* 카테고리별 동적 색바 — catColor[item.category] var() 직참조, 인라인 허용 */}
