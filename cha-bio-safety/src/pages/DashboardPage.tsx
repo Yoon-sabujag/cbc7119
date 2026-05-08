@@ -286,21 +286,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Row 3: 2열 — 좌(점검현황 + 빠른도구) | 우(캘린더 + 일정) */}
-        <div style={{ display:'flex', gap:16, flex:1, minHeight:0 }}>
+        <div className="flex gap-4 flex-1 min-h-0">
 
           {/* 좌: 점검 현황 + 빠른 도구 */}
-          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:16 }}>
+          <div className="flex-1 flex flex-col gap-4">
 
             {/* 이번 달 점검 현황 */}
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', flex:1 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-                <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>이번 달 점검 현황</span>
-                <span style={{ fontSize:13, color:'var(--t3)' }}>{calYear}년 {calMonth + 1}월</span>
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col flex-1">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-default shrink-0">
+                <span className="text-body-sm font-bold text-text-primary">이번 달 점검 현황</span>
+                <span className="text-label text-text-tertiary">{calYear}년 {calMonth + 1}월</span>
               </div>
               {monthly.length === 0 ? (
-                <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
+                <div className="flex-1 flex items-center justify-center text-body-sm text-text-tertiary">이번 달 점검 일정 없음</div>
               ) : (
-                <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:32, flex:1, justifyContent:'center', overflowY:'auto' }}>
+                <div className="px-6 py-5 flex flex-col gap-8 flex-1 justify-center overflow-y-auto">
                   {(() => {
                     // 한 줄당 최대 7개 — 2줄에 균등 분배 (n≤7: 1줄, n≤14: 2줄, n>14: 3줄)
                     const rows: MonthlyItem[][] = []
@@ -312,9 +312,9 @@ export default function DashboardPage() {
                       rows.push(monthly.slice(i * perRow, (i + 1) * perRow))
                     }
                     return rows.map((row, ri) => (
-                      <div key={ri} style={{ display:'flex', justifyContent:'space-evenly', gap:8 }}>
+                      <div key={ri} className="flex justify-evenly gap-2">
                         {row.map((m, i) => (
-                          <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flex:1, minWidth:0 }}>
+                          <div key={i} className="flex flex-col items-center gap-1.5 flex-1 min-w-0">
                             {m.doubleCycle ? (
                               <Donut
                                 pct={m.pct}
@@ -330,8 +330,8 @@ export default function DashboardPage() {
                             ) : (
                               <Donut pct={m.pct} color={m.color} size={76} />
                             )}
-                            <div style={{ fontSize:11, color:'var(--t2)', textAlign:'center', lineHeight:1.3, wordBreak:'keep-all', whiteSpace:'normal' }}>{m.label}</div>
-                            <div style={{ fontSize:11, fontFamily:'JetBrains Mono,monospace', fontWeight:600, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                            <div className="text-caption text-text-secondary text-center leading-snug whitespace-normal [word-break:keep-all]">{m.label}</div>
+                            <div className={`text-caption font-mono font-semibold ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
                           </div>
                         ))}
                       </div>
@@ -362,17 +362,20 @@ export default function DashboardPage() {
           </div>
 
           {/* 우: 캘린더 + 오늘 일정 (340px) */}
-          <div style={{ width:340, flexShrink:0, display:'flex', flexDirection:'column', gap:16 }}>
+          <div className="w-[340px] shrink-0 flex flex-col gap-4">
 
             {/* 미니 캘린더 */}
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, padding:'16px 14px', flexShrink:0 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', textAlign:'center', marginBottom:10 }}>
+            <div className="bg-surface-raised border border-border-default rounded-lg px-3.5 py-4 shrink-0">
+              <div className="text-label font-bold text-text-primary text-center mb-2.5">
                 {calYear}년 {calMonth + 1}월
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:2, textAlign:'center' }}>
-                {['일','월','화','수','목','금','토'].map(d => (
-                  <div key={d} style={{ fontSize:12, fontWeight:700, color: d==='일'?'var(--danger)':d==='토'?'var(--info)':'var(--t3)', padding:'3px 0' }}>{d}</div>
-                ))}
+              <div className="grid grid-cols-7 gap-0.5 text-center">
+                {['일','월','화','수','목','금','토'].map(d => {
+                  const dowColor = d === '일' ? 'text-danger' : d === '토' ? 'text-info' : 'text-text-tertiary'
+                  return (
+                    <div key={d} className={`text-caption font-bold py-0.5 ${dowColor}`}>{d}</div>
+                  )
+                })}
                 {Array.from({ length: calStartDow }, (_, i) => (
                   <div key={`e${i}`} />
                 ))}
@@ -383,21 +386,30 @@ export default function DashboardPage() {
                   const dayCats = calDayCategories[d] ?? []
                   const holName = calDayHolidays[d]
                   const isHoliday = !!holName
+                  // 셀 색 분기 (요일/오늘/공휴일)
+                  const cellTextColor = isToday
+                    ? 'text-text-on-accent'
+                    : (dow === 0 || isHoliday)
+                      ? 'text-danger'
+                      : dow === 6
+                        ? 'text-info'
+                        : 'text-text-primary'
+                  const cellBgClass = isToday
+                    ? 'bg-accent'
+                    : isHoliday
+                      ? 'bg-danger-bg'
+                      : 'bg-transparent'
+                  const cellWeight = (isToday || isHoliday) ? 'font-bold' : 'font-normal'
                   return (
-                    <div key={d} title={holName} style={{ padding:'2px 0', position:'relative' }}>
-                      <div style={{
-                        width:28, height:28, borderRadius:'50%', margin:'0 auto',
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:12, fontWeight: isToday || isHoliday ? 700 : 400,
-                        color: isToday ? '#fff' : (dow===0 || isHoliday) ? 'var(--danger)' : dow===6 ? 'var(--info)' : 'var(--t1)',
-                        background: isToday ? 'var(--acl)' : isHoliday ? 'rgba(239,68,68,0.08)' : 'transparent',
-                      }}>
+                    <div key={d} title={holName} className="py-0.5 relative">
+                      <div className={`w-7 h-7 rounded-full mx-auto flex items-center justify-center text-caption ${cellWeight} ${cellTextColor} ${cellBgClass}`}>
                         {d}
                       </div>
                       {dayCats.length > 0 && (
-                        <div style={{ display:'flex', justifyContent:'center', gap:2, marginTop:1, height:5 }}>
+                        <div className="flex justify-center gap-0.5 mt-px h-[5px]">
                           {dayCats.slice(0, 3).map((cat, ci) => (
-                            <div key={ci} style={{ width:4, height:4, borderRadius:'50%', background: CAT_DOT[cat] ?? 'var(--t3)' }} />
+                            // CAT_DOT[cat] 은 카테고리별 동적 색 — var(--*) 직참조, 인라인 허용
+                            <div key={ci} className="w-1 h-1 rounded-full" style={{ background: CAT_DOT[cat] ?? 'var(--text-tertiary)' }} />
                           ))}
                         </div>
                       )}
@@ -408,25 +420,25 @@ export default function DashboardPage() {
             </div>
 
             {/* 오늘 일정 */}
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', flex:1, minHeight:0 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 16px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>오늘 일정</span>
-                <span style={{ fontSize:12, color:'var(--t3)', background:'var(--bg3)', padding:'3px 10px', borderRadius:10 }}>{schedule.length}건</span>
+            <div className="bg-surface-raised border border-border-default rounded-lg overflow-hidden flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
+                <span className="text-label font-bold text-text-primary">오늘 일정</span>
+                <span className="text-caption text-text-tertiary bg-surface-sunken px-2.5 py-0.5 rounded-pill">{schedule.length}건</span>
               </div>
-              <div style={{ overflowY:'auto', flex:1 }}>
+              <div className="overflow-y-auto flex-1">
                 {schedule.length === 0 ? (
-                  <div style={{ padding:24, textAlign:'center', fontSize:13, color:'var(--t3)' }}>오늘 일정 없음</div>
+                  <div className="p-6 text-center text-label text-text-tertiary">오늘 일정 없음</div>
                 ) : (
                   <>
                     {timed.length > 0 && (
                       <>
-                        <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em' }}>시간 확정</div>
+                        <div className="px-4 pt-2 pb-1 text-caption font-bold text-text-tertiary tracking-wider">시간 확정</div>
                         {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
                       </>
                     )}
                     {untimed.length > 0 && (
                       <>
-                        <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', borderTop: timed.length > 0 ? '1px solid var(--bd)' : 'none' }}>시간 미정</div>
+                        <div className={`px-4 pt-2 pb-1 text-caption font-bold text-text-tertiary tracking-wider ${timed.length > 0 ? 'border-t border-border-default' : ''}`}>시간 미정</div>
                         {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
                       </>
                     )}
@@ -601,39 +613,57 @@ export default function DashboardPage() {
         </div>
 
         {/* ④ 오늘 일정 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:0, animation:'slideUp .28s .16s ease-out both' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>오늘 일정</span>
-            <span style={{ fontSize:12, color:'var(--t3)', background:'var(--bg3)', padding:'1px 7px', borderRadius:9 }}>{schedule.length}건</span>
+        <div
+          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col min-h-0"
+          style={{ animation:'slideUp .28s .16s ease-out both' }}
+        >
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-default shrink-0">
+            <span className="text-caption font-bold text-text-secondary">오늘 일정</span>
+            <span className="text-caption text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-pill">{schedule.length}건</span>
           </div>
-          <div style={{ overflowY:'auto', flex:1 }}>
+          <div className="overflow-y-auto flex-1">
             {timed.length > 0 && (
               <>
-                <div style={{ padding:'4px 10px 2px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase' }}>⏰ 시간 확정</div>
+                <div className="px-2.5 pt-1 pb-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase">⏰ 시간 확정</div>
                 {timed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}
             {untimed.length > 0 && (
               <>
-                <div style={{ padding:'4px 10px 2px', fontSize:12, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', borderTop:'1px solid var(--bd)', marginTop:2 }}>📋 시간 미정</div>
+                <div className="px-2.5 pt-1 pb-0.5 mt-0.5 text-caption font-bold text-text-tertiary tracking-wider uppercase border-t border-border-default">📋 시간 미정</div>
                 {untimed.map(item => <ScheduleRow key={item.id} item={item} catColor={CAT_COLOR} onManualComplete={handleManualComplete} />)}
               </>
             )}
           </div>
         </div>
 
-        {/* ⑤ 이번 달 점검 현황 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', display:'flex', flexDirection:'column', animation:'slideUp .28s .20s ease-out both', height: IS_ANDROID ? 125 : undefined }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 11px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>이번 달 점검 현황</span>
-            <span style={{ fontSize:12, color:'var(--t3)' }}>{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
+        {/* ⑤ 이번 달 점검 현황 — 메모리 룰: 가로 스크롤 (flex-nowrap) */}
+        <div
+          className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex flex-col"
+          style={{
+            animation:'slideUp .28s .20s ease-out both',
+            // IS_ANDROID 분기 동적 height — 인라인 허용 키
+            height: IS_ANDROID ? 125 : undefined,
+          }}
+        >
+          <div className="flex items-center justify-between px-3 py-1 border-b border-border-default shrink-0">
+            <span className="text-caption font-bold text-text-secondary">이번 달 점검 현황</span>
+            <span className="text-caption text-text-tertiary">{new Date().getFullYear()}년 {new Date().getMonth()+1}월</span>
           </div>
           {monthly.length === 0 ? (
-            <div style={{ padding:'14px 0', textAlign:'center', fontSize:12, color:'var(--t3)' }}>이번 달 점검 일정 없음</div>
+            <div className="py-3.5 text-center text-caption text-text-tertiary">이번 달 점검 일정 없음</div>
           ) : (
-            <div style={{ overflowX:'auto', overflowY:'clip', scrollbarWidth:'none', padding:'8px 10px 10px', display:'flex', gap:12, flex: IS_ANDROID ? 1 : undefined, height: IS_ANDROID ? 101 : undefined }}>
+            <div
+              className="overflow-x-auto px-2.5 py-2 flex flex-nowrap gap-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              style={{
+                // overflowY:clip + IS_ANDROID 동적 분기 — 인라인 허용 키
+                overflowY: 'clip',
+                flex: IS_ANDROID ? 1 : undefined,
+                height: IS_ANDROID ? 101 : undefined,
+              }}
+            >
               {monthly.map((m, i) => (
-                <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, flexShrink:0, minWidth:64 }}>
+                <div key={i} className="flex flex-col items-center gap-1 shrink-0 min-w-[64px]">
                   {m.doubleCycle ? (
                     <Donut
                       pct={m.pct}
@@ -649,8 +679,8 @@ export default function DashboardPage() {
                   ) : (
                     <Donut pct={m.pct} color={m.color} size={44} />
                   )}
-                  <div style={{ fontSize:12, color:'var(--t3)', textAlign:'center', lineHeight:1.3, maxWidth:72, wordBreak:'keep-all' }}>{m.label}</div>
-                  <div style={{ fontSize:12, color: m.total > 0 && m.done >= m.total ? 'var(--safe)' : 'var(--t3)' }}>{m.done}/{m.total}</div>
+                  <div className="text-caption text-text-tertiary text-center leading-snug max-w-[72px] [word-break:keep-all]">{m.label}</div>
+                  <div className={`text-caption ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
                 </div>
               ))}
             </div>
@@ -663,52 +693,34 @@ export default function DashboardPage() {
       {contactStaff && (
         <div
           onClick={() => setContactStaff(null)}
-          style={{
-            position:'fixed', inset:0, zIndex:9999,
-            background:'rgba(0,0,0,.45)',
-            display:'flex', alignItems:'flex-end', justifyContent:'center',
-          }}
+          className="fixed inset-0 z-[9999] bg-surface-overlay flex items-end justify-center"
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{
-              width:'100%', maxWidth:400,
-              background:'var(--bg2)', borderRadius:'16px 16px 0 0',
-              padding:'16px 16px calc(16px + var(--sab, 0px))',
-            }}
+            className="w-full max-w-[400px] bg-surface-raised rounded-t-lg pt-4 px-4"
+            // safe-area-bottom 동적 — 인라인 허용 (calc + var)
+            style={{ paddingBottom: 'calc(16px + var(--sab, 0px))' }}
           >
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)', textAlign:'center', marginBottom:14 }}>
+            <div className="text-body-sm font-bold text-text-primary text-center mb-3.5">
               {contactStaff.name}
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => { window.location.href = `tel:${contactStaff.phone}`; setContactStaff(null) }}
-                style={{
-                  width:'100%', padding:'14px 0', borderRadius:12,
-                  background:'var(--acl)', color:'#fff',
-                  fontSize:14, fontWeight:700, border:'none', cursor:'pointer',
-                }}
+                className="w-full py-3.5 rounded-md bg-accent text-text-on-accent text-body-sm font-bold border-0 cursor-pointer hover:bg-accent-hover transition-colors"
               >
                 전화 걸기
               </button>
               <button
                 onClick={() => { window.location.href = `sms:${contactStaff.phone}`; setContactStaff(null) }}
-                style={{
-                  width:'100%', padding:'14px 0', borderRadius:12,
-                  background:'var(--bg3)', color:'var(--t1)',
-                  fontSize:14, fontWeight:700, border:'1px solid var(--bd)', cursor:'pointer',
-                }}
+                className="w-full py-3.5 rounded-md bg-surface-sunken text-text-primary text-body-sm font-bold border border-border-default cursor-pointer hover:bg-surface-active transition-colors"
               >
                 문자 보내기
               </button>
             </div>
             <button
               onClick={() => setContactStaff(null)}
-              style={{
-                width:'100%', padding:'12px 0', marginTop:8,
-                background:'none', color:'var(--t3)',
-                fontSize:13, fontWeight:600, border:'none', cursor:'pointer',
-              }}
+              className="w-full py-3 mt-2 bg-transparent text-text-tertiary text-label font-semibold border-0 cursor-pointer"
             >
               취소
             </button>
@@ -726,39 +738,37 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
   catColor: Record<string,string>
   onManualComplete?: (item: DashboardScheduleItem) => void
 }) {
+  // 완료 행은 safe 배경, 미완료는 hover 시에만 sunken
+  const rowBgClass = item.completed
+    ? 'bg-safe-bg/60 hover:bg-safe-bg/80'
+    : 'hover:bg-surface-sunken'
   return (
-    <div
-      style={{
-        display:'flex', alignItems:'flex-start', gap:6, padding:'6px 10px',
-        borderBottom:'1px solid var(--bd)', cursor:'pointer', transition:'background .1s',
-        background: item.completed ? 'rgba(34,197,94,.08)' : 'transparent',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = item.completed ? 'rgba(34,197,94,.12)' : 'var(--bg3)')}
-      onMouseLeave={e => (e.currentTarget.style.background = item.completed ? 'rgba(34,197,94,.08)' : 'transparent')}
-    >
-      <div style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, color:'var(--t3)', width:30, flexShrink:0, paddingTop:1 }}>
+    <div className={`flex items-start gap-1.5 px-2.5 py-1.5 border-b border-border-default cursor-pointer transition-colors ${rowBgClass}`}>
+      <div className="font-mono text-caption text-text-tertiary w-[30px] shrink-0 pt-px">
         {item.time ?? '—'}
       </div>
-      <div style={{ width:2, borderRadius:2, flexShrink:0, alignSelf:'stretch', minHeight:20, background: catColor[item.category] ?? 'var(--t3)' }} />
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:'var(--t1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.title}</div>
-        {item.memo && <div style={{ fontSize:12, color:'var(--t3)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.memo}</div>}
+      {/* 카테고리별 동적 색바 — catColor[item.category] var() 직참조, 인라인 허용 */}
+      <div
+        className="w-0.5 rounded-sm shrink-0 self-stretch min-h-[20px]"
+        style={{ background: catColor[item.category] ?? 'var(--text-tertiary)' }}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-label font-semibold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">{item.title}</div>
+        {item.memo && <div className="text-caption text-text-tertiary mt-px whitespace-nowrap overflow-hidden text-ellipsis">{item.memo}</div>}
       </div>
       <StatusBadge status={item.completed ? 'done' : item.status} />
       {item.completed && (
-        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" style={{ flexShrink:0 }}>
-          <path d="M3 8.5L6.5 12L13 4" stroke="var(--safe)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width={16} height={16} viewBox="0 0 16 16" fill="none" className="shrink-0">
+          <path d="M3 8.5L6.5 12L13 4" stroke="var(--status-safe-bar)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
       {!item.completed && item.category !== 'inspect' && (
         <button
           onClick={(e) => { e.stopPropagation(); onManualComplete?.(item) }}
-          style={{
-            fontSize:12, fontWeight:700, padding:'2px 6px', borderRadius:5,
-            background:'var(--bg3)', color:'var(--t3)', border:'1px solid var(--bd)',
-            cursor:'pointer', flexShrink:0, whiteSpace:'nowrap'
-          }}
-        >완료 처리</button>
+          className="text-caption font-bold px-1.5 py-0.5 rounded-sm bg-surface-sunken text-text-tertiary border border-border-default cursor-pointer shrink-0 whitespace-nowrap hover:bg-surface-active transition-colors"
+        >
+          완료 처리
+        </button>
       )}
     </div>
   )
