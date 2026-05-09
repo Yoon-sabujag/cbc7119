@@ -172,6 +172,7 @@ None yet.
 | 260505-c9d | 특별피난계단 점검 사진이 전층 record에 중복 저장되던 버그 수정 — StairwellModal.handleSave photoKey 분배를 1건 대표 부여(caution/bad 우선 → 첫 층)로 변경 | 2026-05-04 | d5fbf55 | [260505-c9d-stairwell-photo-fix](./quick/260505-c9d-stairwell-photo-fix/) |
 | 260505-cib | CCTV / Damper stair 모달도 같은 batch-save 패턴 — CctvModal.handleSave (DVR 13대) + DamperModal.handleStairSave (전실제연댐퍼 stair) 에 동일 정책(caution/bad 우선 → 첫 cp) 적용. coverage sweep 완료. | 2026-05-05 | 509b62a | [260505-cib-cctv-damper-stair](./quick/260505-cib-cctv-damper-stair/) |
 | 260508-ibx | DIV/Compressor 점검 사진이 조치 상세에 안 보이던 버그 수정 — onSaveRecord 시그니처에 photoKey 추가해 check_records 에도 저장 + ZONE_LABEL 4곳에 'basement: 지하' 추가 (mig 0081 이후 라벨 누락) | 2026-05-08 | 601602e | [260508-ibx-div-comp-check-records-zone-basement](./quick/260508-ibx-div-comp-check-records-zone-basement/) |
+| 260510-b7q | 에스컬레이터 호기 매핑 0056 물리배치에 정렬 — ES_NODES_FAULT/ANNUAL id-label-floor 일치(고장 1·2호기 제외=5,6,3,4 / 수리 전체=5,6,3,4,1,2). 04-07 swap 이후 라벨만 갱신되고 floor↔ID 배치가 방치된 모순 해소 | 2026-05-09 | 050baf0 | [260510-b7q-es-nodes-fault-annual-id-label-floor-005](./quick/260510-b7q-es-nodes-fault-annual-id-label-floor-005/) |
 
 ### Blockers/Concerns
 
