@@ -379,8 +379,10 @@
       color: var(--status-danger);
     }
 
-    /* CTA 버튼 (저장) — §6.4 그라디언트 */
+    /* CTA 버튼 (저장) — §6.4 그라디언트
+       단독 사용 시 width:100%, 취소 버튼과 페어 시 flex:2 (저장:취소 = 2:1 비율) */
     .cta-btn {
+      flex: 2;
       width: 100%;
       height: var(--button-height);
       border: none;
@@ -401,6 +403,7 @@
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
+      white-space: nowrap;
     }
 
     /* WheelPicker (시각 데모) */
