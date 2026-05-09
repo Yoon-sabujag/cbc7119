@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-10 - Completed quick task 260510-4x7: redesign/07-elevator 1차 시안 HTML — 페이지 컨테이너 + 6탭 헤더 + 호기 그리드 + 에스컬레이터 노선도 (2013줄, 4뷰포트, 사용자 검토 대기)
+Last activity: 2026-05-10 - Completed quick task 260510-c2z: redesign/07-elevator 1차 시안 재작성 — list 탭 구조 정정(type 4그룹) + Option A Lucide 아이콘 (2020줄, 9/9 verify PASS, 사용자 검토 대기)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -176,6 +176,7 @@ None yet.
 | 260509-5xl | redesign/01-dashboard 2단계 — DashboardPage.tsx 시안 기반 v0.1.1 토큰 + Tailwind 교체본 (697→775줄, 인라인 style 10건 화이트리스트만, §6.2 negative rule + §7.1 일관성 정확 적용, 비즈니스 로직 100% 보존) | 2026-05-09 | 2786bf5 | [260509-5xl-redesign-01-dashboard-tsx](./quick/260509-5xl-redesign-01-dashboard-tsx/) |
 | 260510-4li | redesign/02-inspection 1차 시안 — InspectionPage 메인 화면(헤더/Zone 탭/카테고리 16종/층 칩/CP 리스트) + 일반 결과 모달 + Revisit/AccessBlocked 팝업 (2312줄, 4뷰포트, §6.3 카테고리 카드 룰 + §7.2 아이콘 매핑 정확 적용). 특수 모달 7종은 2차 시안 별도 진행. | 2026-05-10 | 1f52181 | [260510-4li-redesign-02-inspection-sketch-main](./quick/260510-4li-redesign-02-inspection-sketch-main/) |
 | 260510-4x7 | redesign/07-elevator 1차 시안 — ElevatorPage 페이지 컨테이너 + 자체 헤더(6탭+검색+액션) + 호기 그리드(11 EV + 6 ES, 그룹별 카드, 좌측 3px 색바 §6.1) + 에스컬레이터 노선도 + 4 상태 변종(정상/고장/점검중/운행중지) + 검색/빈/스켈레톤 (2013줄, 4뷰포트, §6.1~9 룰 준수). 5 모달 + KOELSA 는 2·3차 별도. | 2026-05-10 | 3e478d8 | [260510-4x7-redesign-07-elevator-1-html-6](./quick/260510-4x7-redesign-07-elevator-1-html-6/) |
+| 260510-c2z | redesign/07-elevator 1차 시안 재작성 — list 탭 구조 정정(EvSelector 5그룹/에스컬 노선도 → 코드 실제 구조인 type 4분류 단순 카드) + Option A Lucide 아이콘(ArrowUpDown/Package/UtensilsCrossed/ChevronsUpDown) 적용. 노선도는 모달 전용으로 2차 시안 이동. (2020줄, 4뷰포트, 9/9 verify PASS) | 2026-05-10 | 8bbf504 | [260510-c2z-redesign-07-elevator-1-list-4-type-optio](./quick/260510-c2z-redesign-07-elevator-1-list-4-type-optio/) |
 | 260510-b7q | 에스컬레이터 호기 매핑 0056 물리배치에 정렬 — ES_NODES_FAULT/ANNUAL id-label-floor 일치(고장 1·2호기 제외=5,6,3,4 / 수리 전체=5,6,3,4,1,2). 04-07 swap 이후 라벨만 갱신되고 floor↔ID 배치가 방치된 모순 해소 | 2026-05-09 | 050baf0 | [260510-b7q-es-nodes-fault-annual-id-label-floor-005](./quick/260510-b7q-es-nodes-fault-annual-id-label-floor-005/) |
 
 ### Blockers/Concerns
