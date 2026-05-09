@@ -150,25 +150,25 @@ const EV_GROUPS_ANNUAL = [
   { title:'덤웨이터',          ids:['EV-11'] },
 ]
 
-// 고장·점검용 에스컬 노선 (3·4호기 제외)
-// 3층→2층: 1,2호기 / 2층→B1층: 5,6호기
+// 고장·점검용 에스컬 노선 (1·2호기 제외 — B1↔M 라인은 점검 메뉴 비대상)
+// 3층→2층: 5,6호기(ES-03/04) / 2층→B1층: 3,4호기(ES-01/02)
 const ES_NODES_FAULT: EsNode[] = [
   { floor:'3층' },
-  { left:{ id:'ES-05', label:'1호기', dir:'하행' }, right:{ id:'ES-06', label:'2호기', dir:'상행' } },
-  { floor:'2층' },
   { left:{ id:'ES-03', label:'5호기', dir:'하행' }, right:{ id:'ES-04', label:'6호기', dir:'상행' } },
+  { floor:'2층' },
+  { left:{ id:'ES-01', label:'3호기', dir:'하행' }, right:{ id:'ES-02', label:'4호기', dir:'상행' } },
   { floor:'B1층', isBottom:true },
 ]
 
 // 검사용 에스컬 노선 (전체 6대)
-// 3층→2층: 1,2호기 / 2층→B1층: 5,6호기 / B1층→M층: 3,4호기
+// 3층→2층: 5,6호기(ES-03/04) / 2층→B1층: 3,4호기(ES-01/02) / B1층→M층: 1,2호기(ES-05/06)
 const ES_NODES_ANNUAL: EsNode[] = [
   { floor:'3층' },
-  { left:{ id:'ES-05', label:'1호기', dir:'하행' }, right:{ id:'ES-06', label:'2호기', dir:'상행' } },
-  { floor:'2층' },
   { left:{ id:'ES-03', label:'5호기', dir:'하행' }, right:{ id:'ES-04', label:'6호기', dir:'상행' } },
-  { floor:'B1층' },
+  { floor:'2층' },
   { left:{ id:'ES-01', label:'3호기', dir:'하행' }, right:{ id:'ES-02', label:'4호기', dir:'상행' } },
+  { floor:'B1층' },
+  { left:{ id:'ES-05', label:'1호기', dir:'하행' }, right:{ id:'ES-06', label:'2호기', dir:'상행' } },
   { floor:'M층', isBottom:true },
 ]
 
