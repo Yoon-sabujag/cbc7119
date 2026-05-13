@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-08 - Completed quick task 260508-ibx: DIV/Compressor 점검 사진이 조치 상세에 안 보이던 버그 + zone basement 한글 표기 누락 4곳 일괄 수정
+Last activity: 2026-05-13 - Completed quick task 260513-czc: ElevatorPage next-inspection 기능 통째 제거 (의도하지 않았던 D-N/검사 초과/기록 없음 배지 + API + 타입) + production 배포
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -173,6 +173,7 @@ None yet.
 | 260505-cib | CCTV / Damper stair 모달도 같은 batch-save 패턴 — CctvModal.handleSave (DVR 13대) + DamperModal.handleStairSave (전실제연댐퍼 stair) 에 동일 정책(caution/bad 우선 → 첫 cp) 적용. coverage sweep 완료. | 2026-05-05 | 509b62a | [260505-cib-cctv-damper-stair](./quick/260505-cib-cctv-damper-stair/) |
 | 260508-ibx | DIV/Compressor 점검 사진이 조치 상세에 안 보이던 버그 수정 — onSaveRecord 시그니처에 photoKey 추가해 check_records 에도 저장 + ZONE_LABEL 4곳에 'basement: 지하' 추가 (mig 0081 이후 라벨 누락) | 2026-05-08 | 601602e | [260508-ibx-div-comp-check-records-zone-basement](./quick/260508-ibx-div-comp-check-records-zone-basement/) |
 | 260510-b7q | 에스컬레이터 호기 매핑 0056 물리배치에 정렬 — ES_NODES_FAULT/ANNUAL id-label-floor 일치(고장 1·2호기 제외=5,6,3,4 / 수리 전체=5,6,3,4,1,2). 04-07 swap 이후 라벨만 갱신되고 floor↔ID 배치가 방치된 모순 해소 | 2026-05-09 | 050baf0 | [260510-b7q-es-nodes-fault-annual-id-label-floor-005](./quick/260510-b7q-es-nodes-fault-annual-id-label-floor-005/) |
+| 260513-czc | ElevatorPage next-inspection 기능 통째 제거 (의도하지 않았던 D-N/검사 초과/기록 없음 배지 + GET /api/elevators/next-inspection 핸들러 + 타입 + map) — 4 파일 +2/-131, DB 컬럼 elevators.next_inspection 은 죽은 컬럼이라 그대로 둠. production 배포 | 2026-05-13 | c377e4b | [260513-czc-elevatorpage-next-inspection-d-n-api](./quick/260513-czc-elevatorpage-next-inspection-d-n-api/) |
 
 ### Blockers/Concerns
 
