@@ -1353,8 +1353,6 @@ export default function ElevatorPage() {
 
               {/* 호기 카드 리스트 — 선택 연도에 이력 있는 호기만 */}
               {visible.map(({ ev, items }) => {
-                const prefix = ev.type === 'escalator' ? 'ES' : 'EV'
-                const numStr = String(ev.number).padStart(2, '0')
                 const evKey = ev.id
                 const isExp = !!expandedMobileAnnual[evKey]
                 // 최신 판정 (items 는 이미 최신순 정렬됨)
@@ -1370,7 +1368,10 @@ export default function ElevatorPage() {
                       <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[ev.type]}</div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
-                          {prefix}-{numStr}
+                          {ev.number}호기
+                          {ev.type === 'escalator' && ev.public_number != null && (
+                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>(공단 {ev.public_number}호기)</span>
+                          )}
                           {ev.classification && (
                             <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>· {ev.classification}</span>
                           )}
