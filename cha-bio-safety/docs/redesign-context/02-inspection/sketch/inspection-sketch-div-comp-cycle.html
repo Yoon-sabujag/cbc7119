@@ -1,0 +1,1371 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>일반 점검 재디자인 2차 — DIV/컴프 doubleCycle 모달 시안</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* ─────────────────────────────────────────────
+       tokens.css 인라인 (1차 시안과 동일 — v0.1.1)
+       ───────────────────────────────────────────── */
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0,0,0,0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34,197,94,0.16);
+      --status-warning-bg: rgba(245,158,11,0.16);
+      --status-danger-bg:  rgba(239,68,68,0.16);
+      --status-info-bg:    rgba(14,165,233,0.16);
+      --status-fire-bg:    rgba(249,115,22,0.16);
+
+      /* DIV 압력 3채널 색 (코드에서 인라인으로 쓰던 것 — 토큰화) */
+      --press-1: #3b82f6;
+      --press-2: #f97316;
+      --press-3: #22c55e;
+
+      --bg: var(--surface-page);
+      --bg2: var(--surface-raised);
+      --bg3: var(--surface-sunken);
+      --bd: var(--border-default);
+      --bd2: var(--border-strong);
+      --t1: var(--text-primary);
+      --t2: var(--text-secondary);
+      --t3: var(--text-tertiary);
+      --acl: var(--accent);
+      --safe: var(--status-safe-bar);
+      --warn: var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0,0,0,0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0,0,0,0.14);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --press-1: #1f6feb;
+      --press-2: #c2410c;
+      --press-3: #15803d;
+
+      --bg: var(--surface-page);
+      --bg2: var(--surface-raised);
+      --bg3: var(--surface-sunken);
+      --bd: var(--border-default);
+      --bd2: var(--border-strong);
+      --t1: var(--text-primary);
+      --t2: var(--text-secondary);
+      --t3: var(--text-tertiary);
+      --acl: var(--accent);
+      --safe: var(--status-safe-bar);
+      --warn: var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+    }
+
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    /* ─────────────────────────────────────────────
+       Typography (12px floor — 노안 친화 룰)
+       ───────────────────────────────────────────── */
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body    { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-mono    { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* ─────────────────────────────────────────────
+       시안 메타
+       ───────────────────────────────────────────── */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile { width: 375px; height: 812px; }
+    .viewport-frame * { font-family: inherit; }
+
+    /* ─────────────────────────────────────────────
+       DIV/컴프 모달 전용 컴포넌트
+       (코드 인라인 스타일을 클래스로 추출)
+       ───────────────────────────────────────────── */
+
+    /* 모달 헤더 */
+    .mh {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bd);
+      gap: 8px;
+      flex-shrink: 0;
+      background: var(--bg);
+    }
+    .mh-title { font-size: 16px; font-weight: 700; color: var(--t1); display: flex; align-items: center; gap: 6px; }
+    .mh-count { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--t3); font-family: var(--font-mono); }
+
+    /* 섹션 레이블 */
+    .sec-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--t3);
+      margin-bottom: 8px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Segmented control (월초/월말, 구역, 라인, 결과) */
+    .seg { display: flex; gap: 8px; }
+    .seg button {
+      flex: 1;
+      padding: 10px 0;
+      border-radius: 10px;
+      border: 1px solid var(--bd2);
+      background: var(--bg);
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .seg button.is-active {
+      border: 1.5px solid var(--acl);
+      background: var(--acl);
+      color: var(--text-on-accent);
+    }
+
+    /* 결과 segmented — 컬러 분기 */
+    .seg-result button { background: var(--bg2); border: 2px solid var(--bd); }
+    .seg-result button.is-safe    { border-color: var(--safe);   background: var(--safe);   color: #fff; }
+    .seg-result button.is-warning { border-color: var(--warn);   background: var(--warn);   color: #fff; }
+    .seg-result button.is-danger  { border-color: var(--danger); background: var(--danger); color: #fff; }
+
+    /* 현재 개소 카드 (이전/다음 네비) */
+    .loc-card {
+      background: var(--bg2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--bd);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .loc-nav {
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      color: var(--t1);
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .loc-nav[disabled] { opacity: 0.3; color: var(--t3); cursor: default; }
+    .loc-info { flex: 1; text-align: center; }
+    .loc-info .loc-cap { font-size: 11px; color: var(--t3); font-weight: 600; }
+    .loc-info .loc-title { font-size: 15px; font-weight: 700; color: var(--t1); margin-top: 2px; }
+    .loc-info .loc-sub { font-size: 11px; color: var(--t2); margin-top: 2px; }
+
+    /* 압력 입력 카드 */
+    .press-card {
+      background: var(--bg2);
+      border-radius: 12px;
+      padding: 14px;
+      border: 1px solid var(--bd);
+    }
+    .press-head { display: flex; align-items: center; margin-bottom: 12px; }
+    .press-head-title { font-size: 11px; font-weight: 600; color: var(--t3); flex: 1; letter-spacing: 0.02em; }
+    .press-head-trend {
+      padding: 4px 10px;
+      border-radius: 7px;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      color: var(--t3);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .press-col-head {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .press-col-head > div { flex: 1; text-align: center; font-size: 10px; font-weight: 600; color: var(--t3); }
+    .press-col-head .col-label { width: 42px; flex: none; }
+    .press-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+    .press-row:last-child { margin-bottom: 0; }
+    .press-row .label {
+      width: 42px;
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--t2);
+    }
+    .press-row .prev {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--t3);
+    }
+    .press-row .prev .dot { padding: 0 1px; }
+    .press-row .diff {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .press-row .input-group {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2px;
+    }
+    .digit {
+      width: 34px;
+      height: 42px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: 2px solid var(--bd);
+      background: var(--bg);
+      color: var(--t1);
+      outline: none;
+      font-family: var(--font-mono);
+      box-sizing: border-box;
+    }
+    .digit.is-filled-p1 { border-color: var(--press-1); color: var(--press-1); }
+    .digit.is-filled-p2 { border-color: var(--press-2); color: var(--press-2); }
+    .digit.is-filled-p3 { border-color: var(--press-3); color: var(--press-3); }
+    .digit.is-empty { color: transparent; }
+    .digit-dot {
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+      align-self: flex-end;
+      padding: 0 1px 8px;
+    }
+    .digit-dot.p1 { color: var(--press-1); }
+    .digit-dot.p2 { color: var(--press-2); }
+    .digit-dot.p3 { color: var(--press-3); }
+
+    /* 배수 / 컴프 점검 행 */
+    .drain-row { display: flex; gap: 10px; }
+    .drain-row > div { flex: 1; }
+    .drain-seg { display: flex; gap: 6px; }
+    .drain-seg button {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: var(--bg3);
+      color: var(--t3);
+      box-shadow: 0 0 0 1px var(--bd2);
+    }
+    .drain-seg button.is-active {
+      background: var(--bg);
+      color: var(--t1);
+      box-shadow: 0 0 0 2px var(--acl);
+    }
+    .drain-seg button.is-yes {
+      background: rgba(59,130,246,0.18);
+      color: var(--press-1);
+      box-shadow: 0 0 0 2px var(--press-1);
+    }
+    .comp-cta {
+      width: 100%;
+      padding: 9px 0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: rgba(100,116,139,0.12);
+      color: var(--t1);
+      box-shadow: 0 0 0 1px rgba(100,116,139,0.3);
+    }
+
+    /* 자동 판단 알림 */
+    .auto-reason {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .auto-reason.is-warning {
+      background: var(--status-warning-bg);
+      border: 1px solid rgba(245,158,11,0.3);
+      color: var(--warn);
+    }
+    .auto-reason.is-danger {
+      background: var(--status-danger-bg);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: var(--danger);
+    }
+
+    /* memo + photo 행 */
+    .memo-row { display: flex; gap: 10px; align-items: flex-start; }
+    .memo-area {
+      flex: 1;
+      height: 72px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--bd);
+      background: var(--bg2);
+      color: var(--t1);
+      font-size: 14px;
+      resize: none;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .photo-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      border: 1px dashed var(--bd2);
+      background: var(--bg2);
+      color: var(--t3);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .photo-btn.has-photo {
+      border-style: solid;
+      border-color: var(--press-1);
+      background-image: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+      color: var(--press-1);
+    }
+
+    /* 하단 버튼 바 */
+    .footer-bar {
+      padding: 10px 14px 12px;
+      background: var(--bg2);
+      border-top: 1px solid var(--bd);
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-close-mini {
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: var(--bg);
+      border: 1px solid var(--bd2);
+      color: var(--t2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    /* v0.1.1 §6.4 — 저장 CTA 1종 그라디언트 (DIV/컴프 통일) */
+    .btn-save {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    }
+    [data-theme="light"] .btn-save {
+      background: linear-gradient(135deg, #1f6feb, #0369a1);
+      box-shadow: 0 4px 14px rgba(31,111,235,0.28);
+    }
+    .btn-save[disabled] {
+      background: var(--bd);
+      box-shadow: none;
+      cursor: default;
+    }
+
+    /* 컴프 전용 — 탱크 배수 D+N 칩 */
+    .drain-dplus {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+    .drain-dplus.is-ok { color: var(--t3); background: var(--bg3); }
+    .drain-dplus.is-warn { color: var(--warn); background: var(--status-warning-bg); }
+    .drain-dplus.is-none { color: var(--t3); opacity: 0.5; font-weight: 400; }
+
+    /* 오일 보충함 — warn 토글 */
+    .drain-seg button.is-refill {
+      background: rgba(245,158,11,0.18);
+      color: var(--warn);
+      box-shadow: 0 0 0 2px var(--warn);
+    }
+
+    /* 트렌드 서브뷰 — 채널 라벨 */
+    .trend-channel {
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
+    }
+    .trend-axis-tick {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      fill: var(--t3);
+    }
+    .trend-grid {
+      stroke: var(--bd);
+      stroke-width: 1;
+      opacity: 0.5;
+    }
+    .trend-table {
+      margin-top: 14px;
+      border-radius: 10px;
+      border: 1px solid var(--bd);
+      overflow: hidden;
+    }
+    .trend-table-head {
+      display: grid;
+      grid-template-columns: 60px 1fr 1fr 1fr;
+      background: var(--bg3);
+      padding: 7px 10px;
+    }
+    .trend-table-head > div {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--t3);
+      text-align: center;
+    }
+    .trend-table-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 1fr 1fr;
+      padding: 7px 10px;
+      border-top: 1px solid var(--bd);
+    }
+    .trend-table-row .month {
+      font-size: 12px;
+      color: var(--t3);
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+    .trend-table-row .val {
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+
+    /* 본문 컨테이너 */
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  redesign/02-inspection 2차 시안 — DIV/컴프 doubleCycle 모달
+  ----------------------------------------------------------------------------
+  v0.1.1 룰 적용:
+  - 12px 폰트 floor (9/10/11px 금지)
+  - 카테고리 카드 1차 시안 통일 톤 유지 (DIV/컴프 헤더 아이콘 secondary 회색)
+  - 저장 CTA accent 1종 (그라디언트 X)
+  - 압력 3채널 색은 데이터 의미 색 (press-1/2/3 토큰)
+  ----------------------------------------------------------------------------
+  코드 권위:
+  - InspectionPage.tsx 807-1605 (DivModal)
+  - InspectionPage.tsx 1607-2200 (CompressorModal)
+  - InspectionPage.tsx 903-1034 (DivTrendSubview)
+  ----------------------------------------------------------------------------
+  doubleCycle 룰:
+  - 한 측정점당 월 2회 점검 (early=월초 / late=월말)
+  - DIV/컴프 1:1 매핑 (CP-DIV-X-Y ↔ CP-COMP-X-Y)
+  - 컴프는 DIV 모달 내부 진입(from-div) 또는 카테고리 카드 직접 진입(standalone)
+  ============================================================================
+-->
+
+<body class="p-8">
+
+  <header class="max-w-[1400px] mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-13</span>
+      <span class="meta-label">redesign/02-inspection 2차 — DIV/컴프 doubleCycle</span>
+    </div>
+    <h1 class="text-3xl font-semibold text-white">DIV / 컴프레셔 doubleCycle 모달 재디자인</h1>
+    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+      InspectionPage.tsx <strong>807-2200</strong> 1:1 매핑 ·
+      <strong style="color:#fbbf24">월초/월말 doubleCycle</strong> + 구역(연구동/사무동/지하) + 라인(DIV #1/#2/#3) + 측정점 네비 ·
+      압력 3채널(1차압/2차압/세팅압) digit 입력 + 직전값 + 변화량 + 자동 판단(연속 방향성 + 누적 임계값) ·
+      컴프 진입(from-div / standalone) + 트렌드 서브뷰(12개월 차트+테이블)
+    </p>
+    <p class="text-xs text-gray-500 mt-2 leading-relaxed">
+      5 viewport · <strong style="color:#22c55e">DIV 모달</strong> (Dark 입력중 / Light 자동판단) ·
+      <strong style="color:#22c55e">컴프 모달</strong> (Dark from-div / Light standalone D+72 warn) ·
+      <strong style="color:#22c55e">트렌드 서브뷰</strong> (Dark · 12개월 1차/2차/세팅 차트 + 수치 테이블)
+    </p>
+  </header>
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: DIV 모달 본체 (Mobile Dark + Mobile Light)
+         · Dark — 측정점 선택 + 압력 입력 진행 중 (1차압 일부 입력)
+         · Light — 압력 입력 완료 + 자동 판단(주의) + 결과 + 메모 + 사진
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">DIV 모달 · Dark · 입력 진행 중</span>
+        <span class="meta-label">DIV 모달 · Light · 자동 판단(주의)</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔═════════════════════════════════════════════╗
+             ║   DIV  Mobile Dark — 압력 입력 진행 중           ║
+             ║   - 월말 / 연구동 / DIV #2 / 8F 선택            ║
+             ║   - 1차압 1.X (소수점 자리만 비어있음)            ║
+             ║   - 직전(4월말) 표시 + 변화량 미정                ║
+             ║   - 결과는 기본 정상, 자동 판단 미작동             ║
+             ╚═════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <!-- 헤더 -->
+            <div class="mh">
+              <span class="mh-title">
+                <i data-lucide="bar-chart-3" class="w-4 h-4" style="color:var(--t2)"></i>
+                DIV 점검
+              </span>
+              <span class="mh-count">3 / 6</span>
+            </div>
+
+            <!-- 본문 -->
+            <div class="modal-body">
+
+              <!-- 점검 구분: 월초/월말 -->
+              <div>
+                <div class="sec-label">점검 구분 · doubleCycle</div>
+                <div class="seg">
+                  <button>월초 점검</button>
+                  <button class="is-active">월말 점검</button>
+                </div>
+              </div>
+
+              <!-- 구역 -->
+              <div>
+                <div class="sec-label">구역</div>
+                <div class="seg">
+                  <button class="is-active">연구동</button>
+                  <button>사무동</button>
+                  <button>지하</button>
+                </div>
+              </div>
+
+              <!-- 라인 (연구동 → DIV #1/#2) -->
+              <div>
+                <div class="sec-label">라인</div>
+                <div class="seg">
+                  <button>DIV #1</button>
+                  <button class="is-active">DIV #2</button>
+                </div>
+              </div>
+
+              <!-- 현재 개소 + 이전/다음 -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">현재 개소</div>
+                  <div class="loc-title">8F — DIV #2</div>
+                  <div class="loc-sub">연구동 8층 펌프실</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 압력 입력 카드 -->
+              <div class="press-card">
+                <div class="press-head">
+                  <div class="press-head-title">압력 입력</div>
+                  <button class="press-head-trend">
+                    <i data-lucide="trending-up" class="w-3 h-3"></i>
+                    트렌드
+                  </button>
+                </div>
+
+                <!-- 컬럼 헤더 -->
+                <div class="press-col-head">
+                  <div class="col-label"></div>
+                  <div>4월말</div>
+                  <div>변화</div>
+                  <div>현재</div>
+                </div>
+
+                <!-- 1차압 -->
+                <div class="press-row">
+                  <div class="label">1차압</div>
+                  <div class="prev"><span>1</span><span class="dot">.</span><span>3</span></div>
+                  <div class="diff" style="color:var(--t3)">—</div>
+                  <div class="input-group">
+                    <div class="digit is-filled-p1">1</div>
+                    <span class="digit-dot p1">.</span>
+                    <div class="digit is-empty" style="border-color:var(--press-1)"></div>
+                  </div>
+                </div>
+
+                <!-- 2차압 -->
+                <div class="press-row">
+                  <div class="label">2차압</div>
+                  <div class="prev"><span>0</span><span class="dot">.</span><span>9</span></div>
+                  <div class="diff" style="color:var(--t3)">—</div>
+                  <div class="input-group">
+                    <div class="digit">_</div>
+                    <span class="digit-dot p2">.</span>
+                    <div class="digit">_</div>
+                  </div>
+                </div>
+
+                <!-- 세팅압 -->
+                <div class="press-row">
+                  <div class="label">세팅압</div>
+                  <div class="prev"><span>1</span><span class="dot">.</span><span>2</span></div>
+                  <div class="diff" style="color:var(--t3)">—</div>
+                  <div class="input-group">
+                    <div class="digit">_</div>
+                    <span class="digit-dot p3">.</span>
+                    <div class="digit">_</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 배수 + 컴프 진입 -->
+              <div class="drain-row">
+                <div>
+                  <div class="sec-label">배수</div>
+                  <div class="drain-seg">
+                    <button class="is-active">없음</button>
+                    <button>있음</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="sec-label">컴프 점검</div>
+                  <button class="comp-cta">
+                    <i data-lucide="wind" class="inline w-3 h-3 mr-1" style="vertical-align:-2px"></i>
+                    컴프레셔 점검 →
+                  </button>
+                </div>
+              </div>
+
+              <!-- 점검 결과 -->
+              <div>
+                <div class="sec-label">점검 결과</div>
+                <div class="seg seg-result">
+                  <button class="is-safe">정상</button>
+                  <button>주의</button>
+                  <button>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div class="memo-row">
+                <textarea class="memo-area" placeholder="특이사항 (선택)"></textarea>
+                <button class="photo-btn">
+                  <i data-lucide="camera" class="w-5 h-5"></i>
+                  사진
+                </button>
+              </div>
+
+            </div>
+
+            <!-- 하단 버튼 바 -->
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save" disabled>저장 후 다음 층</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔══════════════════════════════════════════════════╗
+             ║   DIV  Mobile Light — 자동 판단(주의) 단계         ║
+             ║   - 월말 / 사무동 / DIV #3 / 6F                  ║
+             ║   - 압력 입력 완료 (1.5 / 0.4 / 1.2)             ║
+             ║   - 직전 1.4 / 1.0 / 1.2 → 2차압 -0.6 누적 하강    ║
+             ║   - 자동 판단: 주의 (2차압 지속 하강 -0.6)         ║
+             ║   - 결과: 주의, 메모 입력, 사진 첨부              ║
+             ║   - 저장 후 다음 층 활성화                        ║
+             ╚══════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <!-- 헤더 -->
+            <div class="mh">
+              <span class="mh-title">
+                <i data-lucide="bar-chart-3" class="w-4 h-4" style="color:var(--t2)"></i>
+                DIV 점검
+              </span>
+              <span class="mh-count">5 / 8</span>
+            </div>
+
+            <!-- 본문 -->
+            <div class="modal-body">
+
+              <!-- 점검 구분: 월말 -->
+              <div>
+                <div class="sec-label">점검 구분 · doubleCycle</div>
+                <div class="seg">
+                  <button>월초 점검</button>
+                  <button class="is-active">월말 점검</button>
+                </div>
+              </div>
+
+              <!-- 구역: 사무동 -->
+              <div>
+                <div class="sec-label">구역</div>
+                <div class="seg">
+                  <button>연구동</button>
+                  <button class="is-active">사무동</button>
+                  <button>지하</button>
+                </div>
+              </div>
+
+              <!-- 라인: DIV #3 (사무동 단일) -->
+              <div>
+                <div class="sec-label">라인</div>
+                <div class="seg">
+                  <button class="is-active">DIV #3</button>
+                </div>
+              </div>
+
+              <!-- 현재 개소 -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">현재 개소</div>
+                  <div class="loc-title">6F — DIV #3</div>
+                  <div class="loc-sub">사무동 6층 펌프실</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 압력 입력 (완료 + 자동 판단) -->
+              <div class="press-card">
+                <div class="press-head">
+                  <div class="press-head-title">압력 입력</div>
+                  <button class="press-head-trend">
+                    <i data-lucide="trending-up" class="w-3 h-3"></i>
+                    트렌드
+                  </button>
+                </div>
+
+                <div class="press-col-head">
+                  <div class="col-label"></div>
+                  <div>4월말</div>
+                  <div>변화</div>
+                  <div>현재</div>
+                </div>
+
+                <!-- 1차압 1.5 (직전 1.4 → +0.1) -->
+                <div class="press-row">
+                  <div class="label">1차압</div>
+                  <div class="prev"><span>1</span><span class="dot">.</span><span>4</span></div>
+                  <div class="diff" style="color:var(--press-1)">+0.1</div>
+                  <div class="input-group">
+                    <div class="digit is-filled-p1">1</div>
+                    <span class="digit-dot p1">.</span>
+                    <div class="digit is-filled-p1">5</div>
+                  </div>
+                </div>
+
+                <!-- 2차압 0.4 (직전 1.0 → -0.6 누적 하강) -->
+                <div class="press-row">
+                  <div class="label">2차압</div>
+                  <div class="prev"><span>1</span><span class="dot">.</span><span>0</span></div>
+                  <div class="diff" style="color:var(--warn)">-0.6</div>
+                  <div class="input-group">
+                    <div class="digit is-filled-p2">0</div>
+                    <span class="digit-dot p2">.</span>
+                    <div class="digit is-filled-p2">4</div>
+                  </div>
+                </div>
+
+                <!-- 세팅압 1.2 -->
+                <div class="press-row">
+                  <div class="label">세팅압</div>
+                  <div class="prev"><span>1</span><span class="dot">.</span><span>2</span></div>
+                  <div class="diff" style="color:var(--t3)">±0.0</div>
+                  <div class="input-group">
+                    <div class="digit is-filled-p3">1</div>
+                    <span class="digit-dot p3">.</span>
+                    <div class="digit is-filled-p3">2</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 배수 + 컴프 -->
+              <div class="drain-row">
+                <div>
+                  <div class="sec-label">배수</div>
+                  <div class="drain-seg">
+                    <button>없음</button>
+                    <button class="is-yes">있음</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="sec-label">컴프 점검</div>
+                  <button class="comp-cta">
+                    <i data-lucide="wind" class="inline w-3 h-3 mr-1" style="vertical-align:-2px"></i>
+                    컴프레셔 점검 →
+                  </button>
+                </div>
+              </div>
+
+              <!-- 점검 결과 (주의) + 자동 판단 알림 -->
+              <div>
+                <div class="sec-label">점검 결과</div>
+                <div class="seg seg-result">
+                  <button>정상</button>
+                  <button class="is-warning">주의</button>
+                  <button>불량</button>
+                </div>
+                <div class="auto-reason is-warning">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5" style="flex-shrink:0"></i>
+                  <span>주의 자동 선택 — 2차압 지속 하강 (-0.6)</span>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div class="memo-row">
+                <textarea class="memo-area" placeholder="특이사항 (선택)">2차압 하강 패턴 3개월 연속. 펌프 흡입측 점검 필요.</textarea>
+                <button class="photo-btn has-photo">
+                  <i data-lucide="image" class="w-5 h-5"></i>
+                  1장
+                </button>
+              </div>
+
+            </div>
+
+            <!-- 하단 버튼 바 -->
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">저장 후 다음 층</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 2: 컴프레셔 모달 (from-div / standalone)
+         · from-div — DIV에서 호출, 측정점 고정, 자체 zone/라인 선택 없음, 저장 후 닫기
+         · standalone — 컴프레셔 카드 직접 진입, zone/라인/개소 네비, 마지막 배수 D+72 (warn)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">컴프 모달 · Dark · from-div (DIV에서 호출)</span>
+        <span class="meta-label">컴프 모달 · Light · standalone (단독 진입)</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   컴프  Mobile Dark — from-div 모드             ║
+             ║   - 측정점 고정 (8F / 컴프 #2 / 연구동 8층)       ║
+             ║   - zone/line 선택 없음, 간단 개소 정보 카드만    ║
+             ║   - 배수 마지막 D+12 (정상 범위)                ║
+             ║   - 배수 = 없음 / 오일 = 충분함 / 결과 = 정상     ║
+             ║   - 저장 CTA "저장 후 닫기"                     ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <!-- 헤더 (from-div 모드: 진행 카운트 없음) -->
+            <div class="mh">
+              <span class="mh-title">
+                <i data-lucide="wind" class="w-4 h-4" style="color:var(--t2)"></i>
+                컴프레셔 점검
+              </span>
+              <span class="mh-count" style="opacity:0.6">DIV 연동</span>
+            </div>
+
+            <!-- 본문 -->
+            <div class="modal-body">
+
+              <!-- from-div: 간단한 개소 정보 (zone/line 선택 없음) -->
+              <div class="loc-card" style="justify-content:center;">
+                <div class="loc-info">
+                  <div class="loc-cap">현재 개소 · DIV 연동 고정</div>
+                  <div class="loc-title">8F — 컴프 #2</div>
+                  <div class="loc-sub">연구동 8층 펌프실</div>
+                </div>
+              </div>
+
+              <!-- 탱크 배수 + 오일 -->
+              <div class="drain-row">
+                <div>
+                  <div class="sec-label" style="display:flex;align-items:center;gap:6px;">
+                    탱크 배수
+                    <span class="drain-dplus is-ok">D+12</span>
+                  </div>
+                  <div class="drain-seg">
+                    <button class="is-active">없음</button>
+                    <button>있음</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="sec-label">컴프 오일</div>
+                  <div class="drain-seg">
+                    <button class="is-active">충분함</button>
+                    <button>보충함</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 점검 결과 -->
+              <div>
+                <div class="sec-label">점검 결과</div>
+                <div class="seg seg-result">
+                  <button class="is-safe">정상</button>
+                  <button>주의</button>
+                  <button>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div class="memo-row">
+                <textarea class="memo-area" placeholder="특이사항 (선택)"></textarea>
+                <button class="photo-btn">
+                  <i data-lucide="camera" class="w-5 h-5"></i>
+                  사진
+                </button>
+              </div>
+
+            </div>
+
+            <!-- 하단 버튼 -->
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">저장 후 닫기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════════╗
+             ║   컴프  Mobile Light — standalone 모드               ║
+             ║   - zone/line 자체 선택 + 개소 네비 카드               ║
+             ║   - 사무동 / 컴프 #3 / 6F                          ║
+             ║   - 배수 마지막 D+72 (60일 초과 — warn 칩)           ║
+             ║   - 탱크 배수 = 있음, 오일 = 보충함 (warn 토글)       ║
+             ║   - 결과 정상, 메모 입력, 사진 1장                  ║
+             ║   - 저장 CTA "저장 후 다음 층"                       ║
+             ╚════════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <!-- 헤더 -->
+            <div class="mh">
+              <span class="mh-title">
+                <i data-lucide="wind" class="w-4 h-4" style="color:var(--t2)"></i>
+                컴프레셔 점검
+              </span>
+              <span class="mh-count">4 / 8</span>
+            </div>
+
+            <!-- 본문 -->
+            <div class="modal-body">
+
+              <!-- 구역 -->
+              <div>
+                <div class="sec-label">구역</div>
+                <div class="seg">
+                  <button>연구동</button>
+                  <button class="is-active">사무동</button>
+                  <button>지하</button>
+                </div>
+              </div>
+
+              <!-- 라인 (사무동 → 컴프 #3 단일) -->
+              <div>
+                <div class="sec-label">라인</div>
+                <div class="seg">
+                  <button class="is-active">컴프 #3</button>
+                </div>
+              </div>
+
+              <!-- 현재 개소 -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">현재 개소</div>
+                  <div class="loc-title">6F — 컴프 #3</div>
+                  <div class="loc-sub">사무동 6층 펌프실</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 탱크 배수 + 오일 -->
+              <div class="drain-row">
+                <div>
+                  <div class="sec-label" style="display:flex;align-items:center;gap:6px;">
+                    탱크 배수
+                    <span class="drain-dplus is-warn">D+72</span>
+                  </div>
+                  <div class="drain-seg">
+                    <button>없음</button>
+                    <button class="is-yes">있음</button>
+                  </div>
+                </div>
+                <div>
+                  <div class="sec-label">컴프 오일</div>
+                  <div class="drain-seg">
+                    <button>충분함</button>
+                    <button class="is-refill">보충함</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 점검 결과 -->
+              <div>
+                <div class="sec-label">점검 결과</div>
+                <div class="seg seg-result">
+                  <button class="is-safe">정상</button>
+                  <button>주의</button>
+                  <button>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div class="memo-row">
+                <textarea class="memo-area" placeholder="특이사항 (선택)">탱크 배수 60일 초과 → 배수 실시. 오일 게이지 하한선 근접 → 1L 보충.</textarea>
+                <button class="photo-btn has-photo">
+                  <i data-lucide="image" class="w-5 h-5"></i>
+                  1장
+                </button>
+              </div>
+
+            </div>
+
+            <!-- 하단 버튼 -->
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">저장 후 다음 층</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 3: DIV 트렌드 서브뷰 (12개월 차트 + 테이블)
+         · Mobile Dark — 차트 영역 + 월별 수치 테이블
+         · 1차압/2차압/세팅압 3채널 동일 폭, 압축 차트
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">DIV 트렌드 서브뷰 · Dark · 12개월 (1차/2차/세팅압)</span>
+      </div>
+
+      <div class="flex justify-center">
+
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <!-- 헤더 (서브뷰 — ✕ 닫기 + 측정점 정보) -->
+            <div class="mh" style="gap:10px;">
+              <button class="loc-nav" style="width:32px;height:32px;font-size:16px;border-radius:8px;">✕</button>
+              <div>
+                <div style="font-size:14px;font-weight:700;color:var(--t1)">6F — 사무동 6층 펌프실</div>
+                <div style="font-size:11px;color:var(--t3);margin-top:1px;font-family:var(--font-mono)">DIV #3 · 3-6</div>
+              </div>
+            </div>
+
+            <!-- 본문 — 차트 + 테이블 -->
+            <div style="flex:1;overflow-y:auto;padding:16px 16px 40px;">
+
+              <!-- 1차압 차트 -->
+              <div class="trend-channel" style="color:var(--press-1)">1차압</div>
+              <svg width="343" height="120" style="display:block;margin-bottom:14px;">
+                <!-- 그리드 라인 -->
+                <line class="trend-grid" x1="34" y1="38" x2="331" y2="38" />
+                <line class="trend-grid" x1="34" y1="68" x2="331" y2="68" />
+                <line class="trend-grid" x1="34" y1="98" x2="331" y2="98" />
+                <!-- Y 라벨 -->
+                <text class="trend-axis-tick" x="29" y="42" text-anchor="end">1.5</text>
+                <text class="trend-axis-tick" x="29" y="72" text-anchor="end">1.3</text>
+                <text class="trend-axis-tick" x="29" y="102" text-anchor="end">1.1</text>
+                <!-- 라인 -->
+                <polyline points="42,80 67,75 92,72 117,70 142,68 167,65 192,62 217,60 242,58 267,55 292,52 317,50"
+                          fill="none" stroke="var(--press-1)" stroke-width="2" stroke-linejoin="round" />
+                <!-- 마커 + 값 라벨 (late 채워짐) -->
+                <g>
+                  <circle cx="42" cy="80" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="67" cy="75" r="3" fill="var(--press-1)" />
+                  <circle cx="92" cy="72" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="117" cy="70" r="3" fill="var(--press-1)" />
+                  <circle cx="142" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="167" cy="65" r="3" fill="var(--press-1)" />
+                  <circle cx="192" cy="62" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="217" cy="60" r="3" fill="var(--press-1)" />
+                  <circle cx="242" cy="58" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="267" cy="55" r="3" fill="var(--press-1)" />
+                  <circle cx="292" cy="52" r="3" fill="var(--bg2)" stroke="var(--press-1)" stroke-width="1.5" />
+                  <circle cx="317" cy="50" r="3" fill="var(--press-1)" />
+                </g>
+                <!-- 월 라벨 -->
+                <text class="trend-axis-tick" x="55" y="116" text-anchor="middle">06</text>
+                <text class="trend-axis-tick" x="105" y="116" text-anchor="middle">08</text>
+                <text class="trend-axis-tick" x="155" y="116" text-anchor="middle">10</text>
+                <text class="trend-axis-tick" x="205" y="116" text-anchor="middle">12</text>
+                <text class="trend-axis-tick" x="255" y="116" text-anchor="middle">02</text>
+                <text class="trend-axis-tick" x="305" y="116" text-anchor="middle">04</text>
+              </svg>
+
+              <!-- 2차압 차트 (하강 — bad/caution 시그널) -->
+              <div class="trend-channel" style="color:var(--press-2)">2차압</div>
+              <svg width="343" height="120" style="display:block;margin-bottom:14px;">
+                <line class="trend-grid" x1="34" y1="38" x2="331" y2="38" />
+                <line class="trend-grid" x1="34" y1="68" x2="331" y2="68" />
+                <line class="trend-grid" x1="34" y1="98" x2="331" y2="98" />
+                <text class="trend-axis-tick" x="29" y="42" text-anchor="end">1.2</text>
+                <text class="trend-axis-tick" x="29" y="72" text-anchor="end">0.8</text>
+                <text class="trend-axis-tick" x="29" y="102" text-anchor="end">0.4</text>
+                <polyline points="42,42 67,45 92,46 117,48 142,52 167,55 192,58 217,60 242,65 267,75 292,85 317,95"
+                          fill="none" stroke="var(--press-2)" stroke-width="2" stroke-linejoin="round" />
+                <g>
+                  <circle cx="42" cy="42" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="67" cy="45" r="3" fill="var(--press-2)" />
+                  <circle cx="92" cy="46" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="117" cy="48" r="3" fill="var(--press-2)" />
+                  <circle cx="142" cy="52" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="167" cy="55" r="3" fill="var(--press-2)" />
+                  <circle cx="192" cy="58" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="217" cy="60" r="3" fill="var(--press-2)" />
+                  <circle cx="242" cy="65" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="267" cy="75" r="3" fill="var(--press-2)" />
+                  <circle cx="292" cy="85" r="3" fill="var(--bg2)" stroke="var(--press-2)" stroke-width="1.5" />
+                  <circle cx="317" cy="95" r="3" fill="var(--press-2)" />
+                </g>
+                <text class="trend-axis-tick" x="55" y="116" text-anchor="middle">06</text>
+                <text class="trend-axis-tick" x="105" y="116" text-anchor="middle">08</text>
+                <text class="trend-axis-tick" x="155" y="116" text-anchor="middle">10</text>
+                <text class="trend-axis-tick" x="205" y="116" text-anchor="middle">12</text>
+                <text class="trend-axis-tick" x="255" y="116" text-anchor="middle">02</text>
+                <text class="trend-axis-tick" x="305" y="116" text-anchor="middle">04</text>
+              </svg>
+
+              <!-- 세팅압 차트 (대시드, 평탄) -->
+              <div class="trend-channel" style="color:var(--press-3)">세팅압</div>
+              <svg width="343" height="120" style="display:block;">
+                <line class="trend-grid" x1="34" y1="38" x2="331" y2="38" />
+                <line class="trend-grid" x1="34" y1="68" x2="331" y2="68" />
+                <line class="trend-grid" x1="34" y1="98" x2="331" y2="98" />
+                <text class="trend-axis-tick" x="29" y="42" text-anchor="end">1.4</text>
+                <text class="trend-axis-tick" x="29" y="72" text-anchor="end">1.2</text>
+                <text class="trend-axis-tick" x="29" y="102" text-anchor="end">1.0</text>
+                <polyline points="42,68 67,68 92,68 117,68 142,68 167,68 192,68 217,68 242,68 267,68 292,68 317,68"
+                          fill="none" stroke="var(--press-3)" stroke-width="2" stroke-dasharray="4 2" />
+                <g>
+                  <circle cx="42" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                  <circle cx="92" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                  <circle cx="142" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                  <circle cx="192" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                  <circle cx="242" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                  <circle cx="292" cy="68" r="3" fill="var(--bg2)" stroke="var(--press-3)" stroke-width="1.5" />
+                </g>
+                <text class="trend-axis-tick" x="55" y="116" text-anchor="middle">06</text>
+                <text class="trend-axis-tick" x="105" y="116" text-anchor="middle">08</text>
+                <text class="trend-axis-tick" x="155" y="116" text-anchor="middle">10</text>
+                <text class="trend-axis-tick" x="205" y="116" text-anchor="middle">12</text>
+                <text class="trend-axis-tick" x="255" y="116" text-anchor="middle">02</text>
+                <text class="trend-axis-tick" x="305" y="116" text-anchor="middle">04</text>
+              </svg>
+
+              <!-- 수치 테이블 -->
+              <div class="trend-table">
+                <div class="trend-table-head">
+                  <div>월</div>
+                  <div style="color:var(--press-1)">1차압</div>
+                  <div style="color:var(--press-2)">2차압</div>
+                  <div style="color:var(--press-3)">세팅</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2026-04</div>
+                  <div class="val" style="color:var(--press-1)">1.5</div>
+                  <div class="val" style="color:var(--press-2)">0.4</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2026-03</div>
+                  <div class="val" style="color:var(--press-1)">1.4</div>
+                  <div class="val" style="color:var(--press-2)">0.7</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2026-02</div>
+                  <div class="val" style="color:var(--press-1)">1.4</div>
+                  <div class="val" style="color:var(--press-2)">0.8</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2026-01</div>
+                  <div class="val" style="color:var(--press-1)">1.3</div>
+                  <div class="val" style="color:var(--press-2)">0.9</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2025-12</div>
+                  <div class="val" style="color:var(--press-1)">1.3</div>
+                  <div class="val" style="color:var(--press-2)">1.0</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+                <div class="trend-table-row">
+                  <div class="month">2025-11</div>
+                  <div class="val" style="color:var(--press-1)">1.2</div>
+                  <div class="val" style="color:var(--press-2)">1.0</div>
+                  <div class="val" style="color:var(--press-3)">1.2</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>
