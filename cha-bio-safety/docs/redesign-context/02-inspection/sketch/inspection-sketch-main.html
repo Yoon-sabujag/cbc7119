@@ -654,7 +654,7 @@
     </p>
     <p class="text-xs text-gray-500 mt-2 leading-relaxed">
       4뷰포트(모바일 다크/라이트 + 데스크톱 다크/라이트) — 오늘 점검 현황 3가지 상태(N건 접힘/N건 펼침/0건 empty) 분산 표현 ·
-      Row 4 모달 변형(일반 결과 입력 / Revisit 2-variant / AccessBlocked) · v0.1.1 §6.1/§6.3/§7.2 룰 적용
+      Row 4 공통 팝업 변형(Revisit 2-variant / AccessBlocked) — 카테고리별 모달은 2~6차 시안에서 분할 진행 · v0.1.1 §6.1/§6.3/§7.2 룰 적용
     </p>
   </header>
 
@@ -1781,140 +1781,94 @@
 
 
     <!-- ─────────────────────────────────────────────
-         행 4: 모달 변형 (3개 패널)
-         · 카드 클릭 → 풀스크린 모달 (DivModal / StairwellModal / BaeyeonModal 등)
-         · 1차 시안에서는 "일반 결과 입력" 모달 1개만 표현 (DIV / 유도등 형태)
-         · Revisit 2-variant + AccessBlocked 보조 팝업
+         행 4: 공통 팝업 변형 + 카테고리별 모달 진행 계획
+         · 카드 클릭 → 풀스크린 모달 (DivModal / StairwellModal / BaeyeonModal 등) — 모두 카테고리별 패턴 상이
+         · "일반 결과 입력 모달" generic 추정 패턴은 폐기 — 사용자 결정 (점검 항목별 모달이 완전히 달라 일괄 적용 불가)
+         · 1차 시안 범위: 메인 화면 + 공통 팝업(Revisit/AccessBlocked) 만
+         · 2~6차 시안에서 카테고리별 모달 분할 진행
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center gap-[60px] mb-4 flex-wrap">
-        <span class="meta-label">Modal · 일반 결과 입력 (DIV / 유도등)</span>
+        <span class="meta-label">2~6차 시안 진행 계획</span>
         <span class="meta-label">Popup · Revisit (가완료 / 나조치)</span>
         <span class="meta-label">Popup · AccessBlocked</span>
       </div>
 
       <div class="flex justify-center gap-8 flex-wrap">
 
-        <!-- ╔═══════════════════════════════╗
-             ║   E-1. 일반 결과 입력 모달      ║
-             ║   (카드 클릭 → 풀스크린 모달)    ║
-             ║   Zone 탭은 모달 내부에 위치!    ║
-             ╚═══════════════════════════════╝ -->
+        <!-- ╔═══════════════════════════════════════╗
+             ║   E-1. 카테고리별 모달 진행 계획      ║
+             ║   (1차 시안에 일괄 모달 표현 폐기)    ║
+             ║   2~6차 시안에서 카테고리별 분할       ║
+             ╚═══════════════════════════════════════╝ -->
         <div class="viewport-frame viewport-modal" data-theme="dark">
-          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary); position:relative;">
+          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary); padding: 18px; gap: 14px; overflow-y:auto;">
 
-            <!-- 배경 (헤더 + 흐릿한 카테고리 그리드) -->
-            <div class="flex items-center justify-between px-3 py-2 flex-shrink-0"
-                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default); opacity:0.5;">
-              <div class="flex items-center gap-2">
-                <i data-lucide="menu" class="w-5 h-5" style="color:var(--text-secondary)"></i>
-                <div>
-                  <div class="text-caption font-semibold" style="color:var(--text-tertiary)">방재팀</div>
-                  <div class="text-label font-semibold" style="color:var(--text-primary)">일반 점검</div>
-                </div>
-              </div>
-              <div class="text-caption" style="color:var(--text-tertiary)">2026-05-09</div>
+            <!-- 헤더 -->
+            <div class="flex items-center justify-between flex-shrink-0">
+              <span class="text-label" style="color:var(--text-secondary); font-weight:600">카테고리별 모달</span>
+              <span class="text-caption" style="color:var(--text-tertiary)">2~6차 시안</span>
             </div>
 
-            <div class="flex-1 relative" style="background:var(--surface-page);">
-              <div style="padding:12px; opacity:0.4;">
-                <div class="grid grid-cols-3" style="gap:8px;">
-                  <div class="cat-card">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4 cat-ico"></i>
-                    <div class="cat-body">
-                      <div class="cat-label">DIV</div>
-                      <div class="cat-progress warn">11/24</div>
-                    </div>
-                  </div>
-                  <div class="cat-card">
-                    <i data-lucide="shield" class="w-4 h-4 cat-ico"></i>
-                    <div class="cat-body">
-                      <div class="cat-label">전실제연댐퍼</div>
-                      <div class="cat-label">연결송수관</div>
-                      <div class="cat-progress warn">10/25</div>
-                    </div>
-                  </div>
-                  <div class="cat-card">
-                    <i data-lucide="cloud" class="w-4 h-4 cat-ico"></i>
-                    <div class="cat-body">
-                      <div class="cat-label">청정소화약제</div>
-                      <div class="cat-progress warn">13/18</div>
-                    </div>
-                  </div>
+            <!-- 안내 박스 -->
+            <div style="padding: 14px; border-radius: var(--radius-md); background: var(--status-info-bg); border: 1px solid var(--status-info-bar); border-left-width: 3px;">
+              <div class="flex items-start gap-2.5">
+                <i data-lucide="info" class="w-5 h-5 flex-shrink-0" style="color: var(--status-info-bar); margin-top: 1px;"></i>
+                <div class="flex-1 min-w-0">
+                  <div class="text-label" style="color: var(--text-primary); font-weight: 700; line-height: 1.55; margin-bottom: 4px;">카테고리별 모달은 패턴이 모두 다름</div>
+                  <div class="text-caption" style="color: var(--text-secondary); line-height: 1.65;">DIV/컴프의 doubleCycle 페어, 배연창/제연댐퍼의 zone+층+위치 3단, CCTV/특별피난계단의 일괄 입력, 증상 피커 5종 등 — generic "일반 결과 입력 모달" 패턴으로 일괄 적용 불가. 2~6차 시안에서 카테고리별 정확 매핑.</div>
                 </div>
               </div>
+            </div>
 
-              <!-- dim overlay -->
-              <div class="modal-dim">
-                <div class="bottom-sheet" style="max-height: 92%;">
+            <!-- 진행 계획 리스트 -->
+            <div class="flex flex-col" style="gap: 8px;">
 
-                  <!-- 모달 헤더 (DIV 점검 — 카테고리별 모달) -->
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <i data-lucide="bar-chart-3" class="w-5 h-5" style="color:var(--text-secondary); flex-shrink:0"></i>
-                      <span class="text-title" style="color:var(--text-primary); font-weight:600">DIV 점검</span>
-                    </div>
-                    <button style="color:var(--text-secondary); padding: 4px;">
-                      <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                  </div>
-
-                  <!-- Zone 탭 (모달 내부 — 연구동/사무동/지하) -->
-                  <div class="flex" style="gap: 0; background: var(--surface-sunken); border-radius: var(--radius-sm); padding: 4px; border: 1px solid var(--border-default);">
-                    <button style="flex: 1; padding: 7px 4px; border-radius: 6px; background: var(--accent); color: var(--text-on-accent); font-size: 13px; font-weight: 600; border: none; cursor: pointer;">연구동</button>
-                    <button style="flex: 1; padding: 7px 4px; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 500; border: none; cursor: pointer;">사무동</button>
-                    <button style="flex: 1; padding: 7px 4px; border-radius: 6px; background: transparent; color: var(--text-secondary); font-size: 13px; font-weight: 500; border: none; cursor: pointer;">지하</button>
-                  </div>
-
-                  <!-- CP 휠피커 -->
-                  <div>
-                    <div class="text-label" style="color:var(--text-secondary); margin-bottom: 6px;">측정점 선택 (CP-DIV-B5-N)</div>
-                    <div class="wheel-wrap">
-                      <div class="wheel-item">CP-DIV-B5-2</div>
-                      <div class="wheel-item center">CP-DIV-B5-3</div>
-                      <div class="wheel-item">CP-DIV-B5-4</div>
-                      <div class="wheel-overlay"></div>
-                    </div>
-                    <div class="text-caption" style="color:var(--text-tertiary); margin-top: 6px;">연구동 · B5층 · 압축기 1호</div>
-                  </div>
-
-                  <!-- 결과 버튼 3종 -->
-                  <div>
-                    <div class="text-label" style="color:var(--text-secondary); margin-bottom: 6px;">점검 결과</div>
-                    <div class="flex" style="gap: 8px;">
-                      <button class="result-btn normal active">
-                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-                        정상
-                      </button>
-                      <button class="result-btn caution">
-                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
-                        주의
-                      </button>
-                      <button class="result-btn bad">
-                        <i data-lucide="x-circle" class="w-4 h-4"></i>
-                        불량
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 사진 + 메모 -->
-                  <div class="flex" style="gap: 8px;">
-                    <button style="flex-shrink:0; width: 84px; height: 84px; border-radius: var(--radius-sm); border: 1px dashed var(--border-default); background: var(--surface-sunken); color: var(--text-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:12px; font-weight:500;">
-                      <i data-lucide="camera" class="w-6 h-6"></i>
-                      <span>사진 첨부</span>
-                    </button>
-                    <textarea rows="3" placeholder="특이사항을 입력하세요"
-                      style="flex:1; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 14px; resize:none; font-family:inherit; min-height: 84px;"></textarea>
-                  </div>
-
-                  <!-- 저장 / 취소 (2:1 비율 유지) -->
-                  <div class="flex" style="gap: 8px;">
-                    <button class="cancel-btn">취소</button>
-                    <button class="cta-btn">저장</button>
-                  </div>
-
+              <!-- 2차 -->
+              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-warning-bar);">
+                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
+                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">2차 시안</span>
+                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-warning-bg); color: var(--status-warning-bar); font-weight: 600;">DIV / 컴프레셔</span>
                 </div>
+                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">doubleCycle 페어 — 1주차 + 2주차 동시 입력 패턴. CP-DIV-X-Y ↔ CP-COMP-X-Y 1:1 매핑</div>
               </div>
+
+              <!-- 3차 -->
+              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-info-bar);">
+                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
+                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">3차 시안</span>
+                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-info-bg); color: var(--status-info-bar); font-weight: 600;">배연창 / 전실제연댐퍼</span>
+                </div>
+                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">Zone(연구동/사무동/지하) + 층 + 위치 3단계 선택. 연구동/사무동 라인 분기</div>
+              </div>
+
+              <!-- 4차 -->
+              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-info-bar);">
+                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
+                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">4차 시안</span>
+                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-info-bg); color: var(--status-info-bar); font-weight: 600;">CCTV / 특별피난계단</span>
+                </div>
+                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">일괄 입력 모달 — CCTV 13대 일괄 / 특별피난계단 층별 일괄</div>
+              </div>
+
+              <!-- 5차 -->
+              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-fire-bar);">
+                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
+                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">5차 시안</span>
+                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-fire-bg); color: var(--status-fire-bar); font-weight: 600;">증상 피커 5종</span>
+                </div>
+                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">유도등 · 소화기 · 소화전 · 방화셔터 · 전실제연댐퍼 — 증상 → 자동 조치/자재 매핑 패턴</div>
+              </div>
+
+              <!-- 6차 -->
+              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--text-tertiary);">
+                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
+                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">6차 시안</span>
+                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--surface-sunken); color: var(--text-secondary); font-weight: 600;">기타 모달</span>
+                </div>
+                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">주차장비 · 소방용전원공급반 · 청정소화약제 · 완강기 · 소방펌프 · 화재수신반(별도 페이지)</div>
+              </div>
+
             </div>
 
           </div>
