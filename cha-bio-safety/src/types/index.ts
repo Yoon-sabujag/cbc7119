@@ -19,7 +19,7 @@ export interface WeeklyItem { day:string; label:string; pct:number; color:string
 
 export type ElevatorType   = 'passenger'|'cargo'|'dumbwaiter'|'escalator'
 export type ElevatorStatus = 'normal'|'fault'|'maintenance'|'out_of_service'
-export interface Elevator { id:string; number:number; type:ElevatorType; location:string; status:ElevatorStatus; lastInspection?:string }
+export interface Elevator { id:string; number:number; type:ElevatorType; location:string; status:ElevatorStatus; lastInspection?:string; nextInspection?:string }
 
 export interface ApiResponse<T> { success:boolean; data?:T; error?:string }
 
@@ -132,6 +132,18 @@ export interface ElevatorInspectionFinding {
   createdBy: string
   createdByName: string | null
   createdAt: string
+}
+
+export interface ElevatorNextInspection {
+  elevatorId: string
+  elevatorNumber: number
+  elevatorType: ElevatorType
+  installYear: number | null
+  lastDate: string | null
+  nextDate: string | null
+  cycleMonths: number
+  status: 'ok' | 'due_soon' | 'overdue' | 'no_record'
+  daysUntil: number | null
 }
 
 export type RepairTarget = 'car' | 'hall' | 'machine_room' | 'pit' | 'escalator'
