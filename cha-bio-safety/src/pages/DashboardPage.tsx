@@ -318,17 +318,17 @@ export default function DashboardPage() {
                             {m.doubleCycle ? (
                               <Donut
                                 pct={m.pct}
-                                color={m.color}
+                                color={progressColor(m.pct)}
                                 size={76}
                                 doubleCycle={{
                                   earlyPct: m.early_pct ?? 0,
                                   latePct:  m.late_pct  ?? 0,
-                                  earlyColor: m.early_color ?? 'var(--info)',
-                                  lateColor:  m.late_color  ?? 'var(--warn)',
+                                  earlyColor: progressColor(m.early_pct ?? 0),
+                                  lateColor:  progressColor(m.late_pct  ?? 0),
                                 }}
                               />
                             ) : (
-                              <Donut pct={m.pct} color={m.color} size={76} />
+                              <Donut pct={m.pct} color={progressColor(m.pct)} size={76} />
                             )}
                             <div className="text-caption text-text-secondary text-center leading-snug whitespace-normal [word-break:keep-all]">{m.label}</div>
                             <div className={`text-caption font-mono font-semibold ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
@@ -667,17 +667,17 @@ export default function DashboardPage() {
                   {m.doubleCycle ? (
                     <Donut
                       pct={m.pct}
-                      color={m.color}
+                      color={progressColor(m.pct)}
                       size={44}
                       doubleCycle={{
                         earlyPct: m.early_pct ?? 0,
                         latePct:  m.late_pct  ?? 0,
-                        earlyColor: m.early_color ?? 'var(--info)',
-                        lateColor:  m.late_color  ?? 'var(--warn)',
+                        earlyColor: progressColor(m.early_pct ?? 0),
+                        lateColor:  progressColor(m.late_pct  ?? 0),
                       }}
                     />
                   ) : (
-                    <Donut pct={m.pct} color={m.color} size={44} />
+                    <Donut pct={m.pct} color={progressColor(m.pct)} size={44} />
                   )}
                   <div className="text-caption text-text-tertiary text-center leading-snug max-w-[72px] [word-break:keep-all]">{m.label}</div>
                   <div className={`text-caption ${m.total > 0 && m.done >= m.total ? 'text-safe' : 'text-text-tertiary'}`}>{m.done}/{m.total}</div>
@@ -774,8 +774,9 @@ function ScheduleRow({ item, catColor, onManualComplete }: {
   )
 }
 
-// 일정 상태 pill — 완료처리 버튼과 같은 폰트/패딩 사이즈, 단 border 없음 (시안 의도:
-// 버튼만 테두리 강조로 클릭 시그널). ui/StatusBadge(8px) 는 너무 작아서 페이지 로컬 대체.
+// 일정 상태 pill — 완료처리 버튼과 같은 폰트/패딩 사이즈. border-transparent 로 높이
+// 통일(완료처리 버튼은 visible border 1px 가 있어 pill 도 1px transparent border 가 있어야
+// box-sizing 일치). ui/StatusBadge(8px) 는 너무 작아서 페이지 로컬 대체.
 function ScheduleStatusPill({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     pending:     { label: '예정',   cls: 'bg-surface-sunken text-text-tertiary' },
@@ -785,8 +786,17 @@ function ScheduleStatusPill({ status }: { status: string }) {
   }
   const s = map[status] ?? map.pending
   return (
-    <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap ${s.cls}`}>
+    <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm shrink-0 whitespace-nowrap border border-transparent ${s.cls}`}>
       {s.label}
     </span>
   )
+}
+
+// v0.1.1 §6.1 Progress Color Rule — 진척률 기반 색 (점검 카테고리 도넛 등)
+// 카테고리별 임의 색 배정 폐지. 색은 진척률만 결정.
+function progressColor(pct: number): string {
+  if (pct >= 100) return 'var(--status-safe-bar)'
+  if (pct >= 50)  return 'var(--accent)'
+  if (pct >= 1)   return 'var(--status-warning-bar)'
+  return 'var(--text-tertiary)'
 }
