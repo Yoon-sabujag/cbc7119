@@ -380,8 +380,6 @@ export const elevatorInspectionApi = {
     api.post<void>(
       `/elevators/${elevatorId}/inspections/${inspectionId}/findings/${fid}/resolve`, body
     ),
-  getNextInspection: () =>
-    api.get<import('../types').ElevatorNextInspection[]>('/elevators/next-inspection'),
 }
 
 export const elevatorRepairApi = {
