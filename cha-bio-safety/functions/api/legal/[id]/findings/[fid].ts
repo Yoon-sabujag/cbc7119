@@ -71,15 +71,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, params }) => {
 }
 
 // PUT /api/legal/:id/findings/:fid
-// Partial update; admin only
-export const onRequestPut: PagesFunction<Env> = async ({ request, env, data, params }) => {
-  const { role } = data as any
+// Partial update; any authenticated user (parity with DELETE)
+export const onRequestPut: PagesFunction<Env> = async ({ request, env, params }) => {
   const scheduleItemId = params.id as string
   const fid = params.fid as string
-
-  if (role !== 'admin') {
-    return Response.json({ success: false, error: '관리자만 가능합니다' }, { status: 403 })
-  }
 
   let body: Record<string, any>
   try {
