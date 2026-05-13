@@ -400,21 +400,6 @@
     .badge-info   { background: var(--status-info-bg);    color: var(--status-info); }
     .badge-mute   { background: var(--surface-sunken);    color: var(--text-tertiary); }
 
-    /* 다음 점검 작은 배지 (D-N · 검사 초과 · 기록 없음) — 정사각 모서리 */
-    .pill-sm {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 8px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.4;
-      white-space: nowrap;
-    }
-    .pill-warn   { background: var(--status-warning-bg); color: var(--status-warning); }
-    .pill-danger { background: var(--status-danger-bg);  color: var(--status-danger); }
-    .pill-info   { background: var(--status-info-bg);    color: var(--status-info); }
-
     /* placeholder 박스 (2·3차 시안 자리) */
     .placeholder-box {
       border: 2px dashed var(--border-default);
@@ -676,7 +661,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-fire">고장</span>
-                      <span class="pill-warn">D-12</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -697,7 +681,7 @@
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
-                  <!-- 6호기 정상 + D-3 임박 -->
+                  <!-- 6호기 정상 -->
                   <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
@@ -711,7 +695,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-safe">정상</span>
-                      <span class="pill-warn">D-3</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -732,7 +715,7 @@
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
-                  <!-- 8호기 정상 + 검사 초과 -->
+                  <!-- 8호기 정상 -->
                   <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
@@ -746,7 +729,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-safe">정상</span>
-                      <span class="pill-danger">검사 초과</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -1037,7 +1019,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-fire">고장</span>
-                      <span class="pill-warn">D-12</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -1058,7 +1039,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-safe">정상</span>
-                      <span class="pill-warn">D-3</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -1079,7 +1059,6 @@
                     </div>
                     <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
                       <span class="badge badge-safe">정상</span>
-                      <span class="pill-danger">검사 초과</span>
                     </div>
                     <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
                   </button>
@@ -1334,7 +1313,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">4호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-warn">D-12</span>
                           <span class="badge badge-fire">고장</span>
                         </div>
                       </div>
@@ -1353,7 +1331,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">6호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-warn">D-3</span>
                           <span class="badge badge-safe">정상</span>
                         </div>
                       </div>
@@ -1372,7 +1349,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">8호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-danger">검사 초과</span>
                           <span class="badge badge-safe">정상</span>
                         </div>
                       </div>
@@ -1612,7 +1588,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">4호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-warn">D-12</span>
                           <span class="badge badge-fire">고장</span>
                         </div>
                       </div>
@@ -1628,7 +1603,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">6호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-warn">D-3</span>
                           <span class="badge badge-safe">정상</span>
                         </div>
                       </div>
@@ -1644,7 +1618,6 @@
                       <div class="flex items-center justify-between gap-2">
                         <span class="text-body font-semibold text-t1">8호기</span>
                         <div class="flex items-center gap-1">
-                          <span class="pill-danger">검사 초과</span>
                           <span class="badge badge-safe">정상</span>
                         </div>
                       </div>
@@ -1995,7 +1968,7 @@
           <ul class="list-disc pl-5 space-y-1 text-base">
             <li>자체 헤더 (App.tsx 헤더 숨김 패턴) — 6탭 + 검색 + 액션</li>
             <li><b>list 탭 그룹은 type 4분류</b> (line 1041): passenger 8 / cargo 2 / dumbwaiter 1 / escalator 6</li>
-            <li>호기 카드 — 단순 리스트 (line 1049-1094): type 아이콘 슬롯 + N호기 + 위치 + 메타 + 상태 배지 + D-N/검사 초과 + chevron</li>
+            <li>호기 카드 — 단순 리스트 (line 1049-1094): type 아이콘 슬롯 + N호기 + 위치 + 메타 + 상태 배지  + chevron</li>
             <li>에스컬레이터도 <b>다른 type 처럼 카드 6개</b> (ES-1~6) — (공단 N호기) 추가 표시</li>
             <li>4 상태 (정상 / 고장 / 점검중 / 운행중지) 모두 등장</li>
             <li>검색 활성 (mark 하이라이트) + 검색 결과 0건 + 로딩 스켈레톤</li>
