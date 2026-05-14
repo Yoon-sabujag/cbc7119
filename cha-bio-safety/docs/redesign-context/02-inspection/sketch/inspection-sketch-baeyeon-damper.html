@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>일반 점검 재디자인 3차 — 배연창/제연댐퍼 (Rev 2)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* ─────────────────────────────────────────────
+       tokens.css (v0.1.1) — 1·2차 시안과 동일
+       ───────────────────────────────────────────── */
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33; --surface-active:#2c333d;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-disabled:#5d646e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22); --border-focus:#3b82f6;
+      --accent:#3b82f6; --accent-hover:#60a5fa;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-info-bar:#0ea5e9; --status-fire-bar:#f97316;
+      --status-safe-bg:rgba(34,197,94,0.13); --status-warning-bg:rgba(245,158,11,0.13); --status-danger-bg:rgba(239,68,68,0.13);
+      --status-safe-border:rgba(34,197,94,0.35); --status-warning-border:rgba(245,158,11,0.35); --status-danger-border:rgba(239,68,68,0.35);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken); --bg4:var(--surface-active);
+      --bd:var(--border-default); --bd2:var(--border-strong); --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    [data-theme="light"] {
+      --surface-page:#ffffff; --surface-raised:#f6f8fa; --surface-sunken:#ebeef1; --surface-active:#d8dee4;
+      --text-primary:#1f2328; --text-secondary:#4d5562; --text-tertiary:#656d76; --text-disabled:#afb8c1; --text-on-accent:#ffffff;
+      --border-default:rgba(0,0,0,0.14); --border-strong:rgba(0,0,0,0.22); --border-focus:#1f6feb;
+      --accent:#1f6feb; --accent-hover:#218bff;
+      --status-safe-bar:#15803d; --status-warning-bar:#b45309; --status-danger-bar:#b91c1c; --status-info-bar:#0369a1; --status-fire-bar:#c2410c;
+      --status-safe-bg:#dcfce7; --status-warning-bg:#fef3c7; --status-danger-bg:#fee2e2;
+      --status-safe-border:rgba(22,101,52,0.4); --status-warning-border:rgba(180,83,9,0.4); --status-danger-border:rgba(185,28,28,0.4);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken); --bg4:var(--surface-active);
+      --bd:var(--border-default); --bd2:var(--border-strong); --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    :root {
+      --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px;
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+      --font-sans:'Pretendard Variable','Pretendard',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    .text-caption { font-size:12px; line-height:1.5; }
+    .text-label   { font-size:13px; line-height:1.5; }
+    .text-body-sm { font-size:14px; line-height:1.6; }
+    .text-mono    { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+    body { font-family:var(--font-sans); background:#1a1d22; color:#e6edf3; -webkit-font-smoothing:antialiased; }
+    .meta-label {
+      font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      color:#8b949e; padding:6px 12px;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px; display:inline-block;
+    }
+    .viewport-frame {
+      border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      overflow:hidden; background:var(--surface-page); color:var(--text-primary);
+      font-family:var(--font-sans); position:relative;
+    }
+    .viewport-mobile { width:375px; height:812px; }
+    .viewport-frame * { font-family:inherit; }
+
+    /* ─────────────────────────────────────────────
+       3차 Rev 2 — 사용자 피드백 반영
+       1. 헤더 이모지 → lucide 회색 (§6.3 룰)
+       2. 결과 ✅⚠️❌ → 글자만 segmented (2차 .seg-result 패턴)
+       3. 계단전실/위치 → flex:1 wrap segmented (균등)
+       4. result-mini → 글자만 + nowrap
+       5. photo-btn 4 viewport 동일 룩
+       ───────────────────────────────────────────── */
+
+    /* 헤더 */
+    .mh {
+      padding: 12px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mh-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--t2);     /* §6.3 — 회색 통일 */
+      flex-shrink: 0;
+    }
+    .mh-title { font-size: 16px; font-weight: 700; color: var(--t1); }
+    .mh-sub { font-size: 12px; color: var(--t3); margin-left: 4px; }
+
+    /* 헤더 직후 sticky 선택 바 */
+    .bar-section {
+      padding: 8px 14px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0;
+    }
+    .bar-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t3);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Segmented control — 균등 분할, 코드 btnStyle 매핑 */
+    .seg {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .seg button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 9px 8px;
+      border-radius: 9px;
+      border: 1px solid var(--bd2);
+      background: var(--bg);
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .12s;
+      white-space: nowrap;
+    }
+    .seg button.is-active {
+      border: 1.5px solid var(--acl);
+      background: var(--acl);
+      color: var(--text-on-accent);
+    }
+    .seg button.is-done {
+      border: 1.5px solid var(--safe);
+      background: var(--status-safe-bg);
+      color: var(--safe);
+    }
+    .seg button .done-mark {
+      font-size: 12px;
+      margin-left: 4px;
+      opacity: 0.85;
+    }
+
+    /* 결과 picker — 디자인 시스템 v0.1.1 Badges & Chips § Result picker
+       pill 형태 + lucide outline 아이콘 + 라벨, status 색 outline + tinted bg */
+    .result-picker {
+      display: flex;
+      gap: 8px;
+    }
+    .result-picker button {
+      flex: 1;
+      padding: 9px 8px;
+      border-radius: 99px;
+      border: 1.5px solid var(--bd);
+      background: var(--bg2);
+      color: var(--t3);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .12s;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .result-picker button .ic { width: 16px; height: 16px; flex-shrink: 0; }
+    .result-picker button.is-safe    { border-color: var(--safe);   background: var(--status-safe-bg);    color: var(--safe); }
+    .result-picker button.is-warning { border-color: var(--warn);   background: var(--status-warning-bg); color: var(--warn); }
+    .result-picker button.is-danger  { border-color: var(--danger); background: var(--status-danger-bg);  color: var(--danger); }
+
+    /* 층 가로 스크롤 칩 */
+    .floor-row {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .floor-row::-webkit-scrollbar { display: none; }
+    .floor-chip {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--bd2);
+      background: var(--bg);
+      color: var(--t2);
+      transition: all .1s;
+      white-space: nowrap;
+    }
+    .floor-chip.is-active {
+      border: 1.5px solid var(--acl);
+      background: var(--acl);
+      color: var(--text-on-accent);
+    }
+
+    /* 본문 영역 */
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+    }
+
+    /* 계단전실 일괄 — 층별 2열 그리드 */
+    .stair-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stair-col { display: flex; flex-direction: column; gap: 6px; }
+    .stair-tile {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 9px 9px 7px;
+      border: 1px solid var(--bd);
+    }
+    .stair-tile.is-init {
+      border: 2px solid var(--status-fire-bar);
+    }
+    .stair-tile .floor-lbl {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--t2);
+      margin-bottom: 6px;
+    }
+    .stair-tile.is-init .floor-lbl {
+      color: var(--status-fire-bar);
+    }
+
+    /* result-mini — 계단전실 타일 안 작은 picker (디자인 시스템 동일 패턴, scaled down) */
+    .result-mini {
+      display: flex;
+      gap: 4px;
+    }
+    .result-mini button {
+      flex: 1;
+      padding: 5px 4px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1.5px solid var(--bd);
+      background: var(--bg);
+      color: var(--t3);
+      white-space: nowrap;
+      transition: all .1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+    .result-mini button .ic { width: 12px; height: 12px; flex-shrink: 0; }
+    .result-mini button.is-safe    { border-color: var(--safe);   background: var(--status-safe-bg);    color: var(--safe); }
+    .result-mini button.is-warning { border-color: var(--warn);   background: var(--status-warning-bg); color: var(--warn); }
+    .result-mini button.is-danger  { border-color: var(--danger); background: var(--status-danger-bg);  color: var(--danger); }
+
+    /* 알림 박스 */
+    .alert-success {
+      background: var(--status-safe-bg);
+      border: 1px solid var(--status-safe-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--safe);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 메모 + 사진 — 4 viewport 동일 룩 */
+    .memo-row { display: flex; gap: 8px; align-items: flex-start; }
+    .memo-area {
+      flex: 1;
+      height: 72px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      color: var(--t1);
+      font-size: 13px;
+      resize: none;
+      box-sizing: border-box;
+      font-family: inherit;
+      outline: none;
+    }
+    .memo-area::placeholder { color: var(--t3); }
+
+    /* photo-btn — 통일 룩 (4 viewport 동일) */
+    .photo-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      border: 1px solid var(--bd);
+      background: var(--bg2);
+      color: var(--t2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-shrink: 0;
+      transition: all .12s;
+    }
+    .photo-btn .photo-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--t2);
+    }
+
+    /* 하단 버튼 바 */
+    .footer-bar {
+      padding: 10px 14px 12px;
+      background: var(--bg2);
+      border-top: 1px solid var(--bd);
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-close-mini {
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: var(--bg);
+      border: 1px solid var(--bd2);
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save {
+      flex: 1;
+      padding: 13px 0;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    }
+    [data-theme="light"] .btn-save {
+      background: linear-gradient(135deg, #1f6feb, #0369a1);
+      box-shadow: 0 4px 14px rgba(31,111,235,0.28);
+    }
+    .btn-save[disabled] {
+      background: var(--bd);
+      color: var(--t3);
+      box-shadow: none;
+      cursor: default;
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  redesign/02-inspection 3차 시안 Rev 2 — 배연창 / 제연댐퍼
+  ----------------------------------------------------------------------------
+  v0.1.1 룰 적용 (Rev 2 — 사용자 피드백 반영):
+  - 헤더 아이콘 lucide 회색 통일 (§6.3) — 이모지 제거
+  - 결과 = 글자만 segmented (2차 DIV 패턴) — 이모지 ✅⚠️❌ 제거
+  - 계단전실/위치 = flex:1 wrap segmented 균등 (코드 btnStyle 매핑)
+  - result-mini 글자 white-space:nowrap (정/상 줄바꿈 fix)
+  - photo-btn 4 viewport 동일 룩 통일
+  ----------------------------------------------------------------------------
+  코드 권위:
+  - InspectionPage.tsx 573-805 (BaeyeonModal)
+  - InspectionPage.tsx 2345-2797 (DamperModal)
+  - InspectionPage.tsx 58-62    (INSPECT_RESULT_OPTIONS — 코드의 이모지는 v0.1.1에서 폐기)
+  ============================================================================
+-->
+
+<body class="p-8">
+
+  <header class="max-w-[1400px] mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-13 · Rev 2</span>
+      <span class="meta-label">redesign/02-inspection 3차 — 배연창/제연댐퍼</span>
+    </div>
+    <h1 class="text-3xl font-semibold text-white">배연창 / 제연댐퍼 모달 재디자인 (Rev 2)</h1>
+    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+      Rev 2 (사용자 피드백 반영):
+      <strong style="color:#22c55e">헤더 lucide 회색 통일</strong> ·
+      <strong style="color:#22c55e">결과 글자만 segmented</strong> (이모지 제거) ·
+      <strong style="color:#22c55e">계단전실/위치 균등 wrap segmented</strong> ·
+      <strong style="color:#22c55e">result-mini nowrap</strong> ·
+      <strong style="color:#22c55e">photo-btn 통일 룩</strong>
+    </p>
+    <p class="text-xs text-gray-500 mt-2 leading-relaxed">
+      4 viewport · 배연창 (Dark 위치 선택 대기 / Light 결과 입력 완료) ·
+      제연댐퍼 (Dark 전실제연댐퍼 계단전실 #2 일괄 / Light 연결송수관 단일)
+    </p>
+  </header>
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: 배연창
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">배연창 · Dark · 위치 선택 대기</span>
+        <span class="meta-label">배연창 · Light · 결과 입력 완료</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- 배연창 Mobile Dark — 연구동 / 8F / 위치 복수 선택 -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <svg class="mh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+              <span class="mh-title">배연창</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">구역 선택</div>
+              <div class="seg">
+                <button class="is-active">연구동</button>
+                <button>사무동</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">층 선택</div>
+              <div class="floor-row">
+                <button class="floor-chip is-active">8F</button>
+                <button class="floor-chip">7F</button>
+                <button class="floor-chip">6F</button>
+                <button class="floor-chip">5F</button>
+                <button class="floor-chip">3F</button>
+                <button class="floor-chip">2F</button>
+                <button class="floor-chip">1F</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">위치 선택</div>
+              <div class="seg">
+                <button class="is-active">북측</button>
+                <button>남측</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 배연창 Mobile Light — 사무동 / 5F / 위치 단일 자동, 결과 = 주의 -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <svg class="mh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/><path d="M12 3v18"/></svg>
+              <span class="mh-title">배연창</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">구역 선택</div>
+              <div class="seg">
+                <button class="is-done">연구동<span class="done-mark">✓</span></button>
+                <button class="is-active">사무동</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">층 선택</div>
+              <div class="floor-row">
+                <button class="floor-chip">8F</button>
+                <button class="floor-chip">7F</button>
+                <button class="floor-chip">6F</button>
+                <button class="floor-chip is-active">5F</button>
+                <button class="floor-chip">3F</button>
+                <button class="floor-chip">2F</button>
+                <button class="floor-chip">1F</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button class="is-warning"><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요">배연창 자동 닫힘 모터 작동 시 진동음. 모터 점검 요청.</textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 2: 제연댐퍼
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">제연댐퍼 · Dark · 전실제연댐퍼 계단전실 #2 일괄</span>
+        <span class="meta-label">제연댐퍼 · Light · 연결송수관 단일 폼</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- 제연댐퍼 Mobile Dark — 전실제연댐퍼 / 계단전실 #2 / 층별 2열 일괄 -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="shield" class="mh-icon"></i>
+              <span class="mh-title">전실제연댐퍼</span>
+              <span class="mh-sub">· 연결송수관</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">항목 선택</div>
+              <div class="seg">
+                <button class="is-active">전실제연댐퍼</button>
+                <button>연결송수관<span class="done-mark">✓</span></button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">계단전실 선택</div>
+              <div class="seg">
+                <button class="is-active">2</button>
+                <button>4</button>
+                <button>5</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <div class="alert-success">
+                <span>✓</span>
+                <span style="font-size:13px;font-weight:600">1/5층 이미 점검 완료</span>
+              </div>
+
+              <!-- 계단전실 #2 — 5층 (지하5층~지하1층), 좌3/우2 -->
+              <div class="stair-grid">
+                <div class="stair-col">
+                  <div class="stair-tile">
+                    <div class="floor-lbl">지하5층</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="stair-tile">
+                    <div class="floor-lbl">지하4층</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="stair-tile is-init">
+                    <div class="floor-lbl">지하3층</div>
+                    <div class="result-mini">
+                      <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button class="is-warning"><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stair-col">
+                  <div class="stair-tile">
+                    <div class="floor-lbl">지하2층</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="stair-tile">
+                    <div class="floor-lbl">지하1층</div>
+                    <div class="result-mini">
+                      <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button class="is-danger"><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요">B3 댐퍼 라쳇 헐거움 (재체결 필요), 1F 댐퍼 작동 불량.</textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">계단전실 2 점검 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 제연댐퍼 Mobile Light — 연결송수관 / 위치 옥상 송수구 / 결과 = 정상 -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="shield" class="mh-icon"></i>
+              <span class="mh-title">전실제연댐퍼</span>
+              <span class="mh-sub">· 연결송수관</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">항목 선택</div>
+              <div class="seg">
+                <button>전실제연댐퍼</button>
+                <button class="is-active">연결송수관</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">위치 선택</div>
+              <div class="seg">
+                <button class="is-active">북문</button>
+                <button>남문</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>
