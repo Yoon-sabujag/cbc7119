@@ -2,6 +2,8 @@
 // 소화기 방식 부분 오버레이 스타일 통일 (position:absolute; inset:0; zIndex:10).
 // 부모 박스는 반드시 position:relative 여야 한다.
 
+import { CheckCircle2, Flame } from 'lucide-react'
+
 export type RevisitVariant = 'completed' | 'pending-action'
 
 export interface InspectionRevisitPopupProps {
@@ -45,19 +47,21 @@ export function InspectionRevisitPopup({
   return (
     <div style={{
       position:'absolute', inset:0, zIndex:10,
-      background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12,
+      background:'var(--surface-raised)', border:'1px solid var(--border-default)', borderRadius:12,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       gap:10, padding:20,
     }}>
-      <div style={{ fontSize:32 }}>⚠️</div>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
+      {variant === 'completed'
+        ? <CheckCircle2 size={32} color="var(--status-safe)" />
+        : <Flame size={32} color="var(--status-fire)" />}
+      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
         {message}
       </div>
 
       {variant === 'completed' && (
         <button
           onClick={onClose}
-          style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+          style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
         >
           확인
         </button>
@@ -67,13 +71,13 @@ export function InspectionRevisitPopup({
         <div style={{ marginTop:4, display:'flex', gap:8 }}>
           <button
             onClick={onClose}
-            style={{ padding:'10px 22px', borderRadius:10, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}
+            style={{ padding:'10px 22px', borderRadius:10, background:'var(--surface-page)', border:'1px solid var(--border-strong)', color:'var(--text-secondary)', fontSize:13, fontWeight:700, cursor:'pointer' }}
           >
             취소
           </button>
           <button
             onClick={() => { if (recordId) onGoToRemediation?.(recordId) }}
-            style={{ padding:'10px 22px', borderRadius:10, border:'none', background:'var(--acl)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+            style={{ padding:'10px 22px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
           >
             이동
           </button>
