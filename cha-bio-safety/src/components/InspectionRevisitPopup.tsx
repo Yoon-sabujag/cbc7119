@@ -2,7 +2,7 @@
 // 소화기 방식 부분 오버레이 스타일 통일 (position:absolute; inset:0; zIndex:10).
 // 부모 박스는 반드시 position:relative 여야 한다.
 
-import { CheckCircle2, Flame } from 'lucide-react'
+import { CheckCircle2, Wrench } from 'lucide-react'
 
 export type RevisitVariant = 'completed' | 'pending-action'
 
@@ -53,7 +53,7 @@ export function InspectionRevisitPopup({
     }}>
       {variant === 'completed'
         ? <CheckCircle2 size={32} color="var(--status-safe)" />
-        : <Flame size={32} color="var(--status-fire)" />}
+        : <Wrench size={32} color="var(--status-warning)" />}
       <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
         {message}
       </div>
