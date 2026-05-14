@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-13 - Completed quick task 260513-czc: ElevatorPage next-inspection 기능 통째 제거 (의도하지 않았던 D-N/검사 초과/기록 없음 배지 + API + 타입) + production 배포
+Last activity: 2026-05-14 - Completed quick task 260514-i4r (Task 1-3): redesign/02-inspection TSX Wave 1 — InspectionPage.tsx 메인 + 일반 InspectionModal 셸 + 5 보조 컴포넌트 Tailwind 교체 (5346→5559줄, 5 특수 모달 본문 WAVE2-PRESERVE 마커로 보존, Task 4 사용자 시각 검증 대기)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -178,6 +178,7 @@ None yet.
 | 260510-4li | redesign/02-inspection 1차 시안 — InspectionPage 메인 화면(헤더/Zone 탭/카테고리 16종/층 칩/CP 리스트) + 일반 결과 모달 + Revisit/AccessBlocked 팝업 (2312줄, 4뷰포트, §6.3 카테고리 카드 룰 + §7.2 아이콘 매핑 정확 적용). 특수 모달 7종은 2차 시안 별도 진행. | 2026-05-10 | 1f52181 | [260510-4li-redesign-02-inspection-sketch-main](./quick/260510-4li-redesign-02-inspection-sketch-main/) |
 | 260510-4x7 | redesign/07-elevator 1차 시안 — ElevatorPage 페이지 컨테이너 + 자체 헤더(6탭+검색+액션) + 호기 그리드(11 EV + 6 ES, 그룹별 카드, 좌측 3px 색바 §6.1) + 에스컬레이터 노선도 + 4 상태 변종(정상/고장/점검중/운행중지) + 검색/빈/스켈레톤 (2013줄, 4뷰포트, §6.1~9 룰 준수). 5 모달 + KOELSA 는 2·3차 별도. | 2026-05-10 | 3e478d8 | [260510-4x7-redesign-07-elevator-1-html-6](./quick/260510-4x7-redesign-07-elevator-1-html-6/) |
 | 260513-czc | ElevatorPage next-inspection 기능 통째 제거 (의도하지 않았던 D-N/검사 초과/기록 없음 배지 + GET /api/elevators/next-inspection 핸들러 + 타입 + map) — 4 파일 +2/-131, DB 컬럼 elevators.next_inspection 은 죽은 컬럼이라 그대로 둠. production 배포 | 2026-05-13 | c377e4b | [260513-czc-elevatorpage-next-inspection-d-n-api](./quick/260513-czc-elevatorpage-next-inspection-d-n-api/) |
+| 260514-i4r | redesign/02-inspection 2단계 Wave 1 — InspectionPage.tsx 시안 기반 v0.1.1 토큰 + Tailwind 교체본 (5346→5559줄, +711/-498). 메인 page render + 일반 InspectionModal 셸 + 5 보조 컴포넌트(WheelPicker / Resolution* / PhotoViewer / FireAlarmModal / InspectionSummaryCard / DesktopInspectionView) §6.1~7.3 룰 정확 적용. 5 특수 모달 본문(Stairwell/Cctv/Baeyeon/Div+Compressor/PowerPanel/ParkingGate/Damper) + InspectionModal 내부 5 증상 피커 JSX 는 WAVE2-PRESERVE 마커로 보존(Wave 2~6 별도). 비즈니스 로직 100% 보존, tsc/build 통과. Task 4(사용자 시각 검증) 대기. | 2026-05-14 | 400a865 | [260514-i4r-redesign-02-inspection-tsx](./quick/260514-i4r-redesign-02-inspection-tsx/) |
 
 ### Blockers/Concerns
 
