@@ -3570,92 +3570,115 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               </div>
             </div>
 
-            {/* [WAVE2-PRESERVE-START] 5 증상 피커 — 인라인 style 보존 (다음 quick 트랙에서 변환) */}
             {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
             {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
-              <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-                <div style={{ display:'flex', gap:5 }}>
-                  {['점등 이상','예비전원 이상','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setSymptomPick(s)} style={{
-                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
-                      border: symptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: symptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize:11, fontWeight:700, color: symptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['점등 이상','예비전원 이상','직접 입력'].map(s => {
+                    const active = symptomPick === s
+                    return (
+                      <button key={s} onClick={() => setSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* 소화기: 증상 피커 (점검 결과 아래, 특이사항 위) */}
             {isExtinguisher && result !== 'normal' && (
-              <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-                <div style={{ display:'flex', gap:5 }}>
-                  {['받침 파손','연한 만료','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setExtSymptomPick(s)} style={{
-                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
-                      border: extSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: extSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize:11, fontWeight:700, color: extSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['받침 파손','연한 만료','직접 입력'].map(s => {
+                    const active = extSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setExtSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* 소화전: 증상 피커 */}
             {selectedCP?.category === '소화전' && result !== 'normal' && (
-              <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-                <div style={{ display:'flex', gap:5 }}>
-                  {['경종 파손','위치표시등 점등 이상','호스걸이 파손','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setHydrantSymptomPick(s)} style={{
-                      flex:1, padding:'8px 2px', borderRadius:10, cursor:'pointer',
-                      border: hydrantSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: hydrantSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize:10, fontWeight:700, color: hydrantSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['경종 파손','위치표시등 점등 이상','호스걸이 파손','직접 입력'].map(s => {
+                    const active = hydrantSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setHydrantSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* 방화셔터: 증상 피커 */}
             {selectedCP?.category === '방화셔터' && result !== 'normal' && (
-              <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-                <div style={{ display:'flex', gap:5 }}>
-                  {['방화셔터 라인 표시 필요','연동제어기 기판 작동 불','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setShutterSymptomPick(s)} style={{
-                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
-                      border: shutterSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: shutterSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize:10, fontWeight:700, color: shutterSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['방화셔터 라인 표시 필요','연동제어기 기판 작동 불','직접 입력'].map(s => {
+                    const active = shutterSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setShutterSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* 전실제연댐퍼: 증상 피커 */}
             {selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && (
-              <div style={{ marginTop:10 }}>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>증상</div>
-                <div style={{ display:'flex', gap:5 }}>
-                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setDamperSymptomPick(s)} style={{
-                      flex:1, padding:'8px 4px', borderRadius:10, cursor:'pointer',
-                      border: damperSymptomPick===s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: damperSymptomPick===s ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize:11, fontWeight:700, color: damperSymptomPick===s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+              <div className="mt-2.5">
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
+                    const active = damperSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setDamperSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
-            {/* [WAVE2-PRESERVE-END] 5 증상 피커 끝 */}
 
             {/* 특이사항 + 증빙사진 (한 행) */}
             <div className="mt-2.5">
