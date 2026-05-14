@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-10 - Completed quick task 260510-c2z: redesign/07-elevator 1차 시안 재작성 — list 탭 구조 정정(type 4그룹) + Option A Lucide 아이콘 (2020줄, 9/9 verify PASS, 사용자 검토 대기)
+Last activity: 2026-05-15 - Completed quick task 260515-3mc: redesign/07-elevator TSX 변환 Wave 1 (list 탭) — ElevatorIcon 신설 + TYPE_ICON_COMPONENT 매퍼 + 모바일 헤더/list 본문 + 데스크톱 헤더/좌측 컬럼 v0.1.1 토큰화 (ElevatorPage 3209→3277줄, 인라인 금지 키 0건/9-11px 0건/이모지 0건, npm build PASS)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -178,6 +178,7 @@ None yet.
 | 260510-4x7 | redesign/07-elevator 1차 시안 — ElevatorPage 페이지 컨테이너 + 자체 헤더(6탭+검색+액션) + 호기 그리드(11 EV + 6 ES, 그룹별 카드, 좌측 3px 색바 §6.1) + 에스컬레이터 노선도 + 4 상태 변종(정상/고장/점검중/운행중지) + 검색/빈/스켈레톤 (2013줄, 4뷰포트, §6.1~9 룰 준수). 5 모달 + KOELSA 는 2·3차 별도. | 2026-05-10 | 3e478d8 | [260510-4x7-redesign-07-elevator-1-html-6](./quick/260510-4x7-redesign-07-elevator-1-html-6/) |
 | 260510-c2z | redesign/07-elevator 1차 시안 재작성 — list 탭 구조 정정(EvSelector 5그룹/에스컬 노선도 → 코드 실제 구조인 type 4분류 단순 카드) + Option A Lucide 아이콘(ArrowUpDown/Package/UtensilsCrossed/ChevronsUpDown) 적용. 노선도는 모달 전용으로 2차 시안 이동. (2020줄, 4뷰포트, 9/9 verify PASS) | 2026-05-10 | 8bbf504 | [260510-c2z-redesign-07-elevator-1-list-4-type-optio](./quick/260510-c2z-redesign-07-elevator-1-list-4-type-optio/) |
 | 260510-b7q | 에스컬레이터 호기 매핑 0056 물리배치에 정렬 — ES_NODES_FAULT/ANNUAL id-label-floor 일치(고장 1·2호기 제외=5,6,3,4 / 수리 전체=5,6,3,4,1,2). 04-07 swap 이후 라벨만 갱신되고 floor↔ID 배치가 방치된 모순 해소 | 2026-05-09 | 050baf0 | [260510-b7q-es-nodes-fault-annual-id-label-floor-005](./quick/260510-b7q-es-nodes-fault-annual-id-label-floor-005/) |
+| 260515-3mc | redesign/07-elevator TSX 변환 Wave 1 — list 탭 (ElevatorPage 메인): ElevatorIcon 커스텀 SVG icons.tsx 추가 + TYPE_ICON_COMPONENT 매퍼(passenger=ElevatorIcon/cargo=Package/dumbwaiter=UtensilsCrossed/escalator=MoveDiagonal) + 모바일 자체 헤더(미해결 칩 + 6탭) + list 탭 본문(type 4분류 그룹, 카드 좌측 3px 색바 §6.1, 다음 점검 배지 3상태) + 데스크톱 헤더(고장/수리 CTA §6.4 그라디언트 보존) + 좌측 호기 배치도(evGroups 4그룹 + 에스컬 그리드) v0.1.1 토큰+Tailwind 교체. 5 모달/EvSelector/EsNodeMap/다른 5탭 본문/desktopRightTab/KoelsaHistorySection/RepairListSection 보존(Wave 2+). ElevatorPage 3209→3277줄. 비즈니스 로직 100% 보존, 인라인 금지 키 0건, 9-11px 0건, 이모지 0건, npm build PASS. | 2026-05-15 | 7a3cf32 | [260515-3mc-redesign-07-elevator-tsx-wave-1-list](./quick/260515-3mc-redesign-07-elevator-tsx-wave-1-list/) |
 
 ### Blockers/Concerns
 
