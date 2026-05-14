@@ -2580,37 +2580,44 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
     }
   }
 
-  const btnStyle = (sel: boolean) => ({
-    flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' as const,
-    border:      sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
-    background:  sel ? 'var(--acl)' : 'var(--bg)',
-    color:       sel ? '#fff' : 'var(--t2)',
-    transition: 'all .12s',
-  })
+  const resultIcon = (v: CheckResult) => {
+    if (v === 'normal')  return <CheckCircle2 size={16} className="flex-shrink-0" />
+    if (v === 'caution') return <AlertTriangle size={16} className="flex-shrink-0" />
+    return <XCircle size={16} className="flex-shrink-0" />
+  }
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] flex flex-col overflow-hidden bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom:NAV_BOTTOM, transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}
+    >
 
       {/* 헤더 */}
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
-          {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
+      <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
+        <Car size={18} className="text-text-secondary flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-[16px] font-bold text-text-primary">{group.labels[0]}</div>
+          {group.labels.length > 1 && (
+            <div className="text-caption text-text-tertiary mt-0.5">· {group.labels.slice(1).join(' · ')}</div>
+          )}
         </div>
       </div>
 
       {/* 항목 선택 */}
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>항목 선택</div>
-        <div style={{ display:'flex', gap:8 }}>
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">항목 선택</div>
+        <div className="flex gap-1.5">
           {(['주차장비','회전문'] as const).map(label => {
             const catCPs  = allCheckpoints.filter(cp => cp.category === label)
             const allDone = catCPs.length > 0 && catCPs.every(cp => records[cp.id])
-            const isSel   = item === label
+            const isActive = item === label
+            const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
+            const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
-              <button key={label} onClick={() => setItem(label)} style={btnStyle(isSel)}>
-                {label}{allDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+              <button key={label} onClick={() => setItem(label)} className={`${baseCls} ${stateCls}`}>
+                {label}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
               </button>
             )
           })}
@@ -2619,16 +2626,20 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
 
       {/* 회전문 → 북문/남문 */}
       {item === '회전문' && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>문 선택</div>
-          <div style={{ display:'flex', gap:8 }}>
+        <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">문 선택</div>
+          <div className="flex gap-1.5">
             {(['북문','남문'] as const).map(door => {
               const doorCP  = allCheckpoints.find(cp => cp.category === '회전문' && cp.location === door)
               const doneDoor = doorCP ? !!records[doorCP.id] : false
-              const isSel   = subItem === door
+              const isActive = subItem === door
+              const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
+              const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                             : doneDoor  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                             :             'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={door} onClick={() => setSubItem(door)} style={btnStyle(isSel)}>
-                  {door}{doneDoor && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+                <button key={door} onClick={() => setSubItem(door)} className={`${baseCls} ${stateCls}`}>
+                  {door}{!isActive && doneDoor && <span className="text-caption ml-1 opacity-85">✓</span>}
                 </button>
               )
             })}
@@ -2637,16 +2648,16 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
       )}
 
       {/* 폼 영역 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-3 relative">
         {!item && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>항목을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">항목을 선택해 주세요</div>
         )}
         {item === '회전문' && !subItem && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>북문 또는 남문을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">북문 또는 남문을 선택해 주세요</div>
         )}
 
         {showForm && (
-          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:12 }}>
+          <div className="relative flex flex-col gap-3">
             {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
             {popupState && (
               <InspectionRevisitPopup
@@ -2659,47 +2670,79 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
               />
             )}
             {isDone && !justSaved && (
-              <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe-bar rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
+                <span>이미 점검 완료된 항목입니다</span>
+              </div>
             )}
 
             {/* 점검 결과 */}
             <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+              <div className="flex gap-1.5">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const isActive = result === opt.value
+                  const baseCls  = 'flex-1 py-2.5 rounded-md border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-bold cursor-pointer whitespace-nowrap transition-colors'
+                  const stateCls = !isActive                 ? 'border-border-default bg-surface-raised text-text-tertiary'
+                                 : opt.value === 'normal'    ? 'border-safe-bar bg-safe-bg text-safe'
+                                 : opt.value === 'caution'   ? 'border-warning-bar bg-warning-bg text-warning'
+                                 :                             'border-danger-bar bg-danger-bg text-danger'
+                  return (
+                    <button key={opt.value} onClick={() => setResult(opt.value)} className={`${baseCls} ${stateCls}`}>
+                      {resultIcon(opt.value)}
+                      <span>{opt.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
             {/* 특이사항 + 사진 */}
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea
+                  value={memo}
+                  onChange={e => setMemo(e.target.value)}
+                  placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary"
+                />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
 
-            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            {submitError && (
+              <div className="bg-danger-bg border border-danger-bar text-danger rounded-sm px-3 py-2 text-label font-semibold">{submitError}</div>
+            )}
+            {justSaved && (
+              <div className="bg-safe-bg border border-safe-bar text-safe rounded-sm px-3 py-2 text-label font-semibold inline-flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="flex-shrink-0" />
+                <span>저장 완료</span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* 저장 버튼 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer transition-colors"
+        >닫기</button>
         <button
           onClick={handleSave}
           disabled={submitting || photo.uploading || !canSave}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!canSave ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!canSave ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!canSave ? 'default' : 'pointer', transition:'all .13s' }}
+          className="flex-1 py-3.5 rounded-md text-body font-bold border-0 transition-all"
+          style={{
+            background: (submitting || photo.uploading || !canSave) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+            color:      (submitting || photo.uploading || !canSave) ? 'var(--text-tertiary)' : '#fff',
+            cursor:     (submitting || photo.uploading || !canSave) ? 'default' : 'pointer',
+            boxShadow:  (submitting || photo.uploading || !canSave) ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
+          }}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
         </button>
