@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 12px; display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+  .stat {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: var(--card-padding);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 12px 0 0 12px;
+  }
+  .stat-inner { padding-left: 6px; }
+  .stat-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+  .stat-num { font-family: var(--font-mono); font-size: 28px; font-weight: 700; line-height: 1; color: var(--text-primary); }
+  .stat-sub { font-size: 13px; color: var(--text-tertiary); }
+</style>
+</head><body>
+  <div class="stat">
+    <div class="stat-bar" style="background:var(--status-danger);"></div>
+    <div class="stat-inner">
+      <div class="stat-label">점검 미완료</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+        <span class="stat-num">12</span>
+        <span class="stat-sub">/34</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-bar" style="background:var(--status-warning);"></div>
+    <div class="stat-inner">
+      <div class="stat-label">미조치 항목</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+        <span class="stat-num">3</span>
+        <span class="stat-sub">건</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-bar" style="background:var(--status-info);"></div>
+    <div class="stat-inner">
+      <div class="stat-label">오늘 일정</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+        <span class="stat-num">5</span>
+        <span class="stat-sub">건</span>
+      </div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-bar" style="background:var(--status-safe);"></div>
+    <div class="stat-inner">
+      <div class="stat-label">승강기 고장</div>
+      <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+        <span class="stat-num">0</span>
+        <span class="stat-sub">대</span>
+      </div>
+    </div>
+  </div>
+</body></html>

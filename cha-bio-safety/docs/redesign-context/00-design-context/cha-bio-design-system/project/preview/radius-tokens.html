@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 24px 32px; display: flex; gap: 24px; align-items: flex-start; }
+  .radius-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .radius-box {
+    width: 80px;
+    height: 80px;
+    background: var(--surface-raised);
+    border: 2px solid var(--accent);
+  }
+  .radius-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .radius-val {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+  }
+  .radius-use {
+    font-size: 12px;
+    color: var(--text-disabled);
+    text-align: center;
+    line-height: 1.4;
+  }
+</style>
+</head><body>
+  <div class="radius-card">
+    <div class="radius-box" style="border-radius: var(--radius-sm);"></div>
+    <div class="radius-name">sm</div>
+    <div class="radius-val">8px</div>
+    <div class="radius-use">input, button<br>sub-card</div>
+  </div>
+  <div class="radius-card">
+    <div class="radius-box" style="border-radius: var(--radius-md);"></div>
+    <div class="radius-name">md</div>
+    <div class="radius-val">12px</div>
+    <div class="radius-use">표준 카드</div>
+  </div>
+  <div class="radius-card">
+    <div class="radius-box" style="border-radius: var(--radius-lg);"></div>
+    <div class="radius-name">lg</div>
+    <div class="radius-val">16px</div>
+    <div class="radius-use">모달<br>큰 패널</div>
+  </div>
+  <div class="radius-card">
+    <div class="radius-box" style="border-radius: var(--radius-pill); width: 120px; height: 44px;"></div>
+    <div class="radius-name">pill</div>
+    <div class="radius-val">99px</div>
+    <div class="radius-use">배지, 칩</div>
+  </div>
+</body></html>

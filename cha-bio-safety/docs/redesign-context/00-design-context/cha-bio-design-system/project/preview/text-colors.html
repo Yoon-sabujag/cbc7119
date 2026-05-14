@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 0;
+  }
+  .sample {
+    font-size: 16px;
+    font-weight: 500;
+    width: 200px;
+    flex-shrink: 0;
+  }
+  .token {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    width: 140px;
+  }
+  .hex {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-disabled);
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid var(--border-default);
+  }
+</style>
+</head><body>
+  <div class="row">
+    <div class="dot" style="background: var(--text-primary);"></div>
+    <div class="sample" style="color: var(--text-primary);">본문, 제목 텍스트</div>
+    <div class="token">--text-primary</div>
+    <div class="hex">#e6edf3</div>
+  </div>
+  <div class="row">
+    <div class="dot" style="background: var(--text-secondary);"></div>
+    <div class="sample" style="color: var(--text-secondary);">보조 텍스트 (AAA)</div>
+    <div class="token">--text-secondary</div>
+    <div class="hex">#adb6c0</div>
+  </div>
+  <div class="row">
+    <div class="dot" style="background: var(--text-tertiary);"></div>
+    <div class="sample" style="color: var(--text-tertiary);">희미 메타, 시간</div>
+    <div class="token">--text-tertiary</div>
+    <div class="hex">#8b949e</div>
+  </div>
+  <div class="row">
+    <div class="dot" style="background: var(--text-disabled);"></div>
+    <div class="sample" style="color: var(--text-disabled);">비활성 텍스트</div>
+    <div class="token">--text-disabled</div>
+    <div class="hex">#5d646e</div>
+  </div>
+  <div class="row">
+    <div class="dot" style="background: var(--accent); border-color: var(--accent);"></div>
+    <div class="sample" style="color: var(--text-link);">링크 텍스트</div>
+    <div class="token">--text-link</div>
+    <div class="hex">#58a6ff</div>
+  </div>
+</body></html>

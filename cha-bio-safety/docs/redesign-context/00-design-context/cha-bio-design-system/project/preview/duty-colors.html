@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; gap: 16px; }
+  .duty-card {
+    flex: 1;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .duty-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+  }
+  .duty-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .duty-token {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+  }
+  .duty-chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 99px;
+  }
+</style>
+</head><body>
+  <div class="duty-card">
+    <div class="duty-dot" style="background: var(--duty-day);"></div>
+    <div class="duty-label">주간</div>
+    <div class="duty-chip" style="background: rgba(245,158,11,.15); color: var(--duty-day);">주</div>
+    <div class="duty-token">#f59e0b</div>
+  </div>
+  <div class="duty-card">
+    <div class="duty-dot" style="background: var(--duty-night);"></div>
+    <div class="duty-label">당직</div>
+    <div class="duty-chip" style="background: rgba(239,68,68,.15); color: var(--duty-night);">당</div>
+    <div class="duty-token">#ef4444</div>
+  </div>
+  <div class="duty-card">
+    <div class="duty-dot" style="background: var(--duty-off);"></div>
+    <div class="duty-label">비번</div>
+    <div class="duty-chip" style="background: rgba(59,130,246,.15); color: var(--duty-off);">비</div>
+    <div class="duty-token">#3b82f6</div>
+  </div>
+  <div class="duty-card">
+    <div class="duty-dot" style="background: var(--duty-leave);"></div>
+    <div class="duty-label">휴무</div>
+    <div class="duty-chip" style="background: rgba(107,114,128,.15); color: var(--duty-leave);">휴</div>
+    <div class="duty-token">#6b7280</div>
+  </div>
+</body></html>

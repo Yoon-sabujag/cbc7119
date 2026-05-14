@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html data-theme="light"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px; display: flex; gap: 12px; }
+  .swatch {
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid var(--border-default);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .swatch-color { height: 64px; }
+  .swatch-info {
+    padding: 8px 10px;
+    background: var(--surface-raised);
+  }
+  .swatch-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .swatch-val {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+  }
+</style>
+</head><body>
+  <div class="swatch">
+    <div class="swatch-color" style="background: var(--surface-page);"></div>
+    <div class="swatch-info"><div class="swatch-name">Page</div><div class="swatch-val">#ffffff</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: var(--surface-raised);"></div>
+    <div class="swatch-info"><div class="swatch-name">Raised</div><div class="swatch-val">#f6f8fa</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: var(--surface-sunken);"></div>
+    <div class="swatch-info"><div class="swatch-name">Sunken</div><div class="swatch-val">#ebeef1</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: var(--surface-active);"></div>
+    <div class="swatch-info"><div class="swatch-name">Active</div><div class="swatch-val">#d8dee4</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-color" style="background: var(--surface-overlay);"></div>
+    <div class="swatch-info"><div class="swatch-name">Overlay</div><div class="swatch-val">rgba(0,0,0,.5)</div></div>
+  </div>
+</body></html>

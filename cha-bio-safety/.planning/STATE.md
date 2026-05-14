@@ -74,9 +74,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-1 pending todo(s) in `.planning/todos/pending/`
+2 pending todo(s) in `.planning/todos/pending/`
 
 - 설정 패널 미구현 기능 목록 (v2로 이월 — SETTINGS-01~05 전부 v2 deferred)
+- 소방점검관리 종합정밀 카드 지적사항 수정 버튼 추가 (삭제 왼편, main 브랜치, redesign/02-inspection 완료 후)
 
 ### Blockers/Concerns
 

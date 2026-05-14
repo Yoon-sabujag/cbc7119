@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>일반 점검 재디자인 5차 — 증상 피커 5종 (조건부 표시)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* tokens (v0.1.1) — 동일 */
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22);
+      --accent:#3b82f6;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-fire-bar:#f97316;
+      --status-safe-bg:rgba(34,197,94,0.13); --status-warning-bg:rgba(245,158,11,0.13); --status-danger-bg:rgba(239,68,68,0.13);
+      --status-accent-bg:rgba(59,130,246,0.13);
+      --status-warning-border:rgba(245,158,11,0.35);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    [data-theme="light"] {
+      --surface-page:#ffffff; --surface-raised:#f6f8fa; --surface-sunken:#ebeef1;
+      --text-primary:#1f2328; --text-secondary:#4d5562; --text-tertiary:#656d76; --text-on-accent:#ffffff;
+      --border-default:rgba(0,0,0,0.14); --border-strong:rgba(0,0,0,0.22);
+      --accent:#1f6feb;
+      --status-safe-bar:#15803d; --status-warning-bar:#b45309; --status-danger-bar:#b91c1c; --status-fire-bar:#c2410c;
+      --status-safe-bg:#dcfce7; --status-warning-bg:#fef3c7; --status-danger-bg:#fee2e2;
+      --status-accent-bg:rgba(31,111,235,0.10);
+      --status-warning-border:rgba(180,83,9,0.4);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    :root {
+      --font-sans:'Pretendard Variable','Pretendard',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    body { font-family:var(--font-sans); background:#1a1d22; color:#e6edf3; -webkit-font-smoothing:antialiased; padding:32px; }
+    .meta-label {
+      font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      color:#8b949e; padding:6px 12px;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px; display:inline-block;
+    }
+    .viewport-frame {
+      border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      overflow:hidden; background:var(--surface-page); color:var(--text-primary);
+      font-family:var(--font-sans); position:relative;
+    }
+    .viewport-mobile { width:375px; height:812px; }
+    .viewport-frame * { font-family:inherit; }
+
+    /* ─── 공통 (3·4차 동일) ─── */
+    .mh {
+      padding:12px 16px; background:var(--bg);
+      border-bottom:1px solid var(--bd); flex-shrink:0;
+      display:flex; align-items:center; gap:8px;
+    }
+    .mh-icon { width:18px; height:18px; color:var(--t2); flex-shrink:0; }
+    .mh-title { font-size:16px; font-weight:700; color:var(--t1); }
+    .mh-sub { font-size:12px; color:var(--t3); margin-left:4px; }
+
+    .bar-section {
+      padding:8px 14px; background:var(--bg2);
+      border-bottom:1px solid var(--bd); flex-shrink:0;
+    }
+    .bar-label {
+      font-size:12px; font-weight:600; color:var(--t3);
+      margin-bottom:6px; letter-spacing:0.05em;
+    }
+    .seg { display:flex; gap:8px; flex-wrap:wrap; }
+    .seg button {
+      flex:1 1 0; min-width:0;
+      padding:9px 8px; border-radius:9px;
+      border:1px solid var(--bd2);
+      background:var(--bg); color:var(--t2);
+      font-size:13px; font-weight:700;
+      cursor:pointer; white-space:nowrap; transition:all .12s;
+    }
+    .seg button.is-active {
+      border:1.5px solid var(--acl);
+      background:var(--acl); color:var(--text-on-accent);
+    }
+
+    .floor-row { display:flex; gap:5px; overflow-x:auto; scrollbar-width:none; }
+    .floor-row::-webkit-scrollbar { display:none; }
+    .floor-chip {
+      flex-shrink:0; padding:6px 14px; border-radius:8px;
+      font-size:13px; font-weight:700; cursor:pointer;
+      border:1px solid var(--bd2); background:var(--bg); color:var(--t2);
+      white-space:nowrap; transition:all .1s;
+    }
+    .floor-chip.is-active {
+      border:1.5px solid var(--acl);
+      background:var(--acl); color:var(--text-on-accent);
+    }
+
+    .modal-body {
+      flex:1; overflow-y:auto; padding:14px;
+      display:flex; flex-direction:column; gap:12px;
+      position:relative;
+    }
+
+    /* 개소 카드 (이전/다음 네비, 2차 DIV 패턴 재사용) */
+    .loc-card {
+      background:var(--bg2);
+      border-radius:12px;
+      padding:10px 12px;
+      border:1px solid var(--bd);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .loc-nav {
+      width:36px; height:36px; border-radius:8px;
+      border:1px solid var(--bd); background:var(--bg);
+      color:var(--t1); font-size:20px; font-weight:700;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .loc-nav[disabled] { opacity:0.3; color:var(--t3); cursor:default; }
+    .loc-info { flex:1; text-align:center; }
+    .loc-info .loc-cap { font-size:12px; color:var(--t3); font-weight:600; }
+    .loc-info .loc-title { font-size:15px; font-weight:700; color:var(--t1); margin-top:2px; }
+    .loc-info .loc-sub { font-size:12px; color:var(--t2); margin-top:2px; }
+
+    /* 소화기 detail 카드 */
+    .ext-detail {
+      background:var(--bg2);
+      border-radius:10px;
+      padding:10px 12px;
+      border:1px solid var(--bd);
+    }
+    .ext-detail .row {
+      display:grid; grid-template-columns:1fr 1fr; gap:4px 12px;
+      font-size:12px;
+    }
+    .ext-detail .row > div .lbl { color:var(--t3); }
+    .ext-detail .row > div .val { color:var(--t1); font-weight:600; }
+
+    /* 결과 picker (3·4차와 동일 pill + lucide outline) */
+    .result-picker { display:flex; gap:8px; }
+    .result-picker button {
+      flex:1;
+      padding:9px 8px;
+      border-radius:99px;
+      border:1.5px solid var(--bd);
+      background:var(--bg2);
+      color:var(--t3);
+      font-size:14px; font-weight:700;
+      cursor:pointer; transition:all .12s; white-space:nowrap;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    }
+    .result-picker button .ic { width:16px; height:16px; flex-shrink:0; }
+    .result-picker button.is-safe    { border-color:var(--safe);   background:var(--status-safe-bg);    color:var(--safe); }
+    .result-picker button.is-warning { border-color:var(--warn);   background:var(--status-warning-bg); color:var(--warn); }
+    .result-picker button.is-danger  { border-color:var(--danger); background:var(--status-danger-bg);  color:var(--danger); }
+
+    /* ─── 5차 전용 — 증상 피커 ─── */
+    .symptom-picker {
+      display:flex; gap:6px; flex-wrap:wrap;
+    }
+    .symptom-picker button {
+      flex:1 1 0;
+      min-width:0;
+      padding:9px 8px;
+      border-radius:10px;
+      border:1.5px solid var(--bd);
+      background:var(--bg2);
+      color:var(--t2);
+      font-size:13px;
+      font-weight:600;
+      cursor:pointer;
+      text-align:center;
+      transition:all .12s;
+      line-height:1.3;
+    }
+    .symptom-picker button.is-active {
+      border-color:var(--acl);
+      background:var(--status-accent-bg);
+      color:var(--acl);
+    }
+
+    /* 카탈로그 viewport — 5종 증상 피커 모음 */
+    .catalog-section {
+      margin-bottom: 16px;
+    }
+    .catalog-section .cat-header {
+      display:flex; align-items:center; gap:6px; margin-bottom:8px;
+    }
+    .catalog-section .cat-icon { width:14px; height:14px; color:var(--t3); }
+    .catalog-section .cat-name {
+      font-size:12px; font-weight:700; color:var(--t2);
+      letter-spacing:0.02em;
+    }
+    .catalog-section .cat-result-pill {
+      margin-left:auto;
+      padding:3px 8px;
+      border-radius:99px;
+      font-size:12px; font-weight:700;
+      background:var(--status-warning-bg);
+      color:var(--warn);
+      border:1px solid var(--status-warning-border);
+    }
+
+    /* 메모 + 사진 (4차와 동일) */
+    .memo-row { display:flex; gap:8px; align-items:flex-start; }
+    .memo-area {
+      flex:1; height:72px;
+      padding:10px 12px;
+      border-radius:10px;
+      background:var(--bg2); border:1px solid var(--bd);
+      color:var(--t1); font-size:13px;
+      resize:none; box-sizing:border-box;
+      font-family:inherit; outline:none;
+    }
+    .memo-area::placeholder { color:var(--t3); }
+    .photo-btn {
+      width:72px; height:72px;
+      border-radius:10px;
+      border:1px solid var(--bd);
+      background:var(--bg2);
+      color:var(--t2);
+      font-size:12px; font-weight:600;
+      cursor:pointer;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:4px; flex-shrink:0;
+    }
+    .photo-btn .photo-icon { width:22px; height:22px; color:var(--t2); }
+
+    /* 하단 (4차와 동일) */
+    .footer-bar {
+      padding:10px 14px 12px;
+      background:var(--bg2);
+      border-top:1px solid var(--bd);
+      flex-shrink:0;
+      display:flex; gap:8px;
+    }
+    .btn-close-mini {
+      padding:12px 18px; border-radius:12px;
+      background:var(--bg); border:1px solid var(--bd2);
+      color:var(--t2); font-size:13px; font-weight:600;
+      cursor:pointer;
+    }
+    .btn-save {
+      flex:1; padding:13px 0; border-radius:12px;
+      border:none; color:#fff;
+      background:linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      font-size:14px; font-weight:700;
+      cursor:pointer; box-shadow:0 4px 14px rgba(37,99,235,0.35);
+    }
+    [data-theme="light"] .btn-save {
+      background:linear-gradient(135deg, #1f6feb, #0369a1);
+      box-shadow:0 4px 14px rgba(31,111,235,0.28);
+    }
+
+    /* 카탈로그 헤더 카드 */
+    .catalog-intro {
+      padding:14px;
+      background:var(--bg2);
+      border-radius:10px;
+      border:1px solid var(--bd);
+      margin-bottom:16px;
+    }
+    .catalog-intro .ci-title {
+      font-size:14px; font-weight:700; color:var(--t1);
+      margin-bottom:4px;
+    }
+    .catalog-intro .ci-sub {
+      font-size:12px; color:var(--t3); line-height:1.5;
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  redesign/02-inspection 5차 시안 — 증상 피커 5종
+  ----------------------------------------------------------------------------
+  조건부 표시 룰:
+  - 결과 = caution 또는 bad 일 때만 표시 (normal 시 숨김)
+  - "직접 입력" 선택 시 memo 라벨 변경: "특이사항 (선택)" → "증상 상세 및 특이사항"
+  ----------------------------------------------------------------------------
+  카테고리별 옵션 (코드 InspectionPage.tsx 3463-3545 그대로):
+  - 유도등 (3): 점등 이상 · 예비전원 이상 · 직접 입력
+  - 소화기 (3): 받침 파손 · 연한 만료 · 직접 입력
+  - 소화전 (4): 경종 파손 · 위치표시등 점등 이상 · 호스걸이 파손 · 직접 입력
+  - 방화셔터 (3): 방화셔터 라인 표시 필요 · 연동제어기 기판 작동 불 · 직접 입력
+  - 전실제연댐퍼 (3): 기판 조작 불량 · 모터 기능 이상 · 직접 입력
+  ----------------------------------------------------------------------------
+  v0.1.1 룰:
+  - 증상 button = bg2 + 1.5px 보더, active = accent border + tinted bg + accent 색
+  - 코드 fontSize:10/11 → 13 (노안 친화 룰 §1.1)
+  - 결과 picker는 3차 .result-picker (pill + lucide outline) 동일
+  ============================================================================
+-->
+
+<body>
+
+  <header class="max-w-[1400px] mx-auto mb-8" style="padding:0">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-14</span>
+      <span class="meta-label">redesign/02-inspection 5차 — 증상 피커 5종</span>
+    </div>
+    <h1 style="font-size:28px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;color:#e6edf3">증상 피커 5종 재디자인</h1>
+    <p style="font-size:13px;color:#adb6c0;line-height:1.65;max-width:980px">
+      InspectionPage.tsx <strong>3463-3545</strong> 1:1 매핑 ·
+      <strong style="color:#fbbf24">조건부 표시</strong> (result = caution/bad 일 때만) ·
+      유도등(3) · 소화기(3) · 소화전(4) · 방화셔터(3) · 전실제연댐퍼(3) — 총 5종 ·
+      "직접 입력" 선택 시 memo 라벨 "<strong>증상 상세 및 특이사항</strong>"으로 변경
+    </p>
+  </header>
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">증상 피커 카탈로그 · Dark · 5종 옵션 모음</span>
+        <span class="meta-label">사용 예 · Light · 소화기 모달 + 받침 파손</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   카탈로그 Mobile Dark — 5종 증상 피커 모음        ║
+             ║   - 각 카테고리별 segmented 옵션, 각각 다른 active ║
+             ║   - 디자인 가이드용 — 실제 코드는 모달 안에서 표시   ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="list-checks" class="mh-icon"></i>
+              <span class="mh-title">증상 피커</span>
+              <span class="mh-sub">· 카탈로그 (5종)</span>
+            </div>
+
+            <div class="modal-body">
+
+              <!-- 카탈로그 안내 -->
+              <div class="catalog-intro">
+                <div class="ci-title">조건부 컴포넌트</div>
+                <div class="ci-sub">
+                  점검 결과가 <strong style="color:var(--warn)">주의</strong> 또는 <strong style="color:var(--danger)">불량</strong>일 때만 표시.
+                  카테고리별 옵션 코드 그대로, 디자인만 v0.1.1.
+                </div>
+              </div>
+
+              <!-- 1. 유도등 (3 options) -->
+              <div class="catalog-section">
+                <div class="cat-header">
+                  <svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="6" width="18" height="12" rx="1"/>
+                    <path d="M14 12l-4-3v6z" fill="currentColor"/>
+                  </svg>
+                  <span class="cat-name">유도등</span>
+                  <span class="cat-result-pill">주의</span>
+                </div>
+                <div class="symptom-picker">
+                  <button class="is-active">점등 이상</button>
+                  <button>예비전원 이상</button>
+                  <button>직접 입력</button>
+                </div>
+              </div>
+
+              <!-- 2. 소화기 (3 options) -->
+              <div class="catalog-section">
+                <div class="cat-header">
+                  <svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 7h6"/><path d="M12 4v3"/>
+                    <rect x="8" y="7" width="8" height="14" rx="2"/>
+                    <path d="M14 4l3-1"/>
+                  </svg>
+                  <span class="cat-name">소화기</span>
+                  <span class="cat-result-pill">주의</span>
+                </div>
+                <div class="symptom-picker">
+                  <button>받침 파손</button>
+                  <button class="is-active">연한 만료</button>
+                  <button>직접 입력</button>
+                </div>
+              </div>
+
+              <!-- 3. 소화전 (4 options) -->
+              <div class="catalog-section">
+                <div class="cat-header">
+                  <svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M12 4v2M12 18v2M4 12h2M18 12h2"/>
+                  </svg>
+                  <span class="cat-name">소화전</span>
+                  <span class="cat-result-pill" style="background:var(--status-danger-bg);color:var(--danger);border-color:rgba(239,68,68,0.35)">불량</span>
+                </div>
+                <div class="symptom-picker">
+                  <button>경종 파손</button>
+                  <button class="is-active">위치표시등 점등 이상</button>
+                  <button>호스걸이 파손</button>
+                  <button>직접 입력</button>
+                </div>
+              </div>
+
+              <!-- 4. 방화셔터 (3 options) -->
+              <div class="catalog-section">
+                <div class="cat-header">
+                  <svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="2" width="18" height="3" rx="1"/>
+                    <path d="M3 5v16"/><path d="M21 5v16"/>
+                    <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
+                    <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
+                  </svg>
+                  <span class="cat-name">방화셔터</span>
+                  <span class="cat-result-pill" style="background:var(--status-danger-bg);color:var(--danger);border-color:rgba(239,68,68,0.35)">불량</span>
+                </div>
+                <div class="symptom-picker">
+                  <button>방화셔터 라인 표시 필요</button>
+                  <button>연동제어기 기판 작동 불</button>
+                  <button class="is-active">직접 입력</button>
+                </div>
+              </div>
+
+              <!-- 5. 전실제연댐퍼 (3 options) -->
+              <div class="catalog-section">
+                <div class="cat-header">
+                  <i data-lucide="shield" class="cat-icon"></i>
+                  <span class="cat-name">전실제연댐퍼</span>
+                  <span class="cat-result-pill">주의</span>
+                </div>
+                <div class="symptom-picker">
+                  <button class="is-active">기판 조작 불량</button>
+                  <button>모터 기능 이상</button>
+                  <button>직접 입력</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   사용 예 Mobile Light — 소화기 InspectionModal    ║
+             ║   - zone 사무동 / 5F / 개소 12/45                 ║
+             ║   - 소화기 detail 카드 (제조정보) + 연한 임박 경고   ║
+             ║   - 결과 = 주의 + 증상 = 받침 파손                 ║
+             ║   - memo 일반 라벨 ("특이사항 (선택)")               ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <svg class="mh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 7h6"/><path d="M12 4v3"/>
+                <rect x="8" y="7" width="8" height="14" rx="2"/>
+                <path d="M14 4l3-1"/>
+              </svg>
+              <span class="mh-title">소화기</span>
+            </div>
+
+            <!-- 구역 -->
+            <div class="bar-section">
+              <div class="bar-label">구역</div>
+              <div class="seg">
+                <button>연구동</button>
+                <button class="is-active">사무동</button>
+                <button>지하</button>
+              </div>
+            </div>
+
+            <!-- 층 -->
+            <div class="bar-section">
+              <div class="bar-label">층</div>
+              <div class="floor-row">
+                <button class="floor-chip">8F</button>
+                <button class="floor-chip">7F</button>
+                <button class="floor-chip">6F</button>
+                <button class="floor-chip is-active">5F</button>
+                <button class="floor-chip">3F</button>
+                <button class="floor-chip">2F</button>
+                <button class="floor-chip">1F</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <!-- 개소 picker -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">개소 12/45 · 5/45 완료</div>
+                  <div class="loc-title">5F 동측 복도</div>
+                  <div class="loc-sub">CP-FE-0214</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 소화기 detail -->
+              <div class="ext-detail">
+                <div class="row">
+                  <div><span class="lbl">제조업체 </span><span class="val">서울소방</span></div>
+                  <div><span class="lbl">제조년월 </span><span class="val">2014-08</span></div>
+                  <div><span class="lbl">형식승인 </span><span class="val">15-12-3-4</span></div>
+                  <div><span class="lbl">접두문자 </span><span class="val">A</span></div>
+                  <div><span class="lbl">증지번호 </span><span class="val">240128</span></div>
+                  <div><span class="lbl">제조번호 </span><span class="val">2014A0812</span></div>
+                </div>
+                <div style="margin-top:8px; padding:6px 10px; border-radius:6px;
+                            background:var(--status-warning-bg);
+                            border:1px solid var(--status-warning-border);
+                            font-size:12px; font-weight:700; color:var(--warn);">
+                  연한 임박 — 교체 시급
+                </div>
+              </div>
+
+              <!-- 결과 picker (주의) -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button class="is-warning"><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <!-- 증상 피커 — result !== normal 일 때만 표시 -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">증상</div>
+                <div class="symptom-picker">
+                  <button class="is-active">받침 파손</button>
+                  <button>연한 만료</button>
+                  <button>직접 입력</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 (라벨은 일반 — "직접 입력" 아님) -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 (선택)</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>

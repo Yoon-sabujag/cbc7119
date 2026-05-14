@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .schedule-row { display: flex; align-items: flex-start; gap: 6px; padding: 7px 0; border-bottom: 1px solid var(--border-default); }
+  .schedule-row:last-child { border-bottom: none; }
+  .time-col { font-family: var(--font-mono); font-size: 12px; color: var(--text-tertiary); width: 40px; flex-shrink: 0; padding-top: 1px; }
+  .bar { width: 2px; border-radius: 2px; flex-shrink: 0; align-self: stretch; min-height: 24px; }
+  .title-col { flex: 1; min-width: 0; }
+  .title-text { font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; flex-shrink: 0; }
+  .sec-label { font-size: 12px; font-weight: 700; color: var(--text-tertiary); letter-spacing: .04em; display: flex; align-items: center; gap: 5px; }
+  .sec-label svg { width: 14px; height: 14px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head><body>
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+    <span class="text-label" style="font-weight: 700; color: var(--text-secondary);">오늘 일정</span>
+    <span style="font-size:12px;color:var(--text-tertiary);background:var(--surface-sunken);padding:2px 10px;border-radius:10px;">5건</span>
+  </div>
+  <div class="sec-label" style="padding: 4px 0 2px;">
+    <svg viewBox="0 0 24 24" stroke="var(--text-tertiary)"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    시간 확정
+  </div>
+  <div class="schedule-row">
+    <div class="time-col">09:30</div>
+    <div class="bar" style="background: var(--status-fire);"></div>
+    <div class="title-col"><div class="title-text">VIP 투어 업무협조</div></div>
+    <span class="badge" style="background: var(--status-info-bg); color: var(--status-info);">진행중</span>
+  </div>
+  <div class="schedule-row">
+    <div class="time-col">14:00</div>
+    <div class="bar" style="background: #f97316;"></div>
+    <div class="title-col"><div class="title-text">엘리베이터 5호기 수리</div></div>
+    <span class="badge" style="background: rgba(110,118,129,.13); color: var(--text-tertiary);">예정</span>
+  </div>
+  <div class="schedule-row">
+    <div class="time-col">16:00</div>
+    <div class="bar" style="background: var(--accent);"></div>
+    <div class="title-col"><div class="title-text">소방 종합점검 협의</div></div>
+    <span class="badge" style="background: rgba(110,118,129,.13); color: var(--text-tertiary);">예정</span>
+  </div>
+  <div class="sec-label" style="padding: 4px 0 2px; border-top: 1px solid var(--border-default); margin-top: 2px;">
+    <svg viewBox="0 0 24 24" stroke="var(--text-tertiary)"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+    시간 미정
+  </div>
+  <div class="schedule-row">
+    <div class="time-col">—</div>
+    <div class="bar" style="background: var(--accent);"></div>
+    <div class="title-col"><div class="title-text">전 층 DIV 격주 점검</div></div>
+    <span class="badge" style="background: var(--status-danger-bg); color: var(--status-danger);">지연</span>
+  </div>
+</body></html>

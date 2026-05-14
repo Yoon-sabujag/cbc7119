@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html data-theme="dark"><head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { background: var(--surface-page); padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .label { font-size: 12px; color: var(--text-tertiary); width: 80px; flex-shrink: 0; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    padding: 0 var(--button-padding-x);
+    height: var(--button-height);
+    font-size: 14px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+    color: #fff;
+  }
+  .btn-secondary {
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+  }
+  .btn-danger {
+    background: var(--status-danger-bg);
+    color: var(--status-danger);
+    border: 1px solid rgba(239,68,68,.3);
+  }
+  .btn-sm {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 12px;
+    border-radius: 6px;
+  }
+</style>
+</head><body>
+  <div class="row">
+    <span class="label">Primary</span>
+    <button class="btn btn-primary">점검 기록 저장</button>
+    <button class="btn btn-primary btn-sm">저장</button>
+  </div>
+  <div class="row">
+    <span class="label">Secondary</span>
+    <button class="btn btn-secondary">닫기</button>
+    <button class="btn btn-secondary btn-sm">취소</button>
+  </div>
+  <div class="row">
+    <span class="label">Ghost</span>
+    <button class="btn btn-ghost">전체 보기</button>
+    <button class="btn btn-ghost btn-sm">완료 처리</button>
+  </div>
+  <div class="row">
+    <span class="label">Danger</span>
+    <button class="btn btn-danger">삭제</button>
+    <button class="btn btn-danger btn-sm">조치 취소</button>
+  </div>
+</body></html>

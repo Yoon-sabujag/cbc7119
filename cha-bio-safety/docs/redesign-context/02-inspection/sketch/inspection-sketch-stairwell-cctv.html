@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>일반 점검 재디자인 4차 — 특별피난계단 / CCTV (일괄 입력)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* tokens (v0.1.1) — 1·2·3차와 동일 */
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33; --surface-active:#2c333d;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22);
+      --accent:#3b82f6;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-fire-bar:#f97316;
+      --status-safe-bg:rgba(34,197,94,0.13); --status-warning-bg:rgba(245,158,11,0.13); --status-danger-bg:rgba(239,68,68,0.13);
+      --status-safe-border:rgba(34,197,94,0.35);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    [data-theme="light"] {
+      --surface-page:#ffffff; --surface-raised:#f6f8fa; --surface-sunken:#ebeef1; --surface-active:#d8dee4;
+      --text-primary:#1f2328; --text-secondary:#4d5562; --text-tertiary:#656d76; --text-on-accent:#ffffff;
+      --border-default:rgba(0,0,0,0.14); --border-strong:rgba(0,0,0,0.22);
+      --accent:#1f6feb;
+      --status-safe-bar:#15803d; --status-warning-bar:#b45309; --status-danger-bar:#b91c1c; --status-fire-bar:#c2410c;
+      --status-safe-bg:#dcfce7; --status-warning-bg:#fef3c7; --status-danger-bg:#fee2e2;
+      --status-safe-border:rgba(22,101,52,0.4);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    :root {
+      --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+      --font-sans:'Pretendard Variable','Pretendard',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    .text-mono { font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+
+    body { font-family:var(--font-sans); background:#1a1d22; color:#e6edf3; -webkit-font-smoothing:antialiased; padding:32px; }
+    .meta-label {
+      font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      color:#8b949e; padding:6px 12px;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px; display:inline-block;
+    }
+    .viewport-frame {
+      border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      overflow:hidden; background:var(--surface-page); color:var(--text-primary);
+      font-family:var(--font-sans); position:relative;
+    }
+    .viewport-mobile { width:375px; height:812px; }
+    .viewport-frame * { font-family:inherit; }
+
+    /* ─── 공통 컴포넌트 (3차 패턴 동일) ─── */
+    .mh {
+      padding: 12px 16px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mh-icon { width: 18px; height: 18px; color: var(--t2); flex-shrink: 0; }
+    .mh-title { font-size: 16px; font-weight: 700; color: var(--t1); }
+    .mh-sub { font-size: 12px; color: var(--t3); margin-left: 4px; }
+    .mh-action {
+      margin-left: auto;
+      padding: 5px 11px;
+      border-radius: 8px;
+      border: 1px solid var(--bd2);
+      background: var(--bg2);
+      color: var(--t2);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .mh-action .ic { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .bar-section {
+      padding: 8px 14px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--bd);
+      flex-shrink: 0;
+    }
+    .bar-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--t3);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+    .seg { display: flex; gap: 8px; flex-wrap: wrap; }
+    .seg button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 9px 8px;
+      border-radius: 9px;
+      border: 1px solid var(--bd2);
+      background: var(--bg);
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .12s;
+    }
+    .seg button.is-active {
+      border: 1.5px solid var(--acl);
+      background: var(--acl);
+      color: var(--text-on-accent);
+    }
+    .seg button.is-done {
+      border: 1.5px solid var(--safe);
+      background: var(--status-safe-bg);
+      color: var(--safe);
+    }
+    .seg button .done-mark { font-size: 12px; margin-left: 4px; opacity: 0.85; }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    /* alert (이미 점검 완료 박스) */
+    .alert-success {
+      background: var(--status-safe-bg);
+      border: 1px solid var(--status-safe-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--safe);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ─── 4차 전용 — 일괄 입력 그리드 ─── */
+
+    /* 계단실/CCTV 공용 2열 그리드 */
+    .batch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .batch-col { display: flex; flex-direction: column; gap: 6px; }
+
+    /* 계단실 타일 (층 단위) */
+    .floor-tile {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 8px 8px 6px;
+      border: 1px solid var(--bd);
+    }
+    .floor-tile.is-init { border: 2px solid var(--status-fire-bar); }
+    .floor-tile .floor-lbl {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--t2);
+      margin-bottom: 6px;
+    }
+    .floor-tile.is-init .floor-lbl { color: var(--status-fire-bar); }
+
+    /* DVR 타일 (label + desc + result) */
+    .dvr-tile {
+      background: var(--bg2);
+      border-radius: 10px;
+      padding: 8px 8px 6px;
+      border: 1px solid var(--bd);
+    }
+    .dvr-tile .dvr-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t1);
+      line-height: 1.2;
+    }
+    .dvr-tile .dvr-desc {
+      font-size: 12px;
+      color: var(--t3);
+      margin-top: 2px;
+      margin-bottom: 6px;
+      line-height: 1.25;
+      min-height: 1.25em;
+    }
+
+    /* result-mini (3차와 동일 — pill + lucide + 라벨) */
+    .result-mini {
+      display: flex;
+      gap: 4px;
+    }
+    .result-mini button {
+      flex: 1;
+      padding: 5px 4px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1.5px solid var(--bd);
+      background: var(--bg);
+      color: var(--t3);
+      white-space: nowrap;
+      transition: all .1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+    }
+    .result-mini button .ic { width: 12px; height: 12px; flex-shrink: 0; }
+    .result-mini button.is-safe    { border-color: var(--safe);   background: var(--status-safe-bg);    color: var(--safe); }
+    .result-mini button.is-warning { border-color: var(--warn);   background: var(--status-warning-bg); color: var(--warn); }
+    .result-mini button.is-danger  { border-color: var(--danger); background: var(--status-danger-bg);  color: var(--danger); }
+
+    /* 메모 + 사진 (3차와 동일) */
+    .memo-row { display: flex; gap: 8px; align-items: flex-start; }
+    .memo-area {
+      flex: 1;
+      height: 72px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      color: var(--t1);
+      font-size: 13px;
+      resize: none;
+      box-sizing: border-box;
+      font-family: inherit;
+      outline: none;
+    }
+    .memo-area::placeholder { color: var(--t3); }
+
+    .photo-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      border: 1px solid var(--bd);
+      background: var(--bg2);
+      color: var(--t2);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-shrink: 0;
+      transition: all .12s;
+    }
+    .photo-btn .photo-icon { width: 22px; height: 22px; color: var(--t2); }
+
+    /* 하단 버튼 바 (3차와 동일) */
+    .footer-bar {
+      padding: 10px 14px 12px;
+      background: var(--bg2);
+      border-top: 1px solid var(--bd);
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+    }
+    .btn-close-mini {
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: var(--bg);
+      border: 1px solid var(--bd2);
+      color: var(--t2);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-save {
+      flex: 1;
+      padding: 13px 0;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    }
+    [data-theme="light"] .btn-save {
+      background: linear-gradient(135deg, #1f6feb, #0369a1);
+      box-shadow: 0 4px 14px rgba(31,111,235,0.28);
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  redesign/02-inspection 4차 시안 — 특별피난계단 / CCTV (일괄 입력)
+  ----------------------------------------------------------------------------
+  v0.1.1 룰 적용:
+  - 헤더 아이콘 lucide / 커스텀 SVG (§7.2)
+    · 특별피난계단 = StairsIcon (커스텀, 1차 시안 line 765와 동일)
+    · CCTV = video lucide (§7.2 매핑)
+  - 결과 = result-mini (pill + lucide outline + 라벨, 3차와 동일 패턴, §7.3)
+  - 일괄 입력 2열 그리드 (3차 계단전실 패턴 재사용)
+  - 12px 폰트 floor — dvr-desc 12px 적용 (코드의 9px → 12px 상향)
+  ----------------------------------------------------------------------------
+  코드 권위:
+  - InspectionPage.tsx 180-405 (StairwellModal)
+  - InspectionPage.tsx 411-571 (CctvModal)
+  - InspectionPage.tsx 172-178 (STAIRWELLS — 5개 계단실, 층 구성 다름)
+  - src/utils/cctv.ts (CCTV_DVRS — 13대 DVR)
+  ----------------------------------------------------------------------------
+  데이터 (코드 기준 — 운영 데이터 일치):
+  - 계단실 1: 8F~1F (7층, 좌4/우3)
+  - 계단실 2: 8F~B5 (12층, 좌6/우6)
+  - 계단실 3: 8F~B1 (8층, 좌4/우4)
+  - 계단실 4: 8F~B5 (12층, 좌6/우6)
+  - 계단실 5: 8F~B4 (11층, 좌6/우5)
+  - DVR 13대 (DVR-01 ~ DVR-13), 좌7/우6
+  ============================================================================
+-->
+
+<body>
+
+  <header class="max-w-[1400px] mx-auto mb-8" style="padding:0">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-14</span>
+      <span class="meta-label">redesign/02-inspection 4차 — 특별피난계단 / CCTV 일괄 입력</span>
+    </div>
+    <h1 style="font-size:28px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;color:#e6edf3">특별피난계단 / CCTV 모달 재디자인</h1>
+    <p style="font-size:13px;color:#adb6c0;line-height:1.65;max-width:980px">
+      InspectionPage.tsx <strong>180-405 (StairwellModal)</strong> + <strong>411-571 (CctvModal)</strong> 1:1 매핑 ·
+      <strong style="color:#fbbf24">일괄 입력 2열 그리드</strong> (3차 계단전실 패턴 재사용) ·
+      특별피난계단 = <strong>5개 계단실</strong>(층 구성 다름), CCTV = <strong>13대 DVR</strong> 한 번에 ·
+      result-mini (pill + lucide + 라벨, 3차와 동일) · 사진 1장이 일괄 적용 (caution/bad 첫 cp 또는 첫 cp에 attach)
+    </p>
+  </header>
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: 특별피난계단 (Mobile Dark + Mobile Light)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">특별피난계단 · Dark · 계단실 2 (12층 일괄)</span>
+        <span class="meta-label">특별피난계단 · Light · 계단실 1 (7층, 완료 단계)</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   특별피난계단 Mobile Dark — 계단실 2 (12층)        ║
+             ║   - 좌6: 8F~2F · 우6: 1F~B5                    ║
+             ║   - 결과 분포: 6F 주의(fire QR 강조), B2 불량      ║
+             ║   - 1/12층 이미 점검 완료                        ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <svg class="mh-icon" viewBox="0 0 24 24" fill="none">
+                <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+              </svg>
+              <span class="mh-title">특별피난계단</span>
+              <span class="mh-sub">· 피난·방화시설 · 방화문</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">계단실 선택</div>
+              <div class="seg">
+                <button class="is-done">1<span class="done-mark">✓</span></button>
+                <button class="is-active">2</button>
+                <button>3</button>
+                <button>4</button>
+                <button>5</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <div class="alert-success">
+                <span>✓</span>
+                <span style="font-size:13px;font-weight:600">1/12층 이미 점검 완료</span>
+              </div>
+
+              <!-- 계단실 #2 — 12층 (좌 6 / 우 6) -->
+              <div class="batch-grid">
+                <!-- 좌측 6: 8F, 7F, 6F, 5F, 3F, 2F -->
+                <div class="batch-col">
+                  <div class="floor-tile">
+                    <div class="floor-lbl">8F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">7F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile is-init">
+                    <div class="floor-lbl">6F</div>
+                    <div class="result-mini">
+                      <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button class="is-warning"><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">5F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">3F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">2F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 우측 6: 1F, B1, B2, B3, B4, B5 -->
+                <div class="batch-col">
+                  <div class="floor-tile">
+                    <div class="floor-lbl">1F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">B1</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">B2</div>
+                    <div class="result-mini">
+                      <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button class="is-danger"><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">B3</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">B4</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">B5</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요">6F 방화문 도어클로저 작동 늦음, B2 방화문 부속 손상.</textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">계단실 2 점검 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   특별피난계단 Mobile Light — 계단실 1 (7층, 완료)  ║
+             ║   - 좌4: 8F~5F · 우3: 3F~1F                    ║
+             ║   - 모두 정상, 7/7층 점검 완료                    ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <svg class="mh-icon" viewBox="0 0 24 24" fill="none">
+                <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+              </svg>
+              <span class="mh-title">특별피난계단</span>
+              <span class="mh-sub">· 피난·방화시설 · 방화문</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">계단실 선택</div>
+              <div class="seg">
+                <button class="is-active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>4</button>
+                <button>5</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <div class="alert-success">
+                <span>✓</span>
+                <span style="font-size:13px;font-weight:600">7/7층 이미 점검 완료</span>
+              </div>
+
+              <!-- 계단실 #1 — 7층 (좌 4 / 우 3) -->
+              <div class="batch-grid">
+                <div class="batch-col">
+                  <div class="floor-tile">
+                    <div class="floor-lbl">8F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">7F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">6F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">5F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="batch-col">
+                  <div class="floor-tile">
+                    <div class="floor-lbl">3F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">2F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="floor-tile">
+                    <div class="floor-lbl">1F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">계단실 1 점검 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 2: CCTV (Mobile Dark + Mobile Light)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">CCTV · Dark · DVR 13대 일괄 (입력 진행 중)</span>
+        <span class="meta-label">CCTV · Light · 결과 완료 + 사진 첨부</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   CCTV Mobile Dark — DVR 13대 일괄                ║
+             ║   - 좌7: DVR 1~7 · 우6: DVR 8~13                ║
+             ║   - DVR 5 주의 (50일 미만 만기 임박 예시)            ║
+             ║   - 우측 상단 "설비 현황" 액션 버튼                  ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="video" class="mh-icon"></i>
+              <span class="mh-title">CCTV 점검</span>
+              <span class="mh-sub">· B1F 방재센터 DVR 13대</span>
+              <button class="mh-action">
+                <i data-lucide="server" class="ic"></i>
+                설비 현황
+              </button>
+            </div>
+
+            <div class="modal-body">
+
+              <!-- DVR 13대 2열 (좌7/우6) -->
+              <div class="batch-grid">
+                <div class="batch-col">
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 1</div>
+                    <div class="dvr-desc">8F, 7F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 2</div>
+                    <div class="dvr-desc">6F, 5F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 3</div>
+                    <div class="dvr-desc">5F, 2F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 4</div>
+                    <div class="dvr-desc">3F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 5</div>
+                    <div class="dvr-desc">3F, 2F</div>
+                    <div class="result-mini">
+                      <button><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button class="is-warning"><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 6</div>
+                    <div class="dvr-desc">1F, B1F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 7</div>
+                    <div class="dvr-desc">B1F, B2F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="batch-col">
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 8</div>
+                    <div class="dvr-desc">B2F~B4F</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 9</div>
+                    <div class="dvr-desc">B3F (주차장)</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 10</div>
+                    <div class="dvr-desc">B4F (주차장)</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 11</div>
+                    <div class="dvr-desc">B5F (주차장)</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 12</div>
+                    <div class="dvr-desc">리서치프라자, 서버실</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                  <div class="dvr-tile">
+                    <div class="dvr-label">DVR 13</div>
+                    <div class="dvr-desc">국제회의실, 대강당</div>
+                    <div class="result-mini">
+                      <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                      <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                      <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요">DVR 5 보관일수 47일 (50일 미만 임박) — 4월 보고서 참조.</textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">CCTV 점검 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   CCTV Mobile Light — 13대 모두 정상 + 사진 첨부    ║
+             ║   - 13/13대 점검 완료                            ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="video" class="mh-icon"></i>
+              <span class="mh-title">CCTV 점검</span>
+              <span class="mh-sub">· B1F 방재센터 DVR 13대</span>
+              <button class="mh-action">
+                <i data-lucide="server" class="ic"></i>
+                설비 현황
+              </button>
+            </div>
+
+            <div class="modal-body">
+
+              <div class="alert-success">
+                <span>✓</span>
+                <span style="font-size:13px;font-weight:600">13/13대 이미 점검 완료</span>
+              </div>
+
+              <!-- DVR 13대 2열 모두 정상 -->
+              <div class="batch-grid">
+                <div class="batch-col">
+                  <div class="dvr-tile"><div class="dvr-label">DVR 1</div><div class="dvr-desc">8F, 7F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 2</div><div class="dvr-desc">6F, 5F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 3</div><div class="dvr-desc">5F, 2F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 4</div><div class="dvr-desc">3F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 5</div><div class="dvr-desc">3F, 2F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 6</div><div class="dvr-desc">1F, B1F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 7</div><div class="dvr-desc">B1F, B2F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                </div>
+
+                <div class="batch-col">
+                  <div class="dvr-tile"><div class="dvr-label">DVR 8</div><div class="dvr-desc">B2F~B4F</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 9</div><div class="dvr-desc">B3F (주차장)</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 10</div><div class="dvr-desc">B4F (주차장)</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 11</div><div class="dvr-desc">B5F (주차장)</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 12</div><div class="dvr-desc">리서치프라자, 서버실</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                  <div class="dvr-tile"><div class="dvr-label">DVR 13</div><div class="dvr-desc">국제회의실, 대강당</div><div class="result-mini"><button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button><button><i data-lucide="alert-triangle" class="ic"></i>주의</button><button><i data-lucide="x-circle" class="ic"></i>불량</button></div></div>
+                </div>
+              </div>
+
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">CCTV 점검 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>
