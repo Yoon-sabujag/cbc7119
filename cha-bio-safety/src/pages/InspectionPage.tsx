@@ -2477,6 +2477,8 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
   const [justSaved,   setJustSaved]   = useState(false)
   const [submitError, setSubmitError] = useState<string|null>(null)
   const [visible,     setVisible]     = useState(false)
+  // Wave 2 sp7 패턴 — 댐퍼 증상 피커(equip + yscp 두 모드에서 result !== 'normal' 시 표시)
+  const [damperSymptomPick, setDamperSymptomPick] = useState<string>('기판 조작 불량')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -2488,6 +2490,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       setSubItem(null); setSelectedStair(null); setSelectedEquip(null)
       setFloorResults({}); setResult('normal')
       setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+      setDamperSymptomPick('기판 조작 불량')
     }
   }) // eslint-disable-line
 
@@ -2497,6 +2500,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     if (prevSub.current !== subItem) {
       prevSub.current = subItem
       setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+      setDamperSymptomPick('기판 조작 불량')
     }
   }) // eslint-disable-line
 
@@ -2549,6 +2553,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       prevEquip.current = selectedEquip
       setSelectedStair(null)
       setResult('normal'); setMemo(''); setSubmitError(null); setJustSaved(false); photo.reset()
+      setDamperSymptomPick('기판 조작 불량')
     }
   }) // eslint-disable-line
 
@@ -2610,7 +2615,11 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      await onSave(cpId, result, memo, photoKey ?? undefined)
+      // 댐퍼 증상 피커 (Wave 2 sp7 패턴 1:1) — equip + yscp 단일 폼 모드에서 result !== 'normal' 시 적용
+      const finalMemo = result !== 'normal'
+        ? (damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick)
+        : memo
+      await onSave(cpId, result, finalMemo, photoKey ?? undefined)
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
       setSubmitError(e.message ?? '저장 오류')
@@ -2623,48 +2632,60 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     || (item === '전실제연댐퍼' && selectedEquip)
     || (item === '연결송수관' && subItem)
 
-  const btnStyle = (sel: boolean) => ({
-    flex: 1, padding: '9px 0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' as const,
-    border:     sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
-    background: sel ? 'var(--acl)' : 'var(--bg)',
-    color:      sel ? '#fff' : 'var(--t2)',
-    transition: 'all .12s',
-  })
-
-  const resultBtnStyle = (active: boolean, opt: typeof INSPECT_RESULT_OPTIONS[0]) => ({
-    flex:1, padding:'4px 2px', borderRadius:7, fontSize:10, fontWeight:700, cursor:'pointer' as const,
-    border:      active ? `1.5px solid ${opt.color}` : '1px solid var(--bd)',
-    background:  active ? opt.bg : 'var(--bg2)',
-    color:       active ? opt.color : 'var(--t3)',
-    transition: 'all .1s',
-  })
-
   // 전실제연댐퍼 UI mode
   const jdMode = item === '전실제연댐퍼' ? (selectedStair ? 'stair' : selectedEquip ? 'equip' : 'select') : null
 
+  // 결과 picker 클래스 매핑 (BaeyeonModal 과 동일 — pill + lucide outline + status outline+tinted bg)
+  const resultPickerCls = (active: boolean, value: CheckResult) =>
+    active
+      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
+        : 'border-danger bg-danger-bg text-danger'
+      : 'border-border-default bg-surface-raised text-text-tertiary'
+
+  // result-mini 클래스 매핑 (stair 모드 — 축소판)
+  const resultMiniCls = (active: boolean, value: CheckResult) =>
+    active
+      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
+        : 'border-danger bg-danger-bg text-danger'
+      : 'border-border-default bg-surface-page text-text-tertiary'
+
+  const resultIcon = (value: CheckResult) =>
+    value === 'normal' ? CheckCircle2 : value === 'caution' ? AlertTriangle : XCircle
+
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col"
+      style={{ top:'var(--sat, 0px)', bottom:NAV_BOTTOM, transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}
+    >
 
       {/* 헤더 */}
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
-          {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
+      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
+        <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
+        <div className="flex-1">
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
+          {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5">{group.labels.slice(1).join(' · ')}</div>}
         </div>
       </div>
 
       {/* 항목 선택 */}
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>항목 선택</div>
-        <div style={{ display:'flex', gap:8 }}>
+      <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">항목 선택</div>
+        <div className="flex gap-2">
           {(['전실제연댐퍼','연결송수관'] as const).map(label => {
             const catCPs  = allCheckpoints.filter(cp => cp.category === label)
             const allDone = catCPs.length > 0 && catCPs.every(cp => records[cp.id])
             const isSel   = item === label
+            const cls = isSel
+              ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+              : allDone
+                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
-              <button key={label} onClick={() => setItem(label)} style={btnStyle(isSel)}>
-                {label}{allDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+              <button key={label} onClick={() => setItem(label)}
+                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                {label}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
           })}
@@ -2673,23 +2694,37 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
 
       {/* 전실제연댐퍼 → 계단전실 선택 */}
       {item === '전실제연댐퍼' && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>계단전실 선택</div>
-          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+        <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">계단전실 선택</div>
+          <div className="flex gap-1.5 flex-wrap">
             {stairNums.map(num => {
               const sCPs = allCheckpoints.filter(cp => cp.category === '전실제연댐퍼' && cp.locationNo?.endsWith(`-${num}`))
               const done = sCPs.length > 0 && sCPs.every(cp => records[cp.id])
+              const isSel = selectedStair === num
+              const cls = isSel
+                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                : done
+                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }} style={btnStyle(selectedStair === num)}>
-                  {num}{done && <span style={{ fontSize:9, marginLeft:3, opacity:0.8 }}>✓</span>}
+                <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
+                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  {num}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
             })}
             {equipCPs.length > 0 && equipCPs.map(cp => {
               const done = !!records[cp.id]
+              const isSel = selectedEquip === cp.id
+              const cls = isSel
+                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                : done
+                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }} style={{ padding:'7px 10px', borderRadius:9, fontSize:11, fontWeight:700, cursor:'pointer', border: selectedEquip === cp.id ? '1.5px solid var(--acl)' : done ? '1.5px solid var(--safe)' : '1px solid var(--bd2)', background: selectedEquip === cp.id ? 'var(--acl)' : done ? 'rgba(34,197,94,.1)' : 'var(--bg)', color: selectedEquip === cp.id ? '#fff' : done ? 'var(--safe)' : 'var(--t2)', transition:'all .12s' }}>
-                  {cp.location}{done && <span style={{ fontSize:9, marginLeft:3, opacity:0.8 }}>✓</span>}
+                <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
+                  className={`px-2.5 py-[7px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  {cp.location}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
             })}
@@ -2699,15 +2734,21 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
 
       {/* 연결송수관 → 위치 선택 (DB 데이터 기반) */}
       {item === '연결송수관' && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>위치 선택</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+        <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">위치 선택</div>
+          <div className="flex flex-wrap gap-2">
             {allCheckpoints.filter(cp => cp.category === '연결송수관').map(cp => {
               const isSel  = subItem === cp.location
               const isDone = !!records[cp.id]
+              const cls = isSel
+                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                : isDone
+                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={cp.id} onClick={() => setSubItem(cp.location)} style={btnStyle(isSel)}>
-                  {cp.location}{isDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+                <button key={cp.id} onClick={() => setSubItem(cp.location)}
+                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  {cp.location}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
             })}
@@ -2716,14 +2757,14 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       )}
 
       {/* 폼 영역 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 relative">
         {!item && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>항목을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">항목을 선택해 주세요</div>
         )}
 
         {/* 점검 폼 컨테이너 (재진입 팝업 부분 오버레이의 부모) — item 선택 후에만 렌더 */}
         {item && (
-          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:10 }}>
+          <div className="relative flex flex-col gap-2.5">
             {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 폼 서브 컨테이너만 덮음) */}
             {popupState && (
               <InspectionRevisitPopup
@@ -2740,44 +2781,60 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
         {jdMode === 'stair' && (
           <>
             {stairDoneCount > 0 && !justSaved && (
-              <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'6px 10px' }}>
+              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label text-safe flex items-center gap-1.5">
                 ✓ {stairDoneCount}/{stairCPs.length}층 이미 점검 완료
               </div>
             )}
 
             {/* 층별 결과 — 2열 */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            <div className="grid grid-cols-2 gap-2">
               {/* 왼쪽 열 */}
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div className="flex flex-col gap-1.5">
                 {stairCPs.slice(0, Math.ceil(stairCPs.length / 2)).map(cp => {
                   const curResult = floorResults[cp.id] ?? 'normal'
+                  const isInit = !!(initCp && cp.floor === initCp.floor)
                   return (
-                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border: initCp && cp.floor === initCp.floor ? '2px solid #f97316' : '1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color: initCp && cp.floor === initCp.floor ? '#f97316' : 'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
-                      <div style={{ display:'flex', gap:4 }}>
-                        {INSPECT_RESULT_OPTIONS.map(opt => (
-                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                            {opt.icon} {opt.label}
-                          </button>
-                        ))}
+                    <div key={cp.id}
+                      className={`bg-surface-raised rounded-[10px] px-[9px] pt-[9px] pb-[7px] ${isInit ? 'border-2 border-fire-bar' : 'border border-border-default'}`}>
+                      <div className={`text-caption font-bold mb-1.5 ${isInit ? 'text-fire-bar' : 'text-text-secondary'}`}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                      <div className="flex gap-1">
+                        {INSPECT_RESULT_OPTIONS.map(opt => {
+                          const Icon = resultIcon(opt.value)
+                          const active = curResult === opt.value
+                          return (
+                            <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
+                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-[3px] cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}>
+                              <Icon className="w-3 h-3 flex-shrink-0" />
+                              {opt.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )
                 })}
               </div>
               {/* 오른쪽 열 */}
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div className="flex flex-col gap-1.5">
                 {stairCPs.slice(Math.ceil(stairCPs.length / 2)).map(cp => {
                   const curResult = floorResults[cp.id] ?? 'normal'
+                  const isInit = !!(initCp && cp.floor === initCp.floor)
                   return (
-                    <div key={cp.id} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border: initCp && cp.floor === initCp.floor ? '2px solid #f97316' : '1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color: initCp && cp.floor === initCp.floor ? '#f97316' : 'var(--t2)', marginBottom:5 }}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
-                      <div style={{ display:'flex', gap:4 }}>
-                        {INSPECT_RESULT_OPTIONS.map(opt => (
-                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                            {opt.icon} {opt.label}
-                          </button>
-                        ))}
+                    <div key={cp.id}
+                      className={`bg-surface-raised rounded-[10px] px-[9px] pt-[9px] pb-[7px] ${isInit ? 'border-2 border-fire-bar' : 'border border-border-default'}`}>
+                      <div className={`text-caption font-bold mb-1.5 ${isInit ? 'text-fire-bar' : 'text-text-secondary'}`}>{JD_FLOOR_LABEL[cp.floor] ?? cp.floor}</div>
+                      <div className="flex gap-1">
+                        {INSPECT_RESULT_OPTIONS.map(opt => {
+                          const Icon = resultIcon(opt.value)
+                          const active = curResult === opt.value
+                          return (
+                            <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
+                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-[3px] cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}>
+                              <Icon className="w-3 h-3 flex-shrink-0" />
+                              {opt.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )
@@ -2785,20 +2842,21 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               </div>
             </div>
 
-            {/* 특이사항 + 사진 */}
+            {/* 특이사항 + 사진 (stair 모드 — 댐퍼 증상 피커 없음. 메모 1건만) */}
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
 
-            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </>
         )}
 
@@ -2810,72 +2868,130 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
           return (
             <>
               {eqDone && !justSaved && (
-                <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+                <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
               )}
               <div>
-                <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-                <div style={{ display:'flex', gap:6 }}>
-                  {INSPECT_RESULT_OPTIONS.map(opt => (
-                    <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                      <span style={{ fontSize:20 }}>{opt.icon}</span>
-                      <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                    </button>
-                  ))}
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+                <div className="flex gap-2">
+                  {INSPECT_RESULT_OPTIONS.map(opt => {
+                    const Icon = resultIcon(opt.value)
+                    const active = result === opt.value
+                    return (
+                      <button key={opt.value} onClick={() => setResult(opt.value)}
+                        className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${resultPickerCls(active, opt.value)}`}>
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-              <div>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                  <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                  <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              {/* 댐퍼 증상 피커 (Wave 2 sp7 패턴 — result !== 'normal' 시 표시) */}
+              {result !== 'normal' && (
+                <div>
+                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
+                      const active = damperSymptomPick === s
+                      return (
+                        <button key={s} onClick={() => setDamperSymptomPick(s)}
+                          className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                            active
+                              ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                              : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                          }`}>
+                          {s}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                  <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              )}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-caption font-semibold text-text-tertiary tracking-wider">
+                    {result !== 'normal' && damperSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
+                  </label>
+                  <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                    className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
                   <PhotoButton hook={photo} label="촬영" noCapture />
                 </div>
               </div>
-              {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-              {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+              {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+              {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
             </>
           )
         })()}
 
         {/* 전실제연댐퍼 — 선택 안내 */}
         {item === '전실제연댐퍼' && jdMode === 'select' && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>계단전실을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">계단전실을 선택해 주세요</div>
         )}
 
         {/* 연결송수관 — 개별 폼 */}
         {item === '연결송수관' && !subItem && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">위치를 선택해 주세요</div>
         )}
         {item === '연결송수관' && subItem && (
           <>
             {yscpId && records[yscpId] && !justSaved && (
-              <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
             )}
             <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+              <div className="flex gap-2">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const Icon = resultIcon(opt.value)
+                  const active = result === opt.value
+                  return (
+                    <button key={opt.value} onClick={() => setResult(opt.value)}
+                      className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${resultPickerCls(active, opt.value)}`}>
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {opt.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
-            <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+            {/* 댐퍼 증상 피커 (Wave 2 sp7 패턴 — result !== 'normal' 시 표시) */}
+            {result !== 'normal' && (
+              <div>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
+                    const active = damperSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setDamperSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+            )}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">
+                  {result !== 'normal' && damperSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
+                </label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
+              </div>
+              <div className="flex gap-2 items-start">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
-            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </>
         )}
           </div>
@@ -2883,12 +2999,16 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       </div>
 
       {/* 저장 버튼 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose}
+          className="px-[18px] py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer">
+          닫기
+        </button>
         <button
           onClick={jdMode === 'stair' ? handleStairSave : handleSingleSave}
           disabled={submitting || photo.uploading || !canSave}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!canSave ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!canSave ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!canSave ? 'default' : 'pointer', transition:'all .13s' }}
+          className="flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default"
+          style={{ background: submitting||photo.uploading||!canSave ? 'var(--border-strong)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : jdMode === 'stair' ? `계단전실 ${selectedStair} 점검 저장` : '점검 기록 저장'}
         </button>
@@ -2936,7 +3056,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
   const [extSymptomPick, setExtSymptomPick] = useState<string>('받침 파손')
   const [hydrantSymptomPick, setHydrantSymptomPick] = useState<string>('경종 파손')
   const [shutterSymptomPick, setShutterSymptomPick] = useState<string>('방화셔터 라인 표시 필요')
-  const [damperSymptomPick, setDamperSymptomPick] = useState<string>('기판 조작 불량')
 
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
@@ -3337,8 +3456,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         finalMemo = hydrantSymptomPick === '직접 입력' ? memo.trim() : hydrantSymptomPick
       } else if (selectedCP?.category === '방화셔터' && result !== 'normal') {
         finalMemo = shutterSymptomPick === '직접 입력' ? memo.trim() : shutterSymptomPick
-      } else if (selectedCP?.category === '전실제연댐퍼' && result !== 'normal') {
-        finalMemo = damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick
       }
       await onSave(cpIdToSave, result, finalMemo, photoKey ?? undefined, extra)
       if (pairedBC) {
@@ -3685,28 +3802,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               </div>
             )}
 
-            {/* 전실제연댐퍼: 증상 피커 */}
-            {selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && (
-              <div className="mt-2.5">
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
-                    const active = damperSymptomPick === s
-                    return (
-                      <button key={s} onClick={() => setDamperSymptomPick(s)}
-                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                          active
-                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                        }`}>
-                        {s}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
             {/* 특이사항 + 증빙사진 (한 행) */}
             <div className="mt-2.5">
               <div className="flex items-center justify-between mb-1">
@@ -3715,7 +3810,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     || (isExtinguisher && result !== 'normal' && extSymptomPick === '직접 입력')
                     || (selectedCP?.category === '소화전' && result !== 'normal' && hydrantSymptomPick === '직접 입력')
                     || (selectedCP?.category === '방화셔터' && result !== 'normal' && shutterSymptomPick === '직접 입력')
-                    || (selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && damperSymptomPick === '직접 입력')
                     ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
                 </label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
