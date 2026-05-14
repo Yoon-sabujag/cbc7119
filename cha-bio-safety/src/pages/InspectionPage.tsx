@@ -2623,8 +2623,9 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     setSubmitting(true); setSubmitError(null)
     try {
       const photoKey = await photo.upload()
-      // 댐퍼 증상 피커 (Wave 2 sp7 패턴 1:1) — equip + yscp 단일 폼 모드에서 result !== 'normal' 시 적용
-      const finalMemo = result !== 'normal'
+      // 댐퍼 증상 피커 — 전실제연댐퍼 equip 모드 + result !== 'normal' 시만 적용.
+      // 연결송수관(yscp)은 별개 소화설비 (탭으로만 묶임) — 증상 피커 패턴 적용 X.
+      const finalMemo = (item === '전실제연댐퍼' && result !== 'normal')
         ? (damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick)
         : memo
       await onSave(cpId, result, finalMemo, photoKey ?? undefined)
@@ -2990,32 +2991,10 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 })}
               </div>
             </div>
-            {/* 댐퍼 증상 피커 (Wave 2 sp7 패턴 — result !== 'normal' 시 표시) */}
-            {result !== 'normal' && (
-              <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
-                    const active = damperSymptomPick === s
-                    return (
-                      <button key={s} onClick={() => setDamperSymptomPick(s)}
-                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
-                          active
-                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
-                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
-                        }`}>
-                        {s}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+            {/* 연결송수관은 증상 피커 없음 — 전실제연댐퍼와 별개 소화설비 (탭으로만 묶임) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-caption font-semibold text-text-tertiary tracking-wider">
-                  {result !== 'normal' && damperSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
-                </label>
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
               <div className="flex gap-2 items-start">
