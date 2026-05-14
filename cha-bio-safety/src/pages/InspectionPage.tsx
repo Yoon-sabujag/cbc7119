@@ -1884,9 +1884,6 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
     setTankDrain('none'); setOil('sufficient'); setResult('normal'); setMemo(''); photo.reset()
   }, [photo])
 
-  const resultColor: Partial<Record<CheckResult,string>> = { normal:'var(--safe)', caution:'var(--warn)', bad:'var(--danger)' }
-  const resultLabel: Partial<Record<CheckResult,string>> = { normal:'정상', caution:'주의', bad:'불량' }
-
   const totalSteps = zone && zone !== 'underground' && line ? DIV_LINE_SEQ[line].length : null
 
   const handleSave = async () => {
@@ -1936,41 +1933,57 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
   }
 
   if (done) return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
-      <span style={{ fontSize:48 }}>✅</span>
-      <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
-      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+    <div
+      className="fixed left-0 right-0 flex flex-col items-center justify-center gap-4 bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+    >
+      <CheckCircle2 size={48} className="text-safe" />
+      <div className="text-title font-bold text-text-primary">점검 완료</div>
+      <button
+        onClick={onClose}
+        className="mt-2 px-8 py-3 rounded-md bg-accent text-text-on-accent text-body font-bold cursor-pointer border-0"
+      >
+        닫기
+      </button>
     </div>
   )
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div
+      className="fixed left-0 right-0 flex flex-col overflow-hidden bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+    >
       {/* 헤더 */}
-      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
-        <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>💨 컴프레셔 점검</span>
+      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+        <Wind size={18} className="text-text-secondary" />
+        <span className="text-title font-bold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{lineIdx+1} / {totalSteps}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
         {mode !== 'from-div' && currentPt && zone === 'underground' && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{underPickIdx+1} / {underPending.length}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{underPickIdx+1} / {underPending.length}</span>
         )}
       </div>
 
       {/* 본문 */}
-      <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
         {mode !== 'from-div' && (
           <>
             {/* 구역 선택 */}
             <div>
-              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>구역 선택</div>
-              <div style={{ display:'flex', gap:8 }}>
+              <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+              <div className="flex gap-2">
                 {(['research','office','underground'] as DivZone[]).map(z => {
                   const sel = zone === z
                   return (
                     <button key={z}
                       onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                      style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                      className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                        sel
+                          ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                          : 'border border-border-strong bg-surface-page text-text-secondary'
+                      }`}>
                       {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
                     </button>
                   )
@@ -1981,14 +1994,18 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
             {/* 라인 선택 (연구동/사무동) */}
             {zone && zone !== 'underground' && (
               <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>라인 선택</div>
-                <div style={{ display:'flex', gap:8 }}>
+                <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+                <div className="flex gap-2">
                   {(zone === 'research' ? [1,2] : [3]).map(l => {
                     const sel = line === l
                     return (
                       <button key={l}
                         onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                        style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                        className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                          sel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-strong bg-surface-page text-text-secondary'
+                        }`}>
                         컴프 #{l}
                       </button>
                     )
@@ -2001,7 +2018,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
         {/* 점검 폼 영역 — 개소 네비 카드는 항상 표시, 재진입 팝업은 입력 폼만 덮음 */}
         {currentPt && (
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div className="flex flex-col gap-3.5">
             {/* 개소 정보 + 이전/다음 네비 (standalone만) — 팝업에 안 덮임 */}
             {mode !== 'from-div' && (() => {
               const seq = zone !== 'underground' && line ? DIV_LINE_SEQ[line] : null
@@ -2009,41 +2026,44 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               const canNext = zone === 'underground' ? underPickIdx < underPending.length - 1 : seq ? lineIdx < seq.length - 1 : false
               const goPrev = () => { if (zone === 'underground') setUnderPickIdx(i => i - 1); else setLineIdx(i => i - 1); resetForm() }
               const goNext = () => { if (zone === 'underground') setUnderPickIdx(i => i + 1); else setLineIdx(i => i + 1); resetForm() }
-              const navBtnStyle = (enabled: boolean): React.CSSProperties => ({
-                width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)',
-                color: enabled ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: enabled ? 'pointer' : 'default',
-                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: enabled ? 1 : 0.3,
-              })
+              const navBtnCls = (enabled: boolean) =>
+                `w-9 h-9 rounded-sm border border-border-default bg-surface-page inline-flex items-center justify-center flex-shrink-0 transition-opacity ${
+                  enabled ? 'text-text-primary opacity-100 cursor-pointer' : 'text-text-tertiary opacity-30 cursor-default'
+                }`
               return (
                 <div
-                  style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+                  className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5 [touch-action:pan-y]"
                   onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
                   onTouchEnd={e => { const sx = (e.currentTarget as any)._swX; if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (dx > 40 && canPrev) goPrev(); else if (dx < -40 && canNext) goNext() }}
                 >
-                  <button style={navBtnStyle(canPrev)} onClick={canPrev ? goPrev : undefined}>‹</button>
-                  <div style={{ flex:1, textAlign:'center' }}>
-                    <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                    <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+                  <button className={navBtnCls(canPrev)} onClick={canPrev ? goPrev : undefined}>
+                    <ChevronLeft size={20} />
+                  </button>
+                  <div className="flex-1 text-center">
+                    <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
+                    <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                    <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
                   </div>
-                  <button style={navBtnStyle(canNext)} onClick={canNext ? goNext : undefined}>›</button>
+                  <button className={navBtnCls(canNext)} onClick={canNext ? goNext : undefined}>
+                    <ChevronRight size={20} />
+                  </button>
                 </div>
               )
             })()}
 
             {/* from-div: 간단한 개소 정보 — 팝업에 안 덮임 */}
             {mode === 'from-div' && (
-              <div style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', textAlign:'center' }}>
-                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
-                <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+              <div className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default text-center">
+                <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
+                <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
               </div>
             )}
 
             {/* 입력 폼 서브 컨테이너 — 재진입 팝업 부분 오버레이의 부모 (position:relative)
                 H2 (260423-htx Task 5): 팝업이 '현재 개소' 네비 카드를 가리지 않고
                 입력 폼(탱크배수/오일/결과/특이사항) 영역만 덮도록 부모 범위를 축소. */}
-            <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:14 }}>
+            <div className="relative flex flex-col gap-3.5">
               {popupState && (
                 <InspectionRevisitPopup
                   variant={popupState.variant}
@@ -2056,46 +2076,87 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               )}
 
               {/* 탱크 배수 / 컴프 오일 */}
-              <div style={{ display:'flex', gap:10 }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+              <div className="flex gap-2.5">
+                <div className="flex-1">
+                  <div className="text-caption font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
                     탱크 배수
                     {drainDPlus !== null && (
-                      <span style={{ fontSize:10, fontWeight:700, color: drainDPlus > 60 ? 'var(--warn)' : 'var(--t3)', background: drainDPlus > 60 ? 'rgba(245,158,11,.12)' : 'var(--bg3)', padding:'1px 6px', borderRadius:4 }}>D+{drainDPlus}</span>
+                      <span className={`text-caption font-bold px-1.5 py-0 rounded-[4px] ${
+                        drainDPlus > 60 ? 'text-warning bg-warning-bg' : 'text-text-tertiary bg-surface-sunken'
+                      }`}>D+{drainDPlus}</span>
                     )}
-                    {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
+                    {drainDPlus === null && <span className="text-caption text-text-tertiary opacity-50">기록 없음</span>}
                   </div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'var(--bg3)', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='none' ? 1 : 1 }}>없음</button>
-                    <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'var(--bg3)', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='yes' ? 1 : 1 }}>있음</button>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setTankDrain('none')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        tankDrain==='none'
+                          ? 'border-[1.5px] border-accent bg-surface-page text-text-primary'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      없음
+                    </button>
+                    <button onClick={() => setTankDrain('yes')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        tankDrain==='yes'
+                          ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,.18)] text-accent'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      있음
+                    </button>
                   </div>
                 </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'var(--bg3)', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: oil==='sufficient' ? 1 : 1 }}>충분함</button>
-                    <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'var(--bg3)', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd2)', opacity: oil==='refill' ? 1 : 1 }}>보충함</button>
+                <div className="flex-1">
+                  <div className="text-caption font-semibold text-text-tertiary mb-2">컴프 오일</div>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setOil('sufficient')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        oil==='sufficient'
+                          ? 'border-[1.5px] border-accent bg-surface-page text-text-primary'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      충분함
+                    </button>
+                    <button onClick={() => setOil('refill')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        oil==='refill'
+                          ? 'border-[1.5px] border-warning-bar bg-warning-bg text-warning'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      보충함
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* 점검 결과 */}
               <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
-                <div style={{ display:'flex', gap:8 }}>
-                  {(['normal','caution','bad'] as const).map(r => (
-                    <button key={r} onClick={() => setResult(r)}
-                      style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                      {resultLabel[r]}
-                    </button>
-                  ))}
+                <div className="text-caption font-semibold text-text-tertiary mb-2">점검 결과</div>
+                <div className="flex gap-2">
+                  {(['normal','caution','bad'] as const).map(r => {
+                    const active = result === r
+                    const inactiveCls = 'border-border-default bg-surface-sunken text-text-secondary'
+                    const activeCls =
+                      r === 'normal' ? 'border-safe-bar bg-safe-bg text-safe' :
+                      r === 'caution' ? 'border-warning-bar bg-warning-bg text-warning' :
+                      'border-danger-bar bg-danger-bg text-danger'
+                    const Icon = r === 'normal' ? CheckCircle2 : r === 'caution' ? AlertTriangle : XCircle
+                    const label = r === 'normal' ? '정상' : r === 'caution' ? '주의' : '불량'
+                    return (
+                      <button key={r} onClick={() => setResult(r)}
+                        className={`flex-1 px-3 py-2.5 rounded-pill border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-semibold transition-colors cursor-pointer ${active ? activeCls : inactiveCls}`}>
+                        <Icon size={16} color="currentColor" />
+                        {label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* 특이사항 + 사진 */}
-              <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+              <div className="flex gap-2.5 items-start">
                 <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
-                  style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} />
               </div>
             </div>
@@ -2104,11 +2165,16 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       </div>
 
       {/* 하단 버튼 바 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose} className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer">닫기</button>
         {currentPt && (
           <button onClick={handleSave} disabled={saving}
-            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)' }}>
+            className="flex-1 py-3.5 rounded-md text-text-on-accent text-body font-bold border-0"
+            style={{
+              background: saving ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+              cursor: saving ? 'default' : 'pointer',
+              boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)'
+            }}>
             {saving ? '저장 중...' :
               mode === 'from-div' ? '저장 후 닫기' :
               zone === 'underground'
