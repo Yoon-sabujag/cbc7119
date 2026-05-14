@@ -19,7 +19,7 @@ import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import {
-  ChevronLeft, Bell,
+  ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Square,
   // Zone (3종)
@@ -982,17 +982,39 @@ function DivUnderPicker({ items, activeIdx, onChange }: {
   const containerH = ITEM_H * VISIBLE
 
   return (
-    <div style={{ position:'relative', height:containerH, borderRadius:12, overflow:'hidden', background:'var(--bg2)', border:'1px solid var(--bd)' }}>
-      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:ITEM_H, transform:'translateY(-50%)', background:'rgba(14,165,233,.08)', borderTop:'1px solid rgba(14,165,233,.22)', borderBottom:'1px solid rgba(14,165,233,.22)', pointerEvents:'none', zIndex:2 }} />
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:pad, background:'linear-gradient(to bottom, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:pad, background:'linear-gradient(to top, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
-      <div ref={scrollRef} onScroll={handleScroll}
-        style={{ height:'100%', overflowY:'auto', scrollSnapType:'y mandatory', paddingTop:pad, paddingBottom:pad, boxSizing:'border-box', scrollbarWidth:'none' }}>
+    <div
+      className="relative rounded-md overflow-hidden bg-surface-raised border border-border-default"
+      style={{ height: containerH }}
+    >
+      <div
+        className="absolute left-0 right-0 z-[2] pointer-events-none bg-[rgba(14,165,233,.08)] border-y border-[rgba(14,165,233,.22)]"
+        style={{ top:'50%', height: ITEM_H, transform:'translateY(-50%)' }}
+      />
+      <div
+        className="absolute top-0 left-0 right-0 z-[3] pointer-events-none"
+        style={{ height: pad, background:'linear-gradient(to bottom, var(--surface-raised) 30%, transparent)' }}
+      />
+      <div
+        className="absolute bottom-0 left-0 right-0 z-[3] pointer-events-none"
+        style={{ height: pad, background:'linear-gradient(to top, var(--surface-raised) 30%, transparent)' }}
+      />
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType:'y mandatory', paddingTop: pad, paddingBottom: pad }}
+      >
         {items.map((item, idx) => {
           const dist = Math.abs(idx - activeIdx)
           return (
-            <div key={item.id} style={{ height:ITEM_H, display:'flex', alignItems:'center', padding:'0 14px', scrollSnapAlign:'center', cursor:'pointer', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15, transition:'opacity .1s' }}>
-              <span style={{ fontSize: dist===0 ? 13 : 11, fontWeight: dist===0 ? 700 : 400, color:'var(--t1)' }}>{item.label}</span>
+            <div
+              key={item.id}
+              className="flex items-center px-3.5 cursor-pointer transition-opacity duration-100"
+              style={{ height: ITEM_H, scrollSnapAlign:'center', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15 }}
+            >
+              <span className={dist === 0 ? 'text-label font-bold text-text-primary' : 'text-caption font-normal text-text-primary'}>
+                {item.label}
+              </span>
             </div>
           )
         })}
@@ -1022,22 +1044,30 @@ function DivTrendSubview({ point, records, onClose }: {
   const n = hist.length
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] flex flex-col bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+    >
       {/* 헤더 */}
-      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:10, flexShrink:0 }}>
-        <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✕</button>
+      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2.5 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-sm border border-border-default bg-surface-raised cursor-pointer inline-flex items-center justify-center"
+        >
+          <X size={16} className="text-text-secondary" />
+        </button>
         <div>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{point.floorLabel} — {point.loc}</div>
-          <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>DIV #{point.pos} · {point.id}</div>
+          <div className="text-body-sm font-bold text-text-primary">{point.floorLabel} — {point.loc}</div>
+          <div className="text-caption text-text-tertiary mt-0.5">DIV #{point.pos} · {point.id}</div>
         </div>
       </div>
       {/* 차트 + 테이블 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 40px' }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-10">
         {hist.length === 0 ? (
-          <div style={{ textAlign:'center', color:'var(--t3)', padding:'40px 0', fontSize:13 }}>이전 기록 없음</div>
+          <div className="text-center text-text-tertiary py-10 text-label">이전 기록 없음</div>
         ) : (
           <>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div className="flex flex-col gap-2.5">
               {([
                 { key:'pressure_1'   as const, label:'1차압',  color:'#3b82f6', dashed:false },
                 { key:'pressure_2'   as const, label:'2차압',  color:'#f97316', dashed:false },
@@ -1054,8 +1084,8 @@ function DivTrendSubview({ point, records, onClose }: {
                 const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
                 return (
                   <div key={key}>
-                    <div style={{ fontSize:10, fontWeight:700, color, marginBottom:3 }}>{label}</div>
-                    <div style={{ overflowX:'auto' }}>
+                    <div className="text-caption font-bold mb-1" style={{ color }}>{label}</div>
+                    <div className="overflow-x-auto">
                       <svg width={Math.max(W, n * 28)} height={sH} style={{ display:'block' }}>
                         {sTicks.map((t, ti) => (
                           <g key={ti}>
@@ -1092,7 +1122,7 @@ function DivTrendSubview({ point, records, onClose }: {
                           return (
                             <g key={i}>
                               <circle cx={cx} cy={cy} r={3}
-                                fill={isLate ? color : 'var(--bg2)'}
+                                fill={isLate ? color : 'var(--surface-raised)'}
                                 stroke={color} strokeWidth={isLate ? 0 : 1.5}
                               />
                               <text x={vx} y={vy} textAnchor="middle" dominantBaseline="central"
@@ -1110,17 +1140,17 @@ function DivTrendSubview({ point, records, onClose }: {
               })}
             </div>
             {/* 수치 테이블 */}
-            <div style={{ marginTop:14, borderRadius:10, border:'1px solid var(--bd)', overflow:'hidden' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', background:'var(--bg3)', padding:'7px 10px' }}>
+            <div className="mt-3.5 rounded-md border border-border-default overflow-hidden">
+              <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken px-2.5 py-1.5">
                 {['월','1차압','2차압','세팅압'].map(h => (
-                  <div key={h} style={{ fontSize:9, fontWeight:700, color:'var(--t3)', textAlign:'center' }}>{h}</div>
+                  <div key={h} className="text-caption font-bold text-text-tertiary text-center">{h}</div>
                 ))}
               </div>
               {[...hist].reverse().slice(0,12).map((r: any) => (
-                <div key={`${r.year}-${r.month}`} style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', padding:'7px 10px', borderTop:'1px solid var(--bd)' }}>
-                  <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>{r.year}-{String(r.month).padStart(2,'0')}</div>
+                <div key={`${r.year}-${r.month}`} className="grid grid-cols-[60px_1fr_1fr_1fr] px-2.5 py-1.5 border-t border-border-default">
+                  <div className="text-caption text-text-tertiary text-center font-mono">{r.year}-{String(r.month).padStart(2,'0')}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize:12, fontWeight:700, color:['#3b82f6','#f97316','#22c55e'][i], textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>
+                    <div key={i} className="text-caption font-bold text-center font-mono" style={{ color: ['#3b82f6','#f97316','#22c55e'][i] }}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
