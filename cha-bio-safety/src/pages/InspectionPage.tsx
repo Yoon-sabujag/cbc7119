@@ -332,44 +332,52 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
     }
   }
 
-  const btnStyle = (sel: boolean) => ({
-    flex:1, padding:'7px 0', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer' as const,
-    border:      sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
-    background:  sel ? 'var(--acl)' : 'var(--bg)',
-    color:       sel ? '#fff' : 'var(--t2)',
-    transition: 'all .12s',
-  })
+  // result-mini 클래스 매핑 (Wave 5 — Stairwell/Cctv 공용 컴팩트 픽커)
+  const resultMiniCls = (active: boolean, value: CheckResult) =>
+    active
+      ? value === 'normal' ? 'border-safe bg-safe-bg text-safe'
+        : value === 'caution' ? 'border-warning bg-warning-bg text-warning'
+        : 'border-danger bg-danger-bg text-danger'
+      : 'border-border-default bg-surface-page text-text-tertiary'
 
-  const resultBtnStyle = (active: boolean, opt: typeof INSPECT_RESULT_OPTIONS[0]) => ({
-    flex:1, padding:'4px 2px', borderRadius:7, fontSize:10, fontWeight:700, cursor:'pointer' as const,
-    border:      active ? `1.5px solid ${opt.color}` : '1px solid var(--bd)',
-    background:  active ? opt.bg : 'var(--bg2)',
-    color:       active ? opt.color : 'var(--t3)',
-    transition: 'all .1s',
-  })
+  const resultIcon = (value: CheckResult) =>
+    value === 'normal' ? CheckCircle2 : value === 'caution' ? AlertTriangle : XCircle
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden"
+      style={{ top:'var(--sat, 0px)', bottom:NAV_BOTTOM, transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}
+    >
 
       {/* 헤더 */}
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
-          {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+        <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="text-[16px] font-bold text-text-primary leading-tight">{group.labels[0]}</div>
+          {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5 leading-tight">{group.labels.slice(1).join(' · ')}</div>}
         </div>
       </div>
 
       {/* 계단실 선택 */}
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>계단실 선택</div>
-        <div style={{ display:'flex', gap:6 }}>
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">계단실 선택</div>
+        <div className="flex gap-1.5">
           {STAIRWELLS.map(sw => {
             const swCPsAll = allCheckpoints.filter(cp => group.categories.includes(cp.category) && cp.locationNo === `S${sw.id}`)
             const done = swCPsAll.length > 0 && swCPsAll.every(cp => records[cp.id])
+            const isActive = selectedSW === sw.id
+            const stateCls = isActive
+              ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+              : done
+                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
-              <button key={sw.id} onClick={() => setSelectedSW(sw.id)} style={btnStyle(selectedSW === sw.id)}>
-                {sw.id}{done && <span style={{ fontSize:9, marginLeft:3, opacity:0.8 }}>✓</span>}
+              <button
+                key={sw.id}
+                onClick={() => setSelectedSW(sw.id)}
+                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap inline-flex items-center justify-center transition-colors ${stateCls}`}
+              >
+                {sw.id}{done && !isActive && <span className="text-caption ml-1 opacity-85">✓</span>}
               </button>
             )
           })}
@@ -377,13 +385,13 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
       </div>
 
       {/* 폼 영역 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5 relative">
         {!selectedSW && (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>계단실을 선택해 주세요</div>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">계단실을 선택해 주세요</div>
         )}
 
         {swDef && (
-          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:10 }}>
+          <div className="relative flex flex-col gap-2.5">
             {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
             {popupState && (
               <InspectionRevisitPopup
@@ -397,48 +405,67 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
             )}
             {/* 완료 뱃지 */}
             {swDoneCount > 0 && !justSaved && (
-              <div style={{ fontSize:11, color:'var(--safe)', background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'6px 10px' }}>
-                ✓ {swDoneCount}/{swCPs.length}층 이미 점검 완료
+              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
+                <CheckCircle2 size={14} className="text-safe flex-shrink-0" />
+                {swDoneCount}/{swCPs.length}층 이미 점검 완료
               </div>
             )}
 
             {/* 층별 결과 — 2열 */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+            <div className="grid grid-cols-2 gap-2">
               {/* 왼쪽 열 */}
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div className="flex flex-col gap-1.5">
                 {swDef.floors.slice(0, swDef.leftCount).map(floor => {
                   const cp = swCPs.find(c => c.floor === floor)
                   if (!cp) return null
                   const curResult = floorResults[cp.id] ?? 'normal'
                   return (
-                    <div key={floor} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{floor}</div>
-                      <div style={{ display:'flex', gap:4 }}>
-                        {INSPECT_RESULT_OPTIONS.map(opt => (
-                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                            {opt.icon} {opt.label}
-                          </button>
-                        ))}
+                    <div key={floor} className="bg-surface-raised border border-border-default rounded-md px-2 pt-2 pb-1.5">
+                      <div className="text-caption font-bold text-text-secondary mb-1.5">{floor}</div>
+                      <div className="flex gap-1">
+                        {INSPECT_RESULT_OPTIONS.map(opt => {
+                          const Icon = resultIcon(opt.value)
+                          const active = curResult === opt.value
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
+                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-1 cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}
+                            >
+                              <Icon className="w-3 h-3 flex-shrink-0" />
+                              {opt.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )
                 })}
               </div>
               {/* 오른쪽 열 */}
-              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              <div className="flex flex-col gap-1.5">
                 {swDef.floors.slice(swDef.leftCount).map(floor => {
                   const cp = swCPs.find(c => c.floor === floor)
                   if (!cp) return null
                   const curResult = floorResults[cp.id] ?? 'normal'
                   return (
-                    <div key={floor} style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 8px 6px', border:'1px solid var(--bd)' }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>{floor}</div>
-                      <div style={{ display:'flex', gap:4 }}>
-                        {INSPECT_RESULT_OPTIONS.map(opt => (
-                          <button key={opt.value} onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))} style={resultBtnStyle(curResult === opt.value, opt)}>
-                            {opt.icon} {opt.label}
-                          </button>
-                        ))}
+                    <div key={floor} className="bg-surface-raised border border-border-default rounded-md px-2 pt-2 pb-1.5">
+                      <div className="text-caption font-bold text-text-secondary mb-1.5">{floor}</div>
+                      <div className="flex gap-1">
+                        {INSPECT_RESULT_OPTIONS.map(opt => {
+                          const Icon = resultIcon(opt.value)
+                          const active = curResult === opt.value
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => setFloorResults(prev => ({ ...prev, [cp.id]: opt.value }))}
+                              className={`flex-1 px-1 py-1.5 rounded-pill border-[1.5px] text-caption font-bold whitespace-nowrap inline-flex items-center justify-center gap-1 cursor-pointer transition-colors ${resultMiniCls(active, opt.value)}`}
+                            >
+                              <Icon className="w-3 h-3 flex-shrink-0" />
+                              {opt.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     </div>
                   )
@@ -448,29 +475,39 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
 
             {/* 특이사항 + 사진 */}
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
 
-            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label font-semibold text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label font-semibold text-safe inline-flex items-center gap-1.5"><CheckCircle2 size={14} className="text-safe flex-shrink-0" />저장 완료</div>}
           </div>
         )}
       </div>
 
       {/* 저장 버튼 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose}
+          className="px-[18px] py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer transition-colors">
+          닫기
+        </button>
         <button
           onClick={handleSave}
           disabled={submitting || photo.uploading || !selectedSW}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!selectedSW ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!selectedSW ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!selectedSW ? 'default' : 'pointer', transition:'all .13s' }}
+          className="flex-1 py-3.5 rounded-md text-body font-bold border-0 transition-all"
+          style={{
+            background: (submitting || photo.uploading || !selectedSW) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+            color:      (submitting || photo.uploading || !selectedSW) ? 'var(--text-tertiary)' : '#fff',
+            cursor:     (submitting || photo.uploading || !selectedSW) ? 'default' : 'pointer',
+            boxShadow:  (submitting || photo.uploading || !selectedSW) ? 'none' : '0 4px 14px rgba(37,99,235,0.35)',
+          }}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : `계단실 ${selectedSW ?? ''} 점검 저장`}
         </button>
