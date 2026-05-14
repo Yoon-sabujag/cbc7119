@@ -5038,11 +5038,12 @@ ${issueRecs.length > 0 ? `
   const photoRow = (photos: { key: string; label: string }[], color: string) => {
     if (photos.length === 0) return null
     return (
-      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingTop: 6, scrollbarWidth: 'none' }}>
+      <div className="flex gap-1.5 overflow-x-auto pt-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {photos.map((p, i) => (
-          <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+          <div key={i} className="relative shrink-0">
             <img src={`/api/uploads/${p.key}`} alt={p.label}
-              style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: `2px solid ${color}`, cursor: 'pointer', display: 'block' }}
+              className="w-14 h-14 object-cover rounded-sm cursor-pointer block border-2"
+              style={{ borderColor: color }}
               onClick={() => downloadPhoto(p.key, `${p.label}.jpg`)}
               title="클릭하여 다운로드"
             />
@@ -5054,47 +5055,52 @@ ${issueRecs.length > 0 ? `
 
   if (filteredRecords.length === 0 && schedDates.length === 0) return null
 
+  const SummaryIcon = CATEGORY_ICONS[categoryIdx]
+
   return (
-    <div id={`summary-card-${categoryIdx}`} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 12, padding: 16, marginBottom: 14 }}>
+    <div id={`summary-card-${categoryIdx}`} className="bg-surface-raised border border-border-default rounded-md p-4 mb-3.5">
       {/* 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{group.icon} {schedTitle}</div>
-          <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>점검일: {schedDateLabel} · 총 {filteredRecords.length}건</div>
+          <div className="text-body-sm font-bold text-text-primary flex items-center gap-1.5">
+            <SummaryIcon size={16} className="text-text-secondary" />
+            {schedTitle}
+          </div>
+          <div className="text-caption text-text-tertiary mt-0.5">점검일: {schedDateLabel} · 총 {filteredRecords.length}건</div>
           {schedInfos.map((s, i) => s.memo && (
-            <div key={i} style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
-              {schedInfos.length > 1 && <span style={{ fontWeight: 600, color: 'var(--t2)' }}>[{s.title}]</span>}{schedInfos.length > 1 ? '\n' : ''}{s.memo}
+            <div key={i} className="text-caption text-text-tertiary mt-0.5 whitespace-pre-wrap leading-snug">
+              {schedInfos.length > 1 && <span className="font-semibold text-text-secondary">[{s.title}]</span>}{schedInfos.length > 1 ? '\n' : ''}{s.memo}
             </div>
           ))}
         </div>
-        <button onClick={downloadReport} style={{ fontSize: 11, fontWeight: 700, height: 30, background: 'var(--bg3)', borderRadius: 7, padding: '0 12px', border: '1px solid var(--bd)', color: 'var(--t1)', cursor: 'pointer' }}>
+        <button onClick={downloadReport} className="text-caption font-bold h-input bg-surface-sunken rounded-sm px-3 border border-border-default text-text-primary cursor-pointer hover:bg-surface-active transition-colors">
           보고서 다운로드
         </button>
       </div>
 
       {/* 정상 / 주의 / 불량 박스 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+      <div className="grid grid-cols-3 gap-2.5">
         {/* 정상 */}
-        <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--safe)' }}>정상</span>
-            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--safe)' }}>{normalRecs.length}</span>
+        <div className="bg-safe-bg/40 border border-safe-bar/40 rounded-md p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-caption font-bold text-safe">정상</span>
+            <span className="text-[20px] font-extrabold font-mono text-safe">{normalRecs.length}</span>
           </div>
           {photoRow(normalPhotos, 'rgba(34,197,94,0.5)')}
         </div>
 
         {/* 주의 */}
-        <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warn)' }}>주의</span>
-            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--warn)' }}>{cautionRecs.length}</span>
+        <div className="bg-warning-bg/40 border border-warning-bar/40 rounded-md p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-caption font-bold text-warning">주의</span>
+            <span className="text-[20px] font-extrabold font-mono text-warning">{cautionRecs.length}</span>
           </div>
           {cautionRecs.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+            <div className="flex flex-col gap-1 mt-1.5">
               {cautionRecs.map((r: any, i: number) => (
-                <div key={i} style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.3 }}>
-                  <span style={{ fontWeight: 600 }}>{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
-                  {r.memo && <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo.split('\n')[0]}</div>}
+                <div key={i} className="text-caption text-text-secondary leading-snug">
+                  <span className="font-semibold">{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
+                  {r.memo && <div className="text-caption text-text-tertiary mt-0.5 truncate">{r.memo.split('\n')[0]}</div>}
                 </div>
               ))}
             </div>
@@ -5103,17 +5109,17 @@ ${issueRecs.length > 0 ? `
         </div>
 
         {/* 불량 */}
-        <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--danger)' }}>불량</span>
-            <span style={{ fontSize: 20, fontWeight: 800, fontFamily: 'JetBrains Mono,monospace', color: 'var(--danger)' }}>{badRecs.length}</span>
+        <div className="bg-danger-bg/40 border border-danger-bar/40 rounded-md p-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-caption font-bold text-danger">불량</span>
+            <span className="text-[20px] font-extrabold font-mono text-danger">{badRecs.length}</span>
           </div>
           {badRecs.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+            <div className="flex flex-col gap-1 mt-1.5">
               {badRecs.map((r: any, i: number) => (
-                <div key={i} style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.3 }}>
-                  <span style={{ fontWeight: 600 }}>{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
-                  {r.memo && <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.memo.split('\n')[0]}</div>}
+                <div key={i} className="text-caption text-text-secondary leading-snug">
+                  <span className="font-semibold">{ZONE_LBL[r.zone] ?? r.zone} {r.floor}</span>{r.location ? ` · ${r.location}` : ''}
+                  {r.memo && <div className="text-caption text-text-tertiary mt-0.5 truncate">{r.memo.split('\n')[0]}</div>}
                 </div>
               ))}
             </div>
@@ -5199,61 +5205,67 @@ function DesktopInspectionView({
   const fmtDateTime = fmtKstDateTime
 
   return (
-    <div style={{ flex:1, minHeight:0, display:'flex', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="flex-1 min-h-0 flex overflow-hidden bg-surface-page">
 
       {/* ── 좌측: 카테고리 카드 ── */}
-      <div style={{ width:'50%', flexShrink:0, minWidth:0, borderRight:'1px solid var(--bd)', display:'flex', flexDirection:'column' }}>
-        <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>점검 항목</span>
-          <span style={{ fontSize:11, color:'var(--t3)' }}>{dateFilter === -1 ? '이번달' : dateFilter === 0 ? '전체' : `최근 ${dateFilter}일`}</span>
-          <div style={{ display:'flex', gap:4 }}>
+      <div className="w-1/2 shrink-0 min-w-0 border-r border-border-default flex flex-col">
+        <div className="shrink-0 px-5 py-3 border-b border-border-default bg-surface-raised flex items-center gap-2.5">
+          <span className="text-body-sm font-bold text-text-primary flex-1">점검 항목</span>
+          <span className="text-caption text-text-tertiary">{dateFilter === -1 ? '이번달' : dateFilter === 0 ? '전체' : `최근 ${dateFilter}일`}</span>
+          <div className="flex gap-1">
             {PERIOD_BUTTONS.map(b => (
               <button key={b.value} onClick={() => setDateFilter(b.value)}
-                style={{ padding:'4px 10px', borderRadius:6, border:'none',
-                  background: dateFilter === b.value ? 'var(--acl)' : 'var(--bg3)',
-                  color: dateFilter === b.value ? '#fff' : 'var(--t3)',
-                  fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                className={`px-2.5 py-1 rounded-sm border-0 text-caption font-bold cursor-pointer transition-colors ${
+                  dateFilter === b.value
+                    ? 'bg-accent text-text-on-accent'
+                    : 'bg-surface-sunken text-text-tertiary hover:bg-surface-active'
+                }`}>
                 {b.label}
               </button>
             ))}
           </div>
         </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'14px 18px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(170px, 1fr))', gap:10 }}>
+        <div className="flex-1 overflow-y-auto px-4 py-3.5">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2.5">
             {CATEGORY_GROUPS.map((g, idx) => {
               const c = groupCounts[idx]
               const isSel = categoryIdx === idx
+              const Icon = CATEGORY_ICONS[idx]
+              const barClass = getCatBarClass(c.total, c.completed)
               return (
                 <div key={idx}
                   onClick={() => { setCategoryIdx(idx); setRecordId(null) }}
-                  style={{
-                    background: isSel ? 'rgba(59,130,246,.18)' : g.color,
-                    border: '2px solid ' + (isSel ? 'var(--acl)' : g.border),
-                    borderRadius: 12, padding: '12px 10px', cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', gap: 6, minHeight: 100,
-                    transition: 'background-color .12s',
-                  }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ fontSize:18, lineHeight:1 }}>{g.icon}</span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      {g.labels.map(l => <div key={l} style={{ fontSize:11, fontWeight:700, color:'var(--t1)', lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</div>)}
+                  className={`relative bg-surface-raised border rounded-md px-2.5 py-3 cursor-pointer flex flex-col gap-1.5 min-h-[100px] overflow-hidden transition-all duration-150 hover:border-border-strong hover:-translate-y-px ${
+                    isSel ? 'border-2 border-accent ring-2 ring-accent/20' : 'border-border-default'
+                  }`}>
+                  {c.total > 0 && <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${barClass}`} />}
+                  <div className="flex items-center gap-1.5">
+                    <Icon size={20} className="text-text-secondary shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      {g.labels.map(l => (
+                        <div key={l} className="text-caption font-bold text-text-primary leading-snug truncate">{l}</div>
+                      ))}
                     </div>
                   </div>
-                  <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:4, marginTop:'auto' }}>
+                  <div className="flex items-end justify-between gap-1 mt-auto">
                     {/* 좌하단: 이슈 없음 또는 불량/주의 */}
-                    <div style={{ display:'flex', gap:3, flexWrap:'wrap', flex:1, minWidth:0 }}>
+                    <div className="flex gap-0.5 flex-wrap flex-1 min-w-0">
                       {c.bad === 0 && c.caution === 0 ? (
-                        <span style={{ fontSize:10, color:'var(--t3)' }}>이슈 없음</span>
+                        <span className="text-caption text-text-tertiary">이슈 없음</span>
                       ) : (
                         <>
-                          {c.bad > 0 && <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.13)', padding:'2px 6px', borderRadius:5 }}>불량 {c.bad}</span>}
-                          {c.caution > 0 && <span style={{ fontSize:10, fontWeight:700, color:'var(--warn)', background:'rgba(245,158,11,.13)', padding:'2px 6px', borderRadius:5 }}>주의 {c.caution}</span>}
+                          {c.bad > 0 && (
+                            <span className="text-caption font-bold text-danger bg-danger-bg px-1.5 py-0.5 rounded-sm">불량 {c.bad}</span>
+                          )}
+                          {c.caution > 0 && (
+                            <span className="text-caption font-bold text-warning bg-warning-bg px-1.5 py-0.5 rounded-sm">주의 {c.caution}</span>
+                          )}
                         </>
                       )}
                     </div>
                     {/* 우하단: 점검 완료 개소 수 */}
                     {c.completed > 0 && (
-                      <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.10)', padding:'2px 6px', borderRadius:5, flexShrink:0 }}>
+                      <span className="text-caption font-bold text-safe bg-safe-bg px-1.5 py-0.5 rounded-sm shrink-0">
                         ✓ 점검완료 {c.completed}
                       </span>
                     )}
@@ -5266,26 +5278,28 @@ function DesktopInspectionView({
       </div>
 
       {/* ── 우측: 내역 목록 또는 상세 ── */}
-      <div style={{ width:'50%', flexShrink:0, minWidth:0, display:'flex', flexDirection:'column' }}>
+      <div className="w-1/2 shrink-0 min-w-0 flex flex-col">
         {recordId && detail ? (
           // ── 상세 보기 ──
           <>
-            <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
+            <div className="shrink-0 px-5 py-3 border-b border-border-default bg-surface-raised flex items-center gap-2.5">
               <button onClick={() => setRecordId(null)}
-                style={{ width:32, height:32, borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center hover:bg-surface-active transition-colors">
+                <ChevronLeft size={14} className="text-text-secondary" />
               </button>
-              <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>조치 상세</span>
+              <span className="text-body-sm font-bold text-text-primary flex-1">조치 상세</span>
               <button onClick={() => navigate('/remediation/' + recordId)}
-                style={{ padding:'5px 12px', borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+                className="px-3 py-1 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-active transition-colors">
                 전체 화면 열기
               </button>
             </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
-              <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)', marginBottom:4 }}>{(detail as any).category}</div>
-              <div style={{ fontSize:11, color:'var(--t3)', marginBottom:14 }}>{ZONE_LABEL[(detail as any).zone] ?? (detail as any).zone} {(detail as any).floor}{(detail as any).location ? ` · ${(detail as any).location}` : ''}</div>
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="text-body font-bold text-text-primary mb-1">{(detail as any).category}</div>
+              <div className="text-caption text-text-tertiary mb-3.5">
+                {ZONE_LABEL[(detail as any).zone] ?? (detail as any).zone} {(detail as any).floor}{(detail as any).location ? ` · ${(detail as any).location}` : ''}
+              </div>
 
-              <table style={{ width:'100%', borderCollapse:'collapse', marginBottom:18 }}>
+              <table className="w-full border-collapse mb-4">
                 <tbody>
                   {[
                     ['점검일시', fmtDateTime((detail as any).checkedAt)],
@@ -5295,18 +5309,22 @@ function DesktopInspectionView({
                     ['메모',     (detail as any).memo ?? '-'],
                   ].map(([label, value], i) => (
                     <tr key={i}>
-                      <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left', verticalAlign:'top' }}>{label}</th>
-                      <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)', whiteSpace:'pre-wrap', verticalAlign:'top' }}>
+                      <th className="w-[90px] px-2.5 py-1.5 bg-surface-sunken border border-border-default text-caption font-bold text-text-secondary text-left align-top">{label}</th>
+                      <td className="px-2.5 py-1.5 border border-border-default text-label text-text-primary whitespace-pre-wrap align-top">
                         {label === '판정' ? (
-                          <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5,
-                            background: (detail as any).result === 'bad' ? 'rgba(239,68,68,.13)' : 'rgba(245,158,11,.13)',
-                            color: (detail as any).result === 'bad' ? 'var(--danger)' : 'var(--warn)' }}>
+                          <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm ${
+                            (detail as any).result === 'bad'
+                              ? 'bg-danger-bg text-danger'
+                              : 'bg-warning-bg text-warning'
+                          }`}>
                             {(detail as any).result === 'bad' ? '불량' : '주의'}
                           </span>
                         ) : label === '상태' ? (
-                          <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5,
-                            background: (detail as any).status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(34,197,94,.13)',
-                            color: (detail as any).status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>
+                          <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm ${
+                            (detail as any).status === 'open'
+                              ? 'bg-fire-bg text-fire'
+                              : 'bg-safe-bg text-safe'
+                          }`}>
                             {(detail as any).status === 'open' ? '미조치' : '조치완료'}
                           </span>
                         ) : value as string}
@@ -5316,16 +5334,16 @@ function DesktopInspectionView({
                   {(detail as any).status === 'resolved' && (
                     <>
                       <tr>
-                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치일시</th>
-                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)' }}>{fmtDateTime((detail as any).resolvedAt)}</td>
+                        <th className="w-[90px] px-2.5 py-1.5 bg-surface-sunken border border-border-default text-caption font-bold text-text-secondary text-left">조치일시</th>
+                        <td className="px-2.5 py-1.5 border border-border-default text-label text-text-primary">{fmtDateTime((detail as any).resolvedAt)}</td>
                       </tr>
                       <tr>
-                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치자</th>
-                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)' }}>{(detail as any).resolvedBy ?? '-'}</td>
+                        <th className="w-[90px] px-2.5 py-1.5 bg-surface-sunken border border-border-default text-caption font-bold text-text-secondary text-left">조치자</th>
+                        <td className="px-2.5 py-1.5 border border-border-default text-label text-text-primary">{(detail as any).resolvedBy ?? '-'}</td>
                       </tr>
                       <tr>
-                        <th style={{ width:90, padding:'7px 10px', background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:700, color:'var(--t2)', textAlign:'left' }}>조치 내용</th>
-                        <td style={{ padding:'7px 10px', border:'1px solid var(--bd)', fontSize:12, color:'var(--t1)', whiteSpace:'pre-wrap' }}>{(detail as any).resolutionMemo ?? '-'}</td>
+                        <th className="w-[90px] px-2.5 py-1.5 bg-surface-sunken border border-border-default text-caption font-bold text-text-secondary text-left">조치 내용</th>
+                        <td className="px-2.5 py-1.5 border border-border-default text-label text-text-primary whitespace-pre-wrap">{(detail as any).resolutionMemo ?? '-'}</td>
                       </tr>
                     </>
                   )}
@@ -5333,21 +5351,21 @@ function DesktopInspectionView({
               </table>
 
               {/* 사진 */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                <div style={{ border:'1px solid var(--bd)', borderRadius:10, padding:10, background:'var(--bg2)' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>📷 조치 전</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="border border-border-default rounded-md p-2.5 bg-surface-raised">
+                  <div className="text-caption font-bold text-text-secondary mb-1.5">📷 조치 전</div>
                   {(detail as any).photoKey ? (
-                    <img src={'/api/uploads/' + (detail as any).photoKey} alt="조치 전" style={{ width:'100%', maxHeight:240, objectFit:'contain', borderRadius:6, background:'#000' }} />
+                    <img src={'/api/uploads/' + (detail as any).photoKey} alt="조치 전" className="w-full max-h-[240px] object-contain rounded-sm bg-black" />
                   ) : (
-                    <div style={{ height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:11 }}>사진 없음</div>
+                    <div className="h-[140px] flex items-center justify-center text-text-tertiary text-caption">사진 없음</div>
                   )}
                 </div>
-                <div style={{ border:'1px solid var(--bd)', borderRadius:10, padding:10, background:'var(--bg2)' }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>📷 조치 후</div>
+                <div className="border border-border-default rounded-md p-2.5 bg-surface-raised">
+                  <div className="text-caption font-bold text-text-secondary mb-1.5">📷 조치 후</div>
                   {(detail as any).resolutionPhotoKey ? (
-                    <img src={'/api/uploads/' + (detail as any).resolutionPhotoKey} alt="조치 후" style={{ width:'100%', maxHeight:240, objectFit:'contain', borderRadius:6, background:'#000' }} />
+                    <img src={'/api/uploads/' + (detail as any).resolutionPhotoKey} alt="조치 후" className="w-full max-h-[240px] object-contain rounded-sm bg-black" />
                   ) : (
-                    <div style={{ height:140, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:11 }}>{(detail as any).status === 'open' ? '아직 조치 전' : '사진 없음'}</div>
+                    <div className="h-[140px] flex items-center justify-center text-text-tertiary text-caption">{(detail as any).status === 'open' ? '아직 조치 전' : '사진 없음'}</div>
                   )}
                 </div>
               </div>
@@ -5356,62 +5374,67 @@ function DesktopInspectionView({
         ) : categoryIdx !== null ? (
           // ── 카테고리 내역 목록 ──
           <>
-            <div style={{ flexShrink:0, padding:'12px 20px', borderBottom:'1px solid var(--bd)', background:'var(--bg2)', display:'flex', alignItems:'center', gap:10 }}>
-              <span style={{ fontSize:18, lineHeight:1 }}>{CATEGORY_GROUPS[categoryIdx].icon}</span>
-              <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>{CATEGORY_GROUPS[categoryIdx].labels.join(', ')}</span>
+            <div className="shrink-0 px-5 py-3 border-b border-border-default bg-surface-raised flex items-center gap-2.5">
+              {(() => { const HeaderIcon = CATEGORY_ICONS[categoryIdx]; return <HeaderIcon size={20} className="text-text-secondary" /> })()}
+              <span className="text-body-sm font-bold text-text-primary flex-1">{CATEGORY_GROUPS[categoryIdx].labels.join(', ')}</span>
               <button onClick={() => setExcludeNormal(!excludeNormal)}
-                style={{ padding:'4px 10px', borderRadius:6, border:'1px solid ' + (excludeNormal ? 'var(--acl)' : 'var(--bd)'),
-                  background: excludeNormal ? 'rgba(59,130,246,.13)' : 'var(--bg3)',
-                  color: excludeNormal ? 'var(--acl)' : 'var(--t3)',
-                  fontSize:10, fontWeight:700, cursor:'pointer' }}>
+                className={`px-2.5 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                  excludeNormal
+                    ? 'border border-accent bg-accent/15 text-accent'
+                    : 'border border-border-default bg-surface-sunken text-text-tertiary hover:bg-surface-active'
+                }`}>
                 {excludeNormal ? '✓ 정상 제외' : '정상 제외'}
               </button>
-              <span style={{ fontSize:11, color:'var(--t3)' }}>{categoryRecords.length}건</span>
+              <span className="text-caption text-text-tertiary">{categoryRecords.length}건</span>
             </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'14px 18px' }}>
+            <div className="flex-1 overflow-y-auto px-4 py-3.5">
               {/* 써머리 카드 */}
               <InspectionSummaryCard categoryIdx={categoryIdx} allRecords={allRecords} />
               {isLoading ? (
-                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
+                <div className="text-center py-10 text-text-tertiary text-caption">불러오는 중...</div>
               ) : categoryRecords.length === 0 ? (
-                <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>점검 내역이 없습니다</div>
+                <div className="text-center py-10 text-text-tertiary text-caption">점검 내역이 없습니다</div>
               ) : (
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                <div className="flex flex-col gap-2">
                   {categoryRecords.map(r => {
                     const isIssue = r.result === 'bad' || r.result === 'caution'
                     const isResolved = isIssue && r.status === 'resolved'
-                    const borderColor = isResolved ? '#3b82f6' : r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)'
+                    const borderColorClass = isResolved
+                      ? 'border-l-info-bar'
+                      : r.result === 'bad'
+                        ? 'border-l-danger-bar'
+                        : r.result === 'caution'
+                          ? 'border-l-warning-bar'
+                          : 'border-l-safe-bar'
                     return (
-                    <div key={r.id}
-                      onClick={() => isIssue && setRecordId(r.id)}
-                      style={{
-                        background:'var(--bg2)',
-                        border:'1px solid var(--bd)',
-                        borderLeft: `4px solid ${borderColor}`,
-                        borderRadius:10, padding:'10px 12px', cursor: isIssue ? 'pointer' : 'default',
-                        display:'flex', flexDirection:'column', gap:3,
-                      }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', flex:1 }}>{r.category}</span>
-                        <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
-                          background: r.result === 'bad' ? 'rgba(239,68,68,.13)' : r.result === 'caution' ? 'rgba(245,158,11,.13)' : 'rgba(34,197,94,.13)',
-                          color: r.result === 'bad' ? 'var(--danger)' : r.result === 'caution' ? 'var(--warn)' : 'var(--safe)' }}>
-                          {r.result === 'bad' ? '불량' : r.result === 'caution' ? '주의' : '정상'}
-                        </span>
-                        {isIssue && (
-                          <span style={{ fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:5,
-                            background: r.status === 'open' ? 'rgba(249,115,22,.15)' : 'rgba(59,130,246,.13)',
-                            color: r.status === 'open' ? 'var(--danger)' : '#3b82f6' }}>
-                            {r.status === 'open' ? '미조치' : '조치완료'}
+                      <div key={r.id}
+                        onClick={() => isIssue && setRecordId(r.id)}
+                        className={`bg-surface-raised border border-border-default border-l-4 ${borderColorClass} rounded-md px-3 py-2.5 flex flex-col gap-1 transition-colors ${
+                          isIssue ? 'cursor-pointer hover:bg-surface-sunken' : 'cursor-default'
+                        }`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-label font-bold text-text-primary flex-1">{r.category}</span>
+                          <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm ${
+                            r.result === 'bad'     ? 'bg-danger-bg text-danger'
+                            : r.result === 'caution' ? 'bg-warning-bg text-warning'
+                            :                          'bg-safe-bg text-safe'
+                          }`}>
+                            {r.result === 'bad' ? '불량' : r.result === 'caution' ? '주의' : '정상'}
                           </span>
-                        )}
+                          {isIssue && (
+                            <span className={`text-caption font-bold px-1.5 py-0.5 rounded-sm ${
+                              r.status === 'open' ? 'bg-fire-bg text-fire' : 'bg-info-bg text-info'
+                            }`}>
+                              {r.status === 'open' ? '미조치' : '조치완료'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-caption text-text-secondary">
+                          {(ZONE_LABEL[r.zone] ?? r.zone)} {r.floor}{r.location ? ` · ${r.location}` : ''}
+                        </div>
+                        {r.memo && <div className="text-caption text-text-tertiary truncate">{r.memo.split('\n')[0]}</div>}
+                        <div className="text-caption text-text-tertiary">{fmtDate(r.checkedAt)}</div>
                       </div>
-                      <div style={{ fontSize:11, color:'var(--t2)' }}>
-                        {(ZONE_LABEL[r.zone] ?? r.zone)} {r.floor}{r.location ? ` · ${r.location}` : ''}
-                      </div>
-                      {r.memo && <div style={{ fontSize:11, color:'var(--t3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.memo.split('\n')[0]}</div>}
-                      <div style={{ fontSize:10, color:'var(--t3)' }}>{fmtDate(r.checkedAt)}</div>
-                    </div>
                     )
                   })}
                 </div>
@@ -5419,7 +5442,7 @@ function DesktopInspectionView({
             </div>
           </>
         ) : (
-          <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">
             좌측에서 점검 항목을 선택하세요
           </div>
         )}
