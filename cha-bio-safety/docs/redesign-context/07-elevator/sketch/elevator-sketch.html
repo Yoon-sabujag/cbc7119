@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>승강기 관리 재디자인 시안 v0.1.1 — 1차 (페이지 골격)</title>
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 1차 (페이지 골격, 4 type)</title>
 
   <!-- Tailwind CDN (시안 전용) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -183,7 +183,6 @@
 
     /* =====================================================================
      * 토큰 → CSS class 매핑 — 인라인 style 회피용
-     * (Tailwind arbitrary value 만 써도 되지만, 의미 단위 클래스로 가독성 확보)
      * ===================================================================== */
     .bg-page       { background-color: var(--surface-page); }
     .bg-raised     { background-color: var(--surface-raised); }
@@ -318,22 +317,6 @@
     /* 운행중지 카드는 살짝 흐림 (§6.3 0% 카드 opacity 0.6 응용) */
     .ev-disabled { opacity: 0.62; }
 
-    /* 노선도 — 좌/우 호기 dot + 연결선 */
-    .es-row     { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; }
-    .es-rail    { width: 2px; background: var(--border-default); border-radius: 2px; align-self: stretch; justify-self: center; }
-    .es-floor   { font-size: 13px; font-weight: 600; color: var(--text-secondary); padding: 4px 12px; background: var(--surface-sunken); border-radius: 99px; display: inline-block; }
-    .es-node-l  { display: flex; justify-content: flex-end; }
-    .es-node-r  { display: flex; justify-content: flex-start; }
-    .es-dot {
-      width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-      background: var(--status-safe-bar);
-    }
-    .es-dot-safe   { background: var(--status-safe-bar); }
-    .es-dot-warn   { background: var(--status-warning-bar); }
-    .es-dot-danger { background: var(--status-danger-bar); }
-    .es-dot-fire   { background: var(--status-fire-bar); }
-    .es-dot-mute   { background: var(--text-tertiary); }
-
     /* 헤더 sticky (모바일) */
     .sticky-top { position: sticky; top: 0; z-index: 5; }
 
@@ -393,6 +376,9 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
       margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* 상태 배지 (정상 / 고장 / 점검중 / 운행중지) */
@@ -411,6 +397,7 @@
     .badge-warn   { background: var(--status-warning-bg); color: var(--status-warning); }
     .badge-danger { background: var(--status-danger-bg);  color: var(--status-danger); }
     .badge-fire   { background: var(--status-fire-bg);    color: var(--status-fire); }
+    .badge-info   { background: var(--status-info-bg);    color: var(--status-info); }
     .badge-mute   { background: var(--surface-sunken);    color: var(--text-tertiary); }
 
     /* placeholder 박스 (2·3차 시안 자리) */
@@ -424,12 +411,6 @@
 
     /* state-row meta-label 마진 (검색 활성/Empty/Loading 헤더용) */
     .state-meta { margin-bottom: 4px; }
-
-    /* =====================================================================
-     * 시안 토큰 컨테이너 사용 패턴 (참조용 주석 — [data-theme="dark"] 와
-     * [data-theme="light"] 셀렉터 위에 정의된 토큰을 자식이 var(...) 로 참조).
-     * 추가 룰 없음 — 위의 :root 블록과 동일.
-     * ===================================================================== */
 
     /* 데스크톱 사이드바 아이콘 버튼 */
     .side-btn {
@@ -461,14 +442,19 @@
       50~99→ --accent (파랑)
       100% → --status-safe-bar (초록)
   - v0.1.1 §6.2 Stat Card 좌측 3px 색바 + 위험 임계치 조건부 danger.
-  - v0.1.1 §6.3 카테고리 카드 — 아이콘 회색 통일.
+  - v0.1.1 §6.3 카테고리 카드 — 아이콘 회색 통일 (--text-secondary).
   - v0.1.1 §6.4 단색 surface, 풀블리드 그라디언트 X (CTA 만 예외).
   - v0.1.1 §6.5 hover — border 강화 + translateY(-1px).
   - v0.1.1 §6.7 그림자 X.
+  - v0.1.1 §7.1 이모지 금지 — Lucide 아이콘만.
   - 호기 카드 좌측 3px 색바 — 정상=safe / 점검중=warning / 운행중지=mute / 고장=fire.
   - 자체 헤더 (App.tsx 헤더 숨김 패턴) — 6탭 + 검색 + 액션 버튼.
   - BottomNav 하단 갭은 height + paddingBottom 패턴.
-  - 본 시안 = 1차 (페이지 골격). 모달 5종 → 2차, KOELSA 이력 → 3차.
+  - 본 시안 = 1차 (페이지 골격, list 탭 = type 4분류 단순 카드 리스트).
+  - **List 탭 그룹은 type 4분류**: 인승용(passenger·8) / 화물용(cargo·2) / 덤웨이터(dumbwaiter·1) / 에스컬레이터(escalator·6).
+  - 5그룹(투명/오렌지/기타) 분류 + 에스컬 노선도 는 EvSelector(모달 전용) → 2차 시안.
+  - 모달 5종 → 2차, KOELSA 이력 → 3차.
+  - Option A 아이콘 매핑: passenger=ElevatorIcon / cargo=Package / dumbwaiter=UtensilsCrossed / escalator=MoveDiagonal.
   ============================================================================
 -->
 
@@ -482,15 +468,18 @@
       <span class="meta-label">v0.1.1 시안 — 1차</span>
       <span class="meta-label">2026-05-10</span>
       <span class="meta-label">redesign/07-elevator</span>
-      <span class="meta-label">페이지 골격</span>
+      <span class="meta-label">페이지 골격 — list 탭 (type 4분류)</span>
     </div>
     <h1 class="text-3xl font-semibold text-white">CHA Bio Complex — 승강기 관리 재디자인 시안 (1차)</h1>
     <p class="text-base text-gray-400 mt-2 leading-relaxed">
-      모바일 375×812 / 데스크톱 1280×800 · 라이트/다크 동시 비교 · ElevatorPage.tsx 페이지 골격(컨테이너 + 자체 헤더 + 호기 그리드 + 에스컬 노선도) ·
-      v0.1.1 §6 Progress Color Rule, §6.2 Stat Card, §6.5 Hover, §7 Iconography 적용 · 정상/고장/점검중/운행중지 4 상태 + 검색 결과 0건 + 로딩 스켈레톤
+      모바일 375×812 / 데스크톱 1280×800 · 라이트/다크 동시 비교 · ElevatorPage.tsx list 탭 (line 1039-1098) 1:1 매핑 ·
+      type 4분류 그룹 (인승용 8 / 화물용 2 / 덤웨이터 1 / 에스컬 6) · v0.1.1 §6 Progress Color Rule, §6.2 Stat Card, §6.3 카테고리 회색 통일, §6.5 Hover, §7.1 Lucide 아이콘 적용
     </p>
     <p class="text-base text-gray-500 mt-2 leading-relaxed">
-      🔜 2차 시안 — 5개 모달 (고장 신고 / 수리 등록 / 점검 기록 / 호기 상세 / 조치) · 🔜 3차 시안 — KOELSA 검사 이력 카드
+      Option A 아이콘: 인승용=<code>ElevatorIcon</code> / 화물용=<code>Package</code> / 덤웨이터=<code>UtensilsCrossed</code> (B1식당↔2F 메타포) / 에스컬=<code>MoveDiagonal</code> · 모두 <code>--text-secondary</code> 회색 통일
+    </p>
+    <p class="text-base text-gray-500 mt-2 leading-relaxed">
+      2차 시안 — 5개 모달 (고장 신고 / 수리 등록 / 점검 기록 / 호기 상세 / 조치 + EvSelector 의 5그룹 호기 선택 + 에스컬 노선도) · 3차 시안 — KOELSA 검사 이력 카드
     </p>
   </header>
 
@@ -561,16 +550,16 @@
               </div>
             </div>
 
-            <!-- ② 본문 (list 탭) — 호기 그리드 + 에스컬 노선도 -->
+            <!-- ② 본문 (list 탭) — type 4분류 카드 리스트 -->
             <main class="flex-1 min-h-0 overflow-y-auto px-3 py-3 flex flex-col gap-4">
 
               <!-- 호기별 통계 (Stat Card 4열) — §6.2 -->
               <div class="grid grid-cols-4 gap-2">
-                <!-- 정상 11대 (safe bar) -->
+                <!-- 정상 14대 (safe bar) -->
                 <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">정상</div>
                   <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-t1">11</span>
+                    <span class="text-mono text-xl font-semibold leading-none text-t1">14</span>
                     <span class="text-caption text-t3">대</span>
                   </div>
                 </div>
@@ -582,32 +571,35 @@
                     <span class="text-caption text-t3">대</span>
                   </div>
                 </div>
-                <!-- 점검중 2대 (warn bar) -->
+                <!-- 점검중 1대 (warn bar) -->
                 <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">점검중</div>
                   <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-warn">2</span>
+                    <span class="text-mono text-xl font-semibold leading-none text-warn">1</span>
                     <span class="text-caption text-t3">대</span>
                   </div>
                 </div>
-                <!-- 운행중지 3대 (mute bar) -->
+                <!-- 운행중지 1대 (mute bar) -->
                 <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">중지</div>
                   <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-t3">3</span>
+                    <span class="text-mono text-xl font-semibold leading-none text-t3">1</span>
                     <span class="text-caption text-t3">대</span>
                   </div>
                 </div>
               </div>
 
-              <!-- 호기 그룹 1 — 투명 엘리베이터 (1·2·3호기) -->
+              <!-- ── 인승용 (passenger) · 8대 ────────────────────────────── -->
               <div>
-                <div class="group-label">투명 엘리베이터 · 3대</div>
+                <div class="group-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
+                  <span>인승용 · 8대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <!-- EV-01 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                  <!-- 1호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -616,12 +608,15 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <!-- EV-02 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 2호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -630,12 +625,15 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <!-- EV-03 점검중 -->
-                  <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 3호기 점검중 -->
+                  <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -644,33 +642,32 @@
                       </div>
                       <div class="text-caption text-warn mt-0.5">정기검사 진행중 · 김주간</div>
                     </div>
-                    <span class="badge badge-warn flex-shrink-0">점검중</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 호기 그룹 2 — 오렌지 엘리베이터 (4·5·6호기) -->
-              <div>
-                <div class="group-label">오렌지 엘리베이터 · 3대</div>
-                <div class="ev-grid-mobile">
-                  <!-- EV-04 고장 (fire bar — 미수리) -->
-                  <div class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-warn">점검중</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 4호기 고장 -->
+                  <button class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-fire-soft w-10 h-10 rounded-[10px] flex items-center justify-center text-fire flex-shrink-0">
-                      <i data-lucide="siren" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
                         <span class="text-body font-semibold text-t1">4호기</span>
                         <span class="text-caption text-t3 truncate">오렌지·B3↔사8F</span>
                       </div>
-                      <div class="text-caption text-danger mt-0.5">사3F 도어 닫힘 불량 · 12분 전</div>
+                      <div class="text-caption mt-0.5"><span class="text-t3">최근 점검 4월 25일 · </span><span class="text-danger font-semibold">미해결 1건</span></div>
                     </div>
-                    <span class="badge badge-fire flex-shrink-0">고장</span>
-                  </div>
-                  <!-- EV-05 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-fire">고장</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 5호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -679,12 +676,15 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <!-- EV-06 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 6호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -693,19 +693,15 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 호기 그룹 3 — 기타 엘리베이터 (7·8호기) -->
-              <div>
-                <div class="group-label">기타 엘리베이터 · 2대</div>
-                <div class="ev-grid-mobile">
-                  <!-- EV-07 운행중지 -->
-                  <div class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 7호기 운행중지 -->
+                  <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t3 flex-shrink-0">
-                      <i data-lucide="pause" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -714,12 +710,15 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">전기실 차단기 작업 (내일 복귀)</div>
                     </div>
-                    <span class="badge badge-mute flex-shrink-0">운행중지</span>
-                  </div>
-                  <!-- EV-08 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-mute">운행중지</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 8호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="square" class="w-5 h-5"></i>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -728,17 +727,23 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
-              <!-- 호기 그룹 4 — 화물 엘리베이터 (9·10호기) -->
+              <!-- ── 화물용 (cargo) · 2대 ────────────────────────────── -->
               <div>
-                <div class="group-label">화물 엘리베이터 · 2대</div>
+                <div class="group-label">
+                  <i data-lucide="package" class="w-4 h-4"></i>
+                  <span>화물용 · 2대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <!-- EV-09 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                  <!-- 9호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
                       <i data-lucide="package" class="w-5 h-5"></i>
                     </div>
@@ -749,10 +754,13 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <!-- EV-10 점검중 -->
-                  <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- 10호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
                       <i data-lucide="package" class="w-5 h-5"></i>
                     </div>
@@ -761,21 +769,27 @@
                         <span class="text-body font-semibold text-t1">10호기</span>
                         <span class="text-caption text-t3 truncate">화물·2F하역↔연8F</span>
                       </div>
-                      <div class="text-caption text-warn mt-0.5">자체점검 진행중 · 박비번</div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-warn flex-shrink-0">점검중</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
-              <!-- 호기 그룹 5 — 덤웨이터 (11호기) -->
+              <!-- ── 덤웨이터 (dumbwaiter) · 1대 ────────────────────────────── -->
               <div>
-                <div class="group-label">덤웨이터 · 1대</div>
+                <div class="group-label">
+                  <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+                  <span>덤웨이터 · 1대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <!-- EV-11 정상 -->
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                  <!-- 11호기 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
-                      <i data-lucide="box" class="w-5 h-5"></i>
+                      <i data-lucide="utensils-crossed" class="w-5 h-5"></i>
                     </div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2">
@@ -784,100 +798,72 @@
                       </div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
-              <!-- 에스컬레이터 노선도 섹션 (E1~E6) — ES_NODES_ANNUAL 데이터 모방 -->
+              <!-- ── 에스컬레이터 (escalator) · 6대 ────────────────────────────── -->
               <div>
-                <div class="group-label flex items-center justify-between">
-                  <span>에스컬레이터 노선도 · 6대</span>
-                  <span class="text-caption font-medium text-t3 normal-case tracking-normal">3층 ↔ M층</span>
+                <div class="group-label">
+                  <i data-lucide="move-diagonal" class="w-4 h-4"></i>
+                  <span>에스컬레이터 · 6대</span>
                 </div>
-                <div class="bg-raised bd rounded-[12px] px-3 py-4">
-                  <!-- 3층 -->
-                  <div class="flex justify-center mb-2">
-                    <span class="es-floor">3층</span>
-                  </div>
-                  <!-- 1·2호기 -->
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-1호기</div>
-                          <div class="text-caption text-t3">하행</div>
-                        </div>
-                      </button>
+                <div class="ev-grid-mobile">
+                  <!-- ES-01 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
+                      <i data-lucide="move-diagonal" class="w-5 h-5"></i>
                     </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-2호기</div>
-                          <div class="text-caption text-t3">상행</div>
-                        </div>
-                      </button>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap">
+                        <span class="text-body font-semibold text-t1">1호기</span>
+                        <span class="text-caption text-t3 truncate">3층↔2층 (공단 1호기)</span>
+                      </div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
                     </div>
-                  </div>
-                  <!-- 2층 -->
-                  <div class="flex justify-center mb-2">
-                    <span class="es-floor">2층</span>
-                  </div>
-                  <!-- 5·6호기 -->
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-5호기</div>
-                          <div class="text-caption text-t3">하행</div>
-                        </div>
-                      </button>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
                     </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-warn px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-warn"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-6호기</div>
-                          <div class="text-caption text-warn">점검중·상행</div>
-                        </div>
-                      </button>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- ES-02 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
+                      <i data-lucide="move-diagonal" class="w-5 h-5"></i>
                     </div>
-                  </div>
-                  <!-- B1층 -->
-                  <div class="flex justify-center mb-2">
-                    <span class="es-floor">B1층</span>
-                  </div>
-                  <!-- 3·4호기 -->
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-3호기</div>
-                          <div class="text-caption text-t3">하행</div>
-                        </div>
-                      </button>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap">
+                        <span class="text-body font-semibold text-t1">2호기</span>
+                        <span class="text-caption text-t3 truncate">3층↔2층 (공단 2호기)</span>
+                      </div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
                     </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-mute ev-disabled px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-mute"></span>
-                        <div class="text-left">
-                          <div class="text-caption font-semibold text-t1">ES-4호기</div>
-                          <div class="text-caption text-t3">중지·상행</div>
-                        </div>
-                      </button>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
                     </div>
-                  </div>
-                  <!-- M층 (최하단) -->
-                  <div class="flex justify-center">
-                    <span class="es-floor">M층</span>
-                  </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <!-- ES-03 정상 -->
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0">
+                      <i data-lucide="move-diagonal" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap">
+                        <span class="text-body font-semibold text-t1">3호기</span>
+                        <span class="text-caption text-t3 truncate">B1층↔M층 (공단 3호기)</span>
+                      </div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
@@ -885,8 +871,8 @@
               <div class="placeholder-box flex items-start gap-3">
                 <i data-lucide="layers" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                 <div>
-                  <div class="text-body font-semibold text-t2">🔜 2차 시안 — 5개 모달</div>
-                  <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 (fault_new) · 수리 등록 (repair_new) · 점검 기록 (inspect_new) · 호기 상세 (ev_detail) · 조치 (fault_resolve)</div>
+                  <div class="text-body font-semibold text-t2">2차 시안 — 5 모달 + EvSelector(에스컬 노선도 포함)</div>
+                  <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 (fault_new) · 수리 등록 (repair_new) · 점검 기록 (inspect_new) · 호기 상세 (ev_detail) · 조치 (fault_resolve) — 호기 선택은 EvSelector 의 5그룹 (투명/오렌지/기타/화물/덤웨이터) + 에스컬 노선도</div>
                 </div>
               </div>
 
@@ -894,7 +880,7 @@
               <div class="placeholder-box flex items-start gap-3">
                 <i data-lucide="file-search-2" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                 <div>
-                  <div class="text-body font-semibold text-t2">🔜 3차 시안 — KOELSA 검사 이력</div>
+                  <div class="text-body font-semibold text-t2">3차 시안 — KOELSA 검사 이력</div>
                   <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 (KoelsaHistorySection) · 검사성적서 PDF · 판정 색 분기 · expanded 토글</div>
                 </div>
               </div>
@@ -975,223 +961,207 @@
               <div class="grid grid-cols-4 gap-2">
                 <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">정상</div>
-                  <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-t1">11</span>
-                    <span class="text-caption text-t3">대</span>
-                  </div>
+                  <div class="flex items-baseline gap-0.5 mt-1"><span class="text-mono text-xl font-semibold leading-none text-t1">14</span><span class="text-caption text-t3">대</span></div>
                 </div>
                 <div class="bg-raised bd rounded-[12px] bar-left bar-danger card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">고장</div>
-                  <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-danger">1</span>
-                    <span class="text-caption text-t3">대</span>
-                  </div>
+                  <div class="flex items-baseline gap-0.5 mt-1"><span class="text-mono text-xl font-semibold leading-none text-danger">1</span><span class="text-caption text-t3">대</span></div>
                 </div>
                 <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">점검중</div>
-                  <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-warn">2</span>
-                    <span class="text-caption text-t3">대</span>
-                  </div>
+                  <div class="flex items-baseline gap-0.5 mt-1"><span class="text-mono text-xl font-semibold leading-none text-warn">1</span><span class="text-caption text-t3">대</span></div>
                 </div>
                 <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-2 py-2 cursor-pointer overflow-hidden">
                   <div class="text-caption font-semibold text-t3 truncate">중지</div>
-                  <div class="flex items-baseline gap-0.5 mt-1">
-                    <span class="text-mono text-xl font-semibold leading-none text-t3">3</span>
-                    <span class="text-caption text-t3">대</span>
-                  </div>
+                  <div class="flex items-baseline gap-0.5 mt-1"><span class="text-mono text-xl font-semibold leading-none text-t3">1</span><span class="text-caption text-t3">대</span></div>
                 </div>
               </div>
 
+              <!-- 인승용 8대 -->
               <div>
-                <div class="group-label">투명 엘리베이터 · 3대</div>
+                <div class="group-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
+                  <span>인승용 · 8대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">1호기</span><span class="text-caption text-t3 truncate">투명·B5↔연2F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">2호기</span><span class="text-caption text-t3 truncate">투명·B5↔연2F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">3호기</span><span class="text-caption text-t3 truncate">투명·연1↔연8F</span></div>
                       <div class="text-caption text-warn mt-0.5">정기검사 진행중 · 김주간</div>
                     </div>
-                    <span class="badge badge-warn flex-shrink-0">점검중</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div class="group-label">오렌지 엘리베이터 · 3대</div>
-                <div class="ev-grid-mobile">
-                  <div class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-fire-soft w-10 h-10 rounded-[10px] flex items-center justify-center text-fire flex-shrink-0"><i data-lucide="siren" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-warn">점검중</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-fire-soft w-10 h-10 rounded-[10px] flex items-center justify-center text-fire flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">4호기</span><span class="text-caption text-t3 truncate">오렌지·B3↔사8F</span></div>
-                      <div class="text-caption text-danger mt-0.5">사3F 도어 닫힘 불량 · 12분 전</div>
+                      <div class="text-caption mt-0.5"><span class="text-t3">최근 점검 4월 25일 · </span><span class="text-danger font-semibold">미해결 1건</span></div>
                     </div>
-                    <span class="badge badge-fire flex-shrink-0">고장</span>
-                  </div>
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-fire">고장</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">5호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔사7F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">6호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔사7F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div class="group-label">기타 엘리베이터 · 2대</div>
-                <div class="ev-grid-mobile">
-                  <div class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t3 flex-shrink-0"><i data-lucide="pause" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t3 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">7호기</span><span class="text-caption text-t3 truncate">기타·B2↔M·B1F</span></div>
                       <div class="text-caption text-t3 mt-0.5">전기실 차단기 작업 (내일 복귀)</div>
                     </div>
-                    <span class="badge badge-mute flex-shrink-0">운행중지</span>
-                  </div>
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-mute">운행중지</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">8호기</span><span class="text-caption text-t3 truncate">기타·연3↔연7F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0">
+                      <span class="badge badge-safe">정상</span>
+                    </div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
+              <!-- 화물용 2대 -->
               <div>
-                <div class="group-label">화물 엘리베이터 · 2대</div>
+                <div class="group-label">
+                  <i data-lucide="package" class="w-4 h-4"></i>
+                  <span>화물용 · 2대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="package" class="w-5 h-5"></i></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">9호기</span><span class="text-caption text-t3 truncate">화물·B2↔연7F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
-                  <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex items-center gap-3">
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
                     <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="package" class="w-5 h-5"></i></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">10호기</span><span class="text-caption text-t3 truncate">화물·2F하역↔연8F</span></div>
-                      <div class="text-caption text-warn mt-0.5">자체점검 진행중 · 박비번</div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
                     </div>
-                    <span class="badge badge-warn flex-shrink-0">점검중</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
+              <!-- 덤웨이터 1대 -->
               <div>
-                <div class="group-label">덤웨이터 · 1대</div>
+                <div class="group-label">
+                  <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+                  <span>덤웨이터 · 1대</span>
+                </div>
                 <div class="ev-grid-mobile">
-                  <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="box" class="w-5 h-5"></i></div>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="utensils-crossed" class="w-5 h-5"></i></div>
                     <div class="flex-1 min-w-0">
                       <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">11호기</span><span class="text-caption text-t3 truncate">덤웨이터·B1식당↔2F</span></div>
                       <div class="text-caption text-t3 mt-0.5">최근 점검 4월 28일</div>
                     </div>
-                    <span class="badge badge-safe flex-shrink-0">정상</span>
-                  </div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
+              <!-- 에스컬레이터 6대 -->
               <div>
-                <div class="group-label flex items-center justify-between">
-                  <span>에스컬레이터 노선도 · 6대</span>
-                  <span class="text-caption font-medium text-t3 normal-case tracking-normal">3층 ↔ M층</span>
+                <div class="group-label">
+                  <i data-lucide="move-diagonal" class="w-4 h-4"></i>
+                  <span>에스컬레이터 · 6대</span>
                 </div>
-                <div class="bg-raised bd rounded-[12px] px-3 py-4">
-                  <div class="flex justify-center mb-2"><span class="es-floor">3층</span></div>
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-1호기</div><div class="text-caption text-t3">하행</div></div>
-                      </button>
+                <div class="ev-grid-mobile">
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="move-diagonal" class="w-5 h-5"></i></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap"><span class="text-body font-semibold text-t1">1호기</span><span class="text-caption text-t3 truncate">3층↔2층 (공단 1호기)</span></div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
                     </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-2호기</div><div class="text-caption text-t3">상행</div></div>
-                      </button>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="move-diagonal" class="w-5 h-5"></i></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap"><span class="text-body font-semibold text-t1">2호기</span><span class="text-caption text-t3 truncate">3층↔2층 (공단 2호기)</span></div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
                     </div>
-                  </div>
-                  <div class="flex justify-center mb-2"><span class="es-floor">2층</span></div>
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-5호기</div><div class="text-caption text-t3">하행</div></div>
-                      </button>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
+                  <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3 w-full text-left">
+                    <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="move-diagonal" class="w-5 h-5"></i></div>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-baseline gap-2 flex-wrap"><span class="text-body font-semibold text-t1">3호기</span><span class="text-caption text-t3 truncate">B1층↔M층 (공단 3호기)</span></div>
+                      <div class="text-caption text-t3 mt-0.5">최근 점검 4월 22일</div>
                     </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-warn px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-warn"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-6호기</div><div class="text-caption text-warn">점검중·상행</div></div>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="flex justify-center mb-2"><span class="es-floor">B1층</span></div>
-                  <div class="es-row mb-2">
-                    <div class="es-node-l">
-                      <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-safe"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-3호기</div><div class="text-caption text-t3">하행</div></div>
-                      </button>
-                    </div>
-                    <div class="es-rail"></div>
-                    <div class="es-node-r">
-                      <button class="ev-card ev-bar-mute ev-disabled px-3 py-2 flex items-center gap-2">
-                        <span class="es-dot es-dot-mute"></span>
-                        <div class="text-left"><div class="text-caption font-semibold text-t1">ES-4호기</div><div class="text-caption text-t3">중지·상행</div></div>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="flex justify-center"><span class="es-floor">M층</span></div>
+                    <div class="flex flex-col items-end gap-1.5 flex-shrink-0"><span class="badge badge-safe">정상</span></div>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-t3 flex-shrink-0"></i>
+                  </button>
                 </div>
               </div>
 
               <div class="placeholder-box flex items-start gap-3">
                 <i data-lucide="layers" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                 <div>
-                  <div class="text-body font-semibold text-t2">🔜 2차 시안 — 5개 모달</div>
-                  <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 (fault_new) · 수리 등록 (repair_new) · 점검 기록 (inspect_new) · 호기 상세 (ev_detail) · 조치 (fault_resolve)</div>
+                  <div class="text-body font-semibold text-t2">2차 시안 — 5 모달 + EvSelector(에스컬 노선도 포함)</div>
+                  <div class="text-caption text-t3 mt-1 leading-relaxed">호기 선택은 EvSelector 의 5그룹 (투명/오렌지/기타/화물/덤웨이터) + 에스컬 노선도</div>
                 </div>
               </div>
 
               <div class="placeholder-box flex items-start gap-3">
                 <i data-lucide="file-search-2" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                 <div>
-                  <div class="text-body font-semibold text-t2">🔜 3차 시안 — KOELSA 검사 이력</div>
-                  <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 (KoelsaHistorySection) · 검사성적서 PDF · 판정 색 분기 · expanded 토글</div>
+                  <div class="text-body font-semibold text-t2">3차 시안 — KOELSA 검사 이력</div>
+                  <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 검사이력 + 검사성적서 PDF</div>
                 </div>
               </div>
             </main>
@@ -1229,7 +1199,7 @@
               <button class="side-btn" title="도면"><i data-lucide="map" class="w-5 h-5"></i></button>
               <button class="side-btn" title="조치"><i data-lucide="wrench" class="w-5 h-5"></i></button>
               <button class="side-btn" title="일정"><i data-lucide="calendar" class="w-5 h-5"></i></button>
-              <button class="side-btn side-btn-active" title="승강기"><i data-lucide="square" class="w-5 h-5"></i></button>
+              <button class="side-btn side-btn-active" title="승강기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></button>
               <div class="flex-1"></div>
               <div class="bg-active text-t1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-label">윤</div>
             </aside>
@@ -1273,232 +1243,238 @@
                 </div>
               </div>
 
-              <!-- 본문 그리드: 좌(통계 + 호기 그리드) / 우(에스컬 노선도 + placeholder) -->
-              <main class="flex-1 min-w-0 overflow-y-auto px-6 py-5 grid grid-cols-12 gap-5">
+              <!-- 본문 — type 4그룹 4열 그리드 -->
+              <main class="flex-1 min-w-0 overflow-y-auto px-6 py-5 flex flex-col gap-5">
 
-                <!-- 좌측 8/12 -->
-                <div class="col-span-8 flex flex-col gap-5">
-
-                  <!-- 통계 카드 4종 -->
-                  <div class="grid grid-cols-4 gap-3">
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">정상</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-t1">11</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-danger card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">고장</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-danger">1</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">점검중</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-warn">2</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">운행중지</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-t3">3</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
+                <!-- 통계 카드 4종 -->
+                <div class="grid grid-cols-4 gap-3">
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">정상</div>
+                    <div class="flex items-baseline gap-1 mt-2">
+                      <span class="text-mono text-display font-semibold leading-none text-t1">14</span>
+                      <span class="text-body-sm text-t3">대</span>
                     </div>
                   </div>
-
-                  <!-- 호기 그리드: 그룹별 -->
-                  <div>
-                    <div class="group-label">투명 엘리베이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">1호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">2호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
-                      </div>
-                      <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">3호기</span>
-                          <span class="badge badge-warn">점검중</span>
-                        </div>
-                        <div class="text-caption text-t3">투명 · 연1F ↔ 연8F</div>
-                        <div class="text-caption text-warn">정기검사 진행중 · 김주간</div>
-                      </div>
-                      <!-- 빈 슬롯 자리 (4번째) → 그룹 4번째 비어있음 -->
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-danger card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">고장</div>
+                    <div class="flex items-baseline gap-1 mt-2">
+                      <span class="text-mono text-display font-semibold leading-none text-danger">1</span>
+                      <span class="text-body-sm text-t3">대</span>
                     </div>
                   </div>
-
-                  <div>
-                    <div class="group-label">오렌지 엘리베이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">4호기</span>
-                          <span class="badge badge-fire">고장</span>
-                        </div>
-                        <div class="text-caption text-t3">오렌지 · B3F ↔ 사8F</div>
-                        <div class="text-caption text-danger">사3F 도어 닫힘 불량 · 12분 전</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">5호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">6호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
-                      </div>
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">점검중</div>
+                    <div class="flex items-baseline gap-1 mt-2">
+                      <span class="text-mono text-display font-semibold leading-none text-warn">1</span>
+                      <span class="text-body-sm text-t3">대</span>
                     </div>
                   </div>
-
-                  <div>
-                    <div class="group-label">기타 엘리베이터 · 2대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">7호기</span>
-                          <span class="badge badge-mute">운행중지</span>
-                        </div>
-                        <div class="text-caption text-t3">기타 · B2F ↔ M·B1F</div>
-                        <div class="text-caption text-t3">전기실 차단기 작업 (내일 복귀)</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">8호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">기타 · 연3F ↔ 연7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 이당직</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div class="group-label">화물 · 덤웨이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">9호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">화물 · B2F ↔ 연7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">10호기</span>
-                          <span class="badge badge-warn">점검중</span>
-                        </div>
-                        <div class="text-caption text-t3">화물 · 2F하역 ↔ 연8F</div>
-                        <div class="text-caption text-warn">자체점검 진행중 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between">
-                          <span class="text-body font-semibold text-t1">11호기</span>
-                          <span class="badge badge-safe">정상</span>
-                        </div>
-                        <div class="text-caption text-t3">덤웨이터 · B1식당 ↔ 2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
-                      </div>
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">운행중지</div>
+                    <div class="flex items-baseline gap-1 mt-2">
+                      <span class="text-mono text-display font-semibold leading-none text-t3">1</span>
+                      <span class="text-body-sm text-t3">대</span>
                     </div>
                   </div>
                 </div>
 
-                <!-- 우측 4/12 — 에스컬 노선도 + placeholders -->
-                <div class="col-span-4 flex flex-col gap-5">
-                  <div>
-                    <div class="group-label flex items-center justify-between">
-                      <span>에스컬레이터 노선도 · 6대</span>
-                      <span class="text-caption font-medium text-t3 normal-case tracking-normal">3층 ↔ M층</span>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] px-4 py-5">
-                      <div class="flex justify-center mb-3"><span class="es-floor">3층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-1호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-2호기</div><div class="text-caption text-t3">상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center mb-3"><span class="es-floor">2층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-5호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-warn px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-warn"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-6호기</div><div class="text-caption text-warn">점검중·상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center mb-3"><span class="es-floor">B1층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-3호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-mute ev-disabled px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-mute"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-4호기</div><div class="text-caption text-t3">중지·상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center"><span class="es-floor">M층</span></div>
-                    </div>
+                <!-- 인승용 8대 (4열 × 2행) -->
+                <div>
+                  <div class="group-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
+                    <span>인승용 · 8대</span>
                   </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">1호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">2호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">3호기</span>
+                        <span class="badge badge-warn">점검중</span>
+                      </div>
+                      <div class="text-caption text-t3">투명 · 연1F ↔ 연8F</div>
+                      <div class="text-caption text-warn">정기검사 진행중 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">4호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-fire">고장</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">오렌지 · B3F ↔ 사8F</div>
+                      <div class="text-caption text-danger">사3F 도어 닫힘 불량 · 12분 전</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">5호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">6호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-safe">정상</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">7호기</span>
+                        <span class="badge badge-mute">운행중지</span>
+                      </div>
+                      <div class="text-caption text-t3">기타 · B2F ↔ M·B1F</div>
+                      <div class="text-caption text-t3">전기실 차단기 작업 (내일 복귀)</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">8호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-safe">정상</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">기타 · 연3F ↔ 연7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 이당직</div>
+                    </button>
+                  </div>
+                </div>
 
+                <!-- 화물용 2대 -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>화물용 · 2대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">9호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">화물 · B2F ↔ 연7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">10호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">화물 · 2F하역 ↔ 연8F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 덤웨이터 1대 -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+                    <span>덤웨이터 · 1대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">11호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">덤웨이터 · B1식당 ↔ 2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 에스컬레이터 6대 (4열 × 2행) -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="move-diagonal" class="w-4 h-4"></i>
+                    <span>에스컬레이터 · 6대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">1호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">3층 ↔ 2층 · 하행 (공단 1호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">2호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">3층 ↔ 2층 · 상행 (공단 2호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">3호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">B1층 ↔ M층 · 하행 (공단 3호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">4호기</span>
+                        <span class="badge badge-mute">운행중지</span>
+                      </div>
+                      <div class="text-caption text-t3">B1층 ↔ M층 · 상행 (공단 4호기)</div>
+                      <div class="text-caption text-t3">스텝 마모 교체 대기</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">5호기</span>
+                        <span class="badge badge-safe">정상</span>
+                      </div>
+                      <div class="text-caption text-t3">2층 ↔ B1층 · 하행 (공단 5호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">6호기</span>
+                        <span class="badge badge-warn">점검중</span>
+                      </div>
+                      <div class="text-caption text-t3">2층 ↔ B1층 · 상행 (공단 6호기)</div>
+                      <div class="text-caption text-warn">자체점검 진행중 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 하단 placeholder (모달 + KOELSA) — 좌우 2열 -->
+                <div class="grid grid-cols-2 gap-5">
                   <div class="placeholder-box flex items-start gap-3">
                     <i data-lucide="layers" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                     <div>
-                      <div class="text-body font-semibold text-t2">🔜 2차 시안 — 5개 모달</div>
-                      <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 / 수리 등록 / 점검 기록 / 호기 상세 / 조치</div>
+                      <div class="text-body font-semibold text-t2">2차 시안 — 5 모달 + EvSelector(에스컬 노선도 포함)</div>
+                      <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 / 수리 등록 / 점검 기록 / 호기 상세 / 조치 — 호기 선택은 EvSelector 의 5그룹 (투명/오렌지/기타/화물/덤웨이터) + 에스컬 노선도</div>
                     </div>
                   </div>
 
                   <div class="placeholder-box flex items-start gap-3">
                     <i data-lucide="file-search-2" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                     <div>
-                      <div class="text-body font-semibold text-t2">🔜 3차 시안 — KOELSA 검사 이력</div>
-                      <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 검사이력 + 검사성적서 PDF</div>
+                      <div class="text-body font-semibold text-t2">3차 시안 — KOELSA 검사 이력</div>
+                      <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 (KoelsaHistorySection) · 검사성적서 PDF · 판정 색 분기 · expanded 토글</div>
                     </div>
                   </div>
                 </div>
@@ -1529,7 +1505,7 @@
               <button class="side-btn"><i data-lucide="map" class="w-5 h-5"></i></button>
               <button class="side-btn"><i data-lucide="wrench" class="w-5 h-5"></i></button>
               <button class="side-btn"><i data-lucide="calendar" class="w-5 h-5"></i></button>
-              <button class="side-btn side-btn-active"><i data-lucide="square" class="w-5 h-5"></i></button>
+              <button class="side-btn side-btn-active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></button>
               <div class="flex-1"></div>
               <div class="bg-active text-t1 w-10 h-10 rounded-full flex items-center justify-center font-bold text-label">윤</div>
             </aside>
@@ -1565,192 +1541,180 @@
                 </div>
               </div>
 
-              <main class="flex-1 min-w-0 overflow-y-auto px-6 py-5 grid grid-cols-12 gap-5">
+              <main class="flex-1 min-w-0 overflow-y-auto px-6 py-5 flex flex-col gap-5">
 
-                <div class="col-span-8 flex flex-col gap-5">
-
-                  <div class="grid grid-cols-4 gap-3">
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">정상</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-t1">11</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-danger card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">고장</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-danger">1</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">점검중</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-warn">2</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-4 py-3 cursor-pointer overflow-hidden">
-                      <div class="text-label font-semibold text-t3">운행중지</div>
-                      <div class="flex items-baseline gap-1 mt-2">
-                        <span class="text-mono text-display font-semibold leading-none text-t3">3</span>
-                        <span class="text-body-sm text-t3">대</span>
-                      </div>
-                    </div>
+                <div class="grid grid-cols-4 gap-3">
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-safe card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">정상</div>
+                    <div class="flex items-baseline gap-1 mt-2"><span class="text-mono text-display font-semibold leading-none text-t1">14</span><span class="text-body-sm text-t3">대</span></div>
                   </div>
-
-                  <div>
-                    <div class="group-label">투명 엘리베이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">1호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">2호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
-                      </div>
-                      <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">3호기</span><span class="badge badge-warn">점검중</span></div>
-                        <div class="text-caption text-t3">투명 · 연1F ↔ 연8F</div>
-                        <div class="text-caption text-warn">정기검사 진행중 · 김주간</div>
-                      </div>
-                    </div>
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-danger card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">고장</div>
+                    <div class="flex items-baseline gap-1 mt-2"><span class="text-mono text-display font-semibold leading-none text-danger">1</span><span class="text-body-sm text-t3">대</span></div>
                   </div>
-
-                  <div>
-                    <div class="group-label">오렌지 엘리베이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">4호기</span><span class="badge badge-fire">고장</span></div>
-                        <div class="text-caption text-t3">오렌지 · B3F ↔ 사8F</div>
-                        <div class="text-caption text-danger">사3F 도어 닫힘 불량 · 12분 전</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">5호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">6호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
-                      </div>
-                    </div>
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-warn card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">점검중</div>
+                    <div class="flex items-baseline gap-1 mt-2"><span class="text-mono text-display font-semibold leading-none text-warn">1</span><span class="text-body-sm text-t3">대</span></div>
                   </div>
-
-                  <div>
-                    <div class="group-label">기타 엘리베이터 · 2대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">7호기</span><span class="badge badge-mute">운행중지</span></div>
-                        <div class="text-caption text-t3">기타 · B2F ↔ M·B1F</div>
-                        <div class="text-caption text-t3">전기실 차단기 작업 (내일 복귀)</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">8호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">기타 · 연3F ↔ 연7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 이당직</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div class="group-label">화물 · 덤웨이터 · 3대</div>
-                    <div class="ev-grid-desktop">
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">9호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">화물 · B2F ↔ 연7F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">10호기</span><span class="badge badge-warn">점검중</span></div>
-                        <div class="text-caption text-t3">화물 · 2F하역 ↔ 연8F</div>
-                        <div class="text-caption text-warn">자체점검 진행중 · 박비번</div>
-                      </div>
-                      <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1">
-                        <div class="flex items-center justify-between"><span class="text-body font-semibold text-t1">11호기</span><span class="badge badge-safe">정상</span></div>
-                        <div class="text-caption text-t3">덤웨이터 · B1식당 ↔ 2F</div>
-                        <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
-                      </div>
-                    </div>
+                  <div class="bg-raised bd rounded-[12px] bar-left bar-mute card-hover px-4 py-3 cursor-pointer overflow-hidden">
+                    <div class="text-label font-semibold text-t3">운행중지</div>
+                    <div class="flex items-baseline gap-1 mt-2"><span class="text-mono text-display font-semibold leading-none text-t3">1</span><span class="text-body-sm text-t3">대</span></div>
                   </div>
                 </div>
 
-                <div class="col-span-4 flex flex-col gap-5">
-                  <div>
-                    <div class="group-label flex items-center justify-between">
-                      <span>에스컬레이터 노선도 · 6대</span>
-                      <span class="text-caption font-medium text-t3 normal-case tracking-normal">3층 ↔ M층</span>
-                    </div>
-                    <div class="bg-raised bd rounded-[12px] px-4 py-5">
-                      <div class="flex justify-center mb-3"><span class="es-floor">3층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-1호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-2호기</div><div class="text-caption text-t3">상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center mb-3"><span class="es-floor">2층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-5호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-warn px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-warn"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-6호기</div><div class="text-caption text-warn">점검중·상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center mb-3"><span class="es-floor">B1층</span></div>
-                      <div class="es-row mb-3">
-                        <div class="es-node-l">
-                          <button class="ev-card ev-bar-safe px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-safe"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-3호기</div><div class="text-caption text-t3">하행</div></div>
-                          </button>
-                        </div>
-                        <div class="es-rail"></div>
-                        <div class="es-node-r">
-                          <button class="ev-card ev-bar-mute ev-disabled px-3 py-2 flex items-center gap-2">
-                            <span class="es-dot es-dot-mute"></span>
-                            <div class="text-left"><div class="text-caption font-semibold text-t1">ES-4호기</div><div class="text-caption text-t3">중지·상행</div></div>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="flex justify-center"><span class="es-floor">M층</span></div>
-                    </div>
+                <!-- 인승용 8대 -->
+                <div>
+                  <div class="group-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
+                    <span>인승용 · 8대</span>
                   </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">1호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">2호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">투명 · B5F ↔ 연2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">3호기</span><span class="badge badge-warn">점검중</span></div>
+                      <div class="text-caption text-t3">투명 · 연1F ↔ 연8F</div>
+                      <div class="text-caption text-warn">정기검사 진행중 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">4호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-fire">고장</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">오렌지 · B3F ↔ 사8F</div>
+                      <div class="text-caption text-danger">사3F 도어 닫힘 불량 · 12분 전</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">5호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">6호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-safe">정상</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">오렌지 · B2F ↔ 사7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">7호기</span><span class="badge badge-mute">운행중지</span></div>
+                      <div class="text-caption text-t3">기타 · B2F ↔ M·B1F</div>
+                      <div class="text-caption text-t3">전기실 차단기 작업 (내일 복귀)</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="text-body font-semibold text-t1">8호기</span>
+                        <div class="flex items-center gap-1">
+                          <span class="badge badge-safe">정상</span>
+                        </div>
+                      </div>
+                      <div class="text-caption text-t3">기타 · 연3F ↔ 연7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 이당직</div>
+                    </button>
+                  </div>
+                </div>
 
+                <!-- 화물용 2대 -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="package" class="w-4 h-4"></i>
+                    <span>화물용 · 2대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">9호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">화물 · B2F ↔ 연7F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">10호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">화물 · 2F하역 ↔ 연8F</div>
+                      <div class="text-caption text-t3">최근 점검 4/30 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 덤웨이터 1대 -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="utensils-crossed" class="w-4 h-4"></i>
+                    <span>덤웨이터 · 1대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">11호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">덤웨이터 · B1식당 ↔ 2F</div>
+                      <div class="text-caption text-t3">최근 점검 4/28 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 에스컬레이터 6대 -->
+                <div>
+                  <div class="group-label">
+                    <i data-lucide="move-diagonal" class="w-4 h-4"></i>
+                    <span>에스컬레이터 · 6대</span>
+                  </div>
+                  <div class="ev-grid-desktop">
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">1호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">3층 ↔ 2층 · 하행 (공단 1호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">2호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">3층 ↔ 2층 · 상행 (공단 2호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 김주간</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">3호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">B1층 ↔ M층 · 하행 (공단 3호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">4호기</span><span class="badge badge-mute">운행중지</span></div>
+                      <div class="text-caption text-t3">B1층 ↔ M층 · 상행 (공단 4호기)</div>
+                      <div class="text-caption text-t3">스텝 마모 교체 대기</div>
+                    </button>
+                    <button class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">5호기</span><span class="badge badge-safe">정상</span></div>
+                      <div class="text-caption text-t3">2층 ↔ B1층 · 하행 (공단 5호기)</div>
+                      <div class="text-caption text-t3">최근 점검 4/22 · 박비번</div>
+                    </button>
+                    <button class="ev-card ev-bar-warn pl-4 pr-3 py-3 flex flex-col gap-1 text-left">
+                      <div class="flex items-center justify-between gap-2"><span class="text-body font-semibold text-t1">6호기</span><span class="badge badge-warn">점검중</span></div>
+                      <div class="text-caption text-t3">2층 ↔ B1층 · 상행 (공단 6호기)</div>
+                      <div class="text-caption text-warn">자체점검 진행중 · 박비번</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-5">
                   <div class="placeholder-box flex items-start gap-3">
                     <i data-lucide="layers" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                     <div>
-                      <div class="text-body font-semibold text-t2">🔜 2차 시안 — 5개 모달</div>
-                      <div class="text-caption text-t3 mt-1 leading-relaxed">고장 신고 / 수리 등록 / 점검 기록 / 호기 상세 / 조치</div>
+                      <div class="text-body font-semibold text-t2">2차 시안 — 5 모달 + EvSelector(에스컬 노선도 포함)</div>
+                      <div class="text-caption text-t3 mt-1 leading-relaxed">호기 선택은 EvSelector 의 5그룹 (투명/오렌지/기타/화물/덤웨이터) + 에스컬 노선도</div>
                     </div>
                   </div>
 
                   <div class="placeholder-box flex items-start gap-3">
                     <i data-lucide="file-search-2" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
                     <div>
-                      <div class="text-body font-semibold text-t2">🔜 3차 시안 — KOELSA 검사 이력</div>
+                      <div class="text-body font-semibold text-t2">3차 시안 — KOELSA 검사 이력</div>
                       <div class="text-caption text-t3 mt-1 leading-relaxed">한국승강기안전공단 검사이력 + 검사성적서 PDF</div>
                     </div>
                   </div>
@@ -1764,7 +1728,7 @@
     </section>
 
     <!-- ─────────────────────────────────────────────
-         행 4: 상태 변종 — 검색 결과 (필터 활성화) / 검색 결과 0건 / 로딩 스켈레톤
+         행 4: 상태 변종 — 검색 활성 / 검색 결과 0건 / 로딩 스켈레톤
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center mb-4">
@@ -1776,47 +1740,59 @@
         <!-- ─── 검색 활성 (input 값 있고 매칭 결과 N건) ─── -->
         <div class="viewport-frame" data-theme="dark">
           <div class="bg-page text-t1 px-4 py-4 flex flex-col gap-3">
-            <div class="meta-label state-meta">🔍 검색 활성 — "사5" → 3건</div>
+            <div class="meta-label state-meta">검색 활성 — "사" → 4건</div>
 
             <!-- 검색 입력 (값 있음) -->
             <div class="bg-raised bd-b -mx-4 px-4 py-3 flex flex-col gap-2">
               <div class="relative">
                 <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-t3"></i>
-                <input type="text" class="search-input" value="사5" />
+                <input type="text" class="search-input" value="사" />
                 <button class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-sunken flex items-center justify-center text-t2">
                   <i data-lucide="x" class="w-3 h-3"></i>
                 </button>
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-caption text-t3">"사5" 매칭 · 3건</span>
+                <span class="text-caption text-t3">"사" 매칭 · 4건</span>
                 <button class="text-caption text-link">필터 초기화</button>
               </div>
             </div>
 
-            <!-- 검색 결과 호기 카드 3개 (4·5·6호기) -->
+            <!-- 검색 결과: 인승용 그룹 라벨 + 카드 4개 (4·5·6·7호기) -->
+            <div class="group-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg>
+              <span>인승용 · 4건</span>
+            </div>
             <div class="ev-card ev-bar-fire pl-4 pr-3 py-3 flex items-center gap-3">
-              <div class="bg-fire-soft w-10 h-10 rounded-[10px] flex items-center justify-center text-fire flex-shrink-0"><i data-lucide="siren" class="w-5 h-5"></i></div>
+              <div class="bg-fire-soft w-10 h-10 rounded-[10px] flex items-center justify-center text-fire flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">4호기</span><span class="text-caption text-t3 truncate">오렌지·B3↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사5</mark>F·사8F</span></div>
-                <div class="text-caption text-danger mt-0.5">사3F 도어 닫힘 불량 · 12분 전</div>
+                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">4호기</span><span class="text-caption text-t3 truncate">오렌지·B3↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사</mark>8F</span></div>
+                <div class="text-caption mt-0.5"><span class="text-danger font-semibold">미해결 1건</span></div>
               </div>
               <span class="badge badge-fire flex-shrink-0">고장</span>
             </div>
             <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-              <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+              <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">5호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사5</mark>F·사7F</span></div>
+                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">5호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사</mark>7F</span></div>
                 <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
               </div>
               <span class="badge badge-safe flex-shrink-0">정상</span>
             </div>
             <div class="ev-card ev-bar-safe pl-4 pr-3 py-3 flex items-center gap-3">
-              <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><i data-lucide="square" class="w-5 h-5"></i></div>
+              <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t2 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">6호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사5</mark>F·사7F</span></div>
+                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">6호기</span><span class="text-caption text-t3 truncate">오렌지·B2↔<mark class="bg-acl-soft text-acl px-0.5 rounded">사</mark>7F</span></div>
                 <div class="text-caption text-t3 mt-0.5">최근 점검 4월 30일</div>
               </div>
               <span class="badge badge-safe flex-shrink-0">정상</span>
+            </div>
+            <div class="ev-card ev-bar-mute ev-disabled pl-4 pr-3 py-3 flex items-center gap-3">
+              <div class="bg-sunken w-10 h-10 rounded-[10px] flex items-center justify-center text-t3 flex-shrink-0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/><polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/><line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/></svg></div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-baseline gap-2"><span class="text-body font-semibold text-t1">7호기</span><span class="text-caption text-t3 truncate">기타·B2↔M·B1F (<mark class="bg-acl-soft text-acl px-0.5 rounded">사</mark>옥)</span></div>
+                <div class="text-caption text-t3 mt-0.5">전기실 차단기 작업 (내일 복귀)</div>
+              </div>
+              <span class="badge badge-mute flex-shrink-0">중지</span>
             </div>
           </div>
         </div>
@@ -1824,7 +1800,7 @@
         <!-- ─── 검색 결과 0건 (Empty) ─── -->
         <div class="viewport-frame" data-theme="dark">
           <div class="bg-page text-t1 px-4 py-4 flex flex-col gap-3">
-            <div class="meta-label state-meta">∅ Empty — 검색 결과 0건</div>
+            <div class="meta-label state-meta">Empty — 검색 결과 0건</div>
 
             <div class="bg-raised bd-b -mx-4 px-4 py-3 flex flex-col gap-2">
               <div class="relative">
@@ -1852,8 +1828,8 @@
             <div class="bg-raised bd rounded-[12px] px-4 py-3 flex flex-col gap-2">
               <div class="text-caption font-semibold text-t3">자주 검색되는 키워드</div>
               <div class="flex gap-2 flex-wrap">
-                <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">투명</button>
-                <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">화물</button>
+                <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">인승용</button>
+                <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">화물용</button>
                 <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">B2F</button>
                 <button class="bg-sunken text-t2 rounded-[99px] px-3 py-1 text-caption">에스컬</button>
               </div>
@@ -1864,7 +1840,7 @@
         <!-- ─── 로딩 스켈레톤 ─── -->
         <div class="viewport-frame" data-theme="dark">
           <div class="bg-page text-t1 px-4 py-4 flex flex-col gap-3">
-            <div class="meta-label state-meta">⏳ Loading — Skeleton</div>
+            <div class="meta-label state-meta">Loading — Skeleton</div>
 
             <!-- 헤더 skeleton -->
             <div class="bg-raised bd-b -mx-4 px-4 py-3 flex flex-col gap-2">
@@ -1959,42 +1935,46 @@
         <div>
           <h3 class="font-semibold text-white mb-2">§6.1 Progress / 호기 좌측 색바 매핑</h3>
           <ul class="list-disc pl-5 space-y-1 text-base">
-            <li><span class="text-green-400">초록 (safe-bar)</span> — 정상 호기 (1·2·5·6·8·9·11)</li>
-            <li><span class="text-amber-400">노랑 (warning-bar)</span> — 점검중 호기 (3·10·ES-6)</li>
-            <li><span class="text-orange-400">주황 (fire-bar)</span> — 고장 호기 (4호기 — 미수리)</li>
-            <li><span class="text-gray-400">회색 (text-tertiary) + opacity 0.62</span> — 운행중지 (7·ES-4)</li>
+            <li><span class="text-green-400">초록 (safe-bar)</span> — 정상 호기 (1·2·5·6·8·9·10·11 + ES 1·2·3·5)</li>
+            <li><span class="text-amber-400">노랑 (warning-bar)</span> — 점검중 호기 (3 + ES 6)</li>
+            <li><span class="text-orange-400">주황 (fire-bar)</span> — 고장 호기 (4 — 미수리)</li>
+            <li><span class="text-gray-400">회색 (text-tertiary) + opacity 0.62</span> — 운행중지 (7 + ES 4)</li>
           </ul>
         </div>
         <div>
           <h3 class="font-semibold text-white mb-2">§6.2 Stat Card 좌측 3px 색바</h3>
           <ul class="list-disc pl-5 space-y-1 text-base">
-            <li>정상 11대 → safe 색바</li>
+            <li>정상 14대 → safe 색바</li>
             <li>고장 1대 → danger 색바 (1대 이상 임계치)</li>
-            <li>점검중 2대 → warning 색바</li>
-            <li>운행중지 3대 → mute 색바</li>
+            <li>점검중 1대 → warning 색바</li>
+            <li>운행중지 1대 → mute 색바</li>
           </ul>
         </div>
         <div>
-          <h3 class="font-semibold text-white mb-2">§7 Iconography (Lucide)</h3>
+          <h3 class="font-semibold text-white mb-2">§7.1 Iconography (Lucide · Option A)</h3>
           <ul class="list-disc pl-5 space-y-1 text-base">
-            <li><code>menu</code>, <code>refresh-cw</code>, <code>search</code>, <code>alert-triangle</code> — 헤더</li>
-            <li><code>square</code> — 인승용 / <code>package</code> — 화물용 / <code>box</code> — 덤웨이터 (회색 통일)</li>
-            <li><code>siren</code> — 고장 호기 (fire 강조 예외)</li>
-            <li><code>pause</code> — 운행중지 / <code>x</code>, <code>search-x</code> — 검색 빈상태</li>
+            <li><code>ElevatorIcon</code> (커스텀 SVG) — 인승용 (passenger)</li>
+            <li><code>package</code> — 화물용 (cargo)</li>
+            <li><code>utensils-crossed</code> — 덤웨이터 (B1식당↔2F 메타포)</li>
+            <li><code>move-diagonal</code> — 에스컬레이터 (escalator)</li>
+            <li>모든 type 아이콘은 <code>--text-secondary</code> 회색 통일 (§6.3)</li>
+            <li>고장 호기는 fire-soft 배경 + fire 텍스트로 강조 예외</li>
+            <li>헤더: <code>menu</code> · <code>refresh-cw</code> · <code>search</code> · <code>alert-triangle</code> · <code>chevron-right</code></li>
             <li>BottomNav: <code>layout-dashboard</code> / <code>clipboard-list</code> / <code>map</code> / <code>wrench</code> / <code>menu</code></li>
           </ul>
         </div>
         <div>
-          <h3 class="font-semibold text-white mb-2">ElevatorPage.tsx 1:1 매핑 (1차 범위)</h3>
+          <h3 class="font-semibold text-white mb-2">ElevatorPage.tsx 1:1 매핑 (1차 범위 — list 탭)</h3>
           <ul class="list-disc pl-5 space-y-1 text-base">
             <li>자체 헤더 (App.tsx 헤더 숨김 패턴) — 6탭 + 검색 + 액션</li>
-            <li>11호기 엘리베이터 (EV_GROUPS_ANNUAL) + 6 에스컬레이터 (ES_NODES_ANNUAL)</li>
-            <li>그룹: 투명 / 오렌지 / 기타 / 화물 / 덤웨이터 / 에스컬</li>
-            <li>4 상태 (정상 / 고장 / 점검중 / 운행중지) 각 1개씩 등장</li>
-            <li>검색 활성 + 검색 결과 0건 + 로딩 스켈레톤</li>
+            <li><b>list 탭 그룹은 type 4분류</b> (line 1041): passenger 8 / cargo 2 / dumbwaiter 1 / escalator 6</li>
+            <li>호기 카드 — 단순 리스트 (line 1049-1094): type 아이콘 슬롯 + N호기 + 위치 + 메타 + 상태 배지  + chevron</li>
+            <li>에스컬레이터도 <b>다른 type 처럼 카드 6개</b> (ES-1~6) — (공단 N호기) 추가 표시</li>
+            <li>4 상태 (정상 / 고장 / 점검중 / 운행중지) 모두 등장</li>
+            <li>검색 활성 (mark 하이라이트) + 검색 결과 0건 + 로딩 스켈레톤</li>
             <li>모바일 BottomNav, 데스크톱 사이드바 (메뉴 강조 = 승강기)</li>
-            <li><b>2차 시안 자리</b>: 5개 모달 (placeholder 박스)</li>
-            <li><b>3차 시안 자리</b>: KOELSA 이력 카드 (placeholder 박스)</li>
+            <li><b>2차 시안 자리</b>: 5 모달 + EvSelector(투명/오렌지/기타/화물/덤웨이터 5그룹 + 에스컬 노선도)</li>
+            <li><b>3차 시안 자리</b>: KOELSA 검사 이력 카드</li>
           </ul>
         </div>
       </div>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>일반 점검 재디자인 시안 v0.1.1 (Rev 2 — 구조 정정)</title>
+  <title>일반 점검 재디자인 시안 v0.1.1 (1차 — 메인 화면)</title>
 
   <!-- Tailwind CDN (시안 전용) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -171,8 +171,7 @@
     }
 
     /* =====================================================================
-     * typography.css 인라인 — 9/10/11px 사용 금지 (노안 친화 룰)
-     * 모든 텍스트는 12px 이상.
+     * typography.css 인라인
      * ===================================================================== */
     .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
     .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
@@ -225,6 +224,15 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { scrollbar-width: none; }
 
+    /* skeleton 펄스 */
+    @keyframes pulse-soft { 0%,100% { opacity: 1 } 50% { opacity: 0.55 } }
+    .skel { animation: pulse-soft 1.6s ease-in-out infinite; background: var(--surface-active); border-radius: 8px; }
+
+    /* 깜빡 dot */
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: 0.3 } }
+    .blink { animation: blink 2s ease-in-out infinite; }
+    .blink-fast { animation: blink 1s ease-in-out infinite; }
+
     /* 카드 hover */
     .card-hover { transition: border-color .15s, transform .15s, background .15s; }
     .card-hover:hover {
@@ -232,250 +240,110 @@
       transform: translateY(-1px);
     }
 
-    /* ─────────────────────────────────────────────
-       카테고리 카드 — InspectionPage.tsx 4495-4540 1:1
-       - 3열 (모바일) / 6열 (데스크톱) 그리드
-       - 좌측 16px 아이콘 + 우측 (다중 라벨 + 진척률)
-       - allDone 시 safe 톤 배경 강조
-       - hasItems=false 시 opacity 0.38
-       ───────────────────────────────────────────── -->
+    /* 카테고리 카드 — §6.3 */
     .cat-card {
       position: relative;
       background: var(--surface-raised);
       border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      padding: 11px 9px;
-      display: flex;
-      align-items: flex-start;
-      gap: 6px;
-      overflow: hidden;
-      min-height: 86px;
-      box-sizing: border-box;
-      cursor: pointer;
-    }
-    .cat-card .cat-ico {
-      flex-shrink: 0;
-      color: var(--text-secondary);   /* §6.3 — 16종 회색 통일 */
-      line-height: 1.3;
-    }
-    .cat-card .cat-body {
-      flex: 1;
-      min-width: 0;
+      padding: 12px 12px 12px 16px;
       display: flex;
       flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+      min-height: 84px;
     }
+    .cat-card .cat-bar {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .cat-card.is-zero { opacity: 0.6; }
+    .cat-card .cat-ico { color: var(--text-secondary); }
     .cat-card .cat-label {
       color: var(--text-primary);
-      font-size: 12px;
-      line-height: 1.4;
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 500;
+      white-space: normal;
+      word-break: keep-all;
     }
     .cat-card .cat-progress {
-      margin-top: 4px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px;
+    }
+    .cat-card .cat-progress .pct {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .cat-card .cat-progress .nm {
       font-size: 12px;
       color: var(--text-tertiary);
       font-variant-numeric: tabular-nums;
     }
-    .cat-card .cat-progress.warn { color: var(--status-warning-bar); }
-    .cat-card .cat-progress.safe { color: var(--status-safe-bar); font-weight: 600; }
 
-    /* allDone 강조 (safe 톤 배경) */
-    .cat-card.all-done {
-      background: rgba(34,197,94,.08);
-      border-color: rgba(34,197,94,.35);
-    }
-    /* hasItems=false (없음) */
-    .cat-card.no-items { opacity: 0.38; cursor: default; }
-
-    /* 현재 클릭 액티브 상태 (모달이 열리는 시각 시그널) */
-    .cat-card.is-active {
-      border-color: var(--accent);
-      border-width: 2px;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.18);
-    }
-
-    /* ─────────────────────────────────────────────
-       오늘 점검 현황 카드 — InspectionPage.tsx 4342-4486 1:1
-       ───────────────────────────────────────────── */
-    .today-card {
+    /* CP 리스트 카드 */
+    .cp-card {
+      position: relative;
       background: var(--surface-raised);
       border: 1px solid var(--border-default);
       border-radius: var(--radius-md);
-      padding: 12px 14px;
-      margin-bottom: 16px;
-    }
-    .today-card .today-head {
+      padding: 12px 14px 12px 16px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 12px;
+      overflow: hidden;
     }
-    .today-card .today-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-tertiary);
-      letter-spacing: 0.05em;
-    }
-    .today-card .today-done-badge {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--status-safe-bar);
-      background: rgba(34,197,94,.12);
-      border: 1px solid rgba(34,197,94,.25);
-      border-radius: 20px;
-      padding: 2px 9px;
-    }
-    .today-card .today-toggle {
-      color: var(--text-tertiary);
-      font-size: 12px;
+    .cp-card .cp-bar {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
     }
 
-    /* 카테고리 칩 (오늘 현황 접힘 상태) */
-    .today-cat-chip {
+    /* Floor chip */
+    .floor-chip {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: rgba(34,197,94,.08);
-      border: 1px solid rgba(34,197,94,.2);
-      border-radius: 8px;
-      padding: 3px 8px;
-    }
-    .today-cat-chip .ico { font-size: 13px; }
-    .today-cat-chip .lbl { font-size: 12px; color: var(--text-primary); font-weight: 600; }
-    .today-cat-chip .cnt { font-size: 12px; color: var(--status-safe-bar); font-weight: 700; }
-
-    /* 결과 칩 (오늘 현황 접힘 상태, 가로 nowrap scroll) */
-    .today-result-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border-radius: 20px;
-      padding: 2px 8px;
-      flex-shrink: 0;
-    }
-    .today-result-chip .ico { font-size: 12px; }
-    .today-result-chip .txt { font-size: 12px; font-weight: 700; }
-    .today-result-chip.normal     { background: rgba(34,197,94,.1);   border: 1px solid rgba(34,197,94,.3); }
-    .today-result-chip.normal  .txt { color: var(--status-safe-bar); }
-    .today-result-chip.caution    { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); }
-    .today-result-chip.caution .txt { color: var(--status-warning-bar); }
-    .today-result-chip.bad        { background: rgba(239,68,68,.1);  border: 1px solid rgba(239,68,68,.3); }
-    .today-result-chip.bad     .txt { color: var(--status-danger-bar); }
-    .today-result-chip.unresolved { background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.3); }
-    .today-result-chip.unresolved .txt { color: var(--status-fire-bar); }
-    .today-result-chip.resolved   { background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.25); }
-    .today-result-chip.resolved .txt { color: #3b82f6; }
-
-    /* 펼침 상태 — 항목 리스트 */
-    .today-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 10px;
-    }
-    .today-item.unresolved {
-      background: rgba(239,68,68,.06);
-      border: 1px solid rgba(239,68,68,.2);
-    }
-    .today-item.resolved {
-      background: rgba(59,130,246,.06);
-      border: 1px solid rgba(59,130,246,.2);
-    }
-    .today-item.normal {
-      background: rgba(34,197,94,.06);
-      border: 1px solid rgba(34,197,94,.18);
-    }
-    .today-item .icon { font-size: 14px; flex-shrink: 0; }
-    .today-item .body { flex: 1; min-width: 0; }
-    .today-item .loc {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-primary);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .today-item .meta {
-      font-size: 12px;
-      color: var(--text-tertiary);
-    }
-    .today-item .action {
-      flex-shrink: 0;
-      padding: 4px 9px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      border: 1px solid var(--status-danger-bar);
-      background: rgba(239,68,68,.1);
-      color: var(--status-danger-bar);
-    }
-    .today-item .action.resolved {
-      border-color: rgba(59,130,246,.4);
-      background: rgba(59,130,246,.1);
-      color: #3b82f6;
-    }
-    .today-item .action.safe-static {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--status-safe-bar);
-      flex-shrink: 0;
-      background: transparent;
-      border: none;
-      padding: 0;
-    }
-
-    /* 0건 상태 (empty) */
-    .today-empty {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 0 2px;
-      color: var(--text-tertiary);
-    }
-    .today-empty .icon { font-size: 20px; }
-    .today-empty .txt { font-size: 12px; }
-
-    /* 섹션 라벨 */
-    .section-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-tertiary);
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
-    }
-
-    /* WheelPicker (시각 데모) */
-    .wheel-wrap {
-      position: relative;
-      height: 132px;
-      overflow: hidden;
-      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
       background: var(--surface-sunken);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+      cursor: pointer;
     }
-    .wheel-item {
-      height: 44px;
+    .floor-chip.active {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+    .floor-chip.done {
+      color: var(--status-safe);
+    }
+
+    /* Zone tab */
+    .zone-tab {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      gap: 6px;
+      padding: 12px 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
       font-weight: 500;
-      color: var(--text-tertiary);
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
     }
-    .wheel-item.center {
+    .zone-tab.active {
       color: var(--text-primary);
-      font-weight: 700;
-      font-size: 17px;
-    }
-    .wheel-overlay {
-      position: absolute; left: 0; right: 0; top: 44px; height: 44px;
-      pointer-events: none;
-      border-top: 1px solid var(--border-default);
-      border-bottom: 1px solid var(--border-default);
-      background: rgba(255,255,255,0.02);
+      border-bottom-color: var(--accent);
+      background: var(--surface-active);
     }
 
     /* Result button (모달 안) */
@@ -511,9 +379,11 @@
       color: var(--status-danger);
     }
 
-    /* CTA 버튼 (저장) — §6.4 그라디언트 (저장:취소 = 2:1) */
+    /* CTA 버튼 (저장) — §6.4 그라디언트
+       단독 사용 시 width:100%, 취소 버튼과 페어 시 flex:2 (저장:취소 = 2:1 비율) */
     .cta-btn {
       flex: 2;
+      width: 100%;
       height: var(--button-height);
       border: none;
       border-radius: var(--radius-sm);
@@ -535,6 +405,51 @@
       cursor: pointer;
       white-space: nowrap;
     }
+
+    /* WheelPicker (시각 데모) */
+    .wheel-wrap {
+      position: relative;
+      height: 132px;
+      overflow: hidden;
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+    }
+    .wheel-item {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+    }
+    .wheel-item.center {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 17px;
+    }
+    .wheel-overlay {
+      position: absolute; left: 0; right: 0; top: 44px; height: 44px;
+      pointer-events: none;
+      border-top: 1px solid var(--border-default);
+      border-bottom: 1px solid var(--border-default);
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* 배지 */
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .result-badge.normal  { background: var(--status-safe-bg);   color: var(--status-safe); }
+    .result-badge.caution { background: var(--status-warning-bg);color: var(--status-warning); }
+    .result-badge.bad     { background: var(--status-danger-bg); color: var(--status-danger); }
+    .result-badge.none    { background: var(--surface-sunken);   color: var(--text-tertiary); }
 
     /* BottomNav */
     .bottom-nav {
@@ -614,23 +529,19 @@
   - viewport 단위 분기 — Android 100svh / iOS Safari 100dvh / iOS PWA 100vh.
   - 디자인 결정은 v0.1.1 §6 ~ §9 룰을 따라 일관성 유지.
   ----------------------------------------------------------------------------
-  - v0.1.1 §6.1 Progress Color Rule (allDone safe / doneCnt>0 warn / 그 외 tertiary)
+  - v0.1.1 §6.1 Progress Color Rule (이번 페이지 핵심):
+      0%        → --text-tertiary  (회색, 카드 opacity 0.6)
+      1~49%     → --status-warning-bar (노랑)
+      50~99%    → --accent              (파랑)
+      100%      → --status-safe-bar     (초록)
   - v0.1.1 §6.3 카테고리 카드 — 16개 모두 아이콘 색 --text-secondary 회색 통일.
       §7.2 표 색상은 카테고리 카드에 적용하지 않는다.
+      카드 좌측 3px 색바 = §6.1 Progress Color Rule 만 사용.
+      0% 카드는 opacity 0.6.
   - v0.1.1 §7.1 Iconography 일관성 — 한 카드만 강조하는 식 금지. 16종 통일.
+  - v0.1.1 §6.2 Stat Card Number Color Rule (이 페이지에서는 Stat Card 없으므로
+    적용 대상 없음, 다만 정신은 유지 — "위험 임계치 아닌 카드는 status 색 금지").
   - v0.1.1 §6.4 Backgrounds & Gradients — 저장 CTA 1종 그라디언트만 허용.
-  ----------------------------------------------------------------------------
-  Rev 2 — 구조 정정 (2026-05-09):
-  - Zone 탭 (연구동/사무동/지하) 메인 페이지에 없음 — Zone 은 카테고리별 모달
-    내부 컴포넌트. 시안의 zone-tab block 삭제.
-  - 카드 클릭 → 풀스크린 모달 (카드 하단 펼침 절대 금지). "선택된 카테고리 헤더 /
-    층 칩 / CP 리스트" 메인 페이지에 없음. 카드 클릭 시각 시그널은 is-active
-    border accent 2px + 모달 (Row 4) 로 표현.
-  - "오늘 점검 현황" 카드 — 페이지 최상단(헤더 직후) 필수. 0건 / N건 접힘 /
-    N건 펼침 3가지 상태 모두 시안에서 분산 표현.
-  - 16그룹 다중 라벨 — labels 배열 모두 표시. 카드 3번 "전실제연댐퍼" +
-    "연결송수관" 두 줄, 카드 4번 "주차장비" + "회전문" 두 줄 등.
-  - InspectionPage.tsx line 38-55 (CATEGORY_GROUPS) + line 4330-4540 권위.
   ============================================================================
 -->
 
@@ -643,18 +554,17 @@
     <div class="flex items-center gap-3 mb-2 flex-wrap">
       <span class="meta-label">v0.1.1 시안</span>
       <span class="meta-label">2026-05-09</span>
-      <span class="meta-label">redesign/02-inspection 1차 (메인) — Rev 2</span>
+      <span class="meta-label">redesign/02-inspection 1차 (메인)</span>
     </div>
-    <h1 class="text-3xl font-semibold text-white">CHA Bio Complex — 일반 점검 재디자인 시안 (Rev 2 — 구조 정정)</h1>
+    <h1 class="text-3xl font-semibold text-white">CHA Bio Complex — 일반 점검 재디자인 시안 (1차 — 메인 화면)</h1>
     <p class="text-sm text-gray-400 mt-2 leading-relaxed">
-      InspectionPage.tsx line 4330-4540 1:1 매핑 · 동기화 시각 + 오늘 점검 현황 + 점검 항목 선택(16그룹 그리드) ·
-      <strong style="color:#fbbf24">Zone 탭 메인 페이지에 없음</strong> (Zone 은 카테고리별 모달 내부 컴포넌트) ·
-      <strong style="color:#fbbf24">카드 클릭 → 풀스크린 모달</strong> (메인 페이지에 층 칩 / CP 리스트 없음) ·
-      특수 모달(Stairwell / Baeyeon / CCTV / DIV / Damper / Power / Parking + 증상 피커 5종) 은 2차 시안 별도 파일
+      InspectionPage 메인 화면 1:1 매핑 · 16개 카테고리 + Zone 탭 + 층 칩 + CP 리스트 + 일반 결과 입력 모달 ·
+      특수 모달(Stairwell / Baeyeon / CCTV / 증상 피커 5종) 은 2차 시안 별도 파일 ·
+      v0.1.1 §6.1 Progress Color Rule, §6.3 카테고리 카드 룰, §7.2 Iconography 매핑 적용
     </p>
     <p class="text-xs text-gray-500 mt-2 leading-relaxed">
-      4뷰포트(모바일 다크/라이트 + 데스크톱 다크/라이트) — 오늘 점검 현황 3가지 상태(N건 접힘/N건 펼침/0건 empty) 분산 표현 ·
-      Row 4 공통 팝업 변형(Revisit 2-variant / AccessBlocked) — 카테고리별 모달은 2~6차 시안에서 분할 진행 · v0.1.1 §6.1/§6.3/§7.2 룰 적용
+      4뷰포트(모바일 다크/라이트 + 데스크톱 다크/라이트) + 모달 변형 행(일반 결과 입력 / Revisit 2-variant / AccessBlocked) ·
+      loading skeleton 1종 + empty 상태 1종 포함 (에러는 silent fallback 유지)
     </p>
   </header>
 
@@ -665,19 +575,17 @@
 
     <!-- ─────────────────────────────────────────────
          행 1: 모바일 두 테마 (다크/라이트 가로 2)
-         · Mobile Dark — 오늘 현황 N건 접힘 (카테고리 칩 + 결과 칩)
-         · Mobile Light — 오늘 현황 N건 펼침 (미조치/조치완료/정상 리스트)
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center gap-[100px] mb-4">
-        <span class="meta-label">Mobile · Dark · 375 × 812 · 오늘 현황 (접힘)</span>
-        <span class="meta-label">Mobile · Light · 375 × 812 · 오늘 현황 (펼침)</span>
+        <span class="meta-label">Mobile · Dark · 375 × 812</span>
+        <span class="meta-label">Mobile · Light · 375 × 812</span>
       </div>
 
       <div class="flex justify-center gap-12">
 
         <!-- ╔═══════════════════════════════╗
-             ║   MOBILE  DARK · 오늘 N건 접힘   ║
+             ║   MOBILE  DARK                ║
              ╚═══════════════════════════════╝ -->
         <div class="viewport-frame viewport-mobile" data-theme="dark">
           <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary);">
@@ -695,250 +603,373 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
+                <div class="text-right" style="line-height:1.2">
+                  <div class="text-caption" style="color:var(--text-tertiary)">2026-05-09 (토)</div>
+                  <div class="text-caption font-semibold" style="color:var(--text-secondary)">진행중</div>
+                </div>
                 <div class="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold"
                      style="background:var(--accent); color:var(--text-on-accent)">윤</div>
               </div>
             </div>
 
-            <!-- ② 본문 스크롤 영역 (Zone 탭 없음 — 메인 페이지엔 zone 탭 부재) -->
-            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 12px 14px; padding-bottom: 80px;">
+            <!-- ② Zone 탭 (3종 가로) -->
+            <div class="flex flex-shrink-0"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="zone-tab active">
+                <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                <span>연구동</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">42%</span>
+              </div>
+              <div class="zone-tab">
+                <i data-lucide="building-2" class="w-4 h-4"></i>
+                <span>사무동</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">18%</span>
+              </div>
+              <div class="zone-tab">
+                <i data-lucide="train-front" class="w-4 h-4"></i>
+                <span>지하</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">8%</span>
+              </div>
+            </div>
 
-              <!-- 동기화 시각 (우측 작게) -->
-              <div class="flex justify-end" style="margin-bottom: 4px;">
-                <span class="text-caption" style="color:var(--text-tertiary)">동기화 21:34:56</span>
+            <!-- ③ 본문 스크롤 영역 -->
+            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 12px;">
+
+              <!-- §6.3 카테고리 16종 그리드 — 모바일 2열 -->
+              <div class="grid grid-cols-2" style="gap: 8px; margin-bottom: 16px;">
+
+                <!-- 1. 특별피난계단 — 100% safe -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- StairsIcon (custom inline SVG) -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="none" class="cat-ico" style="flex-shrink:0">
+                      <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                      <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                      <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+                    </svg>
+                    <span class="cat-label">특별피난계단</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">8/8</span>
+                    <span class="pct" style="color: var(--status-safe);">100%</span>
+                  </div>
+                </div>
+
+                <!-- 2. 청정소화약제 — 72% accent -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--accent);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="cloud" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">청정소화약제</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">13/18</span>
+                    <span class="pct">72%</span>
+                  </div>
+                </div>
+
+                <!-- 3. 전실제연댐퍼·연결송수관 — 40% warning -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="shield" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">전실제연댐퍼·연결송수관</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">10/25</span>
+                    <span class="pct">40%</span>
+                  </div>
+                </div>
+
+                <!-- 4. 주차장비·회전문 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="car" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">주차장비·회전문</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/6</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 5. 소방용전원공급반 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">소방용전원공급반</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/4</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 6. 방화셔터 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- ShutterIcon -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="2" width="18" height="3" rx="1"/>
+                      <path d="M3 5v16"/>
+                      <path d="M21 5v16"/>
+                      <path d="M5 8h14"/>
+                      <path d="M5 11h14"/>
+                      <path d="M5 14h14"/>
+                      <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
+                      <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
+                    </svg>
+                    <span class="cat-label">방화셔터</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/12</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 7. DIV — 45% warning (현재 선택됨) -->
+                <div class="cat-card card-hover" style="border-color: var(--accent); border-width: 2px;">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">DIV</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">11/24</span>
+                    <span class="pct">45%</span>
+                  </div>
+                </div>
+
+                <!-- 8. 컴프레셔 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="wind" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">컴프레셔</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/24</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 9. 유도등 — 28% warning -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- ExitSignIcon -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <path d="M8 12h8"/>
+                      <path d="M13 8l4 4-4 4"/>
+                    </svg>
+                    <span class="cat-label">유도등</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">28/100</span>
+                    <span class="pct">28%</span>
+                  </div>
+                </div>
+
+                <!-- 10. 배연창 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- SmokeVentIcon -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <path d="M3 12h18"/>
+                      <path d="M12 3v18"/>
+                    </svg>
+                    <span class="cat-label">배연창</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/16</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 11. 완강기 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="arrow-down-to-line" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">완강기</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/8</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 12. 소화전·비상콘센트 — 58% accent -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--accent);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- HoseReelIcon -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="4" y="2" width="16" height="20"/>
+                      <circle cx="12" cy="10" r="4.5"/>
+                      <circle cx="12" cy="10" r="1.5"/>
+                      <path d="M7.5 6v2"/>
+                      <path d="M12 14.5v4"/>
+                      <path d="M10.5 17L12 19.5l1.5-2.5"/>
+                    </svg>
+                    <span class="cat-label">소화전·비상콘센트</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">29/50</span>
+                    <span class="pct">58%</span>
+                  </div>
+                </div>
+
+                <!-- 13. 소화기 — 15% warning -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <!-- FireExtinguisherCustom -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="8" y="8" width="8" height="13" rx="3"/>
+                      <path d="M10 8V6h4v2"/>
+                      <path d="M13 4V2.5h-2V4"/>
+                      <path d="M14 4h3v3"/>
+                      <path d="M8 11c-2 0-3 1-3 3v3"/>
+                      <path d="M4 17l1 2 1-2"/>
+                      <path d="M9 14h6"/>
+                      <path d="M9 17h6"/>
+                    </svg>
+                    <span class="cat-label">소화기</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">36/240</span>
+                    <span class="pct">15%</span>
+                  </div>
+                </div>
+
+                <!-- 14. 소방펌프 — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="waves" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">소방펌프</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/3</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
+                <!-- 15. 화재수신반 — 100% safe -->
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">화재수신반</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">4/4</span>
+                    <span class="pct" style="color: var(--status-safe);">100%</span>
+                  </div>
+                </div>
+
+                <!-- 16. CCTV — 0% -->
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="video" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">CCTV</span>
+                  </div>
+                  <div class="cat-progress">
+                    <span class="nm">0/13</span>
+                    <span class="pct">0%</span>
+                  </div>
+                </div>
+
               </div>
 
-              <!-- 오늘 점검 현황 (N건 접힘) -->
-              <div class="today-card">
-                <div class="today-head">
-                  <div class="today-title">오늘 점검 현황</div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="today-done-badge">12건 완료</span>
-                    <span class="today-toggle">▼</span>
-                  </div>
+              <!-- 선택된 카테고리 헤더 -->
+              <div class="flex items-center justify-between" style="margin-bottom:10px;">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="bar-chart-3" class="w-5 h-5" style="color:var(--text-secondary)"></i>
+                  <span class="text-title" style="color:var(--text-primary); font-weight:600">DIV · 연구동</span>
                 </div>
-                <!-- 카테고리 칩 wrap -->
-                <div class="flex flex-wrap" style="gap: 5px; margin-top: 8px;">
-                  <div class="today-cat-chip">
-                    <span class="ico">📊</span><span class="lbl">DIV</span><span class="cnt">5</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">⬅️</span><span class="lbl">유도등</span><span class="cnt">4</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">🛡️</span><span class="lbl">전실제연댐퍼</span><span class="cnt">2</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">🧯</span><span class="lbl">소화기</span><span class="cnt">1</span>
-                  </div>
-                </div>
-                <!-- 결과 칩 (가로 nowrap scroll) -->
-                <div class="flex no-scrollbar" style="gap: 3px; margin-top: 6px; overflow-x: auto; flex-wrap: nowrap;">
-                  <div class="today-result-chip normal">
-                    <span class="ico">✅</span><span class="txt">정상 8</span>
-                  </div>
-                  <div class="today-result-chip caution">
-                    <span class="ico">⚠️</span><span class="txt">주의 2</span>
-                  </div>
-                  <div class="today-result-chip bad">
-                    <span class="ico">❌</span><span class="txt">불량 2</span>
-                  </div>
-                  <span class="text-caption" style="color:var(--text-tertiary); align-self:center; flex-shrink:0; padding: 0 1px;">—</span>
-                  <div class="today-result-chip unresolved">
-                    <span class="ico">🔧</span><span class="txt">미조치 1</span>
-                  </div>
-                  <div class="today-result-chip resolved">
-                    <span class="ico">✓</span><span class="txt">조치완 1</span>
-                  </div>
-                </div>
+                <span class="text-caption" style="color:var(--text-tertiary)">11/24 점검</span>
               </div>
 
-              <!-- 점검 항목 선택 -->
-              <div class="section-label">점검 항목 선택</div>
+              <!-- ④ 층 칩 (가로 스크롤) -->
+              <div class="flex no-scrollbar" style="overflow-x:auto; gap: 6px; padding-bottom: 4px; margin-bottom: 12px;">
+                <div class="floor-chip done">
+                  3F <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="floor-chip done">
+                  2F <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                </div>
+                <div class="floor-chip">1F</div>
+                <div class="floor-chip">B1</div>
+                <div class="floor-chip">B2</div>
+                <div class="floor-chip">B3</div>
+                <div class="floor-chip">B4</div>
+                <div class="floor-chip active">B5</div>
+              </div>
 
-              <!-- 카테고리 16그룹 — 3열 그리드 (모바일) -->
-              <div class="grid grid-cols-3" style="gap: 8px;">
+              <!-- ⑤ CP 리스트 -->
+              <div class="flex flex-col" style="gap: 8px;">
 
-                <!-- 1. 특별피난계단 / 피난·방화시설 / 방화문 — 100% all-done -->
-                <div class="cat-card all-done card-hover">
-                  <!-- StairsIcon (custom inline SVG) -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="cat-ico">
-                    <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">특별피난계단</div>
-                    <div class="cat-label">피난·방화시설</div>
-                    <div class="cat-label">방화문</div>
-                    <div class="cat-progress safe">✓ 완료</div>
+                <!-- 정상 (normal) -->
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-1</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 펌프실 입구</div>
                   </div>
+                  <span class="result-badge normal">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    정상
+                  </span>
                 </div>
 
-                <!-- 2. 청정소화약제 — 13/18 -->
-                <div class="cat-card card-hover">
-                  <i data-lucide="cloud" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">청정소화약제</div>
-                    <div class="cat-progress warn">13/18</div>
+                <!-- 주의 (caution) -->
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-2</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 발전기실</div>
                   </div>
+                  <span class="result-badge caution">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    주의
+                  </span>
                 </div>
 
-                <!-- 3. 전실제연댐퍼 / 연결송수관 — 10/25 (Shield 아이콘) -->
-                <div class="cat-card card-hover">
-                  <i data-lucide="shield" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">전실제연댐퍼</div>
-                    <div class="cat-label">연결송수관</div>
-                    <div class="cat-progress warn">10/25</div>
+                <!-- 불량 (bad — 미조치) -->
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-danger-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-3</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 1호</div>
                   </div>
+                  <span class="result-badge bad">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    불량
+                  </span>
                 </div>
 
-                <!-- 4. 주차장비 / 회전문 — 없음 -->
-                <div class="cat-card no-items">
-                  <i data-lucide="car" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">주차장비</div>
-                    <div class="cat-label">회전문</div>
-                    <div class="cat-progress">없음</div>
+                <!-- 미점검 -->
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-4</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 2호</div>
                   </div>
-                </div>
-
-                <!-- 5. 소방용전원공급반 -->
-                <div class="cat-card no-items">
-                  <i data-lucide="zap" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방용전원공급반</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 6. 방화셔터 -->
-                <div class="cat-card no-items">
-                  <!-- ShutterIcon (custom) -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="2" width="18" height="3" rx="1"/>
-                    <path d="M3 5v16"/><path d="M21 5v16"/>
-                    <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
-                    <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
-                    <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">방화셔터</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 7. DIV — 11/24 (is-active 시각 시그널: 모달이 열리는 카드) -->
-                <div class="cat-card card-hover is-active">
-                  <i data-lucide="bar-chart-3" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">DIV</div>
-                    <div class="cat-progress warn">11/24</div>
-                  </div>
-                </div>
-
-                <!-- 8. 컴프레셔 -->
-                <div class="cat-card no-items">
-                  <i data-lucide="wind" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">컴프레셔</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 9. 유도등 — 28/100 -->
-                <div class="cat-card card-hover">
-                  <!-- ExitSignIcon (custom) -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">유도등</div>
-                    <div class="cat-progress warn">28/100</div>
-                  </div>
-                </div>
-
-                <!-- 10. 배연창 -->
-                <div class="cat-card no-items">
-                  <!-- SmokeVentIcon (custom) -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 12h18"/><path d="M12 3v18"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">배연창</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 11. 완강기 -->
-                <div class="cat-card no-items">
-                  <i data-lucide="arrow-down-to-line" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">완강기</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 12. 소화전 / 비상콘센트 — 29/50 -->
-                <div class="cat-card card-hover">
-                  <!-- HoseReelIcon (custom) -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="4" y="2" width="16" height="20"/>
-                    <circle cx="12" cy="10" r="4.5"/>
-                    <circle cx="12" cy="10" r="1.5"/>
-                    <path d="M7.5 6v2"/><path d="M12 14.5v4"/>
-                    <path d="M10.5 17L12 19.5l1.5-2.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화전</div>
-                    <div class="cat-label">비상콘센트</div>
-                    <div class="cat-progress warn">29/50</div>
-                  </div>
-                </div>
-
-                <!-- 13. 소화기 — 36/240 -->
-                <div class="cat-card card-hover">
-                  <!-- FireExtinguisherCustom -->
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="8" y="8" width="8" height="13" rx="3"/>
-                    <path d="M10 8V6h4v2"/><path d="M13 4V2.5h-2V4"/>
-                    <path d="M14 4h3v3"/><path d="M8 11c-2 0-3 1-3 3v3"/>
-                    <path d="M4 17l1 2 1-2"/><path d="M9 14h6"/><path d="M9 17h6"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화기</div>
-                    <div class="cat-progress warn">36/240</div>
-                  </div>
-                </div>
-
-                <!-- 14. 소방펌프 -->
-                <div class="cat-card no-items">
-                  <i data-lucide="waves" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방펌프</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <!-- 15. 화재수신반 — "기록" 라벨 (실제는 navigate) -->
-                <div class="cat-card card-hover">
-                  <i data-lucide="bell" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">화재수신반</div>
-                    <div class="cat-progress">기록</div>
-                  </div>
-                </div>
-
-                <!-- 16. CCTV -->
-                <div class="cat-card no-items">
-                  <i data-lucide="video" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">CCTV</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
+                  <span class="result-badge none">
+                    <i data-lucide="circle-dashed" class="w-3.5 h-3.5"></i>
+                    미점검
+                  </span>
+                  <i data-lucide="chevron-right" class="w-4 h-4" style="color:var(--text-tertiary)"></i>
                 </div>
 
               </div>
@@ -970,7 +1001,7 @@
 
 
         <!-- ╔═══════════════════════════════╗
-             ║  MOBILE LIGHT · 오늘 현황 펼침   ║
+             ║   MOBILE  LIGHT               ║
              ╚═══════════════════════════════╝ -->
         <div class="viewport-frame viewport-mobile" data-theme="light">
           <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary);">
@@ -987,272 +1018,291 @@
                   <div class="text-label font-semibold" style="color:var(--text-primary)">일반 점검</div>
                 </div>
               </div>
-              <div class="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold"
-                   style="background:var(--accent); color:var(--text-on-accent)">윤</div>
+              <div class="flex items-center gap-2">
+                <div class="text-right" style="line-height:1.2">
+                  <div class="text-caption" style="color:var(--text-tertiary)">2026-05-09 (토)</div>
+                  <div class="text-caption font-semibold" style="color:var(--text-secondary)">진행중</div>
+                </div>
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-caption font-bold"
+                     style="background:var(--accent); color:var(--text-on-accent)">윤</div>
+              </div>
             </div>
 
-            <!-- ② 본문 (Zone 탭 없음) -->
-            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 12px 14px; padding-bottom: 80px;">
+            <!-- ② Zone 탭 -->
+            <div class="flex flex-shrink-0"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default);">
+              <div class="zone-tab active">
+                <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                <span>연구동</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">42%</span>
+              </div>
+              <div class="zone-tab">
+                <i data-lucide="building-2" class="w-4 h-4"></i>
+                <span>사무동</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">18%</span>
+              </div>
+              <div class="zone-tab">
+                <i data-lucide="train-front" class="w-4 h-4"></i>
+                <span>지하</span>
+                <span class="text-caption" style="color:var(--text-tertiary)">8%</span>
+              </div>
+            </div>
 
-              <!-- 동기화 시각 -->
-              <div class="flex justify-end" style="margin-bottom: 4px;">
-                <span class="text-caption" style="color:var(--text-tertiary)">동기화 21:34:56</span>
+            <!-- ③ 본문 스크롤 영역 -->
+            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 12px;">
+
+              <!-- 카테고리 16종 그리드 — 모바일 2열 (라이트) -->
+              <div class="grid grid-cols-2" style="gap: 8px; margin-bottom: 16px;">
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" class="cat-ico" style="flex-shrink:0">
+                      <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                      <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                      <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+                    </svg>
+                    <span class="cat-label">특별피난계단</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">8/8</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--accent);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="cloud" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">청정소화약제</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">13/18</span><span class="pct">72%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="shield" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">전실제연댐퍼·연결송수관</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">10/25</span><span class="pct">40%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="car" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">주차장비·회전문</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/6</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">소방용전원공급반</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/4</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="2" width="18" height="3" rx="1"/>
+                      <path d="M3 5v16"/><path d="M21 5v16"/>
+                      <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
+                      <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
+                      <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
+                    </svg>
+                    <span class="cat-label">방화셔터</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/12</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card card-hover" style="border-color: var(--accent); border-width: 2px;">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">DIV</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">11/24</span><span class="pct">45%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="wind" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">컴프레셔</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/24</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
+                    </svg>
+                    <span class="cat-label">유도등</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">28/100</span><span class="pct">28%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/>
+                      <path d="M3 12h18"/><path d="M12 3v18"/>
+                    </svg>
+                    <span class="cat-label">배연창</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/16</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="arrow-down-to-line" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">완강기</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/8</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--accent);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="4" y="2" width="16" height="20"/>
+                      <circle cx="12" cy="10" r="4.5"/>
+                      <circle cx="12" cy="10" r="1.5"/>
+                      <path d="M7.5 6v2"/>
+                      <path d="M12 14.5v4"/>
+                      <path d="M10.5 17L12 19.5l1.5-2.5"/>
+                    </svg>
+                    <span class="cat-label">소화전·비상콘센트</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">29/50</span><span class="pct">58%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                      <rect x="8" y="8" width="8" height="13" rx="3"/>
+                      <path d="M10 8V6h4v2"/>
+                      <path d="M13 4V2.5h-2V4"/>
+                      <path d="M14 4h3v3"/>
+                      <path d="M8 11c-2 0-3 1-3 3v3"/>
+                      <path d="M4 17l1 2 1-2"/>
+                      <path d="M9 14h6"/>
+                      <path d="M9 17h6"/>
+                    </svg>
+                    <span class="cat-label">소화기</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">36/240</span><span class="pct">15%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="waves" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">소방펌프</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/3</span><span class="pct">0%</span></div>
+                </div>
+
+                <div class="cat-card card-hover">
+                  <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">화재수신반</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">4/4</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                </div>
+
+                <div class="cat-card is-zero">
+                  <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="video" class="w-5 h-5 cat-ico"></i>
+                    <span class="cat-label">CCTV</span>
+                  </div>
+                  <div class="cat-progress"><span class="nm">0/13</span><span class="pct">0%</span></div>
+                </div>
+
               </div>
 
-              <!-- 오늘 점검 현황 (N건 펼침) -->
-              <div class="today-card">
-                <div class="today-head">
-                  <div class="today-title">오늘 점검 현황</div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="today-done-badge">12건 완료</span>
-                    <span class="today-toggle">▲</span>
-                  </div>
+              <!-- 선택된 카테고리 헤더 -->
+              <div class="flex items-center justify-between" style="margin-bottom:10px;">
+                <div class="flex items-center gap-2">
+                  <i data-lucide="bar-chart-3" class="w-5 h-5" style="color:var(--text-secondary)"></i>
+                  <span class="text-title" style="color:var(--text-primary); font-weight:600">DIV · 연구동</span>
                 </div>
-
-                <div style="margin-top: 10px;">
-
-                  <!-- 미조치 항목 -->
-                  <div style="margin-bottom: 10px;">
-                    <div class="flex items-center" style="gap: 6px; margin-bottom: 6px;">
-                      <span style="font-size: 13px;">🔧</span>
-                      <span style="font-size: 12px; font-weight: 700; color: var(--status-danger);">미조치 항목</span>
-                      <span style="font-size: 12px; font-weight: 700; color:#fff; background: var(--status-danger-bar); border-radius: 20px; padding: 1px 7px;">1</span>
-                    </div>
-                    <div class="flex flex-col" style="gap: 5px;">
-                      <div class="today-item unresolved">
-                        <span class="icon">❌</span>
-                        <div class="body">
-                          <div class="loc">B5층 · 압축기 1호</div>
-                          <div class="meta">B5 · DIV</div>
-                        </div>
-                        <button class="action">조치 입력</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 조치 완료 항목 -->
-                  <div style="margin-bottom: 10px;">
-                    <div class="flex items-center" style="gap: 6px; margin-bottom: 6px;">
-                      <span style="font-size: 13px;">🔵</span>
-                      <span style="font-size: 12px; font-weight: 700; color: #3b82f6;">조치 완료 항목</span>
-                      <span style="font-size: 12px; font-weight: 700; color:#fff; background: #3b82f6; border-radius: 20px; padding: 1px 7px;">1</span>
-                    </div>
-                    <div class="flex flex-col" style="gap: 5px;">
-                      <div class="today-item resolved">
-                        <span class="icon">❌</span>
-                        <div class="body">
-                          <div class="loc">3F · 동쪽 복도 유도등</div>
-                          <div class="meta">3F · 유도등</div>
-                        </div>
-                        <button class="action resolved">조치결과</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 정상 항목 -->
-                  <div>
-                    <div class="flex items-center" style="gap: 6px; margin-bottom: 6px;">
-                      <span style="font-size: 13px;">✅</span>
-                      <span style="font-size: 12px; font-weight: 700; color: var(--status-safe);">정상 항목</span>
-                      <span style="font-size: 12px; font-weight: 700; color:#fff; background: var(--status-safe-bar); border-radius: 20px; padding: 1px 7px;">10</span>
-                    </div>
-                    <div class="flex flex-col" style="gap: 5px;">
-                      <div class="today-item normal">
-                        <span class="icon">✅</span>
-                        <div class="body">
-                          <div class="loc">B5층 · 펌프실 입구</div>
-                          <div class="meta">B5 · DIV</div>
-                        </div>
-                        <span class="action safe-static">정상</span>
-                      </div>
-                      <div class="today-item normal">
-                        <span class="icon">✅</span>
-                        <div class="body">
-                          <div class="loc">B4층 · 발전기실 측면</div>
-                          <div class="meta">B4 · DIV</div>
-                        </div>
-                        <span class="action safe-static">정상</span>
-                      </div>
-                      <div class="today-item normal">
-                        <span class="icon">✅</span>
-                        <div class="body">
-                          <div class="loc">1F · 메인 로비</div>
-                          <div class="meta">1F · 유도등</div>
-                        </div>
-                        <span class="action safe-static">정상</span>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
+                <span class="text-caption" style="color:var(--text-tertiary)">11/24 점검</span>
               </div>
 
-              <!-- 점검 항목 선택 -->
-              <div class="section-label">점검 항목 선택</div>
+              <!-- ④ 층 칩 -->
+              <div class="flex no-scrollbar" style="overflow-x:auto; gap: 6px; padding-bottom: 4px; margin-bottom: 12px;">
+                <div class="floor-chip done">3F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                <div class="floor-chip done">2F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                <div class="floor-chip">1F</div>
+                <div class="floor-chip">B1</div>
+                <div class="floor-chip">B2</div>
+                <div class="floor-chip">B3</div>
+                <div class="floor-chip">B4</div>
+                <div class="floor-chip active">B5</div>
+              </div>
 
-              <!-- 카테고리 16그룹 — 3열 (라이트) -->
-              <div class="grid grid-cols-3" style="gap: 8px;">
-
-                <div class="cat-card all-done card-hover">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="cat-ico">
-                    <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">특별피난계단</div>
-                    <div class="cat-label">피난·방화시설</div>
-                    <div class="cat-label">방화문</div>
-                    <div class="cat-progress safe">✓ 완료</div>
+              <!-- ⑤ CP 리스트 -->
+              <div class="flex flex-col" style="gap: 8px;">
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-safe-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-1</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 펌프실 입구</div>
                   </div>
+                  <span class="result-badge normal">
+                    <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                    정상
+                  </span>
                 </div>
 
-                <div class="cat-card card-hover">
-                  <i data-lucide="cloud" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">청정소화약제</div>
-                    <div class="cat-progress warn">13/18</div>
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-warning-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-2</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 발전기실</div>
                   </div>
+                  <span class="result-badge caution">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    주의
+                  </span>
                 </div>
 
-                <div class="cat-card card-hover">
-                  <i data-lucide="shield" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">전실제연댐퍼</div>
-                    <div class="cat-label">연결송수관</div>
-                    <div class="cat-progress warn">10/25</div>
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--status-danger-bar);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-3</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 1호</div>
                   </div>
+                  <span class="result-badge bad">
+                    <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                    불량
+                  </span>
                 </div>
 
-                <div class="cat-card no-items">
-                  <i data-lucide="car" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">주차장비</div>
-                    <div class="cat-label">회전문</div>
-                    <div class="cat-progress">없음</div>
+                <div class="cp-card card-hover">
+                  <div class="cp-bar" style="background: var(--text-tertiary);"></div>
+                  <div class="flex-1">
+                    <div class="text-label" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-4</div>
+                    <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 2호</div>
                   </div>
+                  <span class="result-badge none">
+                    <i data-lucide="circle-dashed" class="w-3.5 h-3.5"></i>
+                    미점검
+                  </span>
+                  <i data-lucide="chevron-right" class="w-4 h-4" style="color:var(--text-tertiary)"></i>
                 </div>
-
-                <div class="cat-card no-items">
-                  <i data-lucide="zap" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방용전원공급반</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="2" width="18" height="3" rx="1"/>
-                    <path d="M3 5v16"/><path d="M21 5v16"/>
-                    <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
-                    <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
-                    <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">방화셔터</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover">
-                  <i data-lucide="bar-chart-3" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">DIV</div>
-                    <div class="cat-progress warn">11/24</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <i data-lucide="wind" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">컴프레셔</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">유도등</div>
-                    <div class="cat-progress warn">28/100</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 12h18"/><path d="M12 3v18"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">배연창</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <i data-lucide="arrow-down-to-line" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">완강기</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="4" y="2" width="16" height="20"/>
-                    <circle cx="12" cy="10" r="4.5"/>
-                    <circle cx="12" cy="10" r="1.5"/>
-                    <path d="M7.5 6v2"/><path d="M12 14.5v4"/>
-                    <path d="M10.5 17L12 19.5l1.5-2.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화전</div>
-                    <div class="cat-label">비상콘센트</div>
-                    <div class="cat-progress warn">29/50</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="8" y="8" width="8" height="13" rx="3"/>
-                    <path d="M10 8V6h4v2"/><path d="M13 4V2.5h-2V4"/>
-                    <path d="M14 4h3v3"/><path d="M8 11c-2 0-3 1-3 3v3"/>
-                    <path d="M4 17l1 2 1-2"/><path d="M9 14h6"/><path d="M9 17h6"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화기</div>
-                    <div class="cat-progress warn">36/240</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <i data-lucide="waves" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방펌프</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover">
-                  <i data-lucide="bell" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">화재수신반</div>
-                    <div class="cat-progress">기록</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items">
-                  <i data-lucide="video" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">CCTV</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
               </div>
 
             </div>
@@ -1285,13 +1335,11 @@
 
 
     <!-- ─────────────────────────────────────────────
-         행 2: 데스크톱 다크 · 오늘 점검 현황 0건 (empty)
-         · 단일 컬럼 (Zone 탭 없음 / 사이드바 분할 없음 — 실제 코드 1:1)
-         · 카테고리 6열 그리드 (데스크톱 밀도)
+         행 2: 데스크톱 다크
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center mb-4">
-        <span class="meta-label">Desktop · Dark · 1280 × 800 · 오늘 현황 0건 (empty)</span>
+        <span class="meta-label">Desktop · Dark · 1280 × 800</span>
       </div>
 
       <div class="flex justify-center">
@@ -1318,201 +1366,337 @@
               </div>
             </div>
 
-            <!-- 본문 (Zone 탭 없음, 단일 컬럼 스크롤) -->
-            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 20px 32px;">
+            <!-- 데스크톱 본문: 좌(사이드바 카테고리) / 우(상세) 분할 -->
+            <div class="flex-1 flex" style="overflow:hidden;">
 
-              <!-- 동기화 시각 -->
-              <div class="flex justify-end" style="margin-bottom: 6px;">
-                <span class="text-caption" style="color:var(--text-tertiary)">동기화 21:34:56</span>
+              <!-- 좌측 사이드바: 카테고리 16종 + Zone 탭 -->
+              <div class="w-[420px] flex flex-col flex-shrink-0"
+                   style="background:var(--surface-page); border-right:1px solid var(--border-default); padding: 16px; overflow-y:auto;">
+
+                <!-- Zone 탭 -->
+                <div class="flex flex-shrink-0" style="margin-bottom: 12px; border:1px solid var(--border-default); border-radius: var(--radius-md); overflow:hidden; background:var(--surface-raised);">
+                  <div class="zone-tab active">
+                    <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                    <span>연구동</span>
+                  </div>
+                  <div class="zone-tab">
+                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                    <span>사무동</span>
+                  </div>
+                  <div class="zone-tab">
+                    <i data-lucide="train-front" class="w-4 h-4"></i>
+                    <span>지하</span>
+                  </div>
+                </div>
+
+                <div class="text-caption" style="color:var(--text-tertiary); margin-bottom: 8px; padding: 0 4px;">
+                  카테고리 (16종)
+                </div>
+
+                <!-- 카테고리 16종 — 데스크톱 2열 -->
+                <div class="grid grid-cols-2" style="gap: 6px;">
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" class="cat-ico" style="flex-shrink:0">
+                        <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                        <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                        <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+                      </svg>
+                      <span class="cat-label">특별피난계단</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">8/8</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--accent);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="cloud" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">청정소화약제</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">13/18</span><span class="pct">72%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="shield" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">전실제연댐퍼·연결송수관</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">10/25</span><span class="pct">40%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="car" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">주차장비·회전문</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/6</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="zap" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">소방용전원공급반</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/4</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="2" width="18" height="3" rx="1"/>
+                        <path d="M3 5v16"/><path d="M21 5v16"/>
+                        <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
+                        <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
+                        <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
+                      </svg>
+                      <span class="cat-label">방화셔터</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/12</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px; border-color: var(--accent); border-width: 2px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="bar-chart-3" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">DIV</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">11/24</span><span class="pct">45%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="wind" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">컴프레셔</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/24</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
+                      </svg>
+                      <span class="cat-label">유도등</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">28/100</span><span class="pct">28%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 12h18"/><path d="M12 3v18"/>
+                      </svg>
+                      <span class="cat-label">배연창</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/16</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="arrow-down-to-line" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">완강기</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/8</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--accent);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="4" y="2" width="16" height="20"/>
+                        <circle cx="12" cy="10" r="4.5"/>
+                        <circle cx="12" cy="10" r="1.5"/>
+                        <path d="M7.5 6v2"/>
+                        <path d="M12 14.5v4"/>
+                        <path d="M10.5 17L12 19.5l1.5-2.5"/>
+                      </svg>
+                      <span class="cat-label">소화전·비상콘센트</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">29/50</span><span class="pct">58%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="8" y="8" width="8" height="13" rx="3"/>
+                        <path d="M10 8V6h4v2"/>
+                        <path d="M13 4V2.5h-2V4"/>
+                        <path d="M14 4h3v3"/>
+                        <path d="M8 11c-2 0-3 1-3 3v3"/>
+                        <path d="M4 17l1 2 1-2"/>
+                        <path d="M9 14h6"/>
+                        <path d="M9 17h6"/>
+                      </svg>
+                      <span class="cat-label">소화기</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">36/240</span><span class="pct">15%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="waves" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">소방펌프</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/3</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="bell" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">화재수신반</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">4/4</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="video" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">CCTV</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/13</span><span class="pct">0%</span></div>
+                  </div>
+
+                </div>
+
+                <!-- loading skeleton 데모 (사이드바 하단) -->
+                <div class="text-caption" style="color:var(--text-tertiary); margin-top: 14px; margin-bottom: 6px; padding: 0 4px;">
+                  로딩 중 (데모)
+                </div>
+                <div class="grid grid-cols-2" style="gap: 6px;">
+                  <div class="skel" style="height: 72px;"></div>
+                  <div class="skel" style="height: 72px;"></div>
+                </div>
+
               </div>
 
-              <!-- 오늘 점검 현황 (0건 empty) -->
-              <div class="today-card">
-                <div class="today-head">
-                  <div class="today-title">오늘 점검 현황</div>
-                </div>
-                <div class="today-empty">
-                  <span class="icon">📋</span>
-                  <span class="txt">아직 점검 기록이 없습니다</span>
-                </div>
-              </div>
+              <!-- 우측 메인: 선택된 카테고리(DIV·연구동) 상세 -->
+              <div class="flex-1 flex flex-col" style="overflow-y:auto; padding: 20px 24px;">
 
-              <!-- 점검 항목 선택 -->
-              <div class="section-label">점검 항목 선택</div>
-
-              <!-- 카테고리 16그룹 — 데스크톱 6열 그리드 -->
-              <div class="grid grid-cols-6" style="gap: 10px;">
-
-                <!-- 1. 특별피난계단 -->
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="cat-ico">
-                    <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">특별피난계단</div>
-                    <div class="cat-label">피난·방화시설</div>
-                    <div class="cat-label">방화문</div>
-                    <div class="cat-progress">8개</div>
+                <!-- 카테고리 헤더 -->
+                <div class="flex items-center justify-between" style="margin-bottom: 16px;">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width:44px; height:44px; border-radius: var(--radius-md); background: var(--surface-raised); border:1px solid var(--border-default);">
+                      <i data-lucide="bar-chart-3" class="w-6 h-6" style="color:var(--text-secondary)"></i>
+                    </div>
+                    <div>
+                      <div class="text-heading" style="color:var(--text-primary); font-weight:600">DIV</div>
+                      <div class="text-label" style="color:var(--text-secondary)">연구동 · 11/24 점검 완료 (45%)</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border:1px solid var(--border-default); color:var(--text-secondary); font-size:13px; font-weight:500;">
+                      <span style="display:inline-flex; align-items:center; gap:4px;">
+                        <i data-lucide="map" class="w-4 h-4"></i>
+                        도면 보기
+                      </span>
+                    </button>
+                    <button style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border:1px solid var(--border-default); color:var(--text-secondary); font-size:13px; font-weight:500;">
+                      <span style="display:inline-flex; align-items:center; gap:4px;">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        QR 스캔
+                      </span>
+                    </button>
                   </div>
                 </div>
 
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="cloud" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">청정소화약제</div>
-                    <div class="cat-progress">18개</div>
+                <!-- 층 칩 -->
+                <div class="flex flex-wrap" style="gap: 6px; margin-bottom: 16px;">
+                  <div class="floor-chip done">8F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">7F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">6F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip">5F</div>
+                  <div class="floor-chip done">3F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">2F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip">1F</div>
+                  <div class="floor-chip">B1</div>
+                  <div class="floor-chip">B2</div>
+                  <div class="floor-chip">B3</div>
+                  <div class="floor-chip">B4</div>
+                  <div class="floor-chip active">B5</div>
+                </div>
+
+                <!-- CP 리스트 헤더 -->
+                <div class="flex items-center justify-between" style="margin-bottom: 10px;">
+                  <span class="text-title" style="color:var(--text-primary); font-weight:600">B5층 측정점 (4개)</span>
+                  <span class="text-caption" style="color:var(--text-tertiary)">정상 1 · 주의 1 · 불량 1 · 미점검 1</span>
+                </div>
+
+                <!-- CP 리스트 (데스크톱 — 그리드 2열 가능) -->
+                <div class="grid grid-cols-2" style="gap: 10px;">
+
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-1</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 펌프실 입구 · 박보융 · 14:23</div>
+                    </div>
+                    <span class="result-badge normal">
+                      <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                      정상
+                    </span>
                   </div>
-                </div>
 
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="shield" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">전실제연댐퍼</div>
-                    <div class="cat-label">연결송수관</div>
-                    <div class="cat-progress">25개</div>
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-2</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 발전기실 · 박보융 · 14:31</div>
+                    </div>
+                    <span class="result-badge caution">
+                      <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                      주의
+                    </span>
                   </div>
-                </div>
 
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="car" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">주차장비</div>
-                    <div class="cat-label">회전문</div>
-                    <div class="cat-progress">없음</div>
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-danger-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-3</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 1호 · 조치 대기</div>
+                    </div>
+                    <span class="result-badge bad">
+                      <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                      불량
+                    </span>
                   </div>
-                </div>
 
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="zap" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방용전원공급반</div>
-                    <div class="cat-progress">없음</div>
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-4</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 2호</div>
+                    </div>
+                    <span class="result-badge none">
+                      <i data-lucide="circle-dashed" class="w-3.5 h-3.5"></i>
+                      미점검
+                    </span>
                   </div>
+
                 </div>
 
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="2" width="18" height="3" rx="1"/>
-                    <path d="M3 5v16"/><path d="M21 5v16"/>
-                    <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
-                    <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
-                    <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">방화셔터</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
+                <!-- empty 상태 데모 (다른 층 가정) -->
+                <div style="margin-top: 24px; padding: 24px; background: var(--surface-raised); border:1px dashed var(--border-default); border-radius: var(--radius-md); display:flex; flex-direction:column; align-items:center; gap:8px;">
+                  <i data-lucide="circle-dashed" class="w-8 h-8" style="color:var(--text-tertiary)"></i>
+                  <div class="text-label" style="color:var(--text-secondary)">선택된 층에 측정점이 없습니다</div>
+                  <div class="text-caption" style="color:var(--text-tertiary)">다른 층을 선택하거나 도면에서 측정점을 추가하세요</div>
                 </div>
 
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="bar-chart-3" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">DIV</div>
-                    <div class="cat-progress">24개</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="wind" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">컴프레셔</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">유도등</div>
-                    <div class="cat-progress">100개</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 12h18"/><path d="M12 3v18"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">배연창</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="arrow-down-to-line" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">완강기</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="4" y="2" width="16" height="20"/>
-                    <circle cx="12" cy="10" r="4.5"/>
-                    <circle cx="12" cy="10" r="1.5"/>
-                    <path d="M7.5 6v2"/><path d="M12 14.5v4"/>
-                    <path d="M10.5 17L12 19.5l1.5-2.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화전</div>
-                    <div class="cat-label">비상콘센트</div>
-                    <div class="cat-progress">50개</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="8" y="8" width="8" height="13" rx="3"/>
-                    <path d="M10 8V6h4v2"/><path d="M13 4V2.5h-2V4"/>
-                    <path d="M14 4h3v3"/><path d="M8 11c-2 0-3 1-3 3v3"/>
-                    <path d="M4 17l1 2 1-2"/><path d="M9 14h6"/><path d="M9 17h6"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화기</div>
-                    <div class="cat-progress">240개</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="waves" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방펌프</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="bell" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">화재수신반</div>
-                    <div class="cat-progress">기록</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="video" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">CCTV</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-              </div>
-
-              <!-- 데스크톱 안내 메시지 -->
-              <div style="margin-top: 24px; padding: 16px 20px; background: var(--surface-raised); border: 1px dashed var(--border-default); border-radius: var(--radius-md); display: flex; align-items: center; gap: 12px;">
-                <i data-lucide="info" class="w-5 h-5" style="color: var(--text-tertiary); flex-shrink: 0;"></i>
-                <div>
-                  <div class="text-label" style="color: var(--text-secondary);">카드를 클릭하면 카테고리별 풀스크린 점검 모달이 열립니다.</div>
-                  <div class="text-caption" style="color: var(--text-tertiary); margin-top: 2px;">Zone 탭(연구동/사무동/지하)은 카테고리 모달 내부 컴포넌트입니다 — 메인 페이지에는 없습니다.</div>
-                </div>
               </div>
 
             </div>
@@ -1524,11 +1708,11 @@
 
 
     <!-- ─────────────────────────────────────────────
-         행 3: 데스크톱 라이트 · 오늘 현황 N건 접힘
+         행 3: 데스크톱 라이트
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center mb-4">
-        <span class="meta-label">Desktop · Light · 1280 × 800 · 오늘 현황 N건 (접힘)</span>
+        <span class="meta-label">Desktop · Light · 1280 × 800</span>
       </div>
 
       <div class="flex justify-center">
@@ -1554,220 +1738,317 @@
               </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto" style="background:var(--surface-page); padding: 20px 32px;">
+            <div class="flex-1 flex" style="overflow:hidden;">
 
-              <!-- 동기화 시각 -->
-              <div class="flex justify-end" style="margin-bottom: 6px;">
-                <span class="text-caption" style="color:var(--text-tertiary)">동기화 21:34:56</span>
+              <!-- 좌측 사이드바 -->
+              <div class="w-[420px] flex flex-col flex-shrink-0"
+                   style="background:var(--surface-page); border-right:1px solid var(--border-default); padding: 16px; overflow-y:auto;">
+
+                <div class="flex flex-shrink-0" style="margin-bottom: 12px; border:1px solid var(--border-default); border-radius: var(--radius-md); overflow:hidden; background:var(--surface-raised);">
+                  <div class="zone-tab active">
+                    <i data-lucide="flask-conical" class="w-4 h-4"></i>
+                    <span>연구동</span>
+                  </div>
+                  <div class="zone-tab">
+                    <i data-lucide="building-2" class="w-4 h-4"></i>
+                    <span>사무동</span>
+                  </div>
+                  <div class="zone-tab">
+                    <i data-lucide="train-front" class="w-4 h-4"></i>
+                    <span>지하</span>
+                  </div>
+                </div>
+
+                <div class="text-caption" style="color:var(--text-tertiary); margin-bottom: 8px; padding: 0 4px;">
+                  카테고리 (16종)
+                </div>
+
+                <div class="grid grid-cols-2" style="gap: 6px;">
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" class="cat-ico" style="flex-shrink:0">
+                        <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+                        <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+                        <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+                      </svg>
+                      <span class="cat-label">특별피난계단</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">8/8</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--accent);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="cloud" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">청정소화약제</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">13/18</span><span class="pct">72%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="shield" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">전실제연댐퍼·연결송수관</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">10/25</span><span class="pct">40%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="car" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">주차장비·회전문</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/6</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="zap" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">소방용전원공급반</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/4</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="2" width="18" height="3" rx="1"/>
+                        <path d="M3 5v16"/><path d="M21 5v16"/>
+                        <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
+                        <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
+                        <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
+                      </svg>
+                      <span class="cat-label">방화셔터</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/12</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px; border-color: var(--accent); border-width: 2px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="bar-chart-3" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">DIV</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">11/24</span><span class="pct">45%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="wind" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">컴프레셔</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/24</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
+                      </svg>
+                      <span class="cat-label">유도등</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">28/100</span><span class="pct">28%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 12h18"/><path d="M12 3v18"/>
+                      </svg>
+                      <span class="cat-label">배연창</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/16</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="arrow-down-to-line" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">완강기</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/8</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--accent);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="4" y="2" width="16" height="20"/>
+                        <circle cx="12" cy="10" r="4.5"/>
+                        <circle cx="12" cy="10" r="1.5"/>
+                        <path d="M7.5 6v2"/>
+                        <path d="M12 14.5v4"/>
+                        <path d="M10.5 17L12 19.5l1.5-2.5"/>
+                      </svg>
+                      <span class="cat-label">소화전·비상콘센트</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">29/50</span><span class="pct">58%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico" style="flex-shrink:0">
+                        <rect x="8" y="8" width="8" height="13" rx="3"/>
+                        <path d="M10 8V6h4v2"/>
+                        <path d="M13 4V2.5h-2V4"/>
+                        <path d="M14 4h3v3"/>
+                        <path d="M8 11c-2 0-3 1-3 3v3"/>
+                        <path d="M4 17l1 2 1-2"/>
+                        <path d="M9 14h6"/>
+                        <path d="M9 17h6"/>
+                      </svg>
+                      <span class="cat-label">소화기</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">36/240</span><span class="pct">15%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="waves" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">소방펌프</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/3</span><span class="pct">0%</span></div>
+                  </div>
+
+                  <div class="cat-card card-hover" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="bell" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">화재수신반</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">4/4</span><span class="pct" style="color: var(--status-safe);">100%</span></div>
+                  </div>
+
+                  <div class="cat-card is-zero" style="padding: 10px 10px 10px 14px; min-height:72px;">
+                    <div class="cat-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex items-center gap-2">
+                      <i data-lucide="video" class="w-[18px] h-[18px] cat-ico"></i>
+                      <span class="cat-label">CCTV</span>
+                    </div>
+                    <div class="cat-progress"><span class="nm">0/13</span><span class="pct">0%</span></div>
+                  </div>
+
+                </div>
+
               </div>
 
-              <!-- 오늘 점검 현황 (N건 접힘) -->
-              <div class="today-card">
-                <div class="today-head">
-                  <div class="today-title">오늘 점검 현황</div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="today-done-badge">12건 완료</span>
-                    <span class="today-toggle">▼</span>
-                  </div>
-                </div>
-                <div class="flex flex-wrap" style="gap: 5px; margin-top: 8px;">
-                  <div class="today-cat-chip">
-                    <span class="ico">📊</span><span class="lbl">DIV</span><span class="cnt">5</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">⬅️</span><span class="lbl">유도등</span><span class="cnt">4</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">🛡️</span><span class="lbl">전실제연댐퍼</span><span class="cnt">2</span>
-                  </div>
-                  <div class="today-cat-chip">
-                    <span class="ico">🧯</span><span class="lbl">소화기</span><span class="cnt">1</span>
-                  </div>
-                </div>
-                <div class="flex" style="gap: 4px; margin-top: 6px; flex-wrap: wrap;">
-                  <div class="today-result-chip normal">
-                    <span class="ico">✅</span><span class="txt">정상 8</span>
-                  </div>
-                  <div class="today-result-chip caution">
-                    <span class="ico">⚠️</span><span class="txt">주의 2</span>
-                  </div>
-                  <div class="today-result-chip bad">
-                    <span class="ico">❌</span><span class="txt">불량 2</span>
-                  </div>
-                  <span class="text-caption" style="color:var(--text-tertiary); align-self:center; padding: 0 2px;">—</span>
-                  <div class="today-result-chip unresolved">
-                    <span class="ico">🔧</span><span class="txt">미조치 1</span>
-                  </div>
-                  <div class="today-result-chip resolved">
-                    <span class="ico">✓</span><span class="txt">조치완 1</span>
-                  </div>
-                </div>
-              </div>
+              <!-- 우측 메인 -->
+              <div class="flex-1 flex flex-col" style="overflow-y:auto; padding: 20px 24px;">
 
-              <!-- 점검 항목 선택 -->
-              <div class="section-label">점검 항목 선택</div>
-
-              <!-- 카테고리 16그룹 — 6열 (라이트) -->
-              <div class="grid grid-cols-6" style="gap: 10px;">
-
-                <div class="cat-card all-done card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="cat-ico">
-                    <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
-                    <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">특별피난계단</div>
-                    <div class="cat-label">피난·방화시설</div>
-                    <div class="cat-label">방화문</div>
-                    <div class="cat-progress safe">✓ 완료</div>
+                <div class="flex items-center justify-between" style="margin-bottom: 16px;">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center" style="width:44px; height:44px; border-radius: var(--radius-md); background: var(--surface-raised); border:1px solid var(--border-default);">
+                      <i data-lucide="bar-chart-3" class="w-6 h-6" style="color:var(--text-secondary)"></i>
+                    </div>
+                    <div>
+                      <div class="text-heading" style="color:var(--text-primary); font-weight:600">DIV</div>
+                      <div class="text-label" style="color:var(--text-secondary)">연구동 · 11/24 점검 완료 (45%)</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border:1px solid var(--border-default); color:var(--text-secondary); font-size:13px; font-weight:500;">
+                      <span style="display:inline-flex; align-items:center; gap:4px;">
+                        <i data-lucide="map" class="w-4 h-4"></i>
+                        도면 보기
+                      </span>
+                    </button>
+                    <button style="padding: 8px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border:1px solid var(--border-default); color:var(--text-secondary); font-size:13px; font-weight:500;">
+                      <span style="display:inline-flex; align-items:center; gap:4px;">
+                        <i data-lucide="qr-code" class="w-4 h-4"></i>
+                        QR 스캔
+                      </span>
+                    </button>
                   </div>
                 </div>
 
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="cloud" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">청정소화약제</div>
-                    <div class="cat-progress warn">13/18</div>
+                <div class="flex flex-wrap" style="gap: 6px; margin-bottom: 16px;">
+                  <div class="floor-chip done">8F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">7F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">6F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip">5F</div>
+                  <div class="floor-chip done">3F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip done">2F <i data-lucide="check" class="w-3.5 h-3.5"></i></div>
+                  <div class="floor-chip">1F</div>
+                  <div class="floor-chip">B1</div>
+                  <div class="floor-chip">B2</div>
+                  <div class="floor-chip">B3</div>
+                  <div class="floor-chip">B4</div>
+                  <div class="floor-chip active">B5</div>
+                </div>
+
+                <div class="flex items-center justify-between" style="margin-bottom: 10px;">
+                  <span class="text-title" style="color:var(--text-primary); font-weight:600">B5층 측정점 (4개)</span>
+                  <span class="text-caption" style="color:var(--text-tertiary)">정상 1 · 주의 1 · 불량 1 · 미점검 1</span>
+                </div>
+
+                <div class="grid grid-cols-2" style="gap: 10px;">
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-safe-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-1</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 펌프실 입구 · 박보융 · 14:23</div>
+                    </div>
+                    <span class="result-badge normal">
+                      <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                      정상
+                    </span>
+                  </div>
+
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-warning-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-2</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 발전기실 · 박보융 · 14:31</div>
+                    </div>
+                    <span class="result-badge caution">
+                      <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                      주의
+                    </span>
+                  </div>
+
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--status-danger-bar);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-3</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 1호 · 조치 대기</div>
+                    </div>
+                    <span class="result-badge bad">
+                      <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+                      불량
+                    </span>
+                  </div>
+
+                  <div class="cp-card card-hover">
+                    <div class="cp-bar" style="background: var(--text-tertiary);"></div>
+                    <div class="flex-1">
+                      <div class="text-body-sm" style="color:var(--text-primary); font-weight:600">CP-DIV-B5-4</div>
+                      <div class="text-caption" style="color:var(--text-tertiary)">B5층 · 압축기 2호</div>
+                    </div>
+                    <span class="result-badge none">
+                      <i data-lucide="circle-dashed" class="w-3.5 h-3.5"></i>
+                      미점검
+                    </span>
                   </div>
                 </div>
 
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="shield" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">전실제연댐퍼</div>
-                    <div class="cat-label">연결송수관</div>
-                    <div class="cat-progress warn">10/25</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="car" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">주차장비</div>
-                    <div class="cat-label">회전문</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="zap" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방용전원공급반</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="2" width="18" height="3" rx="1"/>
-                    <path d="M3 5v16"/><path d="M21 5v16"/>
-                    <path d="M5 8h14"/><path d="M5 11h14"/><path d="M5 14h14"/>
-                    <path d="M9 17v3m-1.5-1.5L9 20l1.5-1.5"/>
-                    <path d="M15 17v3m-1.5-1.5L15 20l1.5-1.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">방화셔터</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="bar-chart-3" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">DIV</div>
-                    <div class="cat-progress warn">11/24</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="wind" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">컴프레셔</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">유도등</div>
-                    <div class="cat-progress warn">28/100</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/>
-                    <path d="M3 12h18"/><path d="M12 3v18"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">배연창</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="arrow-down-to-line" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">완강기</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="4" y="2" width="16" height="20"/>
-                    <circle cx="12" cy="10" r="4.5"/>
-                    <circle cx="12" cy="10" r="1.5"/>
-                    <path d="M7.5 6v2"/><path d="M12 14.5v4"/>
-                    <path d="M10.5 17L12 19.5l1.5-2.5"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화전</div>
-                    <div class="cat-label">비상콘센트</div>
-                    <div class="cat-progress warn">29/50</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="cat-ico">
-                    <rect x="8" y="8" width="8" height="13" rx="3"/>
-                    <path d="M10 8V6h4v2"/><path d="M13 4V2.5h-2V4"/>
-                    <path d="M14 4h3v3"/><path d="M8 11c-2 0-3 1-3 3v3"/>
-                    <path d="M4 17l1 2 1-2"/><path d="M9 14h6"/><path d="M9 17h6"/>
-                  </svg>
-                  <div class="cat-body">
-                    <div class="cat-label">소화기</div>
-                    <div class="cat-progress warn">36/240</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="waves" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">소방펌프</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
-                </div>
-
-                <div class="cat-card card-hover" style="min-height: 90px;">
-                  <i data-lucide="bell" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">화재수신반</div>
-                    <div class="cat-progress">기록</div>
-                  </div>
-                </div>
-
-                <div class="cat-card no-items" style="min-height: 90px;">
-                  <i data-lucide="video" class="w-4 h-4 cat-ico"></i>
-                  <div class="cat-body">
-                    <div class="cat-label">CCTV</div>
-                    <div class="cat-progress">없음</div>
-                  </div>
+                <!-- empty 상태 -->
+                <div style="margin-top: 24px; padding: 24px; background: var(--surface-raised); border:1px dashed var(--border-default); border-radius: var(--radius-md); display:flex; flex-direction:column; align-items:center; gap:8px;">
+                  <i data-lucide="circle-dashed" class="w-8 h-8" style="color:var(--text-tertiary)"></i>
+                  <div class="text-label" style="color:var(--text-secondary)">선택된 층에 측정점이 없습니다</div>
+                  <div class="text-caption" style="color:var(--text-tertiary)">다른 층을 선택하거나 도면에서 측정점을 추가하세요</div>
                 </div>
 
               </div>
@@ -1781,94 +2062,111 @@
 
 
     <!-- ─────────────────────────────────────────────
-         행 4: 공통 팝업 변형 + 카테고리별 모달 진행 계획
-         · 카드 클릭 → 풀스크린 모달 (DivModal / StairwellModal / BaeyeonModal 등) — 모두 카테고리별 패턴 상이
-         · "일반 결과 입력 모달" generic 추정 패턴은 폐기 — 사용자 결정 (점검 항목별 모달이 완전히 달라 일괄 적용 불가)
-         · 1차 시안 범위: 메인 화면 + 공통 팝업(Revisit/AccessBlocked) 만
-         · 2~6차 시안에서 카테고리별 모달 분할 진행
+         행 4: 모달 변형 (3개 패널)
          ───────────────────────────────────────────── -->
     <section>
       <div class="flex items-center justify-center gap-[60px] mb-4 flex-wrap">
-        <span class="meta-label">2~6차 시안 진행 계획</span>
+        <span class="meta-label">Modal · 일반 결과 입력</span>
         <span class="meta-label">Popup · Revisit (가완료 / 나조치)</span>
         <span class="meta-label">Popup · AccessBlocked</span>
       </div>
 
       <div class="flex justify-center gap-8 flex-wrap">
 
-        <!-- ╔═══════════════════════════════════════╗
-             ║   E-1. 카테고리별 모달 진행 계획      ║
-             ║   (1차 시안에 일괄 모달 표현 폐기)    ║
-             ║   2~6차 시안에서 카테고리별 분할       ║
-             ╚═══════════════════════════════════════╝ -->
+        <!-- ╔═══════════════════════════════╗
+             ║   E-1. 일반 결과 입력 모달      ║
+             ╚═══════════════════════════════╝ -->
         <div class="viewport-frame viewport-modal" data-theme="dark">
-          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary); padding: 18px; gap: 14px; overflow-y:auto;">
+          <div class="flex flex-col h-full" style="background:var(--surface-page); color:var(--text-primary); position:relative;">
 
-            <!-- 헤더 -->
-            <div class="flex items-center justify-between flex-shrink-0">
-              <span class="text-label" style="color:var(--text-secondary); font-weight:600">카테고리별 모달</span>
-              <span class="text-caption" style="color:var(--text-tertiary)">2~6차 시안</span>
+            <!-- 배경 (헤더 + 흐릿한 카테고리 그리드) -->
+            <div class="flex items-center justify-between px-3 py-2 flex-shrink-0"
+                 style="background:var(--surface-raised); border-bottom:1px solid var(--border-default); opacity:0.5;">
+              <div class="flex items-center gap-2">
+                <i data-lucide="menu" class="w-5 h-5" style="color:var(--text-secondary)"></i>
+                <div>
+                  <div class="text-caption font-semibold" style="color:var(--text-tertiary)">방재팀</div>
+                  <div class="text-label font-semibold" style="color:var(--text-primary)">일반 점검</div>
+                </div>
+              </div>
+              <div class="text-caption" style="color:var(--text-tertiary)">2026-05-09</div>
             </div>
 
-            <!-- 안내 박스 -->
-            <div style="padding: 14px; border-radius: var(--radius-md); background: var(--status-info-bg); border: 1px solid var(--status-info-bar); border-left-width: 3px;">
-              <div class="flex items-start gap-2.5">
-                <i data-lucide="info" class="w-5 h-5 flex-shrink-0" style="color: var(--status-info-bar); margin-top: 1px;"></i>
-                <div class="flex-1 min-w-0">
-                  <div class="text-label" style="color: var(--text-primary); font-weight: 700; line-height: 1.55; margin-bottom: 4px;">카테고리별 모달은 패턴이 모두 다름</div>
-                  <div class="text-caption" style="color: var(--text-secondary); line-height: 1.65;">DIV/컴프의 doubleCycle 페어, 배연창/제연댐퍼의 zone+층+위치 3단, CCTV/특별피난계단의 일괄 입력, 증상 피커 5종 등 — generic "일반 결과 입력 모달" 패턴으로 일괄 적용 불가. 2~6차 시안에서 카테고리별 정확 매핑.</div>
+            <div class="flex-1 relative" style="background:var(--surface-page);">
+              <div style="padding:12px; opacity:0.4;">
+                <div class="grid grid-cols-2" style="gap:8px;">
+                  <div class="cat-card"><div class="cat-bar" style="background:var(--status-warning-bar);"></div><div class="flex items-center gap-2"><svg width="20" height="20" viewBox="0 0 24 24" class="cat-ico" style="flex-shrink:0"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8" stroke="currentColor" stroke-width="2"/><path d="M13 8l4 4-4 4" stroke="currentColor" stroke-width="2" fill="none"/></svg><span class="cat-label">유도등</span></div><div class="cat-progress"><span class="nm">28/100</span><span class="pct">28%</span></div></div>
+                  <div class="cat-card"><div class="cat-bar" style="background:var(--status-warning-bar);"></div><div class="flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-5 h-5 cat-ico"></i><span class="cat-label">DIV</span></div><div class="cat-progress"><span class="nm">11/24</span><span class="pct">45%</span></div></div>
                 </div>
               </div>
-            </div>
 
-            <!-- 진행 계획 리스트 -->
-            <div class="flex flex-col" style="gap: 8px;">
+              <!-- dim overlay -->
+              <div class="modal-dim">
+                <div class="bottom-sheet" style="max-height: 92%;">
 
-              <!-- 2차 -->
-              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-warning-bar);">
-                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
-                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">2차 시안</span>
-                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-warning-bg); color: var(--status-warning-bar); font-weight: 600;">DIV / 컴프레셔</span>
+                  <!-- 모달 헤더 -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-secondary); flex-shrink:0">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M8 12h8"/><path d="M13 8l4 4-4 4"/>
+                      </svg>
+                      <span class="text-title" style="color:var(--text-primary); font-weight:600">유도등 점검</span>
+                    </div>
+                    <button style="color:var(--text-secondary); padding: 4px;">
+                      <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+
+                  <!-- CP 휠피커 -->
+                  <div>
+                    <div class="text-label" style="color:var(--text-secondary); margin-bottom: 6px;">측정점 선택</div>
+                    <div class="wheel-wrap">
+                      <div class="wheel-item">EL-RES-1F-11</div>
+                      <div class="wheel-item center">EL-RES-1F-12</div>
+                      <div class="wheel-item">EL-RES-1F-13</div>
+                      <div class="wheel-overlay"></div>
+                    </div>
+                    <div class="text-caption" style="color:var(--text-tertiary); margin-top: 6px;">연구동 1층 · 동쪽 복도 · 출구 표시</div>
+                  </div>
+
+                  <!-- 결과 버튼 3종 -->
+                  <div>
+                    <div class="text-label" style="color:var(--text-secondary); margin-bottom: 6px;">점검 결과</div>
+                    <div class="flex" style="gap: 8px;">
+                      <button class="result-btn normal active">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        정상
+                      </button>
+                      <button class="result-btn caution">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                        주의
+                      </button>
+                      <button class="result-btn bad">
+                        <i data-lucide="x-circle" class="w-4 h-4"></i>
+                        불량
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 사진 + 메모 -->
+                  <div class="flex" style="gap: 8px;">
+                    <button style="flex-shrink:0; width: 84px; height: 84px; border-radius: var(--radius-sm); border: 1px dashed var(--border-default); background: var(--surface-sunken); color: var(--text-secondary); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:12px; font-weight:500;">
+                      <i data-lucide="camera" class="w-6 h-6"></i>
+                      <span>사진 첨부</span>
+                    </button>
+                    <textarea rows="3" placeholder="특이사항을 입력하세요"
+                      style="flex:1; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 14px; resize:none; font-family:inherit; min-height: 84px;"></textarea>
+                  </div>
+
+                  <!-- 저장 / 취소 -->
+                  <div class="flex" style="gap: 8px;">
+                    <button class="cancel-btn">취소</button>
+                    <button class="cta-btn">저장</button>
+                  </div>
+
                 </div>
-                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">doubleCycle 페어 — 1주차 + 2주차 동시 입력 패턴. CP-DIV-X-Y ↔ CP-COMP-X-Y 1:1 매핑</div>
               </div>
-
-              <!-- 3차 -->
-              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-info-bar);">
-                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
-                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">3차 시안</span>
-                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-info-bg); color: var(--status-info-bar); font-weight: 600;">배연창 / 전실제연댐퍼</span>
-                </div>
-                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">Zone(연구동/사무동/지하) + 층 + 위치 3단계 선택. 연구동/사무동 라인 분기</div>
-              </div>
-
-              <!-- 4차 -->
-              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-info-bar);">
-                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
-                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">4차 시안</span>
-                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-info-bg); color: var(--status-info-bar); font-weight: 600;">CCTV / 특별피난계단</span>
-                </div>
-                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">일괄 입력 모달 — CCTV 13대 일괄 / 특별피난계단 층별 일괄</div>
-              </div>
-
-              <!-- 5차 -->
-              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--status-fire-bar);">
-                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
-                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">5차 시안</span>
-                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--status-fire-bg); color: var(--status-fire-bar); font-weight: 600;">증상 피커 5종</span>
-                </div>
-                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">유도등 · 소화기 · 소화전 · 방화셔터 · 전실제연댐퍼 — 증상 → 자동 조치/자재 매핑 패턴</div>
-              </div>
-
-              <!-- 6차 -->
-              <div style="padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-raised); border: 1px solid var(--border-default); border-left: 3px solid var(--text-tertiary);">
-                <div class="flex items-center justify-between" style="margin-bottom: 4px;">
-                  <span class="text-label" style="color: var(--text-primary); font-weight: 700;">6차 시안</span>
-                  <span class="text-caption" style="padding: 2px 8px; border-radius: 99px; background: var(--surface-sunken); color: var(--text-secondary); font-weight: 600;">기타 모달</span>
-                </div>
-                <div class="text-caption" style="color: var(--text-secondary); line-height: 1.55;">주차장비 · 소방용전원공급반 · 청정소화약제 · 완강기 · 소방펌프 · 화재수신반(별도 페이지)</div>
-              </div>
-
             </div>
 
           </div>
@@ -1888,7 +2186,7 @@
               <span class="text-caption" style="color:var(--text-tertiary)">2 variant</span>
             </div>
 
-            <!-- variant 1: 가완료 (completed) — 기본 추천 -->
+            <!-- variant 1: 가완료 (completed) -->
             <div style="position:relative; height: 320px; background: var(--surface-page); border-radius: var(--radius-md);">
               <!-- 가짜 부모 박스 -->
               <div style="position:absolute; inset:0; padding: 16px; background: var(--surface-sunken); border-radius: var(--radius-md); opacity:0.5;">
@@ -1897,7 +2195,7 @@
 
               <!-- partial overlay (실제 컴포넌트 패턴) -->
               <div class="partial-overlay">
-                <div>
+                <div style="font-size: 32px;">
                   <i data-lucide="check-circle-2" class="w-8 h-8" style="color: var(--status-safe);"></i>
                 </div>
                 <div class="text-label" style="color:var(--text-primary); font-weight:700; text-align:center; line-height:1.55; white-space:pre-line;">2026-05-09 14:23에 박보융에 의해
@@ -1920,7 +2218,7 @@
               </div>
 
               <div class="partial-overlay">
-                <div>
+                <div style="font-size: 32px;">
                   <i data-lucide="flame" class="w-8 h-8" style="color: var(--status-fire);"></i>
                 </div>
                 <div class="text-label" style="color:var(--text-primary); font-weight:700; text-align:center; line-height:1.55; white-space:pre-line;">2026-05-09 14:48에 박보융에 의해
@@ -1965,7 +2263,7 @@
               </div>
 
               <div class="partial-overlay">
-                <div>
+                <div style="font-size: 32px;">
                   <i data-lucide="shield-alert" class="w-8 h-8" style="color: var(--status-warning);"></i>
                 </div>
                 <div class="text-label" style="color:var(--text-primary); font-weight:700; text-align:center; line-height:1.55; white-space:pre-line;">접근 불가 개소입니다.
@@ -1998,11 +2296,8 @@
          ───────────────────────────────────────────── -->
     <footer class="max-w-[1400px] mx-auto pt-6 pb-2 text-center">
       <p class="text-xs text-gray-500 leading-relaxed">
-        본 시안 (Rev 2) 은 docs/redesign-context/02-inspection/sketch/inspection-sketch-main.html ·
-        InspectionPage.tsx line 4330-4540 (메인 페이지 렌더 구조) + line 38-55 (CATEGORY_GROUPS 16그룹) 1:1 매핑 ·
-        v0.1.1 룰 기반 1차 시안 (메인 화면).<br>
-        다음 단계: (a) 특수 모달 시안 — DivModal / StairwellModal / BaeyeonModal / CctvModal / PowerPanelModal /
-        ParkingGateModal / DamperModal / 증상 피커 5종 (유도등/소화기/소화전/방화셔터/전실제연댐퍼) 별도 quick task,
+        본 시안은 docs/redesign-context/02-inspection/sketch/inspection-sketch-main.html · v0.1.1 룰 기반 1차 시안 (메인 화면).<br>
+        다음 단계: (a) 특수 모달 5종 2차 시안(Stairwell / Baeyeon / CCTV / 증상 피커) 별도 quick task,
         또는 (b) 사용자 승인 후 InspectionPage.tsx TSX 변환 quick task.
       </p>
     </footer>

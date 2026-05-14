@@ -132,3 +132,17 @@ export function FireExtinguisherCustom(props: IconProps) {
     </StrokeSvg>
   );
 }
+
+/** 인승용 엘리베이터 — 본체 프레임 + 중앙 분할선 + 위/아래 방향 화살표 (열림/닫힘 메타포). sketch elevator-sketch.html 라인 595 1:1 추출. strokeWidth 기본 1.8 권장. */
+export function ElevatorIcon({ strokeWidth = 1.8, ...props }: IconProps) {
+  return (
+    <StrokeSvg strokeWidth={strokeWidth} {...props}>
+      <rect x={4} y={3} width={16} height={18} rx={1.5} />
+      <line x1={12} y1={3} x2={12} y2={21} />
+      <polyline points="6.5 9 8 7 9.5 9" />
+      <polyline points="14.5 15 16 17 17.5 15" />
+      <line x1={8} y1={7} x2={8} y2={11} />
+      <line x1={16} y1={13} x2={16} y2={17} />
+    </StrokeSvg>
+  );
+}

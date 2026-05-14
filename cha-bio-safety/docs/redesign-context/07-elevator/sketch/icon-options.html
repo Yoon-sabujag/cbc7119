@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>07-elevator 아이콘 옵션 — 인승용 / 에스컬레이터</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+
+      --status-safe-bar: #22c55e;
+    }
+    body {
+      font-family: 'Pretendard Variable', system-ui, sans-serif;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0;
+      padding: 32px 24px 64px;
+    }
+    .text-primary { color: var(--text-primary); }
+    .text-secondary { color: var(--text-secondary); }
+    .text-tertiary { color: var(--text-tertiary); }
+    .bg-raised { background: var(--surface-raised); }
+    .bg-sunken { background: var(--surface-sunken); }
+    .border-default { border-color: var(--border-default); }
+    .border-strong { border-color: var(--border-strong); }
+  </style>
+</head>
+<body>
+  <div class="max-w-[1200px] mx-auto">
+
+    <header class="mb-10">
+      <h1 class="text-[28px] font-semibold leading-tight mb-2">07-elevator 아이콘 옵션</h1>
+      <p class="text-secondary">인승용 + 에스컬레이터 — Lucide 조합 3가지 (D·E·F) + 커스텀 SVG (Custom). 결정 후 알려주세요.</p>
+    </header>
+
+    <!-- 4개 옵션 그리드 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <!-- ─── 옵션 D — 층/계단 ─── -->
+      <section class="bg-raised border border-default rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-[22px] font-semibold">옵션 D</span>
+          <span class="text-secondary">— 층/계단</span>
+        </div>
+        <p class="text-tertiary text-sm mb-6">Lucide <code class="text-secondary">layers-2</code> + Lucide <code class="text-secondary">stairs</code>(없음 시 대체로 <code class="text-secondary">git-fork</code>)</p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <i data-lucide="layers-2" class="w-12 h-12 text-secondary"></i>
+            <div class="text-primary font-medium">인승용</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="layers-2" class="w-5 h-5 text-secondary"></i></div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <!-- Lucide 'stairs' 없으면 자체 SVG 로 표현 -->
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+              <polyline points="3 21 7 21 7 17 11 17 11 13 15 13 15 9 19 9 19 5 21 5"/>
+            </svg>
+            <div class="text-primary font-medium">에스컬레이터</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                  <polyline points="3 21 7 21 7 17 11 17 11 13 15 13 15 9 19 9 19 5 21 5"/>
+                </svg>
+              </div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── 옵션 E — 박스/슬로프 ─── -->
+      <section class="bg-raised border border-default rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-[22px] font-semibold">옵션 E</span>
+          <span class="text-secondary">— 박스/슬로프</span>
+        </div>
+        <p class="text-tertiary text-sm mb-6">Lucide <code class="text-secondary">container</code> + Lucide <code class="text-secondary">trending-up</code></p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <i data-lucide="container" class="w-12 h-12 text-secondary"></i>
+            <div class="text-primary font-medium">인승용</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="container" class="w-5 h-5 text-secondary"></i></div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <i data-lucide="trending-up" class="w-12 h-12 text-secondary"></i>
+            <div class="text-primary font-medium">에스컬레이터</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-secondary"></i></div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── 옵션 F — 박스/대각선 ─── -->
+      <section class="bg-raised border border-default rounded-2xl p-6">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-[22px] font-semibold">옵션 F</span>
+          <span class="text-secondary">— 박스/대각선</span>
+        </div>
+        <p class="text-tertiary text-sm mb-6">Lucide <code class="text-secondary">box</code> + Lucide <code class="text-secondary">move-diagonal</code></p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <i data-lucide="box" class="w-12 h-12 text-secondary"></i>
+            <div class="text-primary font-medium">인승용</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="box" class="w-5 h-5 text-secondary"></i></div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <i data-lucide="move-diagonal" class="w-12 h-12 text-secondary"></i>
+            <div class="text-primary font-medium">에스컬레이터</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="move-diagonal" class="w-5 h-5 text-secondary"></i></div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── 옵션 Custom — 커스텀 SVG (추천) ─── -->
+      <section class="bg-raised border-2 rounded-2xl p-6" style="border-color: var(--accent);">
+        <div class="flex items-center gap-3 mb-1">
+          <span class="text-[22px] font-semibold">옵션 Custom</span>
+          <span class="text-secondary">— 커스텀 SVG (추천)</span>
+          <span class="ml-auto text-xs font-semibold px-3 py-1 rounded-full" style="background: rgba(59,130,246,0.15); color: var(--accent);">신규 SVG 2개</span>
+        </div>
+        <p class="text-tertiary text-sm mb-6">실제 표지판 이미지와 비슷한 모양. 프로젝트 기존 6개 커스텀 SVG (StairsIcon 등) 패턴과 동일하게 <code class="text-secondary">src/components/ui/icons.tsx</code> 에 추가.</p>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <!-- ElevatorIcon: 사각 박스 + 가운데 세로 분할선 + 좌우 ↑↓ 화살표 -->
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/>
+              <polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/>
+              <line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <div class="text-primary font-medium">인승용</div>
+            <div class="text-tertiary text-xs">ElevatorIcon</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                  <line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/>
+                  <polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/>
+                  <line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+          <div class="bg-sunken rounded-xl p-5 flex flex-col items-center gap-3">
+            <!-- EscalatorIcon: 대각선 계단 + 위쪽 화살표 + 작은 사람 실루엣 -->
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+              <!-- 계단 라인 (지그재그) -->
+              <polyline points="3 20 7 20 7 16.5 11 16.5 11 13 15 13 15 9.5 19 9.5 19 6"/>
+              <!-- 위쪽 화살표 -->
+              <polyline points="16.5 6 19 3.5 21.5 6"/>
+              <!-- 작은 사람 머리 (상단 우측) -->
+              <circle cx="19" cy="11.5" r="1"/>
+            </svg>
+            <div class="text-primary font-medium">에스컬레이터</div>
+            <div class="text-tertiary text-xs">EscalatorIcon</div>
+            <div class="flex items-center gap-2 mt-2">
+              <div class="bg-raised w-10 h-10 rounded-md flex items-center justify-center">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                  <polyline points="3 20 7 20 7 16.5 11 16.5 11 13 15 13 15 9.5 19 9.5 19 6"/>
+                  <polyline points="16.5 6 19 3.5 21.5 6"/>
+                  <circle cx="19" cy="11.5" r="1"/>
+                </svg>
+              </div>
+              <div class="text-tertiary text-sm">실제 크기</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- 시각적 컨텍스트: 카드 안에 들어갔을 때 모습 -->
+    <section class="mt-10">
+      <h2 class="text-[22px] font-semibold mb-4">실제 카드 안에 들어간 모습 비교</h2>
+      <p class="text-secondary mb-5">호기 카드 안 좌측 슬롯(40×40px 박스) 에 들어갔을 때 어떻게 보이는지 — 옵션별 인승용/에스컬레이터 1대씩.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- 옵션 D 카드 샘플 -->
+        <div class="bg-raised border border-default rounded-xl p-4">
+          <div class="text-tertiary text-sm mb-3 uppercase tracking-wide">옵션 D</div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="layers-2" class="w-5 h-5 text-secondary"></i></div>
+            <div class="flex-1"><div class="font-semibold">1호기 <span class="text-tertiary text-sm font-normal ml-1">투명·B5↔연2F</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-08</div></div>
+          </div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3 mt-2" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-secondary"><polyline points="3 21 7 21 7 17 11 17 11 13 15 13 15 9 19 9 19 5 21 5"/></svg>
+            </div>
+            <div class="flex-1"><div class="font-semibold">5호기 <span class="text-tertiary text-sm font-normal ml-1">3층↔2층 하행</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-05</div></div>
+          </div>
+        </div>
+
+        <!-- 옵션 E 카드 샘플 -->
+        <div class="bg-raised border border-default rounded-xl p-4">
+          <div class="text-tertiary text-sm mb-3 uppercase tracking-wide">옵션 E</div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="container" class="w-5 h-5 text-secondary"></i></div>
+            <div class="flex-1"><div class="font-semibold">1호기 <span class="text-tertiary text-sm font-normal ml-1">투명·B5↔연2F</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-08</div></div>
+          </div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3 mt-2" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-secondary"></i></div>
+            <div class="flex-1"><div class="font-semibold">5호기 <span class="text-tertiary text-sm font-normal ml-1">3층↔2층 하행</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-05</div></div>
+          </div>
+        </div>
+
+        <!-- 옵션 F 카드 샘플 -->
+        <div class="bg-raised border border-default rounded-xl p-4">
+          <div class="text-tertiary text-sm mb-3 uppercase tracking-wide">옵션 F</div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="box" class="w-5 h-5 text-secondary"></i></div>
+            <div class="flex-1"><div class="font-semibold">1호기 <span class="text-tertiary text-sm font-normal ml-1">투명·B5↔연2F</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-08</div></div>
+          </div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3 mt-2" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center"><i data-lucide="move-diagonal" class="w-5 h-5 text-secondary"></i></div>
+            <div class="flex-1"><div class="font-semibold">5호기 <span class="text-tertiary text-sm font-normal ml-1">3층↔2층 하행</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-05</div></div>
+          </div>
+        </div>
+
+        <!-- 옵션 Custom 카드 샘플 -->
+        <div class="bg-raised border-2 rounded-xl p-4" style="border-color: var(--accent);">
+          <div class="text-tertiary text-sm mb-3 uppercase tracking-wide">옵션 Custom (추천)</div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                <line x1="12" y1="3" x2="12" y2="21"/>
+                <polyline points="6.5 9 8 7 9.5 9"/>
+                <polyline points="14.5 15 16 17 17.5 15"/>
+                <line x1="8" y1="7" x2="8" y2="11"/>
+                <line x1="16" y1="13" x2="16" y2="17"/>
+              </svg>
+            </div>
+            <div class="flex-1"><div class="font-semibold">1호기 <span class="text-tertiary text-sm font-normal ml-1">투명·B5↔연2F</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-08</div></div>
+          </div>
+          <div class="flex items-center gap-3 py-2 border-l-[3px] pl-3 mt-2" style="border-color: var(--status-safe-bar);">
+            <div class="bg-sunken w-10 h-10 rounded-md flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-secondary">
+                <polyline points="3 20 7 20 7 16.5 11 16.5 11 13 15 13 15 9.5 19 9.5 19 6"/>
+                <polyline points="16.5 6 19 3.5 21.5 6"/>
+                <circle cx="19" cy="11.5" r="1"/>
+              </svg>
+            </div>
+            <div class="flex-1"><div class="font-semibold">5호기 <span class="text-tertiary text-sm font-normal ml-1">3층↔2층 하행</span></div><div class="text-tertiary text-sm">최근 점검: 2026-05-05</div></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <footer class="mt-12 text-tertiary text-sm border-t border-default pt-6">
+      <p>마음에 드는 옵션 알려주세요. 또는 "두 가지 섞어서 D 인승용 + Custom 에스컬레이터" 같은 조합도 가능합니다.</p>
+      <p class="mt-2">현재 시안에 적용된 건 별개 옵션 (Building2 / MoveDownRight) 이고, 이 페이지는 결정 전 비교용입니다.</p>
+    </footer>
+  </div>
+
+  <script>
+    if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
+  </script>
+</body>
+</html>
