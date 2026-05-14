@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-15 - Completed quick task 260515-0l7: redesign/02-inspection TSX Wave 3 — DIV/컴프 모달 (DivUnderPicker + DivTrendSubview + DivModal + CompressorModal) v0.1.1 토큰 + Tailwind 변환, doubleCycle/짝꿍/detectDivTrend 100% 보존
+Last activity: 2026-05-15 - Completed quick task 260515-1p0: redesign/02-inspection TSX Wave 5 — StairwellModal + CctvModal v0.1.1 토큰 + Tailwind 변환, 260505-cib photoKey 1건 대표 부여 룰 보존
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -183,6 +183,7 @@ None yet.
 | 260514-sp7 | redesign/02-inspection TSX Wave 2 — 증상 피커 5종 (유도등/소화기/소화전/방화셔터/전실제연댐퍼) v0.1.1 토큰 + Tailwind 변환 (InspectionPage.tsx +80/-57). WAVE2-PRESERVE-START/END 마커 제거(Wave 2 완료 시그널). flex flex-wrap gap-1.5 + button flex-1 basis-0 + inactive(border-default/surface-raised/text-secondary) / active(accent border + tinted bg + text-accent). fontSize 10/11 → text-label(13px) 노안 친화. 비즈니스 로직 100% 보존(5 detection 분기 / 5 setter / 5 옵션 라벨 / '직접 입력' memo 분기). tsc 0 / build 통과. | 2026-05-14 | 3aad9bd | [260514-sp7-redesign-02-inspection-tsx-wave-2-5](./quick/260514-sp7-redesign-02-inspection-tsx-wave-2-5/) |
 | 260514-tbj | redesign/02-inspection TSX Wave 4 — BaeyeonModal(+81/-54) + DamperModal(+228/-134) v0.1.1 토큰 + Tailwind 변환 + **댐퍼 증상 피커 신설** (자동화 5종 카테고리 룰 완성 — 유도등/소화기/소화전/방화셔터/전실제연댐퍼 모두 활성) + InspectionModal dead code 4곳 청소. 후속 fix: stair 모드 피커 추가 / 연결송수관 피커 제거(별개 설비). InspectionPage.tsx 5582→5703줄(+309/-188). tsc/build 통과. cbc7119 디자인 리포 한정. | 2026-05-14 | 6232e65 | [260514-tbj-redesign-02-inspection-tsx-wave-4](./quick/260514-tbj-redesign-02-inspection-tsx-wave-4/) |
 | 260515-0l7 | redesign/02-inspection TSX Wave 3 — DIV/컴프 모달 (DivUnderPicker + DivTrendSubview + DivModal + CompressorModal) v0.1.1 토큰 + Tailwind 변환, InspectionPage.tsx 5716→5872줄 (+333/-177, 변환 영역 ~1246줄). doubleCycle 1주차/2주차 입력 / DIV·컴프 짝꿍 매핑 (DIV_PT_CP↔COMP_PT_CP) / detectDivTrend p1+p2 호출 / autoReason 자동 판단 / mode='from-div' overlay 9분기 / showTrend overlay / 사진 흐름(260508-ibx) / fetch API / KST timestamp 한 줄도 변경 없음. **증상 피커 미도입** (DIV/컴프는 자동화 5종 카테고리 아님 — 메모리 룰). dead code 청소: resultColor/resultLabel 헬퍼 §7.1 inline 분기로 대체. lucide TrendingUp/X/ChevronRight/Flame 추가. tsc 0 / build 통과. cbc7119 디자인 리포 한정. | 2026-05-15 | 5e95414 | [260515-0l7-redesign-02-inspection-tsx-wave-3-div](./quick/260515-0l7-redesign-02-inspection-tsx-wave-3-div/) |
+| 260515-1p0 | redesign/02-inspection TSX Wave 5 — StairwellModal (특별피난계단, 5 계단실 일괄 입력 좌/우 2열) + CctvModal (DVR 13대 일괄 좌7/우6) v0.1.1 토큰 + Tailwind 변환. InspectionPage.tsx 5872→5937줄 (+168/-103). **260505-cib photoKey 1건 대표 부여 룰** (caution/bad 우선 → 첫 cp/층) handleSave 한 줄도 변경 없음 — 전층/전 DVR 중복 저장 버그 재발 방지. 증상 피커 미도입 (자동화 5종 아님). lucide StairsIcon/Video/Server 통일. tsc 0 / build 통과. cbc7119 디자인 리포 한정. | 2026-05-15 | 809964f | [260515-1p0-redesign-02-inspection-tsx-wave-5-cctv](./quick/260515-1p0-redesign-02-inspection-tsx-wave-5-cctv/) |
 
 ### Blockers/Concerns
 
