@@ -3,6 +3,7 @@
 // 부모 박스는 반드시 position:relative 여야 한다.
 // 자동 스킵 대신 "접근 불가 개소입니다" 안내 → 확인 시 다음 미점검 개소로 자동 이동.
 // 사용자는 확인 버튼 외에도 스와이프 / 이전·이후 화살표로도 스킵 가능 (피커 자체는 상위 레이어).
+// 아이콘: lucide ShieldAlert + status-warning 톤 (의미 분리 — 조치대기=danger).
 
 import { ShieldAlert } from 'lucide-react'
 
@@ -12,7 +13,7 @@ export interface AccessBlockedPopupProps {
 
 export function AccessBlockedPopup({ onConfirm }: AccessBlockedPopupProps) {
   return (
-    <div style={{
+    <div role="alertdialog" aria-label="접근 불가 안내" style={{
       position:'absolute', inset:0, zIndex:10,
       background:'var(--surface-raised)', border:'1px solid var(--border-default)', borderRadius:12,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',

@@ -45,7 +45,7 @@ export function InspectionRevisitPopup({
     : `${when}에 ${who}에 의해\n조치 대기중인 개소입니다.\n조치 내용을 입력하시겠습니까?`
 
   return (
-    <div style={{
+    <div role="alertdialog" aria-label={variant === 'completed' ? '이미 점검된 개소' : '조치 대기 중인 개소'} style={{
       position:'absolute', inset:0, zIndex:10,
       background:'var(--surface-raised)', border:'1px solid var(--border-default)', borderRadius:12,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
