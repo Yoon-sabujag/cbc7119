@@ -53,7 +53,7 @@ export function InspectionRevisitPopup({
     }}>
       {variant === 'completed'
         ? <CheckCircle2 size={32} color="var(--status-safe)" />
-        : <Wrench size={32} color="var(--status-warning)" />}
+        : <Wrench size={32} color="var(--status-danger)" />}
       <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
         {message}
       </div>
