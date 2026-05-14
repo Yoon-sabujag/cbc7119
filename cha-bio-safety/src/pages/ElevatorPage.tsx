@@ -573,29 +573,45 @@ export default function ElevatorPage() {
     const renderEvCard = (ev: Elevator) => {
       const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
       const isSel = selectedDesktopEv?.id === ev.id
+      const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+      const barClass =
+        ev.status === 'fault'          ? 'before:bg-fire-bar'      :
+        ev.status === 'maintenance'    ? 'before:bg-warning-bar'   :
+        ev.status === 'out_of_service' ? 'before:bg-text-tertiary' :
+                                          'before:bg-safe-bar'
+      const borderClass = isSel
+        ? 'border-accent'
+        : ev.status === 'fault' ? 'border-fire-bar/40' : 'border-border-default'
+      const dimmedClass = ev.status === 'out_of_service' ? 'opacity-60' : ''
+      const badgeClass =
+        ev.status === 'fault'          ? 'text-fire bg-fire-bg'              :
+        ev.status === 'maintenance'    ? 'text-warning bg-warning-bg'        :
+        ev.status === 'out_of_service' ? 'text-text-tertiary bg-surface-sunken' :
+                                          'text-safe bg-safe-bg'
+      const bgClass = isSel ? 'bg-accent/10' : 'bg-surface-raised'
       return (
         <div
           key={ev.id}
           onClick={() => setDetailEv(ev)}
-          style={{
-            background: isSel ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-            border: '2px solid ' + (isSel ? 'var(--acl)' : (ev.status === 'fault' ? 'rgba(239,68,68,.3)' : 'var(--bd)')),
-            borderRadius: 10, padding: '10px 6px', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            width: '100%', height: 130, boxSizing: 'border-box', overflow: 'hidden',
-            transition: 'background-color .12s',
-          }}
+          className={
+            'relative w-full h-32 box-border overflow-hidden rounded-md border-2 cursor-pointer ' +
+            'flex flex-col items-center gap-1 px-1.5 py-2.5 transition-colors duration-150 ' +
+            "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] " +
+            bgClass + ' ' + borderClass + ' ' + barClass + ' ' + dimmedClass
+          }
         >
-          <div style={{ fontSize: 22, lineHeight: 1 }}>{TYPE_ICON[ev.type]}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{ev.number}호기</div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.25, wordBreak: 'keep-all', maxWidth: '100%' }}>
+          <TypeIcon size={22} className="text-text-secondary" />
+          <div className="text-label font-bold text-text-primary">{ev.number}호기</div>
+          <div className="text-caption text-text-tertiary text-center leading-snug break-keep max-w-full">
             {ev.location}
             {ev.type === 'escalator' && ev.public_number != null && (
-              <div style={{ marginTop: 2, fontSize: 9, color: 'var(--t3)' }}>공단 {ev.public_number}호기</div>
+              <div className="text-caption text-text-tertiary mt-0.5">공단 {ev.public_number}호기</div>
             )}
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 6px', borderRadius: 12, marginTop: 'auto' }}>{st.label}</span>
-          {(ev.active_faults ?? 0) > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--danger)' }}>미해결 {ev.active_faults}</span>}
+          <span className={'mt-auto text-caption font-bold rounded-pill px-1.5 py-0.5 ' + badgeClass}>{st.label}</span>
+          {(ev.active_faults ?? 0) > 0 && (
+            <span className="text-caption font-bold text-danger">미해결 {ev.active_faults}</span>
+          )}
         </div>
       )
     }
@@ -609,34 +625,46 @@ export default function ElevatorPage() {
     ]
 
     return (
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
-        <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>승강기 관리</span>
+        <header className="flex-shrink-0 h-14 bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
+          <span className="flex-1 text-body font-bold text-text-primary">승강기 관리</span>
           {unresolvedCount > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', background: 'rgba(239,68,68,.13)', border: '1px solid rgba(239,68,68,.25)', padding: '3px 10px', borderRadius: 20 }}>
+            <span className="inline-flex items-center gap-1 text-caption font-bold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2.5 py-1">
+              <AlertTriangle size={12} />
               미해결 고장 {unresolvedCount}건
             </span>
           )}
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🚨 고장 접수
+          <button
+            onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)' }}
+          >
+            <AlertTriangle size={14} />
+            고장 접수
           </button>
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🔧 수리 기록
+          <button
+            onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            style={{ background: 'linear-gradient(135deg,#854d0e,#eab308)' }}
+          >
+            <Wrench size={14} />
+            수리 기록
           </button>
         </header>
 
         {/* 본문: 좌 50% / 우 50% */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 flex overflow-hidden">
 
           {/* ── 좌측: 승강기 배치도 ── */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>🛗 엘리베이터</div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+          <div className="flex-1 min-w-0 border-r border-border-default overflow-y-auto px-6 py-5">
+            <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary tracking-wider mb-2.5">
+              <ElevatorIcon size={14} className="text-text-tertiary" />
+              <span>엘리베이터</span>
+            </div>
+            <div className="flex gap-2.5 mb-6">
               {evGroups.map((group, gi) => (
-                <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 0', minWidth: 0 }}>
+                <div key={gi} className="flex-1 min-w-0 flex flex-col gap-2">
                   {group.map(ev => renderEvCard(ev))}
                 </div>
               ))}
@@ -644,17 +672,20 @@ export default function ElevatorPage() {
 
             {ess.length > 0 && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>↕️ 에스컬레이터</div>
+                <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary tracking-wider mb-2.5">
+                  <MoveDiagonal size={14} className="text-text-tertiary" />
+                  <span>에스컬레이터</span>
+                </div>
                 {/* E/V와 동일한 4컬럼 그리드 — 카드 너비 통일 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, rowGap: 8 }}>
+                <div className="grid grid-cols-4 gap-2.5">
                   {/* Row 1: ES 3,4 (col 1-2) | ES 5,6 (col 3-4) */}
-                  {esRow1Left[0]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[0])}</div>}
-                  {esRow1Left[1]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[1])}</div>}
-                  {esRow1Right[0] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[0])}</div>}
-                  {esRow1Right[1] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[1])}</div>}
+                  {esRow1Left[0]  && <div className="min-w-0">{renderEvCard(esRow1Left[0])}</div>}
+                  {esRow1Left[1]  && <div className="min-w-0">{renderEvCard(esRow1Left[1])}</div>}
+                  {esRow1Right[0] && <div className="min-w-0">{renderEvCard(esRow1Right[0])}</div>}
+                  {esRow1Right[1] && <div className="min-w-0">{renderEvCard(esRow1Right[1])}</div>}
                   {/* Row 2: ES 1,2 (col 1-2) — 빈 col 3,4 */}
-                  {esRow2[0] && <div style={{ gridColumn: '1', minWidth: 0 }}>{renderEvCard(esRow2[0])}</div>}
-                  {esRow2[1] && <div style={{ gridColumn: '2', minWidth: 0 }}>{renderEvCard(esRow2[1])}</div>}
+                  {esRow2[0] && <div className="col-start-1 min-w-0">{renderEvCard(esRow2[0])}</div>}
+                  {esRow2[1] && <div className="col-start-2 min-w-0">{renderEvCard(esRow2[1])}</div>}
                 </div>
               </>
             )}
