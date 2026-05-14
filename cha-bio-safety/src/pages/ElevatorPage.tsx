@@ -13,6 +13,8 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, AlertTriangle, Wrench } from 'lucide-react'
+import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -191,6 +193,13 @@ const CHECK_ITEMS_ES = [
 // ── 상수 ──────────────────────────────────────────────────
 const TYPE_ICON:  Record<string,string> = { passenger:'🛗', cargo:'📦', dumbwaiter:'🔲', escalator:'↕️' }
 const TYPE_LABEL: Record<string,string> = { passenger:'인승용', cargo:'화물용', dumbwaiter:'덤웨이터', escalator:'에스컬레이터' }
+// Wave 1 신설 — list 탭 카드 + 그룹 라벨용 컴포넌트 매퍼 (TYPE_ICON 이모지 객체와 병행 사용. 이모지는 다른 탭/모달에서 계속 사용됨)
+const TYPE_ICON_COMPONENT: Record<string, React.ComponentType<{ size?: number | string; className?: string; strokeWidth?: number | string }>> = {
+  passenger:  ElevatorIcon,
+  cargo:      Package,
+  dumbwaiter: UtensilsCrossed,
+  escalator:  MoveDiagonal,
+}
 const STATUS_STYLE: Record<string,{ label:string; color:string; bg:string }> = {
   normal:         { label:'정상',    color:'var(--safe)',   bg:'rgba(34,197,94,.13)'   },
   fault:          { label:'고장',    color:'var(--danger)', bg:'rgba(239,68,68,.13)'   },
@@ -564,29 +573,45 @@ export default function ElevatorPage() {
     const renderEvCard = (ev: Elevator) => {
       const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
       const isSel = selectedDesktopEv?.id === ev.id
+      const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+      const barClass =
+        ev.status === 'fault'          ? 'before:bg-fire-bar'      :
+        ev.status === 'maintenance'    ? 'before:bg-warning-bar'   :
+        ev.status === 'out_of_service' ? 'before:bg-text-tertiary' :
+                                          'before:bg-safe-bar'
+      const borderClass = isSel
+        ? 'border-accent'
+        : ev.status === 'fault' ? 'border-fire-bar/40' : 'border-border-default'
+      const dimmedClass = ev.status === 'out_of_service' ? 'opacity-60' : ''
+      const badgeClass =
+        ev.status === 'fault'          ? 'text-fire bg-fire-bg'              :
+        ev.status === 'maintenance'    ? 'text-warning bg-warning-bg'        :
+        ev.status === 'out_of_service' ? 'text-text-tertiary bg-surface-sunken' :
+                                          'text-safe bg-safe-bg'
+      const bgClass = isSel ? 'bg-accent/10' : 'bg-surface-raised'
       return (
         <div
           key={ev.id}
           onClick={() => setDetailEv(ev)}
-          style={{
-            background: isSel ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-            border: '2px solid ' + (isSel ? 'var(--acl)' : (ev.status === 'fault' ? 'rgba(239,68,68,.3)' : 'var(--bd)')),
-            borderRadius: 10, padding: '10px 6px', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            width: '100%', height: 130, boxSizing: 'border-box', overflow: 'hidden',
-            transition: 'background-color .12s',
-          }}
+          className={
+            'relative w-full h-32 box-border overflow-hidden rounded-md border-2 cursor-pointer ' +
+            'flex flex-col items-center gap-1 px-1.5 py-2.5 transition-colors duration-150 ' +
+            "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] " +
+            bgClass + ' ' + borderClass + ' ' + barClass + ' ' + dimmedClass
+          }
         >
-          <div style={{ fontSize: 22, lineHeight: 1 }}>{TYPE_ICON[ev.type]}</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{ev.number}호기</div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', lineHeight: 1.25, wordBreak: 'keep-all', maxWidth: '100%' }}>
+          <TypeIcon size={22} className="text-text-secondary" />
+          <div className="text-label font-bold text-text-primary">{ev.number}호기</div>
+          <div className="text-caption text-text-tertiary text-center leading-snug break-keep max-w-full">
             {ev.location}
             {ev.type === 'escalator' && ev.public_number != null && (
-              <div style={{ marginTop: 2, fontSize: 9, color: 'var(--t3)' }}>공단 {ev.public_number}호기</div>
+              <div className="text-caption text-text-tertiary mt-0.5">공단 {ev.public_number}호기</div>
             )}
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 6px', borderRadius: 12, marginTop: 'auto' }}>{st.label}</span>
-          {(ev.active_faults ?? 0) > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--danger)' }}>미해결 {ev.active_faults}</span>}
+          <span className={'mt-auto text-caption font-bold rounded-pill px-1.5 py-0.5 ' + badgeClass}>{st.label}</span>
+          {(ev.active_faults ?? 0) > 0 && (
+            <span className="text-caption font-bold text-danger">미해결 {ev.active_faults}</span>
+          )}
         </div>
       )
     }
@@ -600,34 +625,46 @@ export default function ElevatorPage() {
     ]
 
     return (
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
-        <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>승강기 관리</span>
+        <header className="flex-shrink-0 h-14 bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
+          <span className="flex-1 text-body font-bold text-text-primary">승강기 관리</span>
           {unresolvedCount > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', background: 'rgba(239,68,68,.13)', border: '1px solid rgba(239,68,68,.25)', padding: '3px 10px', borderRadius: 20 }}>
+            <span className="inline-flex items-center gap-1 text-caption font-bold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2.5 py-1">
+              <AlertTriangle size={12} />
               미해결 고장 {unresolvedCount}건
             </span>
           )}
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#991b1b,#ef4444)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🚨 고장 접수
+          <button
+            onClick={() => { setSelectedEv(selectedDesktopEv); setModal('fault_new') }}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            style={{ background: 'linear-gradient(135deg,#991b1b,#ef4444)' }}
+          >
+            <AlertTriangle size={14} />
+            고장 접수
           </button>
-          <button onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
-            style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg,#854d0e,#eab308)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            🔧 수리 기록
+          <button
+            onClick={() => { setSelectedEv(selectedDesktopEv); setModal('repair_new') }}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-sm border-0 text-text-on-accent text-caption font-bold cursor-pointer"
+            style={{ background: 'linear-gradient(135deg,#854d0e,#eab308)' }}
+          >
+            <Wrench size={14} />
+            수리 기록
           </button>
         </header>
 
         {/* 본문: 좌 50% / 우 50% */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 flex overflow-hidden">
 
           {/* ── 좌측: 승강기 배치도 ── */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>🛗 엘리베이터</div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+          <div className="flex-1 min-w-0 border-r border-border-default overflow-y-auto px-6 py-5">
+            <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary tracking-wider mb-2.5">
+              <ElevatorIcon size={14} className="text-text-tertiary" />
+              <span>엘리베이터</span>
+            </div>
+            <div className="flex gap-2.5 mb-6">
               {evGroups.map((group, gi) => (
-                <div key={gi} style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: '1 1 0', minWidth: 0 }}>
+                <div key={gi} className="flex-1 min-w-0 flex flex-col gap-2">
                   {group.map(ev => renderEvCard(ev))}
                 </div>
               ))}
@@ -635,17 +672,20 @@ export default function ElevatorPage() {
 
             {ess.length > 0 && (
               <>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.06em', marginBottom: 10 }}>↕️ 에스컬레이터</div>
+                <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary tracking-wider mb-2.5">
+                  <MoveDiagonal size={14} className="text-text-tertiary" />
+                  <span>에스컬레이터</span>
+                </div>
                 {/* E/V와 동일한 4컬럼 그리드 — 카드 너비 통일 */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, rowGap: 8 }}>
+                <div className="grid grid-cols-4 gap-2.5">
                   {/* Row 1: ES 3,4 (col 1-2) | ES 5,6 (col 3-4) */}
-                  {esRow1Left[0]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[0])}</div>}
-                  {esRow1Left[1]  && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Left[1])}</div>}
-                  {esRow1Right[0] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[0])}</div>}
-                  {esRow1Right[1] && <div style={{ minWidth: 0 }}>{renderEvCard(esRow1Right[1])}</div>}
+                  {esRow1Left[0]  && <div className="min-w-0">{renderEvCard(esRow1Left[0])}</div>}
+                  {esRow1Left[1]  && <div className="min-w-0">{renderEvCard(esRow1Left[1])}</div>}
+                  {esRow1Right[0] && <div className="min-w-0">{renderEvCard(esRow1Right[0])}</div>}
+                  {esRow1Right[1] && <div className="min-w-0">{renderEvCard(esRow1Right[1])}</div>}
                   {/* Row 2: ES 1,2 (col 1-2) — 빈 col 3,4 */}
-                  {esRow2[0] && <div style={{ gridColumn: '1', minWidth: 0 }}>{renderEvCard(esRow2[0])}</div>}
-                  {esRow2[1] && <div style={{ gridColumn: '2', minWidth: 0 }}>{renderEvCard(esRow2[1])}</div>}
+                  {esRow2[0] && <div className="col-start-1 min-w-0">{renderEvCard(esRow2[0])}</div>}
+                  {esRow2[1] && <div className="col-start-2 min-w-0">{renderEvCard(esRow2[1])}</div>}
                 </div>
               </>
             )}
@@ -1010,30 +1050,40 @@ export default function ElevatorPage() {
 
   // ── 모바일 ─────────────────────────────────────────────────
   return (
-    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 8px' }}>
+      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default px-3 pt-2 pb-2">
         {unresolvedCount > 0 && (
-          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.13)', border:'1px solid rgba(239,68,68,.25)', padding:'2px 8px', borderRadius:20 }}>
+          <div className="flex justify-end mb-1.5">
+            <span className="inline-flex items-center gap-1 text-caption font-semibold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2 py-0.5">
+              <AlertTriangle size={12} />
               미해결 {unresolvedCount}건
             </span>
           </div>
         )}
-        <div style={{ display:'flex', gap:5, overflowX:'auto' }}>
+        <div className="flex gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding:'5px 12px', borderRadius:20, border:'none', cursor:'pointer',
-              fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0,
-              background: tab === t.key ? 'var(--acl)' : 'var(--bg3)',
-              color:      tab === t.key ? '#fff'       : 'var(--t3)',
-            }}>{t.label}</button>
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={
+                'px-3 py-1.5 rounded-pill text-caption font-semibold whitespace-nowrap flex-shrink-0 transition-colors border-0 cursor-pointer ' +
+                (tab === t.key
+                  ? 'bg-accent text-text-on-accent'
+                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-active hover:text-text-secondary')
+              }
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </header>
 
       {/* 본문 */}
-      <main style={{ flex:1, minHeight:0, overflowY:'auto', padding:'10px 12px', paddingBottom:'calc(80px + var(--sab, 0px))', display:'flex', flexDirection:'column', gap:8 }}>
+      <main
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 flex flex-col gap-2"
+        style={{ paddingBottom: 'calc(80px + var(--sab, 0px))' }}
+      >
 
         {/* ── 목록 ── */}
         {tab === 'list' && (
@@ -1041,54 +1091,72 @@ export default function ElevatorPage() {
             {(['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
               const group = elevators.filter(e => e.type === type)
               if (!group.length) return null
+              const TypeIcon = TYPE_ICON_COMPONENT[type]
               return (
                 <div key={type}>
-                  <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:5, marginTop:4 }}>
-                    {TYPE_ICON[type]} {TYPE_LABEL[type]} ({group.length}대)
+                  <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary uppercase tracking-wider mb-1.5 mt-1">
+                    <TypeIcon size={14} className="text-text-tertiary" />
+                    <span>{TYPE_LABEL[type]} ({group.length}대)</span>
                   </div>
                   {group.map(ev => {
                     const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
                     const ni = nextInspMap.get(ev.id)
+                    const barClass =
+                      ev.status === 'fault'          ? 'before:bg-fire-bar'      :
+                      ev.status === 'maintenance'    ? 'before:bg-warning-bar'   :
+                      ev.status === 'out_of_service' ? 'before:bg-text-tertiary' :
+                                                        'before:bg-safe-bar'
+                    const badgeClass =
+                      ev.status === 'fault'          ? 'text-fire bg-fire-bg'              :
+                      ev.status === 'maintenance'    ? 'text-warning bg-warning-bg'        :
+                      ev.status === 'out_of_service' ? 'text-text-tertiary bg-surface-sunken' :
+                                                        'text-safe bg-safe-bg'
+                    const borderClass = ev.status === 'fault' ? 'border-fire-bar/40' : 'border-border-default'
+                    const dimmedClass = ev.status === 'out_of_service' ? 'opacity-60' : ''
+                    const iconBoxClass =
+                      ev.status === 'fault'          ? 'bg-fire-bg text-fire'              :
+                      ev.status === 'out_of_service' ? 'bg-surface-sunken text-text-tertiary' :
+                                                        'bg-surface-sunken text-text-secondary'
                     return (
-                      <div key={ev.id}
+                      <div
+                        key={ev.id}
                         onClick={() => { setDetailEv(ev); setModal('ev_detail') }}
-                        style={{ background:'var(--bg2)', border:`1px solid ${ev.status==='fault'?'rgba(239,68,68,.3)':'var(--bd)'}`, borderRadius:12, padding:'10px 13px', display:'flex', alignItems:'center', gap:10, marginBottom:6, cursor:'pointer' }}
+                        className={
+                          'relative bg-surface-raised border rounded-md px-3 py-2.5 flex items-center gap-2.5 mb-1.5 cursor-pointer ' +
+                          'overflow-hidden transition-[border-color,transform,background-color] duration-150 hover:border-border-strong hover:-translate-y-px ' +
+                          "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] " +
+                          barClass + ' ' + borderClass + ' ' + dimmedClass
+                        }
                       >
-                        <div style={{ width:40, height:40, borderRadius:10, background:ev.status==='fault'?'rgba(239,68,68,.15)':'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
-                          {TYPE_ICON[type]}
+                        <div className={'w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ' + iconBoxClass}>
+                          <TypeIcon size={20} />
                         </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-body font-semibold text-text-primary">
                             {ev.number}호기
-                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>{ev.location}</span>
+                            <span className="text-caption font-normal text-text-tertiary ml-1.5">{ev.location}</span>
                             {ev.type === 'escalator' && ev.public_number != null && (
-                              <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>(공단 {ev.public_number}호기)</span>
+                              <span className="text-caption font-normal text-text-tertiary ml-1.5">(공단 {ev.public_number}호기)</span>
                             )}
                           </div>
-                          <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                          <div className="text-caption text-text-tertiary mt-0.5">
                             {ev.last_inspect_date ? `최근 점검: ${ev.last_inspect_date}` : '점검 기록 없음'}
-                            {(ev.active_faults ?? 0) > 0 && <span style={{ color:'var(--danger)', marginLeft:6 }}>미해결 {ev.active_faults}건</span>}
+                            {(ev.active_faults ?? 0) > 0 && <span className="text-danger ml-1.5">미해결 {ev.active_faults}건</span>}
                           </div>
                         </div>
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-                          <span style={{ fontSize:10, fontWeight:700, color:st.color, background:st.bg, padding:'3px 8px', borderRadius:20 }}>{st.label}</span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className={'text-caption font-semibold rounded-pill px-2 py-0.5 ' + badgeClass}>{st.label}</span>
                           {ni && ni.status === 'due_soon' && ni.daysUntil != null && (
-                            <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              D-{ni.daysUntil}
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-warning-bg text-warning">D-{ni.daysUntil}</span>
                           )}
                           {ni && ni.status === 'overdue' && (
-                            <span style={{ background:'#ffebee', color:'#c62828', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              검사 초과
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-danger-bg text-danger">검사 초과</span>
                           )}
                           {ni && ni.status === 'no_record' && (
-                            <span style={{ background:'#e3f2fd', color:'#1565c0', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              기록 없음
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-info-bg text-info">기록 없음</span>
                           )}
                         </div>
-                        <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        <ChevronRight size={14} className="text-text-tertiary flex-shrink-0" />
                       </div>
                     )
                   })}
