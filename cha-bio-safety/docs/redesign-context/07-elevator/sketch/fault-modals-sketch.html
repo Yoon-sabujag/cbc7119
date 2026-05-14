@@ -1,0 +1,1541 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 2B (Fault 흐름 3 모달)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (elevator-sketch.html line 24-147 과 동일)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+
+      /* alias */
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      /* 풀스크린 전용 — 하단 네비 높이 (NAV_H 대응) */
+      --nav-h: 64px;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 — 인라인 style 회피용
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+    .viewport-mobile  { width: 375px; height: 812px; }
+    .viewport-desktop { width: 1280px; height: 800px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    /* §6.5 hover — border 강화 + translateY(-1px) */
+    .card-hover { transition: border-color .13s, transform .13s, background-color .13s; }
+    .card-hover:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    /* 페이지 컨테이너 */
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    /* 가로 스크롤 (탭 행) */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* =====================================================================
+     * EvSelector 공통 CSS — 2A evselector-sketch.html 패턴 100% 재사용
+     * ===================================================================== */
+
+    /* 종류 토글 버튼 */
+    .kind-toggle {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+    }
+    .kind-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color .13s, color .13s;
+      min-height: 44px;
+      background: transparent;
+      color: var(--text-tertiary);
+      border: none;
+    }
+    .kind-btn:hover {
+      background: var(--surface-active);
+      color: var(--text-secondary);
+    }
+    .kind-btn-active {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .kind-btn-active:hover {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    /* 데스크톱 터치 타겟 40px */
+    .kind-btn-desktop {
+      min-height: 40px;
+      font-size: 13px;
+    }
+
+    /* 그룹 라벨 */
+    .ev-group-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* 호기 버튼 — 3 상태 */
+    .ev-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      padding: 0 8px;
+      border: 2px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      transition: border-color .13s, transform .13s, background-color .13s;
+    }
+    .ev-btn:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    .ev-btn-selected {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .ev-btn-selected:hover {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+    /* 고장: fire-bg + fire text — §6.1 fire = 호기 고장 미수리 */
+    .ev-btn-fault {
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+      border-color: var(--status-fire-bar);
+    }
+    .ev-btn-fault:hover {
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+    }
+    /* 데스크톱 40px */
+    .ev-btn-desktop {
+      min-height: 40px;
+      font-size: 13px;
+    }
+
+    /* 그리드 컬럼 CSS class — 인라인 grid-template-columns 금지 */
+    .grid-cols-ev-1 { grid-template-columns: repeat(1, 1fr); }
+    .grid-cols-ev-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-cols-ev-3 { grid-template-columns: repeat(3, 1fr); }
+
+    /* 사진 그리드 컬럼 — 모바일 4칸 / 데스크톱 6칸 */
+    .grid-cols-photo-mobile  { grid-template-columns: repeat(4, 1fr); }
+    .grid-cols-photo-desktop { grid-template-columns: repeat(6, 1fr); }
+
+    /* =====================================================================
+     * 모달 공통 CSS
+     * ===================================================================== */
+
+    /* ModalWrap — 모바일 패널 */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-overlay);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 16px;
+      overflow-y: auto;
+    }
+    .modal-panel-mobile {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface-page);
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      overflow: hidden;
+    }
+    .modal-panel-desktop {
+      width: 100%;
+      max-width: 520px;
+      background: var(--surface-page);
+      border-radius: 16px;
+      border: 1px solid var(--border-default);
+      overflow: hidden;
+    }
+    .modal-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--surface-raised);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      padding: 4px;
+      transition: color .13s, background-color .13s;
+    }
+    .modal-close-btn:hover {
+      color: var(--text-primary);
+      background: var(--surface-sunken);
+    }
+    .modal-body-scroll {
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    /* Field — 라벨 + 입력 래퍼 */
+    .field-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+    }
+    .field-input {
+      height: 42px;
+      width: 100%;
+      padding: 0 12px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .13s;
+      box-sizing: border-box;
+    }
+    .field-input:focus { border-color: var(--border-strong); }
+    .field-input::placeholder { color: var(--text-tertiary); }
+
+    .field-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      transition: border-color .13s;
+      box-sizing: border-box;
+    }
+    .field-textarea:focus { border-color: var(--border-strong); }
+    .field-textarea::placeholder { color: var(--text-tertiary); }
+
+    /* 승객 탑승 토글 */
+    .passenger-toggle {
+      height: 42px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: border-color .13s, transform .13s, background-color .13s;
+    }
+    .passenger-toggle:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    /* ON: danger-bg + text-danger + outline-danger */
+    .passenger-on {
+      background: var(--status-danger-bg);
+      color: var(--status-danger-bar);
+      outline: 2px solid var(--status-danger-bar);
+      outline-offset: 1px;
+    }
+    /* OFF: surface-sunken + text-tertiary */
+    .passenger-off {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+    }
+
+    /* 사진 슬롯 */
+    .photo-slot {
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .photo-slot-empty {
+      background: var(--surface-sunken);
+      border: 1px dashed var(--border-default);
+    }
+    /* 채워진 슬롯 — 실제 이미지 대신 회색 placeholder */
+    .photo-slot-filled {
+      background: var(--surface-active);
+    }
+    .photo-slot-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 20px;
+      height: 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* CTA 버튼 */
+    .cta-btn {
+      height: 48px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 700;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: border-color .13s, transform .13s, opacity .13s;
+    }
+    .cta-btn:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    /* FaultNew CTA — fire 위험 의미, §6.4 그라디언트 예외 허용 */
+    .cta-fault-new {
+      background: linear-gradient(135deg, #991b1b, #ef4444);
+      color: #ffffff;
+    }
+    /* FaultResolve CTA — 단색 accent (위험 아님, §6.4 기본) */
+    .cta-fault-resolve {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    /* 비활성 — opacity 0.5 */
+    .cta-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .cta-disabled:hover { transform: none; }
+
+    /* 풀스크린 컨테이너 (FaultNewFullscreen) */
+    .fullscreen-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: var(--nav-h);
+      z-index: 100;
+      background: var(--surface-page);
+      display: flex;
+      flex-direction: column;
+    }
+    /* 데스크톱 풀스크린 — 하단 nav 없음 (모바일은 var(--nav-h)) */
+    .fullscreen-container-desktop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      background: var(--surface-page);
+      display: flex;
+      flex-direction: column;
+    }
+    .fullscreen-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .fullscreen-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--status-danger-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .fullscreen-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .fullscreen-footer {
+      flex-shrink: 0;
+      padding: 12px 16px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+    }
+
+    /* 고장 정보 카드 (FaultResolveModal) */
+    .fault-info-card {
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .fault-info-elevator-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .fault-info-elevator-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .fault-info-symptom {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* BottomNav */
+    .bnav        { display: flex; align-items: stretch; height: 64px; padding-bottom: 8px; background: var(--surface-raised); border-top: 1px solid var(--border-default); flex-shrink: 0; }
+    .bnav-btn    { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--text-tertiary); cursor: pointer; }
+    .bnav-active { color: var(--accent); }
+
+    /* 사이드바 */
+    .sidebar-icon { width: 60px; flex-shrink: 0; }
+    .side-btn {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary);
+      transition: background-color .13s, color .13s;
+      cursor: pointer;
+    }
+    .side-btn:hover { background: var(--surface-sunken); color: var(--text-secondary); }
+    .side-btn-active { background: var(--accent); color: var(--text-on-accent); }
+
+    /* sticky 헤더 */
+    .sticky-top { position: sticky; top: 0; z-index: 5; }
+  </style>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            /* Wave 1 TSX 확정 토큰 alias — Tailwind class 매핑 */
+            'accent':          'var(--accent)',
+            'accent-hover':    'var(--accent-hover)',
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'text-link':       'var(--text-link)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'border-focus':    'var(--border-focus)',
+            /* status 토큰 */
+            'safe':            'var(--status-safe-bar)',
+            'danger':          'var(--status-danger-bar)',
+            'fire':            'var(--status-fire-bar)',
+            'warn':            'var(--status-warning-bar)',
+            'info':            'var(--status-info-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'fire-bg':         'var(--status-fire-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<!--
+  ============================================================================
+  §6.1 색 의미 고정 (v0.1.1, 2A 룰 계승 + 2B Fault 흐름 확장):
+       · fire (주황)   = 호기 고장 미수리 — EvSelector 호기 버튼 + FaultNew CTA 그라디언트
+       · danger (적)   = 즉시 위험 — 승객 탑승 토글 ON / 풀스크린 헤더 아이콘 박스
+                         (Fault 흐름에서 fire 와 danger 의 차이: fire=고장 자체 / danger=인명 직결 위험)
+       · accent (파)   = 선택 상태 + 수리 완료 CTA (단색)
+       · safe (녹)     = (Fault 흐름 미사용 — EsBtn 상행 표시 전용)
+
+       §6.4 그라디언트 예외:
+       · FaultNew CTA (fire 위험 의미) 1개만 허용 — Wave 1 TSX 권위 그대로
+       · FaultResolve CTA / 토글 / 카드 모두 단색
+
+  §6.2 negative rule — 위험 임계치 아닌 요소는 status 색 금지 (수리 업체 input / 일시 input / 빈 사진 슬롯 모두 회색)
+  §6.3 회색 통일 — Field 라벨 / 비활성 토글 / 닫기 X / 부제 / pureSymptoms 모두 text-secondary 또는 text-tertiary
+  §6.5 hover — CTA / 닫기 X / 토글 / 사진 슬롯 모두 border-strong + translateY(-1px) .13s
+  §6.6 animation — 일반 .13s
+  §6.7 그림자 0건
+  §7.1 이모지 금지 — 본문 (이모지 열거 생략) 0건, viewport 라벨 📱/🖥️ 만 허용
+
+  TYPE_ICON 매퍼 (FaultResolveModal 고장 정보 카드):
+  passenger  = ElevatorIcon (커스텀 SVG)
+  cargo      = Package (lucide)
+  dumbwaiter = Square (lucide)
+  escalator  = MoveDiagonal (lucide)
+
+  호기 ID (EV-NN / ES-NN) 본문 노출 0건 — "N호기" 라벨만 (2A 260515-4zh 룰)
+  ============================================================================
+-->
+
+<body class="p-8">
+
+  <!-- 시안 헤더 -->
+  <header class="max-w-[1400px] mx-auto mb-8">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안 — 2B</span>
+      <span class="meta-label">2026-05-15</span>
+      <span class="meta-label">redesign/07-elevator</span>
+      <span class="meta-label">FaultNewModal + FaultNewFullscreen + FaultResolveModal</span>
+    </div>
+    <h1 class="text-3xl font-semibold text-white">CHA Bio Complex — 승강기 관리 재디자인 시안 (2B Fault 흐름 3 모달)</h1>
+    <p class="text-base text-gray-400 mt-2 leading-relaxed">
+      모바일 375x812 / 데스크톱 1280x800 · 라이트/다크 동시 비교 ·
+      FaultNewModal (VP1 모바일 다크) / FaultResolveModal (VP2 모바일 라이트) /
+      FaultNewFullscreen (VP3 데스크톱 다크) / FaultResolveModal 비활성 (VP4 데스크톱 라이트)
+    </p>
+    <p class="text-base text-gray-500 mt-2 leading-relaxed">
+      ElevatorIcon (커스텀 SVG) / AlertTriangle / Siren / X / Camera / CheckCircle2 / MoveDiagonal (lucide) ·
+      §6.1: fire=호기고장 / danger=승객위험 / accent=선택+수리완료 · §6.4: FaultNew CTA 그라디언트 예외
+    </p>
+    <div class="mt-3 p-3 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-gray-400 text-sm">
+      <strong class="text-gray-300">2B 시안 범위:</strong>
+      VP1 모바일 다크 — FaultNewModal (호기 1호기 선택 / 승객 ON / 사진 0개 / fire CTA 활성) |
+      VP2 모바일 라이트 — FaultResolveModal (ElevatorIcon 1호기 / 사진 2개 / accent CTA 활성) |
+      VP3 데스크톱 다크 — FaultNewFullscreen (풀스크린 자체 헤더 / 호기 7호기 선택 / 승객 OFF / 사진 1개 / fire CTA 활성) |
+      VP4 데스크톱 라이트 — FaultResolveModal (MoveDiagonal 5호기 escalator / 수리내용 빈 / accent CTA 비활성)
+    </div>
+  </header>
+
+  <!-- 4 viewport 컨테이너 -->
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: 모바일 두 테마 (다크 / 라이트)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[80px] mb-4">
+        <span class="meta-label">📱 모바일 다크 — FaultNewModal (호기 선택 후 / 승객 ON / CTA 활성)</span>
+        <span class="meta-label">📱 모바일 라이트 — FaultResolveModal (사진 2개 / CTA 활성)</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔═══════════════════════════════╗
+             ║  VP1: MOBILE DARK             ║
+             ║  FaultNewModal                ║
+             ║  호기 1호기 선택 / 승객 ON    ║
+             ╚═══════════════════════════════╝ -->
+        <!-- VP1 — FaultNewModal 호기 선택 후 / CTA 활성 / 승객 ON / 사진 0개 / fire 그라디언트 CTA -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="page-shell">
+
+            <!-- 페이지 배경 (모달이 올라오기 전 리스트 탭) -->
+            <div class="bg-raised bd-b sticky-top flex-shrink-0">
+              <div class="flex items-center justify-between px-4 py-3">
+                <div class="text-body font-bold text-t1">승강기 관리</div>
+                <div class="flex gap-2">
+                  <button class="px-3 py-1 rounded-md bg-fire-soft text-fire text-label font-bold">
+                    <i data-lucide="siren" class="w-4 h-4 inline-block mr-1"></i>고장 접수
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 모달 오버레이 -->
+            <div class="relative flex-1 min-h-0 overflow-hidden">
+              <!-- 배경 희미한 리스트 (모달 뒤) -->
+              <div class="px-3 py-2 space-y-2 opacity-30">
+                <div class="bg-sunken rounded-lg p-3 text-caption text-t3">호기 목록 (배경)</div>
+                <div class="bg-sunken rounded-lg p-3 text-caption text-t3">1호기 — 정상</div>
+                <div class="bg-sunken rounded-lg p-3 text-caption text-t3">2호기 — 정상</div>
+              </div>
+
+              <!-- ModalWrap 오버레이 -->
+              <div class="absolute inset-0 bg-[rgba(0,0,0,0.55)] flex items-start justify-center pt-10 px-3 overflow-y-auto">
+                <div class="modal-panel-mobile">
+
+                  <!-- 모달 헤더 -->
+                  <div class="modal-header-bar">
+                    <div class="modal-title">고장 접수</div>
+                    <button class="modal-close-btn" aria-label="닫기">
+                      <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+
+                  <!-- 모달 본문 -->
+                  <div class="modal-body-scroll flex flex-col gap-[14px]">
+
+                    <!-- EvSelector 임베드 — 2A 패턴 (FAULT variant, 4그룹, 1호기 선택) -->
+                    <!-- §6.1: fire = 4호기 고장 / accent = 1호기 선택 -->
+                    <div>
+                      <!-- 종류 토글 — 엘리베이터 active -->
+                      <div class="kind-toggle mb-3">
+                        <button class="kind-btn kind-btn-active">
+                          <!-- ElevatorIcon 커스텀 SVG (icons.tsx ElevatorIcon 1:1) -->
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 elevator-icon">
+                            <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                            <line x1="12" y1="3" x2="12" y2="21"/>
+                            <polyline points="6.5 9 8 7 9.5 9"/>
+                            <polyline points="14.5 15 16 17 17.5 15"/>
+                            <line x1="8" y1="7" x2="8" y2="11"/>
+                            <line x1="16" y1="13" x2="16" y2="17"/>
+                          </svg>
+                          엘리베이터
+                        </button>
+                        <button class="kind-btn">
+                          <i data-lucide="move-diagonal" class="w-5 h-5"></i>
+                          에스컬레이터
+                        </button>
+                      </div>
+
+                      <!-- FAULT 4그룹 (덤웨이터 제외) -->
+                      <div class="space-y-3">
+                        <!-- 그룹 1: 투명 엘리베이터 3대 -->
+                        <div>
+                          <div class="ev-group-label">투명 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-3">
+                            <!-- 1호기 선택 (accent) -->
+                            <button class="ev-btn ev-btn-selected">1호기</button>
+                            <button class="ev-btn">2호기</button>
+                            <button class="ev-btn">3호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 2: 오렌지 엘리베이터 3대 -->
+                        <div>
+                          <div class="ev-group-label">오렌지 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-3">
+                            <!-- 4호기 고장 (fire) -->
+                            <button class="ev-btn ev-btn-fault">
+                              <i data-lucide="siren" class="w-4 h-4"></i>
+                              4호기
+                            </button>
+                            <button class="ev-btn">5호기</button>
+                            <button class="ev-btn">6호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 3: 기타 2대 -->
+                        <div>
+                          <div class="ev-group-label">기타 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-2">
+                            <button class="ev-btn">7호기</button>
+                            <button class="ev-btn">8호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 4: 화물 2대 -->
+                        <div>
+                          <div class="ev-group-label">화물 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-2">
+                            <button class="ev-btn">9호기</button>
+                            <button class="ev-btn">10호기</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Field: 발생 일시 -->
+                    <div>
+                      <div class="field-label">발생 일시</div>
+                      <input type="datetime-local" value="2026-05-15T14:23" class="field-input" readonly />
+                    </div>
+
+                    <!-- 발생 층 + 승객 탑승 (flex row) -->
+                    <div class="flex gap-2 items-end">
+                      <!-- 발생 층 -->
+                      <div class="flex-1">
+                        <div class="field-label">발생 층</div>
+                        <select class="field-input">
+                          <option value="1F" selected>1F</option>
+                          <option value="B1">B1</option>
+                          <option value="2F">2F</option>
+                        </select>
+                      </div>
+                      <!-- 승객 탑승 토글 -->
+                      <div class="flex-shrink-0">
+                        <!-- §6.1 색 의미 코멘트: danger = 즉시 위험 (승객 탑승) — 호기 고장 fire 와 다름. 승객 탑승은 인명 안전 직결이므로 danger 유지 -->
+                        <div class="field-label">승객 탑승</div>
+                        <!-- ON 상태 — danger-bg + text-danger + outline-danger + AlertTriangle -->
+                        <button class="passenger-toggle passenger-on">
+                          <i data-lucide="alert-triangle" class="w-[14px] h-[14px]"></i>
+                          탑승
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Field: 증상 -->
+                    <div>
+                      <div class="field-label">증상</div>
+                      <textarea rows="3" class="field-textarea" readonly>문이 안 닫힘, 도어센서 오작동 의심</textarea>
+                    </div>
+
+                    <!-- MultiPhotoUpload — 증상 사진 (빈 4슬롯) -->
+                    <div>
+                      <div class="field-label">증상 사진</div>
+                      <div class="grid gap-2 grid-cols-photo-mobile">
+                        <!-- 빈 슬롯 x4 (Camera icon) -->
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- CTA — 고장 접수 (fire 그라디언트, 활성) -->
+                    <!-- §6.4: FaultNew CTA (fire 위험 의미) — 그라디언트 예외 허용 (Wave 1 권위) -->
+                    <!-- <a href="tel:18999070"> 안 button 패턴 — 접수 후 TKE 자동 연결 -->
+                    <button class="cta-btn cta-fault-new">
+                      고장 접수 (TKE 자동 연결)
+                    </button>
+
+                  </div><!-- /modal-body-scroll -->
+                </div><!-- /modal-panel-mobile -->
+              </div><!-- /모달 오버레이 -->
+            </div><!-- /상대 위치 래퍼 -->
+
+            <!-- BottomNav -->
+            <nav class="bnav flex-shrink-0">
+              <button class="bnav-btn"><i data-lucide="home" class="w-5 h-5"></i><span class="text-caption">홈</span></button>
+              <button class="bnav-btn bnav-active"><i data-lucide="building-2" class="w-5 h-5"></i><span class="text-caption">승강기</span></button>
+              <button class="bnav-btn"><i data-lucide="clipboard-check" class="w-5 h-5"></i><span class="text-caption">점검</span></button>
+              <button class="bnav-btn"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-caption">근무표</span></button>
+              <button class="bnav-btn"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-caption">설정</span></button>
+            </nav>
+
+          </div>
+        </div><!-- /VP1 MOBILE DARK -->
+
+
+        <!-- ╔═══════════════════════════════╗
+             ║  VP2: MOBILE LIGHT            ║
+             ║  FaultResolveModal            ║
+             ║  ElevatorIcon 1호기 / 사진 2개 ║
+             ╚═══════════════════════════════╝ -->
+        <!-- VP2 — FaultResolveModal 전체 입력 완료 / 사진 2개 / accent 단색 CTA / 위험 아님 -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="page-shell">
+
+            <!-- 페이지 배경 -->
+            <div class="bg-raised bd-b sticky-top flex-shrink-0">
+              <div class="flex items-center justify-between px-4 py-3">
+                <div class="text-body font-bold text-t1">승강기 관리</div>
+              </div>
+            </div>
+
+            <!-- 모달 오버레이 -->
+            <div class="relative flex-1 min-h-0 overflow-hidden">
+              <div class="px-3 py-2 opacity-25">
+                <div class="bg-sunken rounded-lg p-3 text-caption text-t3">호기 목록 (배경)</div>
+              </div>
+
+              <!-- ModalWrap — 수리 완료 처리 -->
+              <div class="absolute inset-0 bg-[rgba(0,0,0,0.45)] flex items-start justify-center pt-10 px-3 overflow-y-auto">
+                <div class="modal-panel-mobile">
+
+                  <!-- 모달 헤더 -->
+                  <div class="modal-header-bar">
+                    <div class="modal-title">수리 완료 처리</div>
+                    <button class="modal-close-btn" aria-label="닫기">
+                      <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+
+                  <!-- 모달 본문 -->
+                  <div class="modal-body-scroll flex flex-col gap-[12px]">
+
+                    <!-- 고장 정보 카드 -->
+                    <!-- TYPE_ICON 매퍼: passenger = ElevatorIcon (커스텀 SVG) -->
+                    <div class="fault-info-card">
+                      <div class="fault-info-elevator-row">
+                        <!-- ElevatorIcon 커스텀 SVG (icons.tsx 1:1) — passenger 타입 -->
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 elevator-icon text-t1" width="24" height="24">
+                          <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                          <line x1="12" y1="3" x2="12" y2="21"/>
+                          <polyline points="6.5 9 8 7 9.5 9"/>
+                          <polyline points="14.5 15 16 17 17.5 15"/>
+                          <line x1="8" y1="7" x2="8" y2="11"/>
+                          <line x1="16" y1="13" x2="16" y2="17"/>
+                        </svg>
+                        <!-- 호기 라벨 — "N호기" (EV-NN 본문 노출 0건 — 2A 룰) -->
+                        <span class="fault-info-elevator-label">1호기</span>
+                      </div>
+                      <!-- pureSymptoms — [발생층] [승객탑승] prefix 제거 결과 -->
+                      <div class="fault-info-symptom">문이 안 닫힘, 도어센서 오작동 의심</div>
+                    </div>
+
+                    <!-- Field: 수리 업체 -->
+                    <div>
+                      <div class="field-label">수리 업체</div>
+                      <input type="text" value="TKE" class="field-input" readonly />
+                    </div>
+
+                    <!-- Field: 수리 완료 일시 -->
+                    <div>
+                      <div class="field-label">수리 완료 일시</div>
+                      <input type="datetime-local" value="2026-05-15T15:47" class="field-input" readonly />
+                    </div>
+
+                    <!-- Field: 수리 내용 -->
+                    <div>
+                      <div class="field-label">수리 내용</div>
+                      <textarea rows="3" class="field-textarea" readonly>도어센서 교체 — TKE 출동, 1번 도어센서 모듈 신품 교체. 정상 동작 확인.</textarea>
+                    </div>
+
+                    <!-- MultiPhotoUpload — 수리 사진 (2개 채워짐 + 2개 빈) -->
+                    <div>
+                      <div class="field-label">수리 사진</div>
+                      <div class="grid gap-2 grid-cols-photo-mobile">
+                        <!-- 슬롯 1 채워짐 (회색 placeholder) -->
+                        <div class="photo-slot photo-slot-filled">
+                          <div class="photo-slot-remove">
+                            <i data-lucide="x" class="w-[14px] h-[14px] text-white"></i>
+                          </div>
+                        </div>
+                        <!-- 슬롯 2 채워짐 -->
+                        <div class="photo-slot photo-slot-filled">
+                          <div class="photo-slot-remove">
+                            <i data-lucide="x" class="w-[14px] h-[14px] text-white"></i>
+                          </div>
+                        </div>
+                        <!-- 슬롯 3 빈 -->
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <!-- 슬롯 4 빈 -->
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- CTA — 수리 완료 (단색 accent, 활성) -->
+                    <!-- §6.4: FaultResolve CTA — 단색 accent (위험 아님) -->
+                    <button class="cta-btn cta-fault-resolve">
+                      수리 완료
+                      <i data-lucide="check-circle-2" class="w-4 h-4 ml-1"></i>
+                    </button>
+
+                  </div><!-- /modal-body-scroll -->
+                </div><!-- /modal-panel-mobile -->
+              </div><!-- /모달 오버레이 -->
+            </div><!-- /상대 위치 래퍼 -->
+
+            <!-- BottomNav -->
+            <nav class="bnav flex-shrink-0">
+              <button class="bnav-btn"><i data-lucide="home" class="w-5 h-5"></i><span class="text-caption">홈</span></button>
+              <button class="bnav-btn bnav-active"><i data-lucide="building-2" class="w-5 h-5"></i><span class="text-caption">승강기</span></button>
+              <button class="bnav-btn"><i data-lucide="clipboard-check" class="w-5 h-5"></i><span class="text-caption">점검</span></button>
+              <button class="bnav-btn"><i data-lucide="calendar" class="w-5 h-5"></i><span class="text-caption">근무표</span></button>
+              <button class="bnav-btn"><i data-lucide="settings" class="w-5 h-5"></i><span class="text-caption">설정</span></button>
+            </nav>
+
+          </div>
+        </div><!-- /VP2 MOBILE LIGHT -->
+
+      </div>
+    </section>
+
+
+    <!-- ─────────────────────────────────────────────
+         행 2: 데스크톱 — VP3 다크 (FaultNewFullscreen)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">🖥️ 데스크톱 다크 — FaultNewFullscreen (풀스크린 / 7호기 선택 / 승객 OFF / 사진 1개 / fire CTA 활성)</span>
+      </div>
+
+      <div class="flex justify-center">
+
+        <!-- ╔═══════════════════════════════════════════════╗
+             ║  VP3: DESKTOP DARK                            ║
+             ║  FaultNewFullscreen                            ║
+             ║  풀스크린 자체 헤더 / 7호기 선택 / 승객 OFF  ║
+             ╚═══════════════════════════════════════════════╝ -->
+        <!-- VP3 — FaultNewFullscreen 풀스크린 / 자체 헤더 (AlertTriangle + X) / 호기 7호기 선택 / 승객 OFF / 증상 입력 중 / 사진 1개 / fire 그라디언트 CTA 활성 -->
+        <div class="viewport-frame viewport-desktop" data-theme="dark">
+          <div class="desktop-shell">
+
+            <!-- 좌측 사이드바 (데스크톱 구조 — 풀스크린이 위에 덮임) -->
+            <div class="bg-raised bd-r flex flex-col items-center py-3 px-2 gap-2 sidebar-icon opacity-30">
+              <button class="side-btn"><i data-lucide="home" class="w-5 h-5"></i></button>
+              <button class="side-btn side-btn-active"><i data-lucide="building-2" class="w-5 h-5"></i></button>
+              <button class="side-btn"><i data-lucide="clipboard-check" class="w-5 h-5"></i></button>
+              <button class="side-btn"><i data-lucide="calendar" class="w-5 h-5"></i></button>
+            </div>
+
+            <!-- 메인 콘텐츠 (풀스크린이 위에 덮음) -->
+            <div class="flex-1 min-w-0 relative">
+
+              <!-- 배경 페이지 (희미하게) -->
+              <div class="p-5 opacity-20">
+                <div class="text-body font-bold text-t1">승강기 목록 (배경)</div>
+                <div class="mt-3 text-caption text-t3">1호기 — 정상</div>
+              </div>
+
+              <!-- FaultNewFullscreen — 풀스크린 컨테이너 -->
+              <!-- 데스크톱: fullscreen-container-desktop (bottom:0, nav 없음) / 모바일: fullscreen-container (bottom: var(--nav-h)) -->
+              <div class="fullscreen-container-desktop">
+
+                <!-- 풀스크린 자체 헤더 -->
+                <div class="fullscreen-header">
+                  <!-- 아이콘 박스 — danger-bg + AlertTriangle text-danger -->
+                  <div class="fullscreen-icon-box">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-danger"></i>
+                  </div>
+                  <!-- 타이틀 영역 -->
+                  <div class="flex-1">
+                    <div class="text-body font-bold text-t1">고장 접수</div>
+                    <!-- 부제: 12px, text-tertiary (현 코드 10px → 12px 노안 친화) -->
+                    <div class="text-caption text-t3">접수 후 TKE(1899-9070) 자동 연결</div>
+                  </div>
+                  <!-- X 닫기 — lucide X (현 코드 ✕ 문자 → 아이콘 대체) -->
+                  <button class="modal-close-btn">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                  </button>
+                </div>
+
+                <!-- 본문 스크롤 영역 -->
+                <div class="fullscreen-body">
+                  <div class="flex flex-col gap-4">
+
+                    <!-- EvSelector 임베드 — 5그룹 ANNUAL variant (덤웨이터 포함), 7호기 선택 -->
+                    <!-- §6.1: accent = 7호기 선택 / fire = 10호기 고장 -->
+                    <div>
+                      <!-- 종류 토글 (데스크톱 40px) -->
+                      <div class="kind-toggle mb-3">
+                        <button class="kind-btn kind-btn-desktop kind-btn-active">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 elevator-icon">
+                            <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                            <line x1="12" y1="3" x2="12" y2="21"/>
+                            <polyline points="6.5 9 8 7 9.5 9"/>
+                            <polyline points="14.5 15 16 17 17.5 15"/>
+                            <line x1="8" y1="7" x2="8" y2="11"/>
+                            <line x1="16" y1="13" x2="16" y2="17"/>
+                          </svg>
+                          엘리베이터
+                        </button>
+                        <button class="kind-btn kind-btn-desktop">
+                          <i data-lucide="move-diagonal" class="w-5 h-5"></i>
+                          에스컬레이터
+                        </button>
+                      </div>
+
+                      <!-- ANNUAL 5그룹 (덤웨이터 포함) -->
+                      <div class="grid grid-cols-2 gap-4">
+                        <!-- 그룹 1: 투명 엘리베이터 3대 -->
+                        <div>
+                          <div class="ev-group-label">투명 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-3">
+                            <button class="ev-btn ev-btn-desktop">1호기</button>
+                            <button class="ev-btn ev-btn-desktop">2호기</button>
+                            <button class="ev-btn ev-btn-desktop">3호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 2: 오렌지 엘리베이터 3대 -->
+                        <div>
+                          <div class="ev-group-label">오렌지 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-3">
+                            <button class="ev-btn ev-btn-desktop">4호기</button>
+                            <button class="ev-btn ev-btn-desktop">5호기</button>
+                            <button class="ev-btn ev-btn-desktop">6호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 3: 기타 엘리베이터 2대 -->
+                        <div>
+                          <div class="ev-group-label">기타 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-2">
+                            <!-- 7호기 선택 (accent) -->
+                            <button class="ev-btn ev-btn-desktop ev-btn-selected">7호기</button>
+                            <button class="ev-btn ev-btn-desktop">8호기</button>
+                          </div>
+                        </div>
+                        <!-- 그룹 4: 화물 엘리베이터 2대 -->
+                        <div>
+                          <div class="ev-group-label">화물 엘리베이터</div>
+                          <div class="grid gap-2 grid-cols-ev-2">
+                            <button class="ev-btn ev-btn-desktop">9호기</button>
+                            <!-- 10호기 고장 (fire) -->
+                            <button class="ev-btn ev-btn-desktop ev-btn-fault">
+                              <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                              10호기
+                            </button>
+                          </div>
+                        </div>
+                        <!-- 그룹 5: 덤웨이터 1대 (ANNUAL만 포함) -->
+                        <div>
+                          <div class="ev-group-label">덤웨이터</div>
+                          <div class="grid gap-2 grid-cols-ev-1">
+                            <button class="ev-btn ev-btn-desktop">11호기</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Field: 발생 일시 -->
+                    <div>
+                      <div class="field-label">발생 일시</div>
+                      <input type="datetime-local" value="2026-05-15T16:05" class="field-input" readonly />
+                    </div>
+
+                    <!-- 발생 층 + 승객 탑승 -->
+                    <div class="flex gap-3 items-end">
+                      <div class="flex-1">
+                        <div class="field-label">발생 층</div>
+                        <select class="field-input">
+                          <option value="">선택</option>
+                          <option value="B1">B1</option>
+                          <option value="1F">1F</option>
+                        </select>
+                      </div>
+                      <div class="flex-shrink-0">
+                        <!-- §6.1: danger = 즉시 위험 (승객 탑승) — 호기 고장 fire 와 다름 -->
+                        <div class="field-label">승객 탑승</div>
+                        <!-- OFF 상태 — surface-sunken + text-tertiary -->
+                        <button class="passenger-toggle passenger-off">
+                          미탑승
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Field: 증상 -->
+                    <div>
+                      <div class="field-label">증상</div>
+                      <textarea rows="4" class="field-textarea" readonly>비상 정지 버튼 작동 안 됨. 점검 필요</textarea>
+                    </div>
+
+                    <!-- MultiPhotoUpload — 증상 사진 (1개 채워짐 + 5개 빈, 데스크톱 6열) -->
+                    <div>
+                      <div class="field-label">증상 사진</div>
+                      <div class="grid gap-2 grid-cols-photo-desktop">
+                        <!-- 슬롯 1 채워짐 -->
+                        <div class="photo-slot photo-slot-filled">
+                          <div class="photo-slot-remove">
+                            <i data-lucide="x" class="w-[14px] h-[14px] text-white"></i>
+                          </div>
+                        </div>
+                        <!-- 빈 슬롯 x5 -->
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div><!-- /fullscreen-body -->
+
+                <!-- 하단 고정 CTA 영역 -->
+                <div class="fullscreen-footer">
+                  <!-- <a href="tel:18999070"> 안 button 패턴 — 접수 후 TKE 자동 연결 -->
+                  <!-- §6.4: FaultNew CTA (fire 위험 의미) — 그라디언트 예외 / 이모지 제거 (헤더 아이콘이 위험 알림 역할) -->
+                  <button class="cta-btn cta-fault-new">
+                    고장 접수 (TKE 자동 연결)
+                  </button>
+                </div>
+
+              </div><!-- /fullscreen-container -->
+            </div><!-- /메인 콘텐츠 -->
+
+          </div>
+        </div><!-- /VP3 DESKTOP DARK -->
+
+      </div>
+    </section>
+
+
+    <!-- ─────────────────────────────────────────────
+         행 3: 데스크톱 — VP4 라이트 (FaultResolveModal 비활성)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center mb-4">
+        <span class="meta-label">🖥️ 데스크톱 라이트 — FaultResolveModal (5호기 escalator / 수리내용 빈 / CTA 비활성 opacity-50)</span>
+      </div>
+
+      <div class="flex justify-center">
+
+        <!-- ╔═══════════════════════════════════════════════╗
+             ║  VP4: DESKTOP LIGHT                           ║
+             ║  FaultResolveModal                            ║
+             ║  5호기 escalator / 수리내용 빈 / CTA 비활성  ║
+             ╚═══════════════════════════════════════════════╝ -->
+        <!-- VP4 — FaultResolveModal 데스크톱 modal / 호기 5호기 escalator / 수리 내용 빈 / CTA 비활성 opacity 0.5 -->
+        <div class="viewport-frame viewport-desktop" data-theme="light">
+          <div class="desktop-shell">
+
+            <!-- 좌측 사이드바 -->
+            <div class="bg-raised bd-r flex flex-col items-center py-3 px-2 gap-2 sidebar-icon">
+              <button class="side-btn"><i data-lucide="home" class="w-5 h-5"></i></button>
+              <button class="side-btn side-btn-active"><i data-lucide="building-2" class="w-5 h-5"></i></button>
+              <button class="side-btn"><i data-lucide="clipboard-check" class="w-5 h-5"></i></button>
+              <button class="side-btn"><i data-lucide="calendar" class="w-5 h-5"></i></button>
+            </div>
+
+            <!-- 메인 콘텐츠 -->
+            <div class="flex-1 min-w-0 relative">
+
+              <!-- 배경 페이지 -->
+              <div class="p-5 opacity-30">
+                <div class="text-body font-bold text-t1">승강기 고장 현황</div>
+                <div class="mt-2 space-y-2">
+                  <div class="bg-sunken rounded-lg p-3 text-caption text-t3">5호기 에스컬레이터 — 고장 접수 2026-05-15</div>
+                </div>
+              </div>
+
+              <!-- ModalWrap — 데스크톱 modal (max-w-[520px]) -->
+              <div class="absolute inset-0 bg-[rgba(0,0,0,0.4)] flex items-start justify-center pt-16 px-8 overflow-y-auto">
+                <div class="modal-panel-desktop">
+
+                  <!-- 모달 헤더 -->
+                  <div class="modal-header-bar">
+                    <div class="modal-title">수리 완료 처리</div>
+                    <button class="modal-close-btn" aria-label="닫기">
+                      <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                  </div>
+
+                  <!-- 모달 본문 -->
+                  <div class="modal-body-scroll flex flex-col gap-[12px]">
+
+                    <!-- 고장 정보 카드 -->
+                    <!-- TYPE_ICON 매퍼: escalator = MoveDiagonal (lucide) -->
+                    <div class="fault-info-card">
+                      <div class="fault-info-elevator-row">
+                        <!-- MoveDiagonal — escalator 타입 -->
+                        <i data-lucide="move-diagonal" class="w-6 h-6 text-t1"></i>
+                        <!-- 호기 라벨 — "N호기 (하행)" (EV-NN/ES-NN 본문 노출 0건 — 2A 룰) -->
+                        <span class="fault-info-elevator-label">5호기 (하행)</span>
+                      </div>
+                      <!-- pureSymptoms — prefix 제거 결과 -->
+                      <div class="fault-info-symptom">비상정지 버튼 작동 안 됨</div>
+                    </div>
+
+                    <!-- Field: 수리 업체 -->
+                    <div>
+                      <div class="field-label">수리 업체</div>
+                      <input type="text" value="TKE" class="field-input" readonly />
+                    </div>
+
+                    <!-- Field: 수리 완료 일시 -->
+                    <div>
+                      <div class="field-label">수리 완료 일시</div>
+                      <input type="datetime-local" value="2026-05-15T16:12" class="field-input" readonly />
+                    </div>
+
+                    <!-- Field: 수리 내용 (비어있음 → CTA 비활성 조건) -->
+                    <div>
+                      <div class="field-label">수리 내용</div>
+                      <textarea rows="3" placeholder="수리 내용" class="field-textarea"></textarea>
+                    </div>
+
+                    <!-- MultiPhotoUpload — 수리 사진 (빈 슬롯 6개, 데스크톱 6열) -->
+                    <div>
+                      <div class="field-label">수리 사진</div>
+                      <div class="grid gap-2 grid-cols-photo-desktop">
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                        <div class="photo-slot photo-slot-empty">
+                          <i data-lucide="camera" class="w-6 h-6 text-t3"></i>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- CTA — 수리 완료 (단색 accent, 비활성 — 수리 내용 비어있음 조건) -->
+                    <!-- §6.4: FaultResolve CTA — 단색 accent (위험 아님) / opacity-50 비활성 -->
+                    <button class="cta-btn cta-fault-resolve cta-disabled opacity-50">
+                      수리 완료
+                      <i data-lucide="check-circle-2" class="w-4 h-4 ml-1"></i>
+                    </button>
+
+                  </div><!-- /modal-body-scroll -->
+                </div><!-- /modal-panel-desktop -->
+              </div><!-- /모달 오버레이 -->
+            </div><!-- /메인 콘텐츠 -->
+
+          </div>
+        </div><!-- /VP4 DESKTOP LIGHT -->
+
+      </div>
+    </section>
+
+  </div><!-- /4 viewport 컨테이너 -->
+
+  <!-- ─────────────────────────────────────────────────────────────────────
+       디자인 의사결정 요약 (2B Fault 흐름 3 모달)
+       ─────────────────────────────────────────────────────────────────────
+
+       1. ModalWrap shell
+          - 헤더: 16px 700 text-t1 타이틀 + lucide X 닫기 (현 코드 X 문자 → lucide 아이콘)
+          - 본문: flex column gap-14 (FaultNew) / gap-12 (FaultResolve)
+          - 모바일 max-w-[420px] / 데스크톱 max-w-[520px] 중앙 정렬
+
+       2. Field 컴포넌트
+          - 라벨: 13px 700 text-t2 (현 11px → 13px 노안 친화)
+          - input: height 42px padding 12px border-default bg-sunken rounded-md
+          - focus: border-strong (outline 없음)
+
+       3. 승객 탑승 토글
+          - ON:  bg-danger-bg + text-danger + outline-2 outline-danger + AlertTriangle 14px
+          - OFF: bg-sunken + text-t3 (outline 없음)
+          - §6.1: danger = 인명 안전 직결 위험 / fire = 호기 고장 자체 — 구별 유지
+
+       4. MultiPhotoUpload placeholder
+          - 빈 슬롯: aspect-square bg-sunken border-dashed + Camera 24px text-t3
+          - 채워진 슬롯: bg-active + 우상단 X 20px bg-black/50 rounded-full
+          - 모바일 4열 / 데스크톱 6열 (CSS class, 인라인 X)
+
+       5. CTA 버튼 §6.4 그라디언트 정책
+          - FaultNew CTA:     linear-gradient(135deg, #991b1b, #ef4444) — fire 위험 의미, 예외 허용
+          - FaultResolve CTA: bg-accent 단색 — 위험 아님, §6.4 기본
+          - 비활성: opacity-50 (수리 내용 비어있음 VP4)
+
+       6. FaultNewFullscreen 자체 헤더
+          - 아이콘 박스: 36x36 rounded-md bg-danger-bg + AlertTriangle 20px text-danger
+          - 타이틀: 16px 700 text-t1 (현 15px → 16px 본문급)
+          - 부제: 12px text-t3 "접수 후 TKE(1899-9070) 자동 연결" (현 10px → 12px)
+          - 닫기: lucide X 20px text-t3 (현 X 문자 → lucide 아이콘)
+
+       7. FaultResolve 고장 정보 카드
+          - bg-sunken rounded-lg p-3 (현 padding "10px 13px" → p-3 토큰화)
+          - TYPE_ICON 매퍼: passenger=ElevatorIcon / cargo=Package / dumbwaiter=Square / escalator=MoveDiagonal
+          - 호기 라벨: 14px 700 text-t1 "N호기" (현 11px → 14px, EV-NN 본문 0건)
+          - pureSymptoms: 13px text-t2 ([발생층] [승객탑승] prefix 제거)
+
+       §6.5 hover 적용 목록:
+          - .ev-btn, .es-btn: border-strong + translateY(-1px) .13s
+          - .passenger-toggle: translateY(-1px) .13s
+          - .cta-btn: translateY(-1px) .13s (cta-disabled 제외)
+          - .modal-close-btn: color text-t1 + bg-sunken .13s
+
+       참조 파일:
+          - ElevatorPage.tsx line 1998-2229 (FaultNewModal / FaultNewFullscreen / FaultResolveModal)
+          - icons.tsx ElevatorIcon (line 137-148) — SVG paths 1:1 복사
+          - evselector-sketch.html (2A 룰 — EvSelector 패턴 재사용)
+          - elevator-sketch.html (1차 — 헤더/토큰/viewport-frame 패턴)
+  ──────────────────────────────────────────────────────────────────────── -->
+
+  <!-- Lucide 아이콘 초기화 -->
+  <script>
+    lucide.createIcons();
+  </script>
+
+</body>
+</html>
