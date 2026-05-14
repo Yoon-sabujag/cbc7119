@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>02-inspection 재디자인 — 미리보기 비교 가이드</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <style>
+    :root {
+      --bg: #0a0d12;
+      --bg2: #1a1f27;
+      --bg3: #232a33;
+      --t1: #e6edf3;
+      --t2: #adbac7;
+      --t3: #768390;
+      --bd: #2c333d;
+      --safe: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --acc: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      margin: 0;
+      padding: 24px 16px;
+      line-height: 1.55;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    header { margin-bottom: 32px; }
+    h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px; letter-spacing: -0.01em; }
+    .sub { color: var(--t2); font-size: 14px; margin: 0; }
+    .badge {
+      display: inline-block;
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--t2);
+      margin-right: 6px;
+    }
+
+    section {
+      background: var(--bg2);
+      border: 1px solid var(--bd);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    section.live {
+      border-left: 3px solid var(--safe);
+    }
+    section.pending {
+      border-left: 3px solid var(--warn);
+      opacity: 0.85;
+    }
+    section.aux {
+      border-left: 3px solid var(--info);
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin: 0 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2 .tag {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--t3);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-top: 1px solid var(--bd);
+      gap: 12px;
+    }
+    .row:first-of-type { border-top: 0; padding-top: 0; }
+    .row-label {
+      flex: 1;
+      min-width: 0;
+    }
+    .row-label .name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--t1);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .row-label .desc {
+      font-size: 12.5px;
+      color: var(--t3);
+    }
+    .row-link {
+      flex-shrink: 0;
+      background: var(--bg3);
+      color: var(--t1);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--bd);
+      white-space: nowrap;
+      transition: background 0.15s ease;
+    }
+    .row-link:hover { background: #2f3742; }
+    .row-link.primary {
+      background: var(--acc);
+      color: #0a0d12;
+      border-color: var(--acc);
+    }
+    .row-link.primary:hover { background: #93c5fd; }
+
+    .cta-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .cta-row .row-link { flex: 1 1 auto; text-align: center; min-width: 140px; }
+
+    .note {
+      background: rgba(245,158,11,0.08);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12.5px;
+      color: var(--t2);
+      margin: 14px 0 0;
+    }
+    .note strong { color: #fbbf24; }
+
+    .scope-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--t2);
+    }
+    .scope-list li {
+      padding: 4px 0;
+      padding-left: 18px;
+      position: relative;
+    }
+    .scope-list li::before {
+      content: "✓";
+      color: var(--safe);
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+    }
+    .scope-list.pending li::before { content: "·"; color: var(--warn); }
+
+    footer {
+      text-align: center;
+      color: var(--t3);
+      font-size: 12px;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--bd);
+    }
+    code {
+      background: var(--bg3);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--acc);
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 16px 12px; font-size: 14px; }
+      h1 { font-size: 19px; }
+      h2 { font-size: 15px; }
+      section { padding: 16px; border-radius: 10px; }
+      .row { flex-direction: column; align-items: flex-start; }
+      .row-link { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header>
+      <h1>02-inspection 재디자인 — 미리보기 비교</h1>
+      <p class="sub">
+        <span class="badge">cbc7119</span>
+        <span class="badge">디자인 격리</span>
+        Wave 1 (2026-05-14) — 시안과 실제를 한 페이지에서 비교
+      </p>
+    </header>
+
+
+    <!-- Wave 1 — 변환 완료 -->
+    <section class="live">
+      <h2>✓ Wave 1 — 변환 완료 <span class="tag">시안 ↔ 실제 비교 가능</span></h2>
+
+      <ul class="scope-list">
+        <li>메인 페이지 (헤더 / 오늘 현황 3 상태 / 카테고리 16종 그리드)</li>
+        <li>일반 InspectionModal 셸 (헤더 / 결과 picker / 저장 CTA / Zone·층 칩·CP 리스트는 모달 내부)</li>
+        <li>FireAlarmModal (화재수신반 — danger 톤 segmented)</li>
+        <li>Resolution* (조치 상세 / 조치 완료) + PhotoViewer</li>
+        <li>DesktopInspectionView + InspectionSummaryCard (PC 우측 패널)</li>
+        <li>Revisit · AccessBlocked 팝업</li>
+      </ul>
+
+      <div class="cta-row">
+        <a class="row-link" href="./inspection-sketch-main.html" target="_blank" rel="noopener">📐 시안 — main (4 뷰포트)</a>
+        <a class="row-link primary" href="/inspection" target="_blank">▶ 실제 /inspection</a>
+      </div>
+
+      <div class="note">
+        <strong>비교 팁:</strong> PC 에서는 시안과 실제 탭 둘 다 띄워 좌우로 보기. 모바일에서는 두 탭 스크린샷 따로 찍어 비교. 시안 HTML 은 모바일/PC × 라이트/다크 = 4 뷰포트가 한 페이지에 stacked.
+      </div>
+    </section>
+
+
+    <!-- Wave 2~6 — 시안만 (옛 디자인이 production) -->
+    <section class="pending">
+      <h2>⏳ Wave 2~6 — 시안만 (아직 옛 디자인이 production)</h2>
+
+      <ul class="scope-list pending">
+        <li>실제 production 은 옛 디자인 그대로. <strong>비교 대상 아님</strong> — 시안만 미리 검토 가능.</li>
+        <li>InspectionModal 안에서 결과=주의/불량 누르면 보이는 증상 버튼 영역 (5종 카테고리만) 도 Wave 2 트랙.</li>
+      </ul>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">Wave 2 — 증상 피커 5종</span>
+          <span class="desc">유도등 / 소화기 / 소화전 / 방화셔터 / 댐퍼 — 결과=주의/불량 시 표시</span>
+        </div>
+        <a class="row-link" href="./inspection-sketch-symptom-pickers.html" target="_blank" rel="noopener">시안</a>
+      </div>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">Wave 3 — DIV 압력관리 / 컴프레서</span>
+          <span class="desc">doubleCycle 5 viewport, DIV·컴프 동시 점검 짝꿍 구조</span>
+        </div>
+        <a class="row-link" href="./inspection-sketch-div-comp-cycle.html" target="_blank" rel="noopener">시안</a>
+      </div>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">Wave 4 — 배연창 / 전실제연댐퍼</span>
+          <span class="desc">모달이 따로, stair 일괄 입력 포함</span>
+        </div>
+        <a class="row-link" href="./inspection-sketch-baeyeon-damper.html" target="_blank" rel="noopener">시안</a>
+      </div>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">Wave 5 — 특별피난계단 / CCTV</span>
+          <span class="desc">일괄 입력형 모달 (전층 한 번에 / DVR 13대)</span>
+        </div>
+        <a class="row-link" href="./inspection-sketch-stairwell-cctv.html" target="_blank" rel="noopener">시안</a>
+      </div>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">Wave 6 — 기타 모달</span>
+          <span class="desc">소방용전원공급반 / 주차장 게이트 / 화재수신반 form</span>
+        </div>
+        <a class="row-link" href="./inspection-sketch-misc-modals.html" target="_blank" rel="noopener">시안</a>
+      </div>
+    </section>
+
+
+    <!-- 부가 -->
+    <section class="aux">
+      <h2>📋 부가 — 디자인 시스템 정합 / 결정 기록</h2>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">감사 보고서</span>
+          <span class="desc">v0.1.1 룰 정합 검증 — PASS 26 / FLAG 0 / FAIL 0</span>
+        </div>
+        <a class="row-link" href="./inspection-audit-design-system.html" target="_blank" rel="noopener">감사</a>
+      </div>
+
+      <div class="row">
+        <div class="row-label">
+          <span class="name">트렌드 아이콘 결정</span>
+          <span class="desc">증가/감소 상태 아이콘 매핑 검토 기록</span>
+        </div>
+        <a class="row-link" href="./inspection-trend-icon-decision.html" target="_blank" rel="noopener">기록</a>
+      </div>
+    </section>
+
+
+    <footer>
+      <p>
+        Quick task <code>260514-i4r</code> · Wave 1 · InspectionPage.tsx 5346→5559줄 (+711/-498)
+        <br />
+        피드백 줄 때 — 어느 영역 / 어떤 조합 (모바일·PC × 라이트·다크) / 무엇이 어색한지 알려주면 OK
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>

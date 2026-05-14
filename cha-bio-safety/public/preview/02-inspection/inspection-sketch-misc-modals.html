@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>일반 점검 재디자인 6차 — 기타 카테고리 모달</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22);
+      --accent:#3b82f6;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-fire-bar:#f97316;
+      --status-safe-bg:rgba(34,197,94,0.13); --status-warning-bg:rgba(245,158,11,0.13); --status-danger-bg:rgba(239,68,68,0.13);
+      --status-safe-border:rgba(34,197,94,0.35); --status-danger-border:rgba(239,68,68,0.35);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    [data-theme="light"] {
+      --surface-page:#ffffff; --surface-raised:#f6f8fa; --surface-sunken:#ebeef1;
+      --text-primary:#1f2328; --text-secondary:#4d5562; --text-tertiary:#656d76; --text-on-accent:#ffffff;
+      --border-default:rgba(0,0,0,0.14); --border-strong:rgba(0,0,0,0.22);
+      --accent:#1f6feb;
+      --status-safe-bar:#15803d; --status-warning-bar:#b45309; --status-danger-bar:#b91c1c; --status-fire-bar:#c2410c;
+      --status-safe-bg:#dcfce7; --status-warning-bg:#fef3c7; --status-danger-bg:#fee2e2;
+      --status-safe-border:rgba(22,101,52,0.4); --status-danger-border:rgba(185,28,28,0.4);
+      --bg:var(--surface-page); --bg2:var(--surface-raised); --bg3:var(--surface-sunken);
+      --bd:var(--border-default); --bd2:var(--border-strong);
+      --t1:var(--text-primary); --t2:var(--text-secondary); --t3:var(--text-tertiary);
+      --acl:var(--accent); --safe:var(--status-safe-bar); --warn:var(--status-warning-bar); --danger:var(--status-danger-bar);
+    }
+    :root { --font-sans:'Pretendard Variable','Pretendard',system-ui,sans-serif; --font-mono:'JetBrains Mono',monospace; }
+    body { font-family:var(--font-sans); background:#1a1d22; color:#e6edf3; -webkit-font-smoothing:antialiased; padding:32px; }
+    .meta-label {
+      font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+      color:#8b949e; padding:6px 12px;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px; display:inline-block;
+    }
+    .viewport-frame {
+      border-radius:24px; box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      overflow:hidden; background:var(--surface-page); color:var(--text-primary);
+      font-family:var(--font-sans); position:relative;
+    }
+    .viewport-mobile { width:375px; height:812px; }
+    .viewport-frame * { font-family:inherit; }
+
+    /* ─── 3·4·5차와 동일 공통 ─── */
+    .mh {
+      padding:12px 16px; background:var(--bg);
+      border-bottom:1px solid var(--bd); flex-shrink:0;
+      display:flex; align-items:center; gap:8px;
+    }
+    .mh-icon { width:18px; height:18px; color:var(--t2); flex-shrink:0; }
+    .mh-title { font-size:16px; font-weight:700; color:var(--t1); }
+    .mh-sub { font-size:12px; color:var(--t3); margin-left:4px; }
+    .bar-section {
+      padding:8px 14px; background:var(--bg2);
+      border-bottom:1px solid var(--bd); flex-shrink:0;
+    }
+    .bar-label {
+      font-size:12px; font-weight:600; color:var(--t3);
+      margin-bottom:6px; letter-spacing:0.05em;
+    }
+    .seg { display:flex; gap:8px; flex-wrap:wrap; }
+    .seg button {
+      flex:1 1 0; min-width:0;
+      padding:9px 8px; border-radius:9px;
+      border:1px solid var(--bd2);
+      background:var(--bg); color:var(--t2);
+      font-size:13px; font-weight:700;
+      cursor:pointer; white-space:nowrap; transition:all .12s;
+    }
+    .seg button.is-active {
+      border:1.5px solid var(--acl);
+      background:var(--acl); color:var(--text-on-accent);
+    }
+    .seg button.is-done {
+      border:1.5px solid var(--safe);
+      background:var(--status-safe-bg);
+      color:var(--safe);
+    }
+    .seg button .done-mark { font-size:12px; margin-left:4px; opacity:0.85; }
+
+    .floor-row { display:flex; gap:5px; overflow-x:auto; scrollbar-width:none; }
+    .floor-row::-webkit-scrollbar { display:none; }
+    .floor-chip {
+      flex-shrink:0; padding:6px 14px; border-radius:8px;
+      font-size:13px; font-weight:700; cursor:pointer;
+      border:1px solid var(--bd2); background:var(--bg); color:var(--t2);
+      white-space:nowrap; transition:all .1s;
+    }
+    .floor-chip.is-active {
+      border:1.5px solid var(--acl);
+      background:var(--acl); color:var(--text-on-accent);
+    }
+
+    .modal-body {
+      flex:1; overflow-y:auto; padding:14px;
+      display:flex; flex-direction:column; gap:12px;
+      position:relative;
+    }
+
+    .loc-card {
+      background:var(--bg2);
+      border-radius:12px; padding:10px 12px;
+      border:1px solid var(--bd);
+      display:flex; align-items:center; gap:10px;
+    }
+    .loc-nav {
+      width:36px; height:36px; border-radius:8px;
+      border:1px solid var(--bd); background:var(--bg);
+      color:var(--t1); font-size:20px; font-weight:700;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .loc-nav[disabled] { opacity:0.3; color:var(--t3); cursor:default; }
+    .loc-info { flex:1; text-align:center; }
+    .loc-info .loc-cap { font-size:12px; color:var(--t3); font-weight:600; }
+    .loc-info .loc-title { font-size:15px; font-weight:700; color:var(--t1); margin-top:2px; }
+    .loc-info .loc-sub { font-size:12px; color:var(--t2); margin-top:2px; }
+
+    /* 결과 picker (3·4·5차 동일) */
+    .result-picker { display:flex; gap:8px; }
+    .result-picker button {
+      flex:1; padding:9px 8px; border-radius:99px;
+      border:1.5px solid var(--bd); background:var(--bg2);
+      color:var(--t3); font-size:14px; font-weight:700;
+      cursor:pointer; transition:all .12s; white-space:nowrap;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    }
+    .result-picker button .ic { width:16px; height:16px; flex-shrink:0; }
+    .result-picker button.is-safe    { border-color:var(--safe);   background:var(--status-safe-bg);    color:var(--safe); }
+    .result-picker button.is-warning { border-color:var(--warn);   background:var(--status-warning-bg); color:var(--warn); }
+    .result-picker button.is-danger  { border-color:var(--danger); background:var(--status-danger-bg);  color:var(--danger); }
+
+    /* 알림 박스 */
+    .alert-success {
+      background:var(--status-safe-bg);
+      border:1px solid var(--status-safe-border);
+      border-radius:8px; padding:9px 12px;
+      font-size:13px; color:var(--safe);
+      display:flex; align-items:center; gap:6px;
+    }
+
+    /* 메모 + 사진 */
+    .memo-row { display:flex; gap:8px; align-items:flex-start; }
+    .memo-area {
+      flex:1; height:72px;
+      padding:10px 12px; border-radius:10px;
+      background:var(--bg2); border:1px solid var(--bd);
+      color:var(--t1); font-size:13px;
+      resize:none; box-sizing:border-box;
+      font-family:inherit; outline:none;
+    }
+    .memo-area::placeholder { color:var(--t3); }
+    .photo-btn {
+      width:72px; height:72px;
+      border-radius:10px;
+      border:1px solid var(--bd);
+      background:var(--bg2); color:var(--t2);
+      font-size:12px; font-weight:600;
+      cursor:pointer;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      gap:4px; flex-shrink:0;
+    }
+    .photo-btn .photo-icon { width:22px; height:22px; color:var(--t2); }
+
+    .footer-bar {
+      padding:10px 14px 12px;
+      background:var(--bg2);
+      border-top:1px solid var(--bd);
+      flex-shrink:0; display:flex; gap:8px;
+    }
+    .btn-close-mini {
+      padding:12px 18px; border-radius:12px;
+      background:var(--bg); border:1px solid var(--bd2);
+      color:var(--t2); font-size:13px; font-weight:600;
+      cursor:pointer;
+    }
+    .btn-save {
+      flex:1; padding:13px 0; border-radius:12px;
+      border:none; color:#fff;
+      background:linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      font-size:14px; font-weight:700;
+      cursor:pointer; box-shadow:0 4px 14px rgba(37,99,235,0.35);
+    }
+    [data-theme="light"] .btn-save {
+      background:linear-gradient(135deg, #1f6feb, #0369a1);
+      box-shadow:0 4px 14px rgba(31,111,235,0.28);
+    }
+
+    /* ─── 6차 화재수신반 전용 form ─── */
+    .fa-section { display:flex; flex-direction:column; gap:6px; }
+    .fa-input {
+      width:100%;
+      padding:10px 12px;
+      border-radius:9px;
+      border:1px solid var(--bd);
+      background:var(--bg); color:var(--t1);
+      font-size:14px;
+      outline:none;
+      box-sizing:border-box;
+      font-family:inherit;
+    }
+    .fa-input::placeholder { color:var(--t3); }
+    .fa-textarea {
+      width:100%;
+      padding:10px 12px;
+      border-radius:9px;
+      border:1px solid var(--bd);
+      background:var(--bg); color:var(--t1);
+      font-size:14px; line-height:1.5;
+      resize:none;
+      box-sizing:border-box;
+      font-family:inherit; outline:none;
+    }
+    .fa-textarea::placeholder { color:var(--t3); }
+
+    /* 화재/비화재 구분 segmented (danger 톤) */
+    .seg-danger button.is-active {
+      border:2px solid var(--danger);
+      background:var(--status-danger-bg);
+      color:var(--danger);
+    }
+  </style>
+</head>
+
+<!--
+  ============================================================================
+  redesign/02-inspection 6차 시안 — 기타 카테고리 모달 (마지막)
+  ----------------------------------------------------------------------------
+  코드 권위:
+  - ParkingModal: InspectionPage.tsx 2144-2343 (주차장비/회전문)
+  - PowerPanelModal: InspectionPage.tsx 1933-2143 (소방용전원공급반)
+  - FireAlarmModal: InspectionPage.tsx 4662-4764 (화재수신반 기록)
+  - 일반 InspectionModal: 2800+ (청정소화약제/완강기/소방펌프)
+  ----------------------------------------------------------------------------
+  카테고리 매핑:
+  - 주차장비/회전문 — ParkingModal (항목 segmented + 회전문 시 북문/남문)
+  - 소방용전원공급반 — PowerPanelModal (구역 + 개소 picker)
+  - 청정소화약제 — InspectionModal 일반 (zone + floor + 개소 picker)
+  - 완강기 — InspectionModal 일반
+  - 소방펌프 — InspectionModal 일반
+  - 화재수신반 — FireAlarmModal 풀스크린 (구분 + 일시 + 장소 + 원인 + 조치)
+  ----------------------------------------------------------------------------
+  v0.1.1 룰 (3·4·5차와 일관):
+  - 헤더 = lucide / 커스텀 SVG, secondary 회색 통일
+  - 결과 picker = pill + lucide outline + 라벨 (§7.3)
+  - segmented = 균등 분할 wrap, active accent
+  - 화재수신반 "화재보/비화재보" = danger 톤 segmented (의미 색)
+  - 저장 CTA 그라디언트 (§6.4)
+  ============================================================================
+-->
+
+<body>
+
+  <header class="max-w-[1400px] mx-auto mb-8" style="padding:0">
+    <div class="flex items-center gap-3 mb-2 flex-wrap">
+      <span class="meta-label">v0.1.1 시안</span>
+      <span class="meta-label">2026-05-14</span>
+      <span class="meta-label">redesign/02-inspection 6차 — 기타 카테고리 (마지막)</span>
+    </div>
+    <h1 style="font-size:28px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;color:#e6edf3">기타 카테고리 모달 재디자인</h1>
+    <p style="font-size:13px;color:#adb6c0;line-height:1.65;max-width:980px">
+      02-inspection 마지막 차수 — 6개 카테고리 모달 통합 (주차장비/회전문 · 소방용전원공급반 · 청정소화약제 · 완강기 · 소방펌프 · 화재수신반) ·
+      4 viewport — <strong style="color:#22c55e">ParkingModal · PowerPanelModal · FireAlarmModal · 일반 InspectionModal</strong> ·
+      청정소화약제/완강기/소방펌프는 일반 InspectionModal 공통 패턴 (zone+floor+개소 picker)
+    </p>
+  </header>
+
+  <div class="max-w-[1400px] mx-auto space-y-10">
+
+    <!-- ─────────────────────────────────────────────
+         행 1: ParkingModal + PowerPanelModal
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">주차장비/회전문 · Dark · 회전문 북문</span>
+        <span class="meta-label">소방용전원공급반 · Light · 구역+개소 picker</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   ParkingModal Mobile Dark — 회전문 북문            ║
+             ║   - 항목 = 회전문                                  ║
+             ║   - 북문 active, 남문 ✓ 완료                       ║
+             ║   - 결과 = 정상                                    ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="car" class="mh-icon"></i>
+              <span class="mh-title">주차장비</span>
+              <span class="mh-sub">· 회전문</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">항목 선택</div>
+              <div class="seg">
+                <button class="is-done">주차장비<span class="done-mark">✓</span></button>
+                <button class="is-active">회전문</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">문 선택</div>
+              <div class="seg">
+                <button class="is-active">북문</button>
+                <button class="is-done">남문<span class="done-mark">✓</span></button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <!-- 결과 picker (정상) -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   PowerPanelModal Mobile Light                  ║
+             ║   - 구역 = 사무동, 개소 = 3/5                      ║
+             ║   - 결과 = 정상                                    ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="zap" class="mh-icon"></i>
+              <span class="mh-title">소방용전원공급반</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">구역 선택</div>
+              <div class="seg">
+                <button class="is-done">연구동<span class="done-mark">✓</span></button>
+                <button class="is-active">사무동</button>
+                <button>지하</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <!-- 개소 picker -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">개소 3/5 · 2/5 완료</div>
+                  <div class="loc-title">5F PP-O-5</div>
+                  <div class="loc-sub">사무동 5층 전기실</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 결과 picker -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────────────────
+         행 2: FireAlarmModal + 일반 InspectionModal (청정소화약제)
+         ───────────────────────────────────────────── -->
+    <section>
+      <div class="flex items-center justify-center gap-[100px] mb-4">
+        <span class="meta-label">화재수신반 · Dark · 비화재보 기록</span>
+        <span class="meta-label">청정소화약제 · Light · 일반 InspectionModal</span>
+      </div>
+
+      <div class="flex justify-center gap-12">
+
+        <!-- ╔════════════════════════════════════════════════╗
+             ║   FireAlarmModal Mobile Dark                    ║
+             ║   - 구분 = 비화재보 (danger 톤)                    ║
+             ║   - 일시/장소/원인/조치 form                       ║
+             ╚════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="dark">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="bell" class="mh-icon"></i>
+              <span class="mh-title">화재수신반 기록</span>
+            </div>
+
+            <div class="modal-body" style="gap:14px">
+
+              <!-- 구분: 화재보 / 비화재보 (danger 톤) -->
+              <div class="fa-section">
+                <div class="bar-label">구분</div>
+                <div class="seg seg-danger">
+                  <button>화재보</button>
+                  <button class="is-active">비화재보</button>
+                </div>
+              </div>
+
+              <!-- 발생일시 -->
+              <div class="fa-section">
+                <div class="bar-label">발생일시</div>
+                <input type="date" class="fa-input" value="2026-05-14" />
+                <input type="time" class="fa-input" value="08:43" />
+              </div>
+
+              <!-- 발생장소 -->
+              <div class="fa-section">
+                <div class="bar-label">발생장소</div>
+                <textarea class="fa-textarea" rows="2" placeholder="발생장소를 입력하세요">B3F 주차장 P-027 구역 감지기</textarea>
+              </div>
+
+              <!-- 발생원인 -->
+              <div class="fa-section">
+                <div class="bar-label">발생원인</div>
+                <textarea class="fa-textarea" rows="2">오작동</textarea>
+              </div>
+
+              <!-- 조치사항 -->
+              <div class="fa-section">
+                <div class="bar-label">조치사항</div>
+                <textarea class="fa-textarea" rows="2">자동복구, 현장확인</textarea>
+              </div>
+
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ╔════════════════════════════════════════════════════╗
+             ║   일반 InspectionModal Mobile Light — 청정소화약제      ║
+             ║   - 구역 = 사무동, 5F, 개소 picker                    ║
+             ║   - 결과 = 정상 (증상 피커 안 나옴 — 5종 외 카테고리)     ║
+             ╚════════════════════════════════════════════════════╝ -->
+        <div class="viewport-frame viewport-mobile" data-theme="light">
+          <div class="flex flex-col h-full" style="background:var(--bg);">
+
+            <div class="mh">
+              <i data-lucide="cloud" class="mh-icon"></i>
+              <span class="mh-title">청정소화약제</span>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">구역</div>
+              <div class="seg">
+                <button class="is-done">연구동<span class="done-mark">✓</span></button>
+                <button class="is-active">지하</button>
+              </div>
+            </div>
+
+            <div class="bar-section">
+              <div class="bar-label">층</div>
+              <div class="floor-row">
+                <button class="floor-chip">B1</button>
+                <button class="floor-chip is-active">B4</button>
+              </div>
+            </div>
+
+            <div class="modal-body">
+
+              <div class="alert-success">
+                <span>✓</span>
+                <span style="font-size:13px;font-weight:600">1/3 이미 점검 완료</span>
+              </div>
+
+              <!-- 개소 picker -->
+              <div class="loc-card">
+                <button class="loc-nav">‹</button>
+                <div class="loc-info">
+                  <div class="loc-cap">개소 2/3 · 1/3 완료</div>
+                  <div class="loc-title">B4 지하 주차장 청정소화약제실</div>
+                  <div class="loc-sub">CP-CL-002</div>
+                </div>
+                <button class="loc-nav">›</button>
+              </div>
+
+              <!-- 결과 picker -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">점검 결과</div>
+                <div class="result-picker">
+                  <button class="is-safe"><i data-lucide="check-circle" class="ic"></i>정상</button>
+                  <button><i data-lucide="alert-triangle" class="ic"></i>주의</button>
+                  <button><i data-lucide="x-circle" class="ic"></i>불량</button>
+                </div>
+              </div>
+
+              <!-- 메모 + 사진 -->
+              <div>
+                <div class="bar-label" style="margin-bottom:6px;">특이사항 + 사진</div>
+                <div class="memo-row">
+                  <textarea class="memo-area" placeholder="특이사항을 입력하세요"></textarea>
+                  <button class="photo-btn">
+                    <i data-lucide="camera" class="photo-icon"></i>
+                    촬영
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="footer-bar">
+              <button class="btn-close-mini">닫기</button>
+              <button class="btn-save">점검 기록 저장</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  </script>
+</body>
+</html>
