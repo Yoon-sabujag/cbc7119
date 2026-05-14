@@ -2596,9 +2596,17 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
             return r === 'caution' || r === 'bad'
           }) ?? stairCPs[0])
         : null
+      // 댐퍼 증상 피커 — stair 모드에서도 nonnormal 층 1+ 있을 때 finalMemo 분기 (Wave 2 패턴 일관)
+      const hasNonNormal = stairCPs.some(cp => {
+        const r = floorResults[cp.id] ?? 'normal'
+        return r !== 'normal'
+      })
+      const finalMemo = hasNonNormal
+        ? (damperSymptomPick === '직접 입력' ? memo.trim() : damperSymptomPick)
+        : memo
       for (const cp of stairCPs) {
         const keyForCp = photoTargetCp && cp.id === photoTargetCp.id ? photoKey : undefined
-        await onSave(cp.id, floorResults[cp.id] ?? 'normal', memo, keyForCp ?? undefined)
+        await onSave(cp.id, floorResults[cp.id] ?? 'normal', finalMemo, keyForCp ?? undefined)
       }
       setJustSaved(true); setMemo(''); photo.reset()
     } catch (e: any) {
@@ -2842,10 +2850,36 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
               </div>
             </div>
 
-            {/* 특이사항 + 사진 (stair 모드 — 댐퍼 증상 피커 없음. 메모 1건만) */}
+            {/* 댐퍼 증상 피커 (stair 모드 — nonnormal 층 1+ 있을 때만 표시, Wave 2 sp7 패턴 일관) */}
+            {stairCPs.some(cp => (floorResults[cp.id] ?? 'normal') !== 'normal') && (
+              <div>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['기판 조작 불량','모터 기능 이상','직접 입력'].map(s => {
+                    const active = damperSymptomPick === s
+                    return (
+                      <button key={s} onClick={() => setDamperSymptomPick(s)}
+                        className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-md cursor-pointer text-label font-semibold text-center leading-tight transition-colors ${
+                          active
+                            ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,0.12)] text-accent'
+                            : 'border-[1.5px] border-border-default bg-surface-raised text-text-secondary'
+                        }`}>
+                        {s}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 특이사항 + 사진 (stair 모드 — 메모 1건, 모든 층 record 에 동일 박힘) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">
+                  {stairCPs.some(cp => (floorResults[cp.id] ?? 'normal') !== 'normal') && damperSymptomPick === '직접 입력'
+                    ? '증상 상세 및 특이사항 (선택)'
+                    : '특이사항 (선택)'}
+                </label>
                 <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
               <div className="flex gap-2 items-start">
