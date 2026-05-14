@@ -4,6 +4,8 @@ slug: redesign-07-elevator-2-sketch-evselector
 status: complete
 date: 2026-05-15
 commit: 87ebd1e
+fix_commits:
+  - 83e0c1f: 1차 리뷰 반영 — EV-NN 라벨 → N호기 (본문 노출 0건) + EsBtn 색 통일 (accent 단일, 방향은 Chevron 모양으로만 구분)
 tags:
   - redesign
   - sketch
@@ -11,6 +13,15 @@ tags:
   - evselector
   - esnode
 ---
+
+## 1차 리뷰 반영 (사용자 피드백)
+
+- **호기 ID 라벨**: 본문에 노출되던 `EV-01` ~ `EV-11` 표기 (54건) 모두 `1호기` ~ `11호기` 로 치환. 호기 ID(EV-NN/ES-NN) 본문 노출 0건. 모든 코드와 사용자 표현 통일.
+- **EsBtn 색 통일**: 기존 `.es-btn-down` (danger) / `.es-btn-up` (safe) 두 클래스를 `.es-btn-selected` (accent) 단일로 통합. 엘리베이터 호기 선택 색(accent)과 EsBtn 선택 색이 같아져 "선택됨" 의미가 통일됨. 상행/하행 방향은 `ChevronUp` / `ChevronDown` 아이콘 모양으로만 구분 (색 차별 X).
+- **§6.1 색 의미 재정의**: fire (주황) = 호기 고장 미수리 / accent (파) = 선택 상태 (엘리베이터·EsBtn 공통). danger/safe 의 방향 색 사용은 폐기.
+- **재검증 13/13 PASS**: EV-/ES- 본문 노출 0 / 옛 룰 잔재 0 / es-btn-down/up CSS 0 / text-danger/safe 본문 사용 0 / es-btn-selected 사용 8 / N호기 라벨 65 / 라인 수 1546 / [data-theme] 8 / viewport 라벨 5 / 본문 이모지 0 / 9-11px 0 / 인라인 style 0 (CSS 코멘트 1건은 false positive) / 아이콘 enumeration 26.
+
+
 
 # 260515-4zh — EvSelector + EsNodeMap + EsBtn 2차 sketch
 
