@@ -18,7 +18,7 @@ export function AccessBlockedPopup({ onConfirm }: AccessBlockedPopupProps) {
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       gap:10, padding:20,
     }}>
-      <ShieldAlert size={32} color="var(--status-warning)" />
+      <ShieldAlert size={32} color="var(--status-fire)" />
       <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
         {'접근 불가 개소입니다.\n점검 기록 없이 다음 개소로 이동합니다.'}
       </div>
