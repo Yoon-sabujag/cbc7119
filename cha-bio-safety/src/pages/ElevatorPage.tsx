@@ -13,6 +13,8 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, AlertTriangle, Wrench } from 'lucide-react'
+import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
 
@@ -191,6 +193,13 @@ const CHECK_ITEMS_ES = [
 // ── 상수 ──────────────────────────────────────────────────
 const TYPE_ICON:  Record<string,string> = { passenger:'🛗', cargo:'📦', dumbwaiter:'🔲', escalator:'↕️' }
 const TYPE_LABEL: Record<string,string> = { passenger:'인승용', cargo:'화물용', dumbwaiter:'덤웨이터', escalator:'에스컬레이터' }
+// Wave 1 신설 — list 탭 카드 + 그룹 라벨용 컴포넌트 매퍼 (TYPE_ICON 이모지 객체와 병행 사용. 이모지는 다른 탭/모달에서 계속 사용됨)
+const TYPE_ICON_COMPONENT: Record<string, React.ComponentType<{ size?: number | string; className?: string; strokeWidth?: number | string }>> = {
+  passenger:  ElevatorIcon,
+  cargo:      Package,
+  dumbwaiter: UtensilsCrossed,
+  escalator:  MoveDiagonal,
+}
 const STATUS_STYLE: Record<string,{ label:string; color:string; bg:string }> = {
   normal:         { label:'정상',    color:'var(--safe)',   bg:'rgba(34,197,94,.13)'   },
   fault:          { label:'고장',    color:'var(--danger)', bg:'rgba(239,68,68,.13)'   },
