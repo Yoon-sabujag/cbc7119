@@ -433,16 +433,17 @@
       border-color: var(--border-strong);
       transform: translateY(-1px);
     }
-    /* §6.1: accent = EsBtn 선택 (호기 선택 의미. 방향(상행/하행)별 색 차별 X — ChevronUp/ChevronDown 아이콘만 방향 표시) */
+    /* §6.1: accent = EsBtn 선택 (.ev-btn-selected 와 동일한 fill 방식 — 내부 채움 + text-on-accent. 방향(상행/하행)별 색 차별 X — ChevronUp/ChevronDown 아이콘만 방향 표시) */
     .es-btn-selected {
-      background: var(--surface-active);
-      color: var(--accent);
+      background: var(--accent);
+      color: var(--text-on-accent);
       border-color: var(--accent);
       outline: 2px solid var(--accent);
       outline-offset: 1px;
     }
     .es-btn-selected:hover {
-      background: var(--surface-active);
+      background: var(--accent);
+      color: var(--text-on-accent);
       border-color: var(--accent);
     }
 
@@ -1307,7 +1308,7 @@
                         </div>
                         <div>
                           <div class="text-body-sm font-semibold text-acl">선택-하행 (accent)</div>
-                          <div class="text-caption text-t3 mt-0.5">bg-surface-active · outline-accent · text-accent</div>
+                          <div class="text-caption text-t3 mt-0.5">bg-accent · text-on-accent · outline-accent (.ev-btn-selected 와 동일)</div>
                           <div class="text-caption text-t3">방향(하행/상행)별 색 차별 X — ChevronDown 아이콘만 방향 차이</div>
                         </div>
                       </div>
@@ -1321,7 +1322,7 @@
                         </div>
                         <div>
                           <div class="text-body-sm font-semibold text-acl">선택-상행 (accent)</div>
-                          <div class="text-caption text-t3 mt-0.5">bg-surface-active · outline-accent · text-accent</div>
+                          <div class="text-caption text-t3 mt-0.5">bg-accent · text-on-accent · outline-accent (.ev-btn-selected 와 동일)</div>
                           <div class="text-caption text-t3">엘리베이터 호기 선택과 동일 색 — 통일된 "선택됨" 의미</div>
                         </div>
                       </div>
