@@ -194,15 +194,17 @@
 
   <p class="header-note">
     <strong style="color:#e6edf3">기준 문서:</strong> <code style="font-family:var(--font-mono);font-size:12px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px">docs/design-system.md</code> v0.1.1 §6 시각 규칙 + §7 Iconography.
-    <strong style="color:#e6edf3">검토 시안:</strong> 1차 메인 페이지 (16 카테고리 카드 그리드) · 2차 DIV/컴프 doubleCycle 모달 · 3차 배연창/제연댐퍼 모달 (Rev 3).
-    각 항목은 PASS (디자인 시스템 일치) / FIX (수정 권장) / FAIL (시스템 위배) / DATA (운영 데이터 정확도 확인 필요)로 분류.
+    <strong style="color:#e6edf3">검토 시안:</strong> <strong style="color:#22c55e">6차수 모두 완료</strong> —
+    1차 메인 페이지 · 2차 DIV/컴프 doubleCycle · 3차 배연창/제연댐퍼 · 4차 CCTV/특별피난계단 ·
+    5차 증상 피커 5종 · 6차 기타 6 카테고리.
+    각 항목은 PASS (디자인 시스템 일치) / FIX (수정 권장) / FAIL (시스템 위배) / DATA (운영 데이터 정확도)로 분류.
   </p>
 
   <!-- 요약 -->
   <div class="summary-grid">
     <div class="summary-tile pass">
-      <div class="num">14</div>
-      <div class="lbl">PASS · 모두 fix 완료 (Rev 4)</div>
+      <div class="num">26</div>
+      <div class="lbl">PASS · 6차수 모두 완료</div>
     </div>
     <div class="summary-tile fix">
       <div class="num">0</div>
@@ -481,30 +483,222 @@
   </div>
 
   <!-- ─────────────────────────────────────────────
-       모든 항목 close — 다음 단계
+       4차 시안 audit
+       ───────────────────────────────────────────── -->
+  <div class="audit-card">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <div class="audit-title">
+          <svg style="width:20px;height:20px;color:var(--t2)" viewBox="0 0 24 24" fill="none">
+            <rect x="1" y="16" width="10" height="6" rx="1" fill="currentColor"/>
+            <rect x="7" y="10" width="10" height="6" rx="1" fill="currentColor"/>
+            <rect x="13" y="4" width="10" height="6" rx="1" fill="currentColor"/>
+          </svg>
+          4차 시안 — 특별피난계단 / CCTV (일괄 입력)
+        </div>
+        <div class="audit-sub">4 viewport — 계단실 2(12층) · 계단실 1(7층) · DVR 13대 · DVR 13대 완료</div>
+        <span class="file-link">inspection-sketch-stairwell-cctv.html · 901 라인</span>
+      </div>
+      <span class="verdict pass">
+        <i data-lucide="check-circle" class="ic"></i>
+        ALL PASS
+      </span>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">헤더 아이콘 — StairsIcon + video</span>
+        <span class="item-rule">§7.2 + §7.6 커스텀</span>
+      </div>
+      <div class="item-body">
+        특별피난계단 = <strong>StairsIcon 커스텀 SVG</strong> (1차 시안과 동일 3단 블록).
+        CCTV = <code>video</code> lucide. 모두 <code>--text-secondary</code> 회색 통일.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">데이터 정확도 — STAIRWELLS + CCTV_DVRS</span>
+        <span class="item-rule">코드 매핑</span>
+      </div>
+      <div class="item-body">
+        5개 계단실 (1: 7층 / 2,4: 12층 / 3: 8층 / 5: 11층) — 코드 <code>STAIRWELLS</code> 정의 그대로.
+        DVR 13대 (DVR-01 ~ DVR-13) label/desc — <code>src/utils/cctv.ts</code> 그대로.
+        DVR desc 9px → <strong>12px</strong> 노안 친화 룰 §1.1 적용.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">일괄 입력 2열 그리드</span>
+        <span class="item-rule">§6.8 Layout · 3차 패턴 재사용</span>
+      </div>
+      <div class="item-body">
+        계단실 leftCount 만큼 좌측 / 나머지 우측. CCTV는 ⌈13/2⌉ = 좌7/우6.
+        QR 진입 층은 <code>--status-fire-bar</code> 강조. CCTV 헤더 우측 "설비 현황" 액션 = <code>server</code> lucide.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       5차 시안 audit
+       ───────────────────────────────────────────── -->
+  <div class="audit-card">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <div class="audit-title">
+          <i data-lucide="list-checks" class="w-5 h-5" style="color:var(--t2)"></i>
+          5차 시안 — 증상 피커 5종 (조건부 표시)
+        </div>
+        <div class="audit-sub">2 viewport — 카탈로그 5종 모음 · 소화기 사용 예</div>
+        <span class="file-link">inspection-sketch-symptom-pickers.html · 575 라인</span>
+      </div>
+      <span class="verdict pass">
+        <i data-lucide="check-circle" class="ic"></i>
+        ALL PASS
+      </span>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">조건부 표시 룰</span>
+        <span class="item-rule">코드 보존</span>
+      </div>
+      <div class="item-body">
+        <code>result !== 'normal'</code> 일 때만 증상 피커 표시 (코드 3463-3545 그대로).
+        "직접 입력" 선택 시 memo 라벨 "특이사항 (선택)" → "<strong>증상 상세 및 특이사항</strong>"으로 변경.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">5종 옵션 텍스트 — 코드 그대로</span>
+        <span class="item-rule">표시 라벨 룰</span>
+      </div>
+      <div class="item-body">
+        유도등(3) · 소화기(3) · <strong>소화전(4)</strong> · 방화셔터(3) · 전실제연댐퍼(3) — 옵션 텍스트 100% 코드 일치.
+        소화전은 4개라 자동 wrap. 코드 fontSize 10/11 → <strong>13px</strong> 노안 친화 룰.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">증상 button 시각</span>
+        <span class="item-rule">v0.1.1 segmented</span>
+      </div>
+      <div class="item-body">
+        비활성 = <code>bg2 + 1.5px border + t2 색</code>. 활성 = <code>accent border + tinted bg + accent 색</code>.
+        결과 picker(pill)와 시각 구분 — 증상은 사각 segmented.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       6차 시안 audit
+       ───────────────────────────────────────────── -->
+  <div class="audit-card">
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <div class="audit-title">
+          <i data-lucide="layers" class="w-5 h-5" style="color:var(--t2)"></i>
+          6차 시안 — 기타 카테고리 (Parking · Power · FireAlarm · 일반)
+        </div>
+        <div class="audit-sub">4 viewport — ParkingModal · PowerPanelModal · FireAlarmModal · 일반 InspectionModal(청정소화약제)</div>
+        <span class="file-link">inspection-sketch-misc-modals.html · 582 라인</span>
+      </div>
+      <span class="verdict pass">
+        <i data-lucide="check-circle" class="ic"></i>
+        ALL PASS
+      </span>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">헤더 아이콘 4종</span>
+        <span class="item-rule">§7.2</span>
+      </div>
+      <div class="item-body">
+        주차장비/회전문 = <code>car</code> · 소방용전원공급반 = <code>zap</code> · 화재수신반 = <code>bell</code> · 청정소화약제 = <code>cloud</code>.
+        모두 lucide + secondary 회색 통일.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">화재수신반 "화재보/비화재보" — danger 톤</span>
+        <span class="item-rule">의미 색 §1.4</span>
+      </div>
+      <div class="item-body">
+        FireAlarmModal 구분 segmented는 <code>danger</code> border + <code>status-danger-bg</code> + danger 색 active.
+        v0.1.1 §1.4 "상태 색은 의미가 우선" — 화재 관련 입력의 danger 톤은 룰 정합.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">청정소화약제 데이터 — 운영 정확도</span>
+        <span class="item-rule">사용자 확인 (2026-05-14)</span>
+      </div>
+      <div class="item-body">
+        시안 fix: 구역 = <strong>연구동 + 지하 (2개)</strong>, 층 = 연구동 7F / 지하 B1·B4.
+        개소 "B4 지하 주차장 청정소화약제실" 1/3 완료. 사용자 알려준 운영 데이터 반영.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS — 데이터 정확</span></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head">
+        <span class="item-name">FireAlarmModal form 입력</span>
+        <span class="item-rule">v0.1.1 form 룰</span>
+      </div>
+      <div class="item-body">
+        input/textarea = padding 10/12, radius 9, label 12px (코드 11px → 노안 친화 룰 상향).
+        date/time 네이티브 input, 단순 form 흐름.
+      </div>
+      <div style="margin-top:6px"><span class="verdict pass"><i data-lucide="check" class="ic"></i>PASS</span></div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────
+       02-inspection 6차수 마무리 — 종합 PASS
        ───────────────────────────────────────────── -->
   <div class="audit-card" style="background:rgba(34,197,94,0.06); border-color:rgba(34,197,94,0.3)">
     <div class="audit-title">
       <i data-lucide="check-circle" class="w-5 h-5" style="color:var(--safe)"></i>
-      모든 항목 close — 1·2·3차 디자인 시스템 정합 완료
+      02-inspection 6차수 마무리 — 디자인 시스템 정합 100%
     </div>
 
     <div class="item" style="background:transparent">
       <div class="item-body" style="color:var(--t2)">
-        ✓ 2차 결과 picker fix (Rev 2 · §7.3)<br>
-        ✓ 2차 photo-btn 통일 (Rev 2 · 일관성)<br>
-        ✓ 3차 운영 데이터 반영 (Rev 4 · 계단전실 2/4/5, 연결송수관 북문/남문)<br>
-        ✓ 트렌드 버튼 아이콘 = <code>bar-chart-3</code> 채택 (Rev 2 · §7.4 정합)
+        <strong style="color:var(--safe)">16 카테고리 × 16 모달 + 6 부가물</strong> — 모든 시안이 v0.1.1 디자인 시스템 §6 시각 룰 + §7 Iconography 정합.<br><br>
+        <strong style="color:var(--t1)">차수별 산출물:</strong><br>
+        · 1차 메인 페이지 (2020 라인) — 16 카테고리 카드 그리드<br>
+        · 2차 DIV/컴프 doubleCycle (1371 라인) — 압력 입력 + 트렌드 + 컴프 from-div/standalone<br>
+        · 3차 배연창/제연댐퍼 (735 라인) — zone+층+위치 3단 + 계단전실 일괄<br>
+        · 4차 CCTV/특별피난계단 (901 라인) — 일괄 입력 2열 그리드<br>
+        · 5차 증상 피커 5종 (575 라인) — 조건부 표시 + 직접 입력 분기<br>
+        · 6차 기타 카테고리 (582 라인) — Parking/Power/FireAlarm/일반<br>
+        · audit + decision (이 파일 + trend-icon-decision)
       </div>
     </div>
 
     <div class="item" style="background:transparent;border-color:var(--info)">
       <div class="item-head">
-        <span class="item-name" style="color:var(--info)">다음 단계 — 커밋 + push</span>
+        <span class="item-name" style="color:var(--info)">다음 단계 — 사용자 결정</span>
         <span class="item-rule">redesign/02-inspection</span>
       </div>
       <div class="item-body">
-        2차 sketch + 3차 sketch + audit + trend-icon-decision 4개 파일을 단일 커밋으로 묶어 <code>redesign/02-inspection</code> 브랜치에 push.
+        <strong>① 차수 main 머지</strong> — 6 sketch 통과 → <code>redesign/02-inspection</code> → <code>main</code> 머지 (메모리 룰: 사용자 명시 컨펌 필요).<br>
+        <strong>② TSX 변환 시작</strong> — sketch → 실제 InspectionPage.tsx (5346 라인) 재작성. 큰 작업, 별도 phase 필요.<br>
+        <strong>③ 다음 페이지 sketch</strong> — 워크플로우상 1차 메인 그룹 나머지 (03-qr-scan / 04-remediation / 05-remediation-detail).
       </div>
     </div>
   </div>
