@@ -20,8 +20,8 @@ import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import {
   ChevronLeft, Bell,
-  // 카테고리 lucide (10종)
-  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video,
+  // 카테고리 lucide (11종)
+  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Square,
   // Zone (3종)
   FlaskConical, Building2, TrainFront,
   // 결과 (5종)
@@ -739,38 +739,40 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
     }
   }
 
-  const tabStyle = (sel: boolean) => ({
-    flex:1, padding:'9px 0', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer' as const,
-    border:     sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)',
-    background: sel ? 'var(--acl)' : 'var(--bg)',
-    color:      sel ? '#fff' : 'var(--t2)',
-    transition: 'all .12s',
-  })
-
   const getPositionLabel = (cp: CheckPoint) =>
     cp.location.includes('북측') ? '북측' : cp.location.includes('동측') ? '동측' : cp.location
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col"
+      style={{ top:'var(--sat, 0px)', bottom:NAV_BOTTOM, transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)' }}
+    >
 
       {/* 헤더 */}
-      <div style={{ padding:'10px 16px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
+      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
+        <Square className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
+        <div className="flex-1">
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
         </div>
       </div>
 
       {/* 구역 선택 */}
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>구역 선택</div>
-        <div style={{ display:'flex', gap:8 }}>
+      <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">구역 선택</div>
+        <div className="flex gap-2">
           {(['research','office'] as BYZone[]).map(z => {
             const zCPs    = allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo?.startsWith(BY_LOC_NO[z]))
             const allDone = zCPs.length > 0 && zCPs.every(cp => records[cp.id])
+            const isSel   = zone === z
+            const cls = isSel
+              ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+              : allDone
+                ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
-              <button key={z} onClick={() => setZone(z)} style={tabStyle(zone === z)}>
-                {BY_ZONE_LABELS[z]}{allDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+              <button key={z} onClick={() => setZone(z)}
+                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                {BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
           })}
@@ -779,16 +781,20 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
 
       {/* 층 선택 */}
       {zone && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>층 선택</div>
-          <div style={{ display:'flex', gap:5, overflowX:'auto', scrollbarWidth:'none' }}>
+        <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+          <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {availableFloors.map(f => {
               const fCPs  = zoneCPs.filter(cp => cp.floor === f)
               const fDone = fCPs.every(cp => records[cp.id]) && fCPs.length > 0
               const isSel = f === selFloor
+              const cls = isSel
+                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={f} onClick={() => setSelFloor(f)} style={{ flexShrink:0, padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', border: isSel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', background: isSel ? 'var(--acl)' : 'var(--bg)', color: isSel ? '#fff' : 'var(--t2)', transition:'all .1s' }}>
-                  {f}{fDone && <span style={{ fontSize:9, marginLeft:2, opacity:0.75 }}>✓</span>}
+                <button key={f} onClick={() => setSelFloor(f)}
+                  className={`flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  {f}{fDone && <span className="text-caption ml-0.5 opacity-75">✓</span>}
                 </button>
               )
             })}
@@ -798,15 +804,21 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
 
       {/* 위치 선택 (연구동에서 같은 층에 복수 CP인 경우) */}
       {zone && selFloor && floorCPs.length > 1 && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>위치 선택</div>
-          <div style={{ display:'flex', gap:8 }}>
+        <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">위치 선택</div>
+          <div className="flex gap-2">
             {floorCPs.map(cp => {
               const isSel = selectedId === cp.id
               const isDone = !!records[cp.id]
+              const cls = isSel
+                ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                : isDone
+                  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                  : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
-                <button key={cp.id} onClick={() => setSelectedId(cp.id)} style={tabStyle(isSel)}>
-                  {getPositionLabel(cp)}{isDone && <span style={{ fontSize:10, marginLeft:4, opacity:0.8 }}>✓</span>}
+                <button key={cp.id} onClick={() => setSelectedId(cp.id)}
+                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  {getPositionLabel(cp)}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
             })}
@@ -815,13 +827,13 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
       )}
 
       {/* 폼 영역 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px', display:'flex', flexDirection:'column', gap:12 }}>
-        {!zone && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>구역을 선택해 주세요</div>}
-        {zone && !selFloor && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>층을 선택해 주세요</div>}
-        {zone && selFloor && floorCPs.length > 1 && !selectedId && <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t3)', fontSize:13 }}>위치를 선택해 주세요</div>}
+      <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 relative">
+        {!zone && <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">구역을 선택해 주세요</div>}
+        {zone && !selFloor && <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">층을 선택해 주세요</div>}
+        {zone && selFloor && floorCPs.length > 1 && !selectedId && <div className="flex-1 flex items-center justify-center text-text-tertiary text-label">위치를 선택해 주세요</div>}
 
         {selectedCP && (
-          <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:12 }}>
+          <div className="relative flex flex-col gap-3">
             {/* 재진입 팝업 (소화기 방식 부분 오버레이 — 이 서브 컨테이너만 덮음) */}
             {popupState && (
               <InspectionRevisitPopup
@@ -834,42 +846,57 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
               />
             )}
             {!!records[selectedCP.id] && !justSaved && (
-              <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'9px 12px', fontSize:12, color:'var(--safe)' }}>✓ 이미 점검 완료된 항목입니다</div>
+              <div className="bg-safe-bg border border-safe rounded-sm px-3 py-[9px] text-label text-safe flex items-center gap-1.5">✓ 이미 점검 완료된 항목입니다</div>
             )}
             <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+              <div className="flex gap-2">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const Icon = opt.value === 'normal' ? CheckCircle2 : opt.value === 'caution' ? AlertTriangle : XCircle
+                  const active = result === opt.value
+                  const stateCls = active
+                    ? opt.value === 'normal' ? 'border-safe bg-safe-bg text-safe'
+                      : opt.value === 'caution' ? 'border-warning bg-warning-bg text-warning'
+                      : 'border-danger bg-danger-bg text-danger'
+                    : 'border-border-default bg-surface-raised text-text-tertiary'
+                  return (
+                    <button key={opt.value} onClick={() => setResult(opt.value)}
+                      className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${stateCls}`}>
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      {opt.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none font-sans outline-none box-border placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
-            {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-            {justSaved  && <div style={{ background:'rgba(34,197,94,.1)',  border:'1px solid rgba(34,197,94,.25)',  borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+            {submitError && <div className="bg-danger-bg border border-danger rounded-sm px-3 py-2 text-label text-danger">{submitError}</div>}
+            {justSaved  && <div className="bg-safe-bg border border-safe rounded-sm px-3 py-2 text-label text-safe">✓ 저장 완료</div>}
           </div>
         )}
       </div>
 
       {/* 저장 버튼 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose}
+          className="px-[18px] py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-label font-semibold cursor-pointer">
+          닫기
+        </button>
         <button
           onClick={handleSave}
           disabled={submitting || photo.uploading || !selectedCP}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!selectedCP ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||!selectedCP ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!selectedCP ? 'default' : 'pointer', transition:'all .13s' }}
+          className="flex-1 py-[13px] rounded-md border-none text-white text-body-sm font-bold cursor-pointer transition-colors disabled:text-text-tertiary disabled:cursor-default"
+          style={{ background: submitting||photo.uploading||!selectedCP ? 'var(--border-strong)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
         >
           {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '점검 기록 저장'}
         </button>
