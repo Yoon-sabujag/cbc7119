@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import type { ComponentType } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -17,6 +18,18 @@ import type { ScheduleItem } from '../types'
 import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
+import {
+  ChevronLeft, Bell,
+  // 카테고리 lucide (10종)
+  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video,
+  // Zone (3종)
+  FlaskConical, Building2, TrainFront,
+  // 결과 (5종)
+  CheckCircle2, AlertTriangle, XCircle, Wrench, HelpCircle,
+} from 'lucide-react'
+import {
+  StairsIcon, ShutterIcon, ExitSignIcon, SmokeVentIcon, HoseReelIcon, FireExtinguisherCustom,
+} from '../components/ui/icons'
 
 // 완료 정의 통일 — 카드/대시보드/층별 화면 모두 동일 룰을 사용한다.
 // "완료" = normal | caution | (bad + status='resolved')
@@ -53,6 +66,49 @@ const CATEGORY_GROUPS: { labels:string[]; icon:string; color:string; border:stri
   { labels:['화재수신반'],                            icon:'🔔', color:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)',  categories:['화재수신반'] },
   { labels:['CCTV'],                               icon:'📹', color:'rgba(71,85,105,.12)',  border:'rgba(71,85,105,.3)',  categories:['CCTV'] },
 ]
+
+// 아이콘 컴포넌트 공통 타입 — lucide-react (size: string | number) 와 custom icons.tsx 모두 호환.
+type IconComp = ComponentType<{ size?: number | string; className?: string }>
+
+// 16 카테고리 아이콘 컴포넌트 매핑 (§7.2). CATEGORY_GROUPS 와 동일 순서.
+// 카테고리 카드 내부에서는 §6.3 룰에 따라 모두 회색 (text-text-secondary).
+const CATEGORY_ICONS: IconComp[] = [
+  StairsIcon,            // 0. 특별피난계단
+  Cloud,                 // 1. 청정소화약제
+  Shield,                // 2. 전실제연댐퍼/연결송수관
+  Car,                   // 3. 주차장비/회전문
+  Zap,                   // 4. 소방용전원공급반
+  ShutterIcon,           // 5. 방화셔터
+  BarChart3,             // 6. DIV
+  Wind,                  // 7. 컴프레셔
+  ExitSignIcon,          // 8. 유도등
+  SmokeVentIcon,         // 9. 배연창
+  ArrowDownToLine,       // 10. 완강기
+  HoseReelIcon,          // 11. 소화전/비상콘센트
+  FireExtinguisherCustom,// 12. 소화기
+  Waves,                 // 13. 소방펌프
+  Bell,                  // 14. 화재수신반
+  Video,                 // 15. CCTV
+]
+
+// 결과 아이콘 매핑 (§7.3)
+const RESULT_ICONS: Record<string, IconComp> = {
+  normal:     CheckCircle2,
+  caution:    AlertTriangle,
+  bad:        XCircle,
+  unresolved: Wrench,
+  missing:    HelpCircle,
+}
+
+// §6.1 Progress Color Rule — 카테고리 카드 좌측 3px 색바 클래스
+function getCatBarClass(total: number, doneCnt: number): string {
+  if (total === 0) return ''
+  const pct = (doneCnt / total) * 100
+  if (pct === 0)   return 'bg-text-tertiary/40'
+  if (pct < 50)    return 'bg-warning-bar'
+  if (pct < 100)   return 'bg-accent'
+  return 'bg-safe-bar'
+}
 
 // 점검 결과 입력용 (정상/주의/불량만 — 미조치는 별도 조치 스텝에서 처리)
 const INSPECT_RESULT_OPTIONS: { value:CheckResult; label:string; color:string; bg:string; icon:string }[] = [
@@ -4328,93 +4384,104 @@ export default function InspectionPage() {
   }
 
   return (
-    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-surface-page">
 
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', paddingBottom:80 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 pt-3 pb-20">
         {syncedAt && (
-          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:4 }}>
-            <span style={{ fontSize:10, color:'var(--t3)' }}>
+          <div className="flex justify-end mb-1">
+            <span className="text-caption text-text-tertiary">
               동기화 {syncedAt.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', second:'2-digit' })}
             </span>
           </div>
         )}
 
         {/* 오늘 점검 현황 */}
-        <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'12px 14px', marginBottom:16 }}>
-          <div onClick={() => recordCount > 0 && setShowTodayDetail(p => !p)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', cursor: recordCount > 0 ? 'pointer' : 'default' }}>
-            <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>오늘 점검 현황</div>
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              {recordCount > 0 && <div style={{ fontSize:11, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.12)', border:'1px solid rgba(34,197,94,.25)', borderRadius:20, padding:'2px 9px' }}>{recordCount}건 완료</div>}
-              {recordCount > 0 && <span style={{ color:'var(--t3)', fontSize:11 }}>{showTodayDetail ? '▲' : '▼'}</span>}
+        <div className="bg-surface-raised border border-border-default rounded-md px-3.5 py-3 mb-4">
+          <div onClick={() => recordCount > 0 && setShowTodayDetail(p => !p)}
+               className={`flex items-center justify-between ${recordCount > 0 ? 'cursor-pointer' : ''}`}>
+            <div className="text-caption font-semibold text-text-tertiary tracking-wider">오늘 점검 현황</div>
+            <div className="flex items-center gap-1.5">
+              {recordCount > 0 && (
+                <div className="text-caption font-bold text-safe bg-safe-bg border border-safe-bar/40 rounded-pill px-2 py-0.5">{recordCount}건 완료</div>
+              )}
+              {recordCount > 0 && <span className="text-text-tertiary text-caption">{showTodayDetail ? '▲' : '▼'}</span>}
             </div>
           </div>
 
           {recordCount === 0 && (
-            <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 0 2px', color:'var(--t3)' }}>
-              <span style={{ fontSize:20 }}>📋</span>
-              <span style={{ fontSize:12 }}>아직 점검 기록이 없습니다</span>
+            <div className="flex items-center gap-2 pt-2.5 pb-0.5 text-text-tertiary">
+              <span className="text-[20px]">📋</span>
+              <span className="text-caption">아직 점검 기록이 없습니다</span>
             </div>
           )}
 
           {recordCount > 0 && !showTodayDetail && (
             <>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:8 }}>
-                {categoryStats.map(s => (
-                  <div key={s.idx} style={{ display:'flex', alignItems:'center', gap:4, background:'rgba(34,197,94,.08)', border:'1px solid rgba(34,197,94,.2)', borderRadius:8, padding:'3px 8px' }}>
-                    <span style={{ fontSize:11 }}>{s.group.icon}</span>
-                    <span style={{ fontSize:11, color:'var(--t1)', fontWeight:600 }}>{s.group.labels[0]}</span>
-                    <span style={{ fontSize:10, color:'var(--safe)', fontWeight:700 }}>{s.done}</span>
-                  </div>
-                ))}
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {categoryStats.map(s => {
+                  const CIcon = CATEGORY_ICONS[s.idx]
+                  return (
+                    <div key={s.idx} className="inline-flex items-center gap-1 bg-safe-bg/60 border border-safe-bar/30 rounded-sm px-2 py-0.5">
+                      <CIcon size={12} className="text-text-secondary" />
+                      <span className="text-caption text-text-primary font-semibold">{s.group.labels[0]}</span>
+                      <span className="text-caption text-safe font-bold">{s.done}</span>
+                    </div>
+                  )
+                })}
               </div>
-              <div style={{ display:'flex', flexWrap:'nowrap', gap:3, marginTop:6, overflowX:'auto' }}>
-                {[
-                  { icon:'✅', label:'정상', val:resultStats.normal,     color:'var(--safe)',   bg:'rgba(34,197,94,.1)',  border:'rgba(34,197,94,.3)'  },
-                  { icon:'⚠️', label:'주의', val:resultStats.caution,    color:'var(--warn)',   bg:'rgba(245,158,11,.1)', border:'rgba(245,158,11,.3)' },
-                  { icon:'❌', label:'불량', val:resultStats.bad,        color:'var(--danger)', bg:'rgba(239,68,68,.1)',  border:'rgba(239,68,68,.3)'  },
-                ].map(({ icon, label, val, color, bg, border }) => (
-                  <div key={label} style={{ display:'flex', alignItems:'center', gap:3, background:bg, border:`1px solid ${border}`, borderRadius:20, padding:'1px 6px', flexShrink:0 }}>
-                    <span style={{ fontSize:9 }}>{icon}</span>
-                    <span style={{ fontSize:9, color, fontWeight:700 }}>{label} {val}</span>
-                  </div>
-                ))}
-                <span style={{ fontSize:9, color:'var(--t3)', alignSelf:'center', flexShrink:0, padding:'0 1px' }}>—</span>
-                {[
-                  { icon:'🔧', label:'미조치', val:unresolvedItems.length, color:'var(--fire)',  bg:'rgba(249,115,22,.1)', border:'rgba(249,115,22,.3)' },
-                  { icon:'✓',  label:'조치완',  val:resolvedItems.length,   color:'#3b82f6', bg:'rgba(59,130,246,.08)', border:'rgba(59,130,246,.25)' },
-                ].map(({ icon, label, val, color, bg, border }) => (
-                  <div key={label} style={{ display:'flex', alignItems:'center', gap:3, background:bg, border:`1px solid ${border}`, borderRadius:20, padding:'1px 6px', flexShrink:0 }}>
-                    <span style={{ fontSize:9 }}>{icon}</span>
-                    <span style={{ fontSize:9, color, fontWeight:700 }}>{label} {val}</span>
-                  </div>
-                ))}
+              <div className="flex flex-nowrap gap-1 mt-1.5 overflow-x-auto">
+                {([
+                  { key:'normal',  label:'정상', val:resultStats.normal,  tone:'safe' as const    },
+                  { key:'caution', label:'주의', val:resultStats.caution, tone:'warning' as const },
+                  { key:'bad',     label:'불량', val:resultStats.bad,     tone:'danger' as const  },
+                ]).map(({ key, label, val, tone }) => {
+                  const Icon = RESULT_ICONS[key]
+                  const cls = tone === 'safe'    ? 'bg-safe-bg/70 border-safe-bar/40 text-safe'
+                            : tone === 'warning' ? 'bg-warning-bg/70 border-warning-bar/40 text-warning'
+                            :                       'bg-danger-bg/70 border-danger-bar/40 text-danger'
+                  return (
+                    <div key={key} className={`inline-flex items-center gap-1 border rounded-pill px-1.5 py-0.5 shrink-0 ${cls}`}>
+                      <Icon size={12} />
+                      <span className="text-caption font-bold">{label} {val}</span>
+                    </div>
+                  )
+                })}
+                <span className="text-caption text-text-tertiary self-center shrink-0 px-0.5">—</span>
+                <div className="inline-flex items-center gap-1 bg-fire-bg/70 border border-fire-bar/40 rounded-pill px-1.5 py-0.5 shrink-0 text-fire">
+                  <Wrench size={12} />
+                  <span className="text-caption font-bold">미조치 {unresolvedItems.length}</span>
+                </div>
+                <div className="inline-flex items-center gap-1 bg-info-bg/70 border border-info-bar/40 rounded-pill px-1.5 py-0.5 shrink-0 text-info">
+                  <CheckCircle2 size={12} />
+                  <span className="text-caption font-bold">조치완 {resolvedItems.length}</span>
+                </div>
               </div>
             </>
           )}
 
           {showTodayDetail && (
-            <div style={{ marginTop:10 }}>
+            <div className="mt-2.5">
               {/* 미조치 항목 */}
               {unresolvedItems.length > 0 && (
-                <div style={{ marginBottom:10 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:13 }}>🔧</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--danger)' }}>미조치 항목</span>
-                    <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'var(--danger)', borderRadius:20, padding:'1px 7px' }}>{unresolvedItems.length}</span>
+                <div className="mb-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Wrench size={14} className="text-danger" />
+                    <span className="text-caption font-bold text-danger">미조치 항목</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-danger rounded-pill px-1.5 py-0.5">{unresolvedItems.length}</span>
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  <div className="flex flex-col gap-1.5">
                     {unresolvedItems.map(item => {
-                      const opt = ALL_RESULT_OPTIONS.find(o => o.value === item.result)!
+                      const Icon = RESULT_ICONS[item.result] ?? Wrench
                       return (
-                        <div key={item.cpId} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'rgba(239,68,68,.06)', borderRadius:10, border:`1px solid ${opt.color}33` }}>
-                          <span style={{ fontSize:13, flexShrink:0 }}>{opt.icon}</span>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.cp!.location}</div>
-                            <div style={{ fontSize:10, color:'var(--t3)' }}>{item.cp!.floor} · {item.cp!.category}</div>
+                        <div key={item.cpId} className="flex items-center gap-2 px-2.5 py-2 bg-danger-bg/40 rounded-md border border-danger-bar/30">
+                          <Icon size={14} className="shrink-0 text-danger" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-caption font-semibold text-text-primary truncate">{item.cp!.location}</div>
+                            <div className="text-caption text-text-tertiary">{item.cp!.floor} · {item.cp!.category}</div>
                           </div>
                           <button
                             onClick={() => setResolveTarget({ cpId: item.cpId, recordId: item.recordId, result: item.result, photoKey: item.photoKey, memo: item.memo })}
-                            style={{ flexShrink:0, padding:'4px 9px', borderRadius:8, border:'1px solid var(--danger)', background:'rgba(239,68,68,.1)', color:'var(--danger)', fontSize:11, fontWeight:700, cursor:'pointer' }}
+                            className="shrink-0 px-2 py-1 rounded-sm border border-danger-bar bg-danger-bg/60 text-danger text-caption font-bold cursor-pointer hover:bg-danger-bg transition-colors"
                           >
                             조치 입력
                           </button>
@@ -4428,24 +4495,24 @@ export default function InspectionPage() {
               {/* 조치 완료 항목 */}
               {resolvedItems.length > 0 && (
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:13 }}>🔵</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#3b82f6' }}>조치 완료 항목</span>
-                    <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'#3b82f6', borderRadius:20, padding:'1px 7px' }}>{resolvedItems.length}</span>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <CheckCircle2 size={14} className="text-info" />
+                    <span className="text-caption font-bold text-info">조치 완료 항목</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-info rounded-pill px-1.5 py-0.5">{resolvedItems.length}</span>
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  <div className="flex flex-col gap-1.5">
                     {resolvedItems.map(item => {
-                      const opt = ALL_RESULT_OPTIONS.find(o => o.value === item.result)!
+                      const Icon = RESULT_ICONS[item.result] ?? CheckCircle2
                       return (
-                        <div key={item.cpId} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'rgba(59,130,246,.06)', borderRadius:10, border:'1px solid rgba(59,130,246,.2)' }}>
-                          <span style={{ fontSize:13, flexShrink:0 }}>{opt.icon}</span>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.cp!.location}</div>
-                            <div style={{ fontSize:10, color:'var(--t3)' }}>{item.cp!.floor} · {item.cp!.category}</div>
+                        <div key={item.cpId} className="flex items-center gap-2 px-2.5 py-2 bg-info-bg/40 rounded-md border border-info-bar/30">
+                          <Icon size={14} className="shrink-0 text-info" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-caption font-semibold text-text-primary truncate">{item.cp!.location}</div>
+                            <div className="text-caption text-text-tertiary">{item.cp!.floor} · {item.cp!.category}</div>
                           </div>
                           <button
                             onClick={() => setDetailTarget({ cpId: item.cpId })}
-                            style={{ flexShrink:0, padding:'4px 9px', borderRadius:8, border:'1px solid rgba(59,130,246,.4)', background:'rgba(59,130,246,.1)', color:'#3b82f6', fontSize:11, fontWeight:700, cursor:'pointer' }}
+                            className="shrink-0 px-2 py-1 rounded-sm border border-info-bar/60 bg-info-bg/60 text-info text-caption font-bold cursor-pointer hover:bg-info-bg transition-colors"
                           >
                             조치결과
                           </button>
@@ -4458,21 +4525,21 @@ export default function InspectionPage() {
 
               {/* 정상 항목 */}
               {normalItems.length > 0 && (
-                <div style={{ marginTop: unresolvedItems.length > 0 || resolvedItems.length > 0 ? 10 : 0 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-                    <span style={{ fontSize:13 }}>✅</span>
-                    <span style={{ fontSize:11, fontWeight:700, color:'var(--safe)' }}>정상 항목</span>
-                    <span style={{ fontSize:10, fontWeight:700, color:'#fff', background:'var(--safe)', borderRadius:20, padding:'1px 7px' }}>{normalItems.length}</span>
+                <div className={unresolvedItems.length > 0 || resolvedItems.length > 0 ? 'mt-2.5' : ''}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <CheckCircle2 size={14} className="text-safe" />
+                    <span className="text-caption font-bold text-safe">정상 항목</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-safe rounded-pill px-1.5 py-0.5">{normalItems.length}</span>
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+                  <div className="flex flex-col gap-1.5">
                     {normalItems.map(item => (
-                      <div key={item.cpId} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'rgba(34,197,94,.06)', borderRadius:10, border:'1px solid rgba(34,197,94,.18)' }}>
-                        <span style={{ fontSize:13, flexShrink:0 }}>✅</span>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:11, fontWeight:600, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.cp!.location}</div>
-                          <div style={{ fontSize:10, color:'var(--t3)' }}>{item.cp!.floor} · {item.cp!.category}</div>
+                      <div key={item.cpId} className="flex items-center gap-2 px-2.5 py-2 bg-safe-bg/40 rounded-md border border-safe-bar/30">
+                        <CheckCircle2 size={14} className="shrink-0 text-safe" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-caption font-semibold text-text-primary truncate">{item.cp!.location}</div>
+                          <div className="text-caption text-text-tertiary">{item.cp!.floor} · {item.cp!.category}</div>
                         </div>
-                        <span style={{ fontSize:10, fontWeight:700, color:'var(--safe)', flexShrink:0 }}>정상</span>
+                        <span className="text-caption font-bold text-safe shrink-0">정상</span>
                       </div>
                     ))}
                   </div>
@@ -4480,7 +4547,7 @@ export default function InspectionPage() {
               )}
 
               {unresolvedItems.length === 0 && resolvedItems.length === 0 && normalItems.length === 0 && (
-                <div style={{ textAlign:'center', padding:'8px 0', color:'var(--t3)', fontSize:12 }}>점검 항목 없음</div>
+                <div className="text-center py-2 text-text-tertiary text-caption">점검 항목 없음</div>
               )}
             </div>
           )}
@@ -4488,11 +4555,11 @@ export default function InspectionPage() {
 
         {/* 카테고리 그리드 */}
         {loading ? (
-          <div style={{ textAlign:'center', padding:'32px 0', color:'var(--t3)', fontSize:13 }}>체크포인트 불러오는 중...</div>
+          <div className="text-center py-8 text-text-tertiary text-label">체크포인트 불러오는 중...</div>
         ) : (
           <>
-            <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, letterSpacing:'0.05em' }}>점검 항목 선택</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+            <div className="text-caption font-semibold text-text-tertiary mb-2 tracking-wider">점검 항목 선택</div>
+            <div className="grid grid-cols-3 gap-2">
               {(() => {
                 // 260427-1dc: cycle window 분기용 today (KST local). 다른 today 로컬과 충돌 방지로 별도 이름.
                 const _n = new Date()
@@ -4519,15 +4586,27 @@ export default function InspectionPage() {
                 }
                 const allDone = total > 0 && doneCnt >= total
                 const hasItems = total > 0 || g.categories.includes('화재수신반')
+                const Icon = CATEGORY_ICONS[idx]
+                const barClass = getCatBarClass(total, doneCnt)
+                const cardClass = [
+                  'relative bg-surface-raised border border-border-default rounded-md',
+                  'px-2.5 py-2.5 flex items-start gap-1.5 overflow-hidden min-h-[86px] box-border transition-all duration-150',
+                  !hasItems ? 'opacity-[0.38] cursor-default' : 'cursor-pointer hover:border-border-strong hover:-translate-y-px',
+                  hasItems && total > 0 && doneCnt === 0 ? 'opacity-60' : '',
+                  allDone ? 'bg-safe-bg/40 border-safe-bar/40' : '',
+                ].filter(Boolean).join(' ')
                 return (
                   <div key={idx} onClick={() => {
                     if (g.categories.includes('화재수신반')) { setShowFireAlarm(true); return }
                     if (hasItems) setSelectedGroupIdx(idx)
-                  }} style={{ background: allDone ? 'rgba(34,197,94,.08)' : g.color, border:`1px solid ${allDone ? 'rgba(34,197,94,.35)' : g.border}`, borderRadius:12, padding:'11px 8px', display:'flex', alignItems:'flex-start', gap:6, cursor: hasItems ? 'pointer' : 'default', opacity: hasItems ? 1 : 0.38, transition:'all .13s', minHeight:86, boxSizing:'border-box' }}>
-                    <span style={{ fontSize:16, lineHeight:1.3, flexShrink:0 }}>{g.icon}</span>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      {g.labels.map(l => <div key={l} style={{ fontSize:10, fontWeight:600, color:'var(--t1)', lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l}</div>)}
-                      <div style={{ fontSize:10, marginTop:2, color: allDone ? 'var(--safe)' : doneCnt > 0 ? 'var(--warn)' : 'var(--t3)' }}>
+                  }} className={cardClass}>
+                    {total > 0 && <div className={`absolute left-0 top-0 bottom-0 w-[3px] ${barClass}`} />}
+                    <Icon size={20} className="text-text-secondary shrink-0" />
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      {g.labels.map(l => (
+                        <div key={l} className="text-caption font-semibold text-text-primary truncate leading-snug">{l}</div>
+                      ))}
+                      <div className={`text-caption mt-0.5 font-medium ${allDone ? 'text-safe font-bold' : doneCnt > 0 ? 'text-warning' : 'text-text-tertiary'}`}>
                         {g.categories.includes('화재수신반') ? '기록' : total === 0 ? '없음' : allDone ? '✓ 완료' : doneCnt > 0 ? `${doneCnt}/${total}` : `${total}개`}
                       </div>
                     </div>
@@ -4683,32 +4762,32 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
     finally { setSaving(false) }
   }
 
-  const lbl: React.CSSProperties = { fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:6, display:'block' }
-  const inp: React.CSSProperties = { width:'100%', boxSizing:'border-box' as const, padding:'10px 12px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit', minWidth:0, WebkitAppearance:'none', appearance:'none' }
+  const labelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
+  const inputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-page text-text-primary text-label outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden"
+         style={{ top: 'var(--sat, 0px)', bottom: NAV_BOTTOM }}>
       {/* 헤더 */}
-      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'10px 14px', display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:20 }}>🔔</span>
-        <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>화재수신반 기록</span>
+      <div className="shrink-0 bg-surface-raised border-b border-border-default px-3.5 py-2.5 flex items-center gap-2.5">
+        <Bell size={20} className="text-text-secondary" />
+        <span className="text-body-sm font-bold text-text-primary">화재수신반 기록</span>
       </div>
 
       {/* 스크롤 본문 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'14px 16px' }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex-1 overflow-y-auto px-4 py-3.5">
+        <div className="flex flex-col gap-3.5">
           {/* 구분 */}
           <div>
-            <label style={lbl}>구분</label>
-            <div style={{ display:'flex', gap:8 }}>
+            <label className={labelCls}>구분</label>
+            <div className="flex gap-2">
               {([['fire','화재보'],['non_fire','비화재보']] as const).map(([v, l]) => (
                 <button key={v} onClick={() => setType(v)}
-                  style={{
-                    flex:1, padding:'10px 0', borderRadius:9, fontSize:13, fontWeight:700, cursor:'pointer',
-                    border: type===v ? '2px solid #ef4444' : '1px solid var(--bd)',
-                    background: type===v ? 'rgba(239,68,68,0.12)' : 'var(--bg3)',
-                    color: type===v ? '#ef4444' : 'var(--t2)',
-                  }}>
+                  className={`flex-1 px-0 py-2.5 rounded-sm text-label font-bold cursor-pointer transition-colors ${
+                    type===v
+                      ? 'border-2 border-danger-bar bg-danger-bg text-danger'
+                      : 'border border-border-default bg-surface-sunken text-text-secondary hover:bg-surface-active'
+                  }`}>
                   {l}
                 </button>
               ))}
@@ -4717,45 +4796,49 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
 
           {/* 발생일시 */}
           <div>
-            <label style={lbl}>발생일시</label>
+            <label className={labelCls}>발생일시</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ ...inp, display:'block', marginBottom:6, height:44 }} />
+              className={`${inputCls} block mb-1.5 h-input`} />
             <input type="time" value={time} onChange={e => setTime(e.target.value)}
-              style={{ ...inp, display:'block', height:44 }} />
+              className={`${inputCls} block h-input`} />
           </div>
 
           {/* 발생장소 */}
           <div>
-            <label style={lbl}>발생장소</label>
+            <label className={labelCls}>발생장소</label>
             <textarea value={location} onChange={e => setLocation(e.target.value)}
               placeholder="발생장소를 입력하세요" rows={2}
-              style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+              className={`${inputCls} resize-none leading-relaxed`} />
           </div>
 
           {/* 발생원인 */}
           <div>
-            <label style={lbl}>발생원인</label>
+            <label className={labelCls}>발생원인</label>
             <textarea value={cause} onChange={e => setCause(e.target.value)}
-              rows={2} style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+              rows={2} className={`${inputCls} resize-none leading-relaxed`} />
           </div>
 
           {/* 조치사항 */}
           <div>
-            <label style={lbl}>조치사항</label>
+            <label className={labelCls}>조치사항</label>
             <textarea value={action} onChange={e => setAction(e.target.value)}
-              rows={2} style={{ ...inp, resize:'none', lineHeight:1.5 }} />
+              rows={2} className={`${inputCls} resize-none leading-relaxed`} />
           </div>
         </div>
       </div>
 
       {/* 하단 버튼 바 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0 flex gap-2">
         <button onClick={onClose}
-          style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>
+          className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
           닫기
         </button>
         <button onClick={handleSave} disabled={saving}
-          style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 2px 8px rgba(37,99,235,0.3)' }}>
+          className={`flex-1 py-3.5 rounded-md border-0 text-text-on-accent text-body font-bold transition-shadow ${
+            saving
+              ? 'bg-border-default cursor-default'
+              : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] cursor-pointer shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+          }`}>
           {saving ? '저장 중...' : '점검 기록 저장'}
         </button>
       </div>
