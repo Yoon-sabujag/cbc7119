@@ -194,28 +194,46 @@ function WheelPicker({ items, onSelect, records }: {
   }, [items.length, onSelect, snapTo])
 
   return (
-    <div style={{ position:'relative', height:containerH, borderRadius:12, overflow:'hidden', background:'var(--bg2)', border:'1px solid var(--bd)' }}>
+    <div className="relative rounded-md overflow-hidden bg-surface-raised border border-border-default"
+         style={{ height: containerH }}>
       {/* 중앙 하이라이트 */}
-      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:ITEM_H, transform:'translateY(-50%)', background:'rgba(14,165,233,.08)', borderTop:'1px solid rgba(14,165,233,.22)', borderBottom:'1px solid rgba(14,165,233,.22)', pointerEvents:'none', zIndex:2 }} />
+      <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 bg-info-bg/60 border-t border-b border-info-bar/30 pointer-events-none z-[2]"
+           style={{ height: ITEM_H }} />
       {/* 상단 페이드 */}
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:pad, background:'linear-gradient(to bottom, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
+      <div className="absolute top-0 left-0 right-0 pointer-events-none z-[3]"
+           style={{ height: pad, background: 'linear-gradient(to bottom, var(--surface-raised) 30%, transparent)' }} />
       {/* 하단 페이드 */}
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:pad, background:'linear-gradient(to top, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
+      <div className="absolute bottom-0 left-0 right-0 pointer-events-none z-[3]"
+           style={{ height: pad, background: 'linear-gradient(to top, var(--surface-raised) 30%, transparent)' }} />
 
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        style={{ height:'100%', overflowY:'auto', scrollSnapType:'y mandatory', paddingTop:pad, paddingBottom:pad, boxSizing:'border-box', scrollbarWidth:'none' }}
+        className="h-full overflow-y-auto [scroll-snap-type:y_mandatory] box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ paddingTop: pad, paddingBottom: pad }}
       >
         {items.map((item, idx) => {
           const dist = Math.abs(idx - activeIdx)
           const done = records[item.id]
+          const opacityClass = dist === 0 ? 'opacity-100' : dist === 1 ? 'opacity-[0.48]' : 'opacity-[0.15]'
+          const doneColorCls =
+            done === 'normal'     ? 'text-safe'
+          : done === 'caution'    ? 'text-warning'
+          : done === 'bad'        ? 'text-danger'
+          : done === 'unresolved' ? 'text-fire'
+          :                          'text-text-tertiary'
           return (
-            <div key={item.id} style={{ height:ITEM_H, display:'flex', alignItems:'center', padding:'0 14px', scrollSnapAlign:'center', cursor:'pointer', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15, transition:'opacity .1s' }}>
-              <div style={{ flex:1, fontSize:dist===0 ? 13 : 11, fontWeight:dist===0 ? 700 : 400, color:'var(--t1)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            <div key={item.id}
+                 className={`flex items-center px-3.5 cursor-pointer [scroll-snap-align:center] transition-opacity duration-100 ${opacityClass}`}
+                 style={{ height: ITEM_H }}>
+              <div className={`flex-1 truncate text-text-primary ${dist === 0 ? 'text-label font-bold' : 'text-caption font-normal'}`}>
                 {item.location}
               </div>
-              {done && <span style={{ fontSize:10, fontWeight:700, color:RESULT_COLOR[done], flexShrink:0, marginLeft:8 }}>{RESULT_LABEL[done]}</span>}
+              {done && (
+                <span className={`text-caption font-bold shrink-0 ml-2 ${doneColorCls}`}>
+                  {RESULT_LABEL[done]}
+                </span>
+              )}
             </div>
           )
         })}
@@ -3313,28 +3331,40 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     }
   }
 
+  // Zone 아이콘 lucide 매핑 (§7.5)
+  const ZONE_LUCIDE: Record<ZoneKey, IconComp> = {
+    research: FlaskConical,
+    office: Building2,
+    underground: TrainFront,
+  }
+  // 현재 group 의 lucide/커스텀 아이콘 (헤더용)
+  const headerGroupIdx = CATEGORY_GROUPS.findIndex(g => g === group)
+  const HeaderIcon = headerGroupIdx >= 0 ? CATEGORY_ICONS[headerGroupIdx] : null
+
   // ── 렌더 ─────────────────────────────────────────────
   return (
-    <div style={{
-      position:'fixed',
-      top: 'var(--sat, 0px)', left:0, right:0,
-      bottom: NAV_BOTTOM,   // BottomNav 위에 맞춤
-      zIndex:99,            // BottomNav(100) 아래 — 네비는 항상 표시
-      background:'var(--bg)',
-      display:'flex', flexDirection:'column',
-      transform: visible ? 'translateY(0)' : 'translateY(100%)',
-      transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
-    }}>
+    <div
+      className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col"
+      style={{
+        top: 'var(--sat, 0px)',
+        bottom: NAV_BOTTOM,
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
+      }}
+    >
 
       {/* ── 헤더 ── */}
-      <div style={{ paddingTop:'10px', paddingBottom:10, paddingLeft:16, paddingRight:16, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
-        <span style={{ fontSize:22, lineHeight:1 }}>{group.icon}</span>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{group.labels[0]}</div>
-          {group.labels.length > 1 && <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>{group.labels.slice(1).join(' · ')}</div>}
+      <div className="shrink-0 bg-surface-raised border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
+        {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-text-primary truncate">{group.labels[0]}</div>
+          {group.labels.length > 1 && (
+            <div className="text-caption text-text-tertiary mt-0.5 truncate">{group.labels.slice(1).join(' · ')}</div>
+          )}
         </div>
         {isExtinguisher && (
-          <button onClick={() => navigate('/extinguishers')} style={{ height:30, padding:'0 12px', borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
+          <button onClick={() => navigate('/extinguishers')}
+                  className="h-input px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-active transition-colors">
             소화기 관리
           </button>
         )}
@@ -3342,14 +3372,20 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
       {/* ── 구역 선택 — CP가 2개 이상일 때만 ── */}
       {groupCPs.length > 1 && (
-      <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-        <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>구역 선택</div>
-        <div style={{ display:'flex', gap:6 }}>
+      <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">구역 선택</div>
+        <div className="flex gap-1.5">
           {ZONE_CONFIG.filter(z => availableZones.includes(z.key)).map(z => {
             const isSel = z.key === selectedZone
+            const ZIcon = ZONE_LUCIDE[z.key]
             return (
-              <button key={z.key} onClick={() => handleZoneChange(z.key)} style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5, padding:'4px 8px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', border: isSel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', background: isSel ? 'var(--acl)' : 'var(--bg)', color: isSel ? '#fff' : 'var(--t2)', transition:'all .1s' }}>
-                <span style={{ fontSize:13 }}>{z.icon}</span>{z.label}
+              <button key={z.key} onClick={() => handleZoneChange(z.key)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                        isSel
+                          ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                          : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'
+                      }`}>
+                <ZIcon size={14} />{z.label}
               </button>
             )
           })}
@@ -3359,17 +3395,22 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
       {/* ── 층 선택 (구역 선택 후, CP가 2개 이상일 때만) ── */}
       {groupCPs.length > 1 && selectedZone && (
-        <div style={{ padding:'8px 14px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>층 선택</div>
-          <div style={{ display:'flex', gap:5, overflowX:'auto', paddingBottom:2, scrollbarWidth:'none' }}>
+        <div className="px-3.5 py-2 bg-surface-raised border-b border-border-default shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+          <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {availableFloors.map(f => {
               const fCPs  = groupCPs.filter(cp => matchZone(cp, selectedZone) && cp.floor === f)
               // 260426-f54: '점검 시도 있음' 이 아니라 '확정 완료' 를 카운트 (isCpCompleted 룰)
               const fDone = fCPs.filter(cp => isCpCompleted(monthRecords[cp.id])).length
               const isSel = f === selectedFloor
               return (
-                <button key={f} onClick={() => handleFloorChange(f)} style={{ flexShrink:0, padding:'4px 12px', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', border: isSel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', background: isSel ? 'var(--acl)' : 'var(--bg)', color: isSel ? '#fff' : 'var(--t2)', transition:'all .1s' }}>
-                  {f}{fDone > 0 && <span style={{ marginLeft:3, fontSize:9, opacity:0.75 }}>({fDone})</span>}
+                <button key={f} onClick={() => handleFloorChange(f)}
+                        className={`shrink-0 px-3 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                          isSel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'
+                        }`}>
+                  {f}{fDone > 0 && <span className="ml-0.5 text-caption opacity-75">({fDone})</span>}
                 </button>
               )
             })}
@@ -3381,10 +3422,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       {/* H1 (260423-htx Task 5): '이 층 점검 완료 (N/N)' 배너 제거 —
          개소 카드 첫줄의 `doneCount/totalCount 완료` 표기로 대체. */}
       {selectedFloor && (isGuideLight ? pickerSourceCPs.length >= 1 : floorCPs.length >= 1) && (
-        <div style={{ padding:'10px 14px 8px', flexShrink:0, background:'var(--bg)' }}>
+        <div className="px-3.5 pt-2.5 pb-2 shrink-0 bg-surface-page">
           {pendingCPs.length >= 1 && (
             <div
-              style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+              className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5"
+              style={{ touchAction: 'pan-y' }}
               onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
               onTouchEnd={e => {
                 const sx = (e.currentTarget as any)._swX
@@ -3394,35 +3436,45 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 else if (dx < -40 && pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1)
               }}
             >
-              <button onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx > 0 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx > 0 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx > 0 ? 1 : 0.3 }}>‹</button>
-              <div style={{ flex:1, textAlign:'center' }}>
-                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>개소 ({pickerIdx + 1}/{pendingCPs.length}) · {doneCount}/{totalCount} 완료</div>
+              <button onClick={() => { if (pickerIdx > 0) setPickerIdx(pickerIdx - 1) }}
+                      className={`w-9 h-9 rounded-sm border border-border-default bg-surface-page text-body font-bold flex items-center justify-center shrink-0 transition-opacity ${
+                        pickerIdx > 0
+                          ? 'text-text-primary cursor-pointer opacity-100'
+                          : 'text-text-tertiary cursor-default opacity-30'
+                      }`}>‹</button>
+              <div className="flex-1 text-center">
+                <div className="text-caption text-text-tertiary font-semibold">개소 ({pickerIdx + 1}/{pendingCPs.length}) · {doneCount}/{totalCount} 완료</div>
                 {isExtinguisher && extDetail ? (
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:3 }}>
-                    <span style={{ fontSize:14 }}>🧯</span>
-                    <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{extDetail.mgmt_no}</span>
-                    <span style={{ fontSize:10, fontWeight:600, color:'#ef4444', background:'rgba(239,68,68,.1)', padding:'1px 6px', borderRadius:4 }}>{extDetail.type}</span>
+                  <div className="flex items-center justify-center gap-1.5 mt-1">
+                    <span className="text-[14px]">🧯</span>
+                    <span className="text-body-sm font-bold text-text-primary">{extDetail.mgmt_no}</span>
+                    <span className="text-caption font-semibold text-danger bg-danger-bg px-1.5 py-0.5 rounded-sm">{extDetail.type}</span>
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{selectedCP?.location ?? ''}</div>
-                    {selectedCP?.description && <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{selectedCP.description}</div>}
+                    <div className="text-label font-bold text-text-primary mt-0.5">{selectedCP?.location ?? ''}</div>
+                    {selectedCP?.description && <div className="text-caption text-text-secondary mt-0.5">{selectedCP.description}</div>}
                   </>
                 )}
                 {/* H1 (260423-htx Task 5): '✓ 점검 완료' 초록 알약 제거 —
                     개소 카드 첫줄 `doneCount/totalCount 완료` 표기로 대체. */}
               </div>
-              <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }} style={{ width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)', color: pickerIdx < pendingCPs.length - 1 ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: pickerIdx < pendingCPs.length - 1 ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: pickerIdx < pendingCPs.length - 1 ? 1 : 0.3 }}>›</button>
+              <button onClick={() => { if (pickerIdx < pendingCPs.length - 1) setPickerIdx(pickerIdx + 1) }}
+                      className={`w-9 h-9 rounded-sm border border-border-default bg-surface-page text-body font-bold flex items-center justify-center shrink-0 transition-opacity ${
+                        pickerIdx < pendingCPs.length - 1
+                          ? 'text-text-primary cursor-pointer opacity-100'
+                          : 'text-text-tertiary cursor-default opacity-30'
+                      }`}>›</button>
             </div>
           )}
         </div>
       )}
 
       {/* ── 나머지 (스크롤 가능) ── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'10px 14px 8px', display:'flex', flexDirection:'column', gap:8 }}>
+      <div className="flex-1 overflow-y-auto px-3.5 pt-2.5 pb-2 flex flex-col gap-2">
         {/* 접근불가 뱃지 (해당 항목만) */}
         {selectedCP?.defaultResult && (
-          <div style={{ background:'rgba(234,179,8,.08)', border:'1px solid rgba(234,179,8,.3)', borderRadius:8, padding:'6px 10px', fontSize:11, color:'#b45309', fontWeight:600 }}>
+          <div className="bg-warning-bg/40 border border-warning-bar/40 rounded-sm px-2.5 py-1.5 text-caption text-warning font-semibold">
             접근불가 구역 — 자동 정상 처리
           </div>
         )}
@@ -3430,51 +3482,44 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         {isExtinguisher && selectedCP && extDetail && (() => {
           // 분말 소화기 교체 주기: 제조 후 10년 (헬퍼 위임 — src/utils/extinguisher.ts)
           const replaceWarning = getReplaceWarning(extDetail.type, extDetail.manufactured_at)
-          const rwStyle = {
-            danger:   { bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.3)', color:'#dc2626', text:'연한 초과 — 즉시 교체 필요' },
-            imminent: { bg:'rgba(249,115,22,.12)', border:'rgba(249,115,22,.3)', color:'#c2410c', text:'연한 임박 — 교체 시급' },
-            warn:     { bg:'rgba(234,179,8,.12)',  border:'rgba(234,179,8,.3)',  color:'#a16207', text:'연한 도래 — 교체 준비 필요' },
+          const rwClass: Record<'danger' | 'imminent' | 'warn', { box: string; text: string }> = {
+            danger:   { box: 'bg-danger-bg/60 border-danger-bar/40 text-danger',   text: '연한 초과 — 즉시 교체 필요' },
+            imminent: { box: 'bg-fire-bg/60 border-fire-bar/40 text-fire',         text: '연한 임박 — 교체 시급' },
+            warn:     { box: 'bg-warning-bg/60 border-warning-bar/40 text-warning',text: '연한 도래 — 교체 준비 필요' },
           }
           return (
-            <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
-                <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.location || (extDetail as any).cp_location || '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufacturer ?? '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.manufactured_at ?? '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.approval_no ?? '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.prefix_code ?? '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.seal_no ?? '-'}</span></div>
-                <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{extDetail.serial_no ?? '-'}</span></div>
+            <div className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-caption">
+                <div><span className="text-text-tertiary">위치 </span><span className="text-text-primary font-semibold">{extDetail.location || (extDetail as any).cp_location || '-'}</span></div>
+                <div><span className="text-text-tertiary">제조업체 </span><span className="text-text-primary font-semibold">{extDetail.manufacturer ?? '-'}</span></div>
+                <div><span className="text-text-tertiary">제조년월 </span><span className="text-text-primary font-semibold">{extDetail.manufactured_at ?? '-'}</span></div>
+                <div><span className="text-text-tertiary">형식승인 </span><span className="text-text-primary font-semibold">{extDetail.approval_no ?? '-'}</span></div>
+                <div><span className="text-text-tertiary">접두문자 </span><span className="text-text-primary font-semibold">{extDetail.prefix_code ?? '-'}</span></div>
+                <div><span className="text-text-tertiary">증지번호 </span><span className="text-text-primary font-semibold">{extDetail.seal_no ?? '-'}</span></div>
+                <div><span className="text-text-tertiary">제조번호 </span><span className="text-text-primary font-semibold">{extDetail.serial_no ?? '-'}</span></div>
               </div>
               {replaceWarning && (
-                <div style={{
-                  marginTop:8, fontSize:11, fontWeight:700, borderRadius:6, padding:'6px 10px',
-                  background: rwStyle[replaceWarning].bg,
-                  border: `1px solid ${rwStyle[replaceWarning].border}`,
-                  color: rwStyle[replaceWarning].color,
-                }}>
-                  {rwStyle[replaceWarning].text}
+                <div className={`mt-2 text-caption font-bold rounded-sm px-2.5 py-1.5 border ${rwClass[replaceWarning].box}`}>
+                  {rwClass[replaceWarning].text}
                 </div>
               )}
               {/* ── Phase 24: 정보 수정 / 소화기 분리 sub-action row ── */}
               {extDetail.id != null && (
-                <div style={{ display:'flex', gap:8, marginTop:8 }}>
+                <div className="flex gap-2 mt-2">
                   <button
                     onClick={() => setEditExtModalOpen(extDetail)}
-                    style={{ flex:1, height:36, borderRadius:8, fontSize:12, fontWeight:700,
-                      background:'var(--bg3)', color:'var(--t1)', border:'1px solid var(--bd2)', cursor:'pointer' }}>
+                    className="flex-1 h-button rounded-sm text-label font-bold bg-surface-sunken text-text-primary border border-border-strong cursor-pointer hover:bg-surface-active transition-colors">
                     정보 수정
                   </button>
                   <button
                     onClick={() => setUnassignConfirmExt(extDetail)}
-                    style={{ flex:1, height:36, borderRadius:8, fontSize:12, fontWeight:700,
-                      background:'rgba(239,68,68,.08)', color:'var(--danger)', border:'1px solid rgba(239,68,68,.3)', cursor:'pointer' }}>
+                    className="flex-1 h-button rounded-sm text-label font-bold bg-danger-bg/60 text-danger border border-danger-bar/40 cursor-pointer hover:bg-danger-bg transition-colors">
                     소화기 분리
                   </button>
                 </div>
               )}
               {extDetail.note && (
-                <div style={{ marginTop:6, fontSize:11, color:'var(--t2)', background:'rgba(245,158,11,.08)', padding:'4px 8px', borderRadius:4 }}>
+                <div className="mt-1.5 text-caption text-text-secondary bg-warning-bg/40 px-2 py-1 rounded-sm">
                   {extDetail.note}
                 </div>
               )}
@@ -3484,7 +3529,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
         {/* 결과 선택 ~ 특이사항 영역 (이미 점검한 개소 오버레이 포함) */}
         {selectedCP && (
-          <div style={{ position:'relative' }}>
+          <div className="relative">
             {/* 접근불가 개소 안내 팝업 (최우선) — 재진입 팝업보다 앞에 렌더 */}
             {showAccessBlockedPopup ? (
               <AccessBlockedPopup
@@ -3504,17 +3549,28 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
 
             {/* 결과 선택 — 1행 3열 (정상/주의/불량, 기본값 정상) */}
             <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: result===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: result===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: result===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+              <div className="flex gap-1.5">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const RIcon = RESULT_ICONS[opt.value]
+                  const isSel = result === opt.value
+                  const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                  : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                  :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                  return (
+                    <button key={opt.value} onClick={() => setResult(opt.value)}
+                            className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md cursor-pointer transition-colors ${
+                              isSel ? activeCls : 'border border-border-default bg-surface-raised text-text-tertiary hover:bg-surface-active'
+                            }`}>
+                      {RIcon ? <RIcon size={20} /> : null}
+                      <span className="text-caption font-bold">{opt.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
+            {/* [WAVE2-PRESERVE-START] 5 증상 피커 — 인라인 style 보존 (다음 quick 트랙에서 변환) */}
             {/* 유도등: 증상 피커 (점검 결과 아래, 특이사항 위) */}
             {isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && (
               <div style={{ marginTop:10 }}>
@@ -3599,11 +3655,12 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 </div>
               </div>
             )}
+            {/* [WAVE2-PRESERVE-END] 5 증상 피커 끝 */}
 
             {/* 특이사항 + 증빙사진 (한 행) */}
-            <div style={{ marginTop:10 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>
+            <div className="mt-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">
                   {(isGuideLight && result !== 'normal' && (selectedCP as any).locationNo !== 'audience_passage' && symptomPick === '직접 입력')
                     || (isExtinguisher && result !== 'normal' && extSymptomPick === '직접 입력')
                     || (selectedCP?.category === '소화전' && result !== 'normal' && hydrantSymptomPick === '직접 입력')
@@ -3611,10 +3668,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     || (selectedCP?.category === '전실제연댐퍼' && result !== 'normal' && damperSymptomPick === '직접 입력')
                     ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
                 </label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
                 <PhotoButton hook={photo} label="촬영" noCapture />
               </div>
             </div>
@@ -3624,30 +3682,41 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         {/* 비상콘센트 (소화전과 location_no가 같은 경우 함께 표시) */}
         {pairedBC && (
           <>
-            <div style={{ height:1, background:'var(--bd)', margin:'2px 0' }} />
-            <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)' }}>
-              <div style={{ fontSize:10, color:'var(--t3)' }}>{pairedBC.category}</div>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{pairedBC.location}</div>
-              {pairedBC.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{pairedBC.description}</div>}
+            <div className="h-px bg-border-default my-0.5" />
+            <div className="bg-surface-raised rounded-md px-3 py-2 border border-border-default">
+              <div className="text-caption text-text-tertiary">{pairedBC.category}</div>
+              <div className="text-label font-bold text-text-primary mt-0.5">{pairedBC.location}</div>
+              {pairedBC.description && <div className="text-caption text-text-tertiary mt-0.5">{pairedBC.description}</div>}
             </div>
             <div>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>비상콘센트 점검 결과</div>
-              <div style={{ display:'flex', gap:6 }}>
-                {INSPECT_RESULT_OPTIONS.map(opt => (
-                  <button key={opt.value} onClick={() => setBcResult(opt.value)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:4, padding:'10px 4px', borderRadius:12, cursor:'pointer', border: bcResult===opt.value ? `2px solid ${opt.color}` : '1px solid var(--bd)', background: bcResult===opt.value ? opt.bg : 'var(--bg2)', transition:'all .13s' }}>
-                    <span style={{ fontSize:20 }}>{opt.icon}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: bcResult===opt.value ? opt.color : 'var(--t3)' }}>{opt.label}</span>
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">비상콘센트 점검 결과</div>
+              <div className="flex gap-1.5">
+                {INSPECT_RESULT_OPTIONS.map(opt => {
+                  const RIcon = RESULT_ICONS[opt.value]
+                  const isSel = bcResult === opt.value
+                  const activeCls = opt.value === 'normal'  ? 'border-2 border-safe-bar bg-safe-bg text-safe'
+                                  : opt.value === 'caution' ? 'border-2 border-warning-bar bg-warning-bg text-warning'
+                                  :                            'border-2 border-danger-bar bg-danger-bg text-danger'
+                  return (
+                    <button key={opt.value} onClick={() => setBcResult(opt.value)}
+                            className={`flex-1 flex flex-col items-center gap-1 px-1 py-2.5 rounded-md cursor-pointer transition-colors ${
+                              isSel ? activeCls : 'border border-border-default bg-surface-raised text-text-tertiary hover:bg-surface-active'
+                            }`}>
+                      {RIcon ? <RIcon size={20} /> : null}
+                      <span className="text-caption font-bold">{opt.label}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
             <div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
               </div>
-              <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-                <textarea value={bcMemo} onChange={e => setBcMemo(e.target.value)} placeholder="특이사항을 입력하세요" style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }} />
+              <div className="flex gap-2 items-start">
+                <textarea value={bcMemo} onChange={e => setBcMemo(e.target.value)} placeholder="특이사항을 입력하세요"
+                  className="flex-1 h-[72px] px-2.5 py-2 rounded-md bg-surface-raised border border-border-strong text-text-primary text-caption resize-none outline-none box-border focus:border-border-focus transition-colors" />
                 <PhotoButton hook={bcPhoto} label="촬영" noCapture />
               </div>
             </div>
@@ -3655,32 +3724,43 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         )}
 
         {groupCPs.length > 1 && !selectedZone && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', flex:1, color:'var(--t3)', fontSize:13, paddingTop:20 }}>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">
             <span>위에서 구역을 선택해 주세요</span>
           </div>
         )}
         {groupCPs.length > 1 && selectedZone && !selectedFloor && (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', flex:1, color:'var(--t3)', fontSize:13, paddingTop:20 }}>
+          <div className="flex-1 flex items-center justify-center text-text-tertiary text-label pt-5">
             <span>층을 선택해 주세요</span>
           </div>
         )}
         {groupCPs.length === 1 && pendingCPs.length === 0 && !selectedCP && (
-          <div style={{ textAlign:'center', padding:'24px 0', color:'var(--safe)', fontSize:13, fontWeight:600 }}>
+          <div className="text-center py-6 text-safe text-label font-semibold">
             ✅ 점검 완료
           </div>
         )}
 
-        {submitError && <div style={{ background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{submitError}</div>}
-        {justSaved && !submitError && <div style={{ background:'rgba(34,197,94,.1)', border:'1px solid rgba(34,197,94,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--safe)' }}>✓ 저장 완료</div>}
+        {submitError && (
+          <div className="bg-danger-bg/40 border border-danger-bar/30 rounded-sm px-3 py-2 text-caption text-danger">{submitError}</div>
+        )}
+        {justSaved && !submitError && (
+          <div className="bg-safe-bg/40 border border-safe-bar/30 rounded-sm px-3 py-2 text-caption text-safe">✓ 저장 완료</div>
+        )}
       </div>
 
       {/* ── 저장 버튼 ── */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default shrink-0 flex gap-2">
+        <button onClick={onClose}
+                className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">
+          닫기
+        </button>
         <button
           onClick={handleSave}
           disabled={submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked}
-          style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'var(--bd2)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||bcPhoto.uploading||!selectedCP||isAccessBlocked ? 'default' : 'pointer', transition:'all .13s' }}
+          className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+            submitting || photo.uploading || bcPhoto.uploading || !selectedCP || isAccessBlocked
+              ? 'bg-border-default text-text-tertiary cursor-default'
+              : 'bg-[linear-gradient(135deg,#1d4ed8,#0ea5e9)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(37,99,235,0.3)]'
+          }`}
         >
           {(photo.uploading || bcPhoto.uploading) ? '사진 업로드 중...' : submitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '점검 기록 저장'}
         </button>
@@ -3692,56 +3772,55 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         const EDITABLE_FIELDS = ['type','prefix_code','seal_no','serial_no','approval_no','manufactured_at','manufacturer'] as const
         const norm = (v: string | null | undefined) => (v === '' || v === undefined) ? null : v
         const changedCount = EDITABLE_FIELDS.filter(f => norm(editExtForm[f]) !== norm(orig[f])).length
-        const counterChip = (() => {
-          if (changedCount === 0) return { bg:'var(--bg3)', color:'var(--t3)' }
-          if (changedCount <= 3)  return { bg:'rgba(59,130,246,.15)', color:'var(--acl)' }
-          return { bg:'rgba(239,68,68,.15)', color:'var(--danger)' }
-        })()
+        const counterChipCls =
+          changedCount === 0 ? 'bg-surface-sunken text-text-tertiary' :
+          changedCount <= 3  ? 'bg-accent/15 text-accent' :
+                               'bg-danger-bg text-danger'
         const EXT_TYPES = ['분말 3.3kg', '분말 20kg', '이산화탄소', '할로겐', '강화액', 'K급']
-        const inputStyle = (field: string): React.CSSProperties => ({
-          width:'100%', height:40, padding:'0 12px', borderRadius:8,
-          background:'var(--bg3)', color:'var(--t1)', fontSize:13, marginBottom:14,
-          border: norm(editExtForm[field as typeof EDITABLE_FIELDS[number]]) !== norm(orig[field as typeof EDITABLE_FIELDS[number]])
-            ? '1px solid var(--acl)' : '1px solid var(--bd2)',
-          boxSizing:'border-box' as const,
-        })
+        const fieldChanged = (field: typeof EDITABLE_FIELDS[number]) =>
+          norm(editExtForm[field]) !== norm(orig[field])
+        const inputClass = (field: typeof EDITABLE_FIELDS[number]) =>
+          `w-full h-input px-3 rounded-sm bg-surface-sunken text-text-primary text-label mb-3 box-border outline-none border ${
+            fieldChanged(field) ? 'border-accent' : 'border-border-strong'
+          } focus:border-border-focus transition-colors`
         const canSave = changedCount >= 1 && changedCount <= 3
         return (
           <div
-            style={{ position:'absolute', inset:0, zIndex:40, background:'rgba(0,0,0,0.6)',
-              display:'flex', alignItems:'center', justifyContent:'center' }}
+            className="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center"
             onClick={() => setEditExtModalOpen(null)}
           >
             <div
-              style={{ width:'90%', maxWidth:360, background:'var(--bg2)', borderRadius:16,
-                padding:20, border:'1px solid var(--bd2)', maxHeight:'80vh', overflowY:'auto' }}
+              className="w-[90%] max-w-[360px] bg-surface-raised rounded-lg p-5 border border-border-strong max-h-[80vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               {/* 헤더 */}
-              <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:16 }}>
-                <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>정보 수정</span>
-                <span style={{ display:'inline-flex', padding:'2px 8px', borderRadius:5, fontSize:11, fontWeight:700,
-                  background:counterChip.bg, color:counterChip.color }}>
+              <div className="flex items-baseline justify-between mb-4">
+                <span className="text-body font-bold text-text-primary">정보 수정</span>
+                <span className={`inline-flex px-2 py-0.5 rounded-sm text-caption font-bold ${counterChipCls}`}>
                   변경: {changedCount} / 3
                 </span>
               </div>
               {changedCount > 3 && (
-                <div style={{ fontSize:11, color:'var(--danger)', marginBottom:12 }}>
+                <div className="text-caption text-danger mb-3">
                   4개 이상 변경하려면 「폐기 후 재등록」을 사용하세요.
                 </div>
               )}
               {/* 종류 — 3열 버튼 그리드 */}
-              <div style={{ fontSize:11, color:'var(--t3)', marginBottom:6 }}>종류</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginBottom:14 }}>
-                {EXT_TYPES.map(t => (
-                  <button key={t} onClick={() => setEditExtForm(f => ({ ...f, type:t }))}
-                    style={{ padding:'8px 0', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer',
-                      background: editExtForm.type === t ? 'var(--acl)' : 'var(--bg3)',
-                      color: editExtForm.type === t ? '#fff' : 'var(--t2)',
-                      border: editExtForm.type === t ? 'none' : '1px solid var(--bd)' }}>
-                    {t}
-                  </button>
-                ))}
+              <div className="text-caption text-text-tertiary mb-1.5">종류</div>
+              <div className="grid grid-cols-3 gap-1.5 mb-3.5">
+                {EXT_TYPES.map(t => {
+                  const sel = editExtForm.type === t
+                  return (
+                    <button key={t} onClick={() => setEditExtForm(f => ({ ...f, type:t }))}
+                      className={`py-2 rounded-sm text-caption font-bold cursor-pointer ${
+                        sel
+                          ? 'bg-accent text-text-on-accent border-0'
+                          : 'bg-surface-sunken text-text-secondary border border-border-default hover:bg-surface-active'
+                      } transition-colors`}>
+                      {t}
+                    </button>
+                  )
+                })}
               </div>
               {/* 텍스트 필드 */}
               {([
@@ -3753,19 +3832,18 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                 { field:'manufacturer',  label:'제조업체' },
               ] as const).map(({ field, label }) => (
                 <div key={field}>
-                  <div style={{ fontSize:11, color:'var(--t3)', marginBottom:6 }}>{label}</div>
+                  <div className="text-caption text-text-tertiary mb-1.5">{label}</div>
                   <input
                     value={editExtForm[field]}
                     onChange={e => setEditExtForm(f => ({ ...f, [field]: e.target.value }))}
-                    style={inputStyle(field)}
+                    className={inputClass(field)}
                   />
                 </div>
               ))}
               {/* 액션 */}
-              <div style={{ display:'flex', gap:8, marginTop:16 }}>
+              <div className="flex gap-2 mt-4">
                 <button onClick={() => setEditExtModalOpen(null)}
-                  style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)',
-                    color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                  className="flex-1 h-button rounded-md bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer hover:bg-surface-active transition-colors">
                   취소
                 </button>
                 <button
@@ -3778,11 +3856,11 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
                     updateExtMutation.mutate({ id: orig.id, fields })
                   }}
                   disabled={!canSave || updateExtMutation.isPending}
-                  style={{ flex:1, height:42, borderRadius:10, border:'none',
-                    background: (canSave && !updateExtMutation.isPending) ? 'var(--acl)' : 'var(--bd2)',
-                    color: (canSave && !updateExtMutation.isPending) ? '#fff' : 'var(--t3)',
-                    fontSize:13, fontWeight:700,
-                    cursor: (canSave && !updateExtMutation.isPending) ? 'pointer' : 'not-allowed' }}>
+                  className={`flex-1 h-button rounded-md border-0 text-label font-bold ${
+                    canSave && !updateExtMutation.isPending
+                      ? 'bg-accent text-text-on-accent cursor-pointer hover:bg-accent-hover'
+                      : 'bg-border-default text-text-tertiary cursor-not-allowed'
+                  } transition-colors`}>
                   {updateExtMutation.isPending ? '저장 중…' : '저장'}
                 </button>
               </div>
@@ -3794,33 +3872,30 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       {/* ── Phase 24: 소화기 분리 confirm 모달 ── */}
       {unassignConfirmExt != null && (
         <div
-          style={{ position:'absolute', inset:0, zIndex:40, background:'rgba(0,0,0,0.6)',
-            display:'flex', alignItems:'center', justifyContent:'center' }}
+          className="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center"
           onClick={() => setUnassignConfirmExt(null)}
         >
           <div
-            style={{ width:'90%', maxWidth:360, background:'var(--bg2)', borderRadius:16,
-              padding:20, border:'1px solid var(--bd2)', maxHeight:'80vh', overflowY:'auto' }}
+            className="w-[90%] max-w-[360px] bg-surface-raised rounded-lg p-5 border border-border-strong max-h-[80vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)', marginBottom:16 }}>소화기 분리</div>
-            <div style={{ fontSize:13, fontWeight:400, color:'var(--t2)', marginBottom:16 }}>
+            <div className="text-body font-bold text-text-primary mb-4">소화기 분리</div>
+            <div className="text-label font-normal text-text-secondary mb-4">
               「{unassignConfirmExt.cp_location ?? unassignConfirmExt.location ?? unassignConfirmExt.mgmt_no}」 위치에서 분리합니다. 자산은 미배치 상태로 유지됩니다.
             </div>
-            <div style={{ display:'flex', gap:8 }}>
+            <div className="flex gap-2">
               <button onClick={() => setUnassignConfirmExt(null)}
-                style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)',
-                  color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>
+                className="flex-1 h-button rounded-md bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer hover:bg-surface-active transition-colors">
                 취소
               </button>
               <button
                 onClick={() => { if (unassignConfirmExt.id != null && !unassignExtMutation.isPending) unassignExtMutation.mutate(unassignConfirmExt.id) }}
                 disabled={unassignExtMutation.isPending}
-                style={{ flex:1, height:42, borderRadius:10, border:'none',
-                  background: unassignExtMutation.isPending ? 'var(--bd2)' : 'var(--acl)',
-                  color: unassignExtMutation.isPending ? 'var(--t3)' : '#fff',
-                  fontSize:13, fontWeight:700,
-                  cursor: unassignExtMutation.isPending ? 'not-allowed' : 'pointer' }}>
+                className={`flex-1 h-button rounded-md border-0 text-label font-bold ${
+                  unassignExtMutation.isPending
+                    ? 'bg-border-default text-text-tertiary cursor-not-allowed'
+                    : 'bg-accent text-text-on-accent cursor-pointer hover:bg-accent-hover'
+                } transition-colors`}>
                 {unassignExtMutation.isPending ? '처리 중…' : '분리'}
               </button>
             </div>
@@ -3843,61 +3918,79 @@ function ResolutionDetailModal({ item, allCheckpoints, onClose }: {
   const [visible,   setVisible]   = useState(false)
   useEffect(() => { requestAnimationFrame(() => setVisible(true)) }, [])
 
+  const ResIcon = RESULT_ICONS[item.result] ?? CheckCircle2
+  const resultTone = item.result === 'normal'  ? 'bg-safe-bg text-safe'
+                   : item.result === 'caution' ? 'bg-warning-bg text-warning'
+                   : item.result === 'bad'     ? 'bg-danger-bg text-danger'
+                   : item.result === 'unresolved' ? 'bg-fire-bg text-fire'
+                   :                                'bg-surface-sunken text-text-secondary'
+
   return (
     <>
       {viewerUrl && <PhotoViewer url={viewerUrl} onClose={() => setViewerUrl(null)} />}
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:98, background:'rgba(0,0,0,0.4)' }} />
-      <div style={{ position:'fixed', bottom:NAV_BOTTOM, left:0, right:0, zIndex:99, background:'var(--bg)', borderRadius:'16px 16px 0 0', borderTop:'1px solid var(--bd)', transform: visible ? 'translateY(0)' : 'translateY(100%)', transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)', display:'flex', flexDirection:'column', maxHeight:'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)' }}>
-        <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>조치 결과</div>
-          <button onClick={onClose} style={{ padding:'4px 10px', borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, cursor:'pointer' }}>닫기</button>
+      <div onClick={onClose} className="fixed inset-0 z-[98] bg-black/40" />
+      <div
+        className="fixed left-0 right-0 z-[99] bg-surface-page rounded-t-lg border-t border-border-default flex flex-col"
+        style={{
+          bottom: NAV_BOTTOM,
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
+          maxHeight: 'calc(100dvh - var(--sat, 0px) - var(--sab, 0px) - 54px)',
+        }}
+      >
+        <div className="px-4 pt-3.5 pb-2.5 border-b border-border-default shrink-0 flex items-center justify-between">
+          <div className="text-body-sm font-bold text-text-primary">조치 결과</div>
+          <button onClick={onClose}
+                  className="px-2.5 py-1 rounded-sm bg-surface-raised border border-border-strong text-text-secondary text-caption cursor-pointer hover:bg-surface-sunken transition-colors">닫기</button>
         </div>
         {cp && (
-          <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:16 }}>{resultOpt.icon}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{cp.location}</div>
-              <div style={{ fontSize:10, color:'var(--t3)' }}>{cp.floor} · {cp.category}</div>
+          <div className="px-4 py-2.5 border-b border-border-default shrink-0 flex items-center gap-2">
+            <ResIcon size={16} className="shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-label font-bold text-text-primary truncate">{cp.location}</div>
+              <div className="text-caption text-text-tertiary">{cp.floor} · {cp.category}</div>
             </div>
-            <span style={{ fontSize:10, fontWeight:700, color:resultOpt.color, background:resultOpt.bg, padding:'2px 8px', borderRadius:20 }}>{resultOpt.label}</span>
+            <span className={`text-caption font-bold px-2 py-0.5 rounded-pill ${resultTone}`}>{resultOpt.label}</span>
           </div>
         )}
-        <div style={{ flex:1, overflowY:'auto', padding:'12px 14px' }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <div className="flex-1 overflow-y-auto px-3.5 py-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {/* 점검 시 */}
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em', textAlign:'center' }}>📋 점검 시</div>
+              <div className="text-caption font-bold text-text-tertiary mb-1.5 tracking-wider text-center">📋 점검 시</div>
               {item.photoKey ? (
-                <div onClick={() => setViewerUrl(`/api/uploads/${item.photoKey}`)} style={{ width:'100%', aspectRatio:'1/1', borderRadius:10, overflow:'hidden', cursor:'pointer', marginBottom:6 }}>
-                  <img src={`/api/uploads/${item.photoKey}`} alt="점검사진" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                <div onClick={() => setViewerUrl(`/api/uploads/${item.photoKey}`)}
+                     className="w-full aspect-square rounded-md overflow-hidden cursor-pointer mb-1.5">
+                  <img src={`/api/uploads/${item.photoKey}`} alt="점검사진" className="w-full h-full object-cover block" />
                 </div>
               ) : (
-                <div style={{ width:'100%', aspectRatio:'1/1', borderRadius:10, background:'var(--bg2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:6, border:'1px solid var(--bd)' }}>
-                  <span style={{ fontSize:10, color:'var(--t3)' }}>사진 없음</span>
+                <div className="w-full aspect-square rounded-md bg-surface-raised border border-border-default flex items-center justify-center mb-1.5">
+                  <span className="text-caption text-text-tertiary">사진 없음</span>
                 </div>
               )}
-              <div style={{ background:'var(--bg2)', borderRadius:8, padding:'7px 9px', border:'1px solid var(--bd)', fontSize:11 }}>
-                <div style={{ color:'var(--t3)', marginBottom:2, fontSize:10 }}>특이사항</div>
-                <div style={{ color: item.memo ? 'var(--t1)' : 'var(--t3)' }}>{item.memo || '없음'}</div>
-                {item.checkedAt && <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:4 }}>{fmtKstLocaleString(item.checkedAt)}</div>}
+              <div className="bg-surface-raised rounded-sm px-2.5 py-1.5 border border-border-default text-caption">
+                <div className="text-text-tertiary mb-0.5">특이사항</div>
+                <div className={item.memo ? 'text-text-primary' : 'text-text-tertiary'}>{item.memo || '없음'}</div>
+                {item.checkedAt && <div className="text-caption text-text-tertiary mt-1">{fmtKstLocaleString(item.checkedAt)}</div>}
               </div>
             </div>
             {/* 조치 후 */}
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--safe)', marginBottom:6, letterSpacing:'0.05em', textAlign:'center' }}>🔧 조치 후</div>
+              <div className="text-caption font-bold text-safe mb-1.5 tracking-wider text-center">🔧 조치 후</div>
               {item.resolutionPhotoKey ? (
-                <div onClick={() => setViewerUrl(`/api/uploads/${item.resolutionPhotoKey}`)} style={{ width:'100%', aspectRatio:'1/1', borderRadius:10, overflow:'hidden', cursor:'pointer', marginBottom:6 }}>
-                  <img src={`/api/uploads/${item.resolutionPhotoKey}`} alt="조치사진" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                <div onClick={() => setViewerUrl(`/api/uploads/${item.resolutionPhotoKey}`)}
+                     className="w-full aspect-square rounded-md overflow-hidden cursor-pointer mb-1.5">
+                  <img src={`/api/uploads/${item.resolutionPhotoKey}`} alt="조치사진" className="w-full h-full object-cover block" />
                 </div>
               ) : (
-                <div style={{ width:'100%', aspectRatio:'1/1', borderRadius:10, background:'var(--bg2)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:6, border:'1px solid var(--bd)' }}>
-                  <span style={{ fontSize:10, color:'var(--t3)' }}>사진 없음</span>
+                <div className="w-full aspect-square rounded-md bg-surface-raised border border-border-default flex items-center justify-center mb-1.5">
+                  <span className="text-caption text-text-tertiary">사진 없음</span>
                 </div>
               )}
-              <div style={{ background:'var(--bg2)', borderRadius:8, padding:'7px 9px', border:'1px solid var(--bd)', fontSize:11 }}>
-                <div style={{ color:'var(--t3)', marginBottom:2, fontSize:10 }}>조치 내용</div>
-                <div style={{ color:'var(--t1)', marginBottom:4 }}>{item.resolutionMemo || '없음'}</div>
-                {item.resolvedAt && <div style={{ fontSize:9.5, color:'var(--t3)' }}>{fmtKstLocaleString(item.resolvedAt)}</div>}
+              <div className="bg-surface-raised rounded-sm px-2.5 py-1.5 border border-border-default text-caption">
+                <div className="text-text-tertiary mb-0.5">조치 내용</div>
+                <div className="text-text-primary mb-1">{item.resolutionMemo || '없음'}</div>
+                {item.resolvedAt && <div className="text-caption text-text-tertiary">{fmtKstLocaleString(item.resolvedAt)}</div>}
               </div>
             </div>
           </div>
@@ -3923,9 +4016,11 @@ type RecordMeta = {
 // ── 사진 풀스크린 뷰어 ─────────────────────────────────
 function PhotoViewer({ url, onClose }: { url: string; onClose: () => void }) {
   return (
-    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:300, background:'rgba(0,0,0,0.96)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <img src={url} alt="사진" style={{ maxWidth:'100%', maxHeight:'100%', objectFit:'contain' }} onClick={e => e.stopPropagation()} />
-      <button onClick={onClose} style={{ position:'absolute', top:'calc(var(--sat, 0px) + 14px)', right:16, width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.18)', border:'none', color:'#fff', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+    <div onClick={onClose} className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center cursor-pointer p-4">
+      <img src={url} alt="사진" className="max-w-full max-h-full object-contain" onClick={e => e.stopPropagation()} />
+      <button onClick={onClose}
+              className="absolute right-4 w-9 h-9 rounded-full bg-white/20 border-0 text-white text-body cursor-pointer flex items-center justify-center hover:bg-white/30 transition-colors"
+              style={{ top: 'calc(var(--sat, 0px) + 14px)' }}>✕</button>
     </div>
   )
 }
@@ -3962,91 +4057,103 @@ function ResolutionModal({ item, allCheckpoints, onClose, onResolve }: {
     }
   }
 
+  const ResIcon = RESULT_ICONS[item.result] ?? AlertTriangle
+  const resultTone = item.result === 'bad'     ? 'bg-danger-bg text-danger'
+                   : item.result === 'caution' ? 'bg-warning-bg text-warning'
+                   :                              'bg-surface-sunken text-text-secondary'
+
   return (
     <>
       {viewerUrl && <PhotoViewer url={viewerUrl} onClose={() => setViewerUrl(null)} />}
 
       {/* 백드롭 */}
-      <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:98, background:'rgba(0,0,0,0.4)' }} />
+      <div onClick={onClose} className="fixed inset-0 z-[98] bg-black/40" />
 
       {/* 하단 시트 */}
-      <div style={{
-        position:'fixed', bottom:NAV_BOTTOM, left:0, right:0,
-        zIndex:99,
-        background:'var(--bg)', borderRadius:'16px 16px 0 0',
-        borderTop:'1px solid var(--bd)',
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-        transition:'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
-        display:'flex', flexDirection:'column',
-        maxHeight:'84vh',
-      }}>
+      <div
+        className="fixed left-0 right-0 z-[99] bg-surface-page rounded-t-lg border-t border-border-default flex flex-col max-h-[84vh]"
+        style={{
+          bottom: NAV_BOTTOM,
+          transform: visible ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.26s cubic-bezier(0.32,0.72,0,1)',
+        }}
+      >
         {/* 헤더 */}
-        <div style={{ padding:'14px 16px 12px', borderBottom:'1px solid var(--bd)', flexShrink:0, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom: cp ? 8 : 0 }}>조치 입력</div>
+        <div className="px-4 pt-3.5 pb-3 border-b border-border-default shrink-0 flex items-start justify-between gap-2.5">
+          <div className="flex-1">
+            <div className={`text-body-sm font-bold text-text-primary ${cp ? 'mb-2' : ''}`}>조치 입력</div>
             {cp && (
-              <div style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'var(--bg2)', borderRadius:10, border:`1px solid ${resultOpt.color}33` }}>
-                <span style={{ fontSize:16 }}>{resultOpt.icon}</span>
-                <div>
-                  <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{cp.location}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>{cp.floor} · {cp.category}</div>
+              <div className="flex items-center gap-2 px-2.5 py-2 bg-surface-raised rounded-md border border-border-default">
+                <ResIcon size={16} className="shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-label font-bold text-text-primary truncate">{cp.location}</div>
+                  <div className="text-caption text-text-tertiary">{cp.floor} · {cp.category}</div>
                 </div>
-                <span style={{ marginLeft:'auto', fontSize:10, fontWeight:700, color:resultOpt.color, background:resultOpt.bg, padding:'2px 8px', borderRadius:20 }}>{resultOpt.label}</span>
+                <span className={`ml-auto text-caption font-bold px-2 py-0.5 rounded-pill ${resultTone}`}>{resultOpt.label}</span>
               </div>
             )}
           </div>
-          <button onClick={onClose} style={{ padding:'4px 10px', borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, cursor:'pointer', flexShrink:0 }}>닫기</button>
+          <button onClick={onClose}
+                  className="px-2.5 py-1 rounded-sm bg-surface-raised border border-border-strong text-text-secondary text-caption cursor-pointer shrink-0 hover:bg-surface-sunken transition-colors">닫기</button>
         </div>
 
         {/* 점검 사진 썸네일 (있을 때만) — 특이사항 좌측 + 증빙사진 우측 */}
         {item.photoKey && (
-          <div style={{ flexShrink:0, padding:'14px 16px 4px', display:'flex', alignItems:'flex-start', gap:10 }}>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:10, fontWeight:600, color:item.result==='bad'?'var(--danger)':'var(--warn)', marginBottom:4 }}>
+          <div className="shrink-0 px-4 pt-3.5 pb-1 flex items-start gap-2.5">
+            <div className="flex-1 min-w-0">
+              <div className={`text-caption font-semibold mb-1 ${item.result === 'bad' ? 'text-danger' : 'text-warning'}`}>
                 {item.result === 'bad' ? '🔴 불량' : '🟡 주의'} 특이사항
               </div>
-              <div style={{ height:72, overflowY:'auto', background:'var(--bg2)', borderRadius:8, padding:'8px 10px', border:'1px solid var(--bd)', fontSize:11 }}>
+              <div className="h-[72px] overflow-y-auto bg-surface-raised rounded-sm px-2.5 py-2 border border-border-default text-caption">
                 {item.memo
-                  ? <span style={{ color:'var(--t2)' }}>{item.memo}</span>
-                  : <span style={{ color:'var(--t3)' }}>없음</span>
+                  ? <span className="text-text-secondary">{item.memo}</span>
+                  : <span className="text-text-tertiary">없음</span>
                 }
               </div>
             </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:4, flexShrink:0, alignItems:'center' }}>
-              <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)' }}>증빙 사진</div>
-              <div onClick={() => setViewerUrl(`/api/uploads/${item.photoKey}`)} style={{ width:72, height:72, borderRadius:10, overflow:'hidden', cursor:'pointer', border:'1px solid var(--bd)' }}>
-                <img src={`/api/uploads/${item.photoKey}`} alt="점검사진" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+            <div className="flex flex-col gap-1 items-center shrink-0">
+              <div className="text-caption font-semibold text-text-tertiary">증빙 사진</div>
+              <div onClick={() => setViewerUrl(`/api/uploads/${item.photoKey}`)}
+                   className="w-[72px] h-[72px] rounded-md overflow-hidden cursor-pointer border border-border-default">
+                <img src={`/api/uploads/${item.photoKey}`} alt="점검사진" className="w-full h-full object-cover block" />
               </div>
             </div>
           </div>
         )}
 
         {/* 내용 (스크롤 가능) */}
-        <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-            <label style={{ fontSize:11, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>조치 내용 *</label>
-            <span style={{ fontSize:10, color:'var(--t3)' }}>조치 후 사진 (선택)</span>
+        <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-caption font-semibold text-text-tertiary tracking-wider">조치 내용 *</label>
+            <span className="text-caption text-text-tertiary">조치 후 사진 (선택)</span>
           </div>
-          <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+          <div className="flex gap-2 items-start">
             <textarea
               value={memo}
               onChange={e => setMemo(e.target.value)}
               placeholder="어떻게 조치했는지 입력하세요"
-              style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:13, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+              className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-strong text-text-primary text-label resize-none outline-none box-border focus:border-border-focus transition-colors"
             />
             <PhotoButton hook={photo} label="촬영" />
           </div>
 
-          {error && <div style={{ marginTop:8, background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:8, padding:'8px 12px', fontSize:11, color:'var(--danger)' }}>{error}</div>}
+          {error && (
+            <div className="mt-2 bg-danger-bg/40 border border-danger-bar/30 rounded-sm px-3 py-2 text-caption text-danger">{error}</div>
+          )}
         </div>
 
         {/* 버튼 */}
-        <div style={{ padding:'10px 16px 14px', borderTop:'1px solid var(--bd)', display:'flex', gap:8, flexShrink:0 }}>
-          <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
+        <div className="px-4 pt-2.5 pb-3.5 border-t border-border-default flex gap-2 shrink-0">
+          <button onClick={onClose}
+                  className="px-4 py-3 rounded-md bg-surface-raised border border-border-strong text-text-secondary text-label font-semibold cursor-pointer hover:bg-surface-sunken transition-colors">취소</button>
           <button
             onClick={handleResolve}
             disabled={submitting || photo.uploading || !memo.trim()}
-            style={{ flex:1, padding:'13px 0', borderRadius:12, border:'none', background: submitting||photo.uploading||!memo.trim() ? 'var(--bd2)' : 'linear-gradient(135deg,#16a34a,#22c55e)', color: submitting||photo.uploading||!memo.trim() ? 'var(--t3)' : '#fff', fontSize:13, fontWeight:700, cursor: submitting||photo.uploading||!memo.trim() ? 'default' : 'pointer', transition:'all .13s' }}
+            className={`flex-1 py-3 rounded-md border-0 text-label font-bold transition-shadow ${
+              submitting || photo.uploading || !memo.trim()
+                ? 'bg-border-default text-text-tertiary cursor-default'
+                : 'bg-[linear-gradient(135deg,#16a34a,#22c55e)] text-text-on-accent cursor-pointer hover:shadow-[0_2px_8px_rgba(22,163,74,0.3)]'
+            }`}
           >
             {photo.uploading ? '사진 업로드 중...' : submitting ? '저장 중...' : '✓ 조치 완료'}
           </button>
