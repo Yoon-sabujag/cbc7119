@@ -19,7 +19,7 @@ import { computeCardCompletion } from '../utils/inspectionProgress'
 import { getReplaceWarning } from '../utils/extinguisher'
 import { CCTV_DVRS } from '../utils/cctv'
 import {
-  ChevronLeft, Bell,
+  ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Square,
   // Zone (3종)
@@ -982,17 +982,39 @@ function DivUnderPicker({ items, activeIdx, onChange }: {
   const containerH = ITEM_H * VISIBLE
 
   return (
-    <div style={{ position:'relative', height:containerH, borderRadius:12, overflow:'hidden', background:'var(--bg2)', border:'1px solid var(--bd)' }}>
-      <div style={{ position:'absolute', top:'50%', left:0, right:0, height:ITEM_H, transform:'translateY(-50%)', background:'rgba(14,165,233,.08)', borderTop:'1px solid rgba(14,165,233,.22)', borderBottom:'1px solid rgba(14,165,233,.22)', pointerEvents:'none', zIndex:2 }} />
-      <div style={{ position:'absolute', top:0, left:0, right:0, height:pad, background:'linear-gradient(to bottom, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
-      <div style={{ position:'absolute', bottom:0, left:0, right:0, height:pad, background:'linear-gradient(to top, var(--bg2) 30%, transparent)', pointerEvents:'none', zIndex:3 }} />
-      <div ref={scrollRef} onScroll={handleScroll}
-        style={{ height:'100%', overflowY:'auto', scrollSnapType:'y mandatory', paddingTop:pad, paddingBottom:pad, boxSizing:'border-box', scrollbarWidth:'none' }}>
+    <div
+      className="relative rounded-md overflow-hidden bg-surface-raised border border-border-default"
+      style={{ height: containerH }}
+    >
+      <div
+        className="absolute left-0 right-0 z-[2] pointer-events-none bg-[rgba(14,165,233,.08)] border-y border-[rgba(14,165,233,.22)]"
+        style={{ top:'50%', height: ITEM_H, transform:'translateY(-50%)' }}
+      />
+      <div
+        className="absolute top-0 left-0 right-0 z-[3] pointer-events-none"
+        style={{ height: pad, background:'linear-gradient(to bottom, var(--surface-raised) 30%, transparent)' }}
+      />
+      <div
+        className="absolute bottom-0 left-0 right-0 z-[3] pointer-events-none"
+        style={{ height: pad, background:'linear-gradient(to top, var(--surface-raised) 30%, transparent)' }}
+      />
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto box-border [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ scrollSnapType:'y mandatory', paddingTop: pad, paddingBottom: pad }}
+      >
         {items.map((item, idx) => {
           const dist = Math.abs(idx - activeIdx)
           return (
-            <div key={item.id} style={{ height:ITEM_H, display:'flex', alignItems:'center', padding:'0 14px', scrollSnapAlign:'center', cursor:'pointer', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15, transition:'opacity .1s' }}>
-              <span style={{ fontSize: dist===0 ? 13 : 11, fontWeight: dist===0 ? 700 : 400, color:'var(--t1)' }}>{item.label}</span>
+            <div
+              key={item.id}
+              className="flex items-center px-3.5 cursor-pointer transition-opacity duration-100"
+              style={{ height: ITEM_H, scrollSnapAlign:'center', opacity: dist===0 ? 1 : dist===1 ? 0.48 : 0.15 }}
+            >
+              <span className={dist === 0 ? 'text-label font-bold text-text-primary' : 'text-caption font-normal text-text-primary'}>
+                {item.label}
+              </span>
             </div>
           )
         })}
@@ -1022,22 +1044,30 @@ function DivTrendSubview({ point, records, onClose }: {
   const n = hist.length
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, zIndex:99, background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] flex flex-col bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+    >
       {/* 헤더 */}
-      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:10, flexShrink:0 }}>
-        <button onClick={onClose} style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16 }}>✕</button>
+      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2.5 flex-shrink-0">
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-sm border border-border-default bg-surface-raised cursor-pointer inline-flex items-center justify-center"
+        >
+          <X size={16} className="text-text-secondary" />
+        </button>
         <div>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{point.floorLabel} — {point.loc}</div>
-          <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>DIV #{point.pos} · {point.id}</div>
+          <div className="text-body-sm font-bold text-text-primary">{point.floorLabel} — {point.loc}</div>
+          <div className="text-caption text-text-tertiary mt-0.5">DIV #{point.pos} · {point.id}</div>
         </div>
       </div>
       {/* 차트 + 테이블 */}
-      <div style={{ flex:1, overflowY:'auto', padding:'16px 16px 40px' }}>
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-10">
         {hist.length === 0 ? (
-          <div style={{ textAlign:'center', color:'var(--t3)', padding:'40px 0', fontSize:13 }}>이전 기록 없음</div>
+          <div className="text-center text-text-tertiary py-10 text-label">이전 기록 없음</div>
         ) : (
           <>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div className="flex flex-col gap-2.5">
               {([
                 { key:'pressure_1'   as const, label:'1차압',  color:'#3b82f6', dashed:false },
                 { key:'pressure_2'   as const, label:'2차압',  color:'#f97316', dashed:false },
@@ -1054,8 +1084,8 @@ function DivTrendSubview({ point, records, onClose }: {
                 const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
                 return (
                   <div key={key}>
-                    <div style={{ fontSize:10, fontWeight:700, color, marginBottom:3 }}>{label}</div>
-                    <div style={{ overflowX:'auto' }}>
+                    <div className="text-caption font-bold mb-1" style={{ color }}>{label}</div>
+                    <div className="overflow-x-auto">
                       <svg width={Math.max(W, n * 28)} height={sH} style={{ display:'block' }}>
                         {sTicks.map((t, ti) => (
                           <g key={ti}>
@@ -1092,7 +1122,7 @@ function DivTrendSubview({ point, records, onClose }: {
                           return (
                             <g key={i}>
                               <circle cx={cx} cy={cy} r={3}
-                                fill={isLate ? color : 'var(--bg2)'}
+                                fill={isLate ? color : 'var(--surface-raised)'}
                                 stroke={color} strokeWidth={isLate ? 0 : 1.5}
                               />
                               <text x={vx} y={vy} textAnchor="middle" dominantBaseline="central"
@@ -1110,17 +1140,17 @@ function DivTrendSubview({ point, records, onClose }: {
               })}
             </div>
             {/* 수치 테이블 */}
-            <div style={{ marginTop:14, borderRadius:10, border:'1px solid var(--bd)', overflow:'hidden' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', background:'var(--bg3)', padding:'7px 10px' }}>
+            <div className="mt-3.5 rounded-md border border-border-default overflow-hidden">
+              <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken px-2.5 py-1.5">
                 {['월','1차압','2차압','세팅압'].map(h => (
-                  <div key={h} style={{ fontSize:9, fontWeight:700, color:'var(--t3)', textAlign:'center' }}>{h}</div>
+                  <div key={h} className="text-caption font-bold text-text-tertiary text-center">{h}</div>
                 ))}
               </div>
               {[...hist].reverse().slice(0,12).map((r: any) => (
-                <div key={`${r.year}-${r.month}`} style={{ display:'grid', gridTemplateColumns:'60px 1fr 1fr 1fr', padding:'7px 10px', borderTop:'1px solid var(--bd)' }}>
-                  <div style={{ fontSize:11, color:'var(--t3)', textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>{r.year}-{String(r.month).padStart(2,'0')}</div>
+                <div key={`${r.year}-${r.month}`} className="grid grid-cols-[60px_1fr_1fr_1fr] px-2.5 py-1.5 border-t border-border-default">
+                  <div className="text-caption text-text-tertiary text-center font-mono">{r.year}-{String(r.month).padStart(2,'0')}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize:12, fontWeight:700, color:['#3b82f6','#f97316','#22c55e'][i], textAlign:'center', fontFamily:'JetBrains Mono, monospace' }}>
+                    <div key={i} className="text-caption font-bold text-center font-mono" style={{ color: ['#3b82f6','#f97316','#22c55e'][i] }}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
@@ -1371,9 +1401,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
   function diffTag(cur: number|null, ref: number|null, badIfUp: boolean) {
     if (cur === null || ref === null) return null
     const d = cur - ref
-    if (Math.abs(d) < 0.05) return { text:'→0.0', color:'var(--t3)' }
+    if (Math.abs(d) < 0.05) return { text:'→0.0', color:'var(--text-tertiary)' }
     const isBad = badIfUp ? d > 0 : d < 0
-    return { text:`${d > 0 ? '↑' : '↓'}${Math.abs(d).toFixed(1)}`, color: isBad ? 'var(--warn)' : 'var(--safe)' }
+    return { text:`${d > 0 ? '↑' : '↓'}${Math.abs(d).toFixed(1)}`, color: isBad ? 'var(--status-warning)' : 'var(--status-safe)' }
   }
 
   const totalDigitSlots = p1Slots + p2Slots + p3Slots
@@ -1392,9 +1422,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
     return { id, label: `${pt?.floorLabel} — ${pt?.loc}` }
   }), [underPending])
 
-  const resultColor: Partial<Record<CheckResult,string>> = { normal:'var(--safe)', caution:'var(--warn)', bad:'var(--danger)' }
-  const resultLabel: Partial<Record<CheckResult,string>> = { normal:'정상', caution:'주의', bad:'불량' }
-
   // ── 재진입 팝업 (공통 훅) ──
   const currentCpId = currentPt ? DIV_PT_CP[currentPt.id] ?? null : null
   const { popupState, dismiss } = useInspectionRevisitPopup({
@@ -1406,28 +1433,40 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
   // ── 완료 화면 ──
   if (done) return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex:99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
-      <span style={{ fontSize:48 }}>✅</span>
-      <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
-      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+    <div
+      className="fixed left-0 right-0 z-[99] flex flex-col items-center justify-center gap-4 bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+    >
+      <CheckCircle2 size={48} className="text-safe" />
+      <div className="text-title font-bold text-text-primary">점검 완료</div>
+      <button
+        onClick={onClose}
+        className="mt-2 px-8 py-3 rounded-md bg-accent text-text-on-accent text-body font-bold cursor-pointer border-0"
+      >
+        닫기
+      </button>
     </div>
   )
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex:99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div
+      className="fixed left-0 right-0 z-[99] flex flex-col overflow-hidden bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
+    >
       {/* 헤더 */}
-      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
-        <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>📊 DIV 점검</span>
+      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+        <BarChart3 size={18} className="text-text-secondary" />
+        <span className="text-title font-bold text-text-primary">DIV 점검</span>
         {currentPt && totalSteps && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{lineIdx+1} / {totalSteps}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
         {currentPt && zone === 'underground' && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{underPickIdx+1} / {underPending.length}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{underPickIdx+1} / {underPending.length}</span>
         )}
       </div>
 
       {/* 본문 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
-      <div style={{ position:'relative', flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="relative flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {popupState && (
           <InspectionRevisitPopup
             variant={popupState.variant}
@@ -1441,14 +1480,18 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
         {/* 월초/월말 선택 */}
         <div>
-          <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 구분</div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
+          <div className="flex gap-2">
             {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
               const sel = timing === t
               return (
                 <button key={t}
                   onClick={() => setTiming(t)}
-                  style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                    sel
+                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                      : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
                   {label}
                 </button>
               )
@@ -1458,14 +1501,18 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
         {/* 구역 선택 */}
         <div>
-          <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>구역 선택</div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+          <div className="flex gap-2">
             {(['research','office','underground'] as DivZone[]).map(z => {
               const sel = zone === z
               return (
                 <button key={z}
                   onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                  style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                    sel
+                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                      : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
                   {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
                 </button>
               )
@@ -1476,14 +1523,18 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
         {/* 라인 선택 (연구동/사무동) */}
         {zone && zone !== 'underground' && (
           <div>
-            <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>라인 선택</div>
-            <div style={{ display:'flex', gap:8 }}>
+            <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+            <div className="flex gap-2">
               {(zone === 'research' ? [1,2] : [3]).map(l => {
                 const sel = line === l
                 return (
                   <button key={l}
                     onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                    style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                      sel
+                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                        : 'border border-border-strong bg-surface-page text-text-secondary'
+                    }`}>
                     DIV #{l}
                   </button>
                 )
@@ -1511,14 +1562,13 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                 if (zone === 'underground') { setUnderPickIdx(i => i + 1) } else { setLineIdx(i => i + 1) }
                 resetForm()
               }
-              const btnStyle = (enabled: boolean): React.CSSProperties => ({
-                width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)',
-                color: enabled ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: enabled ? 'pointer' : 'default',
-                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: enabled ? 1 : 0.3,
-              })
+              const navBtnCls = (enabled: boolean) =>
+                `w-9 h-9 rounded-sm border border-border-default bg-surface-page inline-flex items-center justify-center flex-shrink-0 transition-opacity ${
+                  enabled ? 'text-text-primary opacity-100 cursor-pointer' : 'text-text-tertiary opacity-30 cursor-default'
+                }`
               return (
                 <div
-                  style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+                  className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5 [touch-action:pan-y]"
                   onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
                   onTouchEnd={e => {
                     const sx = (e.currentTarget as any)._swX
@@ -1528,13 +1578,17 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                     else if (dx < -40 && canNext) goNext()
                   }}
                 >
-                  <button style={btnStyle(canPrev)} onClick={canPrev ? goPrev : undefined}>‹</button>
-                  <div style={{ flex:1, textAlign:'center' }}>
-                    <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — DIV #{currentPt.pos}</div>
-                    <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+                  <button className={navBtnCls(canPrev)} onClick={canPrev ? goPrev : undefined}>
+                    <ChevronLeft size={20} />
+                  </button>
+                  <div className="flex-1 text-center">
+                    <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
+                    <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — DIV #{currentPt.pos}</div>
+                    <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
                   </div>
-                  <button style={btnStyle(canNext)} onClick={canNext ? goNext : undefined}>›</button>
+                  <button className={navBtnCls(canNext)} onClick={canNext ? goNext : undefined}>
+                    <ChevronRight size={20} />
+                  </button>
                 </div>
               )
             })()}
@@ -1551,62 +1605,64 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                 { label:'세팅압', dIdx:p3Start, slots:p3Slots, prevVal: prev?.pressure_set ?? null, diff:diffTag(parsedP3, prev?.pressure_set ?? null, false), color: P_COLORS[2] },
               ]
               return (
-                <div style={{ background:'var(--bg2)', borderRadius:12, padding:14, border:'1px solid var(--bd)' }}>
+                <div className="bg-surface-raised rounded-md p-3.5 border border-border-default">
                   {/* 섹션 헤더 */}
-                  <div style={{ display:'flex', alignItems:'center', marginBottom:12 }}>
-                    <span style={{ fontSize:11, fontWeight:600, color:'var(--t3)', flex:1 }}>압력 입력</span>
+                  <div className="flex items-center mb-3">
+                    <span className="text-caption font-semibold text-text-tertiary flex-1">압력 입력</span>
                     {currentPt && (
                       <button onClick={() => setShowTrend(true)}
-                        style={{ padding:'4px 10px', borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--t3)', fontSize:11, fontWeight:600, cursor:'pointer' }}>
-                        📈 트렌드
+                        className="px-2.5 py-1 rounded-sm border border-border-default bg-surface-page text-text-tertiary text-caption font-semibold cursor-pointer inline-flex items-center gap-1">
+                        <TrendingUp size={12} /> 트렌드
                       </button>
                     )}
                   </div>
                   {/* 컬럼 헤더: [라벨42] [직전 flex:1] [변화 flex:1] [현재 flex:1] */}
-                  <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:4 }}>
-                    <div style={{ width:42, flexShrink:0 }} />
-                    <div style={{ flex:1, textAlign:'center', fontSize:10, fontWeight:600, color:'var(--t3)' }}>{prevMonthLabel ?? '직전'}</div>
-                    <div style={{ flex:1 }} />
-                    <div style={{ flex:1, textAlign:'center', fontSize:10, fontWeight:600, color:'var(--t3)' }}>현재</div>
+                  <div className="flex items-center gap-1 mb-1">
+                    <div className="w-[42px] flex-shrink-0" />
+                    <div className="flex-1 text-center text-caption font-semibold text-text-tertiary">{prevMonthLabel ?? '직전'}</div>
+                    <div className="flex-1" />
+                    <div className="flex-1 text-center text-caption font-semibold text-text-tertiary">현재</div>
                   </div>
                   {/* 압력 행: [라벨42] [직전 flex:1] [변화 flex:1] [입력 flex:1] — 균등 배분 */}
                   {rows.map(({ label, dIdx, slots, prevVal, diff, color }) => (
-                    <div key={label} style={{ display:'flex', alignItems:'center', gap:4, marginBottom:10 }}>
+                    <div key={label} className="flex items-center gap-1 mb-2.5">
                       {/* 라벨 */}
-                      <div style={{ width:42, flexShrink:0, fontSize:11, fontWeight:600, color:'var(--t3)' }}>{label}</div>
+                      <div className="w-[42px] flex-shrink-0 text-caption font-semibold text-text-tertiary">{label}</div>
                       {/* 직전값 — flex:1, 소수점 중앙 고정 (빨간선) */}
-                      <div style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'baseline' }}>
+                      <div className="flex-1 flex justify-center items-baseline">
                         {prevVal !== null ? (
                           <>
-                            <span style={{ display:'inline-block', width:16, fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:700, color:'var(--t3)', textAlign:'right' }}>{String(Number(prevVal).toFixed(1)).split('.')[0]}</span>
-                            <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:700, color:'var(--t3)' }}>.</span>
-                            <span style={{ display:'inline-block', width:14, fontFamily:'JetBrains Mono,monospace', fontSize:20, fontWeight:700, color:'var(--t3)', textAlign:'left' }}>{String(Number(prevVal).toFixed(1)).split('.')[1]}</span>
+                            <span className="inline-block w-4 font-mono text-[20px] font-bold text-text-tertiary text-right">{String(Number(prevVal).toFixed(1)).split('.')[0]}</span>
+                            <span className="font-mono text-[20px] font-bold text-text-tertiary">.</span>
+                            <span className="inline-block w-[14px] font-mono text-[20px] font-bold text-text-tertiary text-left">{String(Number(prevVal).toFixed(1)).split('.')[1]}</span>
                           </>
-                        ) : <span style={{ fontSize:20, fontWeight:700, color:'var(--t3)' }}>—</span>}
+                        ) : <span className="text-[20px] font-bold text-text-tertiary">—</span>}
                       </div>
                       {/* 변화량 — flex:1, 소수점 중앙 고정 (노란선) */}
-                      <div style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'baseline' }}>
+                      <div className="flex-1 flex justify-center items-baseline">
                         {diff ? (
                           <>
-                            <span style={{ display:'inline-block', width:20, fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:800, color:diff.color, textAlign:'right' }}>{diff.text.split('.')[0]}</span>
-                            <span style={{ fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:800, color:diff.color }}>.</span>
-                            <span style={{ display:'inline-block', width:9, fontFamily:'JetBrains Mono,monospace', fontSize:12, fontWeight:800, color:diff.color, textAlign:'left' }}>{diff.text.split('.')[1] ?? '0'}</span>
+                            <span className="inline-block w-5 font-mono text-caption font-extrabold text-right" style={{ color: diff.color }}>{diff.text.split('.')[0]}</span>
+                            <span className="font-mono text-caption font-extrabold" style={{ color: diff.color }}>.</span>
+                            <span className="inline-block w-[9px] font-mono text-caption font-extrabold text-left" style={{ color: diff.color }}>{diff.text.split('.')[1] ?? '0'}</span>
                           </>
-                        ) : <span style={{ fontSize:12, color:'var(--t3)' }}>—</span>}
+                        ) : <span className="text-caption text-text-tertiary">—</span>}
                       </div>
                       {/* 입력 박스 — 정수 칸(slots-1개) + . + 소수 1칸 */}
-                      <div style={{ flex:1, display:'flex', justifyContent:'center', alignItems:'center', gap:2 }}>
+                      <div className="flex-1 flex justify-center items-center gap-0.5">
                         {Array.from({ length: slots - 1 }, (_, i) => (
                           <input key={i} ref={dRefs[dIdx + i]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx + i]} maxLength={1}
                             onChange={e => handleDigit(dIdx + i, e.target.value)}
                             onKeyDown={e => handleDigitKey(dIdx + i, e)}
-                            style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx + i] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
+                            className="w-[34px] h-[42px] text-center text-[20px] font-bold rounded-sm bg-surface-page outline-none flex-shrink-0"
+                            style={{ border: '2px solid ' + (digits[dIdx + i] ? color : 'var(--border-default)'), color }} />
                         ))}
-                        <span style={{ fontSize:18, fontWeight:700, color, flexShrink:0 }}>.</span>
+                        <span className="text-[18px] font-bold flex-shrink-0" style={{ color }}>.</span>
                         <input ref={dRefs[dIdx + slots - 1]} type="text" inputMode="decimal" pattern="[0-9]*" value={digits[dIdx + slots - 1]} maxLength={1}
                           onChange={e => handleDigit(dIdx + slots - 1, e.target.value)}
                           onKeyDown={e => handleDigitKey(dIdx + slots - 1, e)}
-                          style={{ width:34, height:42, textAlign:'center', fontSize:20, fontWeight:700, borderRadius:8, border:`2px solid ${digits[dIdx + slots - 1] ? color : 'var(--bd)'}`, background:'var(--bg)', color, outline:'none', flexShrink:0 }} />
+                          className="w-[34px] h-[42px] text-center text-[20px] font-bold rounded-sm bg-surface-page outline-none flex-shrink-0"
+                          style={{ border: '2px solid ' + (digits[dIdx + slots - 1] ? color : 'var(--border-default)'), color }} />
                       </div>
                     </div>
                   ))}
@@ -1615,47 +1671,77 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
             })()}
 
             {/* 배수 / 컴프 점검 */}
-            <div style={{ display:'flex', gap:10 }}>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>배수</div>
-                <div style={{ display:'flex', gap:6 }}>
+            <div className="flex gap-2.5">
+              <div className="flex-1">
+                <div className="text-caption font-semibold text-text-tertiary mb-2">배수</div>
+                <div className="flex gap-1.5">
                   <button onClick={() => setDrain('none')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='none' ? 'var(--bg)' : 'var(--bg3)', color: drain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: drain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: drain==='none' ? 1 : 1 }}>없음</button>
+                    className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                      drain==='none'
+                        ? 'border-[1.5px] border-accent bg-surface-page text-text-primary'
+                        : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                    }`}>
+                    없음
+                  </button>
                   <button onClick={() => setDrain('yes')}
-                    style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: drain==='yes' ? 'rgba(59,130,246,.18)' : 'var(--bg3)', color: drain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: drain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd2)', opacity: drain==='yes' ? 1 : 1 }}>있음</button>
+                    className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                      drain==='yes'
+                        ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,.18)] text-accent'
+                        : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                    }`}>
+                    있음
+                  </button>
                 </div>
               </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 점검</div>
+              <div className="flex-1">
+                <div className="text-caption font-semibold text-text-tertiary mb-2">컴프 점검</div>
                 <button onClick={() => setShowCompressor(true)}
-                  style={{ width:'100%', padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background:'rgba(100,116,139,.12)', color:'var(--t1)', boxShadow:'0 0 0 1px rgba(100,116,139,.3)' }}>
-                  💨 컴프레셔 점검 →
+                  className="w-full px-2.5 py-2 rounded-sm text-label font-bold cursor-pointer border border-border-default bg-surface-active text-text-primary inline-flex items-center justify-center gap-1.5">
+                  <Wind size={14} className="text-text-secondary" />
+                  컴프레셔 점검 →
                 </button>
               </div>
             </div>
 
             {/* 점검 결과 */}
             <div>
-              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
-              <div style={{ display:'flex', gap:8 }}>
-                {(['normal','caution','bad'] as const).map(r => (
-                  <button key={r} onClick={() => setResult(r)}
-                    style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                    {resultLabel[r]}
-                  </button>
-                ))}
+              <div className="text-caption font-semibold text-text-tertiary mb-2">점검 결과</div>
+              <div className="flex gap-2">
+                {(['normal','caution','bad'] as const).map(r => {
+                  const active = result === r
+                  const inactiveCls = 'border-border-default bg-surface-sunken text-text-secondary'
+                  const activeCls =
+                    r === 'normal' ? 'border-safe-bar bg-safe-bg text-safe' :
+                    r === 'caution' ? 'border-warning-bar bg-warning-bg text-warning' :
+                    'border-danger-bar bg-danger-bg text-danger'
+                  const Icon = r === 'normal' ? CheckCircle2 : r === 'caution' ? AlertTriangle : XCircle
+                  const label = r === 'normal' ? '정상' : r === 'caution' ? '주의' : '불량'
+                  return (
+                    <button key={r} onClick={() => setResult(r)}
+                      className={`flex-1 px-3 py-2.5 rounded-pill border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-semibold transition-colors cursor-pointer ${active ? activeCls : inactiveCls}`}>
+                      <Icon size={16} color="currentColor" />
+                      {label}
+                    </button>
+                  )
+                })}
               </div>
               {autoReason && (
-                <div style={{ marginTop:8, padding:'8px 12px', borderRadius:8, background: result==='bad' ? 'rgba(239,68,68,.1)' : 'rgba(245,158,11,.1)', border:`1px solid ${result==='bad' ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`, fontSize:12, fontWeight:600, color: result==='bad' ? 'var(--danger)' : 'var(--warn)' }}>
-                  {result==='bad' ? '🚨' : '⚠️'} {autoReason}
-                </div>
+                result === 'bad' ? (
+                  <div className="mt-2 px-3 py-2 rounded-sm bg-fire-bg border border-fire-bar text-fire text-label font-semibold inline-flex items-center gap-1.5">
+                    <Flame size={14} /> {autoReason}
+                  </div>
+                ) : (
+                  <div className="mt-2 px-3 py-2 rounded-sm bg-warning-bg border border-warning-bar text-warning text-label font-semibold inline-flex items-center gap-1.5">
+                    <AlertTriangle size={14} /> {autoReason}
+                  </div>
+                )
               )}
             </div>
 
             {/* 특이사항 + 사진 */}
-            <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+            <div className="flex gap-2.5 items-start">
               <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
-                style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
+                className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
               <PhotoButton hook={photo} />
             </div>
           </>
@@ -1663,11 +1749,15 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       </div>
 
       {/* 하단 버튼 바 — 닫기 항상, 저장은 개소 선택 후 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose} className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer">닫기</button>
         {currentPt && (
           <button onClick={handleSave} disabled={saving || digits.slice(0, totalDigitSlots).some(d => d === '')}
-            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--bd)' : 'var(--acl)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer' }}>
+            className="flex-1 py-3.5 rounded-md text-text-on-accent text-body font-bold border-0"
+            style={{
+              background: (saving || digits.slice(0, totalDigitSlots).some(d=>d==='')) ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+              cursor: saving ? 'default' : 'pointer'
+            }}>
             {saving ? '저장 중...' :
               zone === 'underground'
                 ? (underPickIdx < underPending.length-1 ? '저장 후 다음 개소' : '저장 (완료)')
@@ -1794,9 +1884,6 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
     setTankDrain('none'); setOil('sufficient'); setResult('normal'); setMemo(''); photo.reset()
   }, [photo])
 
-  const resultColor: Partial<Record<CheckResult,string>> = { normal:'var(--safe)', caution:'var(--warn)', bad:'var(--danger)' }
-  const resultLabel: Partial<Record<CheckResult,string>> = { normal:'정상', caution:'주의', bad:'불량' }
-
   const totalSteps = zone && zone !== 'underground' && line ? DIV_LINE_SEQ[line].length : null
 
   const handleSave = async () => {
@@ -1846,41 +1933,57 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
   }
 
   if (done) return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
-      <span style={{ fontSize:48 }}>✅</span>
-      <div style={{ fontSize:18, fontWeight:700, color:'var(--t1)' }}>점검 완료</div>
-      <button onClick={onClose} style={{ marginTop:8, padding:'12px 32px', borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer' }}>닫기</button>
+    <div
+      className="fixed left-0 right-0 flex flex-col items-center justify-center gap-4 bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+    >
+      <CheckCircle2 size={48} className="text-safe" />
+      <div className="text-title font-bold text-text-primary">점검 완료</div>
+      <button
+        onClick={onClose}
+        className="mt-2 px-8 py-3 rounded-md bg-accent text-text-on-accent text-body font-bold cursor-pointer border-0"
+      >
+        닫기
+      </button>
     </div>
   )
 
   return (
-    <div style={{ position:'fixed', top:'var(--sat, 0px)', left:0, right:0, bottom:NAV_BOTTOM, background:'var(--bg)', zIndex: mode === 'from-div' ? 120 : 99, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div
+      className="fixed left-0 right-0 flex flex-col overflow-hidden bg-surface-page"
+      style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
+    >
       {/* 헤더 */}
-      <div style={{ display:'flex', alignItems:'center', padding:'12px 16px', borderBottom:'1px solid var(--bd)', gap:8, flexShrink:0 }}>
-        <span style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>💨 컴프레셔 점검</span>
+      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+        <Wind size={18} className="text-text-secondary" />
+        <span className="text-title font-bold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{lineIdx+1} / {totalSteps}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
         {mode !== 'from-div' && currentPt && zone === 'underground' && (
-          <span style={{ marginLeft:'auto', fontSize:12, fontWeight:600, color:'var(--t3)' }}>{underPickIdx+1} / {underPending.length}</span>
+          <span className="ml-auto text-caption font-semibold text-text-tertiary">{underPickIdx+1} / {underPending.length}</span>
         )}
       </div>
 
       {/* 본문 */}
-      <div style={{ flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
         {mode !== 'from-div' && (
           <>
             {/* 구역 선택 */}
             <div>
-              <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>구역 선택</div>
-              <div style={{ display:'flex', gap:8 }}>
+              <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+              <div className="flex gap-2">
                 {(['research','office','underground'] as DivZone[]).map(z => {
                   const sel = zone === z
                   return (
                     <button key={z}
                       onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                      style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                      className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                        sel
+                          ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                          : 'border border-border-strong bg-surface-page text-text-secondary'
+                      }`}>
                       {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
                     </button>
                   )
@@ -1891,14 +1994,18 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
             {/* 라인 선택 (연구동/사무동) */}
             {zone && zone !== 'underground' && (
               <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>라인 선택</div>
-                <div style={{ display:'flex', gap:8 }}>
+                <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+                <div className="flex gap-2">
                   {(zone === 'research' ? [1,2] : [3]).map(l => {
                     const sel = line === l
                     return (
                       <button key={l}
                         onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                        style={{ flex:1, padding:'10px 0', borderRadius:10, border: sel ? '1.5px solid var(--acl)' : '1px solid var(--bd2)', fontSize:13, fontWeight:700, cursor:'pointer', background: sel ? 'var(--acl)' : 'var(--bg)', color: sel ? '#fff' : 'var(--t2)', transition:'all .12s' }}>
+                        className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                          sel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-strong bg-surface-page text-text-secondary'
+                        }`}>
                         컴프 #{l}
                       </button>
                     )
@@ -1911,7 +2018,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
         {/* 점검 폼 영역 — 개소 네비 카드는 항상 표시, 재진입 팝업은 입력 폼만 덮음 */}
         {currentPt && (
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div className="flex flex-col gap-3.5">
             {/* 개소 정보 + 이전/다음 네비 (standalone만) — 팝업에 안 덮임 */}
             {mode !== 'from-div' && (() => {
               const seq = zone !== 'underground' && line ? DIV_LINE_SEQ[line] : null
@@ -1919,41 +2026,44 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               const canNext = zone === 'underground' ? underPickIdx < underPending.length - 1 : seq ? lineIdx < seq.length - 1 : false
               const goPrev = () => { if (zone === 'underground') setUnderPickIdx(i => i - 1); else setLineIdx(i => i - 1); resetForm() }
               const goNext = () => { if (zone === 'underground') setUnderPickIdx(i => i + 1); else setLineIdx(i => i + 1); resetForm() }
-              const navBtnStyle = (enabled: boolean): React.CSSProperties => ({
-                width:36, height:36, borderRadius:8, border:'1px solid var(--bd)', background:'var(--bg)',
-                color: enabled ? 'var(--t1)' : 'var(--t3)', fontSize:20, fontWeight:700, cursor: enabled ? 'pointer' : 'default',
-                display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, opacity: enabled ? 1 : 0.3,
-              })
+              const navBtnCls = (enabled: boolean) =>
+                `w-9 h-9 rounded-sm border border-border-default bg-surface-page inline-flex items-center justify-center flex-shrink-0 transition-opacity ${
+                  enabled ? 'text-text-primary opacity-100 cursor-pointer' : 'text-text-tertiary opacity-30 cursor-default'
+                }`
               return (
                 <div
-                  style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10, touchAction:'pan-y' }}
+                  className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default flex items-center gap-2.5 [touch-action:pan-y]"
                   onTouchStart={e => { (e.currentTarget as any)._swX = e.touches[0].clientX }}
                   onTouchEnd={e => { const sx = (e.currentTarget as any)._swX; if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (dx > 40 && canPrev) goPrev(); else if (dx < -40 && canNext) goNext() }}
                 >
-                  <button style={navBtnStyle(canPrev)} onClick={canPrev ? goPrev : undefined}>‹</button>
-                  <div style={{ flex:1, textAlign:'center' }}>
-                    <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
-                    <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                    <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+                  <button className={navBtnCls(canPrev)} onClick={canPrev ? goPrev : undefined}>
+                    <ChevronLeft size={20} />
+                  </button>
+                  <div className="flex-1 text-center">
+                    <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
+                    <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                    <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
                   </div>
-                  <button style={navBtnStyle(canNext)} onClick={canNext ? goNext : undefined}>›</button>
+                  <button className={navBtnCls(canNext)} onClick={canNext ? goNext : undefined}>
+                    <ChevronRight size={20} />
+                  </button>
                 </div>
               )
             })()}
 
             {/* from-div: 간단한 개소 정보 — 팝업에 안 덮임 */}
             {mode === 'from-div' && (
-              <div style={{ background:'var(--bg2)', borderRadius:12, padding:'10px 12px', border:'1px solid var(--bd)', textAlign:'center' }}>
-                <div style={{ fontSize:11, color:'var(--t3)', fontWeight:600 }}>현재 개소</div>
-                <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginTop:2 }}>{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
-                <div style={{ fontSize:11, color:'var(--t2)', marginTop:2 }}>{currentPt.loc}</div>
+              <div className="bg-surface-raised rounded-md px-3 py-2.5 border border-border-default text-center">
+                <div className="text-caption text-text-tertiary font-semibold">현재 개소</div>
+                <div className="text-body-sm font-bold text-text-primary mt-0.5">{currentPt.floorLabel} — 컴프 #{currentPt.pos}</div>
+                <div className="text-caption text-text-secondary mt-0.5">{currentPt.loc}</div>
               </div>
             )}
 
             {/* 입력 폼 서브 컨테이너 — 재진입 팝업 부분 오버레이의 부모 (position:relative)
                 H2 (260423-htx Task 5): 팝업이 '현재 개소' 네비 카드를 가리지 않고
                 입력 폼(탱크배수/오일/결과/특이사항) 영역만 덮도록 부모 범위를 축소. */}
-            <div style={{ position:'relative', display:'flex', flexDirection:'column', gap:14 }}>
+            <div className="relative flex flex-col gap-3.5">
               {popupState && (
                 <InspectionRevisitPopup
                   variant={popupState.variant}
@@ -1966,46 +2076,87 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
               )}
 
               {/* 탱크 배수 / 컴프 오일 */}
-              <div style={{ display:'flex', gap:10 }}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+              <div className="flex gap-2.5">
+                <div className="flex-1">
+                  <div className="text-caption font-semibold text-text-tertiary mb-2 flex items-center gap-1.5">
                     탱크 배수
                     {drainDPlus !== null && (
-                      <span style={{ fontSize:10, fontWeight:700, color: drainDPlus > 60 ? 'var(--warn)' : 'var(--t3)', background: drainDPlus > 60 ? 'rgba(245,158,11,.12)' : 'var(--bg3)', padding:'1px 6px', borderRadius:4 }}>D+{drainDPlus}</span>
+                      <span className={`text-caption font-bold px-1.5 py-0 rounded-[4px] ${
+                        drainDPlus > 60 ? 'text-warning bg-warning-bg' : 'text-text-tertiary bg-surface-sunken'
+                      }`}>D+{drainDPlus}</span>
                     )}
-                    {drainDPlus === null && <span style={{ fontSize:10, color:'var(--t3)', opacity:0.5 }}>기록 없음</span>}
+                    {drainDPlus === null && <span className="text-caption text-text-tertiary opacity-50">기록 없음</span>}
                   </div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setTankDrain('none')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='none' ? 'var(--bg)' : 'var(--bg3)', color: tankDrain==='none' ? 'var(--t1)' : 'var(--t3)', boxShadow: tankDrain==='none' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='none' ? 1 : 1 }}>없음</button>
-                    <button onClick={() => setTankDrain('yes')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: tankDrain==='yes' ? 'rgba(59,130,246,.18)' : 'var(--bg3)', color: tankDrain==='yes' ? '#3b82f6' : 'var(--t3)', boxShadow: tankDrain==='yes' ? '0 0 0 2px #3b82f6' : '0 0 0 1px var(--bd2)', opacity: tankDrain==='yes' ? 1 : 1 }}>있음</button>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setTankDrain('none')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        tankDrain==='none'
+                          ? 'border-[1.5px] border-accent bg-surface-page text-text-primary'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      없음
+                    </button>
+                    <button onClick={() => setTankDrain('yes')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        tankDrain==='yes'
+                          ? 'border-[1.5px] border-accent bg-[rgba(59,130,246,.18)] text-accent'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      있음
+                    </button>
                   </div>
                 </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>컴프 오일</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    <button onClick={() => setOil('sufficient')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='sufficient' ? 'var(--bg)' : 'var(--bg3)', color: oil==='sufficient' ? 'var(--t1)' : 'var(--t3)', boxShadow: oil==='sufficient' ? '0 0 0 2px var(--acl)' : '0 0 0 1px var(--bd2)', opacity: oil==='sufficient' ? 1 : 1 }}>충분함</button>
-                    <button onClick={() => setOil('refill')} style={{ flex:1, padding:'9px 0', borderRadius:8, fontSize:13, fontWeight:700, cursor:'pointer', border:'none', background: oil==='refill' ? 'rgba(245,158,11,.18)' : 'var(--bg3)', color: oil==='refill' ? 'var(--warn)' : 'var(--t3)', boxShadow: oil==='refill' ? '0 0 0 2px var(--warn)' : '0 0 0 1px var(--bd2)', opacity: oil==='refill' ? 1 : 1 }}>보충함</button>
+                <div className="flex-1">
+                  <div className="text-caption font-semibold text-text-tertiary mb-2">컴프 오일</div>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => setOil('sufficient')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        oil==='sufficient'
+                          ? 'border-[1.5px] border-accent bg-surface-page text-text-primary'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      충분함
+                    </button>
+                    <button onClick={() => setOil('refill')}
+                      className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
+                        oil==='refill'
+                          ? 'border-[1.5px] border-warning-bar bg-warning-bg text-warning'
+                          : 'border border-border-strong bg-surface-sunken text-text-tertiary'
+                      }`}>
+                      보충함
+                    </button>
                   </div>
                 </div>
               </div>
 
               {/* 점검 결과 */}
               <div>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--t3)', marginBottom:8 }}>점검 결과</div>
-                <div style={{ display:'flex', gap:8 }}>
-                  {(['normal','caution','bad'] as const).map(r => (
-                    <button key={r} onClick={() => setResult(r)}
-                      style={{ flex:1, padding:'10px 0', borderRadius:10, border:`2px solid ${result===r ? resultColor[r]! : 'var(--bd)'}`, background: result===r ? resultColor[r]! : 'var(--bg2)', color: result===r ? '#fff' : 'var(--t2)', fontSize:13, fontWeight:700, cursor:'pointer' }}>
-                      {resultLabel[r]}
-                    </button>
-                  ))}
+                <div className="text-caption font-semibold text-text-tertiary mb-2">점검 결과</div>
+                <div className="flex gap-2">
+                  {(['normal','caution','bad'] as const).map(r => {
+                    const active = result === r
+                    const inactiveCls = 'border-border-default bg-surface-sunken text-text-secondary'
+                    const activeCls =
+                      r === 'normal' ? 'border-safe-bar bg-safe-bg text-safe' :
+                      r === 'caution' ? 'border-warning-bar bg-warning-bg text-warning' :
+                      'border-danger-bar bg-danger-bg text-danger'
+                    const Icon = r === 'normal' ? CheckCircle2 : r === 'caution' ? AlertTriangle : XCircle
+                    const label = r === 'normal' ? '정상' : r === 'caution' ? '주의' : '불량'
+                    return (
+                      <button key={r} onClick={() => setResult(r)}
+                        className={`flex-1 px-3 py-2.5 rounded-pill border-[1.5px] inline-flex items-center justify-center gap-1.5 text-label font-semibold transition-colors cursor-pointer ${active ? activeCls : inactiveCls}`}>
+                        <Icon size={16} color="currentColor" />
+                        {label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* 특이사항 + 사진 */}
-              <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+              <div className="flex gap-2.5 items-start">
                 <textarea value={memo} onChange={e => setMemo(e.target.value)} placeholder="특이사항 (선택)"
-                  style={{ flex:1, height:72, padding:'10px 12px', borderRadius:10, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--t1)', fontSize:14, resize:'none', boxSizing:'border-box' }} />
+                  className="flex-1 h-[72px] px-3 py-2.5 rounded-md bg-surface-raised border border-border-default text-text-primary text-label resize-none outline-none box-border font-sans placeholder:text-text-tertiary" />
                 <PhotoButton hook={photo} />
               </div>
             </div>
@@ -2014,11 +2165,16 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       </div>
 
       {/* 하단 버튼 바 */}
-      <div style={{ padding:'10px 14px 12px', background:'var(--bg2)', borderTop:'1px solid var(--bd)', flexShrink:0, display:'flex', gap:8 }}>
-        <button onClick={onClose} style={{ padding:'12px 18px', borderRadius:12, background:'var(--bg)', border:'1px solid var(--bd2)', color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer' }}>닫기</button>
+      <div className="flex gap-2 px-3.5 pt-2.5 pb-3 bg-surface-raised border-t border-border-default flex-shrink-0">
+        <button onClick={onClose} className="px-4 py-3 rounded-md bg-surface-page border border-border-strong text-text-secondary text-caption font-semibold cursor-pointer">닫기</button>
         {currentPt && (
           <button onClick={handleSave} disabled={saving}
-            style={{ flex:1, padding:14, borderRadius:12, border:'none', background: saving ? 'var(--bd)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)', color:'#fff', fontSize:15, fontWeight:700, cursor: saving ? 'default' : 'pointer', boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)' }}>
+            className="flex-1 py-3.5 rounded-md text-text-on-accent text-body font-bold border-0"
+            style={{
+              background: saving ? 'var(--border-default)' : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+              cursor: saving ? 'default' : 'pointer',
+              boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.35)'
+            }}>
             {saving ? '저장 중...' :
               mode === 'from-div' ? '저장 후 닫기' :
               zone === 'underground'
