@@ -1019,30 +1019,40 @@ export default function ElevatorPage() {
 
   // ── 모바일 ─────────────────────────────────────────────────
   return (
-    <div style={{ flex:1, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       {/* 헤더 */}
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 8px' }}>
+      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default px-3 pt-2 pb-2">
         {unresolvedCount > 0 && (
-          <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:6 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.13)', border:'1px solid rgba(239,68,68,.25)', padding:'2px 8px', borderRadius:20 }}>
+          <div className="flex justify-end mb-1.5">
+            <span className="inline-flex items-center gap-1 text-caption font-semibold text-fire bg-fire-bg border border-fire-bar rounded-pill px-2 py-0.5">
+              <AlertTriangle size={12} />
               미해결 {unresolvedCount}건
             </span>
           </div>
         )}
-        <div style={{ display:'flex', gap:5, overflowX:'auto' }}>
+        <div className="flex gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding:'5px 12px', borderRadius:20, border:'none', cursor:'pointer',
-              fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0,
-              background: tab === t.key ? 'var(--acl)' : 'var(--bg3)',
-              color:      tab === t.key ? '#fff'       : 'var(--t3)',
-            }}>{t.label}</button>
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={
+                'px-3 py-1.5 rounded-pill text-caption font-semibold whitespace-nowrap flex-shrink-0 transition-colors border-0 cursor-pointer ' +
+                (tab === t.key
+                  ? 'bg-accent text-text-on-accent'
+                  : 'bg-surface-sunken text-text-tertiary hover:bg-surface-active hover:text-text-secondary')
+              }
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </header>
 
       {/* 본문 */}
-      <main style={{ flex:1, minHeight:0, overflowY:'auto', padding:'10px 12px', paddingBottom:'calc(80px + var(--sab, 0px))', display:'flex', flexDirection:'column', gap:8 }}>
+      <main
+        className="flex-1 min-h-0 overflow-y-auto px-3 py-2.5 flex flex-col gap-2"
+        style={{ paddingBottom: 'calc(80px + var(--sab, 0px))' }}
+      >
 
         {/* ── 목록 ── */}
         {tab === 'list' && (
@@ -1050,54 +1060,72 @@ export default function ElevatorPage() {
             {(['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
               const group = elevators.filter(e => e.type === type)
               if (!group.length) return null
+              const TypeIcon = TYPE_ICON_COMPONENT[type]
               return (
                 <div key={type}>
-                  <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:5, marginTop:4 }}>
-                    {TYPE_ICON[type]} {TYPE_LABEL[type]} ({group.length}대)
+                  <div className="flex items-center gap-1.5 text-caption font-bold text-text-tertiary uppercase tracking-wider mb-1.5 mt-1">
+                    <TypeIcon size={14} className="text-text-tertiary" />
+                    <span>{TYPE_LABEL[type]} ({group.length}대)</span>
                   </div>
                   {group.map(ev => {
                     const st = STATUS_STYLE[ev.status] ?? STATUS_STYLE.normal
                     const ni = nextInspMap.get(ev.id)
+                    const barClass =
+                      ev.status === 'fault'          ? 'before:bg-fire-bar'      :
+                      ev.status === 'maintenance'    ? 'before:bg-warning-bar'   :
+                      ev.status === 'out_of_service' ? 'before:bg-text-tertiary' :
+                                                        'before:bg-safe-bar'
+                    const badgeClass =
+                      ev.status === 'fault'          ? 'text-fire bg-fire-bg'              :
+                      ev.status === 'maintenance'    ? 'text-warning bg-warning-bg'        :
+                      ev.status === 'out_of_service' ? 'text-text-tertiary bg-surface-sunken' :
+                                                        'text-safe bg-safe-bg'
+                    const borderClass = ev.status === 'fault' ? 'border-fire-bar/40' : 'border-border-default'
+                    const dimmedClass = ev.status === 'out_of_service' ? 'opacity-60' : ''
+                    const iconBoxClass =
+                      ev.status === 'fault'          ? 'bg-fire-bg text-fire'              :
+                      ev.status === 'out_of_service' ? 'bg-surface-sunken text-text-tertiary' :
+                                                        'bg-surface-sunken text-text-secondary'
                     return (
-                      <div key={ev.id}
+                      <div
+                        key={ev.id}
                         onClick={() => { setDetailEv(ev); setModal('ev_detail') }}
-                        style={{ background:'var(--bg2)', border:`1px solid ${ev.status==='fault'?'rgba(239,68,68,.3)':'var(--bd)'}`, borderRadius:12, padding:'10px 13px', display:'flex', alignItems:'center', gap:10, marginBottom:6, cursor:'pointer' }}
+                        className={
+                          'relative bg-surface-raised border rounded-md px-3 py-2.5 flex items-center gap-2.5 mb-1.5 cursor-pointer ' +
+                          'overflow-hidden transition-[border-color,transform,background-color] duration-150 hover:border-border-strong hover:-translate-y-px ' +
+                          "before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] " +
+                          barClass + ' ' + borderClass + ' ' + dimmedClass
+                        }
                       >
-                        <div style={{ width:40, height:40, borderRadius:10, background:ev.status==='fault'?'rgba(239,68,68,.15)':'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>
-                          {TYPE_ICON[type]}
+                        <div className={'w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0 ' + iconBoxClass}>
+                          <TypeIcon size={20} />
                         </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-body font-semibold text-text-primary">
                             {ev.number}호기
-                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>{ev.location}</span>
+                            <span className="text-caption font-normal text-text-tertiary ml-1.5">{ev.location}</span>
                             {ev.type === 'escalator' && ev.public_number != null && (
-                              <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>(공단 {ev.public_number}호기)</span>
+                              <span className="text-caption font-normal text-text-tertiary ml-1.5">(공단 {ev.public_number}호기)</span>
                             )}
                           </div>
-                          <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                          <div className="text-caption text-text-tertiary mt-0.5">
                             {ev.last_inspect_date ? `최근 점검: ${ev.last_inspect_date}` : '점검 기록 없음'}
-                            {(ev.active_faults ?? 0) > 0 && <span style={{ color:'var(--danger)', marginLeft:6 }}>미해결 {ev.active_faults}건</span>}
+                            {(ev.active_faults ?? 0) > 0 && <span className="text-danger ml-1.5">미해결 {ev.active_faults}건</span>}
                           </div>
                         </div>
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
-                          <span style={{ fontSize:10, fontWeight:700, color:st.color, background:st.bg, padding:'3px 8px', borderRadius:20 }}>{st.label}</span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className={'text-caption font-semibold rounded-pill px-2 py-0.5 ' + badgeClass}>{st.label}</span>
                           {ni && ni.status === 'due_soon' && ni.daysUntil != null && (
-                            <span style={{ background:'#fff3e0', color:'#e65100', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              D-{ni.daysUntil}
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-warning-bg text-warning">D-{ni.daysUntil}</span>
                           )}
                           {ni && ni.status === 'overdue' && (
-                            <span style={{ background:'#ffebee', color:'#c62828', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              검사 초과
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-danger-bg text-danger">검사 초과</span>
                           )}
                           {ni && ni.status === 'no_record' && (
-                            <span style={{ background:'#e3f2fd', color:'#1565c0', padding:'2px 8px', borderRadius:8, fontSize:11, fontWeight:600 }}>
-                              기록 없음
-                            </span>
+                            <span className="text-caption font-semibold rounded-sm px-2 py-0.5 bg-info-bg text-info">기록 없음</span>
                           )}
                         </div>
-                        <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0 }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        <ChevronRight size={14} className="text-text-tertiary flex-shrink-0" />
                       </div>
                     )
                   })}
