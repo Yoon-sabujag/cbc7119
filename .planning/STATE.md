@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-04-08)
 **Core value:** 현장에서 모바일로 소방시설 점검을 기록하고, 법적 요구사항에 맞는 점검일지를 즉시 출력할 수 있어야 한다
 **Current focus:** Phase 24 — extinguisher-asset-location
 
-Last activity: 2026-05-15 - Completed quick task 260515-1p0: redesign/02-inspection TSX Wave 5 — StairwellModal + CctvModal v0.1.1 토큰 + Tailwind 변환, 260505-cib photoKey 1건 대표 부여 룰 보존
+Last activity: 2026-05-15 - Completed quick task 260515-2r5 (마지막 Wave): redesign/02-inspection TSX Wave 6 — PowerPanelModal + ParkingGateModal v0.1.1 토큰 + Tailwind 변환. **InspectionPage TSX 전 변환 완료** (Wave 1~6 모든 모달 v0.1.1 정합)
 
 **신규 기능 개발 금지. 실전 검증을 통해 나오는 이슈 대응만 수행.**
 
@@ -184,6 +184,7 @@ None yet.
 | 260514-tbj | redesign/02-inspection TSX Wave 4 — BaeyeonModal(+81/-54) + DamperModal(+228/-134) v0.1.1 토큰 + Tailwind 변환 + **댐퍼 증상 피커 신설** (자동화 5종 카테고리 룰 완성 — 유도등/소화기/소화전/방화셔터/전실제연댐퍼 모두 활성) + InspectionModal dead code 4곳 청소. 후속 fix: stair 모드 피커 추가 / 연결송수관 피커 제거(별개 설비). InspectionPage.tsx 5582→5703줄(+309/-188). tsc/build 통과. cbc7119 디자인 리포 한정. | 2026-05-14 | 6232e65 | [260514-tbj-redesign-02-inspection-tsx-wave-4](./quick/260514-tbj-redesign-02-inspection-tsx-wave-4/) |
 | 260515-0l7 | redesign/02-inspection TSX Wave 3 — DIV/컴프 모달 (DivUnderPicker + DivTrendSubview + DivModal + CompressorModal) v0.1.1 토큰 + Tailwind 변환, InspectionPage.tsx 5716→5872줄 (+333/-177, 변환 영역 ~1246줄). doubleCycle 1주차/2주차 입력 / DIV·컴프 짝꿍 매핑 (DIV_PT_CP↔COMP_PT_CP) / detectDivTrend p1+p2 호출 / autoReason 자동 판단 / mode='from-div' overlay 9분기 / showTrend overlay / 사진 흐름(260508-ibx) / fetch API / KST timestamp 한 줄도 변경 없음. **증상 피커 미도입** (DIV/컴프는 자동화 5종 카테고리 아님 — 메모리 룰). dead code 청소: resultColor/resultLabel 헬퍼 §7.1 inline 분기로 대체. lucide TrendingUp/X/ChevronRight/Flame 추가. tsc 0 / build 통과. cbc7119 디자인 리포 한정. | 2026-05-15 | 5e95414 | [260515-0l7-redesign-02-inspection-tsx-wave-3-div](./quick/260515-0l7-redesign-02-inspection-tsx-wave-3-div/) |
 | 260515-1p0 | redesign/02-inspection TSX Wave 5 — StairwellModal (특별피난계단, 5 계단실 일괄 입력 좌/우 2열) + CctvModal (DVR 13대 일괄 좌7/우6) v0.1.1 토큰 + Tailwind 변환. InspectionPage.tsx 5872→5937줄 (+168/-103). **260505-cib photoKey 1건 대표 부여 룰** (caution/bad 우선 → 첫 cp/층) handleSave 한 줄도 변경 없음 — 전층/전 DVR 중복 저장 버그 재발 방지. 증상 피커 미도입 (자동화 5종 아님). lucide StairsIcon/Video/Server 통일. tsc 0 / build 통과. cbc7119 디자인 리포 한정. | 2026-05-15 | 809964f | [260515-1p0-redesign-02-inspection-tsx-wave-5-cctv](./quick/260515-1p0-redesign-02-inspection-tsx-wave-5-cctv/) |
+| 260515-2r5 | **redesign/02-inspection TSX Wave 6 (마지막)** — PowerPanelModal (소방용전원공급반 PP-X-Y) + ParkingGateModal (주차장비/회전문 — 북문/남문) v0.1.1 토큰 + Tailwind 변환. InspectionPage.tsx 5937→6024줄 (+183/-96). EXCEL-02 자탐 매핑 데이터 흐름 한 줄도 변경 없음 (메모리 룰). loc-card 좌우 스와이프 / useInspectionRevisitPopup category 분기 보존. 증상 피커 미도입 (자동화 5종 아님). lucide Zap/Car/ChevronLeft·Right/CheckCircle2/AlertTriangle/XCircle 재사용 (신규 import 0건). tsc 0 / build 통과. cbc7119 디자인 리포 한정. **→ Wave 1~6 모든 모달 v0.1.1 정합 = InspectionPage TSX 전 변환 완료.** | 2026-05-15 | 8cae633 | [260515-2r5-redesign-02-inspection-tsx-wave-6-powerp](./quick/260515-2r5-redesign-02-inspection-tsx-wave-6-powerp/) |
 
 ### Blockers/Concerns
 
