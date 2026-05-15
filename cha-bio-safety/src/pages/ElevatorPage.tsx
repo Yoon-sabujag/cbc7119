@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2 } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1742,88 +1742,128 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
     return kindOk && checkOk
   }).sort((a,b) => b.date.localeCompare(a.date))
 
-  const KIND_STYLE: Record<string,{color:string;label:string;icon:string}> = {
-    fault:   { color:'var(--danger)', label:'고장',  icon:'🔴' },
-    repair:  { color:'var(--safe)',   label:'수리',  icon:'🔧' },
-    inspect: { color:'var(--info)',   label:'점검',  icon:'📋' },
-    annual:  { color:'var(--warn)',   label:'검사',  icon:'🔍' },
+  const KIND_STYLE: Record<string, {
+    textCls: string;
+    barCls:  string;
+    label:   string;
+    Icon:    React.ComponentType<{ size?: number | string; className?: string }>;
+  }> = {
+    fault:   { textCls:'text-fire',          barCls:'bg-fire-bar',          label:'고장',  Icon: AlertOctagon },
+    repair:  { textCls:'text-safe',          barCls:'bg-safe-bar',          label:'수리',  Icon: Wrench },
+    inspect: { textCls:'text-info',          barCls:'bg-info-bar',          label:'점검',  Icon: ClipboardCheck },
+    annual:  { textCls:'text-text-tertiary', barCls:'bg-text-tertiary',     label:'검사',  Icon: FileSearch },
   }
 
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={
-        isDesktop
-          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, width:720, maxWidth:'92vw', maxHeight:'88vh', display:'flex', flexDirection:'column', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
-          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', display:'flex', flexDirection:'column', overflowX:'hidden' }
-      }>
+      <div
+        onClick={onClose}
+        className="bg-surface-overlay"
+        style={{ position:'fixed', inset:0, zIndex:90 }}
+      />
+      <div
+        className={
+          isDesktop
+            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
+            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
+        }
+        style={
+          isDesktop
+            ? { top:'50%', left:'50%', transform:'translate(-50%, -50%)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+            : { bottom:NAV_H, maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)' }
+        }
+      >
 
         {/* 헤더 */}
-        <div style={{ flexShrink:0, padding:'14px 16px 12px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:9, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
-            {TYPE_ICON[ev.type]}
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{ev.number}호기</div>
-            <div style={{ fontSize:10, color:'var(--t3)' }}>{ev.location}</div>
-          </div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
-        </div>
+        {(() => {
+          const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+          return (
+            <div className="flex-shrink-0 px-4 pt-[14px] pb-3 border-b border-border-default flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-surface-sunken flex items-center justify-center flex-shrink-0">
+                <TypeIcon size={20} className="text-text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-body-sm font-bold text-text-primary">{ev.number}호기</div>
+                <div className="text-caption text-text-tertiary">{ev.location}</div>
+              </div>
+              <button onClick={onClose} className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-1">
+                <X size={20} />
+              </button>
+            </div>
+          )
+        })()}
 
         {/* 기간 선택 */}
-        <div style={{ flexShrink:0, padding:'10px 16px 8px', borderBottom:'1px solid var(--bd)' }}>
-          <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>조회 기간</div>
-          <div style={{ display:'flex', gap:6 }}>
+        <div className="flex-shrink-0 px-4 pt-2.5 pb-2 border-b border-border-default">
+          <div className="text-caption font-bold text-text-tertiary mb-1.5">조회 기간</div>
+          <div className="flex gap-1.5">
             {PERIOD_OPTIONS.map((p,i) => (
-              <button key={i} onClick={() => setPeriodIdx(i)} style={{
-                flex:1, padding:'6px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                background: periodIdx===i ? 'var(--acl)' : 'var(--bg3)',
-                color:      periodIdx===i ? '#fff'       : 'var(--t3)',
-              }}>{p.label}</button>
+              <button
+                key={i}
+                onClick={() => setPeriodIdx(i)}
+                className={
+                  'flex-1 py-1.5 rounded-md border-0 cursor-pointer text-label font-bold ' +
+                  (periodIdx===i
+                    ? 'bg-accent text-text-on-accent'
+                    : 'bg-surface-sunken text-text-tertiary')
+                }
+              >
+                {p.label}
+              </button>
             ))}
           </div>
-          <div style={{ fontSize:10, color:'var(--t3)', marginTop:5, textAlign:'right' }}>{from} ~ {to}</div>
+          <div className="text-caption text-text-tertiary mt-1.5 text-right font-mono">{from} ~ {to}</div>
         </div>
 
         {/* 스크롤 영역 */}
-        <div style={{ flex:1, minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', padding:'12px 16px', display:'flex', flexDirection:'column', gap:14 } as React.CSSProperties}>
+        <div
+          className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-[14px]"
+          style={{ WebkitOverflowScrolling:'touch', overscrollBehavior:'contain' } as React.CSSProperties}
+        >
 
           {/* 승강기 정보 (검사성적서 상단 양식) */}
           <ElevatorInfoCard ev={ev} compact={!isDesktop} />
 
           {isLoading ? (
-            <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>불러오는 중...</div>
+            <div className="text-center py-[30px] text-text-tertiary text-label">불러오는 중...</div>
           ) : (
             <>
               {/* 층별 누적 이력 */}
               {ev.type !== 'escalator' && (
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>층별 누적 이력</div>
-                    <div style={{ marginLeft:'auto', display:'flex', gap:8, fontSize:10, color:'var(--t3)' }}>
-                      <span>🔴 미해결</span>
-                      <span>⚠️ 이력있음</span>
-                      <span>✅ 이상없음</span>
+                  <div className="flex items-center mb-2">
+                    <div className="text-label font-bold text-text-secondary">층별 누적 이력</div>
+                    <div className="ml-auto flex gap-2 text-caption text-text-tertiary">
+                      <span className="inline-flex items-center gap-1 text-fire"><AlertOctagon size={12} />미해결</span>
+                      <span className="inline-flex items-center gap-1 text-warning"><AlertTriangle size={12} />이력있음</span>
+                      <span className="inline-flex items-center gap-1 text-safe"><CheckCircle2 size={12} />이상없음</span>
                     </div>
                   </div>
                   {floorStats.length === 0 ? (
-                    <div style={{ fontSize:12, color:'var(--t3)', padding:'10px 0' }}>해당 기간 이상 없음 ✅</div>
+                    <div className="inline-flex items-center gap-1.5 text-caption text-text-tertiary py-2.5">
+                      <CheckCircle2 size={14} className="text-safe" />
+                      해당 기간 이상 없음
+                    </div>
                   ) : (
                     floorStats.map(s => (
-                      <div key={s.floor} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
-                        <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', width:56, flexShrink:0 }}>{s.floor}</span>
-                        <div style={{ flex:1, display:'flex', gap:10, flexWrap:'wrap' }}>
+                      <div key={s.floor} className="flex items-center gap-2 px-2.5 py-1.5 bg-surface-sunken rounded-lg mb-1.5">
+                        <span className="text-caption font-bold text-text-primary w-14 flex-shrink-0">{s.floor}</span>
+                        <div className="flex-1 flex gap-2.5 flex-wrap">
                           {s.fault_total > 0 && (
-                            <span style={{ fontSize:11, color:'var(--danger)' }}>
+                            <span className="text-label text-danger">
                               고장 {s.fault_total}회{s.fault_unresolved > 0 ? ` (미해결 ${s.fault_unresolved})` : ''}
                             </span>
                           )}
                           {s.action_count > 0 && (
-                            <span style={{ fontSize:11, color:'var(--warn)' }}>조치지적 {s.action_count}회</span>
+                            <span className="text-label text-warning">조치지적 {s.action_count}회</span>
                           )}
                         </div>
-                        <span style={{ fontSize:16 }}>
-                          {s.fault_unresolved > 0 ? '🔴' : s.fault_total > 0 || s.action_count > 0 ? '⚠️' : '✅'}
+                        <span className="flex items-center">
+                          {s.fault_unresolved > 0
+                            ? <AlertOctagon size={16} className="text-fire" />
+                            : (s.fault_total > 0 || s.action_count > 0)
+                              ? <AlertTriangle size={16} className="text-warning" />
+                              : <CheckCircle2 size={16} className="text-safe" />}
                         </span>
                       </div>
                     ))
@@ -1834,14 +1874,21 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
               {/* 점검항목 필터 */}
               {ev.type !== 'escalator' && (
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>점검항목 필터</div>
-                  <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                  <div className="text-label font-bold text-text-secondary mb-2">점검항목 필터</div>
+                  <div className="flex gap-1.5 flex-wrap">
                     {['all','brake','door','safety_device','lighting','emergency_call'].map(k => (
-                      <button key={k} onClick={() => setCheckFilter(k)} style={{
-                        padding:'5px 10px', borderRadius:20, border:'none', cursor:'pointer', fontSize:10, fontWeight:700,
-                        background: checkFilter===k ? 'var(--acl)' : 'var(--bg3)',
-                        color:      checkFilter===k ? '#fff'       : 'var(--t3)',
-                      }}>{k==='all' ? '전체' : CHECK_ITEM_LABELS[k]}</button>
+                      <button
+                        key={k}
+                        onClick={() => setCheckFilter(k)}
+                        className={
+                          'px-2.5 py-1 rounded-full border-0 cursor-pointer text-caption font-bold ' +
+                          (checkFilter===k
+                            ? 'bg-accent text-text-on-accent'
+                            : 'bg-surface-sunken text-text-tertiary')
+                        }
+                      >
+                        {k==='all' ? '전체' : CHECK_ITEM_LABELS[k]}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1849,34 +1896,52 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
 
               {/* 이력 리스트 */}
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>이력</div>
+                <div className="text-label font-bold text-text-secondary mb-2">이력</div>
                 {/* 이력 탭 */}
-                <div style={{ display:'flex', gap:5, marginBottom:10, overflowX:'auto' }}>
+                <div className="flex gap-1.5 mb-2.5 overflow-x-auto">
                   {HISTORY_TABS.map(t => (
-                    <button key={t.key} onClick={() => setHistTab(t.key)} style={{
-                      padding:'5px 12px', borderRadius:20, border:'none', cursor:'pointer', fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0,
-                      background: histTab===t.key ? 'var(--acl)' : 'var(--bg3)',
-                      color:      histTab===t.key ? '#fff'       : 'var(--t3)',
-                    }}>{t.label}</button>
+                    <button
+                      key={t.key}
+                      onClick={() => setHistTab(t.key)}
+                      className={
+                        'px-3 py-1 rounded-full border-0 cursor-pointer text-label font-bold whitespace-nowrap flex-shrink-0 ' +
+                        (histTab===t.key
+                          ? 'bg-accent text-text-on-accent'
+                          : 'bg-surface-sunken text-text-tertiary')
+                      }
+                    >
+                      {t.label}
+                    </button>
                   ))}
                 </div>
 
                 {filtered.length === 0 ? (
-                  <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t3)', fontSize:12 }}>해당 이력이 없어요</div>
+                  <div className="flex flex-col items-center justify-center py-5 gap-2">
+                    <FileSearch size={28} className="text-text-tertiary" />
+                    <span className="text-caption text-text-tertiary">해당 이력이 없어요</span>
+                  </div>
                 ) : (
                   filtered.map(h => {
                     const ks = KIND_STYLE[h.kind] ?? KIND_STYLE.inspect
+                    const KsIcon = ks.Icon
                     return (
-                      <div key={h.id} style={{ padding:'9px 11px', background:'var(--bg3)', borderRadius:10, marginBottom:6, borderLeft:`3px solid ${ks.color}` }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-                          <span style={{ fontSize:11 }}>{ks.icon}</span>
-                          <span style={{ fontSize:11, fontWeight:700, color:ks.color }}>{ks.label}</span>
-                          {h.floor && <span style={{ fontSize:10, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.12)', padding:'1px 6px', borderRadius:6 }}>{h.floor}</span>}
-                          {h.check_item && <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg4)', padding:'1px 6px', borderRadius:6 }}>{CHECK_ITEM_LABELS[h.check_item] ?? h.check_item}</span>}
-                          <span style={{ marginLeft:'auto', fontSize:10, color:'var(--t3)', fontFamily:'JetBrains Mono, monospace' }}>{h.date.slice(0,10)}</span>
+                      <div key={h.id} className="relative pl-3 pr-2.5 py-2 bg-surface-sunken rounded-xl mb-1.5 overflow-hidden">
+                        <span className={'absolute left-0 top-0 bottom-0 w-[3px] ' + ks.barCls} />
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <KsIcon size={12} className={ks.textCls} />
+                          <span className={'text-caption font-bold ' + ks.textCls}>{ks.label}</span>
+                          {h.floor && (
+                            <span className="text-caption font-bold text-info bg-info-bg px-1.5 py-0.5 rounded-md">{h.floor}</span>
+                          )}
+                          {h.check_item && (
+                            <span className="text-caption text-text-tertiary bg-surface-raised px-1.5 py-0.5 rounded-md">
+                              {CHECK_ITEM_LABELS[h.check_item] ?? h.check_item}
+                            </span>
+                          )}
+                          <span className="ml-auto text-caption text-text-tertiary font-mono">{h.date.slice(0,10)}</span>
                         </div>
-                        <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{h.summary}</div>
-                        {h.detail && <div style={{ fontSize:11, color:'var(--t3)', marginTop:3 }}>{h.detail}</div>}
+                        <div className="text-caption text-text-primary font-semibold">{h.summary}</div>
+                        {h.detail && <div className="text-caption text-text-tertiary mt-1">{h.detail}</div>}
                       </div>
                     )
                   })
