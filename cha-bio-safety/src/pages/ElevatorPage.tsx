@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2 } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1737,8 +1737,8 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
       <div
         className={
           isDesktop
-            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
-            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
+            ? 'fixed z-[110] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
+            : 'fixed z-[110] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
         }
         style={
           isDesktop
@@ -2099,7 +2099,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
             <Field label="발생 일시">
               <input
                 type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
-                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
               />
             </Field>
 
@@ -2185,7 +2185,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   return (
     <div
       className="fixed flex flex-col bg-surface-page"
-      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:100, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
+      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:110, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
     >
       {/* 풀스크린 자체 헤더 */}
       <div className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2.5 px-4 pt-[14px] pb-3">
@@ -2221,7 +2221,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
               <Field label="발생 일시">
                 <input
                   type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
-                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
                 />
               </Field>
 
@@ -2312,7 +2312,7 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         </Field>
         <Field label="수리 완료 일시">
           <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)}
-            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
           />
         </Field>
         <Field label="수리 내용">
@@ -2513,15 +2513,32 @@ function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>voi
   const isDesktop = useIsDesktop()
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={
-        isDesktop
-          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, padding:'0 24px 24px', width:540, maxWidth:'90vw', maxHeight:'85vh', overflowY:'auto', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
-          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'0 16px 32px', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', overflowY:'auto', overflowX:'hidden' }
-      }>
-        <div style={{ display:'flex', alignItems:'center', padding:'14px 0 12px', borderBottom:'1px solid var(--bd)', marginBottom:14, position: isDesktop ? 'sticky' : 'static', top:0, background:'var(--bg2)', zIndex:1 }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>{title}</span>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
+      <div onClick={onClose} className="fixed inset-0 bg-surface-overlay z-[90]" />
+      <div
+        className={
+          isDesktop
+            ? 'fixed z-[110] bg-surface-raised rounded-2xl w-[540px] max-w-[90vw] max-h-[85vh] overflow-y-auto overflow-x-hidden border border-border-strong px-6 pb-6'
+            : 'fixed z-[110] left-0 right-0 bg-surface-raised rounded-t-[20px] px-4 pb-8 overflow-y-auto overflow-x-hidden'
+        }
+        style={
+          isDesktop
+            ? { top:'50%', left:'50%', transform:'translate(-50%, -50%)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+            : { bottom:NAV_H, maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)' }
+        }
+      >
+        <div
+          className={[
+            'flex items-center pt-[14px] pb-3 border-b border-border-default mb-[14px] bg-surface-raised',
+            isDesktop ? 'sticky top-0 z-[1]' : '',
+          ].join(' ')}
+        >
+          <span className="text-body-sm font-bold text-text-primary flex-1">{title}</span>
+          <button
+            onClick={onClose}
+            className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-1"
+          >
+            <X size={20} />
+          </button>
         </div>
         {children}
       </div>
@@ -2531,16 +2548,16 @@ function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>voi
 function Field({ label, children, style }: { label:string; children:React.ReactNode; style?:React.CSSProperties }) {
   return (
     <div style={style}>
-      <label style={{ fontSize:11, fontWeight:700, color:'var(--t2)', display:'block', marginBottom:5 }}>{label}</label>
+      <label className="block text-label font-bold text-text-secondary mb-[5px]">{label}</label>
       {children}
     </div>
   )
 }
 function EmptyState({ icon, text }: { icon:string; text:string }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0', gap:10 }}>
-      <div style={{ fontSize:36 }}>{icon}</div>
-      <div style={{ fontSize:13, color:'var(--t3)' }}>{text}</div>
+    <div className="flex flex-col items-center justify-center py-10 gap-2.5">
+      <div className="text-[36px]">{icon}</div>
+      <div className="text-body-sm text-text-tertiary">{text}</div>
     </div>
   )
 }
@@ -2991,21 +3008,37 @@ function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; ke
 
   return (
     <div>
-      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>{label} ({keys.length}/{max})</div>
-      <input ref={camRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={onFileChange} />
-      <input ref={albRef} type="file" accept="image/*" style={{ display:'none' }} onChange={onFileChange} />
+      <div className="text-label font-bold text-text-secondary mb-1.5">{label} ({keys.length}/{max})</div>
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
+      <input ref={albRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
       <PhotoSourceModal open={showPicker} onClose={() => setShowPicker(false)} onCamera={() => camRef.current?.click()} onAlbum={() => albRef.current?.click()} />
-      <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
+      <div className="flex gap-1.5 overflow-x-auto">
         {keys.length < max && (
-          <button onClick={() => !uploading && setShowPicker(true)} style={{ width:64, height:64, flexShrink:0, borderRadius:8, border:'1px dashed var(--bd2)', background:'var(--bg3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor: uploading ? 'wait' : 'pointer' }}>
-            <span style={{ fontSize:18 }}>📷</span>
-            <span style={{ fontSize:8, color:'var(--t3)', fontWeight:600 }}>{uploading ? '...' : '추가'}</span>
+          <button
+            onClick={() => !uploading && setShowPicker(true)}
+            className={[
+              'w-16 h-16 flex-shrink-0 rounded-lg border border-dashed border-border-strong bg-surface-sunken',
+              'flex flex-col items-center justify-center gap-0.5',
+              uploading ? 'cursor-wait' : 'cursor-pointer',
+            ].join(' ')}
+          >
+            <Camera size={18} className="text-text-tertiary" />
+            <span className="text-[8px] text-text-tertiary font-semibold">{uploading ? '...' : '추가'}</span>
           </button>
         )}
         {keys.map((key, idx) => (
-          <div key={key} style={{ position:'relative', width:64, height:64, flexShrink:0 }}>
-            <img src={`/api/uploads/${key}`} alt="" style={{ width:64, height:64, objectFit:'cover', borderRadius:8, border:'1px solid var(--bd)' }} />
-            <button onClick={() => setKeys(keys.filter((_,i) => i !== idx))} style={{ position:'absolute', top:-4, right:-4, width:16, height:16, borderRadius:'50%', background:'var(--danger)', color:'#fff', border:'none', fontSize:9, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          <div key={key} className="relative w-16 h-16 flex-shrink-0">
+            <img
+              src={`/api/uploads/${key}`}
+              alt=""
+              className="w-16 h-16 object-cover rounded-lg border border-border-default"
+            />
+            <button
+              onClick={() => setKeys(keys.filter((_,i) => i !== idx))}
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger text-white border-0 cursor-pointer flex items-center justify-center"
+            >
+              <X size={9} strokeWidth={3} />
+            </button>
           </div>
         ))}
       </div>
