@@ -1472,15 +1472,25 @@ export default function ElevatorPage() {
                 <EmptyState icon={<ClipboardList size={36} />} text="해당 연도에 검사 이력이 없어요" />
               )}
 
-              {/* 호기 카드 리스트 — 선택 연도에 이력 있는 호기만 */}
-              {visible.map(({ ev, items }) => {
-                const evKey = ev.id
-                const isExp = !!expandedMobileAnnual[evKey]
-                // 최신 판정 (items 는 이미 최신순 정렬됨)
-                const latest = items[0]
-                const latestBadge = dispClass(latest?.dispWords)
-                const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+              {/* 호기 카드 리스트 — 선택 연도에 이력 있는 호기만, 점검 기록 탭과 동일하게 4 type 그룹화 */}
+              {(['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
+                const group = visible.filter(({ ev }) => ev.type === type)
+                if (!group.length) return null
+                const GroupIcon = TYPE_ICON_COMPONENT[type]
                 return (
+                  <div key={type} className="flex flex-col gap-2.5">
+                    <div className="text-caption font-bold text-text-tertiary tracking-wider uppercase mb-1.5 mt-1 flex items-center gap-1.5">
+                      <GroupIcon size={14} className="text-text-tertiary" strokeWidth={1.8} />
+                      <span>{TYPE_LABEL[type]} ({group.length}대)</span>
+                    </div>
+                    {group.map(({ ev, items }) => {
+                      const evKey = ev.id
+                      const isExp = !!expandedMobileAnnual[evKey]
+                      // 최신 판정 (items 는 이미 최신순 정렬됨)
+                      const latest = items[0]
+                      const latestBadge = dispClass(latest?.dispWords)
+                      const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+                      return (
                   <div
                     key={evKey}
                     className={[
@@ -1570,6 +1580,9 @@ export default function ElevatorPage() {
                         })}
                       </div>
                     )}
+                  </div>
+                      )
+                    })}
                   </div>
                 )
               })}
