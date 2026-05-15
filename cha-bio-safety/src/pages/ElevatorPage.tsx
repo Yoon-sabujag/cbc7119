@@ -1668,17 +1668,20 @@ const HISTORY_TABS: { key:HistoryTab; label:string }[] = [
 
 function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
   const isDesktop = useIsDesktop()
+  // SideMenu 패턴 (f89ab71): body fixed 대신 overflow:hidden + touchmove 차단.
+  // body position:fixed 는 iOS safe-area 깨뜨려 BottomNav 위치 이상이 발생.
   useEffect(() => {
-    const scrollY = window.scrollY
+    const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
+    const prevent = (e: TouchEvent) => {
+      const panel = document.getElementById('ev-detail-modal-panel')
+      if (panel && panel.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', prevent, { passive: false })
     return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      window.scrollTo(0, scrollY)
+      document.body.style.overflow = prev
+      document.removeEventListener('touchmove', prevent)
     }
   }, [])
   const [periodIdx,   setPeriodIdx]   = useState(1) // 기본 3개월
@@ -1735,6 +1738,7 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
         style={{ position:'fixed', inset:0, zIndex:90 }}
       />
       <div
+        id="ev-detail-modal-panel"
         className={
           isDesktop
             ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
