@@ -1,0 +1,1837 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 3A (고장 탭 본문 + 수리 탭 본문 RepairListSection — 5탭 본문 시리즈 1/3)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (evdetail-modal-sketch.html / fault-modals-sketch.html / input-modals-sketch.html 과 동일)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      /* alias */
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      /* 풀스크린 전용 — 하단 네비 높이 (NAV_H 대응) */
+      --nav-h: 54px;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 — 인라인 style 회피용
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+    .text-warning  { color: var(--warning); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+    .bg-warning-bg  { background-color: var(--warning-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 375px; height: 812px; }
+    .viewport-desktop { width: 1280px; height: 800px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    /* 페이지 컨테이너 */
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* 모바일 페이지 헤더 (Wave 1 변환 결과 — 자체 헤더) */
+    .mobile-page-hd {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 페이지 헤더 우측 미해결 칩 (Wave 1) */
+    .unresolved-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* 6탭 (목록/고장/수리/점검/검사/안전관리자) — Wave 1 변환 결과 */
+    .tab-bar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      overflow-x: auto;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-bar { scrollbar-width: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 9px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .13s, border-color .13s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn-active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* 본문 스크롤 */
+    .body-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px 12px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .body-scroll::-webkit-scrollbar { display: none; }
+    .body-scroll { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 고장 카드 — 3변형 (미해결 승객ON / 미해결 승객미탑승 / 수리완료)
+     * 좌측 색바 패턴 — evdetail-modal-sketch.html .kind-fault::before 와 동일
+     * ===================================================================== */
+    .fault-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 12px 12px 14px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      min-height: 72px;
+    }
+    .fault-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .fault-card.is-unresolved::before { background: var(--status-fire-bar); }
+    .fault-card.is-resolved::before   { background: var(--status-safe-bar); }
+
+    .fault-card-icon {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-sunken);
+      border-radius: 10px;
+      color: var(--text-secondary);
+    }
+
+    .fault-card-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .fault-card-row1 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .fault-ev-label {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .fault-ev-label-fire {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--status-fire-bar);
+    }
+    .floor-chip-info {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--status-info-bar);
+      background: var(--status-info-bg);
+      padding: 2px 7px;
+      border-radius: 8px;
+    }
+    .passenger-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--status-danger-bar);
+      background: var(--status-danger-bg);
+      padding: 2px 7px;
+      border-radius: 8px;
+    }
+    .fault-symptoms {
+      font-size: 13px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fault-time {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 우측 영역 — 수리내역(safe) 또는 "고장 수리 중"(fire) */
+    .fault-card-aside {
+      flex-shrink: 0;
+      max-width: 96px;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .repair-detail-text {
+      font-size: 13px;
+      color: var(--status-safe-bar);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .repairing-text {
+      font-size: 13px;
+      color: var(--status-fire-bar);
+      font-weight: 700;
+    }
+
+    /* 우측 액션 — 수리내용입력 btn 또는 CheckCircle2 + admin 삭제 */
+    .fault-cta-square {
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      border: 1px solid rgba(34,197,94,0.3);
+      background: var(--status-safe-bg);
+      color: var(--status-safe-bar);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: pre-line;
+      text-align: center;
+      line-height: 1.35;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color .13s, transform .13s;
+    }
+    .fault-cta-square:hover {
+      transform: translateY(-1px);
+    }
+
+    .fault-done-wrap {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .fault-done-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--status-safe-bar);
+    }
+
+    /* ghost 삭제 / 수정 btn — admin 분기 (input-modals-sketch.html 2C 패턴) */
+    .ghost-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color .13s, border-color .13s;
+    }
+    .ghost-btn-danger {
+      background: var(--status-danger-bg);
+      border: 1px solid rgba(239,68,68,0.32);
+      color: var(--status-danger-bar);
+    }
+    .ghost-btn-danger:hover { background: var(--status-danger-bg); border-color: var(--status-danger-bar); }
+    .ghost-btn-info {
+      background: var(--status-info-bg);
+      border: 1px solid rgba(14,165,233,0.32);
+      color: var(--status-info-bar);
+    }
+    .ghost-btn-info:hover { background: var(--status-info-bg); border-color: var(--status-info-bar); }
+
+    /* admin 삭제 작은 ghost — fault 카드 CheckCircle2 아래 */
+    .ghost-btn-mini {
+      background: transparent;
+      border: none;
+      color: var(--status-danger-bar);
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.7;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+    .ghost-btn-mini:hover { opacity: 1; }
+
+    /* =====================================================================
+     * 빈 상태 / 로딩 상태 (EmptyState 변환)
+     * ===================================================================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 16px;
+      gap: 12px;
+      color: var(--text-tertiary);
+    }
+    .empty-state-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 99px;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .empty-state-text {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
+    /* =====================================================================
+     * 수리 탭 본문 — RepairListSection
+     * ===================================================================== */
+    /* 필터 바 */
+    .repair-filter-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding-bottom: 4px;
+    }
+    .repair-filter-select {
+      flex: 1 1 110px;
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      box-sizing: border-box;
+      cursor: pointer;
+      background-image: linear-gradient(45deg, transparent 50%, var(--text-tertiary) 50%), linear-gradient(135deg, var(--text-tertiary) 50%, transparent 50%);
+      background-position: calc(100% - 14px) 50%, calc(100% - 10px) 50%;
+      background-size: 4px 4px;
+      background-repeat: no-repeat;
+      padding-right: 26px;
+    }
+    .repair-filter-input {
+      flex: 2 1 140px;
+      min-width: 0;
+      padding: 8px 10px;
+      border-radius: 9px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .repair-filter-input::placeholder { color: var(--text-tertiary); }
+    .repair-filter-input:focus, .repair-filter-select:focus { border-color: var(--accent); }
+
+    /* 수리 카드 — 접힌 + 펼친 분기 */
+    .repair-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .repair-card-head {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+    }
+    .repair-card-icon-wrap {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      color: var(--text-secondary);
+    }
+    .repair-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .repair-card-row1 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .repair-card-ev {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* sourceType 칩 — 코드 SOURCE_TYPE_LABEL 5종 (standalone yellow / fault danger / inspect accent / annual warning) */
+    .source-chip {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+    .source-chip-standalone {
+      color: #eab308;
+      background: rgba(234,179,8,0.16);
+    }
+    .source-chip-fault {
+      color: var(--status-danger-bar);
+      background: var(--status-danger-bg);
+    }
+    .source-chip-inspect {
+      color: var(--accent);
+      background: rgba(59,130,246,0.16);
+    }
+    .source-chip-annual {
+      color: var(--warning);
+      background: var(--warning-bg);
+    }
+    /* light 라이트 모드의 standalone 색 (가독성 — 6.1 §6.1 보강) */
+    [data-theme="light"] .source-chip-standalone {
+      color: #854d0e;
+      background: rgba(234,179,8,0.18);
+    }
+    /* dark 모드의 standalone 칩 색 명시 (대비 보강) */
+    [data-theme="dark"] .source-chip-standalone {
+      color: #facc15;
+      background: rgba(234,179,8,0.20);
+    }
+    /* dark 모드의 fault-card 호버 보강 */
+    [data-theme="dark"] .fault-card:hover {
+      border-color: var(--border-strong);
+    }
+    /* light 모드의 repair-card 호버 보강 */
+    [data-theme="light"] .repair-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    /* target 칩 (수리 대상: 카/홀/기계실/피트/에스컬레이터) */
+    .target-chip {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+    }
+
+    .repair-card-title {
+      font-size: 13px;
+      color: var(--text-primary);
+      margin-top: 3px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .repair-card-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .repair-chevron {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+      transition: transform .15s;
+    }
+    .repair-chevron-open {
+      transform: rotate(90deg);
+    }
+
+    /* 펼친 영역 */
+    .repair-card-expand {
+      padding: 0 12px 12px;
+      border-top: 1px solid var(--border-default);
+    }
+    .repair-card-detail {
+      padding-top: 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+    .repair-photo-section {
+      margin-top: 10px;
+    }
+    .repair-photo-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      margin-bottom: 5px;
+    }
+    .repair-photo-row {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+    }
+    .repair-photo-row::-webkit-scrollbar { display: none; }
+    .repair-photo-row { scrollbar-width: none; }
+    .repair-photo {
+      width: 60px;
+      height: 60px;
+      border-radius: 7px;
+      border: 1px solid var(--border-default);
+      flex-shrink: 0;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+
+    /* 펼친 액션 (수정/삭제 — standalone 만) */
+    .repair-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .repair-action-btn {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color .13s, border-color .13s;
+    }
+    .repair-action-edit {
+      background: var(--status-info-bg);
+      border: 1px solid rgba(14,165,233,0.32);
+      color: var(--status-info-bar);
+    }
+    .repair-action-delete {
+      background: var(--status-danger-bg);
+      border: 1px solid rgba(239,68,68,0.32);
+      color: var(--status-danger-bar);
+    }
+
+    /* =====================================================================
+     * FAB — 우측 하단 fixed (모바일: BottomNav 위)
+     * ===================================================================== */
+    .fab {
+      position: absolute;
+      right: 16px;
+      bottom: calc(var(--nav-h) + 16px);
+      height: 48px;
+      padding: 0 18px;
+      border-radius: 24px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+      transition: transform .13s, box-shadow .13s;
+    }
+    .fab:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+    }
+    /* FAB-fault — fire 그라디언트 (FaultNew CTA 와 동일 — fault-modals-sketch.html line 588) */
+    .fab-fault {
+      background: linear-gradient(135deg, #991b1b, #ef4444);
+    }
+    /* FAB-repair — accent 그라디언트 */
+    .fab-repair {
+      background: linear-gradient(135deg, var(--accent-active), var(--accent));
+    }
+    /* 데스크톱 우측 패널 안의 FAB — bottom 위치 보정 */
+    .fab-desktop {
+      bottom: 16px;
+    }
+
+    /* =====================================================================
+     * 하단 네비 placeholder (Wave 1 변환 결과 — 모바일)
+     * ===================================================================== */
+    .bottom-nav-ph {
+      flex-shrink: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+    }
+    .bnav-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--text-tertiary);
+    }
+    .bnav-icon-lbl { font-size: 12px; font-weight: 500; }
+    .bnav-icon.active { color: var(--accent); }
+
+    /* =====================================================================
+     * 데스크톱 사이드바 / 호기 그리드 (Wave 1 변환 결과)
+     * ===================================================================== */
+    .desktop-sidebar-ph {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      gap: 4px;
+    }
+    .dsk-nav-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background-color .13s, color .13s;
+    }
+    .dsk-nav-item:hover { background: var(--surface-sunken); color: var(--text-secondary); }
+    .dsk-nav-item.active { background: var(--surface-sunken); color: var(--accent); font-weight: 700; }
+
+    /* 데스크톱 main 영역 — 좌우 2단 분할 */
+    .desktop-main {
+      flex: 1;
+      display: flex;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .desktop-ev-grid-pane {
+      flex: 0 0 480px;
+      padding: 16px;
+      background: var(--surface-page);
+      overflow-y: auto;
+      border-right: 1px solid var(--border-default);
+    }
+    .desktop-tab-pane {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-page);
+      position: relative;
+    }
+    .desktop-tab-pane::-webkit-scrollbar { display: none; }
+    .desktop-tab-pane { scrollbar-width: none; }
+
+    /* 데스크톱 호기 그리드 placeholder */
+    .dsk-ev-group-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+    .dsk-ev-group-title:first-child { margin-top: 0; }
+    .dsk-ev-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .dsk-ev-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 9px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .dsk-ev-tile.fault {
+      background: var(--status-fire-bg);
+      border-color: var(--status-fire-bar);
+      color: var(--status-fire-bar);
+    }
+
+    /* =====================================================================
+     * sourceType 카탈로그 row (VP4 신규)
+     * ===================================================================== */
+    .source-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .source-cat-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      min-width: 84px;
+    }
+    .source-cat-desc {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      flex: 1;
+    }
+
+    /* 페이지 섹션 타이틀 (흰색 배경) */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 (5탭 본문 시리즈 1/3 — 옵션 B 진행 시각화) */
+    .cat-box-fire    { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-fire  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-fire-bar); }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-safe-bar); }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-info-bar); }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--text-tertiary); }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs  { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-sm  { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-md  { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-lg  { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-2xl { width: 32px; height: 32px; flex-shrink: 0; }
+
+    /* ElevatorIcon SVG (icons.tsx line 137-148 1:1 embed) */
+    .elevator-icon-svg { display: block; }
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 옵션 B 5탭 본문 시리즈 1/3 + 색 결정 요약
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">승강기 관리 — 3A 고장 탭 + 수리 탭 본문</div>
+      <div class="page-section-sub">옵션 B 5탭 본문 시리즈 1/3 — list 패턴 형제 (고장 + 수리). 다음 wave: 3B 점검+검사 / 3C 안전관리자.</div>
+    </div>
+    <!-- 색 결정 4박스 (직전 sketch 와 100% 일관) -->
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-fire">
+        <div class="cat-title-fire">미해결 고장</div>
+        <div class="cat-label-dark">fire (주황)</div>
+        <div class="cat-sub-dark">좌측 색바 3px + 호기 라벨 text-fire. 메모리 룰 (메인 칩 = fire) 통일.</div>
+      </div>
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">수리완료 고장</div>
+        <div class="cat-label-dark">safe (녹)</div>
+        <div class="cat-sub-dark">좌측 색바 3px + 수리내역 text-safe + CheckCircle2.</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">발생층 칩</div>
+        <div class="cat-label-dark">info (파)</div>
+        <div class="cat-sub-dark">현 코드 그대로. 7F / B2 / 사8F 등 표시.</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">승객 탑승 칩</div>
+        <div class="cat-label-dark">danger (적) + AlertTriangle</div>
+        <div class="cat-sub-dark">fault-modals 2B 패턴 재사용. 본문의 옛 경고 이모지 → AlertTriangle 으로 격상.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1 — 모바일 · 다크 · 고장 탭 본문 (faults.length > 0 — 카드 3변형)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">VP1 · 모바일 · 다크 · 고장 탭 (탭 활성: 고장 / faults=3건 [미해결 2 + 수리완료 1] / admin=true)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+      <div class="page-shell">
+
+        <!-- 자체 페이지 헤더 (Wave 1 변환 — 미해결 칩 + 6탭) -->
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+          <div class="ml-auto">
+            <span class="unresolved-chip">
+              <i data-lucide="alert-octagon" class="icon-xs"></i>
+              미해결 2
+            </span>
+          </div>
+        </div>
+
+        <!-- 6탭 (Wave 1 변환 — 목록/고장/수리/점검/검사/안전관리자) -->
+        <div class="tab-bar">
+          <button class="tab-btn">목록</button>
+          <button class="tab-btn tab-btn-active">고장</button>
+          <button class="tab-btn">수리</button>
+          <button class="tab-btn">점검</button>
+          <button class="tab-btn">검사</button>
+          <button class="tab-btn">안전관리자</button>
+        </div>
+
+        <!-- 본문 — 고장 카드 3변형 -->
+        <div class="body-scroll">
+
+          <!-- 카드 A: 1호기 / 미해결 / 승객 탑승 ON / 발생층 7F -->
+          <div class="fault-card is-unresolved">
+            <!-- TYPE_ICON passenger → ElevatorIcon SVG (icons.tsx line 137-148 1:1) -->
+            <div class="fault-card-icon">
+              <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                <line x1="12" y1="3" x2="12" y2="21"/>
+                <polyline points="6.5 9 8 7 9.5 9"/>
+                <polyline points="14.5 15 16 17 17.5 15"/>
+                <line x1="8" y1="7" x2="8" y2="11"/>
+                <line x1="16" y1="13" x2="16" y2="17"/>
+              </svg>
+            </div>
+            <div class="fault-card-body">
+              <div class="fault-card-row1">
+                <span class="fault-ev-label-fire">1호기</span>
+                <span class="floor-chip-info">7F</span>
+                <span class="passenger-chip">
+                  <i data-lucide="alert-triangle" class="icon-xs"></i>
+                  승객
+                </span>
+              </div>
+              <div class="fault-symptoms">도어 닫힘 불량 · 재오픈 반복</div>
+              <div class="fault-time">2026-05-15 13:22</div>
+            </div>
+            <div class="fault-card-aside">
+              <span class="repairing-text">고장<br/>수리 중</span>
+            </div>
+            <button class="fault-cta-square">수리
+내용
+입력</button>
+          </div>
+
+          <!-- 카드 B: 4호기 / 미해결 / 승객 미탑승 / 발생층 B2 -->
+          <div class="fault-card is-unresolved">
+            <div class="fault-card-icon">
+              <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                <line x1="12" y1="3" x2="12" y2="21"/>
+                <polyline points="6.5 9 8 7 9.5 9"/>
+                <polyline points="14.5 15 16 17 17.5 15"/>
+                <line x1="8" y1="7" x2="8" y2="11"/>
+                <line x1="16" y1="13" x2="16" y2="17"/>
+              </svg>
+            </div>
+            <div class="fault-card-body">
+              <div class="fault-card-row1">
+                <span class="fault-ev-label-fire">4호기</span>
+                <span class="floor-chip-info">B2</span>
+                <!-- 승객 미탑승 → passenger-chip 표시 안 함 -->
+              </div>
+              <div class="fault-symptoms">비상 통화 무응답</div>
+              <div class="fault-time">2026-05-14 19:08</div>
+            </div>
+            <div class="fault-card-aside">
+              <span class="repairing-text">고장<br/>수리 중</span>
+            </div>
+            <button class="fault-cta-square">수리
+내용
+입력</button>
+          </div>
+
+          <!-- 카드 C: 7호기(에스컬레이터) / 수리완료 / 좌측 색바 safe + CheckCircle2 + admin 삭제 -->
+          <div class="fault-card is-resolved">
+            <!-- escalator → MoveDiagonal -->
+            <div class="fault-card-icon">
+              <i data-lucide="move-diagonal" class="icon-md"></i>
+            </div>
+            <div class="fault-card-body">
+              <div class="fault-card-row1">
+                <span class="fault-ev-label">7호기</span>
+                <!-- 에스컬은 floor / passenger 칩 없음 -->
+              </div>
+              <div class="fault-symptoms">체인 텐셔너 헐거움 · 진동 발생</div>
+              <div class="fault-time">2026-04-22 09:50</div>
+            </div>
+            <div class="fault-card-aside">
+              <span class="repair-detail-text">TKE 출동<br/>도어 센서 교체</span>
+            </div>
+            <div class="fault-done-wrap">
+              <div class="fault-done-icon">
+                <i data-lucide="check-circle-2" class="icon-lg"></i>
+              </div>
+              <!-- admin 분기: 삭제 ghost mini -->
+              <button class="ghost-btn-mini">삭제</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FAB — fire 그라디언트 "고장 접수" -->
+        <button class="fab fab-fault">
+          <i data-lucide="plus" class="icon-md"></i>
+          고장 접수
+        </button>
+
+        <!-- 하단 네비 placeholder -->
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="layout-dashboard" class="icon-md"></i><span class="bnav-icon-lbl">대시보드</span></div>
+          <div class="bnav-icon active"><i data-lucide="building-2" class="icon-md"></i><span class="bnav-icon-lbl">승강기</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-list" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="calendar" class="icon-md"></i><span class="bnav-icon-lbl">근무표</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP2 — 모바일 · 라이트 · 고장 빈 상태 + 수리 탭 시작 (분할)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">VP2 · 모바일 · 라이트 · 고장(빈상태) + 수리탭(필터+카드 1건+빈상태)</div>
+
+    <!-- 두 viewport 가로 -->
+    <div class="flex gap-4 flex-wrap">
+
+      <!-- VP2a 고장 빈 상태 -->
+      <div class="viewport-frame viewport-mobile" data-theme="light">
+        <div class="page-shell">
+          <div class="mobile-page-hd">
+            <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="text-body font-bold text-t1">승강기 관리</span>
+            <!-- 미해결 0건 → 칩 표시 안 함 -->
+          </div>
+          <div class="tab-bar">
+            <button class="tab-btn">목록</button>
+            <button class="tab-btn tab-btn-active">고장</button>
+            <button class="tab-btn">수리</button>
+            <button class="tab-btn">점검</button>
+            <button class="tab-btn">검사</button>
+            <button class="tab-btn">안전관리자</button>
+          </div>
+          <div class="body-scroll">
+            <!-- EmptyState — 옛 코드 체크 이모지 → CheckCircle2 -->
+            <div class="empty-state">
+              <div class="empty-state-icon-wrap">
+                <i data-lucide="check-circle-2" class="icon-xl text-safe"></i>
+              </div>
+              <div class="empty-state-text">고장 기록이 없어요</div>
+            </div>
+          </div>
+          <!-- FAB 고장 접수 (빈상태에서도 항상 표시) -->
+          <button class="fab fab-fault">
+            <i data-lucide="plus" class="icon-md"></i>
+            고장 접수
+          </button>
+          <div class="bottom-nav-ph">
+            <div class="bnav-icon"><i data-lucide="layout-dashboard" class="icon-md"></i><span class="bnav-icon-lbl">대시보드</span></div>
+            <div class="bnav-icon active"><i data-lucide="building-2" class="icon-md"></i><span class="bnav-icon-lbl">승강기</span></div>
+            <div class="bnav-icon"><i data-lucide="clipboard-list" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+            <div class="bnav-icon"><i data-lucide="calendar" class="icon-md"></i><span class="bnav-icon-lbl">근무표</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VP2b 수리 탭 — 필터 + 접힌 카드 1개 + 빈 상태 -->
+      <div class="viewport-frame viewport-mobile" data-theme="light">
+        <div class="page-shell">
+          <div class="mobile-page-hd">
+            <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="text-body font-bold text-t1">승강기 관리</span>
+          </div>
+          <div class="tab-bar">
+            <button class="tab-btn">목록</button>
+            <button class="tab-btn">고장</button>
+            <button class="tab-btn tab-btn-active">수리</button>
+            <button class="tab-btn">점검</button>
+            <button class="tab-btn">검사</button>
+            <button class="tab-btn">안전관리자</button>
+          </div>
+          <div class="body-scroll">
+            <!-- 필터 바: 3 fields (유형 select / 호기 select / 검색 input) -->
+            <div class="repair-filter-bar">
+              <select class="repair-filter-select">
+                <option>전체 유형</option>
+                <option>엘리베이터</option>
+                <option>에스컬레이터</option>
+              </select>
+              <select class="repair-filter-select">
+                <option>전체 호기</option>
+                <option>1호기 (B5F-2F 투명)</option>
+                <option>4호기 (B3F-사8F 오렌지)</option>
+                <option>5호기 (1F-사2F 1번)</option>
+              </select>
+              <input class="repair-filter-input" placeholder="부품, 호기, 층, 대상 검색..." />
+            </div>
+
+            <!-- 수리 카드 (접힌) — 5호기 에스컬 / sourceType=standalone -->
+            <div class="repair-card">
+              <div class="repair-card-head">
+                <div class="repair-card-icon-wrap">
+                  <i data-lucide="move-diagonal" class="icon-md"></i>
+                </div>
+                <div class="repair-card-body">
+                  <div class="repair-card-row1">
+                    <span class="repair-card-ev">5호기</span>
+                    <span class="source-chip source-chip-standalone">독립수리</span>
+                    <span class="target-chip">에스컬레이터</span>
+                  </div>
+                  <div class="repair-card-title">체인 텐셔너 교체</div>
+                  <div class="repair-card-meta">
+                    <span>2026-04-15</span>
+                    <span>·</span>
+                    <span>TKE</span>
+                    <span>·</span>
+                    <i data-lucide="camera" class="icon-xs"></i>
+                  </div>
+                </div>
+                <i data-lucide="chevron-right" class="repair-chevron icon-sm"></i>
+              </div>
+            </div>
+
+            <!-- 빈 상태 (이후 더 없음) — Wrench + "수리 내역이 없어요" -->
+            <div class="empty-state">
+              <div class="empty-state-icon-wrap">
+                <i data-lucide="wrench" class="icon-xl"></i>
+              </div>
+              <div class="empty-state-text">조건에 맞는 수리 내역이 더 없어요</div>
+            </div>
+          </div>
+
+          <!-- FAB — accent 그라디언트 "수리 입력" -->
+          <button class="fab fab-repair">
+            <i data-lucide="plus" class="icon-md"></i>
+            수리 입력
+          </button>
+
+          <div class="bottom-nav-ph">
+            <div class="bnav-icon"><i data-lucide="layout-dashboard" class="icon-md"></i><span class="bnav-icon-lbl">대시보드</span></div>
+            <div class="bnav-icon active"><i data-lucide="building-2" class="icon-md"></i><span class="bnav-icon-lbl">승강기</span></div>
+            <div class="bnav-icon"><i data-lucide="clipboard-list" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+            <div class="bnav-icon"><i data-lucide="calendar" class="icon-md"></i><span class="bnav-icon-lbl">근무표</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP3 — 데스크톱 · 다크 · 수리 탭 (펼친 카드 + admin 분기)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">VP3 · 데스크톱 · 다크 · 수리 탭 펼침 (3호기 sourceType=checkpoint → 수정/삭제 숨김 + standalone 펼침 시 표시)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+      <div class="desktop-shell">
+        <!-- 데스크톱 사이드바 placeholder -->
+        <div class="desktop-sidebar-ph">
+          <div class="dsk-nav-item"><i data-lucide="layout-dashboard" class="icon-sm"></i>대시보드</div>
+          <div class="dsk-nav-item active"><i data-lucide="building-2" class="icon-sm"></i>승강기</div>
+          <div class="dsk-nav-item"><i data-lucide="clipboard-list" class="icon-sm"></i>점검</div>
+          <div class="dsk-nav-item"><i data-lucide="flame" class="icon-sm"></i>소화기</div>
+          <div class="dsk-nav-item"><i data-lucide="droplets" class="icon-sm"></i>소화전</div>
+          <div class="dsk-nav-item"><i data-lucide="calendar" class="icon-sm"></i>근무표</div>
+          <div class="dsk-nav-item"><i data-lucide="user-circle" class="icon-sm"></i>마이</div>
+        </div>
+
+        <!-- 데스크톱 main — 좌측 호기 그리드 + 우측 수리 탭 -->
+        <div class="desktop-main">
+
+          <!-- 좌측: 호기 그리드 (Wave 1 변환 결과) -->
+          <div class="desktop-ev-grid-pane">
+            <div class="dsk-ev-group-title">엘리베이터 — 인승용</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile fault">1호기</div>
+              <div class="dsk-ev-tile">2호기</div>
+              <div class="dsk-ev-tile">3호기</div>
+              <div class="dsk-ev-tile fault">4호기</div>
+            </div>
+
+            <div class="dsk-ev-group-title">엘리베이터 — 화물용</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile">8호기</div>
+              <div class="dsk-ev-tile">9호기</div>
+              <div class="dsk-ev-tile">10호기</div>
+            </div>
+
+            <div class="dsk-ev-group-title">에스컬레이터</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile">5호기</div>
+              <div class="dsk-ev-tile">6호기</div>
+              <div class="dsk-ev-tile">7호기</div>
+            </div>
+
+            <div class="dsk-ev-group-title">덤웨이터</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile">11호기</div>
+            </div>
+          </div>
+
+          <!-- 우측: 수리 탭 본문 -->
+          <div class="desktop-tab-pane">
+
+            <!-- 6탭 (데스크톱) -->
+            <div class="tab-bar">
+              <button class="tab-btn">목록</button>
+              <button class="tab-btn">고장</button>
+              <button class="tab-btn tab-btn-active">수리</button>
+              <button class="tab-btn">점검</button>
+              <button class="tab-btn">검사</button>
+              <button class="tab-btn">안전관리자</button>
+            </div>
+
+            <div class="body-scroll">
+
+              <!-- 필터 바 -->
+              <div class="repair-filter-bar">
+                <select class="repair-filter-select">
+                  <option>전체 유형</option>
+                  <option>엘리베이터</option>
+                  <option>에스컬레이터</option>
+                </select>
+                <select class="repair-filter-select">
+                  <option>전체 호기</option>
+                  <option>3호기 (B5F-사8F 통합)</option>
+                </select>
+                <input class="repair-filter-input" placeholder="부품, 호기, 층, 대상 검색..." />
+              </div>
+
+              <!-- 펼친 카드: 3호기 / sourceType=checkpoint (점검조치) -->
+              <div class="repair-card">
+                <div class="repair-card-head">
+                  <div class="repair-card-icon-wrap">
+                    <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                      <line x1="12" y1="3" x2="12" y2="21"/>
+                      <polyline points="6.5 9 8 7 9.5 9"/>
+                      <polyline points="14.5 15 16 17 17.5 15"/>
+                      <line x1="8" y1="7" x2="8" y2="11"/>
+                      <line x1="16" y1="13" x2="16" y2="17"/>
+                    </svg>
+                  </div>
+                  <div class="repair-card-body">
+                    <div class="repair-card-row1">
+                      <span class="repair-card-ev">3호기</span>
+                      <span class="source-chip source-chip-inspect">점검조치</span>
+                      <span class="target-chip">기계실</span>
+                    </div>
+                    <div class="repair-card-title">안전회로 점검 — 트립 신호 안정화</div>
+                    <div class="repair-card-meta">
+                      <span>2026-05-10</span>
+                      <span>·</span>
+                      <span>현대엘리베이터(주)</span>
+                      <span>·</span>
+                      <i data-lucide="camera" class="icon-xs"></i>
+                    </div>
+                  </div>
+                  <i data-lucide="chevron-right" class="repair-chevron repair-chevron-open icon-sm"></i>
+                </div>
+
+                <!-- 펼친 영역 — 상세 + 4단계 사진 row + (sourceType=checkpoint 이므로 수정/삭제 버튼 숨김) -->
+                <div class="repair-card-expand">
+                  <div class="repair-card-detail">월 정기 점검에서 안전회로 트립 신호 발견.
+부품 입고 후 모듈 교체. 점검 모드 → 정상 운행 전환 확인.</div>
+
+                  <!-- 부품 입고 사진 row (2장) -->
+                  <div class="repair-photo-section">
+                    <div class="repair-photo-section-title">부품 입고 (2)</div>
+                    <div class="repair-photo-row">
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- 파손 부품 사진 row (1장) -->
+                  <div class="repair-photo-section">
+                    <div class="repair-photo-section-title">파손 부품 (1)</div>
+                    <div class="repair-photo-row">
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- 수리 중 사진 row (3장) -->
+                  <div class="repair-photo-section">
+                    <div class="repair-photo-section-title">수리 중 (3)</div>
+                    <div class="repair-photo-row">
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- 수리 완료 사진 row (2장) -->
+                  <div class="repair-photo-section">
+                    <div class="repair-photo-section-title">수리 완료 / 조치 사진 (2)</div>
+                    <div class="repair-photo-row">
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                      <div class="repair-photo"><i data-lucide="image" class="icon-md"></i></div>
+                    </div>
+                  </div>
+
+                  <!-- sourceType !== standalone → 수정/삭제 버튼 숨김 (코드 분기) -->
+                </div>
+              </div>
+
+              <!-- 접힌 카드 1: 4호기 / sourceType=fault (고장수리) -->
+              <div class="repair-card">
+                <div class="repair-card-head">
+                  <div class="repair-card-icon-wrap">
+                    <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                      <line x1="12" y1="3" x2="12" y2="21"/>
+                      <polyline points="6.5 9 8 7 9.5 9"/>
+                      <polyline points="14.5 15 16 17 17.5 15"/>
+                      <line x1="8" y1="7" x2="8" y2="11"/>
+                      <line x1="16" y1="13" x2="16" y2="17"/>
+                    </svg>
+                  </div>
+                  <div class="repair-card-body">
+                    <div class="repair-card-row1">
+                      <span class="repair-card-ev">4호기</span>
+                      <span class="source-chip source-chip-fault">고장수리</span>
+                      <span class="target-chip">홀 B2</span>
+                    </div>
+                    <div class="repair-card-title">비상통화 모듈 교체 — TKE 출동</div>
+                    <div class="repair-card-meta">
+                      <span>2026-05-08</span>
+                      <span>·</span>
+                      <span>TKE</span>
+                    </div>
+                  </div>
+                  <i data-lucide="chevron-right" class="repair-chevron icon-sm"></i>
+                </div>
+              </div>
+
+              <!-- 접힌 카드 2: 9호기 / sourceType=annual_finding (검사조치) -->
+              <div class="repair-card">
+                <div class="repair-card-head">
+                  <div class="repair-card-icon-wrap">
+                    <i data-lucide="package" class="icon-md"></i>
+                  </div>
+                  <div class="repair-card-body">
+                    <div class="repair-card-row1">
+                      <span class="repair-card-ev">9호기</span>
+                      <span class="source-chip source-chip-annual">검사조치</span>
+                      <span class="target-chip">카</span>
+                    </div>
+                    <div class="repair-card-title">정기검사 지적 — 카 도어 안전 스위치 조정</div>
+                    <div class="repair-card-meta">
+                      <span>2026-04-30</span>
+                      <span>·</span>
+                      <span>현대엘리베이터(주)</span>
+                      <span>·</span>
+                      <i data-lucide="camera" class="icon-xs"></i>
+                    </div>
+                  </div>
+                  <i data-lucide="chevron-right" class="repair-chevron icon-sm"></i>
+                </div>
+              </div>
+
+              <!-- 접힌 카드 3 (sourceType=standalone — 펼침 시 수정/삭제 표시) -->
+              <div class="repair-card">
+                <div class="repair-card-head">
+                  <div class="repair-card-icon-wrap">
+                    <i data-lucide="move-diagonal" class="icon-md"></i>
+                  </div>
+                  <div class="repair-card-body">
+                    <div class="repair-card-row1">
+                      <span class="repair-card-ev">5호기</span>
+                      <span class="source-chip source-chip-standalone">독립수리</span>
+                      <span class="target-chip">에스컬레이터</span>
+                    </div>
+                    <div class="repair-card-title">체인 텐셔너 교체 (2026-04-15)</div>
+                    <div class="repair-card-meta">
+                      <span>2026-04-15</span>
+                      <span>·</span>
+                      <span>TKE</span>
+                      <span>·</span>
+                      <i data-lucide="camera" class="icon-xs"></i>
+                      <span>·</span>
+                      <span class="text-info">standalone 펼침 시 수정/삭제 노출</span>
+                    </div>
+                  </div>
+                  <i data-lucide="chevron-right" class="repair-chevron icon-sm"></i>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- FAB (데스크톱 위치 — 우측 패널 하단) -->
+            <button class="fab fab-repair fab-desktop">
+              <i data-lucide="plus" class="icon-md"></i>
+              수리 입력
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4 — 데스크톱 · 라이트 · 고장 탭 + sourceType 카탈로그 row
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">VP4 · 데스크톱 · 라이트 · 고장탭 + sourceType 카탈로그 (4종 색 시각화)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="light">
+
+      <div class="desktop-shell">
+        <div class="desktop-sidebar-ph">
+          <div class="dsk-nav-item"><i data-lucide="layout-dashboard" class="icon-sm"></i>대시보드</div>
+          <div class="dsk-nav-item active"><i data-lucide="building-2" class="icon-sm"></i>승강기</div>
+          <div class="dsk-nav-item"><i data-lucide="clipboard-list" class="icon-sm"></i>점검</div>
+          <div class="dsk-nav-item"><i data-lucide="flame" class="icon-sm"></i>소화기</div>
+          <div class="dsk-nav-item"><i data-lucide="droplets" class="icon-sm"></i>소화전</div>
+          <div class="dsk-nav-item"><i data-lucide="calendar" class="icon-sm"></i>근무표</div>
+          <div class="dsk-nav-item"><i data-lucide="user-circle" class="icon-sm"></i>마이</div>
+        </div>
+
+        <div class="desktop-main">
+
+          <!-- 좌측 호기 그리드 -->
+          <div class="desktop-ev-grid-pane">
+            <div class="dsk-ev-group-title">엘리베이터 — 인승용</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile fault">1호기</div>
+              <div class="dsk-ev-tile">2호기</div>
+              <div class="dsk-ev-tile">3호기</div>
+              <div class="dsk-ev-tile fault">4호기</div>
+            </div>
+
+            <div class="dsk-ev-group-title">엘리베이터 — 화물용</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile">8호기</div>
+              <div class="dsk-ev-tile">9호기</div>
+              <div class="dsk-ev-tile">10호기</div>
+            </div>
+
+            <div class="dsk-ev-group-title">에스컬레이터</div>
+            <div class="dsk-ev-group">
+              <div class="dsk-ev-tile">5호기</div>
+              <div class="dsk-ev-tile">6호기</div>
+              <div class="dsk-ev-tile">7호기</div>
+            </div>
+
+            <!-- sourceType 카탈로그 row (5종 SOURCE_TYPE_LABEL 코드 그대로) -->
+            <div class="dsk-ev-group-title">sourceType 카탈로그</div>
+            <div class="source-cat-row">
+              <span class="source-cat-name">독립수리</span>
+              <span class="source-chip source-chip-standalone">독립수리</span>
+              <span class="source-cat-desc">방재팀 직접 작성한 수리 기록 — 수정/삭제 가능</span>
+            </div>
+            <div class="source-cat-row">
+              <span class="source-cat-name">고장수리</span>
+              <span class="source-chip source-chip-fault">고장수리</span>
+              <span class="source-cat-desc">고장 → 조치 자동 생성 — 수정/삭제 불가</span>
+            </div>
+            <div class="source-cat-row">
+              <span class="source-cat-name">점검조치</span>
+              <span class="source-chip source-chip-inspect">점검조치</span>
+              <span class="source-cat-desc">월점검 지적 → 조치 — 수정/삭제 불가</span>
+            </div>
+            <div class="source-cat-row">
+              <span class="source-cat-name">검사조치</span>
+              <span class="source-chip source-chip-annual">검사조치</span>
+              <span class="source-cat-desc">공단 정기검사 지적 → 조치 — 수정/삭제 불가</span>
+            </div>
+          </div>
+
+          <!-- 우측: 고장 탭 -->
+          <div class="desktop-tab-pane">
+
+            <div class="tab-bar">
+              <button class="tab-btn">목록</button>
+              <button class="tab-btn tab-btn-active">고장</button>
+              <button class="tab-btn">수리</button>
+              <button class="tab-btn">점검</button>
+              <button class="tab-btn">검사</button>
+              <button class="tab-btn">안전관리자</button>
+            </div>
+
+            <div class="body-scroll">
+
+              <!-- 헤더 미해결 칩 (데스크톱) -->
+              <div class="flex items-center mb-2">
+                <span class="unresolved-chip">
+                  <i data-lucide="alert-octagon" class="icon-xs"></i>
+                  미해결 2
+                </span>
+                <span class="text-caption text-t3 ml-3">최근 30일 이내 발생 / admin 권한으로 삭제 가능</span>
+              </div>
+
+              <!-- 카드 A: 1호기 미해결 + 승객탑승 -->
+              <div class="fault-card is-unresolved">
+                <div class="fault-card-icon">
+                  <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                    <line x1="12" y1="3" x2="12" y2="21"/>
+                    <polyline points="6.5 9 8 7 9.5 9"/>
+                    <polyline points="14.5 15 16 17 17.5 15"/>
+                    <line x1="8" y1="7" x2="8" y2="11"/>
+                    <line x1="16" y1="13" x2="16" y2="17"/>
+                  </svg>
+                </div>
+                <div class="fault-card-body">
+                  <div class="fault-card-row1">
+                    <span class="fault-ev-label-fire">1호기</span>
+                    <span class="floor-chip-info">7F</span>
+                    <span class="passenger-chip">
+                      <i data-lucide="alert-triangle" class="icon-xs"></i>
+                      승객
+                    </span>
+                  </div>
+                  <div class="fault-symptoms">도어 닫힘 불량 · 재오픈 반복</div>
+                  <div class="fault-time">2026-05-15 13:22</div>
+                </div>
+                <div class="fault-card-aside">
+                  <span class="repairing-text">고장<br/>수리 중</span>
+                </div>
+                <button class="fault-cta-square">수리
+내용
+입력</button>
+              </div>
+
+              <!-- 카드 B: 4호기 미해결 + 승객 미탑승 -->
+              <div class="fault-card is-unresolved">
+                <div class="fault-card-icon">
+                  <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+                    <line x1="12" y1="3" x2="12" y2="21"/>
+                    <polyline points="6.5 9 8 7 9.5 9"/>
+                    <polyline points="14.5 15 16 17 17.5 15"/>
+                    <line x1="8" y1="7" x2="8" y2="11"/>
+                    <line x1="16" y1="13" x2="16" y2="17"/>
+                  </svg>
+                </div>
+                <div class="fault-card-body">
+                  <div class="fault-card-row1">
+                    <span class="fault-ev-label-fire">4호기</span>
+                    <span class="floor-chip-info">B2</span>
+                  </div>
+                  <div class="fault-symptoms">비상 통화 무응답</div>
+                  <div class="fault-time">2026-05-14 19:08</div>
+                </div>
+                <div class="fault-card-aside">
+                  <span class="repairing-text">고장<br/>수리 중</span>
+                </div>
+                <button class="fault-cta-square">수리
+내용
+입력</button>
+              </div>
+
+              <!-- 카드 C: 9호기(화물) 수리완료 -->
+              <div class="fault-card is-resolved">
+                <div class="fault-card-icon">
+                  <i data-lucide="package" class="icon-md"></i>
+                </div>
+                <div class="fault-card-body">
+                  <div class="fault-card-row1">
+                    <span class="fault-ev-label">9호기</span>
+                    <span class="floor-chip-info">1F</span>
+                  </div>
+                  <div class="fault-symptoms">카 도어 안전 스위치 오작동</div>
+                  <div class="fault-time">2026-04-30 11:14</div>
+                </div>
+                <div class="fault-card-aside">
+                  <span class="repair-detail-text">현대 출동<br/>스위치 교체</span>
+                </div>
+                <div class="fault-done-wrap">
+                  <div class="fault-done-icon">
+                    <i data-lucide="check-circle-2" class="icon-lg"></i>
+                  </div>
+                  <button class="ghost-btn-mini">삭제</button>
+                </div>
+              </div>
+
+              <!-- 카드 D: 11호기(덤웨이터) 수리완료 — admin=false 가정 → 삭제 버튼 숨김 -->
+              <div class="fault-card is-resolved">
+                <div class="fault-card-icon">
+                  <i data-lucide="utensils-crossed" class="icon-md"></i>
+                </div>
+                <div class="fault-card-body">
+                  <div class="fault-card-row1">
+                    <span class="fault-ev-label">11호기</span>
+                    <span class="floor-chip-info">사1F</span>
+                  </div>
+                  <div class="fault-symptoms">조명 불량 — LED 모듈 교체</div>
+                  <div class="fault-time">2026-04-20 08:30</div>
+                </div>
+                <div class="fault-card-aside">
+                  <span class="repair-detail-text">자체 조치<br/>LED 교체</span>
+                </div>
+                <div class="fault-done-wrap">
+                  <div class="fault-done-icon">
+                    <i data-lucide="check-circle-2" class="icon-lg"></i>
+                  </div>
+                  <!-- assistant 권한 (admin=false) → 삭제 버튼 숨김 -->
+                </div>
+              </div>
+
+            </div>
+
+            <!-- FAB (데스크톱 — 고장 접수) -->
+            <button class="fab fab-fault fab-desktop">
+              <i data-lucide="plus" class="icon-md"></i>
+              고장 접수
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       Notes / 룰 매핑 — 옵션 B 3A 권위 박스 (다음 wave 변환 참고)
+       ================================================================ -->
+  <section class="space-y-4">
+    <div>
+      <div class="page-section-title">3A 권위 — 변환 1:1 매핑 룰</div>
+      <div class="page-section-sub">다음 wave (TSX 변환) 시 본 sketch 의 색/아이콘/사이즈를 v0.1.1 토큰 그대로 적용.</div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+
+      <!-- 룰 박스 1: 색 매핑 -->
+      <div class="cat-box-fire">
+        <div class="cat-title-fire">색 토큰 매핑 (메모리 §6.1)</div>
+        <div class="cat-label-dark">미해결 고장 = fire (좌측 색바 + 호기 라벨)</div>
+        <div class="cat-label-dark">수리완료 고장 = safe (좌측 색바 + CheckCircle2)</div>
+        <div class="cat-label-dark">승객 탑승 칩 = danger + AlertTriangle</div>
+        <div class="cat-label-dark">발생층 칩 = info</div>
+        <div class="cat-label-dark">FAB 고장 = fire 그라디언트 (FaultNew CTA 패턴)</div>
+        <div class="cat-label-dark">FAB 수리 = accent 그라디언트</div>
+        <div class="cat-sub-dark">현 코드의 인라인 var(--bg2/bd/danger/safe/info/fire/t1/t2/t3) → 모두 v0.1.1 토큰 class 로 교체.</div>
+      </div>
+
+      <!-- 룰 박스 2: 아이콘 매핑 -->
+      <div class="cat-box-info">
+        <div class="cat-title-info">아이콘 매핑 (이모지 0건)</div>
+        <div class="cat-label-dark">TYPE_ICON[passenger] (옛 엘리베이터 이모지) → ElevatorIcon SVG (icons.tsx line 137-148)</div>
+        <div class="cat-label-dark">TYPE_ICON[cargo] (옛 박스 이모지) → Package (lucide)</div>
+        <div class="cat-label-dark">TYPE_ICON[dumbwaiter] (옛 사각 이모지) → UtensilsCrossed (lucide)</div>
+        <div class="cat-label-dark">TYPE_ICON[escalator] (옛 화살표 이모지) → MoveDiagonal (lucide)</div>
+        <div class="cat-label-dark">옛 체크 이모지 → CheckCircle2 (수리완료)</div>
+        <div class="cat-label-dark">옛 경고등 이모지 → AlertTriangle (승객 탑승)</div>
+        <div class="cat-label-dark">옛 카메라 이모지 → Camera (사진 첨부 표시)</div>
+        <div class="cat-label-dark">옛 렌치 이모지 → Wrench (수리 빈 상태)</div>
+        <div class="cat-label-dark">옛 모래시계 이모지 → Loader2 (로딩 상태)</div>
+        <div class="cat-label-dark">ChevronRight (수리 카드 펼침 화살표)</div>
+        <div class="cat-sub-dark">TYPE_ICON_COMPONENT 객체는 ElevatorPage.tsx line 197-202 에 이미 정의됨 — 변환 시 직접 import.</div>
+      </div>
+
+      <!-- 룰 박스 3: 폰트 크기 격상 -->
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">폰트 크기 격상 (9·10·11px → 12px+)</div>
+        <div class="cat-label-dark">옛 9px 인라인 → text-caption 12px (admin 삭제 mini btn)</div>
+        <div class="cat-label-dark">옛 10px 인라인 → text-caption 12px (메타 / 발생시각 / sourceType 칩 / target 칩 / 수리내역 시간 등)</div>
+        <div class="cat-label-dark">옛 11px 인라인 → text-caption 12px (수리완료 입력 btn / repair-filter input / 카드 본문 보조)</div>
+        <div class="cat-label-dark">옛 12px 인라인 → text-caption 12px (수리 카드 title 등 — 13px 로 격상도 검토)</div>
+        <div class="cat-label-dark">옛 13px 인라인 → text-label 13px (호기 라벨 + 카드 title)</div>
+        <div class="cat-label-dark">옛 14px 인라인 → text-body-sm 14px (헤더)</div>
+        <div class="cat-sub-dark">결과: 12px 미만 클래스 0건. 모든 칩/메타/타임스탬프 = 12px 통일. 가독성 보강.</div>
+      </div>
+
+      <!-- 룰 박스 4: admin 분기 -->
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">admin 분기 시각화</div>
+        <div class="cat-label-dark">고장 수리완료 카드:</div>
+        <div class="cat-label-dark">  · admin=true  → CheckCircle2 + ghost-btn-mini "삭제"</div>
+        <div class="cat-label-dark">  · admin=false → CheckCircle2 만</div>
+        <div class="cat-label-dark">수리 카드 펼침 (standalone 만):</div>
+        <div class="cat-label-dark">  · 항상 노출 → 수정 (ghost-info) + 삭제 (ghost-danger) — admin 분기 X (코드 분기 sourceType==='standalone' 한정)</div>
+        <div class="cat-label-dark">수리 카드 펼침 (checkpoint/fault/annual):</div>
+        <div class="cat-label-dark">  · 수정/삭제 버튼 숨김 (자동 생성 데이터)</div>
+        <div class="cat-sub-dark">현 코드 line 2914 if (r.sourceType === 'standalone') 분기 그대로 보존.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 스크립트 — lucide 아이콘 렌더링 -->
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
