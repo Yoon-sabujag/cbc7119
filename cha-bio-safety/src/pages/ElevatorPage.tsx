@@ -1275,8 +1275,9 @@ export default function ElevatorPage() {
               const TypeIcon = TYPE_ICON_COMPONENT[type]
               return (
                 <div key={type}>
-                  <div className="text-caption font-bold text-text-tertiary tracking-wider uppercase mb-1.5 mt-1">
-                    {TYPE_LABEL[type]} ({group.length}대)
+                  <div className="text-caption font-bold text-text-tertiary tracking-wider uppercase mb-1.5 mt-1 flex items-center gap-1.5">
+                    <TypeIcon size={14} className="text-text-tertiary" strokeWidth={1.8} />
+                    <span>{TYPE_LABEL[type]} ({group.length}대)</span>
                   </div>
                   {group.map(ev => {
                     const data = koelsaMap.get(ev.id)
