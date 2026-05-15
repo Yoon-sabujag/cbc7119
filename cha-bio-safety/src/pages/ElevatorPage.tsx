@@ -1732,13 +1732,13 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
       <div
         onClick={onClose}
         className="bg-surface-overlay"
-        style={{ position:'fixed', inset:0, zIndex:190 }}
+        style={{ position:'fixed', inset:0, zIndex:90 }}
       />
       <div
         className={
           isDesktop
-            ? 'fixed z-[200] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
-            : 'fixed z-[200] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
+            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
+            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
         }
         style={
           isDesktop
@@ -2185,7 +2185,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   return (
     <div
       className="fixed flex flex-col bg-surface-page"
-      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:200, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
+      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:100, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
     >
       {/* 풀스크린 자체 헤더 */}
       <div className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2.5 px-4 pt-[14px] pb-3">
@@ -2513,12 +2513,12 @@ function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>voi
   const isDesktop = useIsDesktop()
   return (
     <>
-      <div onClick={onClose} className="fixed inset-0 bg-surface-overlay z-[190]" />
+      <div onClick={onClose} className="fixed inset-0 bg-surface-overlay z-[90]" />
       <div
         className={
           isDesktop
-            ? 'fixed z-[200] bg-surface-raised rounded-2xl w-[540px] max-w-[90vw] max-h-[85vh] overflow-y-auto overflow-x-hidden border border-border-strong px-6 pb-6'
-            : 'fixed z-[200] left-0 right-0 bg-surface-raised rounded-t-[20px] px-4 pb-8 overflow-y-auto overflow-x-hidden'
+            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[540px] max-w-[90vw] max-h-[85vh] overflow-y-auto overflow-x-hidden border border-border-strong px-6 pb-6'
+            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] px-4 pb-8 overflow-y-auto overflow-x-hidden'
         }
         style={
           isDesktop
