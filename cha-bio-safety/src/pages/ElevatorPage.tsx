@@ -92,7 +92,7 @@ interface ElevatorInspection {
   parent_inspection_id?: string
 }
 type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual' | 'safety'
-type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'repair_new' | 'ev_detail'
+type Modal = null | 'fault_new' | 'fault_resolve' | 'repair_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
 // 호기 상세 이력 타입
@@ -479,33 +479,6 @@ export default function ElevatorPage() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey:['elevators'] }); qc.invalidateQueries({ queryKey:['elevator_faults'] }); setModal(null); toast.success('수리 완료') },
     onError:   () => toast.error('처리 실패'),
-  })
-  const submitInspect = useMutation({
-    mutationFn: async (body: any) => {
-      const token = useAuthStore.getState().token
-      const res = await fetch('/api/elevators/inspections', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body:JSON.stringify(body),
-      })
-      const json = await res.json() as any
-      if (!res.ok || !json.success) throw new Error(json.error || '저장 실패')
-      // 조건부합격/불합격 시 지적사항 자동 생성
-      if (body.findings?.length && json.data?.id && body.elevatorId) {
-        for (const f of body.findings) {
-          await elevatorInspectionApi.createFinding(body.elevatorId, json.data.id, {
-            description: f.description,
-            location: f.location || undefined,
-          })
-        }
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey:['elevators'] })
-      qc.invalidateQueries({ queryKey:['elevator_inspections'] })
-      setModal(null); toast.success('기록 저장 완료')
-    },
-    onError: (e: any) => toast.error(e?.message || '저장 실패'),
   })
 
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
@@ -1667,7 +1640,6 @@ export default function ElevatorPage() {
             />
       )}
       {modal === 'fault_resolve'&& <FaultResolveModal fault={selectedFault!}                     onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
-      {modal === 'inspect_new'  && <InspectModal      elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
       {modal === 'repair_new'  && <RepairNewModal    elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
       {modal === 'ev_detail'    && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
     </div>
@@ -2361,104 +2333,6 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
   )
 }
 
-// ── 점검 기록 모달 ─────────────────────────────────────────
-function InspectModal({ elevators, selected, onClose, onSubmit, loading }: {
-  elevators:Elevator[]; selected:Elevator|null; onClose:()=>void; onSubmit:(b:any)=>void; loading:boolean
-}) {
-  const initKind: EvKind = selected ? (selected.type==='escalator'?'escalator':'elevator') : ''
-  const [evKind,       setEvKind]       = useState<EvKind>(initKind)
-  const [elevatorId,   setElevatorId]   = useState(selected?.id ?? '')
-  const [inspectDate,  setInspectDate]  = useState(new Date().toISOString().slice(0,10))
-  const [checks,       setChecks]       = useState<Record<string,string>>({
-    brake:'normal', door:'normal', safetyDevice:'normal', lighting:'normal', emergencyCall:'normal'
-  })
-  const [actionFloor,  setActionFloor]  = useState('')
-  const [actionNeeded, setActionNeeded] = useState('')
-  const [memo,         setMemo]         = useState('')
-
-  const isElev = evKind === 'elevator'
-  const checkItems = isElev ? CHECK_ITEMS_EV : CHECK_ITEMS_ES
-  const floors = elevatorId ? (EV_FLOORS[elevatorId] ?? []) : []
-
-  const overall = Object.values(checks).some(v=>v==='bad') ? 'bad'
-                : Object.values(checks).some(v=>v==='caution') ? 'caution'
-                : 'normal'
-
-  return (
-    <ModalWrap title="점검 기록 입력" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        <EvSelector
-          elevators={elevators} evKind={evKind}
-          setEvKind={v => { setEvKind(v); setElevatorId('') }}
-          elevatorId={elevatorId} setElevatorId={setElevatorId}
-          groups={EV_GROUPS_FAULT} esNodes={ES_NODES_FAULT}
-        />
-
-        {elevatorId && (
-          <>
-            <Field label="점검일">
-              <input type="date" value={inspectDate} onChange={e => setInspectDate(e.target.value)} style={inputSt} />
-            </Field>
-
-            <div>
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>점검 항목</div>
-              {checkItems.map(item => {
-                const isOk = checks[item.key] === 'normal'
-                return (
-                  <div key={item.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
-                    <span style={{ fontSize:12, color:'var(--t1)' }}>{item.label}</span>
-                    <button onClick={() => setChecks(p => ({ ...p, [item.key]:p[item.key]==='normal'?'bad':'normal' }))} style={{
-                      padding:'5px 14px', borderRadius:20, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                      background: isOk ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
-                      color:      isOk ? 'var(--safe)'         : 'var(--danger)',
-                    }}>{isOk ? '정상' : '불량'}</button>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9 }}>
-              <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>종합 결과</span>
-              <span style={{ fontSize:13, fontWeight:700, color:OVERALL_STYLE[overall].color }}>{OVERALL_STYLE[overall].label}</span>
-            </div>
-
-            {/* 조치 필요 + 조치 필요 층 (엘베만) */}
-            <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-              <Field label="조치 필요" style={{ flex:1 }}>
-                <textarea value={actionNeeded} onChange={e => setActionNeeded(e.target.value)} rows={2} placeholder="조치가 필요한 사항" style={{ ...inputSt, resize:'none' }} />
-              </Field>
-              {isElev && (
-                <Field label="조치 필요 층" style={{ flexShrink:0, width:90 }}>
-                  <select value={actionFloor} onChange={e => setActionFloor(e.target.value)} style={{ ...inputSt, height:62, display:'block' }}>
-                    <option value="">-</option>
-                    {floors.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </Field>
-              )}
-            </div>
-
-            <Field label="메모 (선택)">
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
-            </Field>
-
-            <button
-              onClick={() => onSubmit({
-                elevatorId, inspectDate, type:'monthly', ...checks, overall,
-                actionNeeded: actionFloor ? `[${actionFloor}] ${actionNeeded}` : actionNeeded,
-                memo
-              })}
-              disabled={!elevatorId || loading}
-              style={{ ...primaryBtnSt, opacity:(!elevatorId||loading)?0.5:1 }}
-            >
-              {loading ? '저장 중...' : '점검 기록 저장'}
-            </button>
-          </>
-        )}
-      </div>
-    </ModalWrap>
-  )
-}
-
 // ── 인증서 뷰어 모달 ─────────────────────────────────────
 function CertViewerModal({ certKey, onClose }: { certKey:string; onClose:()=>void }) {
   const isPdf = certKey.toLowerCase().endsWith('.pdf')
@@ -2892,11 +2766,6 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
 }
 
 // ── 스타일 ────────────────────────────────────────────────
-const primaryBtnSt: React.CSSProperties = {
-  width:'100%', padding:'13px 0', borderRadius:12, border:'none',
-  background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-  color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
-}
 const inputSt: React.CSSProperties = {
   width:'100%', padding:'10px 12px', borderRadius:9,
   background:'var(--bg3)', border:'1px solid var(--bd2)',
