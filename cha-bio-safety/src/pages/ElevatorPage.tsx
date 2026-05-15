@@ -1914,19 +1914,19 @@ function EsBtn({ id, label, dir, isDown, selected, onSelect }: {
 // ── 에스컬 노선도 ─────────────────────────────────────────
 function EsNodeMap({ nodes, elevatorId, onSelect }: { nodes:EsNode[]; elevatorId:string; onSelect:(id:string)=>void }) {
   return (
-    <div style={{ background:'var(--bg3)', borderRadius:12, padding:'14px 10px', position:'relative' }}>
-      <div style={{ position:'absolute', left:'50%', top:20, bottom:20, width:1, background:'var(--bd2)', transform:'translateX(-50%)' }} />
+    <div className="bg-surface-sunken rounded-xl px-[10px] py-[14px] relative">
+      <div className="absolute left-1/2 top-5 bottom-5 w-px bg-border-default -translate-x-1/2" />
       {nodes.map((node, idx) => (
         <div key={idx}>
           {/* 층 레이블 */}
           {node.floor && (
-            <div style={{ textAlign:'center', fontSize:12, fontWeight:700, color:'var(--t2)', marginBottom:8, position:'relative', zIndex:1 }}>
+            <div className="text-center text-caption font-bold text-text-secondary mb-2 relative z-10">
               {node.floor}
             </div>
           )}
           {/* 버튼 행 */}
           {node.left && node.right && (
-            <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+            <div className="flex gap-2 mb-2.5">
               <EsBtn id={node.left.id} label={node.left.label} dir={node.left.dir} isDown selected={elevatorId===node.left.id} onSelect={onSelect} />
               <EsBtn id={node.right.id} label={node.right.label} dir={node.right.dir} isDown={false} selected={elevatorId===node.right.id} onSelect={onSelect} />
             </div>
@@ -1948,38 +1948,59 @@ function EvSelector({ elevators, evKind, setEvKind, elevatorId, setElevatorId, g
   return (
     <>
       <div>
-        <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>종류 선택</div>
-        <div style={{ display:'flex', gap:8 }}>
-          {[{ val:'elevator', label:'🛗 엘리베이터' }, { val:'escalator', label:'↕️ 에스컬레이터' }].map(opt => (
-            <button key={opt.val} onClick={() => { setEvKind(opt.val as EvKind); setElevatorId('') }} style={{
-              flex:1, padding:'12px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:13, fontWeight:700,
-              background: evKind === opt.val ? 'var(--acl)' : 'var(--bg3)',
-              color:      evKind === opt.val ? '#fff'       : 'var(--t2)',
-            }}>{opt.label}</button>
-          ))}
+        <div className="text-caption font-bold text-text-secondary mb-[7px]">종류 선택</div>
+        <div className="flex gap-2">
+          {[
+            { val: 'elevator',  label: '엘리베이터',   Icon: ElevatorIcon },
+            { val: 'escalator', label: '에스컬레이터', Icon: MoveDiagonal },
+          ].map(opt => {
+            const Icon = opt.Icon
+            const active = evKind === opt.val
+            return (
+              <button
+                key={opt.val}
+                onClick={() => { setEvKind(opt.val as EvKind); setElevatorId('') }}
+                className={`flex-1 py-3 rounded-[10px] border-0 cursor-pointer text-label font-bold inline-flex items-center justify-center gap-2 ${
+                  active ? 'bg-accent text-text-on-accent' : 'bg-surface-sunken text-text-secondary'
+                }`}
+              >
+                <Icon size={18} />
+                {opt.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {evKind === 'elevator' && (
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>호기 선택</div>
+          <div className="text-caption font-bold text-text-secondary mb-2">호기 선택</div>
           {groups.map(group => {
             const groupEvs = group.ids.map(id => evList.find(e => e.id === id)).filter(Boolean) as Elevator[]
             if (!groupEvs.length) return null
             return (
-              <div key={group.title} style={{ marginBottom:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>{group.title}</div>
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${groupEvs.length}, 1fr)`, gap:8 }}>
-                  {groupEvs.map(ev => (
-                    <button key={ev.id} onClick={() => setElevatorId(ev.id)} style={{
-                      padding:'12px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:14, fontWeight:700,
-                      background: elevatorId === ev.id ? 'var(--acl)' : ev.status === 'fault' ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                      color:      elevatorId === ev.id ? '#fff'       : ev.status === 'fault' ? 'var(--danger)'        : 'var(--t1)',
-                      outline:    elevatorId === ev.id ? '2px solid var(--acl)' : 'none',
-                    }}>
-                      {ev.number}호기{ev.status === 'fault' ? ' ⚠️' : ''}
-                    </button>
-                  ))}
+              <div key={group.title} className="mb-3">
+                <div className="text-caption font-bold text-text-tertiary mb-1.5">{group.title}</div>
+                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${groupEvs.length}, 1fr)` }}>
+                  {groupEvs.map(ev => {
+                    const isSel = elevatorId === ev.id
+                    const isFault = ev.status === 'fault'
+                    const stateClass = isSel
+                      ? 'bg-accent text-text-on-accent outline outline-2 outline-accent'
+                      : isFault
+                        ? 'bg-fire-bg text-fire'
+                        : 'bg-surface-sunken text-text-primary'
+                    return (
+                      <button
+                        key={ev.id}
+                        onClick={() => setElevatorId(ev.id)}
+                        className={`py-3 rounded-[10px] border-0 cursor-pointer text-body-sm font-bold inline-flex items-center justify-center gap-1 ${stateClass}`}
+                      >
+                        {ev.number}호기
+                        {isFault && !isSel && <AlertTriangle size={14} />}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -1989,7 +2010,7 @@ function EvSelector({ elevators, evKind, setEvKind, elevatorId, setElevatorId, g
 
       {evKind === 'escalator' && (
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>호기 선택</div>
+          <div className="text-caption font-bold text-text-secondary mb-2">호기 선택</div>
           <EsNodeMap nodes={esNodes} elevatorId={elevatorId} onSelect={setElevatorId} />
         </div>
       )}
