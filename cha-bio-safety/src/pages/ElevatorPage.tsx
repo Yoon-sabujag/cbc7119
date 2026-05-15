@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, AlertTriangle, Wrench } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1894,16 +1894,19 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
 function EsBtn({ id, label, dir, isDown, selected, onSelect }: {
   id:string; label:string; dir:string; isDown:boolean; selected:boolean; onSelect:(id:string)=>void
 }) {
-  const color = isDown ? 'var(--danger)' : 'var(--safe)'
   return (
-    <button onClick={() => onSelect(id)} style={{
-      flex:1, padding:'10px 6px', borderRadius:9, border:'none', cursor:'pointer',
-      background: selected ? (isDown?'rgba(239,68,68,.2)':'rgba(34,197,94,.2)') : 'var(--bg2)',
-      outline: selected ? `2px solid ${color}` : 'none',
-      display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-    }}>
-      <span style={{ fontSize:13, fontWeight:700, color:selected?color:'var(--t1)' }}>{label}</span>
-      <span style={{ fontSize:10, color, fontWeight:600 }}>{isDown?'▼':'▲'} {dir}</span>
+    <button
+      onClick={() => onSelect(id)}
+      className={`flex-1 px-1.5 py-2.5 rounded-[9px] border-0 cursor-pointer flex flex-col items-center gap-[3px] ${
+        selected
+          ? 'bg-accent text-text-on-accent outline outline-2 outline-accent'
+          : 'bg-surface-sunken text-text-primary'
+      }`}
+    >
+      <span className="text-label font-bold">{label}</span>
+      <span className="text-caption font-semibold inline-flex items-center gap-1">
+        {isDown ? <ChevronDown size={12} /> : <ChevronUp size={12} />} {dir}
+      </span>
     </button>
   )
 }
