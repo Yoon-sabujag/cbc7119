@@ -3138,7 +3138,7 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
 
   return (
     <ModalWrap title={isEdit ? "수리 기록 수정" : "수리 기록 입력"} onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex flex-col gap-[14px]">
         <EvSelector
           elevators={elevators} evKind={evKind}
           setEvKind={v => { setEvKind(v); setElevatorId(''); setRepairTarget('') }}
@@ -3149,26 +3149,31 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
         {elevatorId && (
           <>
             <Field label="수리일">
-              <input type="date" value={repairDate} onChange={e => setRepairDate(e.target.value)} style={inputSt} />
+              <input type="date" value={repairDate} onChange={e => setRepairDate(e.target.value)} className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm font-medium outline-none appearance-none box-border min-w-0" />
             </Field>
 
             {/* 수리 대상 선택 */}
             {!isEscalator && (
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>수리 대상</div>
-                <div style={{ display:'flex', gap:7 }}>
+                <div className="text-label font-bold text-text-secondary mb-[7px]">수리 대상</div>
+                <div className="flex gap-[7px]">
                   {([
                     { key:'car', label:'카' },
                     { key:'hall', label:'홀' },
                     { key:'machine_room', label:'기계실' },
                     { key:'pit', label:'피트' },
                   ] as const).map(opt => (
-                    <button key={opt.key} onClick={() => { setRepairTarget(opt.key); setHallFloor('') }} style={{
-                      flex:1, padding:'11px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                      background: repairTarget === opt.key ? '#eab30822' : 'var(--bg3)',
-                      color: repairTarget === opt.key ? '#eab308' : 'var(--t3)',
-                      outline: repairTarget === opt.key ? '2px solid #eab308' : 'none',
-                    }}>{opt.label}</button>
+                    <button
+                      key={opt.key}
+                      onClick={() => { setRepairTarget(opt.key); setHallFloor('') }}
+                      className={`flex-1 py-[11px] rounded-md border-none cursor-pointer text-label font-bold transition-all hover:-translate-y-px ${
+                        repairTarget === opt.key
+                          ? 'bg-warning-bg text-warning outline outline-2 outline-warning outline-offset-1'
+                          : 'bg-surface-sunken text-text-tertiary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -3177,30 +3182,35 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
             {/* 홀 선택 시 층 선택 */}
             {repairTarget === 'hall' && floors.length > 0 && (
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>층 선택</div>
-                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                <div className="text-label font-bold text-text-secondary mb-[7px]">층 선택</div>
+                <div className="flex gap-[6px] flex-wrap">
                   {floors.map(f => (
-                    <button key={f} onClick={() => setHallFloor(f)} style={{
-                      padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                      background: hallFloor === f ? '#eab30822' : 'var(--bg3)',
-                      color: hallFloor === f ? '#eab308' : 'var(--t3)',
-                      outline: hallFloor === f ? '2px solid #eab308' : 'none',
-                    }}>{f}</button>
+                    <button
+                      key={f}
+                      onClick={() => setHallFloor(f)}
+                      className={`px-3 py-2 rounded-md border-none cursor-pointer text-label font-bold transition-all hover:-translate-y-px ${
+                        hallFloor === f
+                          ? 'bg-warning-bg text-warning outline outline-2 outline-warning outline-offset-1'
+                          : 'bg-surface-sunken text-text-tertiary'
+                      }`}
+                    >
+                      {f}
+                    </button>
                   ))}
                 </div>
               </div>
             )}
 
             <Field label="수리 항목">
-              <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" style={inputSt} />
+              <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none appearance-none box-border min-w-0 placeholder:text-text-tertiary" />
             </Field>
 
             <Field label="수리 내용 (선택)">
-              <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 상세 내용" style={{ ...inputSt, resize:'none' }} />
+              <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 상세 내용" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none box-border min-w-0 resize-none placeholder:text-text-tertiary font-[inherit]" />
             </Field>
 
             <Field label="수리 업체 (선택)">
-              <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} placeholder="예: TKE, 현대엘리베이터" style={inputSt} />
+              <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} placeholder="예: TKE, 현대엘리베이터" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none appearance-none box-border min-w-0 placeholder:text-text-tertiary" />
             </Field>
 
             {/* 4단계 사진 업로드 */}
@@ -3212,9 +3222,10 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              style={{ ...primaryBtnSt, opacity: canSubmit ? 1 : 0.5 }}
+              style={{ opacity: canSubmit ? 1 : 0.5 }}
+              className="w-full py-[13px] rounded-md border-none bg-accent hover:bg-accent-hover text-white text-body-sm font-bold cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
-              {saving ? '저장 중...' : '수리 기록 저장'}
+              {saving ? '저장 중...' : (isEdit ? '수정 완료' : '수리 기록 저장')}
             </button>
           </>
         )}
