@@ -1,0 +1,1596 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 3C (안전관리자 탭 — 5탭 본문 시리즈 3/3)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (inspect-cert-history-sketch.html 3B / fault-repair-lists-sketch.html 3A 와 100% 동일 인프라)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      --nav-h: 54px;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 (3A/3B 동일)
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+    .text-warning  { color: var(--warning); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+    .bg-warning-bg  { background-color: var(--warning-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 393px; height: 852px; }
+    .viewport-desktop { width: 1280px; height: 720px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* 모바일 페이지 헤더 (3A/3B 와 동일 — 자체 헤더) */
+    .mobile-page-hd {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 페이지 헤더 우측 미해결 칩 */
+    .unresolved-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* 6탭 */
+    .tab-bar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      overflow-x: auto;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-bar { scrollbar-width: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 9px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .13s, border-color .13s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn-active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* 본문 스크롤 */
+    .body-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px 12px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .body-scroll::-webkit-scrollbar { display: none; }
+    .body-scroll { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 안전관리자 카드 공통 (3A/3B 카드 패턴 응용)
+     * ===================================================================== */
+    .safety-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 16px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    /* 카드 좌측 색바 ::before pseudo (3A fault-card 패턴) — 미등록 강조 variant 전용 */
+    .safety-card.is-warn-bar { padding-left: 19px; }
+    .safety-card.is-warn-bar::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--status-warning-bar);
+      border-radius: 12px 0 0 12px;
+    }
+    .safety-card.is-safe-bar { padding-left: 19px; }
+    .safety-card.is-safe-bar::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--status-safe-bar);
+      border-radius: 12px 0 0 12px;
+    }
+
+    /* =====================================================================
+     * 프로필 카드 — 48×48 round avatar + 이름/부제 + 2-col 그리드
+     * (코드 ElevatorPage.tsx line 1614~1633 1:1 매핑)
+     * ===================================================================== */
+    .profile-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .profile-avatar {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      border-radius: 9999px;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+    .profile-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .profile-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 3px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .profile-meta-box {
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .profile-meta-key {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-bottom: 3px;
+    }
+    .profile-meta-val {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+     * 교육 현황 카드 — 헤더 + 보수/신규 row
+     * (코드 ElevatorPage.tsx line 1635~1669 1:1 매핑)
+     * ===================================================================== */
+    .card-section-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .edu-row {
+      background: var(--surface-sunken);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .edu-row:last-child { margin-bottom: 0; }
+
+    .edu-row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .edu-row-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .dday-chip {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.01em;
+    }
+    .dday-chip-danger  { color: var(--status-danger-bar);  background: var(--status-danger-bg); }
+    .dday-chip-warning { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .dday-chip-info    { color: var(--status-info-bar);    background: var(--status-info-bg); }
+    .dday-chip-safe    { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+
+    .edu-row-validity {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .edu-row-deadline {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+    .edu-row-deadline .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 등록 현황 카드 — 헤더 + 등록 수 + 호기 그리드 (3 row × 7 col)
+     * (코드 ElevatorPage.tsx line 1671~1708 1:1 매핑)
+     * gridTemplateColumns 'repeat(4, 1fr) 6px repeat(2, 1fr)' 보존
+     * ===================================================================== */
+    .reg-count-line {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      line-height: 1.5;
+    }
+    .reg-count-num-safe {
+      font-weight: 700;
+      color: var(--status-safe-bar);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .reg-count-num-warn {
+      color: var(--status-warning-bar);
+      margin-left: 6px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .reg-count-total-mono {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .reg-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr) 6px repeat(2, 1fr);
+      gap: 6px;
+      align-items: center;
+    }
+    .reg-grid-hd {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .reg-grid-hd-ev { grid-column: 1 / 5; }
+    .reg-grid-hd-es { grid-column: 6 / 8; }
+
+    .reg-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-radius: 7px;
+      text-align: center;
+      letter-spacing: 0.01em;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .reg-chip-ok {
+      color: var(--status-safe-bar);
+      background: var(--status-safe-bg);
+    }
+    .reg-chip-no {
+      color: var(--status-warning-bar);
+      background: var(--status-warning-bg);
+    }
+    .reg-chip-empty { visibility: hidden; }
+
+    /* 미등록 강조 ring variant (VP4 영역 1 — 옵션 — 좌측 색바 대안) */
+    .reg-chip-no.is-ring {
+      box-shadow: inset 0 0 0 1.5px var(--status-warning-bar);
+    }
+
+    /* =====================================================================
+     * 빈 / 로딩 상태 (3A EmptyState 패턴 — User lucide size=36)
+     * ===================================================================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 16px;
+      gap: 12px;
+      color: var(--text-tertiary);
+    }
+    .empty-state-icon-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .empty-state-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .loading-line {
+      text-align: center;
+      padding: 40px 0;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* 5 상태 라벨 박스 (3B KoelsaHistorySection 패턴) */
+    .state-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      margin-bottom: 8px;
+    }
+    [data-theme="light"] .state-label { background: rgba(0,0,0,0.05); }
+
+    /* =====================================================================
+     * D-day 카탈로그 row (VP2 4 분기 세로 + VP4 4 분기 가로)
+     * (3B KIND_STYLE 카탈로그 row 패턴 응용)
+     * ===================================================================== */
+    .dday-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-sunken);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .dday-cat-row:last-child { margin-bottom: 0; }
+    .dday-cat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+    .dday-cat-rule {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 가로 4-col 카탈로그 (VP4) */
+    .dday-cat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .dday-cat-col {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+    .dday-cat-col .dday-chip {
+      font-size: 14px;
+      padding: 5px 14px;
+    }
+    .dday-cat-col-rule {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+     * 하단 네비 placeholder (모바일)
+     * ===================================================================== */
+    .bottom-nav-ph {
+      flex-shrink: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+    }
+    .bnav-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--text-tertiary);
+    }
+    .bnav-icon-lbl { font-size: 12px; font-weight: 500; }
+    .bnav-icon.active { color: var(--accent); }
+
+    /* =====================================================================
+     * 데스크톱 좌측 호기 그리드 (Wave 1 dim — 본 시안 본 영역은 우측)
+     * ===================================================================== */
+    .desktop-ev-grid-pane {
+      flex: 0 0 480px;
+      padding: 16px;
+      background: var(--surface-page);
+      overflow-y: auto;
+      border-right: 1px solid var(--border-default);
+      opacity: 0.5;
+    }
+    .desktop-tab-pane {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-page);
+      position: relative;
+      overflow: hidden;
+    }
+    .desktop-tab-pane::-webkit-scrollbar { display: none; }
+    .desktop-tab-pane { scrollbar-width: none; }
+    .desktop-tab-inner {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .desktop-tab-inner::-webkit-scrollbar { display: none; }
+    .desktop-tab-inner { scrollbar-width: none; }
+
+    .dsk-ev-group-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+    .dsk-ev-group-title:first-child { margin-top: 0; }
+    .dsk-ev-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .dsk-ev-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 9px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* 데스크톱 카드 — 폭 가운데 정렬 (~640px) */
+    .desktop-card-stack {
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* 데스크톱 프로필 카드 — 약간 더 큰 spacing */
+    .desktop-tab-inner .safety-card { padding: 20px; }
+    .desktop-tab-inner .profile-name { font-size: 18px; }
+    .desktop-tab-inner .profile-sub { font-size: 13px; }
+
+    /* =====================================================================
+     * 페이지 섹션 타이틀 (흰색 배경)
+     * ===================================================================== */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 (4 분기 색 정의) */
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-warn    { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-danger  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-safe-bar); }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-info-bar); }
+    .cat-title-warn  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-warning-bar); }
+    .cat-title-danger{ font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-danger-bar); }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--text-tertiary); }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs   { width: 12px; height: 12px; flex-shrink: 0; }
+    .icon-sm   { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-md   { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-lg   { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-xl   { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-2xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-3xl  { width: 36px; height: 36px; flex-shrink: 0; }
+
+    /* ElevatorIcon SVG (icons.tsx line 137-148 1:1 embed) */
+    .elevator-icon-svg { display: block; }
+
+    /* theme 보강 — dark/light 가독성 (3A/3B 동일 패턴) */
+    [data-theme="dark"] .safety-card:hover { border-color: var(--border-strong); }
+    [data-theme="light"] .safety-card:hover { border-color: var(--border-strong); }
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 옵션 B 5탭 본문 시리즈 3/3 + 색 결정 요약
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">승강기 관리 — 3C 안전관리자 탭</div>
+      <div class="page-section-sub">옵션 B 5탭 본문 시리즈 3/3 — 마지막 1탭(안전관리자) 본문 시각화. 프로필 카드 + 교육 현황 카드 + 공단 등록 현황 카드 + D-day 4 분기 카탈로그 + 빈/로딩 + 미등록 강조 variant. 다음 wave: Wave 11 TSX 변환 (3A/3B/3C 동일 패턴).</div>
+    </div>
+    <!-- 색 결정 4박스 — fmtDday 4 분기 100% 보존 -->
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">days &lt; 0 (D+N 초과)</div>
+        <div class="cat-label-dark">danger (적)</div>
+        <div class="cat-sub-dark">교육 마감 초과. fmtDday text 'D+N 초과' + color var(--danger). 보수교육 만료 / 신규교육 만료 모두 적용.</div>
+      </div>
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">days &le; 60 (D-N 임박)</div>
+        <div class="cat-label-dark">warning (호박)</div>
+        <div class="cat-sub-dark">2 개월 이내 임박. fmtDday text 'D-N' + color var(--warn). 등록 chip 미등록(X 아이콘) 도 같은 톤 사용 (isReg ? safe : warning 분기).</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">days &le; 365 (D-N 안전)</div>
+        <div class="cat-label-dark">info (청)</div>
+        <div class="cat-sub-dark">1 년 이내 안전. fmtDday text 'D-N' + color var(--info). 보수교육 표준 분기 (직전 이수일 + 3년 까지).</div>
+      </div>
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">days &gt; 365 (D-N 멀음)</div>
+        <div class="cat-label-dark">safe (녹)</div>
+        <div class="cat-sub-dark">1 년 이상 여유. fmtDday text 'D-N' + color var(--safe). 등록 chip(CheckCircle2 아이콘) / 신규교육 완료(daysLeft &lt; 0) 텍스트 '완료' 도 동일 톤.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1 — 모바일 · 다크 · 안전관리자 탭 정상 전체 (3 카드 세로 스택)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · 안전관리자 탭 정상 (프로필 + 교육 D-180 info + 등록 17 중 15)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+      <div class="page-shell">
+
+        <!-- 자체 페이지 헤더 -->
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-lg text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+          <div class="ml-auto">
+            <span class="unresolved-chip">
+              <i data-lucide="alert-octagon" class="icon-sm"></i>
+              미해결 1
+            </span>
+          </div>
+        </div>
+
+        <!-- 6탭 (안전관리자 활성) -->
+        <div class="tab-bar">
+          <button class="tab-btn">목록</button>
+          <button class="tab-btn">고장</button>
+          <button class="tab-btn">수리</button>
+          <button class="tab-btn">점검</button>
+          <button class="tab-btn">검사</button>
+          <button class="tab-btn tab-btn-active">안전관리자</button>
+        </div>
+
+        <!-- 본문 — 3 카드 세로 스택 -->
+        <div class="body-scroll">
+
+          <!-- 카드 1: 프로필 -->
+          <div class="safety-card">
+            <div class="profile-head">
+              <div class="profile-avatar">
+                <i data-lucide="user" class="icon-2xl"></i>
+              </div>
+              <div>
+                <div class="profile-name">윤종엽</div>
+                <div class="profile-sub">승강기 안전관리자</div>
+              </div>
+            </div>
+            <div class="profile-grid">
+              <div class="profile-meta-box">
+                <div class="profile-meta-key">선임일</div>
+                <div class="profile-meta-val">2024-03-15</div>
+              </div>
+              <div class="profile-meta-box">
+                <div class="profile-meta-key">교육이수일</div>
+                <div class="profile-meta-val">2024-04-20</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 2: 교육 현황 -->
+          <div class="safety-card">
+            <div class="card-section-title">
+              <i data-lucide="book-open" class="icon-md text-t2"></i>
+              <span>교육 현황</span>
+            </div>
+
+            <!-- 보수(재) 교육 row — D-180 info -->
+            <div class="edu-row">
+              <div class="edu-row-head">
+                <span class="edu-row-label">보수(재) 교육</span>
+                <span class="dday-chip dday-chip-info">D-180</span>
+              </div>
+              <div class="edu-row-validity">유효기간: 2024-04-20 ~ 2027-04-19</div>
+              <div class="edu-row-deadline">다음 교육 마감: <span class="mono">2027-04-19</span> (직전 이수일 + 3년)</div>
+            </div>
+
+            <!-- 신규 교육 row — 완료 safe -->
+            <div class="edu-row">
+              <div class="edu-row-head">
+                <span class="edu-row-label">신규 교육</span>
+                <span class="dday-chip dday-chip-safe">완료</span>
+              </div>
+              <div class="edu-row-deadline">마감: <span class="mono">2024-06-15</span> (선임일 + 3개월)</div>
+            </div>
+          </div>
+
+          <!-- 카드 3: 공단 등록 현황 -->
+          <div class="safety-card">
+            <div class="card-section-title">
+              <i data-lucide="building-2" class="icon-md text-t2"></i>
+              <span>공단 등록 현황</span>
+            </div>
+
+            <div class="reg-count-line">
+              <span class="reg-count-total-mono">17</span>대 중
+              <span class="reg-count-num-safe">15대 등록</span>
+              <span class="reg-count-num-warn">· 미등록 2대</span>
+            </div>
+
+            <div class="reg-grid">
+              <!-- 헤더 행 -->
+              <div class="reg-grid-hd reg-grid-hd-ev">
+                <svg class="elevator-icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+                <span>엘리베이터</span>
+              </div>
+              <div></div>
+              <div class="reg-grid-hd reg-grid-hd-es">
+                <i data-lucide="move-diagonal" class="icon-sm"></i>
+                <span>에스컬레이터</span>
+              </div>
+
+              <!-- row 1 -->
+              <span class="reg-chip reg-chip-ok">EV1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-no">EV7 <i data-lucide="x" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV9 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <div></div>
+              <span class="reg-chip reg-chip-ok">ES5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">ES6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+              <!-- row 2 -->
+              <span class="reg-chip reg-chip-ok">EV2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV8 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV10 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <div></div>
+              <span class="reg-chip reg-chip-ok">ES3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">ES4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+              <!-- row 3 -->
+              <span class="reg-chip reg-chip-ok">EV3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">EV6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-empty">·</span>
+              <span class="reg-chip reg-chip-no">EV11 <i data-lucide="x" class="icon-xs"></i></span>
+              <div></div>
+              <span class="reg-chip reg-chip-ok">ES1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+              <span class="reg-chip reg-chip-ok">ES2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 네비 placeholder -->
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="home" class="icon-lg"></i><span class="bnav-icon-lbl">대시</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-check" class="icon-lg"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="map" class="icon-lg"></i><span class="bnav-icon-lbl">평면도</span></div>
+          <div class="bnav-icon active">
+            <svg class="elevator-icon-svg icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="bnav-icon-lbl">승강기</span>
+          </div>
+          <div class="bnav-icon"><i data-lucide="menu" class="icon-lg"></i><span class="bnav-icon-lbl">메뉴</span></div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP2 — 모바일 · 라이트 · D-day 4 분기 카탈로그 + 빈/로딩 박스
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 라이트 · 교육 D-day 4 분기 카탈로그(상단) + 빈/로딩 상태 박스(하단)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="light">
+
+      <div class="page-shell">
+
+        <!-- 자체 페이지 헤더 -->
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-lg text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+          <div class="ml-auto">
+            <span class="unresolved-chip">
+              <i data-lucide="alert-octagon" class="icon-sm"></i>
+              미해결 1
+            </span>
+          </div>
+        </div>
+
+        <!-- 6탭 (안전관리자 활성) -->
+        <div class="tab-bar">
+          <button class="tab-btn">목록</button>
+          <button class="tab-btn">고장</button>
+          <button class="tab-btn">수리</button>
+          <button class="tab-btn">점검</button>
+          <button class="tab-btn">검사</button>
+          <button class="tab-btn tab-btn-active">안전관리자</button>
+        </div>
+
+        <!-- 본문 — 영역 1 D-day 4 분기 + 영역 2 빈/로딩 -->
+        <div class="body-scroll">
+
+          <!-- 영역 1: D-day 4 분기 카탈로그 카드 -->
+          <div class="safety-card">
+            <div class="card-section-title">
+              <i data-lucide="book-open" class="icon-md text-t2"></i>
+              <span>교육 현황 — D-day 색 카탈로그</span>
+            </div>
+
+            <!-- row 1: D+15 초과 (danger) -->
+            <div class="dday-cat-row">
+              <span class="dday-cat-label">보수교육 (예시 A — 만료)</span>
+              <span class="dday-chip dday-chip-danger">D+15 초과</span>
+            </div>
+
+            <!-- row 2: D-30 임박 (warning) -->
+            <div class="dday-cat-row">
+              <span class="dday-cat-label">보수교육 (예시 B — 임박)</span>
+              <span class="dday-chip dday-chip-warning">D-30</span>
+            </div>
+
+            <!-- row 3: D-180 안전 (info) -->
+            <div class="dday-cat-row">
+              <span class="dday-cat-label">보수교육 (예시 C — 안전)</span>
+              <span class="dday-chip dday-chip-info">D-180</span>
+            </div>
+
+            <!-- row 4: D-700 멀음 (safe) -->
+            <div class="dday-cat-row">
+              <span class="dday-cat-label">보수교육 (예시 D — 여유)</span>
+              <span class="dday-chip dday-chip-safe">D-700</span>
+            </div>
+
+            <div class="dday-cat-rule mt-3 text-center">fmtDday: &lt;0=danger / &le;60=warning / &le;365=info / &gt;365=safe</div>
+          </div>
+
+          <!-- 영역 2: 빈 상태 + 로딩 박스 -->
+          <div class="safety-card">
+            <span class="state-label">빈 상태 (data?.manager 없음)</span>
+            <div class="empty-state">
+              <div class="empty-state-icon-wrap">
+                <i data-lucide="user" class="icon-3xl"></i>
+              </div>
+              <div class="empty-state-text">안전관리자 정보가 없어요</div>
+            </div>
+          </div>
+
+          <div class="safety-card">
+            <span class="state-label">로딩 상태 (safetyMgrQuery.isLoading)</span>
+            <div class="loading-line">공단 데이터 조회 중...</div>
+          </div>
+
+        </div>
+
+        <!-- 하단 네비 placeholder -->
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="home" class="icon-lg"></i><span class="bnav-icon-lbl">대시</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-check" class="icon-lg"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="map" class="icon-lg"></i><span class="bnav-icon-lbl">평면도</span></div>
+          <div class="bnav-icon active">
+            <svg class="elevator-icon-svg icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="bnav-icon-lbl">승강기</span>
+          </div>
+          <div class="bnav-icon"><i data-lucide="menu" class="icon-lg"></i><span class="bnav-icon-lbl">메뉴</span></div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP3 — 데스크톱 · 다크 · 안전관리자 탭 정상 풀화면
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP3 · 데스크톱 · 다크 · 안전관리자 탭 정상 (좌측 호기 그리드 dim + 우측 3 카드 세로 정렬)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+      <div class="desktop-shell">
+
+        <!-- 좌측 — 호기 그리드 placeholder (Wave 1 결과, dim) -->
+        <aside class="desktop-ev-grid-pane no-scrollbar">
+          <div class="dsk-ev-group-title">투명 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+          </div>
+          <div class="dsk-ev-group-title">오렌지 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+          <div class="dsk-ev-group-title">기타 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">7호기</div>
+            <div class="dsk-ev-tile">8호기</div>
+          </div>
+          <div class="dsk-ev-group-title">화물 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">9호기</div>
+            <div class="dsk-ev-tile">10호기</div>
+          </div>
+          <div class="dsk-ev-group-title">덤웨이터 (1대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">11호기</div>
+          </div>
+          <div class="dsk-ev-group-title">에스컬레이터 (6대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+        </aside>
+
+        <!-- 우측 — 안전관리자 본문 (3 카드 세로) -->
+        <section class="desktop-tab-pane">
+          <div class="desktop-tab-inner">
+
+            <div class="desktop-card-stack">
+
+              <!-- 카드 1: 프로필 -->
+              <div class="safety-card">
+                <div class="profile-head">
+                  <div class="profile-avatar">
+                    <i data-lucide="user" class="icon-2xl"></i>
+                  </div>
+                  <div>
+                    <div class="profile-name">윤종엽</div>
+                    <div class="profile-sub">승강기 안전관리자</div>
+                  </div>
+                </div>
+                <div class="profile-grid">
+                  <div class="profile-meta-box">
+                    <div class="profile-meta-key">선임일</div>
+                    <div class="profile-meta-val">2024-03-15</div>
+                  </div>
+                  <div class="profile-meta-box">
+                    <div class="profile-meta-key">교육이수일</div>
+                    <div class="profile-meta-val">2024-04-20</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 카드 2: 교육 현황 -->
+              <div class="safety-card">
+                <div class="card-section-title">
+                  <i data-lucide="book-open" class="icon-md text-t2"></i>
+                  <span>교육 현황</span>
+                </div>
+
+                <div class="edu-row">
+                  <div class="edu-row-head">
+                    <span class="edu-row-label">보수(재) 교육</span>
+                    <span class="dday-chip dday-chip-info">D-180</span>
+                  </div>
+                  <div class="edu-row-validity">유효기간: 2024-04-20 ~ 2027-04-19</div>
+                  <div class="edu-row-deadline">다음 교육 마감: <span class="mono">2027-04-19</span> (직전 이수일 + 3년)</div>
+                </div>
+
+                <div class="edu-row">
+                  <div class="edu-row-head">
+                    <span class="edu-row-label">신규 교육</span>
+                    <span class="dday-chip dday-chip-safe">완료</span>
+                  </div>
+                  <div class="edu-row-deadline">마감: <span class="mono">2024-06-15</span> (선임일 + 3개월)</div>
+                </div>
+              </div>
+
+              <!-- 카드 3: 공단 등록 현황 -->
+              <div class="safety-card">
+                <div class="card-section-title">
+                  <i data-lucide="building-2" class="icon-md text-t2"></i>
+                  <span>공단 등록 현황</span>
+                </div>
+
+                <div class="reg-count-line">
+                  <span class="reg-count-total-mono">17</span>대 중
+                  <span class="reg-count-num-safe">15대 등록</span>
+                  <span class="reg-count-num-warn">· 미등록 2대</span>
+                </div>
+
+                <div class="reg-grid">
+                  <div class="reg-grid-hd reg-grid-hd-ev">
+                    <svg class="elevator-icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                      <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                      <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                    </svg>
+                    <span>엘리베이터</span>
+                  </div>
+                  <div></div>
+                  <div class="reg-grid-hd reg-grid-hd-es">
+                    <i data-lucide="move-diagonal" class="icon-sm"></i>
+                    <span>에스컬레이터</span>
+                  </div>
+
+                  <span class="reg-chip reg-chip-ok">EV1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-no">EV7 <i data-lucide="x" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV9 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV8 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV10 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-empty">·</span>
+                  <span class="reg-chip reg-chip-no">EV11 <i data-lucide="x" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4 — 데스크톱 · 라이트 · 등록 완전 variant + 미등록 강조 variant + D-day 가로 카탈로그
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">🖥️ VP4 · 데스크톱 · 라이트 · 등록 완전(17/17) + 미등록 강조(14/17, 3대 미등록) + D-day 4 분기 가로 카탈로그</div>
+    <div class="viewport-frame viewport-desktop" data-theme="light">
+
+      <div class="desktop-shell">
+
+        <!-- 좌측 — 호기 그리드 placeholder (dim) -->
+        <aside class="desktop-ev-grid-pane no-scrollbar">
+          <div class="dsk-ev-group-title">투명 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+          </div>
+          <div class="dsk-ev-group-title">오렌지 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+          <div class="dsk-ev-group-title">기타 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">7호기</div>
+            <div class="dsk-ev-tile">8호기</div>
+          </div>
+          <div class="dsk-ev-group-title">화물 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">9호기</div>
+            <div class="dsk-ev-tile">10호기</div>
+          </div>
+          <div class="dsk-ev-group-title">덤웨이터 (1대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">11호기</div>
+          </div>
+          <div class="dsk-ev-group-title">에스컬레이터 (6대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+        </aside>
+
+        <!-- 우측 — 영역 1 (등록 2 variant 좌우) + 영역 2 (D-day 가로 카탈로그) -->
+        <section class="desktop-tab-pane">
+          <div class="desktop-tab-inner">
+
+            <!-- 영역 1: 2-col 등록 variant 비교 -->
+            <div class="grid grid-cols-2 gap-3">
+
+              <!-- 왼쪽: 완전 등록 variant (17/17, safe 색바) -->
+              <div class="safety-card is-safe-bar">
+                <span class="state-label">정상 — 모두 등록 (이상적)</span>
+                <div class="card-section-title">
+                  <i data-lucide="building-2" class="icon-md text-t2"></i>
+                  <span>공단 등록 — 완전 등록 variant</span>
+                </div>
+
+                <div class="reg-count-line">
+                  <span class="reg-count-total-mono">17</span>대 중
+                  <span class="reg-count-num-safe">17대 등록</span>
+                </div>
+
+                <div class="reg-grid">
+                  <div class="reg-grid-hd reg-grid-hd-ev">
+                    <svg class="elevator-icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                      <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                      <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                    </svg>
+                    <span>엘리베이터</span>
+                  </div>
+                  <div></div>
+                  <div class="reg-grid-hd reg-grid-hd-es">
+                    <i data-lucide="move-diagonal" class="icon-sm"></i>
+                    <span>에스컬레이터</span>
+                  </div>
+
+                  <span class="reg-chip reg-chip-ok">EV1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV7 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV9 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV8 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV10 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-empty">·</span>
+                  <span class="reg-chip reg-chip-ok">EV11 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                </div>
+              </div>
+
+              <!-- 오른쪽: 미등록 강조 variant (14/17, 3대 미등록 ring, warn 색바) -->
+              <div class="safety-card is-warn-bar">
+                <span class="state-label">경고 — 미등록 3대 존재</span>
+                <div class="card-section-title">
+                  <i data-lucide="building-2" class="icon-md text-t2"></i>
+                  <span>공단 등록 — 미등록 강조 variant</span>
+                </div>
+
+                <div class="reg-count-line">
+                  <span class="reg-count-total-mono">17</span>대 중
+                  <span class="reg-count-num-safe">14대 등록</span>
+                  <span class="reg-count-num-warn">· 미등록 3대</span>
+                </div>
+
+                <div class="reg-grid">
+                  <div class="reg-grid-hd reg-grid-hd-ev">
+                    <svg class="elevator-icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                      <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                      <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                    </svg>
+                    <span>엘리베이터</span>
+                  </div>
+                  <div></div>
+                  <div class="reg-grid-hd reg-grid-hd-es">
+                    <i data-lucide="move-diagonal" class="icon-sm"></i>
+                    <span>에스컬레이터</span>
+                  </div>
+
+                  <span class="reg-chip reg-chip-ok">EV1 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-no is-ring">EV7 <i data-lucide="x" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV9 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV5 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV8 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV10 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-ok">ES3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES4 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+
+                  <span class="reg-chip reg-chip-ok">EV3 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">EV6 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-empty">·</span>
+                  <span class="reg-chip reg-chip-no is-ring">EV11 <i data-lucide="x" class="icon-xs"></i></span>
+                  <div></div>
+                  <span class="reg-chip reg-chip-no is-ring">ES1 <i data-lucide="x" class="icon-xs"></i></span>
+                  <span class="reg-chip reg-chip-ok">ES2 <i data-lucide="check-circle-2" class="icon-xs"></i></span>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 영역 2: D-day 4 분기 가로 카탈로그 -->
+            <div class="safety-card">
+              <div class="card-section-title">
+                <i data-lucide="book-open" class="icon-md text-t2"></i>
+                <span>D-day 색 카탈로그 (fmtDday 함수)</span>
+              </div>
+
+              <div class="dday-cat-grid">
+                <div class="dday-cat-col">
+                  <span class="dday-chip dday-chip-danger">D+15 초과</span>
+                  <span class="dday-cat-col-rule">&lt;0 = danger</span>
+                </div>
+                <div class="dday-cat-col">
+                  <span class="dday-chip dday-chip-warning">D-30</span>
+                  <span class="dday-cat-col-rule">&le;60 = warning</span>
+                </div>
+                <div class="dday-cat-col">
+                  <span class="dday-chip dday-chip-info">D-180</span>
+                  <span class="dday-cat-col-rule">&le;365 = info</span>
+                </div>
+                <div class="dday-cat-col">
+                  <span class="dday-chip dday-chip-safe">D-700</span>
+                  <span class="dday-cat-col-rule">&gt;365 = safe</span>
+                </div>
+              </div>
+
+              <div class="text-caption text-t3 mt-3 text-center">코드 source: ElevatorPage.tsx line 1602~1608 fmtDday — 색 분기 한 줄도 변경 X</div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       sketch 룰 박스 (검수용 — 변환 시 1:1 매핑 가이드)
+       ================================================================ -->
+  <section class="space-y-4">
+    <div>
+      <div class="page-section-title">변환 룰 (TSX Wave 11 1:1 매핑 가이드)</div>
+      <div class="page-section-sub">3A/3B 패턴 그대로 — 인프라/tokens/typography/viewport 재사용. 본 sketch 는 안전관리자 탭 한정 시각 권위.</div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+
+      <!-- 룰 박스 1: 색 매핑 -->
+      <div class="cat-box-info">
+        <div class="cat-title-info">색 매핑 (코드 fmtDday 100% 보존)</div>
+        <div class="cat-label-dark">교육 D-day chip 색:</div>
+        <div class="cat-label-dark">  · &lt;0 (D+N 초과) → danger</div>
+        <div class="cat-label-dark">  · &le;60 (D-N 임박) → warning</div>
+        <div class="cat-label-dark">  · &le;365 (D-N 안전) → info</div>
+        <div class="cat-label-dark">  · &gt;365 (D-N 멀음) → safe</div>
+        <div class="cat-label-dark">신규교육 분기:</div>
+        <div class="cat-label-dark">  · daysLeft &lt; 0 → '완료' safe</div>
+        <div class="cat-label-dark">  · daysLeft &ge; 0 → 'D-N' warning</div>
+        <div class="cat-label-dark">등록 chip:</div>
+        <div class="cat-label-dark">  · isReg → safe (CheckCircle2)</div>
+        <div class="cat-label-dark">  · !isReg → warning (X)</div>
+        <div class="cat-label-dark">등록 수 텍스트:</div>
+        <div class="cat-label-dark">  · 등록 N대 → text-safe</div>
+        <div class="cat-label-dark">  · 미등록 N대 → text-warning</div>
+        <div class="cat-sub-dark">현 코드 fmtDday line 1602~1608 + isReg 분기 line 1688 100% 보존.</div>
+      </div>
+
+      <!-- 룰 박스 2: 폰트 격상 -->
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">폰트 격상 (9·10·11px 0건)</div>
+        <div class="cat-label-dark">옛 코드 → 시안 매핑 (인라인 폰트 → 시각 토큰):</div>
+        <div class="cat-label-dark">  · 옛 nine (그리드 헤더 '(elevator emoji) 엘리베이터' / '(up-down emoji) 에스컬레이터') → 12px text-caption (.reg-grid-hd)</div>
+        <div class="cat-label-dark">  · 옛 ten (chip 'EV{n} (check)' / '다음 교육 마감' / '마감: ...') → 12px text-caption (.reg-chip / .edu-row-deadline)</div>
+        <div class="cat-label-dark">  · 옛 eleven (부제 '승강기 안전관리자' / 라벨 '선임일/교육이수일' / D-day chip / 유효기간) → 12px text-caption (.profile-sub / .profile-meta-key / .dday-chip / .edu-row-validity)</div>
+        <div class="cat-label-dark">  · 옛 twelve (헤더 '(books emoji) 교육 현황' / '(office emoji) 공단 등록 현황' / 등록 수 텍스트) → 14px (.card-section-title) + 13px (.reg-count-line)</div>
+        <div class="cat-label-dark">  · 옛 thirteen (보수/신규 라벨 / 메타 값) → 13px (.edu-row-label / .profile-meta-val)</div>
+        <div class="cat-label-dark">  · 옛 sixteen (이름) → 16px 모바일 / 18px 데스크톱 (.profile-name)</div>
+        <div class="cat-sub-dark">결과: 12px 미만 클래스 0건. 그리드 헤더/chip 라벨/부제 등 보조 정보 12-13px 격상으로 노안 가독성 보강.</div>
+      </div>
+
+      <!-- 룰 박스 3: 이모지 → lucide -->
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">이모지 → lucide 매핑</div>
+        <div class="cat-label-dark">프로필 / 빈 상태:</div>
+        <div class="cat-label-dark">  · (avatar emoji) → User (size 28)</div>
+        <div class="cat-label-dark">  · EmptyState icon (avatar emoji) → User (size 36)</div>
+        <div class="cat-label-dark">카드 헤더:</div>
+        <div class="cat-label-dark">  · (books emoji) '교육 현황' → BookOpen + '교육 현황'</div>
+        <div class="cat-label-dark">  · (office emoji) '공단 등록 현황' → Building2 + '공단 등록 현황'</div>
+        <div class="cat-label-dark">호기 그리드 헤더:</div>
+        <div class="cat-label-dark">  · (elevator emoji) '엘리베이터' → ElevatorIcon SVG (3A/3B 매퍼 재사용)</div>
+        <div class="cat-label-dark">  · (up-down emoji) '에스컬레이터' → MoveDiagonal (3A/3B 매퍼 재사용)</div>
+        <div class="cat-label-dark">chip check / cross:</div>
+        <div class="cat-label-dark">  · (check char, textual) → CheckCircle2 (size 12)</div>
+        <div class="cat-label-dark">  · (cross char, textual) → X (size 12)</div>
+        <div class="cat-sub-dark">결과: 본문 이모지 0건. viewport 라벨 한정 (📱/🖥️) 만 메타 시각 허용.</div>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+
+      <!-- 룰 박스 4: 호기 라벨 정책 -->
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">호기 라벨 — 'EV{n}' / 'ES{n}' chip 보존</div>
+        <div class="cat-label-dark">EV-NN / ES-NN ID 본문 노출 0건:</div>
+        <div class="cat-label-dark">  · 호기 그리드 chip 라벨: 'EV{ev.number}' / 'ES{ev.number}' (UI 라벨, ID 포맷 아님)</div>
+        <div class="cat-label-dark">  · ev.type === 'escalator' ? 'ES' : 'EV' 분기 그대로</div>
+        <div class="cat-label-dark">  · 빈 셀: undefined → reg-chip-empty (visibility hidden)</div>
+        <div class="cat-label-dark">  · sep 셀: null → 빈 div (6px 컬럼 차지)</div>
+        <div class="cat-sub-dark">현 코드 line 1687~1688 표시 룰 그대로. 호기 ID(EV-NN) 는 evMap key + registeredIds 비교용으로만 사용, 본문 텍스트 노출 X. verify gate 5 는 EV-NN/ES-NN 패턴만 차단, EV{n}/ES{n} 는 허용.</div>
+      </div>
+
+      <!-- 룰 박스 5: 미등록 강조 옵션 -->
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">미등록 강조 옵션 (VP4 영역 1)</div>
+        <div class="cat-label-dark">옵션 A — 카드 좌측 색바 ::before:</div>
+        <div class="cat-label-dark">  · 완전 등록 → safe bar (.is-safe-bar)</div>
+        <div class="cat-label-dark">  · 미등록 존재 → warn bar (.is-warn-bar)</div>
+        <div class="cat-label-dark">옵션 B — chip 자체 강조 ring:</div>
+        <div class="cat-label-dark">  · reg-chip-no.is-ring → box-shadow inset warning</div>
+        <div class="cat-label-dark">옵션 C — state-label 박스:</div>
+        <div class="cat-label-dark">  · '정상 — 모두 등록' / '경고 — 미등록 N대 존재'</div>
+        <div class="cat-sub-dark">3A fault-card::before 패턴 그대로 응용. 변환 wave 에서 옵션 A 적용 권장 (인지 즉시성). 옵션 B 는 chip 내부 강조라 모바일 작은 화면에서 인지 약함. 옵션 C 는 데스크톱 분기 헤더에만 적용.</div>
+      </div>
+
+      <!-- 룰 박스 6: 보존 룰 -->
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">보존 항목 (단 한 줄도 수정 X)</div>
+        <div class="cat-label-dark">코드 0건:</div>
+        <div class="cat-label-dark">  · ElevatorPage.tsx (line 1592~1712)</div>
+        <div class="cat-label-dark">  · icons.tsx</div>
+        <div class="cat-label-dark">  · tailwind.config.js</div>
+        <div class="cat-label-dark">  · 다른 sketch HTML (3A/3B 포함)</div>
+        <div class="cat-label-dark">  · 다른 페이지 / 컴포넌트</div>
+        <div class="cat-label-dark">데이터 보존:</div>
+        <div class="cat-label-dark">  · fmtDday 4 분기 (line 1602~1608)</div>
+        <div class="cat-label-dark">  · m.realName ?? m.maskedName</div>
+        <div class="cat-label-dark">  · m.appointedAt / m.eduDate</div>
+        <div class="cat-label-dark">  · edu.refreshEdu / edu.newEdu (daysLeft + deadline)</div>
+        <div class="cat-label-dark">  · reg.total / reg.registered / reg.registeredIds</div>
+        <div class="cat-label-dark">  · gridTemplateColumns 'repeat(4,1fr) 6px repeat(2,1fr)'</div>
+        <div class="cat-label-dark">  · 빈 셀 undefined 분기 (3행 3열)</div>
+        <div class="cat-sub-dark">변환 wave (Wave 11) 시 인라인 style → CSS class 1:1 매핑만. 비즈니스 로직 / 데이터 흐름 / state 0건 변경.</div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- 스크립트 — lucide 아이콘 렌더링 -->
+<script>
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>
