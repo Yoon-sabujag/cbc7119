@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2, ClipboardList, Search } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2, ClipboardList, Search, User, BookOpen, Building2 } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1592,89 +1592,97 @@ export default function ElevatorPage() {
         {/* ── 안전관리자 ── */}
         {tab === 'safety' && (() => {
           const data = safetyMgrQuery.data
-          if (safetyMgrQuery.isLoading) return <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>공단 데이터 조회 중...</div>
-          if (!data?.manager) return <EmptyState icon="👤" text="안전관리자 정보가 없어요" />
+          if (safetyMgrQuery.isLoading) return <div className="text-center py-10 text-caption text-text-tertiary">공단 데이터 조회 중...</div>
+          if (!data?.manager) return <EmptyState icon={<User size={36} />} text="안전관리자 정보가 없어요" />
 
           const m = data.manager
           const edu = data.education
           const reg = data.registration
 
-          const fmtDday = (days: number | null) => {
+          const ddayClass = (days: number | null): { text: string; bg: string; label: string } | null => {
             if (days === null) return null
-            if (days < 0) return { text: `D+${Math.abs(days)} 초과`, color: 'var(--danger)', bg: 'rgba(239,68,68,.12)' }
-            if (days <= 60) return { text: `D-${days}`, color: 'var(--warn)', bg: 'rgba(245,158,11,.12)' }
-            if (days <= 365) return { text: `D-${days}`, color: 'var(--info)', bg: 'rgba(59,130,246,.12)' }
-            return { text: `D-${days}`, color: 'var(--safe)', bg: 'rgba(34,197,94,.12)' }
+            if (days < 0) return { text: 'text-danger', bg: 'bg-danger-bg', label: `D+${Math.abs(days)} 초과` }
+            if (days <= 60) return { text: 'text-warning', bg: 'bg-warning-bg', label: `D-${days}` }
+            if (days <= 365) return { text: 'text-info', bg: 'bg-info-bg', label: `D-${days}` }
+            return { text: 'text-safe', bg: 'bg-safe-bg', label: `D-${days}` }
           }
 
-          const refreshDday = fmtDday(edu.refreshEdu.daysLeft)
+          const refreshDday = ddayClass(edu.refreshEdu.daysLeft)
 
           return (
             <>
               {/* 안전관리자 프로필 */}
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                  <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>👤</div>
+              <div className="bg-surface-raised border border-border-default rounded-xl p-4 flex-shrink-0">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 rounded-full bg-surface-sunken flex items-center justify-center flex-shrink-0">
+                    <User size={28} className="text-text-secondary" />
+                  </div>
                   <div>
-                    <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>{m.realName ?? m.maskedName}</div>
-                    <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>승강기 안전관리자</div>
+                    <div className="text-[16px] font-bold text-text-primary">{m.realName ?? m.maskedName}</div>
+                    <div className="text-caption text-text-tertiary mt-0.5">승강기 안전관리자</div>
                   </div>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, fontSize:11 }}>
-                  <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
-                    <div style={{ color:'var(--t3)', marginBottom:2 }}>선임일</div>
-                    <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.appointedAt}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-surface-sunken rounded-lg px-2.5 py-2">
+                    <div className="text-caption text-text-tertiary mb-0.5">선임일</div>
+                    <div className="text-body-sm font-bold text-text-primary">{m.appointedAt}</div>
                   </div>
-                  <div style={{ background:'var(--bg3)', borderRadius:8, padding:'8px 10px' }}>
-                    <div style={{ color:'var(--t3)', marginBottom:2 }}>교육이수일</div>
-                    <div style={{ fontWeight:700, color:'var(--t1)' }}>{m.eduDate}</div>
+                  <div className="bg-surface-sunken rounded-lg px-2.5 py-2">
+                    <div className="text-caption text-text-tertiary mb-0.5">교육이수일</div>
+                    <div className="text-body-sm font-bold text-text-primary">{m.eduDate}</div>
                   </div>
                 </div>
               </div>
 
               {/* 교육 현황 */}
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:12 }}>📚 교육 현황</div>
+              <div className="bg-surface-raised border border-border-default rounded-xl p-4 flex-shrink-0">
+                <div className="text-body-sm font-bold text-text-primary mb-3 flex items-center gap-1.5">
+                  <BookOpen size={16} className="text-text-secondary" />
+                  교육 현황
+                </div>
 
                 {/* 보수(재) 교육 */}
-                <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px', marginBottom:8 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                    <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>보수(재) 교육</span>
+                <div className="bg-surface-sunken rounded-xl px-3 py-2.5 mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-body-sm font-bold text-text-primary">보수(재) 교육</span>
                     {refreshDday && (
-                      <span style={{ fontSize:11, fontWeight:700, color:refreshDday.color, background:refreshDday.bg, padding:'2px 8px', borderRadius:6 }}>{refreshDday.text}</span>
+                      <span className={`text-caption font-bold ${refreshDday.text} ${refreshDday.bg} px-2 py-0.5 rounded-md`}>{refreshDday.label}</span>
                     )}
                   </div>
-                  <div style={{ fontSize:11, color:'var(--t3)' }}>
+                  <div className="text-caption text-text-tertiary">
                     유효기간: {m.eduValidFrom} ~ {m.eduValidTo}
                   </div>
-                  <div style={{ fontSize:10, color:'var(--t3)', marginTop:4 }}>
+                  <div className="text-caption text-text-tertiary mt-1">
                     다음 교육 마감: {edu.refreshEdu.deadline ?? '-'} (직전 이수일 + 3년)
                   </div>
                 </div>
 
                 {/* 신규 교육 (이미 완료된 경우) */}
-                <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 12px' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-                    <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>신규 교육</span>
+                <div className="bg-surface-sunken rounded-xl px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-body-sm font-bold text-text-primary">신규 교육</span>
                     {edu.newEdu.daysLeft !== null && edu.newEdu.daysLeft < 0 ? (
-                      <span style={{ fontSize:11, fontWeight:700, color:'var(--safe)', background:'rgba(34,197,94,.12)', padding:'2px 8px', borderRadius:6 }}>완료</span>
+                      <span className="text-caption font-bold text-safe bg-safe-bg px-2 py-0.5 rounded-md">완료</span>
                     ) : edu.newEdu.daysLeft !== null ? (
-                      <span style={{ fontSize:11, fontWeight:700, color:'var(--warn)', background:'rgba(245,158,11,.12)', padding:'2px 8px', borderRadius:6 }}>D-{edu.newEdu.daysLeft}</span>
+                      <span className="text-caption font-bold text-warning bg-warning-bg px-2 py-0.5 rounded-md">D-{edu.newEdu.daysLeft}</span>
                     ) : null}
                   </div>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>
+                  <div className="text-caption text-text-tertiary">
                     마감: {edu.newEdu.deadline ?? '-'} (선임일 + 3개월)
                   </div>
                 </div>
               </div>
 
               {/* 등록 현황 */}
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, padding:'16px', flexShrink:0 }}>
-                <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>🏢 공단 등록 현황</div>
-                <div style={{ fontSize:12, color:'var(--t2)', marginBottom:10 }}>
-                  {reg.total}대 중 <span style={{ fontWeight:700, color:'var(--safe)' }}>{reg.registered}대</span> 등록
+              <div className="bg-surface-raised border border-border-default rounded-xl p-4 flex-shrink-0">
+                <div className="text-body-sm font-bold text-text-primary mb-2 flex items-center gap-1.5">
+                  <Building2 size={16} className="text-text-secondary" />
+                  공단 등록 현황
+                </div>
+                <div className="text-body-sm text-text-secondary mb-2.5">
+                  {reg.total}대 중 <span className="text-safe font-bold">{reg.registered}대</span> 등록
                   {reg.total - reg.registered > 0 && (
-                    <span style={{ color:'var(--warn)', marginLeft:6 }}>· 미등록 {reg.total - reg.registered}대</span>
+                    <span className="text-warning ml-1.5">· 미등록 {reg.total - reg.registered}대</span>
                   )}
                 </div>
                 {(() => {
@@ -1685,7 +1693,12 @@ export default function ElevatorPage() {
                     if (!ev) return <div />
                     const isReg = reg.registeredIds.includes(evId)
                     const icon = ev.type === 'escalator' ? 'ES' : 'EV'
-                    return <span style={{ fontSize:10, fontWeight:600, padding:'3px 8px', borderRadius:6, background: isReg ? 'rgba(34,197,94,.12)' : 'rgba(245,158,11,.12)', color: isReg ? 'var(--safe)' : 'var(--warn)', textAlign:'center', display:'block' }}>{icon}{ev.number} {isReg ? '✓' : '✗'}</span>
+                    return (
+                      <span className={`text-caption font-semibold px-2 py-0.5 rounded-md text-center inline-flex items-center justify-center gap-0.5 ${isReg ? 'bg-safe-bg text-safe' : 'bg-warning-bg text-warning'}`}>
+                        {icon}{ev.number}
+                        {isReg ? <CheckCircle2 size={11} strokeWidth={2.5} /> : <X size={11} strokeWidth={2.5} />}
+                      </span>
+                    )
                   }
                   const find = (type: string, num: number) => elevators.find(e => (type === 'ev' ? e.type !== 'escalator' : e.type === 'escalator') && e.number === num)?.id
                   const grid = [
@@ -1694,10 +1707,16 @@ export default function ElevatorPage() {
                     [find('ev',3), find('ev',6), undefined,    find('ev',11), null, find('es',1), find('es',2)],
                   ]
                   return (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr) 6px repeat(2, 1fr)', gap:4, alignItems:'center' }}>
-                      <div style={{ gridColumn:'1/5', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>🛗 엘리베이터</div>
+                    <div className="grid grid-cols-[repeat(4,1fr)_6px_repeat(2,1fr)] gap-1 items-center">
+                      <div className="col-span-4 text-caption font-bold text-text-tertiary tracking-wider flex items-center gap-1">
+                        <ElevatorIcon size={14} className="text-text-tertiary" strokeWidth={1.8} />
+                        엘리베이터
+                      </div>
                       <div />
-                      <div style={{ gridColumn:'6/8', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.04em' }}>↕️ 에스컬레이터</div>
+                      <div className="col-span-2 text-caption font-bold text-text-tertiary tracking-wider flex items-center gap-1">
+                        <MoveDiagonal size={14} className="text-text-tertiary" />
+                        에스컬레이터
+                      </div>
                       {grid.map((row, ri) => row.map((id, ci) => {
                         if (id === null) return <div key={`${ri}-sep`} />
                         return <div key={`${ri}-${ci}`}>{chip(id)}</div>
