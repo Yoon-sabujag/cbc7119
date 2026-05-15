@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -2048,7 +2048,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
 
   return (
     <ModalWrap title="고장 접수" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex flex-col gap-[14px]">
         <EvSelector
           elevators={elevators} evKind={evKind}
           setEvKind={v => { setEvKind(v); setElevatorId(''); setFaultFloor('') }}
@@ -2059,44 +2059,54 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
         {elevatorId && (
           <>
             <Field label="발생 일시">
-              <input type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)} style={inputSt} />
+              <input
+                type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
+                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+              />
             </Field>
 
             {/* 발생층 + 승객탑승 (엘베만) */}
             {isElev && (
-              <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+              <div className="flex gap-2 items-end">
                 <Field label="발생 층" style={{ flex:1 }}>
-                  <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)} style={inputSt}>
+                  <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)}
+                    className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border">
                     <option value="">선택</option>
                     {floors.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </Field>
-                <div style={{ flexShrink:0 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>승객 탑승</div>
-                  <button onClick={() => setHasPassenger(v => !v)} style={{
-                    height: 42, padding:'0 16px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                    background: hasPassenger ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                    color:      hasPassenger ? 'var(--danger)'        : 'var(--t3)',
-                    outline:    hasPassenger ? '2px solid var(--danger)' : 'none',
-                    whiteSpace:'nowrap',
-                  }}>
-                    {hasPassenger ? '탑승 🚨' : '미탑승'}
+                <div className="flex-shrink-0">
+                  <div className="text-label font-bold text-text-secondary mb-[5px]">승객 탑승</div>
+                  <button
+                    onClick={() => setHasPassenger(v => !v)}
+                    className={[
+                      'flex items-center gap-1 h-[44px] px-4 rounded-lg font-bold text-body-sm whitespace-nowrap transition',
+                      hasPassenger
+                        ? 'bg-danger-bg text-danger outline outline-2 outline-danger'
+                        : 'bg-surface-sunken text-text-tertiary',
+                    ].join(' ')}
+                  >
+                    {hasPassenger ? <><AlertTriangle size={14} />탑승</> : '미탑승'}
                   </button>
                 </div>
               </div>
             )}
 
             <Field label="증상">
-              <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
+              <textarea
+                value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="고장 증상을 입력하세요"
+                className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+              />
             </Field>
 
             <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
 
-            <a href={TKE_TEL} style={{ textDecoration:'none', display:'block' }}>
+            <a href={TKE_TEL} className="no-underline block">
               <button
                 onClick={handleSubmit}
                 disabled={!symptoms.trim() || loading}
-                style={{ ...primaryBtnSt, opacity:(!symptoms.trim()||loading)?0.5:1, width:'100%' }}
+                style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!symptoms.trim()||loading)?0.5:1 }}
+                className="w-full h-[48px] rounded-lg font-bold text-body text-white border-none cursor-pointer transition"
               >
                 {loading ? '접수 중...' : '고장 접수 (TKE 자동 연결)'}
               </button>
@@ -2135,20 +2145,31 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   }
 
   return (
-    <div style={{ position:'fixed', top:0, left:0, right:0, bottom:NAV_H, zIndex:100, background:'var(--bg)', display:'flex', flexDirection:'column', paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}>
-      {/* 헤더 */}
-      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'14px 16px 12px', display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ width:36, height:36, borderRadius:9, background:'rgba(239,68,68,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🚨</div>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>고장 접수</div>
-          <div style={{ fontSize:10, color:'var(--t3)' }}>접수 후 TKE(1899-9070) 자동 연결</div>
+    <div
+      className="fixed flex flex-col bg-surface-page"
+      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:100, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
+    >
+      {/* 풀스크린 자체 헤더 */}
+      <div className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2.5 px-4 pt-[14px] pb-3">
+        {/* 아이콘 박스 — danger-bg + AlertTriangle text-danger */}
+        <div className="w-9 h-9 rounded-lg bg-danger-bg flex items-center justify-center flex-shrink-0">
+          <AlertTriangle size={20} className="text-danger" />
         </div>
-        <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
+        <div className="flex-1">
+          <div className="text-body font-bold text-text-primary">고장 접수</div>
+          <div className="text-caption text-text-tertiary">접수 후 TKE(1899-9070) 자동 연결</div>
+        </div>
+        <button
+          onClick={onClose}
+          className="bg-transparent border-none text-text-tertiary cursor-pointer p-1 hover:text-text-primary hover:bg-surface-sunken rounded-md transition"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* 본문 스크롤 */}
-      <div style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'16px' }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4">
+        <div className="flex flex-col gap-4">
 
           <EvSelector
             elevators={elevators} evKind={evKind}
@@ -2160,34 +2181,43 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
           {elevatorId && (
             <>
               <Field label="발생 일시">
-                <input type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)} style={inputSt} />
+                <input
+                  type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
+                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                />
               </Field>
 
               {isElev && (
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                <div className="flex gap-2 items-end">
                   <Field label="발생 층" style={{ flex:1 }}>
-                    <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)} style={inputSt}>
+                    <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)}
+                      className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border">
                       <option value="">선택</option>
                       {floors.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </Field>
-                  <div style={{ flexShrink:0 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>승객 탑승</div>
-                    <button onClick={() => setHasPassenger(v => !v)} style={{
-                      height:42, padding:'0 16px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                      background: hasPassenger ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                      color:      hasPassenger ? 'var(--danger)'        : 'var(--t3)',
-                      outline:    hasPassenger ? '2px solid var(--danger)' : 'none',
-                      whiteSpace:'nowrap',
-                    }}>
-                      {hasPassenger ? '탑승 🚨' : '미탑승'}
+                  <div className="flex-shrink-0">
+                    <div className="text-label font-bold text-text-secondary mb-[5px]">승객 탑승</div>
+                    <button
+                      onClick={() => setHasPassenger(v => !v)}
+                      className={[
+                        'flex items-center gap-1 h-[44px] px-4 rounded-lg font-bold text-body-sm whitespace-nowrap transition',
+                        hasPassenger
+                          ? 'bg-danger-bg text-danger outline outline-2 outline-danger'
+                          : 'bg-surface-sunken text-text-tertiary',
+                      ].join(' ')}
+                    >
+                      {hasPassenger ? <><AlertTriangle size={14} />탑승</> : '미탑승'}
                     </button>
                   </div>
                 </div>
               )}
 
               <Field label="증상">
-                <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={4} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
+                <textarea
+                  value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={4} placeholder="고장 증상을 입력하세요"
+                  className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+                />
               </Field>
 
               <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
@@ -2196,15 +2226,16 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
         </div>
       </div>
 
-      {/* 하단 고정 버튼 */}
-      <div style={{ flexShrink:0, padding:'12px 16px', background:'var(--bg2)', borderTop:'1px solid var(--bd)' }}>
-        <a href={TKE_TEL} style={{ textDecoration:'none', display:'block' }}>
+      {/* 하단 고정 CTA 영역 */}
+      <div className="flex-shrink-0 p-3 px-4 bg-surface-raised border-t border-border-default">
+        <a href={TKE_TEL} className="no-underline block">
           <button
             onClick={handleSubmit}
             disabled={!elevatorId || !symptoms.trim() || loading}
-            style={{ ...primaryBtnSt, background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!elevatorId||!symptoms.trim()||loading)?0.5:1, width:'100%' }}
+            style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!elevatorId||!symptoms.trim()||loading)?0.5:1 }}
+            className="w-full h-[48px] rounded-lg font-bold text-body text-white border-none cursor-pointer transition"
           >
-            {loading ? '접수 중...' : '🚨 고장 접수 (TKE 자동 연결)'}
+            {loading ? '접수 중...' : '고장 접수 (TKE 자동 연결)'}
           </button>
         </a>
       </div>
@@ -2223,27 +2254,40 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
 
   const pureSymptoms = fault.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
 
+  const TypeIcon = TYPE_ICON_COMPONENT[fault.elevator_type]
+
   return (
     <ModalWrap title="수리 완료 처리" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-        <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 13px', fontSize:11, color:'var(--t2)' }}>
-          {TYPE_ICON[fault.elevator_type]} {fault.elevator_number}호기<br/>
-          <span style={{ color:'var(--t1)' }}>{pureSymptoms}</span>
+      <div className="flex flex-col gap-3">
+        {/* 고장 정보 카드 */}
+        <div className="bg-surface-sunken rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            {TypeIcon && <TypeIcon size={20} className="text-text-secondary" />}
+            <span className="text-body-sm font-bold text-text-primary">{fault.elevator_number}호기</span>
+          </div>
+          <div className="text-label text-text-secondary">{pureSymptoms}</div>
         </div>
         <Field label="수리 업체">
-          <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} style={inputSt} />
+          <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)}
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+          />
         </Field>
         <Field label="수리 완료 일시">
-          <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)} style={inputSt} />
+          <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)}
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+          />
         </Field>
         <Field label="수리 내용">
-          <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 내용" style={{ ...inputSt, resize:'none' }} />
+          <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 내용"
+            className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+          />
         </Field>
         <MultiPhotoUpload label="수리 사진" keys={repairPhotoKeys} setKeys={setRepairPhotoKeys} />
         <button
           onClick={() => onSubmit({ id:fault.id, repairCompany, repairedAt:repairedAt+':00', repairDetail, repairPhotoKeys })}
           disabled={!repairDetail.trim()||loading}
-          style={{ ...primaryBtnSt, opacity:(!repairDetail.trim()||loading)?0.5:1 }}
+          style={{ opacity:(!repairDetail.trim()||loading)?0.5:1 }}
+          className="w-full h-[48px] rounded-lg font-bold text-body bg-accent text-text-on-accent border-none cursor-pointer transition"
         >
           {loading ? '처리 중...' : '수리 완료'}
         </button>
