@@ -1,0 +1,1888 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 3B (점검 기록 + 검사 기록 + KoelsaHistorySection — 5탭 본문 시리즈 2/3)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (fault-repair-lists-sketch.html 3A 와 100% 동일 인프라)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      --nav-h: 54px;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 (3A 동일)
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+    .text-warning  { color: var(--warning); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+    .bg-warning-bg  { background-color: var(--warning-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 393px; height: 852px; }
+    .viewport-desktop { width: 1280px; height: 720px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* 모바일 페이지 헤더 (3A 와 동일 — 자체 헤더) */
+    .mobile-page-hd {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 페이지 헤더 우측 미해결 칩 */
+    .unresolved-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* 6탭 */
+    .tab-bar {
+      flex-shrink: 0;
+      display: flex;
+      gap: 4px;
+      padding: 8px 8px 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      overflow-x: auto;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-bar { scrollbar-width: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 9px 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color .13s, border-color .13s;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn-active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* 본문 스크롤 */
+    .body-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px 12px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .body-scroll::-webkit-scrollbar { display: none; }
+    .body-scroll { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 월/연 피커 (◀/▶ 32x32 + 가운데 라벨)
+     * ===================================================================== */
+    .picker-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+    .picker-btn {
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      border-radius: 8px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background-color .13s, color .13s;
+      font-family: inherit;
+    }
+    .picker-btn:hover { background: var(--surface-active); color: var(--text-primary); }
+    .picker-btn[disabled] {
+      cursor: default;
+      opacity: 0.4;
+      color: var(--border-default);
+    }
+    .picker-btn[disabled]:hover { background: var(--surface-sunken); color: var(--border-default); }
+    .picker-label {
+      flex: 1;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* =====================================================================
+     * 점검/검사 — 그룹 헤더 (passenger N대 / cargo N대 등)
+     * ===================================================================== */
+    .group-title {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 4px;
+      margin-bottom: 4px;
+    }
+
+    /* =====================================================================
+     * 점검 기록 호기 카드 (3변형 — 양호 접힘 / 이상 펼침 / 미점검 접힘)
+     * 좌측 색바 ::before pseudo — 배지 색과 일관 (safe / warn / t3)
+     * ===================================================================== */
+    .inspect-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .inspect-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .inspect-card.is-safe::before    { background: var(--status-safe-bar); }
+    .inspect-card.is-warn::before    { background: var(--status-warning-bar); }
+    .inspect-card.is-pending::before { background: var(--text-tertiary); }
+
+    .inspect-card-head {
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .inspect-card-head.is-pending { cursor: default; }
+    .inspect-card-icon {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-sunken);
+      border-radius: 10px;
+      color: var(--text-secondary);
+    }
+    .inspect-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .inspect-card-row1 {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .inspect-card-ev {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .inspect-card-loc {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .inspect-card-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* 배지 — 양호/이상/미점검 */
+    .inspect-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .inspect-badge-safe    { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+    .inspect-badge-warn    { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .inspect-badge-pending { color: var(--text-tertiary);      background: var(--surface-sunken); }
+
+    /* chevron */
+    .inspect-chevron {
+      flex-shrink: 0;
+      color: var(--text-tertiary);
+      transition: transform .15s;
+    }
+    .inspect-chevron-open { transform: rotate(90deg); }
+
+    /* 펼침 영역 */
+    .inspect-expand {
+      border-top: 1px solid var(--border-default);
+      padding: 12px 14px;
+    }
+    .inspect-meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 12px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .inspect-meta-key { color: var(--text-tertiary); }
+    .inspect-meta-val { color: var(--text-primary); font-weight: 600; }
+
+    /* A~E 카운트 칩 */
+    .count-chip-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .count-chip {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .count-chip-safe   { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+    .count-chip-warn   { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .count-chip-danger { color: var(--status-danger-bar);  background: var(--status-danger-bg); }
+    .count-chip-mute   { color: var(--text-tertiary);      background: var(--surface-sunken); }
+
+    /* 주의관찰 항목 grid */
+    .issues-box {
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .issues-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 10px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--status-warning-bar);
+    }
+    .issues-grid {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      background: var(--surface-sunken);
+    }
+    .issues-cell {
+      padding: 6px 10px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border-default);
+    }
+    .issues-cell.is-last { border-bottom: none; }
+    .issues-cell-no {
+      color: var(--text-tertiary);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .issues-cell-name { color: var(--text-primary); }
+    .issues-cell-name-detail { color: var(--text-tertiary); margin-left: 4px; }
+    .issues-cell-result { font-weight: 700; }
+    .issues-cell-result-danger { color: var(--status-danger-bar); }
+    .issues-cell-result-warn   { color: var(--status-warning-bar); }
+
+    /* =====================================================================
+     * 검사 기록 호기 카드 (2변형 — 합격 접힘 / 보완후합격 펼침)
+     * 좌측 색바 — 합격=safe / 보완후·조건부=warn / 보완·불합격=danger
+     * ===================================================================== */
+    .annual-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .annual-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+    .annual-card.is-safe::before   { background: var(--status-safe-bar); }
+    .annual-card.is-warn::before   { background: var(--status-warning-bar); }
+    .annual-card.is-danger::before { background: var(--status-danger-bar); }
+    .annual-card.is-mute::before   { background: var(--text-tertiary); }
+
+    .annual-card-head {
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .annual-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .annual-card-row1 {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .annual-card-ev {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .annual-card-pub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-left: 4px;
+    }
+    .annual-card-cls {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .annual-card-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* dispWords 배지 */
+    .disp-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+    .disp-badge-safe   { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+    .disp-badge-warn   { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .disp-badge-danger { color: var(--status-danger-bar);  background: var(--status-danger-bg); }
+    .disp-badge-mute   { color: var(--text-tertiary);      background: var(--surface-sunken); }
+
+    /* 펼침 영역 — 이력 카드 list */
+    .annual-expand {
+      border-top: 1px solid var(--border-default);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .annual-history-item {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .annual-hist-row1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .annual-hist-date {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .annual-hist-kind {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .annual-hist-disp {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .annual-hist-disp-safe   { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+    .annual-hist-disp-warn   { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .annual-hist-disp-danger { color: var(--status-danger-bar);  background: var(--status-danger-bg); }
+    .annual-hist-disp-mute   { color: var(--text-tertiary);      background: var(--surface-sunken); }
+    .annual-hist-valid {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .annual-hist-inst {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* 부적합 fails grid */
+    .fails-box {
+      border-top: 1px solid var(--border-default);
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+    .fails-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--status-warning-bar);
+      margin-bottom: 6px;
+    }
+    .fails-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .fail-row {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .fail-title {
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .fail-desc {
+      margin-top: 2px;
+      padding-left: 12px;
+      color: var(--text-secondary);
+    }
+    .fail-inspector {
+      color: var(--text-tertiary);
+    }
+
+    /* =====================================================================
+     * 빈 상태 / 로딩 상태 (3A 와 동일 컨셉)
+     * ===================================================================== */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 36px 16px;
+      gap: 12px;
+      color: var(--text-tertiary);
+    }
+    .empty-state-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 99px;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+    }
+    .empty-state-text {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+
+    /* 로딩 / 에러 한 줄 */
+    .status-line {
+      text-align: center;
+      padding: 24px 0;
+      font-size: 13px;
+    }
+    .status-line-mute   { color: var(--text-tertiary); }
+    .status-line-danger { color: var(--status-danger-bar); }
+
+    /* =====================================================================
+     * 하단 네비 placeholder (모바일)
+     * ===================================================================== */
+    .bottom-nav-ph {
+      flex-shrink: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+    }
+    .bnav-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--text-tertiary);
+    }
+    .bnav-icon-lbl { font-size: 12px; font-weight: 500; }
+    .bnav-icon.active { color: var(--accent); }
+
+    /* =====================================================================
+     * 데스크톱 좌측 호기 그리드 (Wave 1 dim — 본 시안 본 영역은 우측)
+     * ===================================================================== */
+    .desktop-ev-grid-pane {
+      flex: 0 0 480px;
+      padding: 16px;
+      background: var(--surface-page);
+      overflow-y: auto;
+      border-right: 1px solid var(--border-default);
+      opacity: 0.5;
+    }
+    .desktop-tab-pane {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-page);
+      position: relative;
+      overflow: hidden;
+    }
+    .desktop-tab-pane::-webkit-scrollbar { display: none; }
+    .desktop-tab-pane { scrollbar-width: none; }
+    .desktop-tab-inner {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .desktop-tab-inner::-webkit-scrollbar { display: none; }
+    .desktop-tab-inner { scrollbar-width: none; }
+
+    .dsk-ev-group-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      margin-top: 12px;
+    }
+    .dsk-ev-group-title:first-child { margin-top: 0; }
+    .dsk-ev-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .dsk-ev-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 9px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* =====================================================================
+     * dispWords 카탈로그 row (VP3)
+     * ===================================================================== */
+    .disp-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .disp-cat-name {
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 96px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      text-align: center;
+    }
+    .disp-cat-desc {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      flex: 1;
+    }
+
+    /* =====================================================================
+     * KoelsaHistorySection — 5 상태 박스 (VP4)
+     * ===================================================================== */
+    .koelsa-box {
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      padding: 16px;
+      background: var(--surface-raised);
+    }
+    .koelsa-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .koelsa-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .koelsa-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+    }
+    .koelsa-synced {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .koelsa-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .koelsa-item {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .koelsa-item-head {
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    .koelsa-item-row1 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .koelsa-item-date {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .koelsa-item-kind {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .koelsa-item-disp {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+    .koelsa-item-disp-safe   { color: var(--status-safe-bar);    background: var(--status-safe-bg); }
+    .koelsa-item-disp-warn   { color: var(--status-warning-bar); background: var(--status-warning-bg); }
+    .koelsa-item-disp-danger { color: var(--status-danger-bar);  background: var(--status-danger-bg); }
+    .koelsa-item-valid {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+    .koelsa-item-inst {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+    .koelsa-item-fails {
+      border-top: 1px solid var(--border-default);
+      padding: 10px 12px;
+    }
+    .koelsa-empty {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: center;
+      padding: 16px 0;
+    }
+    .koelsa-status-text {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      text-align: center;
+      padding: 8px 0;
+    }
+    .koelsa-skeleton-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .koelsa-skeleton-line-1 { height: 18px; background: var(--surface-sunken); border-radius: 6px; width: 60%; }
+    .koelsa-skeleton-line-2 { height: 14px; background: var(--surface-sunken); border-radius: 6px; width: 40%; }
+    .koelsa-skeleton-line-3 { height: 48px; background: var(--surface-sunken); border-radius: 8px; }
+
+    /* 5 상태 라벨 박스 */
+    .state-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      margin-bottom: 8px;
+    }
+
+    /* VP4 grid — 5 박스 배치 */
+    .koelsa-states-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .koelsa-states-grid-full {
+      grid-column: 1 / -1;
+    }
+
+    /* =====================================================================
+     * theme 보강 — dark/light 가독성 (3A 동일 패턴)
+     * ===================================================================== */
+    [data-theme="dark"] .inspect-card:hover { border-color: var(--border-strong); }
+    [data-theme="dark"] .annual-card:hover  { border-color: var(--border-strong); }
+    [data-theme="light"] .inspect-card:hover { border-color: var(--border-strong); }
+    [data-theme="light"] .annual-card:hover  { border-color: var(--border-strong); }
+
+    /* 페이지 섹션 타이틀 (흰색 배경) */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 */
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-warn    { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-danger  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-safe-bar); }
+    .cat-title-warn  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-warning-bar); }
+    .cat-title-danger{ font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-danger-bar); }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--text-tertiary); }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs  { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-sm  { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-md  { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-lg  { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-xl  { width: 28px; height: 28px; flex-shrink: 0; }
+
+    /* ElevatorIcon SVG (icons.tsx line 137-148 1:1 embed) */
+    .elevator-icon-svg { display: block; }
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 옵션 B 5탭 본문 시리즈 2/3 + 색 결정 요약
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">승강기 관리 — 3B 점검 기록 + 검사 기록 + KoelsaHistorySection</div>
+      <div class="page-section-sub">옵션 B 5탭 본문 시리즈 2/3 — KOELSA 공단 API 데이터 흐름 형제 (점검 + 검사) + 데스크톱 우측 패널 컴포넌트 5 상태. 다음 wave: 3C 안전관리자.</div>
+    </div>
+    <!-- 색 결정 4박스 — KoelsaHistorySection.dispColor 100% 보존 -->
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">합격 / 양호</div>
+        <div class="cat-label-dark">safe (녹)</div>
+        <div class="cat-sub-dark">검사 dispWords=합격 / 점검 카드 양호 + 좌측 색바 + 배지 톤 통일. count-chip-safe="양호 N".</div>
+      </div>
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">보완후합격 / 조건부 / 이상 / 주의관찰</div>
+        <div class="cat-label-dark">warn (호박)</div>
+        <div class="cat-sub-dark">검사 dispWords 보완후·조건부 / 점검 카드 이상 / 주의관찰 grid 결과 B / 부적합 헤더 AlertTriangle 색.</div>
+      </div>
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">보완 / 불합격 / 긴급수리</div>
+        <div class="cat-label-dark">danger (적)</div>
+        <div class="cat-sub-dark">검사 dispWords 보완·불합격 / 주의관찰 grid 결과 C(긴급수리). 본 시안 좌측 색바 = danger.</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">미점검 / 기타</div>
+        <div class="cat-label-dark">text-tertiary (회색)</div>
+        <div class="cat-sub-dark">데이터 미존재 호기 + dispColor null fallback. 좌측 색바 회색 + chevron 미노출.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1 — 모바일 · 다크 · 점검 기록 탭 (data 있음, 카드 3변형)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · 점검 기록 탭 (2026-05, passenger 그룹 8대 중 3대 + escalator 그룹 헤더)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+      <div class="page-shell">
+
+        <!-- 자체 페이지 헤더 -->
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+          <div class="ml-auto">
+            <span class="unresolved-chip">
+              <i data-lucide="alert-octagon" class="icon-xs"></i>
+              미해결 2
+            </span>
+          </div>
+        </div>
+
+        <!-- 6탭 (점검 활성) -->
+        <div class="tab-bar">
+          <button class="tab-btn">목록</button>
+          <button class="tab-btn">고장</button>
+          <button class="tab-btn">수리</button>
+          <button class="tab-btn tab-btn-active">점검</button>
+          <button class="tab-btn">검사</button>
+          <button class="tab-btn">안전관리자</button>
+        </div>
+
+        <!-- 본문 — 점검 카드 3변형 -->
+        <div class="body-scroll">
+
+          <!-- 월 피커 (◀ 2026년 5월 ▶) -->
+          <div class="picker-row">
+            <button class="picker-btn">
+              <i data-lucide="chevron-left" class="icon-sm"></i>
+            </button>
+            <span class="picker-label">2026년 5월</span>
+            <button class="picker-btn">
+              <i data-lucide="chevron-right" class="icon-sm"></i>
+            </button>
+          </div>
+
+          <!-- passenger 그룹 헤더 -->
+          <div class="group-title">
+            <svg class="elevator-icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span>인승용 (8대)</span>
+          </div>
+
+          <!-- 카드 A: 1호기 / 양호 접힘 -->
+          <div class="inspect-card is-safe">
+            <div class="inspect-card-head">
+              <div class="inspect-card-icon">
+                <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="inspect-card-body">
+                <div class="inspect-card-row1">
+                  <span class="inspect-card-ev">1호기</span>
+                  <span class="inspect-card-loc">B5-연구동2층 (투명 E/V, 장애/전망용)</span>
+                </div>
+                <div class="inspect-card-sub">점검일: 2026-05-05</div>
+              </div>
+              <span class="inspect-badge inspect-badge-safe">양호</span>
+              <i data-lucide="chevron-right" class="icon-sm inspect-chevron"></i>
+            </div>
+          </div>
+
+          <!-- 카드 B: 4호기 / 이상 펼침 -->
+          <div class="inspect-card is-warn">
+            <div class="inspect-card-head">
+              <div class="inspect-card-icon">
+                <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="inspect-card-body">
+                <div class="inspect-card-row1">
+                  <span class="inspect-card-ev">4호기</span>
+                  <span class="inspect-card-loc">B5-사무동8층</span>
+                </div>
+                <div class="inspect-card-sub">점검일: 2026-05-05</div>
+              </div>
+              <span class="inspect-badge inspect-badge-warn">이상</span>
+              <i data-lucide="chevron-right" class="icon-sm inspect-chevron inspect-chevron-open"></i>
+            </div>
+            <div class="inspect-expand">
+              <div class="inspect-meta-grid">
+                <div><span class="inspect-meta-key">점검업체 </span><span class="inspect-meta-val">티케엘리베이터코리아</span></div>
+                <div><span class="inspect-meta-key">점검자 </span><span class="inspect-meta-val">김영민</span></div>
+              </div>
+              <div class="count-chip-row">
+                <span class="count-chip count-chip-safe">양호 8</span>
+                <span class="count-chip count-chip-warn">주의 2</span>
+                <span class="count-chip count-chip-danger">긴급 1</span>
+              </div>
+              <div class="issues-box">
+                <div class="issues-header">
+                  <i data-lucide="alert-triangle" class="icon-xs"></i>
+                  <span>주의관찰 항목</span>
+                </div>
+                <div class="issues-grid">
+                  <div class="issues-cell issues-cell-no">12-3</div>
+                  <div class="issues-cell issues-cell-name">도어인터록 접점<span class="issues-cell-name-detail">(마모)</span></div>
+                  <div class="issues-cell issues-cell-result issues-cell-result-danger">긴급수리</div>
+
+                  <div class="issues-cell is-last issues-cell-no">15-1</div>
+                  <div class="issues-cell is-last issues-cell-name">비상정지스위치 점검</div>
+                  <div class="issues-cell is-last issues-cell-result issues-cell-result-warn">주의관찰</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 C: 2호기 / 미점검 접힘 (chevron 없음) -->
+          <div class="inspect-card is-pending">
+            <div class="inspect-card-head is-pending">
+              <div class="inspect-card-icon">
+                <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="inspect-card-body">
+                <div class="inspect-card-row1">
+                  <span class="inspect-card-ev">2호기</span>
+                  <span class="inspect-card-loc">B1-사무동B1층</span>
+                </div>
+                <div class="inspect-card-sub">점검 데이터 없음</div>
+              </div>
+              <span class="inspect-badge inspect-badge-pending">미점검</span>
+            </div>
+          </div>
+
+          <!-- escalator 그룹 헤더 (다음 그룹 시그널만) -->
+          <div class="group-title">
+            <i data-lucide="move-diagonal" class="icon-xs"></i>
+            <span>에스컬레이터 (6대)</span>
+          </div>
+
+        </div>
+
+        <!-- 하단 네비 placeholder -->
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="home" class="icon-md"></i><span class="bnav-icon-lbl">대시</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-check" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="map" class="icon-md"></i><span class="bnav-icon-lbl">평면도</span></div>
+          <div class="bnav-icon active">
+            <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="bnav-icon-lbl">승강기</span>
+          </div>
+          <div class="bnav-icon"><i data-lucide="menu" class="icon-md"></i><span class="bnav-icon-lbl">메뉴</span></div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP2 — 모바일 · 라이트 · 점검 빈 상태(상단) + 검사 기록 탭(하단)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 라이트 · 점검 빈 + 검사 기록 탭 (2026-04 빈 → 2026년 검사 카드 2변형)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="light">
+
+      <div class="page-shell">
+
+        <!-- 자체 페이지 헤더 -->
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+          <div class="ml-auto">
+            <span class="unresolved-chip">
+              <i data-lucide="alert-octagon" class="icon-xs"></i>
+              미해결 2
+            </span>
+          </div>
+        </div>
+
+        <!-- 6탭 (검사 활성 — 영역 2 진입) -->
+        <div class="tab-bar">
+          <button class="tab-btn">목록</button>
+          <button class="tab-btn">고장</button>
+          <button class="tab-btn">수리</button>
+          <button class="tab-btn">점검</button>
+          <button class="tab-btn tab-btn-active">검사</button>
+          <button class="tab-btn">안전관리자</button>
+        </div>
+
+        <!-- 본문 — 영역 1 (점검 빈) + 영역 2 (검사 시작) -->
+        <div class="body-scroll">
+
+          <!-- 영역 1: 점검 기록 빈 (탭 전환 직전 시각화) -->
+          <div class="bd rounded-xl p-3">
+            <div class="text-caption text-t3 font-bold mb-2 tracking-wider uppercase">참고 · 점검 탭 2026-04 빈 상태</div>
+            <!-- 월 피커 -->
+            <div class="picker-row">
+              <button class="picker-btn">
+                <i data-lucide="chevron-left" class="icon-sm"></i>
+              </button>
+              <span class="picker-label">2026년 4월</span>
+              <button class="picker-btn">
+                <i data-lucide="chevron-right" class="icon-sm"></i>
+              </button>
+            </div>
+            <!-- 빈 상태 — ClipboardList -->
+            <div class="empty-state">
+              <div class="empty-state-icon-wrap">
+                <i data-lucide="clipboard-list" class="icon-lg"></i>
+              </div>
+              <div class="empty-state-text">해당 월 점검 기록이 없어요</div>
+            </div>
+          </div>
+
+          <!-- 영역 2 구분선 -->
+          <div class="text-caption text-t3 font-bold mt-2 mb-1 tracking-wider uppercase">검사 기록 · 2026년</div>
+
+          <!-- 연도 피커 (◀ 2026년 ▶) -->
+          <div class="picker-row">
+            <button class="picker-btn">
+              <i data-lucide="chevron-left" class="icon-sm"></i>
+            </button>
+            <span class="picker-label">2026년</span>
+            <button class="picker-btn" disabled>
+              <i data-lucide="chevron-right" class="icon-sm"></i>
+            </button>
+          </div>
+
+          <!-- 카드 D: 1호기 / 합격 접힘 -->
+          <div class="annual-card is-safe">
+            <div class="annual-card-head">
+              <div class="inspect-card-icon">
+                <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="annual-card-body">
+                <div class="annual-card-row1">
+                  <span class="annual-card-ev">1호기</span>
+                  <span class="annual-card-cls">· 일반승객용</span>
+                </div>
+                <div class="annual-card-sub">3건 · 최근 2026-04-15</div>
+              </div>
+              <span class="disp-badge disp-badge-safe">합격</span>
+              <i data-lucide="chevron-right" class="icon-sm inspect-chevron"></i>
+            </div>
+          </div>
+
+          <!-- 카드 E: 3호기 / 보완후합격 펼침 -->
+          <div class="annual-card is-warn">
+            <div class="annual-card-head">
+              <div class="inspect-card-icon">
+                <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+                  <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+                  <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+                </svg>
+              </div>
+              <div class="annual-card-body">
+                <div class="annual-card-row1">
+                  <span class="annual-card-ev">3호기</span>
+                  <span class="annual-card-cls">· 장애인용</span>
+                </div>
+                <div class="annual-card-sub">2건 · 최근 2026-03-10</div>
+              </div>
+              <span class="disp-badge disp-badge-warn">보완후합격</span>
+              <i data-lucide="chevron-right" class="icon-sm inspect-chevron inspect-chevron-open"></i>
+            </div>
+            <div class="annual-expand">
+
+              <!-- 이력 카드 1개 -->
+              <div class="annual-history-item">
+                <div class="annual-hist-row1">
+                  <span class="annual-hist-date">2026-03-10</span>
+                  <span class="annual-hist-kind">· 정기검사</span>
+                  <span class="annual-hist-disp annual-hist-disp-warn">보완후합격</span>
+                </div>
+                <div class="annual-hist-valid">유효기간 2026-03-10 ~ 2028-03-09</div>
+                <div class="annual-hist-inst">한국승강기안전공단 · 티케엘리베이터코리아</div>
+
+                <!-- 부적합 fails -->
+                <div class="fails-box">
+                  <div class="fails-header">
+                    <i data-lucide="alert-triangle" class="icon-xs"></i>
+                    <span>부적합 2건</span>
+                  </div>
+                  <div class="fails-list">
+
+                    <div class="fail-row">
+                      <div class="fail-title">▸ 안전 6.5 도어 작동 안전장치</div>
+                      <div class="fail-desc">
+                        도어 닫힘 속도 미세 조정 필요
+                        <span class="fail-inspector"> (검사자: 박성훈)</span>
+                      </div>
+                    </div>
+
+                    <div class="fail-row">
+                      <div class="fail-title">▸ 안전 9.2 비상통화장치</div>
+                      <div class="fail-desc">
+                        통화 응답 지연
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 네비 placeholder -->
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="home" class="icon-md"></i><span class="bnav-icon-lbl">대시</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-check" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="map" class="icon-md"></i><span class="bnav-icon-lbl">평면도</span></div>
+          <div class="bnav-icon active">
+            <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="bnav-icon-lbl">승강기</span>
+          </div>
+          <div class="bnav-icon"><i data-lucide="menu" class="icon-md"></i><span class="bnav-icon-lbl">메뉴</span></div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP3 — 데스크톱 · 다크 · 검사 기록 탭 풀화면 + dispWords 5종 카탈로그
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP3 · 데스크톱 · 다크 · 검사 기록 탭 풀화면 (좌측 호기 그리드 dim + 우측 본문 카드 2 + 카탈로그 5종)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+      <div class="desktop-shell">
+
+        <!-- 좌측 — 호기 그리드 placeholder (Wave 1 결과, dim) -->
+        <aside class="desktop-ev-grid-pane no-scrollbar">
+          <div class="dsk-ev-group-title">투명 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+          </div>
+          <div class="dsk-ev-group-title">오렌지 E/V (3대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+          <div class="dsk-ev-group-title">기타 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">7호기</div>
+            <div class="dsk-ev-tile">8호기</div>
+          </div>
+          <div class="dsk-ev-group-title">화물 E/V (2대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">9호기</div>
+            <div class="dsk-ev-tile">10호기</div>
+          </div>
+          <div class="dsk-ev-group-title">덤웨이터 (1대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">11호기</div>
+          </div>
+          <div class="dsk-ev-group-title">에스컬레이터 (6대)</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+            <div class="dsk-ev-tile">2호기</div>
+            <div class="dsk-ev-tile">3호기</div>
+            <div class="dsk-ev-tile">4호기</div>
+            <div class="dsk-ev-tile">5호기</div>
+            <div class="dsk-ev-tile">6호기</div>
+          </div>
+        </aside>
+
+        <!-- 우측 — 검사 기록 본문 -->
+        <section class="desktop-tab-pane">
+          <div class="desktop-tab-inner">
+
+            <!-- 연도 피커 (◀ 2026년 ▶) -->
+            <div class="picker-row">
+              <button class="picker-btn">
+                <i data-lucide="chevron-left" class="icon-sm"></i>
+              </button>
+              <span class="picker-label">2026년</span>
+              <button class="picker-btn" disabled>
+                <i data-lucide="chevron-right" class="icon-sm"></i>
+              </button>
+            </div>
+
+            <!-- 카드 1: 에스컬 5호기 / 보완 펼침 (TYPE_ICON=MoveDiagonal) -->
+            <div class="annual-card is-danger">
+              <div class="annual-card-head">
+                <div class="inspect-card-icon">
+                  <i data-lucide="move-diagonal" class="icon-md"></i>
+                </div>
+                <div class="annual-card-body">
+                  <div class="annual-card-row1">
+                    <span class="annual-card-ev">5호기</span>
+                    <span class="annual-card-pub">(공단 9호기)</span>
+                    <span class="annual-card-cls">· 일반승객용</span>
+                  </div>
+                  <div class="annual-card-sub">1건 · 최근 2026-02-20</div>
+                </div>
+                <span class="disp-badge disp-badge-danger">보완</span>
+                <i data-lucide="chevron-right" class="icon-sm inspect-chevron inspect-chevron-open"></i>
+              </div>
+
+              <div class="annual-expand">
+                <div class="annual-history-item">
+                  <div class="annual-hist-row1">
+                    <span class="annual-hist-date">2026-02-20</span>
+                    <span class="annual-hist-kind">· 정밀안전검사</span>
+                    <span class="annual-hist-disp annual-hist-disp-danger">보완</span>
+                  </div>
+                  <div class="annual-hist-valid">유효기간 2026-02-20 ~ 2028-02-19</div>
+                  <div class="annual-hist-inst">한국승강기안전공단 · 한국승강기안전기술원</div>
+
+                  <div class="fails-box">
+                    <div class="fails-header">
+                      <i data-lucide="alert-triangle" class="icon-xs"></i>
+                      <span>부적합 3건</span>
+                    </div>
+                    <div class="fails-list">
+
+                      <div class="fail-row">
+                        <div class="fail-title">▸ 안전 11.3 핸드레일 보호장치</div>
+                        <div class="fail-desc">
+                          핸드레일 인입구 안전 스위치 작동 불량 — 인입 압력 0.3kgf 미달
+                          <span class="fail-inspector"> (검사자: 이정훈)</span>
+                        </div>
+                      </div>
+
+                      <div class="fail-row">
+                        <div class="fail-title">▸ 안전 12.1 비상정지장치</div>
+                        <div class="fail-desc">
+                          상부 비상정지 버튼 외관 손상 — 재도장 필요
+                          <span class="fail-inspector"> (검사자: 이정훈)</span>
+                        </div>
+                      </div>
+
+                      <div class="fail-row">
+                        <div class="fail-title">▸ 안전 14.2 콤플레이트 마모</div>
+                        <div class="fail-desc">
+                          하부 콤플레이트 톱니 일부 변형 — 교체 필요
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <!-- 카드 2: 11호기 cargo / 합격 접힘 (TYPE_ICON=Package) -->
+            <div class="annual-card is-safe">
+              <div class="annual-card-head">
+                <div class="inspect-card-icon">
+                  <i data-lucide="package" class="icon-md"></i>
+                </div>
+                <div class="annual-card-body">
+                  <div class="annual-card-row1">
+                    <span class="annual-card-ev">11호기</span>
+                    <span class="annual-card-pub">(공단 14호기)</span>
+                    <span class="annual-card-cls">· 화물용</span>
+                  </div>
+                  <div class="annual-card-sub">2건 · 최근 2025-12-10</div>
+                </div>
+                <span class="disp-badge disp-badge-safe">합격</span>
+                <i data-lucide="chevron-right" class="icon-sm inspect-chevron"></i>
+              </div>
+            </div>
+
+            <!-- dispWords 5종 카탈로그 row (좌측 호기 그리드 dim 영역 보완 → 우측 본문 하단에 노출) -->
+            <div class="bd rounded-xl p-3 mt-3">
+              <div class="text-caption text-t3 font-bold mb-3 tracking-wider uppercase">dispWords 5종 색 결정 카탈로그 (KoelsaHistorySection.dispColor 보존)</div>
+
+              <div class="flex flex-col gap-2">
+
+                <div class="disp-cat-row">
+                  <span class="disp-cat-name disp-badge-safe">합격</span>
+                  <span class="disp-cat-desc">정기검사 통과. 좌측 색바 + 배지 = safe. dispWords.includes('합격') &amp;&amp; !보완후 &amp;&amp; !조건부.</span>
+                </div>
+
+                <div class="disp-cat-row">
+                  <span class="disp-cat-name disp-badge-warn">보완후합격</span>
+                  <span class="disp-cat-desc">검사 후 보완 완료. 좌측 색바 + 배지 = warn. dispWords.includes('보완후합격').</span>
+                </div>
+
+                <div class="disp-cat-row">
+                  <span class="disp-cat-name disp-badge-warn">조건부합격</span>
+                  <span class="disp-cat-desc">조건 충족 시 통과. 좌측 색바 + 배지 = warn. dispWords.includes('조건부').</span>
+                </div>
+
+                <div class="disp-cat-row">
+                  <span class="disp-cat-name disp-badge-danger">보완</span>
+                  <span class="disp-cat-desc">미통과, 보완 후 재검 필요. 좌측 색바 + 배지 = danger. dispWords.includes('보완') &amp;&amp; !보완후.</span>
+                </div>
+
+                <div class="disp-cat-row">
+                  <span class="disp-cat-name disp-badge-danger">불합격</span>
+                  <span class="disp-cat-desc">통과 실패. 좌측 색바 + 배지 = danger. dispWords.includes('불합격').</span>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4 — 데스크톱 · 라이트 · KoelsaHistorySection 5 상태 시각화
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">🖥️ VP4 · 데스크톱 · 라이트 · KoelsaHistorySection 5 상태 (EvDetailModal 우측 패널 임베드)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="light">
+
+      <div class="desktop-shell">
+
+        <!-- 좌측 — dim sidebar placeholder (EvDetailModal 컨텍스트 시각만) -->
+        <aside class="desktop-ev-grid-pane no-scrollbar">
+          <div class="dsk-ev-group-title">EvDetailModal 좌측 패널 (참고용)</div>
+          <div class="text-caption text-t3 mb-2">호기 상세 카드 / 기간 칩 / 점검필터 / 이력 5탭 — 2D sketch 권위</div>
+          <div class="dsk-ev-group">
+            <div class="dsk-ev-tile">1호기</div>
+          </div>
+          <div class="dsk-ev-group-title mt-3">VP4 본 영역</div>
+          <div class="text-caption text-t3">우측 패널 KoelsaHistorySection — 5 상태 박스 시각화</div>
+        </aside>
+
+        <!-- 우측 — KoelsaHistorySection 5 상태 -->
+        <section class="desktop-tab-pane">
+          <div class="desktop-tab-inner">
+
+            <div class="koelsa-states-grid">
+
+              <!-- ── 상태 1: 정상 렌더 (gridSpan 2) ── -->
+              <div class="koelsa-states-grid-full">
+                <span class="state-label">
+                  <i data-lucide="check-circle-2" class="icon-xs text-safe"></i>
+                  정상 렌더 (historyCount &gt; 0)
+                </span>
+                <div class="koelsa-box">
+                  <!-- 헤더 -->
+                  <div class="koelsa-header">
+                    <span class="koelsa-title">공단 공식 검사이력</span>
+                    <span class="koelsa-count">· 총 5건</span>
+                    <span class="koelsa-synced">3시간 전 동기화</span>
+                  </div>
+
+                  <!-- 카드 list 2개 -->
+                  <div class="koelsa-list">
+
+                    <!-- 카드 1 접힘: 합격 -->
+                    <div class="koelsa-item">
+                      <div class="koelsa-item-head">
+                        <div class="koelsa-item-row1">
+                          <span class="koelsa-item-date">2026-04-15</span>
+                          <span class="koelsa-item-kind">· 정기검사</span>
+                          <span class="koelsa-item-disp koelsa-item-disp-safe">합격</span>
+                          <i data-lucide="chevron-right" class="icon-sm inspect-chevron"></i>
+                        </div>
+                        <div class="koelsa-item-valid">유효기간 2026-04-15 ~ 2028-04-14</div>
+                        <div class="koelsa-item-inst">한국승강기안전공단 · 티케엘리베이터코리아</div>
+                      </div>
+                    </div>
+
+                    <!-- 카드 2 펼침: 보완후합격 -->
+                    <div class="koelsa-item">
+                      <div class="koelsa-item-head">
+                        <div class="koelsa-item-row1">
+                          <span class="koelsa-item-date">2025-10-20</span>
+                          <span class="koelsa-item-kind">· 정기검사</span>
+                          <span class="koelsa-item-disp koelsa-item-disp-warn">보완후합격</span>
+                          <i data-lucide="chevron-right" class="icon-sm inspect-chevron inspect-chevron-open"></i>
+                        </div>
+                        <div class="koelsa-item-valid">유효기간 2025-10-20 ~ 2027-10-19</div>
+                        <div class="koelsa-item-inst">한국승강기안전공단 · 티케엘리베이터코리아</div>
+                      </div>
+                      <div class="koelsa-item-fails">
+                        <div class="fails-header">
+                          <i data-lucide="alert-triangle" class="icon-xs"></i>
+                          <span>부적합 1건</span>
+                        </div>
+                        <div class="fails-list">
+                          <div class="fail-row">
+                            <div class="fail-title">▸ 안전 8.3 비상조명</div>
+                            <div class="fail-desc">
+                              조도 부족 — 60lx 미만
+                              <span class="fail-inspector"> (검사자: 최영준)</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── 상태 2: cert_no 없음 ── -->
+              <div>
+                <span class="state-label">
+                  <i data-lucide="key-round" class="icon-xs text-t3"></i>
+                  cert_no 없음
+                </span>
+                <div class="koelsa-box">
+                  <div class="koelsa-status-text">공단 고유번호 없음 — 관리자 등록 필요</div>
+                </div>
+              </div>
+
+              <!-- ── 상태 3: 로딩 스켈레톤 ── -->
+              <div>
+                <span class="state-label">
+                  <i data-lucide="loader" class="icon-xs text-info"></i>
+                  로딩 스켈레톤 (isLoading &amp;&amp; !data)
+                </span>
+                <div class="koelsa-box">
+                  <div class="koelsa-skeleton-row">
+                    <div class="koelsa-skeleton-line-1"></div>
+                    <div class="koelsa-skeleton-line-2"></div>
+                    <div class="koelsa-skeleton-line-3"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── 상태 4: 에러 ── -->
+              <div>
+                <span class="state-label">
+                  <i data-lucide="wifi-off" class="icon-xs text-danger"></i>
+                  에러 (isError)
+                </span>
+                <div class="koelsa-box">
+                  <div class="koelsa-status-text">공단 API 일시 오류 — 잠시 후 다시 시도해주세요</div>
+                </div>
+              </div>
+
+              <!-- ── 상태 5: 빈 historyCount=0 ── -->
+              <div>
+                <span class="state-label">
+                  <i data-lucide="file-x" class="icon-xs text-t3"></i>
+                  빈 (historyCount = 0)
+                </span>
+                <div class="koelsa-box">
+                  <!-- 헤더는 노출 (총 0건) -->
+                  <div class="koelsa-header">
+                    <span class="koelsa-title">공단 공식 검사이력</span>
+                    <span class="koelsa-count">· 총 0건</span>
+                    <span class="koelsa-synced">1일 전 동기화</span>
+                  </div>
+                  <div class="koelsa-empty">공단에 등록된 검사이력이 없습니다</div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       sketch 룰 박스 (검수용 — 변환 시 1:1 매핑 가이드)
+       ================================================================ -->
+  <section class="space-y-4">
+    <div>
+      <div class="page-section-title">변환 룰 (TSX Wave 10 1:1 매핑 가이드)</div>
+      <div class="page-section-sub">3A 패턴 그대로 — 인프라/tokens/typography/viewport 재사용. 본 sketch 는 점검+검사+KoelsaHistorySection 한정 시각 권위.</div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+
+      <!-- 룰 박스 1: 색 매핑 -->
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">색 매핑 (코드 dispColor 보존)</div>
+        <div class="cat-label-dark">점검 배지 색:</div>
+        <div class="cat-label-dark">  · 양호 → safe (녹)</div>
+        <div class="cat-label-dark">  · 이상 → warn (호박)</div>
+        <div class="cat-label-dark">  · 미점검 → text-tertiary (회색)</div>
+        <div class="cat-label-dark">검사 dispWords 5종:</div>
+        <div class="cat-label-dark">  · 합격 → safe</div>
+        <div class="cat-label-dark">  · 보완후·조건부 → warn</div>
+        <div class="cat-label-dark">  · 보완·불합격 → danger</div>
+        <div class="cat-label-dark">  · 기타 → text-tertiary</div>
+        <div class="cat-label-dark">주의관찰 grid 결과:</div>
+        <div class="cat-label-dark">  · C → danger (긴급수리)</div>
+        <div class="cat-label-dark">  · 그 외 → warn (주의관찰)</div>
+        <div class="cat-sub-dark">현 코드 dispColor / resultColor 분기 100% 보존.</div>
+      </div>
+
+      <!-- 룰 박스 2: 폰트 격상 -->
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">폰트 격상 (9·10·11px 0건)</div>
+        <div class="cat-label-dark">옛 코드 → 시안 매핑 (인라인 폰트 → 시각 토큰):</div>
+        <div class="cat-label-dark">  · 옛 nine (그룹 헤더 uppercase) → 12px text-caption</div>
+        <div class="cat-label-dark">  · 옛 ten (호기 라벨 부제 / 카운트 칩 / chevron sub / dispWords 배지 / inspectKind) → 12px text-caption</div>
+        <div class="cat-label-dark">  · 옛 ten-half (주의관찰 헤더) → 13px text-label</div>
+        <div class="cat-label-dark">  · 옛 eleven (점검자/점검업체 / 부적합 헤더 / fail-row 본문 / 유효기간 / KoelsaHistorySection.subFs) → 13px text-label</div>
+        <div class="cat-label-dark">  · 옛 twelve (호기 라벨 호기 / 로딩-에러-빈 메시지 / status-line) → 13px text-label</div>
+        <div class="cat-label-dark">  · 옛 thirteen (날짜 / koelsa dateFs) → 14px text-body-sm</div>
+        <div class="cat-label-dark">  · 옛 fourteen (피커 라벨 / koelsa headerFs 모바일) → 14px text-body-sm</div>
+        <div class="cat-label-dark">  · 옛 sixteen (koelsa headerFs 데스크톱) → 16px text-body</div>
+        <div class="cat-sub-dark">결과: 12px 미만 클래스 0건. 점검자/점검업체/유효기간 등 보조 정보 13px 격상으로 노안 가독성 보강.</div>
+      </div>
+
+      <!-- 룰 박스 3: 이모지 → lucide -->
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">이모지 → lucide 매핑</div>
+        <div class="cat-label-dark">현 코드 EmptyState icon:string:</div>
+        <div class="cat-label-dark">  · (clipboard emoji) → ClipboardList (점검 빈)</div>
+        <div class="cat-label-dark">  · (magnifier emoji) → Search (검사 빈)</div>
+        <div class="cat-label-dark">주의관찰 헤더:</div>
+        <div class="cat-label-dark">  · (warning emoji) + '주의관찰 항목' → AlertTriangle + '주의관찰 항목'</div>
+        <div class="cat-label-dark">호기 TYPE_ICON (3A 매퍼 재사용):</div>
+        <div class="cat-label-dark">  · passenger (elevator emoji) → ElevatorIcon SVG</div>
+        <div class="cat-label-dark">  · cargo (package emoji) → Package lucide</div>
+        <div class="cat-label-dark">  · dumbwaiter (square-button emoji) → UtensilsCrossed lucide</div>
+        <div class="cat-label-dark">  · escalator (up-down emoji) → MoveDiagonal lucide</div>
+        <div class="cat-label-dark">월/연 피커:</div>
+        <div class="cat-label-dark">  · '‹' → ChevronLeft</div>
+        <div class="cat-label-dark">  · '›' → ChevronRight</div>
+        <div class="cat-label-dark">펼침 시그널:</div>
+        <div class="cat-label-dark">  · SVG path 인라인 → ChevronRight + rotate-90 (.inspect-chevron-open)</div>
+        <div class="cat-sub-dark">결과: 본문 이모지 0건. viewport 라벨 한정 (📱/🖥️) 만 메타 시각 허용.</div>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-3 gap-3">
+
+      <!-- 룰 박스 4: 호기 라벨 정책 -->
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">호기 라벨 — N호기 만</div>
+        <div class="cat-label-dark">EV-NN / ES-NN 본문 노출 0건:</div>
+        <div class="cat-label-dark">  · 점검 카드: ev.number + '호기' + ev.location</div>
+        <div class="cat-label-dark">  · 검사 카드: ev.number + '호기' (+ '(공단 N호기)' escalator + classification)</div>
+        <div class="cat-label-dark">  · 그룹 헤더: TYPE_LABEL[type] + group.length + '대'</div>
+        <div class="cat-label-dark">  · KoelsaHistorySection: 호기 라벨 없음 (EvDetailModal 헤더 위임)</div>
+        <div class="cat-sub-dark">현 코드 line 1270 / 1426~1434 표시 룰 그대로. 호기 ID 는 카드 key 만, 본문 텍스트 노출 X.</div>
+      </div>
+
+      <!-- 룰 박스 5: 좌측 색바 -->
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">카드 좌측 색바 ::before (3A 패턴 응용)</div>
+        <div class="cat-label-dark">점검 inspect-card::before:</div>
+        <div class="cat-label-dark">  · is-safe → status-safe-bar</div>
+        <div class="cat-label-dark">  · is-warn → status-warning-bar</div>
+        <div class="cat-label-dark">  · is-pending → text-tertiary</div>
+        <div class="cat-label-dark">검사 annual-card::before:</div>
+        <div class="cat-label-dark">  · is-safe (합격) → status-safe-bar</div>
+        <div class="cat-label-dark">  · is-warn (보완후·조건부) → status-warning-bar</div>
+        <div class="cat-label-dark">  · is-danger (보완·불합격) → status-danger-bar</div>
+        <div class="cat-label-dark">  · is-mute (dispWords null) → text-tertiary</div>
+        <div class="cat-sub-dark">3A fault-card::before 패턴 그대로 응용. 배지 톤과 좌측 바 톤 100% 일관. 우측 chevron 색 = text-tertiary (3A 동일).</div>
+      </div>
+
+      <!-- 룰 박스 6: 보존 룰 -->
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">보존 항목 (단 한 줄도 수정 X)</div>
+        <div class="cat-label-dark">코드 0건:</div>
+        <div class="cat-label-dark">  · ElevatorPage.tsx (line 1224~1499)</div>
+        <div class="cat-label-dark">  · KoelsaHistorySection.tsx (198라인)</div>
+        <div class="cat-label-dark">  · icons.tsx</div>
+        <div class="cat-label-dark">  · tailwind.config.js</div>
+        <div class="cat-label-dark">  · 다른 sketch HTML (3A 포함)</div>
+        <div class="cat-label-dark">  · 다른 페이지 / 컴포넌트</div>
+        <div class="cat-label-dark">데이터 보존:</div>
+        <div class="cat-label-dark">  · dispColor 분기 5종</div>
+        <div class="cat-label-dark">  · resultColor C/그외 분기</div>
+        <div class="cat-label-dark">  · TYPE_ICON 매퍼 (3A 와 동일)</div>
+        <div class="cat-label-dark">  · 피커 hasPrev/hasNext disabled 룰</div>
+        <div class="cat-label-dark">  · formatDistanceToNow ko 표시</div>
+        <div class="cat-sub-dark">변환 wave (Wave 10) 시 인라인 style → CSS class 1:1 매핑만. 비즈니스 로직 / 데이터 흐름 / state 0건 변경.</div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- 스크립트 — lucide 아이콘 렌더링 -->
+<script>
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>

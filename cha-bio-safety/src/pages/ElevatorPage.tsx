@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2 } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2, ClipboardList, Search } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1142,56 +1142,71 @@ export default function ElevatorPage() {
         {/* ── 고장 기록 ── */}
         {tab === 'fault' && (
           <>
-            {faults.length === 0 && <EmptyState icon="✅" text="고장 기록이 없어요" />}
+            {faults.length === 0 && <EmptyState icon={<CheckCircle2 size={36} className="text-safe" />} text="고장 기록이 없어요" />}
             {faults.map(f => {
               const isEs = f.elevator_type === 'escalator'
               const floorMatch     = f.symptoms.match(/^\[([^\]]+)\]/)
               const passengerMatch = f.symptoms.includes('[승객탑승]')
               const pureSymptoms   = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
               const floorLabel     = floorMatch ? floorMatch[1] : null
+              const TypeIcon       = TYPE_ICON_COMPONENT[f.elevator_type]
 
               return (
-                <div key={f.id} style={{ background:'var(--bg2)', border:`1px solid ${f.is_resolved?'var(--bd)':'rgba(239,68,68,.3)'}`, borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, minHeight:72 }}>
-
+                <div
+                  key={f.id}
+                  className={[
+                    'relative bg-surface-raised rounded-md overflow-hidden flex items-center gap-2.5 min-h-[72px]',
+                    'pl-3.5 pr-3 py-2.5',
+                    'before:content-[""] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px]',
+                    f.is_resolved
+                      ? 'border border-border-default before:bg-safe-bar'
+                      : 'border border-fire-bar/40 before:bg-fire-bar',
+                  ].join(' ')}
+                >
                   {/* 아이콘 */}
-                  <div style={{ width:52, height:52, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:36 }}>
-                    {TYPE_ICON[f.elevator_type]}
+                  <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-surface-sunken rounded-md text-text-secondary">
+                    {TypeIcon ? <TypeIcon size={22} /> : <Wrench size={22} />}
                   </div>
 
                   {/* 호기+발생층 / 증상 */}
-                  <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', gap:3 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{f.elevator_number}호기</span>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-[3px]">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={['text-body-sm font-bold', f.is_resolved ? 'text-text-primary' : 'text-fire'].join(' ')}>{f.elevator_number}호기</span>
                       {!isEs && floorLabel && (
-                        <span style={{ fontSize:11, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.12)', padding:'2px 7px', borderRadius:8 }}>{floorLabel}</span>
+                        <span className="text-caption font-bold text-info bg-info-bg px-[7px] py-0.5 rounded-sm">{floorLabel}</span>
                       )}
                       {!isEs && passengerMatch && (
-                        <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.12)', padding:'2px 6px', borderRadius:8 }}>승객🚨</span>
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-danger bg-danger-bg px-[7px] py-0.5 rounded-sm">
+                          <AlertTriangle size={12} />
+                          승객
+                        </span>
                       )}
                     </div>
-                    <div style={{ fontSize:13, color:'var(--t2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{pureSymptoms}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)' }}>{fmtKstDateTime(f.fault_at)}</div>
+                    <div className="text-label text-text-secondary overflow-hidden text-ellipsis whitespace-nowrap">{pureSymptoms}</div>
+                    <div className="text-caption text-text-tertiary font-mono tabular-nums">{fmtKstDateTime(f.fault_at)}</div>
                   </div>
 
                   {/* 수리내역 or "고장 수리 중" */}
-                  <div style={{ flexShrink:0, maxWidth:90, textAlign:'right' }}>
+                  <div className="flex-shrink-0 max-w-[96px] text-right flex flex-col gap-0.5">
                     {f.is_resolved && f.repair_detail
-                      ? <span style={{ fontSize:13, color:'var(--safe)', fontWeight:600, lineHeight:1.4 }}>{f.repair_detail}</span>
-                      : <span style={{ fontSize:13, color:'var(--danger)', fontWeight:700 }}>고장 수리 중</span>
+                      ? <span className="text-label font-semibold text-safe leading-snug">{f.repair_detail}</span>
+                      : <span className="text-label font-bold text-fire leading-snug">고장<br/>수리 중</span>
                     }
                   </div>
 
-                  {/* 수리완료 버튼(정사각형) or ✅ */}
+                  {/* 수리완료 버튼(정사각형) or CheckCircle2 */}
                   {!f.is_resolved ? (
                     <button
                       onClick={() => { setSelectedFault(f); setModal('fault_resolve') }}
-                      style={{ flexShrink:0, width:52, height:52, borderRadius:10, border:'none', cursor:'pointer', background:'rgba(34,197,94,.15)', color:'var(--safe)', fontSize:10, fontWeight:700, whiteSpace:'pre-line', textAlign:'center', lineHeight:1.4 }}
+                      className="flex-shrink-0 w-[52px] h-[52px] rounded-md border border-safe-bar/30 cursor-pointer bg-safe-bg text-safe text-caption font-bold whitespace-pre-line text-center leading-snug"
                     >{'수리\n내용\n입력'}</button>
                   ) : (
-                    <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                      <div style={{ width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>✅</div>
+                    <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                      <div className="w-11 h-11 flex items-center justify-center text-safe">
+                        <CheckCircle2 size={24} />
+                      </div>
                       {isAdmin && (
-                        <button onClick={() => deleteRecord('fault', f.id)} style={{ fontSize:9, color:'var(--danger)', background:'none', border:'none', cursor:'pointer', fontWeight:600, opacity:0.6 }}>삭제</button>
+                        <button onClick={() => deleteRecord('fault', f.id)} className="text-caption text-danger bg-transparent border-0 cursor-pointer font-semibold opacity-70 hover:opacity-100 p-0">삭제</button>
                       )}
                     </div>
                   )}
@@ -1215,82 +1230,142 @@ export default function ElevatorPage() {
           const hasNext = curIdx < sortedMonths.length - 1
           const goPrev = () => { if (hasPrev) setKoelsaMonth(sortedMonths[curIdx - 1]) }
           const goNext = () => { if (hasNext) setKoelsaMonth(sortedMonths[curIdx + 1]) }
+          // A~E 카운트 칩 className 매핑 (v0.1.1 시맨틱 토큰)
+          const chipClass: Record<string,string> = {
+            A: 'text-caption font-bold text-safe bg-safe-bg px-2 py-0.5 rounded-md',
+            B: 'text-caption font-bold text-warning bg-warning-bg px-2 py-0.5 rounded-md',
+            C: 'text-caption font-bold text-danger bg-danger-bg px-2 py-0.5 rounded-md',
+            D: 'text-caption font-bold text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-md',
+            E: 'text-caption font-bold text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-md',
+          }
+          const chipLabel: Record<string,string> = { A:'양호', B:'주의', C:'긴급', D:'제외', E:'없음' }
           return (
           <>
             {/* 월 선택 — 데이터 있는 월만 이동 */}
-            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-              <button onClick={goPrev} disabled={!hasPrev} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasPrev ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasPrev ? 'var(--t2)' : 'var(--bd)', opacity: hasPrev ? 1 : 0.4 }}>‹</button>
-              <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--t1)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <button
+                onClick={goPrev}
+                disabled={!hasPrev}
+                className="w-8 h-8 rounded-lg bg-surface-raised border border-border-default flex items-center justify-center text-text-secondary disabled:opacity-40 disabled:cursor-default cursor-pointer"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="flex-1 text-center text-body-sm font-bold text-text-primary">
                 {koelsaMonth.slice(0,4)}년 {parseInt(koelsaMonth.slice(4))}월
               </span>
-              <button onClick={goNext} disabled={!hasNext} style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNext ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasNext ? 'var(--t2)' : 'var(--bd)', opacity: hasNext ? 1 : 0.4 }}>›</button>
+              <button
+                onClick={goNext}
+                disabled={!hasNext}
+                className="w-8 h-8 rounded-lg bg-surface-raised border border-border-default flex items-center justify-center text-text-secondary disabled:opacity-40 disabled:cursor-default cursor-pointer"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
 
-            {koelsaQuery.isLoading && <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t3)', fontSize:12 }}>공단 데이터 조회 중...</div>}
-            {koelsaQuery.isError && <div style={{ textAlign:'center', padding:'24px 0', color:'var(--danger)', fontSize:12 }}>공단 API 조회 실패</div>}
+            {koelsaQuery.isLoading && <div className="text-center py-6 text-caption text-text-tertiary">공단 데이터 조회 중...</div>}
+            {koelsaQuery.isError && <div className="text-center py-6 text-caption text-danger">공단 API 조회 실패</div>}
 
             {!koelsaQuery.isLoading && koelsaMap.size === 0 && !koelsaQuery.isError && (
-              <EmptyState icon="📋" text="해당 월 점검 기록이 없어요" />
+              <EmptyState icon={<ClipboardList size={36} />} text="해당 월 점검 기록이 없어요" />
             )}
 
             {(['passenger','cargo','dumbwaiter','escalator'] as const).map(type => {
               const group = elevators.filter(e => e.type === type && e.cert_no).sort((a,b) => a.number - b.number)
               if (!group.length) return null
-              const fmtDate = (d: string) => d ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : '-'
+              const TypeIcon = TYPE_ICON_COMPONENT[type]
               return (
                 <div key={type}>
-                  <div style={{ fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:5, marginTop:4 }}>
-                    {TYPE_ICON[type]} {TYPE_LABEL[type]} ({group.length}대)
+                  <div className="text-caption font-bold text-text-tertiary tracking-wider uppercase mb-1.5 mt-1 flex items-center gap-1.5">
+                    <TypeIcon size={14} className="text-text-tertiary" strokeWidth={1.8} />
+                    <span>{TYPE_LABEL[type]} ({group.length}대)</span>
                   </div>
                   {group.map(ev => {
                     const data = koelsaMap.get(ev.id)
                     const hasIssues = data ? data.issues.length > 0 : false
-                    const badge = !data ? { text:'미점검', color:'var(--t3)', bg:'var(--bg3)' } : hasIssues ? { text:'이상', color:'var(--warn)', bg:'rgba(245,158,11,.12)' } : { text:'양호', color:'var(--safe)', bg:'rgba(34,197,94,.12)' }
+                    // 카드 좌측 색바 + 배지 분기
+                    let barCls = 'before:bg-surface-sunken'
+                    let badgeCls = 'text-caption font-bold text-text-tertiary bg-surface-sunken px-2 py-0.5 rounded-full flex-shrink-0'
+                    let badgeText = '미점검'
+                    let wrapperExtra = ''
+                    if (data) {
+                      if (hasIssues) {
+                        barCls = 'before:bg-warning-bar'
+                        badgeCls = 'text-caption font-bold text-warning bg-warning-bg px-2 py-0.5 rounded-full flex-shrink-0'
+                        badgeText = '이상'
+                        wrapperExtra = 'border-warning-bar/40'
+                      } else {
+                        barCls = 'before:bg-safe-bar'
+                        badgeCls = 'text-caption font-bold text-safe bg-safe-bg px-2 py-0.5 rounded-full flex-shrink-0'
+                        badgeText = '양호'
+                      }
+                    }
                     const isExp = expandedInspect === ev.id
                     return (
-                      <div key={ev.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', marginBottom:6, flexShrink:0 }}>
-                        <div onClick={() => data && setExpandedInspect(isExp ? null : ev.id)} style={{ padding:'10px 13px', display:'flex', alignItems:'center', gap:10, cursor: data ? 'pointer' : 'default' }}>
-                          <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[type]}</div>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>{ev.number}호기 <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>{ev.location}</span></div>
-                            <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{data ? `점검일: ${fmtDate8(data.summary!.inspectDate)}` : '점검 데이터 없음'}</div>
+                      <div
+                        key={ev.id}
+                        className={[
+                          'relative bg-surface-raised border rounded-xl overflow-hidden mb-1.5 shrink-0',
+                          'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:rounded-l-xl',
+                          barCls,
+                          wrapperExtra || 'border-border-default',
+                        ].join(' ')}
+                      >
+                        <div
+                          onClick={() => data && setExpandedInspect(isExp ? null : ev.id)}
+                          className={`pl-3.5 pr-3 py-2.5 flex items-center gap-2.5 ${data ? 'cursor-pointer' : 'cursor-default'}`}
+                        >
+                          <div className="w-10 h-10 rounded-lg bg-surface-sunken flex items-center justify-center flex-shrink-0">
+                            <TypeIcon size={22} className="text-text-secondary" />
                           </div>
-                          <span style={{ fontSize:10, fontWeight:700, color:badge.color, background:badge.bg, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>{badge.text}</span>
-                          {data && <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExp ? 'rotate(90deg)' : 'none', transition:'transform .15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-label font-bold text-text-primary">
+                              {ev.number}호기
+                              <span className="text-caption font-normal text-text-tertiary ml-1">{ev.location}</span>
+                            </div>
+                            <div className="text-caption text-text-tertiary mt-0.5">
+                              {data ? `점검일: ${fmtDate8(data.summary!.inspectDate)}` : '점검 데이터 없음'}
+                            </div>
+                          </div>
+                          <span className={badgeCls}>{badgeText}</span>
+                          {data && (
+                            <ChevronRight
+                              size={14}
+                              className={['flex-shrink-0 text-text-tertiary transition-transform duration-150', isExp ? 'rotate-90' : ''].join(' ')}
+                            />
+                          )}
                         </div>
                         {isExp && data && (
-                          <div style={{ borderTop:'1px solid var(--bd)', padding:'12px 14px' }}>
-                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11, marginBottom:8 }}>
-                              <div><span style={{ color:'var(--t3)' }}>점검업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{data.summary!.companyName}</span></div>
-                              <div><span style={{ color:'var(--t3)' }}>점검자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{data.summary!.inspectorName}</span></div>
+                          <div className="border-t border-border-default px-3.5 pt-3 pb-3">
+                            <div className="grid grid-cols-2 gap-y-1 gap-x-3 text-caption mb-2">
+                              <div><span className="text-text-tertiary">점검업체 </span><span className="text-text-primary font-semibold">{data.summary!.companyName}</span></div>
+                              <div><span className="text-text-tertiary">점검자 </span><span className="text-text-primary font-semibold">{data.summary!.inspectorName}</span></div>
                             </div>
-                            <div style={{ display:'flex', gap:6, fontSize:10, flexWrap:'wrap', marginBottom: hasIssues ? 10 : 0 }}>
+                            <div className={`flex gap-1.5 flex-wrap ${hasIssues ? 'mb-2.5' : ''}`}>
                               {(['A','B','C','D','E'] as const).map(r => {
                                 const cnt = data.resultCounts[r]; if (!cnt) return null
-                                const c: Record<string,string> = { A:'var(--safe)', B:'var(--warn)', C:'var(--danger)', D:'var(--t3)', E:'var(--t3)' }
-                                const l: Record<string,string> = { A:'양호', B:'주의', C:'긴급', D:'제외', E:'없음' }
-                                return <span key={r} style={{ fontWeight:700, color:c[r], background:`${c[r]}18`, padding:'2px 8px', borderRadius:6 }}>{l[r]} {cnt}</span>
+                                return <span key={r} className={chipClass[r]}>{chipLabel[r]} {cnt}</span>
                               })}
                             </div>
                             {hasIssues && (
-                              <div style={{ border:'1px solid var(--bd)', borderRadius:8, overflow:'hidden' }}>
-                                <div style={{ padding:'6px 10px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)', fontSize:10.5, fontWeight:700, color:'var(--warn)' }}>
-                                  ⚠️ 주의관찰 항목
+                              <div className="border border-border-default rounded-lg overflow-hidden">
+                                <div className="bg-surface-raised border-b border-border-default px-2.5 py-1.5 text-caption font-bold text-warning flex items-center gap-1.5">
+                                  <AlertTriangle size={12} />
+                                  주의관찰 항목
                                 </div>
-                                <div style={{ display:'grid', gridTemplateColumns:'50px 1fr auto', background:'var(--bg3)' }}>
+                                <div className="bg-surface-sunken grid" style={{ gridTemplateColumns:'50px 1fr auto' }}>
                                   {data.issues.map((issue, idx) => {
                                     const isLast = idx === data.issues.length - 1
-                                    const cellSt: React.CSSProperties = { padding:'5px 8px', fontSize:11, borderBottom: isLast ? 'none' : '1px solid var(--bd)' }
-                                    const resultColor = issue.result === 'C' ? 'var(--danger)' : 'var(--warn)'
+                                    const resultCls = issue.result === 'C' ? 'text-danger' : 'text-warning'
                                     const resultLabel = issue.result === 'C' ? '긴급수리' : '주의관찰'
+                                    const cellBase = `px-2 py-1.5 text-caption ${isLast ? '' : 'border-b border-border-default'}`
                                     return (
-                                      <div key={idx} style={{ display:'contents' }}>
-                                        <div style={{ ...cellSt, color:'var(--t3)', fontWeight:600, fontFamily:'JetBrains Mono, monospace', fontSize:10 }}>{issue.titNo}</div>
-                                        <div style={{ ...cellSt, color:'var(--t1)' }}>
+                                      <div key={idx} className="contents">
+                                        <div className={`${cellBase} font-semibold font-mono tabular-nums text-text-tertiary`}>{issue.titNo}</div>
+                                        <div className={`${cellBase} text-text-primary`}>
                                           {issue.itemName}
-                                          {issue.itemDetail && <span style={{ color:'var(--t3)', marginLeft:4, fontSize:10 }}>({issue.itemDetail})</span>}
+                                          {issue.itemDetail && <span className="text-text-tertiary ml-1 text-caption">({issue.itemDetail})</span>}
                                         </div>
-                                        <div style={{ ...cellSt, color:resultColor, fontWeight:700 }}>{resultLabel}</div>
+                                        <div className={`${cellBase} font-bold ${resultCls}`}>{resultLabel}</div>
                                       </div>
                                     )
                                   })}
@@ -1311,25 +1386,26 @@ export default function ElevatorPage() {
 
         {/* ── 검사 기록 (연도 선택 + 호기별 펼침) ── */}
         {tab === 'annual' && (() => {
-          // 판정 배지 색상 (KoelsaHistorySection 과 동일 로직)
-          const dispColor = (disp: string | null | undefined): string => {
-            if (!disp) return 'var(--t3)'
+          // 판정 배지 className 매핑 (Wave 10 — v0.1.1 시맨틱 토큰)
+          // KoelsaHistorySection.dispClass 와 동일 로직 (text/bg + bar 좌측 색바)
+          const dispClass = (disp: string | null | undefined): { text: string; bg: string; bar: string } => {
+            if (!disp) return { text: 'text-text-tertiary', bg: 'bg-surface-sunken', bar: 'before:bg-surface-sunken' }
             const s = disp
             const hasBo = s.includes('보완')
             const hasFail = s.includes('불합격')
             const hasCond = s.includes('조건부')
             const hasBoAfterPass = s.includes('보완후합격')
             const hasPass = s.includes('합격')
-            if (hasBoAfterPass || hasCond) return 'var(--warn)'
-            if (hasBo || hasFail) return 'var(--danger)'
-            if (hasPass) return 'var(--safe)'
-            return 'var(--t3)'
+            if (hasBoAfterPass || hasCond) return { text: 'text-warning', bg: 'bg-warning-bg', bar: 'before:bg-warning-bar' }
+            if (hasBo || hasFail) return { text: 'text-danger', bg: 'bg-danger-bg', bar: 'before:bg-danger-bar' }
+            if (hasPass) return { text: 'text-safe', bg: 'bg-safe-bg', bar: 'before:bg-safe-bar' }
+            return { text: 'text-text-tertiary', bg: 'bg-surface-sunken', bar: 'before:bg-surface-sunken' }
           }
 
           // cert_no 없음
           if (certElevators.length === 0) {
             return (
-              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--t3)', fontSize:12 }}>
+              <div className="text-center py-10 text-caption text-text-tertiary">
                 공단 고유번호가 등록된 호기가 없습니다
               </div>
             )
@@ -1361,35 +1437,39 @@ export default function ElevatorPage() {
           const visible = perElevatorYearItems.filter(r => r.items.length > 0)
 
           return (
-            <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom: 10 }}>
+            <div className="flex flex-col gap-2.5 mb-2.5">
               {/* 연도 선택 — 점검 기록 탭 월 피커와 동일 스타일, 연 단위 */}
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+              <div className="flex items-center gap-2 mb-1">
                 <button
                   onClick={goOlder}
                   disabled={!hasOlder}
-                  style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasOlder ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasOlder ? 'var(--t2)' : 'var(--bd)', opacity: hasOlder ? 1 : 0.4 }}
-                >‹</button>
-                <span style={{ flex:1, textAlign:'center', fontSize:14, fontWeight:700, color:'var(--t1)' }}>
+                  className="w-8 h-8 rounded-lg bg-surface-raised border border-border-default flex items-center justify-center text-text-secondary disabled:opacity-40 disabled:cursor-default cursor-pointer"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="flex-1 text-center text-body-sm font-bold text-text-primary">
                   {mobileAnnualYear}년
                 </span>
                 <button
                   onClick={goNewer}
                   disabled={!hasNewer}
-                  style={{ width:32, height:32, borderRadius:8, background:'var(--bg2)', border:'1px solid var(--bd)', cursor: hasNewer ? 'pointer' : 'default', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, color: hasNewer ? 'var(--t2)' : 'var(--bd)', opacity: hasNewer ? 1 : 0.4 }}
-                >›</button>
+                  className="w-8 h-8 rounded-lg bg-surface-raised border border-border-default flex items-center justify-center text-text-secondary disabled:opacity-40 disabled:cursor-default cursor-pointer"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
 
               {anyLoading && (
-                <div style={{ textAlign:'center', padding:'24px 0', color:'var(--t3)', fontSize:12 }}>공단 검사이력 조회 중...</div>
+                <div className="text-center py-6 text-caption text-text-tertiary">공단 검사이력 조회 중...</div>
               )}
               {!anyLoading && anyError && visible.length === 0 && (
-                <div style={{ textAlign:'center', padding:'24px 0', color:'var(--danger)', fontSize:12 }}>공단 API 일시 오류 — 잠시 후 다시 시도해주세요</div>
+                <div className="text-center py-6 text-caption text-danger">공단 API 일시 오류 — 잠시 후 다시 시도해주세요</div>
               )}
               {!anyLoading && !hasAny && !anyError && (
-                <EmptyState icon="🔍" text="등록된 검사 이력이 없어요" />
+                <EmptyState icon={<Search size={36} />} text="등록된 검사 이력이 없어요" />
               )}
               {!anyLoading && hasAny && visible.length === 0 && (
-                <EmptyState icon="📋" text="해당 연도에 검사 이력이 없어요" />
+                <EmptyState icon={<ClipboardList size={36} />} text="해당 연도에 검사 이력이 없어요" />
               )}
 
               {/* 호기 카드 리스트 — 선택 연도에 이력 있는 호기만 */}
@@ -1398,71 +1478,85 @@ export default function ElevatorPage() {
                 const isExp = !!expandedMobileAnnual[evKey]
                 // 최신 판정 (items 는 이미 최신순 정렬됨)
                 const latest = items[0]
-                const badge = dispColor(latest?.dispWords)
+                const latestBadge = dispClass(latest?.dispWords)
+                const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
                 return (
-                  <div key={evKey} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0 }}>
+                  <div
+                    key={evKey}
+                    className={[
+                      'relative bg-surface-raised border border-border-default rounded-xl overflow-hidden shrink-0',
+                      'before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px] before:rounded-l-xl',
+                      latestBadge.bar,
+                    ].join(' ')}
+                  >
                     {/* 카드 헤더 */}
                     <div
                       onClick={() => setExpandedMobileAnnual(p => ({ ...p, [evKey]: !p[evKey] }))}
-                      style={{ padding:'10px 13px', display:'flex', alignItems:'center', gap:10, cursor:'pointer' }}
+                      className="pl-3.5 pr-3 py-2.5 flex items-center gap-2.5 cursor-pointer"
                     >
-                      <div style={{ width:40, height:40, borderRadius:10, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{TYPE_ICON[ev.type]}</div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:12, fontWeight:700, color:'var(--t1)' }}>
+                      <div className="w-10 h-10 rounded-lg bg-surface-sunken flex items-center justify-center flex-shrink-0">
+                        <TypeIcon size={22} className="text-text-secondary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-label font-bold text-text-primary">
                           {ev.number}호기
                           {ev.type === 'escalator' && ev.public_number != null && (
-                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:6 }}>(공단 {ev.public_number}호기)</span>
+                            <span className="text-caption font-normal text-text-tertiary ml-1.5">(공단 {ev.public_number}호기)</span>
                           )}
                           {ev.classification && (
-                            <span style={{ fontSize:10, fontWeight:400, color:'var(--t3)', marginLeft:4 }}>· {ev.classification}</span>
+                            <span className="text-caption font-normal text-text-tertiary ml-1">· {ev.classification}</span>
                           )}
                         </div>
-                        <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{items.length}건 · 최근 {latest.inspectDate ?? '-'}</div>
+                        <div className="text-caption text-text-tertiary mt-0.5">{items.length}건 · 최근 {latest.inspectDate ?? '-'}</div>
                       </div>
-                      <span style={{ fontSize:10, fontWeight:700, color:badge, background:`${badge}22`, padding:'3px 8px', borderRadius:20, flexShrink:0 }}>
+                      <span className={`text-caption font-bold ${latestBadge.text} ${latestBadge.bg} px-2 py-0.5 rounded-full flex-shrink-0`}>
                         {latest?.dispWords ?? '-'}
                       </span>
-                      <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExp ? 'rotate(90deg)' : 'none', transition:'transform .15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                      <ChevronRight
+                        size={14}
+                        className={['flex-shrink-0 text-text-tertiary transition-transform duration-150', isExp ? 'rotate-90' : ''].join(' ')}
+                      />
                     </div>
                     {/* 펼침 시 해당 연도 이력 상세 */}
                     {isExp && (
-                      <div style={{ borderTop:'1px solid var(--bd)', padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                      <div className="border-t border-border-default px-3 py-2.5 flex flex-col gap-2">
                         {items.map(item => {
-                          const itemBadge = dispColor(item.dispWords)
+                          const itemBadge = dispClass(item.dispWords)
                           const hasFails = item.fails.length > 0
                           return (
-                            <div key={item.failCd} style={{ background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:10, padding:'10px 12px' }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                                <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{item.inspectDate ?? '-'}</span>
-                                <span style={{ fontSize:10, color:'var(--t3)' }}>· {item.inspectKind ?? '-'}</span>
-                                <span style={{ marginLeft:'auto', fontSize:10, fontWeight:700, color:itemBadge, background:`${itemBadge}22`, padding:'2px 8px', borderRadius:12 }}>
+                            <div key={item.failCd} className="bg-surface-sunken border border-border-default rounded-lg px-3 py-2.5">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-label font-bold text-text-primary">{item.inspectDate ?? '-'}</span>
+                                <span className="text-caption text-text-tertiary">· {item.inspectKind ?? '-'}</span>
+                                <span className={`ml-auto text-caption font-bold ${itemBadge.text} ${itemBadge.bg} px-2 py-0.5 rounded-xl`}>
                                   {item.dispWords ?? '-'}
                                 </span>
                               </div>
                               {(item.validStart || item.validEnd) && (
-                                <div style={{ fontSize:11, color:'var(--t2)' }}>
+                                <div className="text-caption text-text-secondary">
                                   유효기간 {item.validStart ?? '-'} ~ {item.validEnd ?? '-'}
                                 </div>
                               )}
-                              <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>
+                              <div className="text-caption text-text-tertiary mt-0.5">
                                 {[item.inspectInstitution, item.companyName].filter(Boolean).join(' · ') || '기관 정보 없음'}
                               </div>
                               {hasFails && (
-                                <div style={{ borderTop:'1px solid var(--bd)', marginTop:8, paddingTop:8 }}>
-                                  <div style={{ fontSize:11, fontWeight:700, color:'var(--warn)', marginBottom:6 }}>
+                                <div className="border-t border-border-default mt-2 pt-2">
+                                  <div className="text-caption font-bold text-warning mb-1.5 flex items-center gap-1.5">
+                                    <AlertTriangle size={12} />
                                     부적합 {item.fails.length}건
                                   </div>
-                                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                                  <div className="flex flex-col gap-2">
                                     {item.fails.map((f, idx) => (
-                                      <div key={idx} style={{ fontSize:11, color:'var(--t2)', lineHeight:1.5 }}>
-                                        <div style={{ fontWeight:700, color:'var(--t1)' }}>
+                                      <div key={idx} className="text-caption text-text-secondary leading-relaxed">
+                                        <div className="font-bold text-text-primary">
                                           ▸ {[f.standardArticle, f.standardTitle].filter(Boolean).join(' ') || '조항 정보 없음'}
                                         </div>
                                         {f.failDesc && (
-                                          <div style={{ marginTop:2, paddingLeft:12 }}>
+                                          <div className="mt-0.5 pl-3">
                                             {f.failDesc}
                                             {f.failDescInspector && (
-                                              <span style={{ color:'var(--t3)' }}> ({f.failDescInspector})</span>
+                                              <span className="text-text-tertiary"> ({f.failDescInspector})</span>
                                             )}
                                           </div>
                                         )}
@@ -1608,17 +1702,25 @@ export default function ElevatorPage() {
 
       {/* ── FAB 버튼 (BottomNav 바로 위, flex 형제) ── */}
       {(tab === 'fault' || tab === 'repair') && (
-        <div style={{ flexShrink:0, padding:'8px 12px', background:'var(--bg)' }}>
+        <div className="flex-shrink-0 px-3 py-2 bg-surface-page">
           {tab === 'fault' && (
-            <button onClick={() => { setSelectedEv(null); setModal('fault_new') }}
-              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#991b1b,#ef4444)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(239,68,68,.4)' }}>
-              🚨 고장 접수
+            <button
+              onClick={() => { setSelectedEv(null); setModal('fault_new') }}
+              className="w-full h-[52px] rounded-lg border-0 cursor-pointer text-white text-label font-bold inline-flex items-center justify-center gap-1.5"
+              style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow:'0 4px 16px rgba(239,68,68,.4)' }}
+            >
+              <AlertTriangle size={18} />
+              고장 접수
             </button>
           )}
           {tab === 'repair' && (
-            <button onClick={() => { setSelectedEv(null); setModal('repair_new') }}
-              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#854d0e,#eab308)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(234,179,8,.4)' }}>
-              🔧 수리 기록 입력
+            <button
+              onClick={() => { setSelectedEv(null); setModal('repair_new') }}
+              className="w-full h-[52px] rounded-lg border-0 cursor-pointer text-white text-label font-bold inline-flex items-center justify-center gap-1.5"
+              style={{ background:'linear-gradient(135deg, var(--accent-active), var(--accent))', boxShadow:'0 4px 16px rgba(59,130,246,.4)' }}
+            >
+              <Wrench size={18} />
+              수리 기록 입력
             </button>
           )}
         </div>
@@ -1668,17 +1770,20 @@ const HISTORY_TABS: { key:HistoryTab; label:string }[] = [
 
 function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
   const isDesktop = useIsDesktop()
+  // SideMenu 패턴 (f89ab71): body fixed 대신 overflow:hidden + touchmove 차단.
+  // body position:fixed 는 iOS safe-area 깨뜨려 BottomNav 위치 이상이 발생.
   useEffect(() => {
-    const scrollY = window.scrollY
+    const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.top = `-${scrollY}px`
-    document.body.style.width = '100%'
+    const prevent = (e: TouchEvent) => {
+      const panel = document.getElementById('ev-detail-modal-panel')
+      if (panel && panel.contains(e.target as Node)) return
+      e.preventDefault()
+    }
+    document.addEventListener('touchmove', prevent, { passive: false })
     return () => {
-      document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.top = ''
-      window.scrollTo(0, scrollY)
+      document.body.style.overflow = prev
+      document.removeEventListener('touchmove', prevent)
     }
   }, [])
   const [periodIdx,   setPeriodIdx]   = useState(1) // 기본 3개월
@@ -1735,6 +1840,7 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
         style={{ position:'fixed', inset:0, zIndex:90 }}
       />
       <div
+        id="ev-detail-modal-panel"
         className={
           isDesktop
             ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
@@ -2099,7 +2205,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
             <Field label="발생 일시">
               <input
                 type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
-                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
               />
             </Field>
 
@@ -2221,7 +2327,7 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
               <Field label="발생 일시">
                 <input
                   type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
-                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
                 />
               </Field>
 
@@ -2312,7 +2418,7 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
         </Field>
         <Field label="수리 완료 일시">
           <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)}
-            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border min-w-0 max-w-full appearance-none"
           />
         </Field>
         <Field label="수리 내용">
@@ -2513,15 +2619,32 @@ function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>voi
   const isDesktop = useIsDesktop()
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={
-        isDesktop
-          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, padding:'0 24px 24px', width:540, maxWidth:'90vw', maxHeight:'85vh', overflowY:'auto', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
-          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', padding:'0 16px 32px', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', overflowY:'auto', overflowX:'hidden' }
-      }>
-        <div style={{ display:'flex', alignItems:'center', padding:'14px 0 12px', borderBottom:'1px solid var(--bd)', marginBottom:14, position: isDesktop ? 'sticky' : 'static', top:0, background:'var(--bg2)', zIndex:1 }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)', flex:1 }}>{title}</span>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
+      <div onClick={onClose} className="fixed inset-0 bg-surface-overlay z-[90]" />
+      <div
+        className={
+          isDesktop
+            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[540px] max-w-[90vw] max-h-[85vh] overflow-y-auto overflow-x-hidden border border-border-strong px-6 pb-6'
+            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] px-4 pb-8 overflow-y-auto overflow-x-hidden'
+        }
+        style={
+          isDesktop
+            ? { top:'50%', left:'50%', transform:'translate(-50%, -50%)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+            : { bottom:NAV_H, maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)' }
+        }
+      >
+        <div
+          className={[
+            'flex items-center pt-[14px] pb-3 border-b border-border-default mb-[14px] bg-surface-raised',
+            isDesktop ? 'sticky top-0 z-[1]' : '',
+          ].join(' ')}
+        >
+          <span className="text-body-sm font-bold text-text-primary flex-1">{title}</span>
+          <button
+            onClick={onClose}
+            className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-1"
+          >
+            <X size={20} />
+          </button>
         </div>
         {children}
       </div>
@@ -2531,16 +2654,16 @@ function ModalWrap({ title, onClose, children }: { title:string; onClose:()=>voi
 function Field({ label, children, style }: { label:string; children:React.ReactNode; style?:React.CSSProperties }) {
   return (
     <div style={style}>
-      <label style={{ fontSize:11, fontWeight:700, color:'var(--t2)', display:'block', marginBottom:5 }}>{label}</label>
+      <label className="block text-label font-bold text-text-secondary mb-[5px]">{label}</label>
       {children}
     </div>
   )
 }
-function EmptyState({ icon, text }: { icon:string; text:string }) {
+function EmptyState({ icon, text }: { icon:React.ReactNode; text:string }) {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0', gap:10 }}>
-      <div style={{ fontSize:36 }}>{icon}</div>
-      <div style={{ fontSize:13, color:'var(--t3)' }}>{text}</div>
+    <div className="flex flex-col items-center justify-center py-10 gap-2.5">
+      <div className="text-text-tertiary">{icon}</div>
+      <div className="text-body-sm text-text-tertiary">{text}</div>
     </div>
   )
 }
@@ -2767,13 +2890,6 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
 }
 
 // ── 스타일 ────────────────────────────────────────────────
-const inputSt: React.CSSProperties = {
-  width:'100%', padding:'10px 12px', borderRadius:9,
-  background:'var(--bg3)', border:'1px solid var(--bd2)',
-  color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit',
-  boxSizing:'border-box', minWidth:0,
-  WebkitAppearance:'none', appearance:'none',
-}
 function smBtn(color: string): React.CSSProperties {
   return {
     padding:'5px 12px', borderRadius:8, border:`1px solid ${color}33`,
@@ -2823,12 +2939,12 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
     const keys = csv.split(',').filter(Boolean)
     if (!keys.length) return null
     return (
-      <div style={{ marginTop:8 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:4 }}>{label} ({keys.length})</div>
-        <div style={{ display:'flex', gap:4, overflowX:'auto' }}>
+      <div className="mt-2">
+        <div className="text-caption font-bold text-text-tertiary mb-1">{label} ({keys.length})</div>
+        <div className="flex gap-1 overflow-x-auto">
           {keys.map((k, i) => (
             <img key={k} src={`/api/uploads/${k}`} alt="" onClick={() => setViewerSrc(`/api/uploads/${k}`)}
-              style={{ width:56, height:56, objectFit:'cover', borderRadius:6, border:'1px solid var(--bd)', cursor:'pointer', flexShrink:0 }}
+              className="w-14 h-14 object-cover rounded-sm border border-border-default cursor-pointer flex-shrink-0"
             />
           ))}
         </div>
@@ -2841,60 +2957,87 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
       {viewerSrc && <RepairImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 필터 바 */}
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, flexShrink:0 }}>
-        <select value={evType} onChange={e => { setEvType(e.target.value as any); setFilterEv('') }} style={{ ...inputSt, flex:'1 1 90px', fontSize:11 }}>
+      <div className="flex gap-1.5 flex-wrap mb-2 flex-shrink-0">
+        <select
+          value={evType}
+          onChange={e => { setEvType(e.target.value as any); setFilterEv('') }}
+          className="flex-[1_1_90px] min-w-0 box-border appearance-none h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent cursor-pointer"
+        >
           <option value="">전체 유형</option>
           <option value="elevator">엘리베이터</option>
           <option value="escalator">에스컬레이터</option>
         </select>
-        <select value={filterEv} onChange={e => setFilterEv(e.target.value)} style={{ ...inputSt, flex:'1 1 100px', fontSize:11 }}>
+        <select
+          value={filterEv}
+          onChange={e => setFilterEv(e.target.value)}
+          className="flex-[1_1_100px] min-w-0 box-border appearance-none h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent cursor-pointer"
+        >
           <option value="">전체 호기</option>
           {filteredElevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
         </select>
-        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="부품, 호기, 층, 대상 검색..." style={{ ...inputSt, flex:'2 1 100px', fontSize:11 }} />
+        <input
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
+          placeholder="부품, 호기, 층, 대상 검색..."
+          className="flex-[2_1_100px] min-w-0 box-border h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent placeholder:text-text-tertiary"
+        />
       </div>
 
-      {isLoading && <EmptyState icon="⏳" text="불러오는 중..." />}
-      {!isLoading && repairs.length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
+      {isLoading && <EmptyState icon={<Loader2 size={36} className="animate-spin" />} text="불러오는 중..." />}
+      {!isLoading && repairs.length === 0 && <EmptyState icon={<Wrench size={36} />} text="수리 내역이 없어요" />}
 
       {repairs.map((r: any) => {
         const st = SOURCE_TYPE_LABEL[r.sourceType] ?? SOURCE_TYPE_LABEL.standalone
         const isExpanded = expandedId === r.id
+        const RowIcon = TYPE_ICON_COMPONENT[r.elevatorType]
         return (
-          <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0, marginBottom:2 }}>
-            <div onClick={() => setExpandedId(isExpanded ? null : r.id)} style={{ padding:'10px 12px', display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-              <div style={{ width:36, height:36, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
-                {TYPE_ICON[r.elevatorType] ?? '🔧'}
+          <div key={r.id} className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex-shrink-0 mb-0.5">
+            <div onClick={() => setExpandedId(isExpanded ? null : r.id)} className="px-3 py-2.5 flex items-center gap-2 cursor-pointer">
+              <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-surface-sunken rounded-sm text-text-secondary">
+                {RowIcon ? <RowIcon size={20} /> : <Wrench size={20} />}
               </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{r.elevatorNumber}호기</span>
-                  <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:5, background:`${st.color}18`, color:st.color }}>{st.label}</span>
-                  {r.target && <span style={{ fontSize:9, fontWeight:600, padding:'1px 5px', borderRadius:5, background:'var(--bg3)', color:'var(--t3)' }}>{REPAIR_TARGET_LABEL[r.target]}{r.hallFloor ? ` ${r.hallFloor}` : ''}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-label font-bold text-text-primary">{r.elevatorNumber}호기</span>
+                  <span
+                    className="text-caption font-bold px-1.5 py-0.5 rounded-sm"
+                    style={{ background: st.color + '18', color: st.color }}
+                  >
+                    {st.label}
+                  </span>
+                  {r.target && (
+                    <span className="text-caption font-semibold px-1.5 py-0.5 rounded-sm bg-surface-sunken text-text-tertiary">
+                      {REPAIR_TARGET_LABEL[r.target]}{r.hallFloor ? ` ${r.hallFloor}` : ''}
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize:12, color:'var(--t1)', marginTop:2, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.title}</div>
-                <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>
-                  {r.date}{r.company ? ` · ${r.company}` : ''}
-                  {r.photos && ' · 📷'}
+                <div className="text-label text-text-primary mt-0.5 font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{r.title}</div>
+                <div className="text-caption text-text-tertiary mt-px inline-flex items-center gap-1 flex-wrap">
+                  <span>{r.date}</span>
+                  {r.company && <><span>·</span><span>{r.company}</span></>}
+                  {r.photos && <><span>·</span><Camera size={12} /></>}
                 </div>
               </div>
-              <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExpanded ? 'rotate(90deg)' : 'none', transition:'transform 0.15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              <ChevronRight
+                size={14}
+                className={['flex-shrink-0 text-text-tertiary transition-transform duration-150', isExpanded ? 'rotate-90' : ''].join(' ')}
+              />
             </div>
 
             {isExpanded && (
-              <div style={{ padding:'0 12px 12px', borderTop:'1px solid var(--bd)' }}>
+              <div className="px-3 pb-3 border-t border-border-default">
                 {r.detail && (
-                  <div style={{ paddingTop:10, fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{r.detail}</div>
+                  <div className="pt-2.5 text-label text-text-secondary leading-relaxed whitespace-pre-wrap">{r.detail}</div>
                 )}
                 {renderPhotos('부품 입고', r.partsArrivalPhotos)}
                 {renderPhotos('파손 부품', r.damagedPartsPhotos)}
                 {renderPhotos('수리 중', r.duringRepairPhotos)}
                 {renderPhotos('수리 완료 / 조치 사진', r.completedPhotos)}
                 {r.sourceType === 'standalone' && (
-                  <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                  <div className="flex gap-2 mt-2.5">
                     <button
                       onClick={() => { setEditRepair(r); setExpandedId(null) }}
-                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--info)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                      className="flex-1 py-2 rounded-md border border-info-bar/30 bg-info-bg text-info text-label font-semibold cursor-pointer"
                     >
                       수정
                     </button>
@@ -2908,7 +3051,7 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
                           setExpandedId(null)
                         } catch { toast.error('삭제 실패') }
                       }}
-                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                      className="flex-1 py-2 rounded-md border border-danger-bar/30 bg-danger-bg text-danger text-label font-semibold cursor-pointer"
                     >
                       삭제
                     </button>
@@ -2991,21 +3134,37 @@ function MultiPhotoUpload({ label, keys, setKeys, max = 5 }: { label: string; ke
 
   return (
     <div>
-      <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:6 }}>{label} ({keys.length}/{max})</div>
-      <input ref={camRef} type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={onFileChange} />
-      <input ref={albRef} type="file" accept="image/*" style={{ display:'none' }} onChange={onFileChange} />
+      <div className="text-label font-bold text-text-secondary mb-1.5">{label} ({keys.length}/{max})</div>
+      <input ref={camRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onFileChange} />
+      <input ref={albRef} type="file" accept="image/*" className="hidden" onChange={onFileChange} />
       <PhotoSourceModal open={showPicker} onClose={() => setShowPicker(false)} onCamera={() => camRef.current?.click()} onAlbum={() => albRef.current?.click()} />
-      <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
+      <div className="flex gap-1.5 overflow-x-auto">
         {keys.length < max && (
-          <button onClick={() => !uploading && setShowPicker(true)} style={{ width:64, height:64, flexShrink:0, borderRadius:8, border:'1px dashed var(--bd2)', background:'var(--bg3)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, cursor: uploading ? 'wait' : 'pointer' }}>
-            <span style={{ fontSize:18 }}>📷</span>
-            <span style={{ fontSize:8, color:'var(--t3)', fontWeight:600 }}>{uploading ? '...' : '추가'}</span>
+          <button
+            onClick={() => !uploading && setShowPicker(true)}
+            className={[
+              'w-16 h-16 flex-shrink-0 rounded-lg border border-dashed border-border-strong bg-surface-sunken',
+              'flex flex-col items-center justify-center gap-0.5',
+              uploading ? 'cursor-wait' : 'cursor-pointer',
+            ].join(' ')}
+          >
+            <Camera size={18} className="text-text-tertiary" />
+            <span className="text-[8px] text-text-tertiary font-semibold">{uploading ? '...' : '추가'}</span>
           </button>
         )}
         {keys.map((key, idx) => (
-          <div key={key} style={{ position:'relative', width:64, height:64, flexShrink:0 }}>
-            <img src={`/api/uploads/${key}`} alt="" style={{ width:64, height:64, objectFit:'cover', borderRadius:8, border:'1px solid var(--bd)' }} />
-            <button onClick={() => setKeys(keys.filter((_,i) => i !== idx))} style={{ position:'absolute', top:-4, right:-4, width:16, height:16, borderRadius:'50%', background:'var(--danger)', color:'#fff', border:'none', fontSize:9, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+          <div key={key} className="relative w-16 h-16 flex-shrink-0">
+            <img
+              src={`/api/uploads/${key}`}
+              alt=""
+              className="w-16 h-16 object-cover rounded-lg border border-border-default"
+            />
+            <button
+              onClick={() => setKeys(keys.filter((_,i) => i !== idx))}
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger text-white border-0 cursor-pointer flex items-center justify-center"
+            >
+              <X size={9} strokeWidth={3} />
+            </button>
           </div>
         ))}
       </div>
