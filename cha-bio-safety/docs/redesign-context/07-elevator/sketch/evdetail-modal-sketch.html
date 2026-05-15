@@ -1,0 +1,1799 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>승강기 관리 재디자인 시안 v0.1.1 — 2D (EvDetailModal — 이력 5탭 + 층별 통계 + 기간 필터 + KIND_STYLE 색)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (elevator-sketch.html / fault-modals-sketch.html / input-modals-sketch.html 과 동일)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* warning 토큰 (2C 신규 — 수리 대상 / 홀 층 칩) */
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+
+      /* alias */
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      /* warning 토큰 (2C 신규 — 수리 대상 / 홀 층 칩) */
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --info:   var(--status-info-bar);
+      --safe:   var(--status-safe-bar);
+      --warn:   var(--status-warning-bar);
+      --danger: var(--status-danger-bar);
+      --fire:   var(--status-fire-bar);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      /* 풀스크린 전용 — 하단 네비 높이 (NAV_H 대응) */
+      --nav-h: 64px;
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 — 인라인 style 회피용
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+
+    /* 2C 신규 — warning 토큰 class */
+    .text-warning  { color: var(--warning); }
+    .bg-warning-bg { background-color: var(--warning-bg); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+    }
+    .viewport-mobile  { width: 375px; height: 812px; }
+    .viewport-desktop { width: 1280px; height: 800px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    /* §6.5 hover */
+    .card-hover { transition: border-color .13s, transform .13s, background-color .13s; }
+    .card-hover:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    /* 페이지 컨테이너 */
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* =====================================================================
+     * EvSelector 공통 CSS — 2A evselector-sketch.html 패턴 100% 재사용
+     * ===================================================================== */
+    .kind-toggle {
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+    }
+    .kind-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color .13s, color .13s;
+      min-height: 44px;
+      background: transparent;
+      color: var(--text-tertiary);
+      border: none;
+    }
+    .kind-btn:hover { background: var(--surface-active); color: var(--text-secondary); }
+    .kind-btn-active { background: var(--accent); color: var(--text-on-accent); }
+    .kind-btn-active:hover { background: var(--accent); color: var(--text-on-accent); }
+    .kind-btn-desktop { min-height: 40px; font-size: 13px; }
+
+    .ev-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      padding: 0 8px;
+      border: 2px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      transition: border-color .13s, transform .13s, background-color .13s;
+    }
+    .ev-btn:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+    .ev-btn-selected {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+    .ev-btn-selected:hover { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
+    .ev-btn-fault {
+      background: var(--status-fire-bg);
+      color: var(--status-fire-bar);
+      border-color: var(--status-fire-bar);
+    }
+    .ev-btn-fault:hover { background: var(--status-fire-bg); color: var(--status-fire-bar); }
+
+    /* =====================================================================
+     * 모달 공통 CSS — 2B fault-modals-sketch.html 패턴 100% 재사용
+     * ===================================================================== */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-overlay);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 16px;
+      overflow-y: auto;
+    }
+    .modal-close-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      padding: 4px;
+      transition: color .13s, background-color .13s;
+    }
+    .modal-close-btn:hover { color: var(--text-primary); background: var(--surface-sunken); }
+
+    /* =====================================================================
+     * 2D 신규 CSS — EvDetailModal 전용
+     * ===================================================================== */
+
+    /* 모바일: 하단 시트 (bottom sheet) — NAV_H=54px */
+    .evdetail-sheet-mobile {
+      position: absolute;
+      bottom: 54px;
+      left: 0;
+      right: 0;
+      background: var(--surface-raised);
+      border-radius: 20px 20px 0 0;
+      max-height: calc(100% - 98px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-top: 1px solid var(--border-default);
+      border-left: 1px solid var(--border-default);
+      border-right: 1px solid var(--border-default);
+    }
+
+    /* 데스크톱: 중앙 팝오버 */
+    .evdetail-modal-desktop {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 720px;
+      max-width: 92%;
+      max-height: 88%;
+      background: var(--surface-raised);
+      border-radius: 14px;
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 모달 헤더 영역 ① */
+    .evdetail-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid var(--border-default);
+      background: var(--surface-raised);
+    }
+    .evdetail-header-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: var(--surface-sunken);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+    .evdetail-header-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .evdetail-header-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 1px;
+    }
+
+    /* 기간 선택 서브헤더 영역 ② */
+    .evdetail-subheader {
+      flex-shrink: 0;
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 섹션 타이틀 */
+    .evdetail-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .evdetail-section-title-inline {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 0;
+    }
+
+    /* 기간 버튼 — 2A ev-btn-selected fill 패턴 */
+    .evdetail-period-btn {
+      flex: 1;
+      padding: 6px 0;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      min-height: 32px;
+      transition: background-color .13s, color .13s;
+    }
+    .evdetail-period-btn:hover {
+      background: var(--surface-active);
+      color: var(--text-secondary);
+    }
+    .evdetail-period-btn-active {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+    .evdetail-period-btn-active:hover {
+      background: var(--accent);
+      color: var(--text-on-accent);
+    }
+
+    /* 스크롤 영역 */
+    .evdetail-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .evdetail-scroll::-webkit-scrollbar { display: none; }
+    .evdetail-scroll { scrollbar-width: none; }
+
+    /* 범례 래퍼 */
+    .evdetail-legend-wrap {
+      margin-left: auto;
+      display: flex;
+      gap: 12px;
+    }
+    /* 범례 아이템 */
+    .evdetail-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    /* 층별 row */
+    .evdetail-floor-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--surface-sunken);
+      border-radius: 9px;
+      margin-bottom: 5px;
+    }
+    .evdetail-floor-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      width: 56px;
+      flex-shrink: 0;
+    }
+    .evdetail-floor-stats {
+      flex: 1;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .evdetail-floor-stat-danger { font-size: 12px; color: var(--status-danger-bar); }
+    .evdetail-floor-stat-warn   { font-size: 12px; color: var(--status-warning-bar); }
+    .evdetail-floor-stat-safe   { font-size: 12px; color: var(--status-safe-bar); }
+
+    /* 점검항목 필터 칩 — 2A ev-btn-selected fill 패턴 */
+    .evdetail-filter-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      min-height: 32px;
+      transition: background-color .13s, color .13s;
+    }
+    .evdetail-filter-chip:hover { background: var(--surface-active); color: var(--text-secondary); }
+    .evdetail-filter-chip-active { background: var(--accent); color: var(--text-on-accent); }
+    .evdetail-filter-chip-active:hover { background: var(--accent); color: var(--text-on-accent); }
+    /* 데스크톱 30px */
+    .evdetail-filter-chip-sm { min-height: 30px; font-size: 12px; }
+
+    /* 이력 탭 — 2A ev-btn-selected fill 패턴 */
+    .evdetail-hist-tab {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      white-space: nowrap;
+      flex-shrink: 0;
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      min-height: 32px;
+      transition: background-color .13s, color .13s;
+    }
+    .evdetail-hist-tab:hover { background: var(--surface-active); color: var(--text-secondary); }
+    .evdetail-hist-tab-active { background: var(--accent); color: var(--text-on-accent); }
+    .evdetail-hist-tab-active:hover { background: var(--accent); color: var(--text-on-accent); }
+    /* 데스크톱 30px */
+    .evdetail-hist-tab-sm { min-height: 30px; font-size: 12px; }
+
+    /* =====================================================================
+     * 이력 카드 — KIND_STYLE 색 매핑 (2D 핵심 결정)
+     * ===================================================================== */
+
+    /* 2D 결정 요약:
+     *   fault   = fire (주황) — 현 코드 danger 에서 변경. 메모리 룰 통일.
+     *   repair  = safe (녹)   — 현 코드 그대로.
+     *   inspect = info (파)   — 현 코드 그대로.
+     *   annual  = text-tertiary 회색 — 현 코드 warn 에서 변경. 검사 분류만, 의미색 X.
+     */
+
+    .evdetail-history-card {
+      padding: 9px 11px 9px 14px; /* 좌측 여백 = 색바 3px + 내부 패딩 11px */
+      background: var(--surface-sunken);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    .evdetail-history-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+    }
+
+    /* fault = fire (주황) */
+    .evdetail-history-card.kind-fault::before  { background: var(--status-fire-bar); }
+    /* repair = safe (녹) */
+    .evdetail-history-card.kind-repair::before { background: var(--status-safe-bar); }
+    /* inspect = info (파) */
+    .evdetail-history-card.kind-inspect::before{ background: var(--status-info-bar); }
+    /* annual = text-tertiary 회색 */
+    .evdetail-history-card.kind-annual::before { background: var(--text-tertiary); }
+
+    /* 종류 라벨 칩 */
+    .kind-chip-fault   { font-size: 12px; font-weight: 700; color: var(--status-fire-bar); }
+    .kind-chip-repair  { font-size: 12px; font-weight: 700; color: var(--status-safe-bar); }
+    .kind-chip-inspect { font-size: 12px; font-weight: 700; color: var(--status-info-bar); }
+    .kind-chip-annual  { font-size: 12px; font-weight: 700; color: var(--text-tertiary); }
+
+    /* 발생층 칩 — info 배경 (2B 패턴 재사용) */
+    .floor-chip-info {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--status-info-bar);
+      background: var(--status-info-bg);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+
+    /* 점검항목 칩 — 회색 배경 */
+    .check-item-chip-grey {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      background: var(--surface-active);
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+
+    /* 이력 카드 날짜 */
+    .evdetail-date {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* 이력 카드 요약 / 상세 */
+    .evdetail-summary { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 4px; }
+    .evdetail-detail  { font-size: 12px; color: var(--text-tertiary); margin-top: 3px; line-height: 1.5; }
+
+    /* 빈 상태 */
+    .evdetail-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 0;
+      gap: 8px;
+    }
+    .evdetail-empty-text { font-size: 13px; color: var(--text-tertiary); }
+    .evdetail-empty-sub  { font-size: 12px; color: var(--text-tertiary); }
+
+    /* ElevatorInfoCard placeholder */
+    .evdetail-info-card-placeholder {
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .evdetail-info-card-hd {
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .evdetail-info-card-bd { background: var(--surface-sunken); padding: 10px 12px; }
+    .evdetail-info-grid-2  { display: grid; grid-template-columns: 112px 1fr; gap: 6px 8px; }
+    .evdetail-info-grid-4  { display: grid; grid-template-columns: 100px 1fr 100px 1fr; gap: 6px 8px; }
+    .evdetail-info-lbl { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+    .evdetail-info-val { font-size: 12px; color: var(--text-primary); }
+
+    /* 하단 네비 (모바일) */
+    .bottom-nav-ph {
+      flex-shrink: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+    }
+    .bnav-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--text-tertiary);
+    }
+    .bnav-icon-lbl { font-size: 12px; font-weight: 500; }
+    .bnav-icon.active { color: var(--accent); }
+
+    /* 데스크톱 사이드바 */
+    .desktop-sidebar-ph {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-right: 1px solid var(--border-default);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      gap: 4px;
+    }
+    .dsk-nav-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background-color .13s, color .13s;
+    }
+    .dsk-nav-item:hover { background: var(--surface-sunken); color: var(--text-secondary); }
+    .dsk-nav-item.active { background: var(--surface-sunken); color: var(--accent); font-weight: 700; }
+
+    /* 데스크톱 상단 헤더 */
+    .desktop-topbar-ph {
+      flex-shrink: 0;
+      height: 52px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 12px;
+    }
+
+    /* 오버레이 */
+    .evdetail-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-overlay);
+    }
+
+    /* 페이지 배경 (모달 뒤) */
+    .page-bg-fade { flex: 1; background: var(--surface-page); padding: 16px; opacity: 0.25; overflow: hidden; }
+
+    /* 아이콘 사이즈 CSS class */
+    .icon-xs  { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-sm  { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-md  { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-lg  { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-close { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* 모바일 페이지 헤더 */
+    .mobile-page-hd {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 헤더 카탈로그 컨텍스트 박스 (meta 페이지 상단) */
+    .cat-box-fire    { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-fire  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-fire-bar); }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-safe-bar); }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--status-info-bar); }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--text-tertiary); }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; }
+
+    /* 섹션 타이틀 (흰색 배경 — meta 페이지) */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 아이콘 카탈로그 박스 */
+    .icon-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .icon-cat-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+    .icon-cat-desc { font-size: 12px; color: var(--text-tertiary); }
+
+    /* §6.1 테이블 그리드 */
+    .color-map-grid {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 8px 16px;
+    }
+
+    /* 에스컬 분기 안내 박스 */
+    .escalator-note {
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      padding: 12px 16px;
+    }
+    .escalator-note-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; }
+    .escalator-note-sub   { font-size: 12px; color: var(--text-tertiary); }
+
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 차수 설명 + KIND_STYLE 결정 요약 (4 박스)
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">승강기 관리 — 2D EvDetailModal</div>
+      <div class="page-section-sub">이력 5탭 + 층별 통계 + 기간 필터 + 점검항목 필터 + KIND_STYLE 색 결정</div>
+    </div>
+    <!-- KIND_STYLE 결정 4색 박스 요약 -->
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-fire">
+        <div class="cat-title-fire">fault — 고장</div>
+        <div class="cat-label-dark">fire (주황)</div>
+        <div class="cat-sub-dark">현 코드: danger → 2D: fire. 메모리 룰 통일.</div>
+      </div>
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">repair — 수리</div>
+        <div class="cat-label-dark">safe (녹)</div>
+        <div class="cat-sub-dark">현 코드 그대로. 수리 완료/정상화.</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">inspect — 점검</div>
+        <div class="cat-label-dark">info (파)</div>
+        <div class="cat-sub-dark">현 코드 그대로. accent 와 다른 톤.</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">annual — 검사</div>
+        <div class="cat-label-dark">회색 (text-tertiary)</div>
+        <div class="cat-sub-dark">현 코드: warn → 2D: 회색. 분류만, 의미색 X.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1 — 📱 모바일 · 다크 · EvDetail (1호기 · 3개월 기본 · 점검필터=도어 · 이력탭=전체)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · EvDetail — 1호기 · 3개월 · 점검필터=도어 · 이력탭=전체</div>
+    <div class="viewport-frame viewport-mobile relative" data-theme="dark">
+
+      <!-- 페이지 배경 (승강기 리스트) -->
+      <div class="page-shell">
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+        </div>
+        <div class="page-bg-fade">
+          <div class="evdetail-floor-row mb-3"><div class="evdetail-floor-label">1호기</div></div>
+          <div class="evdetail-floor-row mb-3"><div class="evdetail-floor-label">2호기</div></div>
+        </div>
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="layout-dashboard" class="icon-md"></i><span class="bnav-icon-lbl">대시보드</span></div>
+          <div class="bnav-icon active"><i data-lucide="building-2" class="icon-md"></i><span class="bnav-icon-lbl">승강기</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-list" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="calendar" class="icon-md"></i><span class="bnav-icon-lbl">근무표</span></div>
+        </div>
+      </div>
+
+      <!-- 오버레이 + 바텀 시트 -->
+      <div class="evdetail-overlay"></div>
+      <div class="evdetail-sheet-mobile">
+
+        <!-- 영역 ① 헤더 (1호기 — passenger → ElevatorIcon SVG) -->
+        <div class="evdetail-header">
+          <div class="evdetail-header-icon">
+            <!-- passenger → ElevatorIcon (커스텀 icons.tsx line 137-148 1:1 embed) -->
+            <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/>
+              <polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/>
+              <line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <!-- 호기 라벨: "1호기" — EV-01 같은 ID 본문 노출 금지 -->
+            <div class="evdetail-header-name">1호기</div>
+            <div class="evdetail-header-sub">B5F-2F · 7개층 · 투명 엘리베이터</div>
+          </div>
+          <button class="modal-close-btn" aria-label="닫기">
+            <i data-lucide="x" class="icon-close"></i>
+          </button>
+        </div>
+
+        <!-- 영역 ② 기간 선택 (3개월 선택) -->
+        <div class="evdetail-subheader bd-b">
+          <div class="evdetail-section-title">조회 기간</div>
+          <div class="flex gap-2">
+            <button class="evdetail-period-btn">1개월</button>
+            <button class="evdetail-period-btn evdetail-period-btn-active">3개월</button>
+            <button class="evdetail-period-btn">6개월</button>
+            <button class="evdetail-period-btn">1년</button>
+          </div>
+          <div class="text-caption text-t3 text-right mt-1 text-mono">2026-02-15 ~ 2026-05-15</div>
+        </div>
+
+        <!-- 스크롤 영역 -->
+        <div class="evdetail-scroll">
+
+          <!-- 영역 ③ ElevatorInfoCard placeholder (compact=true: 2열) -->
+          <div class="evdetail-info-card-placeholder">
+            <div class="evdetail-info-card-hd">
+              <span class="text-caption font-bold text-t1">승강기 정보</span>
+              <span class="text-caption text-t3">아래 스크롤</span>
+            </div>
+            <div class="evdetail-info-card-bd">
+              <div class="evdetail-info-grid-2">
+                <span class="evdetail-info-lbl">호기(설치장소)</span>
+                <span class="evdetail-info-val">1호기 (B5F-2F 투명)</span>
+                <span class="evdetail-info-lbl">형식/종류</span>
+                <span class="evdetail-info-val">MRL Gearless 엘리베이터</span>
+                <span class="evdetail-info-lbl">제조업체</span>
+                <span class="evdetail-info-val">현대엘리베이터(주)</span>
+                <span class="evdetail-info-lbl">유지관리업체</span>
+                <span class="evdetail-info-val">현대엘리베이터(주)</span>
+                <span class="evdetail-info-lbl">운행구간</span>
+                <span class="evdetail-info-val">B5F ~ 2F (7개층)</span>
+                <span class="evdetail-info-lbl">적재하중</span>
+                <span class="evdetail-info-val">1,000 kg</span>
+                <!-- 실제 ElevatorInfoCard 는 12+ 행 · 모바일 maxHeight 170px 자체 스크롤. sketch 는 축약 6행 + 스크롤 표식만 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 영역 ④ 층별 누적 이력 (엘리베이터 — ev.type !== 'escalator' 이므로 표시) -->
+          <div>
+            <div class="flex items-center mb-2">
+              <div class="evdetail-section-title-inline">층별 누적 이력</div>
+              <div class="evdetail-legend-wrap">
+                <!-- 범례: 이모지 제거 → lucide 아이콘 + 토큰 색 -->
+                <span class="evdetail-legend-item text-fire"><i data-lucide="alert-octagon" class="icon-xs"></i>미해결</span>
+                <span class="evdetail-legend-item text-warn"><i data-lucide="alert-triangle" class="icon-xs"></i>이력있음</span>
+                <span class="evdetail-legend-item text-safe"><i data-lucide="check-circle-2" class="icon-xs"></i>이상없음</span>
+              </div>
+            </div>
+            <!-- B5F: 고장 2/미해결 1 → alert-octagon fire -->
+            <div class="evdetail-floor-row">
+              <span class="evdetail-floor-label">B5F</span>
+              <div class="evdetail-floor-stats">
+                <span class="evdetail-floor-stat-danger">고장 2회 (미해결 1)</span>
+                <span class="evdetail-floor-stat-warn">조치지적 1회</span>
+              </div>
+              <i data-lucide="alert-octagon" class="icon-sm text-fire"></i>
+            </div>
+            <!-- B2F: 고장 1 → alert-triangle warn -->
+            <div class="evdetail-floor-row">
+              <span class="evdetail-floor-label">B2F</span>
+              <div class="evdetail-floor-stats">
+                <span class="evdetail-floor-stat-danger">고장 1회</span>
+              </div>
+              <i data-lucide="alert-triangle" class="icon-sm text-warn"></i>
+            </div>
+            <!-- 연1F: 조치 2 → alert-triangle warn -->
+            <div class="evdetail-floor-row">
+              <span class="evdetail-floor-label">연1F</span>
+              <div class="evdetail-floor-stats">
+                <span class="evdetail-floor-stat-warn">조치지적 2회</span>
+              </div>
+              <i data-lucide="alert-triangle" class="icon-sm text-warn"></i>
+            </div>
+            <!-- 이상없음 층(연2F 등)은 floorStats 필터링 조건 fault_total>0||action_count>0 에 의해 목록에서 제외됨 -->
+          </div>
+
+          <!-- 영역 ⑤ 점검항목 필터 (엘리베이터 — ev.type !== 'escalator') — 도어 선택 -->
+          <div>
+            <div class="evdetail-section-title">점검항목 필터</div>
+            <div class="flex gap-1.5 flex-wrap">
+              <button class="evdetail-filter-chip">전체</button>
+              <button class="evdetail-filter-chip evdetail-filter-chip-active">도어</button>
+              <button class="evdetail-filter-chip">브레이크</button>
+              <button class="evdetail-filter-chip">안전장치</button>
+              <button class="evdetail-filter-chip">조명</button>
+              <button class="evdetail-filter-chip">비상통화</button>
+            </div>
+          </div>
+
+          <!-- 영역 ⑥ 이력 리스트 (전체탭 · 3개월 · 도어필터 → 4건) -->
+          <div>
+            <div class="evdetail-section-title">이력</div>
+            <!-- 이력 탭 5개 — overflow-x: auto 가로 스크롤 -->
+            <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+              <button class="evdetail-hist-tab evdetail-hist-tab-active">전체</button>
+              <button class="evdetail-hist-tab">고장</button>
+              <button class="evdetail-hist-tab">수리</button>
+              <button class="evdetail-hist-tab">점검</button>
+              <button class="evdetail-hist-tab">검사</button>
+            </div>
+
+            <!-- fault: 좌측 3px fire + alert-octagon + kind-chip-fault -->
+            <div class="evdetail-history-card kind-fault">
+              <div class="flex items-center gap-1.5 mb-1">
+                <i data-lucide="alert-octagon" class="icon-xs text-fire"></i>
+                <span class="kind-chip-fault">고장</span>
+                <span class="floor-chip-info">B5F</span>
+                <span class="check-item-chip-grey">도어</span>
+                <span class="ml-auto evdetail-date">2026-04-22</span>
+              </div>
+              <div class="evdetail-summary">도어 센서 오류</div>
+              <div class="evdetail-detail">자동닫힘 동작 후 재오픈 반복. 센서 모듈 교체 필요.</div>
+            </div>
+
+            <!-- repair: 좌측 3px safe + wrench + kind-chip-repair -->
+            <div class="evdetail-history-card kind-repair">
+              <div class="flex items-center gap-1.5 mb-1">
+                <i data-lucide="wrench" class="icon-xs text-safe"></i>
+                <span class="kind-chip-repair">수리</span>
+                <span class="floor-chip-info">B5F</span>
+                <span class="ml-auto evdetail-date">2026-04-25</span>
+              </div>
+              <div class="evdetail-summary">도어 센서 교체 완료</div>
+              <div class="evdetail-detail">B5F 도어 센서 모듈 교체. 정상 동작 확인.</div>
+            </div>
+
+            <!-- inspect: 좌측 3px info + clipboard-check + kind-chip-inspect -->
+            <div class="evdetail-history-card kind-inspect">
+              <div class="flex items-center gap-1.5 mb-1">
+                <i data-lucide="clipboard-check" class="icon-xs text-info"></i>
+                <span class="kind-chip-inspect">점검</span>
+                <span class="floor-chip-info">연1F</span>
+                <span class="check-item-chip-grey">도어</span>
+                <span class="ml-auto evdetail-date">2026-03-10</span>
+              </div>
+              <div class="evdetail-summary">월간 정기 점검 — 도어 항목</div>
+              <div class="evdetail-detail">도어 개폐 속도 이상 없음. 연1F 도어 간격 0.3mm 내 이상없음.</div>
+            </div>
+
+            <!-- annual: 좌측 3px text-tertiary + file-search + kind-chip-annual (분류만, 의미색 X) -->
+            <div class="evdetail-history-card kind-annual">
+              <div class="flex items-center gap-1.5 mb-1">
+                <i data-lucide="file-search" class="icon-xs text-t3"></i>
+                <span class="kind-chip-annual">검사</span>
+                <span class="ml-auto evdetail-date">2026-02-20</span>
+              </div>
+              <div class="evdetail-summary">정기검사 — 합격</div>
+              <div class="evdetail-detail">한국승강기안전공단 정기검사. 전 항목 합격 판정.</div>
+            </div>
+
+          </div>
+        </div><!-- /evdetail-scroll -->
+      </div><!-- /evdetail-sheet-mobile -->
+    </div><!-- /viewport-frame -->
+  </section>
+
+
+  <!-- ================================================================
+       VP2 — 📱 모바일 · 라이트 · EvDetail (4호기 · 6개월 · 이력탭=고장 · 점검필터=전체)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 라이트 · EvDetail — 4호기 · 6개월 · 이력탭=고장 · 점검필터=전체</div>
+    <div class="viewport-frame viewport-mobile relative" data-theme="light">
+
+      <div class="page-shell">
+        <div class="mobile-page-hd">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <span class="text-body font-bold text-t1">승강기 관리</span>
+        </div>
+        <div class="page-bg-fade">
+          <div class="evdetail-floor-row mb-3"><div class="evdetail-floor-label">4호기</div></div>
+          <div class="evdetail-floor-row mb-3"><div class="evdetail-floor-label">5호기</div></div>
+        </div>
+        <div class="bottom-nav-ph">
+          <div class="bnav-icon"><i data-lucide="layout-dashboard" class="icon-md"></i><span class="bnav-icon-lbl">대시보드</span></div>
+          <div class="bnav-icon active"><i data-lucide="building-2" class="icon-md"></i><span class="bnav-icon-lbl">승강기</span></div>
+          <div class="bnav-icon"><i data-lucide="clipboard-list" class="icon-md"></i><span class="bnav-icon-lbl">점검</span></div>
+          <div class="bnav-icon"><i data-lucide="calendar" class="icon-md"></i><span class="bnav-icon-lbl">근무표</span></div>
+        </div>
+      </div>
+
+      <div class="evdetail-overlay"></div>
+      <div class="evdetail-sheet-mobile">
+
+        <!-- 영역 ① 헤더 (4호기 — passenger → ElevatorIcon) -->
+        <div class="evdetail-header">
+          <div class="evdetail-header-icon">
+            <!-- passenger → ElevatorIcon SVG (elevator-icon-svg) -->
+            <svg class="elevator-icon-svg icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/>
+              <polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/>
+              <line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <!-- 4호기 — EV-04 같은 ID 본문 노출 금지 -->
+            <div class="evdetail-header-name">4호기</div>
+            <div class="evdetail-header-sub">B3F-사8F · 6개층 · 오렌지 엘리베이터</div>
+          </div>
+          <button class="modal-close-btn" aria-label="닫기">
+            <i data-lucide="x" class="icon-close"></i>
+          </button>
+        </div>
+
+        <!-- 영역 ② 기간 선택 (6개월 선택) -->
+        <div class="evdetail-subheader bd-b">
+          <div class="evdetail-section-title">조회 기간</div>
+          <div class="flex gap-2">
+            <button class="evdetail-period-btn">1개월</button>
+            <button class="evdetail-period-btn">3개월</button>
+            <button class="evdetail-period-btn evdetail-period-btn-active">6개월</button>
+            <button class="evdetail-period-btn">1년</button>
+          </div>
+          <div class="text-caption text-t3 text-right mt-1 text-mono">2025-11-15 ~ 2026-05-15</div>
+        </div>
+
+        <div class="evdetail-scroll">
+
+          <!-- 영역 ③ ElevatorInfoCard placeholder (compact=true: 2열) -->
+          <div class="evdetail-info-card-placeholder">
+            <div class="evdetail-info-card-hd">
+              <span class="text-caption font-bold text-t1">승강기 정보</span>
+              <span class="text-caption text-t3">아래 스크롤</span>
+            </div>
+            <div class="evdetail-info-card-bd">
+              <div class="evdetail-info-grid-2">
+                <span class="evdetail-info-lbl">호기(설치장소)</span>
+                <span class="evdetail-info-val">4호기 (B3F-사8F 오렌지)</span>
+                <span class="evdetail-info-lbl">형식/종류</span>
+                <span class="evdetail-info-val">MRL Gearless 엘리베이터</span>
+                <span class="evdetail-info-lbl">제조업체</span>
+                <span class="evdetail-info-val">현대엘리베이터(주)</span>
+                <span class="evdetail-info-lbl">유지관리업체</span>
+                <span class="evdetail-info-val">현대엘리베이터(주)</span>
+                <span class="evdetail-info-lbl">운행구간</span>
+                <span class="evdetail-info-val">B3F ~ 사8F (6개층)</span>
+                <span class="evdetail-info-lbl">적재하중</span>
+                <span class="evdetail-info-val">1,000 kg</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 영역 ④ 층별 누적 이력 (엘리베이터) -->
+          <div>
+            <div class="flex items-center mb-2">
+              <div class="evdetail-section-title-inline">층별 누적 이력</div>
+              <div class="evdetail-legend-wrap">
+                <span class="evdetail-legend-item text-fire"><i data-lucide="alert-octagon" class="icon-xs"></i>미해결</span>
+                <span class="evdetail-legend-item text-warn"><i data-lucide="alert-triangle" class="icon-xs"></i>이력있음</span>
+                <span class="evdetail-legend-item text-safe"><i data-lucide="check-circle-2" class="icon-xs"></i>이상없음</span>
+              </div>
+            </div>
+            <!-- 6개월 기간 → 사8F 1건 발견 (미해결) -->
+            <div class="evdetail-floor-row">
+              <span class="evdetail-floor-label">사8F</span>
+              <div class="evdetail-floor-stats">
+                <span class="evdetail-floor-stat-danger">고장 1회 (미해결 1)</span>
+              </div>
+              <i data-lucide="alert-octagon" class="icon-sm text-fire"></i>
+            </div>
+          </div>
+
+          <!-- 영역 ⑤ 점검항목 필터 (전체 선택) -->
+          <div>
+            <div class="evdetail-section-title">점검항목 필터</div>
+            <div class="flex gap-1.5 flex-wrap">
+              <button class="evdetail-filter-chip evdetail-filter-chip-active">전체</button>
+              <button class="evdetail-filter-chip">도어</button>
+              <button class="evdetail-filter-chip">브레이크</button>
+              <button class="evdetail-filter-chip">안전장치</button>
+              <button class="evdetail-filter-chip">조명</button>
+              <button class="evdetail-filter-chip">비상통화</button>
+            </div>
+          </div>
+
+          <!-- 영역 ⑥ 이력 리스트 (고장탭 선택 → fault 1건) -->
+          <div>
+            <div class="evdetail-section-title">이력</div>
+            <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+              <button class="evdetail-hist-tab">전체</button>
+              <button class="evdetail-hist-tab evdetail-hist-tab-active">고장</button>
+              <button class="evdetail-hist-tab">수리</button>
+              <button class="evdetail-hist-tab">점검</button>
+              <button class="evdetail-hist-tab">검사</button>
+            </div>
+
+            <!-- fault 1건 (사8F 도어 미해결) -->
+            <div class="evdetail-history-card kind-fault">
+              <div class="flex items-center gap-1.5 mb-1">
+                <i data-lucide="alert-octagon" class="icon-xs text-fire"></i>
+                <span class="kind-chip-fault">고장</span>
+                <span class="floor-chip-info">사8F</span>
+                <span class="check-item-chip-grey">도어</span>
+                <span class="ml-auto evdetail-date">2026-01-08</span>
+              </div>
+              <div class="evdetail-summary">도어 개폐 불량 — 미해결</div>
+              <div class="evdetail-detail">사8F 승강장 도어 완전 닫힘 불량. 교체 부품 발주 대기 중.</div>
+            </div>
+          </div>
+
+        </div><!-- /evdetail-scroll -->
+      </div><!-- /evdetail-sheet-mobile -->
+    </div><!-- /viewport-frame -->
+  </section>
+
+
+  <!-- ================================================================
+       VP3 — 🖥️ 데스크톱 · 다크 · EvDetail (11호기 덤웨이터 · 1년 · 이력탭=검사 · 빈 상태)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP3 · 데스크톱 · 다크 · EvDetail — 11호기 덤웨이터 · 1년 · 이력탭=검사 · 빈상태</div>
+    <div class="viewport-frame viewport-desktop relative" data-theme="dark">
+      <div class="desktop-shell">
+
+        <!-- 데스크톱 사이드바 -->
+        <div class="desktop-sidebar-ph">
+          <div class="dsk-nav-item"><i data-lucide="layout-dashboard" class="icon-sm"></i>대시보드</div>
+          <div class="dsk-nav-item active"><i data-lucide="building-2" class="icon-sm"></i>승강기</div>
+          <div class="dsk-nav-item"><i data-lucide="clipboard-list" class="icon-sm"></i>점검</div>
+          <div class="dsk-nav-item"><i data-lucide="calendar" class="icon-sm"></i>근무표</div>
+          <div class="dsk-nav-item"><i data-lucide="user" class="icon-sm"></i>내 정보</div>
+        </div>
+
+        <!-- 메인 영역 -->
+        <div class="flex-1 flex flex-col relative">
+          <div class="desktop-topbar-ph">
+            <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="text-body font-bold text-t1">승강기 관리</span>
+          </div>
+          <div class="page-bg-fade">
+            <div class="grid grid-cols-4 gap-3">
+              <div class="evdetail-floor-row">덤웨이터</div>
+              <div class="evdetail-floor-row">1호기</div>
+            </div>
+          </div>
+
+          <div class="evdetail-overlay"></div>
+
+          <!-- 데스크톱 중앙 팝오버 -->
+          <div class="evdetail-modal-desktop">
+
+            <!-- 영역 ① 헤더 (11호기 덤웨이터 — dumbwaiter → UtensilsCrossed) -->
+            <div class="evdetail-header">
+              <div class="evdetail-header-icon">
+                <!-- dumbwaiter → UtensilsCrossed (lucide) -->
+                <i data-lucide="utensils-crossed" class="icon-md"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <!-- 11호기 — EV-11 같은 ID 본문 노출 금지 -->
+                <div class="evdetail-header-name">11호기</div>
+                <div class="evdetail-header-sub">B1F식당-2F하역장 · 덤웨이터</div>
+              </div>
+              <button class="modal-close-btn" aria-label="닫기">
+                <i data-lucide="x" class="icon-close"></i>
+              </button>
+            </div>
+
+            <!-- 영역 ② 기간 선택 (1년 선택) -->
+            <div class="evdetail-subheader bd-b">
+              <div class="evdetail-section-title">조회 기간</div>
+              <div class="flex gap-2">
+                <button class="evdetail-period-btn">1개월</button>
+                <button class="evdetail-period-btn">3개월</button>
+                <button class="evdetail-period-btn">6개월</button>
+                <button class="evdetail-period-btn evdetail-period-btn-active">1년</button>
+              </div>
+              <div class="text-caption text-t3 text-right mt-1 text-mono">2025-05-15 ~ 2026-05-15</div>
+            </div>
+
+            <!-- 스크롤 영역 (2열 레이아웃) -->
+            <div class="evdetail-scroll">
+              <div class="grid grid-cols-2 gap-4">
+
+                <!-- 좌측 컬럼 -->
+                <div class="flex flex-col gap-3">
+
+                  <!-- 영역 ③ ElevatorInfoCard placeholder (데스크톱 compact=false: 4열) -->
+                  <div class="evdetail-info-card-placeholder">
+                    <div class="evdetail-info-card-hd">
+                      <span class="text-caption font-bold text-t1">승강기 정보</span>
+                    </div>
+                    <div class="evdetail-info-card-bd">
+                      <div class="evdetail-info-grid-4">
+                        <span class="evdetail-info-lbl">호기(설치장소)</span>
+                        <span class="evdetail-info-val">11호기 (식당-하역)</span>
+                        <span class="evdetail-info-lbl">형식/종류</span>
+                        <span class="evdetail-info-val">덤웨이터</span>
+                        <span class="evdetail-info-lbl">제조업체</span>
+                        <span class="evdetail-info-val">OTIS Elevator</span>
+                        <span class="evdetail-info-lbl">유지관리업체</span>
+                        <span class="evdetail-info-val">OTIS Korea</span>
+                        <span class="evdetail-info-lbl">적재하중</span>
+                        <span class="evdetail-info-val">200 kg</span>
+                        <span class="evdetail-info-lbl">운행구간</span>
+                        <span class="evdetail-info-val">B1F식당 ~ 2F하역장</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 영역 ④ 층별 누적 이력 (덤웨이터 — ev.type !== 'escalator' 이므로 표시) -->
+                  <div>
+                    <div class="flex items-center mb-2">
+                      <div class="evdetail-section-title-inline">층별 누적 이력</div>
+                      <div class="evdetail-legend-wrap">
+                        <span class="evdetail-legend-item text-fire"><i data-lucide="alert-octagon" class="icon-xs"></i>미해결</span>
+                        <span class="evdetail-legend-item text-warn"><i data-lucide="alert-triangle" class="icon-xs"></i>이력있음</span>
+                        <span class="evdetail-legend-item text-safe"><i data-lucide="check-circle-2" class="icon-xs"></i>이상없음</span>
+                      </div>
+                    </div>
+                    <div class="evdetail-floor-row">
+                      <span class="evdetail-floor-label">B1F식당</span>
+                      <div class="evdetail-floor-stats">
+                        <span class="evdetail-floor-stat-danger">고장 1회</span>
+                      </div>
+                      <i data-lucide="alert-triangle" class="icon-sm text-warn"></i>
+                    </div>
+                  </div>
+
+                  <!-- 영역 ⑤ 점검항목 필터 (전체 선택) -->
+                  <div>
+                    <div class="evdetail-section-title">점검항목 필터</div>
+                    <div class="flex gap-1.5 flex-wrap">
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm evdetail-filter-chip-active">전체</button>
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm">도어</button>
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm">브레이크</button>
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm">안전장치</button>
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm">조명</button>
+                      <button class="evdetail-filter-chip evdetail-filter-chip-sm">비상통화</button>
+                    </div>
+                  </div>
+
+                </div><!-- /좌측 컬럼 -->
+
+                <!-- 우측 컬럼 — 이력 리스트 -->
+                <div>
+                  <!-- 영역 ⑥ 이력 리스트 (검사탭 → 빈 상태) -->
+                  <!-- 덤웨이터는 KOELSA 정기검사 비대상 → annual 0건 -->
+                  <div class="evdetail-section-title">이력</div>
+                  <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">전체</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">고장</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">수리</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">점검</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm evdetail-hist-tab-active">검사</button>
+                  </div>
+
+                  <!-- 빈 상태 — FileSearch 아이콘 -->
+                  <div class="evdetail-empty">
+                    <i data-lucide="file-search" class="icon-xl text-t3"></i>
+                    <span class="evdetail-empty-text">해당 이력이 없어요</span>
+                    <span class="evdetail-empty-sub">덤웨이터는 KOELSA 정기검사 비대상</span>
+                  </div>
+                </div>
+
+              </div><!-- /grid -->
+            </div><!-- /evdetail-scroll -->
+          </div><!-- /evdetail-modal-desktop -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4 — 🖥️ 데스크톱 · 라이트 · EvDetail (5호기 에스컬 · 1개월 · 이력탭=전체 · 층별통계/점검필터 숨김)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">🖥️ VP4 · 데스크톱 · 라이트 · EvDetail — 5호기 에스컬 · 1개월 · 점검필터/층별통계 영역 숨김</div>
+    <div class="viewport-frame viewport-desktop relative" data-theme="light">
+      <div class="desktop-shell">
+
+        <div class="desktop-sidebar-ph">
+          <div class="dsk-nav-item"><i data-lucide="layout-dashboard" class="icon-sm"></i>대시보드</div>
+          <div class="dsk-nav-item active"><i data-lucide="building-2" class="icon-sm"></i>승강기</div>
+          <div class="dsk-nav-item"><i data-lucide="clipboard-list" class="icon-sm"></i>점검</div>
+          <div class="dsk-nav-item"><i data-lucide="calendar" class="icon-sm"></i>근무표</div>
+          <div class="dsk-nav-item"><i data-lucide="user" class="icon-sm"></i>내 정보</div>
+        </div>
+
+        <div class="flex-1 flex flex-col relative">
+          <div class="desktop-topbar-ph">
+            <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/><line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/><polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/><line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+            <span class="text-body font-bold text-t1">승강기 관리</span>
+          </div>
+          <div class="page-bg-fade">
+            <div class="grid grid-cols-4 gap-3">
+              <div class="evdetail-floor-row">에스컬레이터</div>
+              <div class="evdetail-floor-row">1호기</div>
+            </div>
+          </div>
+
+          <div class="evdetail-overlay"></div>
+
+          <div class="evdetail-modal-desktop">
+
+            <!-- 영역 ① 헤더 (5호기 에스컬 — escalator → MoveDiagonal) -->
+            <div class="evdetail-header">
+              <div class="evdetail-header-icon">
+                <!-- escalator → MoveDiagonal (lucide) -->
+                <i data-lucide="move-diagonal" class="icon-md"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <!-- 5호기 — ES-01 같은 ID 본문 노출 금지 -->
+                <div class="evdetail-header-name">5호기</div>
+                <div class="evdetail-header-sub">1-2F · 동측 에스컬레이터</div>
+              </div>
+              <button class="modal-close-btn" aria-label="닫기">
+                <i data-lucide="x" class="icon-close"></i>
+              </button>
+            </div>
+
+            <!-- 영역 ② 기간 선택 (1개월 선택) -->
+            <div class="evdetail-subheader bd-b">
+              <div class="evdetail-section-title">조회 기간</div>
+              <div class="flex gap-2">
+                <button class="evdetail-period-btn evdetail-period-btn-active">1개월</button>
+                <button class="evdetail-period-btn">3개월</button>
+                <button class="evdetail-period-btn">6개월</button>
+                <button class="evdetail-period-btn">1년</button>
+              </div>
+              <div class="text-caption text-t3 text-right mt-1 text-mono">2026-04-15 ~ 2026-05-15</div>
+            </div>
+
+            <div class="evdetail-scroll">
+              <div class="grid grid-cols-2 gap-4">
+
+                <div class="flex flex-col gap-3">
+
+                  <!-- 영역 ③ ElevatorInfoCard placeholder (에스컬레이터 필드) -->
+                  <div class="evdetail-info-card-placeholder">
+                    <div class="evdetail-info-card-hd">
+                      <span class="text-caption font-bold text-t1">승강기 정보</span>
+                    </div>
+                    <div class="evdetail-info-card-bd">
+                      <div class="evdetail-info-grid-4">
+                        <span class="evdetail-info-lbl">호기(설치장소)</span>
+                        <span class="evdetail-info-val">5호기 (동측 1-2F)</span>
+                        <span class="evdetail-info-lbl">형식/종류</span>
+                        <span class="evdetail-info-val">에스컬레이터</span>
+                        <span class="evdetail-info-lbl">제조업체</span>
+                        <span class="evdetail-info-val">TKE (티센크룹)</span>
+                        <span class="evdetail-info-lbl">유지관리업체</span>
+                        <span class="evdetail-info-val">TKE Korea</span>
+                        <span class="evdetail-info-lbl">최대수용능력</span>
+                        <span class="evdetail-info-val">9,000 명/h</span>
+                        <span class="evdetail-info-lbl">경사 각도</span>
+                        <span class="evdetail-info-val">30°</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 영역 ④ 층별 누적 이력 — escalator 분기로 숨김 -->
+                  <!-- VP4: ev.type !== 'escalator' → false → 층별 통계 영역 미노출 -->
+                  <div class="escalator-note">
+                    <div class="escalator-note-title">층별 누적 이력 — 숨김</div>
+                    <div class="escalator-note-sub">ev.type !== 'escalator' → false → 영역 미노출 (코드 분기)</div>
+                  </div>
+
+                  <!-- 영역 ⑤ 점검항목 필터 — escalator 분기로 숨김 -->
+                  <!-- VP4: ev.type !== 'escalator' → false → 점검항목 필터 영역 미노출 -->
+                  <div class="escalator-note">
+                    <div class="escalator-note-title">점검항목 필터 — 숨김</div>
+                    <div class="escalator-note-sub">ev.type !== 'escalator' → false → 영역 미노출 (코드 분기)</div>
+                  </div>
+
+                </div><!-- /좌측 -->
+
+                <!-- 우측 컬럼 — 이력 리스트 (에스컬도 이력은 표시) -->
+                <div>
+                  <!-- 영역 ⑥ 이력 리스트 (전체탭 · 1개월 · 에스컬 → 2건) -->
+                  <div class="evdetail-section-title">이력</div>
+                  <div class="flex gap-1.5 mb-3 overflow-x-auto no-scrollbar">
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm evdetail-hist-tab-active">전체</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">고장</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">수리</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">점검</button>
+                    <button class="evdetail-hist-tab evdetail-hist-tab-sm">검사</button>
+                  </div>
+
+                  <!-- fault 1건 (1F 체인 소음) -->
+                  <div class="evdetail-history-card kind-fault">
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <i data-lucide="alert-octagon" class="icon-xs text-fire"></i>
+                      <span class="kind-chip-fault">고장</span>
+                      <span class="floor-chip-info">1F</span>
+                      <span class="ml-auto evdetail-date">2026-05-03</span>
+                    </div>
+                    <div class="evdetail-summary">체인 소음 이상</div>
+                    <div class="evdetail-detail">동측 에스컬레이터 체인 이상 소음 감지. 점검 예약 완료.</div>
+                  </div>
+
+                  <!-- inspect 1건 (5호기 월간 점검) -->
+                  <div class="evdetail-history-card kind-inspect">
+                    <div class="flex items-center gap-1.5 mb-1">
+                      <i data-lucide="clipboard-check" class="icon-xs text-info"></i>
+                      <span class="kind-chip-inspect">점검</span>
+                      <span class="ml-auto evdetail-date">2026-04-28</span>
+                    </div>
+                    <div class="evdetail-summary">월간 정기 점검 — 이상없음</div>
+                    <div class="evdetail-detail">에스컬레이터 전체 항목 점검. 이상없음 판정.</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div><!-- /evdetail-modal-desktop -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       KIND_STYLE 색 결정 카탈로그 (2D) — 4 row
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3" id="kind-style-catalog">
+    <div class="meta-label">KIND_STYLE 색 결정 카탈로그 (2D) — fault=fire / repair=safe / inspect=info / annual=secondary 회색</div>
+    <div class="rounded-2xl p-6 space-y-4 bg-raised bd" data-theme="dark">
+
+      <div>
+        <div class="text-title font-bold text-t1">KIND_STYLE 색 매핑 — 코드 vs 2D sketch 결정</div>
+        <div class="text-body-sm text-t2 mt-2">
+          ElevatorPage.tsx line 1745-1750 현 코드의 KIND_STYLE 색을 v0.1.1 색 의미 단계화에 맞춰 정정.
+          §6.1 색 의미 단순화 — fire 는 호기 고장 미수리 의미로 고정 (메모리 룰), 검사(annual)는 분류만 의미색 X.
+        </div>
+      </div>
+
+      <!-- fault = fire (현 코드: danger) -->
+      <div class="evdetail-history-card kind-fault" data-theme="dark">
+        <div class="flex items-center gap-2">
+          <i data-lucide="alert-octagon" class="icon-sm text-fire"></i>
+          <span class="text-body font-bold text-fire">fault — 고장</span>
+          <span class="ml-auto text-caption text-t3 text-mono">
+            현 코드: <span class="text-danger">danger</span> → 2D: <strong class="text-fire">fire (주황)</strong>
+          </span>
+        </div>
+        <div class="evdetail-detail mt-2">
+          메모리 룰 "fire 의미 = 호기 고장 미수리" 통일. list 색바 · EvDetail 이력 색바 · FaultNew CTA 모두 fire 그라디언트와 일관.
+          danger 는 즉시 위험 (FaultNew 승객 탑승 ON / 미해결 카운트 텍스트) 전용으로 분리.
+        </div>
+      </div>
+
+      <!-- repair = safe (코드 그대로 유지) -->
+      <div class="evdetail-history-card kind-repair" data-theme="dark">
+        <div class="flex items-center gap-2">
+          <i data-lucide="wrench" class="icon-sm text-safe"></i>
+          <span class="text-body font-bold text-safe">repair — 수리</span>
+          <span class="ml-auto text-caption text-t3 text-mono">
+            현 코드: <span class="text-safe">safe</span> → 2D: <strong class="text-safe">safe (녹) 유지</strong>
+          </span>
+        </div>
+        <div class="evdetail-detail mt-2">
+          "수리 완료 / 정상화" 의미 적합. 코드 그대로 safe 토큰 유지. 수리 이력 = 문제 해결됨 = 녹색 직관.
+        </div>
+      </div>
+
+      <!-- inspect = info (코드 그대로 유지) -->
+      <div class="evdetail-history-card kind-inspect" data-theme="dark">
+        <div class="flex items-center gap-2">
+          <i data-lucide="clipboard-check" class="icon-sm text-info"></i>
+          <span class="text-body font-bold text-info">inspect — 점검</span>
+          <span class="ml-auto text-caption text-t3 text-mono">
+            현 코드: <span class="text-info">info</span> → 2D: <strong class="text-info">info (파) 유지</strong>
+          </span>
+        </div>
+        <div class="evdetail-detail mt-2">
+          accent (브랜드 파) 와 다른 톤으로 구분. 발생층 칩도 info-bg + text-info 일관. 점검 = 정기적 확인 행위 = 중립적 파란색.
+        </div>
+      </div>
+
+      <!-- annual = text-tertiary 회색 (현 코드 warn 에서 변경) -->
+      <div class="evdetail-history-card kind-annual" data-theme="dark">
+        <div class="flex items-center gap-2">
+          <i data-lucide="file-search" class="icon-sm text-t3"></i>
+          <span class="text-body font-bold text-t3">annual — 검사</span>
+          <span class="ml-auto text-caption text-t3 text-mono">
+            현 코드: <span class="text-warn">warn</span> → 2D: <strong class="text-t3">text-tertiary 회색</strong>
+          </span>
+        </div>
+        <div class="evdetail-detail mt-2">
+          KOELSA 외부 데이터 — 분류만, 의미색 X. warn 은 "주의/위험 임박" 의미로 reserve.
+          §6.2 룰: 위험 임계치 아닌 카드에 status 색 금지. 검사 결과 합격/불합격은 summary 텍스트로만 표현.
+        </div>
+      </div>
+
+      <!-- §6.1 색 의미 전체 매핑 표 -->
+      <div class="rounded-lg bg-sunken bd p-4 mt-4">
+        <div class="text-label font-bold text-t2 mb-3">§6.1 색 의미 전체 매핑 (2A/2B/2C/2D 누적 최종)</div>
+        <div class="color-map-grid">
+          <span class="text-caption font-bold text-fire">fire 주황</span>
+          <span class="text-caption text-t2">호기 고장 미수리 — list 색바 + EvDetail fault 이력 색바 + FaultNew CTA</span>
+          <span class="text-caption font-bold text-danger">danger 적</span>
+          <span class="text-caption text-t2">즉시 위험 — FaultNew 승객 탑승 ON / 미해결 카운트 텍스트</span>
+          <span class="text-caption font-bold text-warn">warn 황</span>
+          <span class="text-caption text-t2">이력 있음 (층별 통계) / 수리 대상 작업 (RepairNew 토글)</span>
+          <span class="text-caption font-bold text-safe">safe 녹</span>
+          <span class="text-caption text-t2">정상 / 수리 완료 이력 색바</span>
+          <span class="text-caption font-bold text-info">info 파</span>
+          <span class="text-caption text-t2">점검 이력 색바 + 발생층 칩 (accent 와 다른 톤)</span>
+          <span class="text-caption font-bold text-acl">accent 파</span>
+          <span class="text-caption text-t2">선택 (호기 / 기간 / 필터 / 이력 탭) + 저장 CTA</span>
+          <span class="text-caption font-bold text-t3">회색 t3</span>
+          <span class="text-caption text-t2">검사(annual) 이력 색바 — 분류만, 의미색 X (KOELSA 외부 데이터)</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       TYPE_ICON_COMPONENT 매퍼 카탈로그 (헤더 아이콘 4종)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">TYPE_ICON_COMPONENT 매퍼 카탈로그 — passenger / cargo / dumbwaiter / escalator</div>
+    <div class="rounded-2xl p-6 bg-raised bd" data-theme="dark">
+      <div class="text-label font-bold text-t2 mb-4">EvDetail 헤더 아이콘 매핑 (ElevatorPage.tsx line 197-202)</div>
+      <div class="flex gap-6 flex-wrap">
+
+        <!-- passenger → ElevatorIcon SVG (커스텀 icons.tsx) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-12 h-12 bg-sunken rounded-xl flex items-center justify-content-center text-t2 flex items-center justify-center">
+            <svg class="elevator-icon-svg icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+              <line x1="12" y1="3" x2="12" y2="21"/>
+              <polyline points="6.5 9 8 7 9.5 9"/>
+              <polyline points="14.5 15 16 17 17.5 15"/>
+              <line x1="8" y1="7" x2="8" y2="11"/>
+              <line x1="16" y1="13" x2="16" y2="17"/>
+            </svg>
+          </div>
+          <span class="text-caption text-t2 font-bold">passenger</span>
+          <span class="text-caption text-t3">ElevatorIcon (커스텀)</span>
+        </div>
+
+        <!-- cargo → Package (lucide) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-12 h-12 bg-sunken rounded-xl flex items-center justify-center text-t2">
+            <i data-lucide="package" class="icon-lg"></i>
+          </div>
+          <span class="text-caption text-t2 font-bold">cargo</span>
+          <span class="text-caption text-t3">Package (lucide)</span>
+        </div>
+
+        <!-- dumbwaiter → UtensilsCrossed (lucide) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-12 h-12 bg-sunken rounded-xl flex items-center justify-center text-t2">
+            <i data-lucide="utensils-crossed" class="icon-lg"></i>
+          </div>
+          <span class="text-caption text-t2 font-bold">dumbwaiter</span>
+          <span class="text-caption text-t3">UtensilsCrossed (lucide)</span>
+        </div>
+
+        <!-- escalator → MoveDiagonal (lucide) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="w-12 h-12 bg-sunken rounded-xl flex items-center justify-center text-t2">
+            <i data-lucide="move-diagonal" class="icon-lg"></i>
+          </div>
+          <span class="text-caption text-t2 font-bold">escalator</span>
+          <span class="text-caption text-t3">MoveDiagonal (lucide)</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       아이콘 enumeration — 9종 모두 포함 확인
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">아이콘 enumeration — 9종 모두 포함 확인</div>
+    <div class="rounded-2xl p-6 bg-raised bd" data-theme="dark">
+      <div class="text-label font-bold text-t2 mb-4">2D EvDetailModal 사용 아이콘 전체 목록</div>
+      <div class="grid grid-cols-3 gap-3">
+
+        <!-- 1. ElevatorIcon SVG (커스텀 icons.tsx 1:1 embed) -->
+        <div class="icon-cat-row">
+          <svg class="elevator-icon-svg icon-md text-t2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="3" width="16" height="18" rx="1.5"/>
+            <line x1="12" y1="3" x2="12" y2="21"/>
+            <polyline points="6.5 9 8 7 9.5 9"/>
+            <polyline points="14.5 15 16 17 17.5 15"/>
+            <line x1="8" y1="7" x2="8" y2="11"/>
+            <line x1="16" y1="13" x2="16" y2="17"/>
+          </svg>
+          <div><div class="icon-cat-name">ElevatorIcon SVG</div><div class="icon-cat-desc">passenger 헤더 (커스텀)</div></div>
+        </div>
+
+        <!-- 2. Package — cargo 헤더 -->
+        <div class="icon-cat-row">
+          <i data-lucide="package" class="icon-md text-t2"></i>
+          <div><div class="icon-cat-name">Package</div><div class="icon-cat-desc">cargo 헤더 아이콘</div></div>
+        </div>
+
+        <!-- 3. UtensilsCrossed — dumbwaiter 헤더 -->
+        <div class="icon-cat-row">
+          <i data-lucide="utensils-crossed" class="icon-md text-t2"></i>
+          <div><div class="icon-cat-name">UtensilsCrossed</div><div class="icon-cat-desc">dumbwaiter 헤더 아이콘</div></div>
+        </div>
+
+        <!-- 4. MoveDiagonal — escalator 헤더 -->
+        <div class="icon-cat-row">
+          <i data-lucide="move-diagonal" class="icon-md text-t2"></i>
+          <div><div class="icon-cat-name">MoveDiagonal</div><div class="icon-cat-desc">escalator 헤더 아이콘</div></div>
+        </div>
+
+        <!-- 5. X — 닫기 버튼 (2B 패턴 재사용) -->
+        <div class="icon-cat-row">
+          <i data-lucide="x" class="icon-md text-t3"></i>
+          <div><div class="icon-cat-name">X (닫기)</div><div class="icon-cat-desc">modal-close-btn (2B 패턴)</div></div>
+        </div>
+
+        <!-- 6. CheckCircle2 — 층별 통계 이상없음 범례 -->
+        <div class="icon-cat-row">
+          <i data-lucide="check-circle-2" class="icon-md text-safe"></i>
+          <div><div class="icon-cat-name">CheckCircle2</div><div class="icon-cat-desc">층별 이상없음 범례 (safe)</div></div>
+        </div>
+
+        <!-- 7. AlertTriangle — 층별 통계 이력있음 범례 -->
+        <div class="icon-cat-row">
+          <i data-lucide="alert-triangle" class="icon-md text-warn"></i>
+          <div><div class="icon-cat-name">AlertTriangle</div><div class="icon-cat-desc">층별 이력있음 범례 (warn)</div></div>
+        </div>
+
+        <!-- 8. AlertOctagon — 층별 미해결 범례 + fault 이력 카드 -->
+        <div class="icon-cat-row">
+          <i data-lucide="alert-octagon" class="icon-md text-fire"></i>
+          <div><div class="icon-cat-name">AlertOctagon</div><div class="icon-cat-desc">미해결 범례 + fault 카드 (fire)</div></div>
+        </div>
+
+        <!-- 9. FileSearch — 빈 상태 + annual 이력 카드 -->
+        <div class="icon-cat-row">
+          <i data-lucide="file-search" class="icon-md text-t3"></i>
+          <div><div class="icon-cat-name">FileSearch</div><div class="icon-cat-desc">빈 상태 + annual 이력 (회색)</div></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
