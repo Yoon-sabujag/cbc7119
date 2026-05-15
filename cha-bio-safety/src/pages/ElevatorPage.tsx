@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2, Camera, Loader2 } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -1142,56 +1142,71 @@ export default function ElevatorPage() {
         {/* ── 고장 기록 ── */}
         {tab === 'fault' && (
           <>
-            {faults.length === 0 && <EmptyState icon="✅" text="고장 기록이 없어요" />}
+            {faults.length === 0 && <EmptyState icon={<CheckCircle2 size={36} className="text-safe" />} text="고장 기록이 없어요" />}
             {faults.map(f => {
               const isEs = f.elevator_type === 'escalator'
               const floorMatch     = f.symptoms.match(/^\[([^\]]+)\]/)
               const passengerMatch = f.symptoms.includes('[승객탑승]')
               const pureSymptoms   = f.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
               const floorLabel     = floorMatch ? floorMatch[1] : null
+              const TypeIcon       = TYPE_ICON_COMPONENT[f.elevator_type]
 
               return (
-                <div key={f.id} style={{ background:'var(--bg2)', border:`1px solid ${f.is_resolved?'var(--bd)':'rgba(239,68,68,.3)'}`, borderRadius:12, padding:'10px 12px', display:'flex', alignItems:'center', gap:10, minHeight:72 }}>
-
+                <div
+                  key={f.id}
+                  className={[
+                    'relative bg-surface-raised rounded-md overflow-hidden flex items-center gap-2.5 min-h-[72px]',
+                    'pl-3.5 pr-3 py-2.5',
+                    'before:content-[""] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-[3px]',
+                    f.is_resolved
+                      ? 'border border-border-default before:bg-safe-bar'
+                      : 'border border-fire-bar/40 before:bg-fire-bar',
+                  ].join(' ')}
+                >
                   {/* 아이콘 */}
-                  <div style={{ width:52, height:52, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:36 }}>
-                    {TYPE_ICON[f.elevator_type]}
+                  <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center bg-surface-sunken rounded-md text-text-secondary">
+                    {TypeIcon ? <TypeIcon size={22} /> : <Wrench size={22} />}
                   </div>
 
                   {/* 호기+발생층 / 증상 */}
-                  <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', justifyContent:'center', gap:3 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{f.elevator_number}호기</span>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-[3px]">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={['text-body-sm font-bold', f.is_resolved ? 'text-text-primary' : 'text-fire'].join(' ')}>{f.elevator_number}호기</span>
                       {!isEs && floorLabel && (
-                        <span style={{ fontSize:11, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.12)', padding:'2px 7px', borderRadius:8 }}>{floorLabel}</span>
+                        <span className="text-caption font-bold text-info bg-info-bg px-[7px] py-0.5 rounded-sm">{floorLabel}</span>
                       )}
                       {!isEs && passengerMatch && (
-                        <span style={{ fontSize:10, fontWeight:700, color:'var(--danger)', background:'rgba(239,68,68,.12)', padding:'2px 6px', borderRadius:8 }}>승객🚨</span>
+                        <span className="inline-flex items-center gap-1 text-caption font-bold text-danger bg-danger-bg px-[7px] py-0.5 rounded-sm">
+                          <AlertTriangle size={12} />
+                          승객
+                        </span>
                       )}
                     </div>
-                    <div style={{ fontSize:13, color:'var(--t2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{pureSymptoms}</div>
-                    <div style={{ fontSize:10, color:'var(--t3)' }}>{fmtKstDateTime(f.fault_at)}</div>
+                    <div className="text-label text-text-secondary overflow-hidden text-ellipsis whitespace-nowrap">{pureSymptoms}</div>
+                    <div className="text-caption text-text-tertiary font-mono tabular-nums">{fmtKstDateTime(f.fault_at)}</div>
                   </div>
 
                   {/* 수리내역 or "고장 수리 중" */}
-                  <div style={{ flexShrink:0, maxWidth:90, textAlign:'right' }}>
+                  <div className="flex-shrink-0 max-w-[96px] text-right flex flex-col gap-0.5">
                     {f.is_resolved && f.repair_detail
-                      ? <span style={{ fontSize:13, color:'var(--safe)', fontWeight:600, lineHeight:1.4 }}>{f.repair_detail}</span>
-                      : <span style={{ fontSize:13, color:'var(--danger)', fontWeight:700 }}>고장 수리 중</span>
+                      ? <span className="text-label font-semibold text-safe leading-snug">{f.repair_detail}</span>
+                      : <span className="text-label font-bold text-fire leading-snug">고장<br/>수리 중</span>
                     }
                   </div>
 
-                  {/* 수리완료 버튼(정사각형) or ✅ */}
+                  {/* 수리완료 버튼(정사각형) or CheckCircle2 */}
                   {!f.is_resolved ? (
                     <button
                       onClick={() => { setSelectedFault(f); setModal('fault_resolve') }}
-                      style={{ flexShrink:0, width:52, height:52, borderRadius:10, border:'none', cursor:'pointer', background:'rgba(34,197,94,.15)', color:'var(--safe)', fontSize:10, fontWeight:700, whiteSpace:'pre-line', textAlign:'center', lineHeight:1.4 }}
+                      className="flex-shrink-0 w-[52px] h-[52px] rounded-md border border-safe-bar/30 cursor-pointer bg-safe-bg text-safe text-caption font-bold whitespace-pre-line text-center leading-snug"
                     >{'수리\n내용\n입력'}</button>
                   ) : (
-                    <div style={{ flexShrink:0, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                      <div style={{ width:52, height:52, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>✅</div>
+                    <div className="flex-shrink-0 flex flex-col items-center gap-1">
+                      <div className="w-11 h-11 flex items-center justify-center text-safe">
+                        <CheckCircle2 size={24} />
+                      </div>
                       {isAdmin && (
-                        <button onClick={() => deleteRecord('fault', f.id)} style={{ fontSize:9, color:'var(--danger)', background:'none', border:'none', cursor:'pointer', fontWeight:600, opacity:0.6 }}>삭제</button>
+                        <button onClick={() => deleteRecord('fault', f.id)} className="text-caption text-danger bg-transparent border-0 cursor-pointer font-semibold opacity-70 hover:opacity-100 p-0">삭제</button>
                       )}
                     </div>
                   )}
@@ -1608,17 +1623,25 @@ export default function ElevatorPage() {
 
       {/* ── FAB 버튼 (BottomNav 바로 위, flex 형제) ── */}
       {(tab === 'fault' || tab === 'repair') && (
-        <div style={{ flexShrink:0, padding:'8px 12px', background:'var(--bg)' }}>
+        <div className="flex-shrink-0 px-3 py-2 bg-surface-page">
           {tab === 'fault' && (
-            <button onClick={() => { setSelectedEv(null); setModal('fault_new') }}
-              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#991b1b,#ef4444)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(239,68,68,.4)' }}>
-              🚨 고장 접수
+            <button
+              onClick={() => { setSelectedEv(null); setModal('fault_new') }}
+              className="w-full h-[52px] rounded-lg border-0 cursor-pointer text-white text-label font-bold inline-flex items-center justify-center gap-1.5"
+              style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', boxShadow:'0 4px 16px rgba(239,68,68,.4)' }}
+            >
+              <AlertTriangle size={18} />
+              고장 접수
             </button>
           )}
           {tab === 'repair' && (
-            <button onClick={() => { setSelectedEv(null); setModal('repair_new') }}
-              style={{ width:'100%', height:52, borderRadius:14, border:'none', cursor:'pointer', background:'linear-gradient(135deg,#854d0e,#eab308)', color:'#fff', fontSize:13, fontWeight:700, boxShadow:'0 4px 16px rgba(234,179,8,.4)' }}>
-              🔧 수리 기록 입력
+            <button
+              onClick={() => { setSelectedEv(null); setModal('repair_new') }}
+              className="w-full h-[52px] rounded-lg border-0 cursor-pointer text-white text-label font-bold inline-flex items-center justify-center gap-1.5"
+              style={{ background:'linear-gradient(135deg, var(--accent-active), var(--accent))', boxShadow:'0 4px 16px rgba(59,130,246,.4)' }}
+            >
+              <Wrench size={18} />
+              수리 기록 입력
             </button>
           )}
         </div>
@@ -2557,10 +2580,10 @@ function Field({ label, children, style }: { label:string; children:React.ReactN
     </div>
   )
 }
-function EmptyState({ icon, text }: { icon:string; text:string }) {
+function EmptyState({ icon, text }: { icon:React.ReactNode; text:string }) {
   return (
     <div className="flex flex-col items-center justify-center py-10 gap-2.5">
-      <div className="text-[36px]">{icon}</div>
+      <div className="text-text-tertiary">{icon}</div>
       <div className="text-body-sm text-text-tertiary">{text}</div>
     </div>
   )
@@ -2788,13 +2811,6 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
 }
 
 // ── 스타일 ────────────────────────────────────────────────
-const inputSt: React.CSSProperties = {
-  width:'100%', padding:'10px 12px', borderRadius:9,
-  background:'var(--bg3)', border:'1px solid var(--bd2)',
-  color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit',
-  boxSizing:'border-box', minWidth:0,
-  WebkitAppearance:'none', appearance:'none',
-}
 function smBtn(color: string): React.CSSProperties {
   return {
     padding:'5px 12px', borderRadius:8, border:`1px solid ${color}33`,
@@ -2844,12 +2860,12 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
     const keys = csv.split(',').filter(Boolean)
     if (!keys.length) return null
     return (
-      <div style={{ marginTop:8 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:4 }}>{label} ({keys.length})</div>
-        <div style={{ display:'flex', gap:4, overflowX:'auto' }}>
+      <div className="mt-2">
+        <div className="text-caption font-bold text-text-tertiary mb-1">{label} ({keys.length})</div>
+        <div className="flex gap-1 overflow-x-auto">
           {keys.map((k, i) => (
             <img key={k} src={`/api/uploads/${k}`} alt="" onClick={() => setViewerSrc(`/api/uploads/${k}`)}
-              style={{ width:56, height:56, objectFit:'cover', borderRadius:6, border:'1px solid var(--bd)', cursor:'pointer', flexShrink:0 }}
+              className="w-14 h-14 object-cover rounded-sm border border-border-default cursor-pointer flex-shrink-0"
             />
           ))}
         </div>
@@ -2862,60 +2878,87 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
       {viewerSrc && <RepairImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
 
       {/* 필터 바 */}
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:8, flexShrink:0 }}>
-        <select value={evType} onChange={e => { setEvType(e.target.value as any); setFilterEv('') }} style={{ ...inputSt, flex:'1 1 90px', fontSize:11 }}>
+      <div className="flex gap-1.5 flex-wrap mb-2 flex-shrink-0">
+        <select
+          value={evType}
+          onChange={e => { setEvType(e.target.value as any); setFilterEv('') }}
+          className="flex-[1_1_90px] min-w-0 box-border appearance-none h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent cursor-pointer"
+        >
           <option value="">전체 유형</option>
           <option value="elevator">엘리베이터</option>
           <option value="escalator">에스컬레이터</option>
         </select>
-        <select value={filterEv} onChange={e => setFilterEv(e.target.value)} style={{ ...inputSt, flex:'1 1 100px', fontSize:11 }}>
+        <select
+          value={filterEv}
+          onChange={e => setFilterEv(e.target.value)}
+          className="flex-[1_1_100px] min-w-0 box-border appearance-none h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent cursor-pointer"
+        >
           <option value="">전체 호기</option>
           {filteredElevators.map(e => <option key={e.id} value={e.id}>{e.number}호기 ({e.location})</option>)}
         </select>
-        <input value={keyword} onChange={e => setKeyword(e.target.value)} placeholder="부품, 호기, 층, 대상 검색..." style={{ ...inputSt, flex:'2 1 100px', fontSize:11 }} />
+        <input
+          value={keyword}
+          onChange={e => setKeyword(e.target.value)}
+          placeholder="부품, 호기, 층, 대상 검색..."
+          className="flex-[2_1_100px] min-w-0 box-border h-9 px-2.5 rounded-md bg-surface-sunken border border-border-default text-text-primary text-label outline-none focus:border-accent placeholder:text-text-tertiary"
+        />
       </div>
 
-      {isLoading && <EmptyState icon="⏳" text="불러오는 중..." />}
-      {!isLoading && repairs.length === 0 && <EmptyState icon="🔧" text="수리 내역이 없어요" />}
+      {isLoading && <EmptyState icon={<Loader2 size={36} className="animate-spin" />} text="불러오는 중..." />}
+      {!isLoading && repairs.length === 0 && <EmptyState icon={<Wrench size={36} />} text="수리 내역이 없어요" />}
 
       {repairs.map((r: any) => {
         const st = SOURCE_TYPE_LABEL[r.sourceType] ?? SOURCE_TYPE_LABEL.standalone
         const isExpanded = expandedId === r.id
+        const RowIcon = TYPE_ICON_COMPONENT[r.elevatorType]
         return (
-          <div key={r.id} style={{ background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:12, overflow:'hidden', flexShrink:0, marginBottom:2 }}>
-            <div onClick={() => setExpandedId(isExpanded ? null : r.id)} style={{ padding:'10px 12px', display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-              <div style={{ width:36, height:36, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>
-                {TYPE_ICON[r.elevatorType] ?? '🔧'}
+          <div key={r.id} className="bg-surface-raised border border-border-default rounded-md overflow-hidden flex-shrink-0 mb-0.5">
+            <div onClick={() => setExpandedId(isExpanded ? null : r.id)} className="px-3 py-2.5 flex items-center gap-2 cursor-pointer">
+              <div className="w-9 h-9 flex-shrink-0 flex items-center justify-center bg-surface-sunken rounded-sm text-text-secondary">
+                {RowIcon ? <RowIcon size={20} /> : <Wrench size={20} />}
               </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:5, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{r.elevatorNumber}호기</span>
-                  <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:5, background:`${st.color}18`, color:st.color }}>{st.label}</span>
-                  {r.target && <span style={{ fontSize:9, fontWeight:600, padding:'1px 5px', borderRadius:5, background:'var(--bg3)', color:'var(--t3)' }}>{REPAIR_TARGET_LABEL[r.target]}{r.hallFloor ? ` ${r.hallFloor}` : ''}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-label font-bold text-text-primary">{r.elevatorNumber}호기</span>
+                  <span
+                    className="text-caption font-bold px-1.5 py-0.5 rounded-sm"
+                    style={{ background: st.color + '18', color: st.color }}
+                  >
+                    {st.label}
+                  </span>
+                  {r.target && (
+                    <span className="text-caption font-semibold px-1.5 py-0.5 rounded-sm bg-surface-sunken text-text-tertiary">
+                      {REPAIR_TARGET_LABEL[r.target]}{r.hallFloor ? ` ${r.hallFloor}` : ''}
+                    </span>
+                  )}
                 </div>
-                <div style={{ fontSize:12, color:'var(--t1)', marginTop:2, fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.title}</div>
-                <div style={{ fontSize:10, color:'var(--t3)', marginTop:1 }}>
-                  {r.date}{r.company ? ` · ${r.company}` : ''}
-                  {r.photos && ' · 📷'}
+                <div className="text-label text-text-primary mt-0.5 font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{r.title}</div>
+                <div className="text-caption text-text-tertiary mt-px inline-flex items-center gap-1 flex-wrap">
+                  <span>{r.date}</span>
+                  {r.company && <><span>·</span><span>{r.company}</span></>}
+                  {r.photos && <><span>·</span><Camera size={12} /></>}
                 </div>
               </div>
-              <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t3)" strokeWidth={2} style={{ flexShrink:0, transform: isExpanded ? 'rotate(90deg)' : 'none', transition:'transform 0.15s' }}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+              <ChevronRight
+                size={14}
+                className={['flex-shrink-0 text-text-tertiary transition-transform duration-150', isExpanded ? 'rotate-90' : ''].join(' ')}
+              />
             </div>
 
             {isExpanded && (
-              <div style={{ padding:'0 12px 12px', borderTop:'1px solid var(--bd)' }}>
+              <div className="px-3 pb-3 border-t border-border-default">
                 {r.detail && (
-                  <div style={{ paddingTop:10, fontSize:12, color:'var(--t2)', lineHeight:1.5, whiteSpace:'pre-wrap' }}>{r.detail}</div>
+                  <div className="pt-2.5 text-label text-text-secondary leading-relaxed whitespace-pre-wrap">{r.detail}</div>
                 )}
                 {renderPhotos('부품 입고', r.partsArrivalPhotos)}
                 {renderPhotos('파손 부품', r.damagedPartsPhotos)}
                 {renderPhotos('수리 중', r.duringRepairPhotos)}
                 {renderPhotos('수리 완료 / 조치 사진', r.completedPhotos)}
                 {r.sourceType === 'standalone' && (
-                  <div style={{ display:'flex', gap:8, marginTop:10 }}>
+                  <div className="flex gap-2 mt-2.5">
                     <button
                       onClick={() => { setEditRepair(r); setExpandedId(null) }}
-                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(59,130,246,0.08)', border:'1px solid rgba(59,130,246,0.2)', color:'var(--info)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                      className="flex-1 py-2 rounded-md border border-info-bar/30 bg-info-bg text-info text-label font-semibold cursor-pointer"
                     >
                       수정
                     </button>
@@ -2929,7 +2972,7 @@ function RepairListSection({ elevators, navigate }: { elevators: Elevator[]; nav
                           setExpandedId(null)
                         } catch { toast.error('삭제 실패') }
                       }}
-                      style={{ flex:1, padding:'8px 0', borderRadius:8, background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)', color:'var(--danger)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                      className="flex-1 py-2 rounded-md border border-danger-bar/30 bg-danger-bg text-danger text-label font-semibold cursor-pointer"
                     >
                       삭제
                     </button>
