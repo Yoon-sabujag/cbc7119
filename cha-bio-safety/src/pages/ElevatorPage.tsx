@@ -13,7 +13,7 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { fmtKstDate, fmtKstDateTime, nowKstLocal } from '../utils/datetime'
 import { KoelsaHistorySection } from '../components/KoelsaHistorySection'
 import { fetchInspectHistory } from '../utils/inspectHistory'
-import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, AlertTriangle, Wrench } from 'lucide-react'
+import { Package, UtensilsCrossed, MoveDiagonal, ChevronRight, ChevronUp, ChevronDown, AlertTriangle, Wrench, X, AlertOctagon, ClipboardCheck, FileSearch, CheckCircle2 } from 'lucide-react'
 import { ElevatorIcon } from '../components/ui/icons'
 
 const NAV_H = 'calc(54px + env(safe-area-inset-bottom, 20px))'
@@ -92,7 +92,7 @@ interface ElevatorInspection {
   parent_inspection_id?: string
 }
 type Tab   = 'list' | 'fault' | 'repair' | 'inspect' | 'annual' | 'safety'
-type Modal = null | 'fault_new' | 'fault_resolve' | 'inspect_new' | 'repair_new' | 'ev_detail'
+type Modal = null | 'fault_new' | 'fault_resolve' | 'repair_new' | 'ev_detail'
 type EvKind = '' | 'elevator' | 'escalator'
 
 // 호기 상세 이력 타입
@@ -479,33 +479,6 @@ export default function ElevatorPage() {
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey:['elevators'] }); qc.invalidateQueries({ queryKey:['elevator_faults'] }); setModal(null); toast.success('수리 완료') },
     onError:   () => toast.error('처리 실패'),
-  })
-  const submitInspect = useMutation({
-    mutationFn: async (body: any) => {
-      const token = useAuthStore.getState().token
-      const res = await fetch('/api/elevators/inspections', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` },
-        body:JSON.stringify(body),
-      })
-      const json = await res.json() as any
-      if (!res.ok || !json.success) throw new Error(json.error || '저장 실패')
-      // 조건부합격/불합격 시 지적사항 자동 생성
-      if (body.findings?.length && json.data?.id && body.elevatorId) {
-        for (const f of body.findings) {
-          await elevatorInspectionApi.createFinding(body.elevatorId, json.data.id, {
-            description: f.description,
-            location: f.location || undefined,
-          })
-        }
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey:['elevators'] })
-      qc.invalidateQueries({ queryKey:['elevator_inspections'] })
-      setModal(null); toast.success('기록 저장 완료')
-    },
-    onError: (e: any) => toast.error(e?.message || '저장 실패'),
   })
 
   const unresolvedCount = faults.filter(f => !f.is_resolved).length
@@ -1668,7 +1641,6 @@ export default function ElevatorPage() {
             />
       )}
       {modal === 'fault_resolve'&& <FaultResolveModal fault={selectedFault!}                     onClose={() => setModal(null)} onSubmit={b => resolveFault.mutate(b)} loading={resolveFault.isPending} />}
-      {modal === 'inspect_new'  && <InspectModal      elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} onSubmit={b => submitInspect.mutate(b)} loading={submitInspect.isPending} />}
       {modal === 'repair_new'  && <RepairNewModal    elevators={elevators} selected={selectedEv} onClose={() => setModal(null)} />}
       {modal === 'ev_detail'    && detailEv && <EvDetailModal ev={detailEv} onClose={() => { setModal(null); setDetailEv(null) }} />}
     </div>
@@ -1743,88 +1715,128 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
     return kindOk && checkOk
   }).sort((a,b) => b.date.localeCompare(a.date))
 
-  const KIND_STYLE: Record<string,{color:string;label:string;icon:string}> = {
-    fault:   { color:'var(--danger)', label:'고장',  icon:'🔴' },
-    repair:  { color:'var(--safe)',   label:'수리',  icon:'🔧' },
-    inspect: { color:'var(--info)',   label:'점검',  icon:'📋' },
-    annual:  { color:'var(--warn)',   label:'검사',  icon:'🔍' },
+  const KIND_STYLE: Record<string, {
+    textCls: string;
+    barCls:  string;
+    label:   string;
+    Icon:    React.ComponentType<{ size?: number | string; className?: string }>;
+  }> = {
+    fault:   { textCls:'text-fire',          barCls:'bg-fire-bar',          label:'고장',  Icon: AlertOctagon },
+    repair:  { textCls:'text-safe',          barCls:'bg-safe-bar',          label:'수리',  Icon: Wrench },
+    inspect: { textCls:'text-info',          barCls:'bg-info-bar',          label:'점검',  Icon: ClipboardCheck },
+    annual:  { textCls:'text-text-tertiary', barCls:'bg-text-tertiary',     label:'검사',  Icon: FileSearch },
   }
 
   return (
     <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:90 }} />
-      <div style={
-        isDesktop
-          ? { position:'fixed', top:'50%', left:'50%', transform:'translate(-50%, -50%)', zIndex:100, background:'var(--bg2)', borderRadius:14, width:720, maxWidth:'92vw', maxHeight:'88vh', display:'flex', flexDirection:'column', overflowX:'hidden', border:'1px solid var(--bd2)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
-          : { position:'fixed', bottom:NAV_H, left:0, right:0, zIndex:100, background:'var(--bg2)', borderRadius:'20px 20px 0 0', maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)', display:'flex', flexDirection:'column', overflowX:'hidden' }
-      }>
+      <div
+        onClick={onClose}
+        className="bg-surface-overlay"
+        style={{ position:'fixed', inset:0, zIndex:90 }}
+      />
+      <div
+        className={
+          isDesktop
+            ? 'fixed z-[100] bg-surface-raised rounded-2xl w-[720px] max-w-[92vw] max-h-[88vh] flex flex-col overflow-x-hidden border border-border-strong'
+            : 'fixed z-[100] left-0 right-0 bg-surface-raised rounded-t-[20px] flex flex-col overflow-x-hidden'
+        }
+        style={
+          isDesktop
+            ? { top:'50%', left:'50%', transform:'translate(-50%, -50%)', boxShadow:'0 20px 60px rgba(0,0,0,.5)' }
+            : { bottom:NAV_H, maxHeight:'calc(100dvh - var(--sat, 44px) - var(--sab, 0px) - 54px)' }
+        }
+      >
 
         {/* 헤더 */}
-        <div style={{ flexShrink:0, padding:'14px 16px 12px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:36, height:36, borderRadius:9, background:'var(--bg3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, flexShrink:0 }}>
-            {TYPE_ICON[ev.type]}
-          </div>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{ev.number}호기</div>
-            <div style={{ fontSize:10, color:'var(--t3)' }}>{ev.location}</div>
-          </div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
-        </div>
+        {(() => {
+          const TypeIcon = TYPE_ICON_COMPONENT[ev.type]
+          return (
+            <div className="flex-shrink-0 px-4 pt-[14px] pb-3 border-b border-border-default flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-surface-sunken flex items-center justify-center flex-shrink-0">
+                <TypeIcon size={20} className="text-text-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-body-sm font-bold text-text-primary">{ev.number}호기</div>
+                <div className="text-caption text-text-tertiary">{ev.location}</div>
+              </div>
+              <button onClick={onClose} className="bg-transparent border-0 text-text-tertiary cursor-pointer flex items-center justify-center p-1">
+                <X size={20} />
+              </button>
+            </div>
+          )
+        })()}
 
         {/* 기간 선택 */}
-        <div style={{ flexShrink:0, padding:'10px 16px 8px', borderBottom:'1px solid var(--bd)' }}>
-          <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>조회 기간</div>
-          <div style={{ display:'flex', gap:6 }}>
+        <div className="flex-shrink-0 px-4 pt-2.5 pb-2 border-b border-border-default">
+          <div className="text-caption font-bold text-text-tertiary mb-1.5">조회 기간</div>
+          <div className="flex gap-1.5">
             {PERIOD_OPTIONS.map((p,i) => (
-              <button key={i} onClick={() => setPeriodIdx(i)} style={{
-                flex:1, padding:'6px 0', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                background: periodIdx===i ? 'var(--acl)' : 'var(--bg3)',
-                color:      periodIdx===i ? '#fff'       : 'var(--t3)',
-              }}>{p.label}</button>
+              <button
+                key={i}
+                onClick={() => setPeriodIdx(i)}
+                className={
+                  'flex-1 py-1.5 rounded-md border-0 cursor-pointer text-label font-bold ' +
+                  (periodIdx===i
+                    ? 'bg-accent text-text-on-accent'
+                    : 'bg-surface-sunken text-text-tertiary')
+                }
+              >
+                {p.label}
+              </button>
             ))}
           </div>
-          <div style={{ fontSize:10, color:'var(--t3)', marginTop:5, textAlign:'right' }}>{from} ~ {to}</div>
+          <div className="text-caption text-text-tertiary mt-1.5 text-right font-mono">{from} ~ {to}</div>
         </div>
 
         {/* 스크롤 영역 */}
-        <div style={{ flex:1, minHeight:0, overflowY:'auto', WebkitOverflowScrolling:'touch', overscrollBehavior:'contain', padding:'12px 16px', display:'flex', flexDirection:'column', gap:14 } as React.CSSProperties}>
+        <div
+          className="flex-1 min-h-0 overflow-y-auto px-4 py-3 flex flex-col gap-[14px]"
+          style={{ WebkitOverflowScrolling:'touch', overscrollBehavior:'contain' } as React.CSSProperties}
+        >
 
           {/* 승강기 정보 (검사성적서 상단 양식) */}
           <ElevatorInfoCard ev={ev} compact={!isDesktop} />
 
           {isLoading ? (
-            <div style={{ textAlign:'center', padding:'30px 0', color:'var(--t3)', fontSize:13 }}>불러오는 중...</div>
+            <div className="text-center py-[30px] text-text-tertiary text-label">불러오는 중...</div>
           ) : (
             <>
               {/* 층별 누적 이력 */}
               {ev.type !== 'escalator' && (
                 <div>
-                  <div style={{ display:'flex', alignItems:'center', marginBottom:8 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>층별 누적 이력</div>
-                    <div style={{ marginLeft:'auto', display:'flex', gap:8, fontSize:10, color:'var(--t3)' }}>
-                      <span>🔴 미해결</span>
-                      <span>⚠️ 이력있음</span>
-                      <span>✅ 이상없음</span>
+                  <div className="flex items-center mb-2">
+                    <div className="text-label font-bold text-text-secondary">층별 누적 이력</div>
+                    <div className="ml-auto flex gap-2 text-caption text-text-tertiary">
+                      <span className="inline-flex items-center gap-1 text-fire"><AlertOctagon size={12} />미해결</span>
+                      <span className="inline-flex items-center gap-1 text-warning"><AlertTriangle size={12} />이력있음</span>
+                      <span className="inline-flex items-center gap-1 text-safe"><CheckCircle2 size={12} />이상없음</span>
                     </div>
                   </div>
                   {floorStats.length === 0 ? (
-                    <div style={{ fontSize:12, color:'var(--t3)', padding:'10px 0' }}>해당 기간 이상 없음 ✅</div>
+                    <div className="inline-flex items-center gap-1.5 text-caption text-text-tertiary py-2.5">
+                      <CheckCircle2 size={14} className="text-safe" />
+                      해당 기간 이상 없음
+                    </div>
                   ) : (
                     floorStats.map(s => (
-                      <div key={s.floor} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
-                        <span style={{ fontSize:12, fontWeight:700, color:'var(--t1)', width:56, flexShrink:0 }}>{s.floor}</span>
-                        <div style={{ flex:1, display:'flex', gap:10, flexWrap:'wrap' }}>
+                      <div key={s.floor} className="flex items-center gap-2 px-2.5 py-1.5 bg-surface-sunken rounded-lg mb-1.5">
+                        <span className="text-caption font-bold text-text-primary w-14 flex-shrink-0">{s.floor}</span>
+                        <div className="flex-1 flex gap-2.5 flex-wrap">
                           {s.fault_total > 0 && (
-                            <span style={{ fontSize:11, color:'var(--danger)' }}>
+                            <span className="text-label text-danger">
                               고장 {s.fault_total}회{s.fault_unresolved > 0 ? ` (미해결 ${s.fault_unresolved})` : ''}
                             </span>
                           )}
                           {s.action_count > 0 && (
-                            <span style={{ fontSize:11, color:'var(--warn)' }}>조치지적 {s.action_count}회</span>
+                            <span className="text-label text-warning">조치지적 {s.action_count}회</span>
                           )}
                         </div>
-                        <span style={{ fontSize:16 }}>
-                          {s.fault_unresolved > 0 ? '🔴' : s.fault_total > 0 || s.action_count > 0 ? '⚠️' : '✅'}
+                        <span className="flex items-center">
+                          {s.fault_unresolved > 0
+                            ? <AlertOctagon size={16} className="text-fire" />
+                            : (s.fault_total > 0 || s.action_count > 0)
+                              ? <AlertTriangle size={16} className="text-warning" />
+                              : <CheckCircle2 size={16} className="text-safe" />}
                         </span>
                       </div>
                     ))
@@ -1835,14 +1847,21 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
               {/* 점검항목 필터 */}
               {ev.type !== 'escalator' && (
                 <div>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>점검항목 필터</div>
-                  <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                  <div className="text-label font-bold text-text-secondary mb-2">점검항목 필터</div>
+                  <div className="flex gap-1.5 flex-wrap">
                     {['all','brake','door','safety_device','lighting','emergency_call'].map(k => (
-                      <button key={k} onClick={() => setCheckFilter(k)} style={{
-                        padding:'5px 10px', borderRadius:20, border:'none', cursor:'pointer', fontSize:10, fontWeight:700,
-                        background: checkFilter===k ? 'var(--acl)' : 'var(--bg3)',
-                        color:      checkFilter===k ? '#fff'       : 'var(--t3)',
-                      }}>{k==='all' ? '전체' : CHECK_ITEM_LABELS[k]}</button>
+                      <button
+                        key={k}
+                        onClick={() => setCheckFilter(k)}
+                        className={
+                          'px-2.5 py-1 rounded-full border-0 cursor-pointer text-caption font-bold ' +
+                          (checkFilter===k
+                            ? 'bg-accent text-text-on-accent'
+                            : 'bg-surface-sunken text-text-tertiary')
+                        }
+                      >
+                        {k==='all' ? '전체' : CHECK_ITEM_LABELS[k]}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -1850,34 +1869,52 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
 
               {/* 이력 리스트 */}
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>이력</div>
+                <div className="text-label font-bold text-text-secondary mb-2">이력</div>
                 {/* 이력 탭 */}
-                <div style={{ display:'flex', gap:5, marginBottom:10, overflowX:'auto' }}>
+                <div className="flex gap-1.5 mb-2.5 overflow-x-auto">
                   {HISTORY_TABS.map(t => (
-                    <button key={t.key} onClick={() => setHistTab(t.key)} style={{
-                      padding:'5px 12px', borderRadius:20, border:'none', cursor:'pointer', fontSize:11, fontWeight:700, whiteSpace:'nowrap', flexShrink:0,
-                      background: histTab===t.key ? 'var(--acl)' : 'var(--bg3)',
-                      color:      histTab===t.key ? '#fff'       : 'var(--t3)',
-                    }}>{t.label}</button>
+                    <button
+                      key={t.key}
+                      onClick={() => setHistTab(t.key)}
+                      className={
+                        'px-3 py-1 rounded-full border-0 cursor-pointer text-label font-bold whitespace-nowrap flex-shrink-0 ' +
+                        (histTab===t.key
+                          ? 'bg-accent text-text-on-accent'
+                          : 'bg-surface-sunken text-text-tertiary')
+                      }
+                    >
+                      {t.label}
+                    </button>
                   ))}
                 </div>
 
                 {filtered.length === 0 ? (
-                  <div style={{ textAlign:'center', padding:'20px 0', color:'var(--t3)', fontSize:12 }}>해당 이력이 없어요</div>
+                  <div className="flex flex-col items-center justify-center py-5 gap-2">
+                    <FileSearch size={28} className="text-text-tertiary" />
+                    <span className="text-caption text-text-tertiary">해당 이력이 없어요</span>
+                  </div>
                 ) : (
                   filtered.map(h => {
                     const ks = KIND_STYLE[h.kind] ?? KIND_STYLE.inspect
+                    const KsIcon = ks.Icon
                     return (
-                      <div key={h.id} style={{ padding:'9px 11px', background:'var(--bg3)', borderRadius:10, marginBottom:6, borderLeft:`3px solid ${ks.color}` }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-                          <span style={{ fontSize:11 }}>{ks.icon}</span>
-                          <span style={{ fontSize:11, fontWeight:700, color:ks.color }}>{ks.label}</span>
-                          {h.floor && <span style={{ fontSize:10, fontWeight:700, color:'var(--info)', background:'rgba(14,165,233,.12)', padding:'1px 6px', borderRadius:6 }}>{h.floor}</span>}
-                          {h.check_item && <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg4)', padding:'1px 6px', borderRadius:6 }}>{CHECK_ITEM_LABELS[h.check_item] ?? h.check_item}</span>}
-                          <span style={{ marginLeft:'auto', fontSize:10, color:'var(--t3)', fontFamily:'JetBrains Mono, monospace' }}>{h.date.slice(0,10)}</span>
+                      <div key={h.id} className="relative pl-3 pr-2.5 py-2 bg-surface-sunken rounded-xl mb-1.5 overflow-hidden">
+                        <span className={'absolute left-0 top-0 bottom-0 w-[3px] ' + ks.barCls} />
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          <KsIcon size={12} className={ks.textCls} />
+                          <span className={'text-caption font-bold ' + ks.textCls}>{ks.label}</span>
+                          {h.floor && (
+                            <span className="text-caption font-bold text-info bg-info-bg px-1.5 py-0.5 rounded-md">{h.floor}</span>
+                          )}
+                          {h.check_item && (
+                            <span className="text-caption text-text-tertiary bg-surface-raised px-1.5 py-0.5 rounded-md">
+                              {CHECK_ITEM_LABELS[h.check_item] ?? h.check_item}
+                            </span>
+                          )}
+                          <span className="ml-auto text-caption text-text-tertiary font-mono">{h.date.slice(0,10)}</span>
                         </div>
-                        <div style={{ fontSize:12, color:'var(--t1)', fontWeight:600 }}>{h.summary}</div>
-                        {h.detail && <div style={{ fontSize:11, color:'var(--t3)', marginTop:3 }}>{h.detail}</div>}
+                        <div className="text-caption text-text-primary font-semibold">{h.summary}</div>
+                        {h.detail && <div className="text-caption text-text-tertiary mt-1">{h.detail}</div>}
                       </div>
                     )
                   })
@@ -1895,16 +1932,19 @@ function EvDetailModal({ ev, onClose }: { ev:Elevator; onClose:()=>void }) {
 function EsBtn({ id, label, dir, isDown, selected, onSelect }: {
   id:string; label:string; dir:string; isDown:boolean; selected:boolean; onSelect:(id:string)=>void
 }) {
-  const color = isDown ? 'var(--danger)' : 'var(--safe)'
   return (
-    <button onClick={() => onSelect(id)} style={{
-      flex:1, padding:'10px 6px', borderRadius:9, border:'none', cursor:'pointer',
-      background: selected ? (isDown?'rgba(239,68,68,.2)':'rgba(34,197,94,.2)') : 'var(--bg2)',
-      outline: selected ? `2px solid ${color}` : 'none',
-      display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-    }}>
-      <span style={{ fontSize:13, fontWeight:700, color:selected?color:'var(--t1)' }}>{label}</span>
-      <span style={{ fontSize:10, color, fontWeight:600 }}>{isDown?'▼':'▲'} {dir}</span>
+    <button
+      onClick={() => onSelect(id)}
+      className={`flex-1 px-1.5 py-2.5 rounded-[9px] border-0 cursor-pointer flex flex-col items-center gap-[3px] ${
+        selected
+          ? 'bg-accent text-text-on-accent outline outline-2 outline-accent'
+          : 'bg-surface-sunken text-text-primary'
+      }`}
+    >
+      <span className="text-label font-bold">{label}</span>
+      <span className="text-caption font-semibold inline-flex items-center gap-1">
+        {isDown ? <ChevronDown size={12} /> : <ChevronUp size={12} />} {dir}
+      </span>
     </button>
   )
 }
@@ -1912,19 +1952,19 @@ function EsBtn({ id, label, dir, isDown, selected, onSelect }: {
 // ── 에스컬 노선도 ─────────────────────────────────────────
 function EsNodeMap({ nodes, elevatorId, onSelect }: { nodes:EsNode[]; elevatorId:string; onSelect:(id:string)=>void }) {
   return (
-    <div style={{ background:'var(--bg3)', borderRadius:12, padding:'14px 10px', position:'relative' }}>
-      <div style={{ position:'absolute', left:'50%', top:20, bottom:20, width:1, background:'var(--bd2)', transform:'translateX(-50%)' }} />
+    <div className="bg-surface-sunken rounded-xl px-[10px] py-[14px] relative">
+      <div className="absolute left-1/2 top-5 bottom-5 w-px bg-border-default -translate-x-1/2" />
       {nodes.map((node, idx) => (
         <div key={idx}>
           {/* 층 레이블 */}
           {node.floor && (
-            <div style={{ textAlign:'center', fontSize:12, fontWeight:700, color:'var(--t2)', marginBottom:8, position:'relative', zIndex:1 }}>
+            <div className="text-center text-caption font-bold text-text-secondary mb-2 relative z-10">
               {node.floor}
             </div>
           )}
           {/* 버튼 행 */}
           {node.left && node.right && (
-            <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+            <div className="flex gap-2 mb-2.5">
               <EsBtn id={node.left.id} label={node.left.label} dir={node.left.dir} isDown selected={elevatorId===node.left.id} onSelect={onSelect} />
               <EsBtn id={node.right.id} label={node.right.label} dir={node.right.dir} isDown={false} selected={elevatorId===node.right.id} onSelect={onSelect} />
             </div>
@@ -1946,38 +1986,59 @@ function EvSelector({ elevators, evKind, setEvKind, elevatorId, setElevatorId, g
   return (
     <>
       <div>
-        <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>종류 선택</div>
-        <div style={{ display:'flex', gap:8 }}>
-          {[{ val:'elevator', label:'🛗 엘리베이터' }, { val:'escalator', label:'↕️ 에스컬레이터' }].map(opt => (
-            <button key={opt.val} onClick={() => { setEvKind(opt.val as EvKind); setElevatorId('') }} style={{
-              flex:1, padding:'12px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:13, fontWeight:700,
-              background: evKind === opt.val ? 'var(--acl)' : 'var(--bg3)',
-              color:      evKind === opt.val ? '#fff'       : 'var(--t2)',
-            }}>{opt.label}</button>
-          ))}
+        <div className="text-caption font-bold text-text-secondary mb-[7px]">종류 선택</div>
+        <div className="flex gap-2">
+          {[
+            { val: 'elevator',  label: '엘리베이터',   Icon: ElevatorIcon },
+            { val: 'escalator', label: '에스컬레이터', Icon: MoveDiagonal },
+          ].map(opt => {
+            const Icon = opt.Icon
+            const active = evKind === opt.val
+            return (
+              <button
+                key={opt.val}
+                onClick={() => { setEvKind(opt.val as EvKind); setElevatorId('') }}
+                className={`flex-1 py-3 rounded-[10px] border-0 cursor-pointer text-label font-bold inline-flex items-center justify-center gap-2 ${
+                  active ? 'bg-accent text-text-on-accent' : 'bg-surface-sunken text-text-secondary'
+                }`}
+              >
+                <Icon size={18} />
+                {opt.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {evKind === 'elevator' && (
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>호기 선택</div>
+          <div className="text-caption font-bold text-text-secondary mb-2">호기 선택</div>
           {groups.map(group => {
             const groupEvs = group.ids.map(id => evList.find(e => e.id === id)).filter(Boolean) as Elevator[]
             if (!groupEvs.length) return null
             return (
-              <div key={group.title} style={{ marginBottom:12 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'var(--t3)', marginBottom:6 }}>{group.title}</div>
-                <div style={{ display:'grid', gridTemplateColumns:`repeat(${groupEvs.length}, 1fr)`, gap:8 }}>
-                  {groupEvs.map(ev => (
-                    <button key={ev.id} onClick={() => setElevatorId(ev.id)} style={{
-                      padding:'12px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:14, fontWeight:700,
-                      background: elevatorId === ev.id ? 'var(--acl)' : ev.status === 'fault' ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                      color:      elevatorId === ev.id ? '#fff'       : ev.status === 'fault' ? 'var(--danger)'        : 'var(--t1)',
-                      outline:    elevatorId === ev.id ? '2px solid var(--acl)' : 'none',
-                    }}>
-                      {ev.number}호기{ev.status === 'fault' ? ' ⚠️' : ''}
-                    </button>
-                  ))}
+              <div key={group.title} className="mb-3">
+                <div className="text-caption font-bold text-text-tertiary mb-1.5">{group.title}</div>
+                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${groupEvs.length}, 1fr)` }}>
+                  {groupEvs.map(ev => {
+                    const isSel = elevatorId === ev.id
+                    const isFault = ev.status === 'fault'
+                    const stateClass = isSel
+                      ? 'bg-accent text-text-on-accent outline outline-2 outline-accent'
+                      : isFault
+                        ? 'bg-fire-bg text-fire'
+                        : 'bg-surface-sunken text-text-primary'
+                    return (
+                      <button
+                        key={ev.id}
+                        onClick={() => setElevatorId(ev.id)}
+                        className={`py-3 rounded-[10px] border-0 cursor-pointer text-body-sm font-bold inline-flex items-center justify-center gap-1 ${stateClass}`}
+                      >
+                        {ev.number}호기
+                        {isFault && !isSel && <AlertTriangle size={14} />}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -1987,7 +2048,7 @@ function EvSelector({ elevators, evKind, setEvKind, elevatorId, setElevatorId, g
 
       {evKind === 'escalator' && (
         <div>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:8 }}>호기 선택</div>
+          <div className="text-caption font-bold text-text-secondary mb-2">호기 선택</div>
           <EsNodeMap nodes={esNodes} elevatorId={elevatorId} onSelect={setElevatorId} />
         </div>
       )}
@@ -2025,7 +2086,7 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
 
   return (
     <ModalWrap title="고장 접수" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex flex-col gap-[14px]">
         <EvSelector
           elevators={elevators} evKind={evKind}
           setEvKind={v => { setEvKind(v); setElevatorId(''); setFaultFloor('') }}
@@ -2036,44 +2097,54 @@ function FaultNewModal({ elevators, selected, onClose, onSubmit, loading }: {
         {elevatorId && (
           <>
             <Field label="발생 일시">
-              <input type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)} style={inputSt} />
+              <input
+                type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
+                className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+              />
             </Field>
 
             {/* 발생층 + 승객탑승 (엘베만) */}
             {isElev && (
-              <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+              <div className="flex gap-2 items-end">
                 <Field label="발생 층" style={{ flex:1 }}>
-                  <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)} style={inputSt}>
+                  <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)}
+                    className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border">
                     <option value="">선택</option>
                     {floors.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                 </Field>
-                <div style={{ flexShrink:0 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>승객 탑승</div>
-                  <button onClick={() => setHasPassenger(v => !v)} style={{
-                    height: 42, padding:'0 16px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                    background: hasPassenger ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                    color:      hasPassenger ? 'var(--danger)'        : 'var(--t3)',
-                    outline:    hasPassenger ? '2px solid var(--danger)' : 'none',
-                    whiteSpace:'nowrap',
-                  }}>
-                    {hasPassenger ? '탑승 🚨' : '미탑승'}
+                <div className="flex-shrink-0">
+                  <div className="text-label font-bold text-text-secondary mb-[5px]">승객 탑승</div>
+                  <button
+                    onClick={() => setHasPassenger(v => !v)}
+                    className={[
+                      'flex items-center gap-1 h-[44px] px-4 rounded-lg font-bold text-body-sm whitespace-nowrap transition',
+                      hasPassenger
+                        ? 'bg-danger-bg text-danger outline outline-2 outline-danger'
+                        : 'bg-surface-sunken text-text-tertiary',
+                    ].join(' ')}
+                  >
+                    {hasPassenger ? <><AlertTriangle size={14} />탑승</> : '미탑승'}
                   </button>
                 </div>
               </div>
             )}
 
             <Field label="증상">
-              <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
+              <textarea
+                value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="고장 증상을 입력하세요"
+                className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+              />
             </Field>
 
             <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
 
-            <a href={TKE_TEL} style={{ textDecoration:'none', display:'block' }}>
+            <a href={TKE_TEL} className="no-underline block">
               <button
                 onClick={handleSubmit}
                 disabled={!symptoms.trim() || loading}
-                style={{ ...primaryBtnSt, opacity:(!symptoms.trim()||loading)?0.5:1, width:'100%' }}
+                style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!symptoms.trim()||loading)?0.5:1 }}
+                className="w-full h-[48px] rounded-lg font-bold text-body text-white border-none cursor-pointer transition"
               >
                 {loading ? '접수 중...' : '고장 접수 (TKE 자동 연결)'}
               </button>
@@ -2112,20 +2183,31 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
   }
 
   return (
-    <div style={{ position:'fixed', top:0, left:0, right:0, bottom:NAV_H, zIndex:100, background:'var(--bg)', display:'flex', flexDirection:'column', paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}>
-      {/* 헤더 */}
-      <div style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'14px 16px 12px', display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ width:36, height:36, borderRadius:9, background:'rgba(239,68,68,.15)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>🚨</div>
-        <div style={{ flex:1 }}>
-          <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>고장 접수</div>
-          <div style={{ fontSize:10, color:'var(--t3)' }}>접수 후 TKE(1899-9070) 자동 연결</div>
+    <div
+      className="fixed flex flex-col bg-surface-page"
+      style={{ top:0, left:0, right:0, bottom:NAV_H, zIndex:100, paddingTop:'var(--sat, 44px)', boxSizing:'border-box' }}
+    >
+      {/* 풀스크린 자체 헤더 */}
+      <div className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2.5 px-4 pt-[14px] pb-3">
+        {/* 아이콘 박스 — danger-bg + AlertTriangle text-danger */}
+        <div className="w-9 h-9 rounded-lg bg-danger-bg flex items-center justify-center flex-shrink-0">
+          <AlertTriangle size={20} className="text-danger" />
         </div>
-        <button onClick={onClose} style={{ background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:18 }}>✕</button>
+        <div className="flex-1">
+          <div className="text-body font-bold text-text-primary">고장 접수</div>
+          <div className="text-caption text-text-tertiary">접수 후 TKE(1899-9070) 자동 연결</div>
+        </div>
+        <button
+          onClick={onClose}
+          className="bg-transparent border-none text-text-tertiary cursor-pointer p-1 hover:text-text-primary hover:bg-surface-sunken rounded-md transition"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* 본문 스크롤 */}
-      <div style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'16px' }}>
-        <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4">
+        <div className="flex flex-col gap-4">
 
           <EvSelector
             elevators={elevators} evKind={evKind}
@@ -2137,34 +2219,43 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
           {elevatorId && (
             <>
               <Field label="발생 일시">
-                <input type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)} style={inputSt} />
+                <input
+                  type="datetime-local" value={faultAt} onChange={e => setFaultAt(e.target.value)}
+                  className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+                />
               </Field>
 
               {isElev && (
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                <div className="flex gap-2 items-end">
                   <Field label="발생 층" style={{ flex:1 }}>
-                    <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)} style={inputSt}>
+                    <select value={faultFloor} onChange={e => setFaultFloor(e.target.value)}
+                      className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border">
                       <option value="">선택</option>
                       {floors.map(f => <option key={f} value={f}>{f}</option>)}
                     </select>
                   </Field>
-                  <div style={{ flexShrink:0 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:5 }}>승객 탑승</div>
-                    <button onClick={() => setHasPassenger(v => !v)} style={{
-                      height:42, padding:'0 16px', borderRadius:9, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                      background: hasPassenger ? 'rgba(239,68,68,.15)' : 'var(--bg3)',
-                      color:      hasPassenger ? 'var(--danger)'        : 'var(--t3)',
-                      outline:    hasPassenger ? '2px solid var(--danger)' : 'none',
-                      whiteSpace:'nowrap',
-                    }}>
-                      {hasPassenger ? '탑승 🚨' : '미탑승'}
+                  <div className="flex-shrink-0">
+                    <div className="text-label font-bold text-text-secondary mb-[5px]">승객 탑승</div>
+                    <button
+                      onClick={() => setHasPassenger(v => !v)}
+                      className={[
+                        'flex items-center gap-1 h-[44px] px-4 rounded-lg font-bold text-body-sm whitespace-nowrap transition',
+                        hasPassenger
+                          ? 'bg-danger-bg text-danger outline outline-2 outline-danger'
+                          : 'bg-surface-sunken text-text-tertiary',
+                      ].join(' ')}
+                    >
+                      {hasPassenger ? <><AlertTriangle size={14} />탑승</> : '미탑승'}
                     </button>
                   </div>
                 </div>
               )}
 
               <Field label="증상">
-                <textarea value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={4} placeholder="고장 증상을 입력하세요" style={{ ...inputSt, resize:'none' }} />
+                <textarea
+                  value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={4} placeholder="고장 증상을 입력하세요"
+                  className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+                />
               </Field>
 
               <MultiPhotoUpload label="증상 사진" keys={photoKeys} setKeys={setPhotoKeys} />
@@ -2173,15 +2264,16 @@ function FaultNewFullscreen({ elevators, onClose, onSubmit, loading }: {
         </div>
       </div>
 
-      {/* 하단 고정 버튼 */}
-      <div style={{ flexShrink:0, padding:'12px 16px', background:'var(--bg2)', borderTop:'1px solid var(--bd)' }}>
-        <a href={TKE_TEL} style={{ textDecoration:'none', display:'block' }}>
+      {/* 하단 고정 CTA 영역 */}
+      <div className="flex-shrink-0 p-3 px-4 bg-surface-raised border-t border-border-default">
+        <a href={TKE_TEL} className="no-underline block">
           <button
             onClick={handleSubmit}
             disabled={!elevatorId || !symptoms.trim() || loading}
-            style={{ ...primaryBtnSt, background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!elevatorId||!symptoms.trim()||loading)?0.5:1, width:'100%' }}
+            style={{ background:'linear-gradient(135deg,#991b1b,#ef4444)', opacity:(!elevatorId||!symptoms.trim()||loading)?0.5:1 }}
+            className="w-full h-[48px] rounded-lg font-bold text-body text-white border-none cursor-pointer transition"
           >
-            {loading ? '접수 중...' : '🚨 고장 접수 (TKE 자동 연결)'}
+            {loading ? '접수 중...' : '고장 접수 (TKE 자동 연결)'}
           </button>
         </a>
       </div>
@@ -2200,128 +2292,43 @@ function FaultResolveModal({ fault, onClose, onSubmit, loading }: {
 
   const pureSymptoms = fault.symptoms.replace(/^\[[^\]]+\]\s*/, '').replace(/\[승객탑승\]\s*/, '')
 
+  const TypeIcon = TYPE_ICON_COMPONENT[fault.elevator_type]
+
   return (
     <ModalWrap title="수리 완료 처리" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-        <div style={{ background:'var(--bg3)', borderRadius:10, padding:'10px 13px', fontSize:11, color:'var(--t2)' }}>
-          {TYPE_ICON[fault.elevator_type]} {fault.elevator_number}호기<br/>
-          <span style={{ color:'var(--t1)' }}>{pureSymptoms}</span>
+      <div className="flex flex-col gap-3">
+        {/* 고장 정보 카드 */}
+        <div className="bg-surface-sunken rounded-xl p-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            {TypeIcon && <TypeIcon size={20} className="text-text-secondary" />}
+            <span className="text-body-sm font-bold text-text-primary">{fault.elevator_number}호기</span>
+          </div>
+          <div className="text-label text-text-secondary">{pureSymptoms}</div>
         </div>
         <Field label="수리 업체">
-          <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} style={inputSt} />
+          <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)}
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+          />
         </Field>
         <Field label="수리 완료 일시">
-          <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)} style={inputSt} />
+          <input type="datetime-local" value={repairedAt} onChange={e => setRepairedAt(e.target.value)}
+            className="w-full h-[42px] px-3 bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border"
+          />
         </Field>
         <Field label="수리 내용">
-          <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 내용" style={{ ...inputSt, resize:'none' }} />
+          <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 내용"
+            className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-lg text-text-primary text-body-sm focus:border-border-strong outline-none transition box-border resize-none"
+          />
         </Field>
         <MultiPhotoUpload label="수리 사진" keys={repairPhotoKeys} setKeys={setRepairPhotoKeys} />
         <button
           onClick={() => onSubmit({ id:fault.id, repairCompany, repairedAt:repairedAt+':00', repairDetail, repairPhotoKeys })}
           disabled={!repairDetail.trim()||loading}
-          style={{ ...primaryBtnSt, opacity:(!repairDetail.trim()||loading)?0.5:1 }}
+          style={{ opacity:(!repairDetail.trim()||loading)?0.5:1 }}
+          className="w-full h-[48px] rounded-lg font-bold text-body bg-accent text-text-on-accent border-none cursor-pointer transition"
         >
           {loading ? '처리 중...' : '수리 완료'}
         </button>
-      </div>
-    </ModalWrap>
-  )
-}
-
-// ── 점검 기록 모달 ─────────────────────────────────────────
-function InspectModal({ elevators, selected, onClose, onSubmit, loading }: {
-  elevators:Elevator[]; selected:Elevator|null; onClose:()=>void; onSubmit:(b:any)=>void; loading:boolean
-}) {
-  const initKind: EvKind = selected ? (selected.type==='escalator'?'escalator':'elevator') : ''
-  const [evKind,       setEvKind]       = useState<EvKind>(initKind)
-  const [elevatorId,   setElevatorId]   = useState(selected?.id ?? '')
-  const [inspectDate,  setInspectDate]  = useState(new Date().toISOString().slice(0,10))
-  const [checks,       setChecks]       = useState<Record<string,string>>({
-    brake:'normal', door:'normal', safetyDevice:'normal', lighting:'normal', emergencyCall:'normal'
-  })
-  const [actionFloor,  setActionFloor]  = useState('')
-  const [actionNeeded, setActionNeeded] = useState('')
-  const [memo,         setMemo]         = useState('')
-
-  const isElev = evKind === 'elevator'
-  const checkItems = isElev ? CHECK_ITEMS_EV : CHECK_ITEMS_ES
-  const floors = elevatorId ? (EV_FLOORS[elevatorId] ?? []) : []
-
-  const overall = Object.values(checks).some(v=>v==='bad') ? 'bad'
-                : Object.values(checks).some(v=>v==='caution') ? 'caution'
-                : 'normal'
-
-  return (
-    <ModalWrap title="점검 기록 입력" onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        <EvSelector
-          elevators={elevators} evKind={evKind}
-          setEvKind={v => { setEvKind(v); setElevatorId('') }}
-          elevatorId={elevatorId} setElevatorId={setElevatorId}
-          groups={EV_GROUPS_FAULT} esNodes={ES_NODES_FAULT}
-        />
-
-        {elevatorId && (
-          <>
-            <Field label="점검일">
-              <input type="date" value={inspectDate} onChange={e => setInspectDate(e.target.value)} style={inputSt} />
-            </Field>
-
-            <div>
-              <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>점검 항목</div>
-              {checkItems.map(item => {
-                const isOk = checks[item.key] === 'normal'
-                return (
-                  <div key={item.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9, marginBottom:5 }}>
-                    <span style={{ fontSize:12, color:'var(--t1)' }}>{item.label}</span>
-                    <button onClick={() => setChecks(p => ({ ...p, [item.key]:p[item.key]==='normal'?'bad':'normal' }))} style={{
-                      padding:'5px 14px', borderRadius:20, border:'none', cursor:'pointer', fontSize:12, fontWeight:700,
-                      background: isOk ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)',
-                      color:      isOk ? 'var(--safe)'         : 'var(--danger)',
-                    }}>{isOk ? '정상' : '불량'}</button>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:'var(--bg3)', borderRadius:9 }}>
-              <span style={{ fontSize:11, fontWeight:700, color:'var(--t2)' }}>종합 결과</span>
-              <span style={{ fontSize:13, fontWeight:700, color:OVERALL_STYLE[overall].color }}>{OVERALL_STYLE[overall].label}</span>
-            </div>
-
-            {/* 조치 필요 + 조치 필요 층 (엘베만) */}
-            <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-              <Field label="조치 필요" style={{ flex:1 }}>
-                <textarea value={actionNeeded} onChange={e => setActionNeeded(e.target.value)} rows={2} placeholder="조치가 필요한 사항" style={{ ...inputSt, resize:'none' }} />
-              </Field>
-              {isElev && (
-                <Field label="조치 필요 층" style={{ flexShrink:0, width:90 }}>
-                  <select value={actionFloor} onChange={e => setActionFloor(e.target.value)} style={{ ...inputSt, height:62, display:'block' }}>
-                    <option value="">-</option>
-                    {floors.map(f => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </Field>
-              )}
-            </div>
-
-            <Field label="메모 (선택)">
-              <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2} placeholder="기타 특이사항" style={{ ...inputSt, resize:'none' }} />
-            </Field>
-
-            <button
-              onClick={() => onSubmit({
-                elevatorId, inspectDate, type:'monthly', ...checks, overall,
-                actionNeeded: actionFloor ? `[${actionFloor}] ${actionNeeded}` : actionNeeded,
-                memo
-              })}
-              disabled={!elevatorId || loading}
-              style={{ ...primaryBtnSt, opacity:(!elevatorId||loading)?0.5:1 }}
-            >
-              {loading ? '저장 중...' : '점검 기록 저장'}
-            </button>
-          </>
-        )}
       </div>
     </ModalWrap>
   )
@@ -2760,11 +2767,6 @@ function ElevatorInfoCard({ ev, compact }: { ev: Elevator; compact?: boolean }) 
 }
 
 // ── 스타일 ────────────────────────────────────────────────
-const primaryBtnSt: React.CSSProperties = {
-  width:'100%', padding:'13px 0', borderRadius:12, border:'none',
-  background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-  color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
-}
 const inputSt: React.CSSProperties = {
   width:'100%', padding:'10px 12px', borderRadius:9,
   background:'var(--bg3)', border:'1px solid var(--bd2)',
@@ -3071,7 +3073,7 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
 
   return (
     <ModalWrap title={isEdit ? "수리 기록 수정" : "수리 기록 입력"} onClose={onClose}>
-      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div className="flex flex-col gap-[14px]">
         <EvSelector
           elevators={elevators} evKind={evKind}
           setEvKind={v => { setEvKind(v); setElevatorId(''); setRepairTarget('') }}
@@ -3082,26 +3084,31 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
         {elevatorId && (
           <>
             <Field label="수리일">
-              <input type="date" value={repairDate} onChange={e => setRepairDate(e.target.value)} style={inputSt} />
+              <input type="date" value={repairDate} onChange={e => setRepairDate(e.target.value)} className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm font-medium outline-none appearance-none box-border min-w-0" />
             </Field>
 
             {/* 수리 대상 선택 */}
             {!isEscalator && (
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>수리 대상</div>
-                <div style={{ display:'flex', gap:7 }}>
+                <div className="text-label font-bold text-text-secondary mb-[7px]">수리 대상</div>
+                <div className="flex gap-[7px]">
                   {([
                     { key:'car', label:'카' },
                     { key:'hall', label:'홀' },
                     { key:'machine_room', label:'기계실' },
                     { key:'pit', label:'피트' },
                   ] as const).map(opt => (
-                    <button key={opt.key} onClick={() => { setRepairTarget(opt.key); setHallFloor('') }} style={{
-                      flex:1, padding:'11px 0', borderRadius:10, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                      background: repairTarget === opt.key ? '#eab30822' : 'var(--bg3)',
-                      color: repairTarget === opt.key ? '#eab308' : 'var(--t3)',
-                      outline: repairTarget === opt.key ? '2px solid #eab308' : 'none',
-                    }}>{opt.label}</button>
+                    <button
+                      key={opt.key}
+                      onClick={() => { setRepairTarget(opt.key); setHallFloor('') }}
+                      className={`flex-1 py-[11px] rounded-md border-none cursor-pointer text-label font-bold transition-all hover:-translate-y-px ${
+                        repairTarget === opt.key
+                          ? 'bg-warning-bg text-warning outline outline-2 outline-warning outline-offset-1'
+                          : 'bg-surface-sunken text-text-tertiary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -3110,30 +3117,35 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
             {/* 홀 선택 시 층 선택 */}
             {repairTarget === 'hall' && floors.length > 0 && (
               <div>
-                <div style={{ fontSize:11, fontWeight:700, color:'var(--t2)', marginBottom:7 }}>층 선택</div>
-                <div style={{ display:'flex', gap:5, flexWrap:'wrap' }}>
+                <div className="text-label font-bold text-text-secondary mb-[7px]">층 선택</div>
+                <div className="flex gap-[6px] flex-wrap">
                   {floors.map(f => (
-                    <button key={f} onClick={() => setHallFloor(f)} style={{
-                      padding:'8px 12px', borderRadius:8, border:'none', cursor:'pointer', fontSize:11, fontWeight:700,
-                      background: hallFloor === f ? '#eab30822' : 'var(--bg3)',
-                      color: hallFloor === f ? '#eab308' : 'var(--t3)',
-                      outline: hallFloor === f ? '2px solid #eab308' : 'none',
-                    }}>{f}</button>
+                    <button
+                      key={f}
+                      onClick={() => setHallFloor(f)}
+                      className={`px-3 py-2 rounded-md border-none cursor-pointer text-label font-bold transition-all hover:-translate-y-px ${
+                        hallFloor === f
+                          ? 'bg-warning-bg text-warning outline outline-2 outline-warning outline-offset-1'
+                          : 'bg-surface-sunken text-text-tertiary'
+                      }`}
+                    >
+                      {f}
+                    </button>
                   ))}
                 </div>
               </div>
             )}
 
             <Field label="수리 항목">
-              <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" style={inputSt} />
+              <input value={repairItem} onChange={e => setRepairItem(e.target.value)} placeholder="수리 부품/항목명" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none appearance-none box-border min-w-0 placeholder:text-text-tertiary" />
             </Field>
 
             <Field label="수리 내용 (선택)">
-              <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 상세 내용" style={{ ...inputSt, resize:'none' }} />
+              <textarea value={repairDetail} onChange={e => setRepairDetail(e.target.value)} rows={3} placeholder="수리 상세 내용" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none box-border min-w-0 resize-none placeholder:text-text-tertiary font-[inherit]" />
             </Field>
 
             <Field label="수리 업체 (선택)">
-              <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} placeholder="예: TKE, 현대엘리베이터" style={inputSt} />
+              <input value={repairCompany} onChange={e => setRepairCompany(e.target.value)} placeholder="예: TKE, 현대엘리베이터" className="w-full px-3 py-[10px] bg-surface-sunken border border-border-default rounded-md text-text-primary text-body-sm outline-none appearance-none box-border min-w-0 placeholder:text-text-tertiary" />
             </Field>
 
             {/* 4단계 사진 업로드 */}
@@ -3145,9 +3157,10 @@ function RepairNewModal({ elevators, selected, onClose, editData }: { elevators:
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              style={{ ...primaryBtnSt, opacity: canSubmit ? 1 : 0.5 }}
+              style={{ opacity: canSubmit ? 1 : 0.5 }}
+              className="w-full py-[13px] rounded-md border-none bg-accent hover:bg-accent-hover text-white text-body-sm font-bold cursor-pointer transition-colors disabled:cursor-not-allowed"
             >
-              {saving ? '저장 중...' : '수리 기록 저장'}
+              {saving ? '저장 중...' : (isEdit ? '수정 완료' : '수리 기록 저장')}
             </button>
           </>
         )}
