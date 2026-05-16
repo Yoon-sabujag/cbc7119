@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>02 점검 모달 통일성 fix 시안</title>
+<style>
+  :root {
+    --surface-page:    #0a0d12;
+    --surface-raised:  #1a1f27;
+    --surface-sunken:  #232a33;
+    --surface-active:  #2c333d;
+    --text-primary:    #e6edf3;
+    --text-secondary:  #adb6c0;
+    --text-tertiary:   #8b949e;
+    --text-on-accent:  #ffffff;
+    --border-default:  rgba(255, 255, 255, 0.14);
+    --border-strong:   rgba(255, 255, 255, 0.22);
+    --accent:          #3b82f6;
+    --status-safe:     #4ade80;
+    --status-safe-bar: #22c55e;
+    --status-safe-bg:  rgba(34, 197, 94, 0.16);
+    --status-danger:   #f87171;
+    --status-warning:  #fbbf24;
+    --bg-page-doc:     #0f1218;
+    --txt-doc:         #c9d1d9;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    background: var(--bg-page-doc);
+    color: var(--txt-doc);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    line-height: 1.55;
+  }
+
+  h1 { font-size: 22px; margin: 0 0 6px 0; color: #fff; }
+  h1 + p { margin: 0 0 32px 0; color: #8b949e; font-size: 13px; }
+  h2 {
+    font-size: 16px; margin: 32px 0 4px 0; color: #fff;
+    padding: 10px 14px;
+    background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6;
+    border-radius: 4px;
+  }
+  h2 + .desc { margin: 0 0 16px 0; padding: 0 14px; color: #adb6c0; font-size: 13px; }
+  .desc strong { color: #f59e0b; }
+  .desc code {
+    background: rgba(255,255,255,0.08);
+    padding: 1px 6px; border-radius: 3px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12px;
+    color: #fbbf24;
+  }
+
+  /* ── 비교 컬럼 ── */
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+  .compare > div {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .compare h3 {
+    margin: 0 0 12px 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e;
+  }
+  .compare .before h3 { color: #f87171; }
+  .compare .after  h3 { color: #4ade80; }
+  .compare .before h3::before { content: "✗ "; }
+  .compare .after  h3::before { content: "✓ "; }
+  .compare .note {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #adb6c0;
+  }
+
+  /* ── 모바일 mock ── */
+  .mock {
+    width: 320px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 auto;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: var(--surface-page);
+  }
+  .mock-hdr {
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-default);
+  }
+  .mock-hdr-icon {
+    width: 22px; height: 22px;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+  }
+  .mock-hdr-title { font-size: 16px; font-weight: 700; color: var(--text-primary); flex: 1; }
+  .mock-hdr-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+  .mock-section {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border-default);
+  }
+  .mock-section-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .mock-tabs {
+    display: flex; gap: 6px;
+  }
+  .mock-tab {
+    flex: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-page);
+    color: var(--text-secondary);
+  }
+  .mock-tab.active {
+    border: 1.5px solid var(--accent);
+    background: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .mock-tab.done {
+    border: 1.5px solid var(--status-safe);
+    background: var(--status-safe-bg);
+    color: var(--status-safe);
+  }
+  .mock-chips {
+    display: flex; gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .mock-chips::-webkit-scrollbar { display: none; }
+  .mock-chip {
+    flex-shrink: 0;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-page);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .mock-chip.active {
+    border: 1.5px solid var(--accent);
+    background: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .mock-body {
+    padding: 16px;
+    min-height: 60px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+
+  /* ── BEFORE 특수 상태 (raised 헤더 등) ── */
+  .mock.bad-hdr-raised .mock-hdr { background: var(--surface-raised); }
+  .mock.bad-zone-no-wrap .mock-section.zone-line { background: transparent; padding: 0; border: none; }
+  .mock.bad-zone-no-wrap .mock-section.zone-line .mock-section-inner { padding: 8px 14px; }
+  .mock.bad-rounded .mock-tab,
+  .mock.bad-rounded .mock-chip { border-radius: 9px; }
+
+  /* ── GOOD 상태 ── */
+  .mock.good .mock-hdr { background: var(--surface-page); }
+  .mock.good .mock-section.zone-line { background: var(--surface-raised); }
+
+  /* ── 아이콘 인라인 SVG 스타일 ── */
+  .svg-icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .svg-icon-sm { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .legend {
+    margin: 24px 0 4px 0;
+    padding: 14px 18px;
+    background: rgba(59,130,246,0.06);
+    border: 1px solid rgba(59,130,246,0.18);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #adb6c0;
+  }
+  .legend strong { color: #fff; }
+  .legend ul { margin: 6px 0 0 0; padding-left: 20px; }
+  .legend li { margin: 2px 0; }
+
+  .summary {
+    margin: 32px 0 24px 0;
+    padding: 18px 22px;
+    background: linear-gradient(135deg, rgba(74,222,128,0.08), rgba(59,130,246,0.06));
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 10px;
+  }
+  .summary h3 { margin: 0 0 8px 0; color: #4ade80; font-size: 14px; }
+  .summary table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .summary th, .summary td {
+    text-align: left; padding: 8px 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .summary th { color: #fff; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary td { color: #c9d1d9; }
+  .summary td.size-sm { color: #4ade80; }
+  .summary td.size-md { color: #fbbf24; }
+  .summary td.size-lg { color: #f87171; }
+
+  .scope-note {
+    margin: 32px 0 0 0;
+    padding: 14px 18px;
+    background: rgba(251,191,36,0.06);
+    border: 1px solid rgba(251,191,36,0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #adb6c0;
+  }
+  .scope-note strong { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<h1>02 점검 모달 통일성 fix — 시안</h1>
+<p>다크 모드 기준. 모바일 320px viewport. fix 후 11개 모달이 시각 일관성 확보.</p>
+
+<div class="legend">
+  <strong>핵심 룰 (사용자 의도)</strong>
+  <ul>
+    <li><strong>헤더 배경</strong> = <code>surface-page</code> (다크: #0a0d12 / 라이트: #ffffff)</li>
+    <li><strong>zone 탭 / floor 칩 영역 배경</strong> = <code>surface-raised</code> (다크: #1a1f27 / 라이트: #f6f8fa)</li>
+    <li><strong>비선택 탭/칩</strong> = <code>surface-page</code> + <code>border-strong</code> (1px)</li>
+    <li><strong>선택 탭/칩</strong> = <code>accent</code> + 1.5px border</li>
+    <li><strong>완료 탭/칩</strong> = <code>safe</code> + <code>safe-bg</code> + 1.5px border</li>
+    <li><strong>아이콘</strong> = 일반 점검 페이지 카드 아이콘 (<code>CATEGORY_ICONS[idx]</code>) 과 동일</li>
+  </ul>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #1. InspectionModal 헤더 bg: raised → page</h2>
+<p class="desc">
+  <strong>영향:</strong> 16 카테고리 중 11개 (청정소화약제 / 방화셔터 / 유도등 / 완강기 / 소화전 / 소화기 / 소방펌프 / 화재수신반 + 별도 모달 없는 4개 카테고리) — 가장 큰 outlier.<br />
+  <strong>변경:</strong> <code>InspectionPage.tsx:3822</code> 헤더의 <code>bg-surface-raised</code> → <code>bg-surface-page</code>. 1줄 fix.
+</p>
+<div class="compare">
+  <div class="before">
+    <h3>BEFORE — 헤더와 zone 영역이 같은 회색</h3>
+    <div class="mock bad-hdr-raised">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <!-- Cloud icon (lucide) -->
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /></svg>
+        </span>
+        <div style="flex:1; min-width: 0;">
+          <div class="mock-hdr-title">청정소화약제</div>
+        </div>
+      </div>
+      <div class="mock-section">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+          <div class="mock-tab">지하</div>
+        </div>
+      </div>
+      <div class="mock-section">
+        <div class="mock-section-label">층 선택</div>
+        <div class="mock-chips">
+          <div class="mock-chip active">8F</div>
+          <div class="mock-chip">7F</div>
+          <div class="mock-chip">6F</div>
+          <div class="mock-chip">5F</div>
+          <div class="mock-chip">3F</div>
+        </div>
+      </div>
+      <div class="mock-body">본문 (점검 폼)</div>
+    </div>
+    <div class="note">헤더와 탭 wrapper 가 같은 raised 회색 → 헤더 경계가 모호. 16 카테고리 모두 이 패턴.</div>
+  </div>
+  <div class="after">
+    <h3>AFTER — 헤더=검은 / 탭 영역=회색</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" /></svg>
+        </span>
+        <div style="flex:1; min-width: 0;">
+          <div class="mock-hdr-title">청정소화약제</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+          <div class="mock-tab">지하</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">층 선택</div>
+        <div class="mock-chips">
+          <div class="mock-chip active">8F</div>
+          <div class="mock-chip">7F</div>
+          <div class="mock-chip">6F</div>
+          <div class="mock-chip">5F</div>
+          <div class="mock-chip">3F</div>
+        </div>
+      </div>
+      <div class="mock-body">본문 (점검 폼)</div>
+    </div>
+    <div class="note">3-layer 구조 분명: 헤더(검은) → 선택 영역(회색) → 본문(검은).</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #2. BaeyeonModal 헤더 아이콘: Square → SmokeVentIcon</h2>
+<p class="desc">
+  <strong>영향:</strong> 배연창 1개.<br />
+  <strong>변경:</strong> <code>InspectionPage.tsx:817</code> <code>&lt;Square /&gt;</code> → <code>&lt;SmokeVentIcon /&gt;</code>. 일반 점검 페이지 카드 아이콘과 일치.
+</p>
+<div class="compare">
+  <div class="before">
+    <h3>BEFORE — Square (lucide 빈 사각형)</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <!-- Square -->
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
+        </span>
+        <div style="flex:1;">
+          <div class="mock-hdr-title">배연창</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">일반 점검 페이지 카드는 SmokeVentIcon 인데 모달은 일반 사각형 — 사용자 식별 불일치.</div>
+  </div>
+  <div class="after">
+    <h3>AFTER — SmokeVentIcon (카드와 동일)</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <!-- SmokeVentIcon mock (격자형) -->
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="12" y1="3" x2="12" y2="21" /></svg>
+        </span>
+        <div style="flex:1;">
+          <div class="mock-hdr-title">배연창</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">카드 → 모달 아이콘 일관성. 다른 7개 별도 모달은 이미 일치.</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #3. DivModal / CompressorModal: zone/line 영역에 raised wrapper 추가</h2>
+<p class="desc">
+  <strong>영향:</strong> DIV + 컴프레셔 2개.<br />
+  <strong>현재 구조:</strong> zone/line 선택이 모달 본문 (<code>p-4 flex-col</code>) 안에 통합 → 배경이 page (검은) 그대로.<br />
+  <strong>변경:</strong> zone/line 영역을 헤더 아래 별도 <code>bg-surface-raised border-b</code> sticky wrapper 로 분리 (다른 모달 패턴 mirror).
+</p>
+<div class="compare">
+  <div class="before">
+    <h3>BEFORE — zone/line 이 본문 안에 통합 (전체 검은)</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <!-- BarChart3 -->
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
+        </span>
+        <div style="flex:1;">
+          <div class="mock-hdr-title">DIV 점검</div>
+        </div>
+      </div>
+      <div style="padding: 16px; background: var(--surface-page); border-bottom: 1px solid var(--border-default);">
+        <div class="mock-section-label">점검 구분</div>
+        <div class="mock-tabs" style="margin-bottom: 12px;">
+          <div class="mock-tab active">월초 점검</div>
+          <div class="mock-tab">월말 점검</div>
+        </div>
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs" style="margin-bottom: 12px;">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+          <div class="mock-tab">지하</div>
+        </div>
+        <div class="mock-section-label">라인 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">DIV #1</div>
+          <div class="mock-tab">DIV #2</div>
+        </div>
+      </div>
+      <div class="mock-body">점검 폼 (스크롤됨)</div>
+    </div>
+    <div class="note">zone/line 이 본문에 통합 → 배경 검은. 다른 9개 모달과 시각 다름.</div>
+  </div>
+  <div class="after">
+    <h3>AFTER — zone/line sticky raised wrapper 분리</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
+        </span>
+        <div style="flex:1;">
+          <div class="mock-hdr-title">DIV 점검</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">점검 구분</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">월초 점검</div>
+          <div class="mock-tab">월말 점검</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+          <div class="mock-tab">지하</div>
+        </div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">라인 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">DIV #1</div>
+          <div class="mock-tab">DIV #2</div>
+        </div>
+      </div>
+      <div class="mock-body">점검 폼 (스크롤)</div>
+    </div>
+    <div class="note">zone/line 이 헤더 아래 sticky 회색 영역으로 분리 → 다른 모달과 통일. 본문 스크롤 시 위에 고정.</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #4. 헤더 padding / gap / 타이틀 font 표기 통일</h2>
+<p class="desc">
+  <strong>영향:</strong> 8개 별도 모달.<br />
+  <strong>현재:</strong> <code>py-2.5</code> (4개) vs <code>py-3</code> (4개), <code>gap-2</code> vs <code>gap-2.5</code>, 타이틀 <code>text-[16px]</code> vs <code>text-body</code> vs <code>text-title</code>.<br />
+  <strong>변경:</strong> 모든 모달 <code>px-4 py-2.5 gap-2.5</code> + 타이틀 <code>text-body font-bold</code> 로 통일.
+</p>
+<div class="legend" style="font-size: 12px;">
+  <strong>통일 후 header 토큰:</strong><br />
+  <code>className="flex items-center px-4 py-2.5 gap-2.5 bg-surface-page border-b border-border-default flex-shrink-0"</code><br />
+  타이틀: <code>className="text-body font-bold text-text-primary"</code>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #5. Zone 탭 버튼 rounded outlier 통일</h2>
+<p class="desc">
+  <strong>영향:</strong> BaeyeonModal / DamperModal (2개).<br />
+  <strong>현재:</strong> <code>rounded-[9px]</code> (임의값) — 다른 모달들은 <code>rounded-sm</code> (8px).<br />
+  <strong>변경:</strong> <code>rounded-sm</code> 으로 통일.
+</p>
+<div class="compare">
+  <div class="before">
+    <h3>BEFORE — rounded-[9px] (배연창/댐퍼만)</h3>
+    <div class="mock good bad-rounded">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="12" y1="3" x2="12" y2="21" /></svg>
+        </span>
+        <div style="flex:1;"><div class="mock-hdr-title">배연창</div></div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">미세한 차이지만 8개 모달 가운데 outlier.</div>
+  </div>
+  <div class="after">
+    <h3>AFTER — rounded-sm (8px) 통일</h3>
+    <div class="mock good">
+      <div class="mock-hdr">
+        <span class="mock-hdr-icon">
+          <svg class="svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="12" y1="3" x2="12" y2="21" /></svg>
+        </span>
+        <div style="flex:1;"><div class="mock-hdr-title">배연창</div></div>
+      </div>
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab">사무동</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">디자인 시스템 표준 토큰.</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<h2>FIX #6. 완료 상태 색 토큰 통일</h2>
+<p class="desc">
+  <strong>영향:</strong> PowerPanelModal / ParkingGateModal (2개).<br />
+  <strong>현재:</strong> <code>border-safe-bar</code> (선명한 녹색 #22c55e) — 다른 모달들은 <code>border-safe</code> (옅은 녹색 #4ade80).<br />
+  <strong>변경:</strong> <code>border-safe</code> 로 통일 (텍스트색 토큰과 매칭).
+</p>
+<div class="compare">
+  <div class="before">
+    <h3>BEFORE — border-safe-bar (진녹)</h3>
+    <div class="mock good">
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab" style="border: 1.5px solid #22c55e; background: var(--status-safe-bg); color: #22c55e;">사무동 ✓</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">완료 색이 다른 모달과 다른 채도.</div>
+  </div>
+  <div class="after">
+    <h3>AFTER — border-safe (옅은 녹)</h3>
+    <div class="mock good">
+      <div class="mock-section zone-line">
+        <div class="mock-section-label">구역 선택</div>
+        <div class="mock-tabs">
+          <div class="mock-tab active">연구동</div>
+          <div class="mock-tab done">사무동 ✓</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">11개 모달 완료 상태 일관.</div>
+  </div>
+</div>
+
+<!-- ────────────────────────────────────── -->
+<div class="summary">
+  <h3>📋 작업 wave 요약</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Wave</th><th>FIX 번호</th><th>영향 범위</th><th>변경 종류</th><th>예상 크기</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Wave 1 (즉시)</td>
+        <td>#1 + #2</td>
+        <td>16 카테고리 + 배연창</td>
+        <td>className 1줄 + 아이콘 import 1줄</td>
+        <td class="size-sm">소 — 2줄</td>
+      </tr>
+      <tr>
+        <td>Wave 2</td>
+        <td>#3</td>
+        <td>DIV + 컴프레셔</td>
+        <td>JSX 구조 변경 (sticky wrapper 분리)</td>
+        <td class="size-md">중 — 2 모달 각 ~20줄</td>
+      </tr>
+      <tr>
+        <td>Wave 3 (청소)</td>
+        <td>#4 + #5 + #6</td>
+        <td>8개 별도 모달</td>
+        <td>className 토큰 통일</td>
+        <td class="size-md">중 — 20+ 라인</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="scope-note">
+  <strong>참고:</strong> 06 도면 페이지(<code>FloorPlanPage.tsx</code>)는 sketch 부터 다시 진행 중이라 이번 작업에 포함하지 않음. 02 통일 작업 끝난 후 06 sketch 새로 그릴 때 같은 룰 적용.
+</div>
+
+</body>
+</html>
