@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft, Trash2, X } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
@@ -938,80 +939,57 @@ export default function FloorPlanPage() {
   const planReady = PLAN_TYPES.find(p => p.key === planType)?.ready
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page relative">
 
       {/* ── 헤더 ─────────────────────────────────────── */}
       {/* 데스크톱: height 54 + padding '0 20px', 뒤로가기 제거 (사이드바 nav). 모바일: 기존 유지 */}
-      <header style={{
-        flexShrink: 0,
-        ...(isDesktop
-          ? { height: 54, padding: '0 20px' }
-          : { padding: '8px 12px' }),
-        background: 'var(--bg2)', borderBottom: '1px solid var(--bd)',
-        display: 'flex', alignItems: 'center', gap: isDesktop ? 10 : 8,
-      }}>
+      <header className={`flex-shrink-0 flex items-center bg-surface-raised border-b border-border-default ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'px-3 py-2 gap-2'}`}>
         {!isDesktop && (
-          <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-8 h-8 flex-shrink-0 rounded-lg bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center cursor-pointer"
+          >
+            <ChevronLeft size={15} />
           </button>
         )}
-        <span style={{ flex: 1, fontSize: isDesktop ? 16 : 14, fontWeight: 700, color: 'var(--t1)' }}>소방 시설 도면</span>
+        <span className={`flex-1 font-bold text-text-primary truncate ${isDesktop ? 'text-body' : 'text-body-sm'}`}>소방 시설 도면</span>
         {canEditMarker && (
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}
-            style={{
-              height: 30, padding: '0 10px', borderRadius: 7,
-              background: editMode ? 'var(--acl)' : 'var(--bg3)',
-              border: editMode ? 'none' : '1px solid var(--bd)',
-              color: editMode ? '#fff' : 'var(--t2)',
-              fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            }}
+            className={`h-8 px-3 rounded-lg text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms] ${editMode ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
           >
             {editMode ? '편집 완료' : '마커 편집'}
           </button>
         )}
         <button
           onClick={() => { setScale(1); setTranslate({ x: 0, y: 0 }) }}
-          style={{ height: 30, padding: '0 10px', borderRadius: 7, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+          className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms]"
         >
           축소보기
         </button>
       </header>
 
       {/* ── 도면 종류 선택 ───────────────────────────── */}
-      <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '7px 10px', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
+      <div className="flex-shrink-0 flex gap-1 px-3 py-2 bg-surface-raised border-b border-border-default">
         {PLAN_TYPES.map(p => (
           <button
             key={p.key}
             onClick={() => p.ready && setPlanType(p.key)}
-            style={{
-              flex: 1, padding: '6px 4px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-              cursor: p.ready ? 'pointer' : 'default',
-              background: planType === p.key ? 'var(--acl)' : 'var(--bg3)',
-              color: planType === p.key ? '#fff' : p.ready ? 'var(--t2)' : 'var(--t3)',
-              border: planType === p.key ? 'none' : '1px solid var(--bd)',
-              opacity: p.ready ? 1 : 0.4,
-              position: 'relative',
-            }}
+            className={`flex-1 h-9 rounded-lg text-label font-semibold transition-[background] duration-[130ms] inline-flex items-center justify-center relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-tertiary'}`}
           >
             {p.label}
-            {!p.ready && <span style={{ position: 'absolute', top: -6, right: -2, fontSize: 8, background: 'var(--bg3)', color: 'var(--t3)', padding: '1px 4px', borderRadius: 4, border: '1px solid var(--bd)' }}>준비중</span>}
+            {!p.ready && <span className="absolute -top-1.5 -right-0.5 text-[10px] leading-none bg-surface-sunken text-text-tertiary px-1 py-px rounded border border-border-default">준비중</span>}
           </button>
         ))}
       </div>
 
       {/* ── 층 선택 탭 ───────────────────────────────── */}
-      <div style={{ flexShrink: 0, overflowX: 'auto', display: 'flex', gap: 4, padding: '7px 10px', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
+      <div className="flex-shrink-0 flex gap-1 overflow-x-auto px-3 py-2 bg-surface-raised border-b border-border-default">
         {FLOORS.map(f => (
           <button
             key={f}
             onClick={() => setFloor(f)}
-            style={{
-              flexShrink: 0, padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              background: floor === f ? 'var(--acl)' : 'var(--bg3)',
-              color: floor === f ? '#fff' : 'var(--t2)',
-              border: floor === f ? 'none' : '1px solid var(--bd)',
-            }}
+            className={`flex-shrink-0 h-8 px-3 rounded-lg text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center transition-[background] duration-[130ms] ${floor === f ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
           >
             {f}
           </button>
@@ -1035,13 +1013,13 @@ export default function FloorPlanPage() {
       >
         {/* ── 편집모드 안내 (absolute — 레이아웃 영향 없음) ── */}
         {editMode && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '6px 12px', background: 'rgba(59,130,246,0.85)', fontSize: 11, color: '#fff', fontWeight: 600, textAlign: 'center', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, pointerEvents: 'none' }} className="px-3 py-1.5 bg-accent/90 text-caption font-semibold leading-none text-white text-center flex items-center justify-center gap-1.5">
             {isDesktop ? '더블클릭으로 마커 추가 · 마커를 드래그하여 이동 · 클릭하여 선택' : '길게 누르면 마커 추가 · 마커를 터치하여 선택/삭제'}
           </div>
         )}
         {/* Phase 24: 소화기 배치 모드 안내 배너 */}
         {isPlacingMode && !editMode && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '7px 12px', background: 'rgba(239,68,68,0.9)', fontSize: 11, color: '#fff', fontWeight: 700, textAlign: 'center', pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, pointerEvents: 'none' }} className="px-3 py-1.5 bg-danger/90 text-caption font-bold leading-none text-white text-center flex items-center justify-center">
             배치할 위치(개소)를 선택하세요 — 뒤로가기로 취소
           </div>
         )}
@@ -1095,7 +1073,7 @@ export default function FloorPlanPage() {
                     transform: `translate(-50%, -50%) scale(${Math.max(0.5, 1 / Math.sqrt(scale))})`,
                     cursor: 'pointer',
                     zIndex: isDragging ? 50 : selected?.id === m.id ? 10 : 1,
-                    outline: (isDragging || selected?.id === m.id) ? '2.5px solid #3b82f6' : 'none',
+                    outline: (isDragging || selected?.id === m.id) ? '2.5px solid var(--accent)' : 'none',
                     outlineOffset: 2,
                     borderRadius: '50%',
                     pointerEvents: 'auto',
@@ -1142,7 +1120,7 @@ export default function FloorPlanPage() {
             })}
           </div>
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t3)', fontSize: 14, fontWeight: 600 }}>
+          <div className="flex items-center justify-center h-full text-text-tertiary text-body-sm font-semibold">
             도면 준비 중
           </div>
         )}
@@ -1391,74 +1369,54 @@ export default function FloorPlanPage() {
       {/* ── 범례 — BottomNav 사이즈(54 + safe-area) 기본, 항목 많으면 wrap 으로 자동 확장.
              각 row 는 양끝 정렬(space-between), 폭 부족시 두 줄로 wrap. 가로 스크롤 없음. ── */}
       {(() => {
-        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }
-        const labelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--t2)', fontWeight: 500, whiteSpace: 'nowrap' }
-        const rowStyle: React.CSSProperties = {
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          gap: '6px 8px',
-          width: '100%',
-        }
         return (
           <div
             data-no-print
-            style={{
-              flexShrink: 0,
-              background: 'var(--bg2)',
-              borderTop: '1px solid var(--bd)',
-              padding: '1px 12px 26px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: 8,
-              minHeight: 93,
-            }}
+            className="flex-shrink-0 bg-surface-raised border-t border-border-default px-3 pb-[26px] pt-px flex flex-col gap-2 min-h-[93px]"
           >
             {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
-            <div style={rowStyle}>
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 w-full">
               {currentMarkerTypes.map(mt => (
-                <div key={mt.key} style={itemStyle}>
-                  <MarkerIcon markerType={mt.key} color="#888" size={13} />
-                  <span style={labelStyle}>{mt.label.join('')}</span>
+                <div key={mt.key} className="inline-flex items-center gap-[5px] flex-shrink-0">
+                  <MarkerIcon markerType={mt.key} color="var(--text-tertiary)" size={13} />
+                  <span className="text-caption font-medium leading-none text-text-secondary whitespace-nowrap">{mt.label.join('')}</span>
                 </div>
               ))}
             </div>
             {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 연한 */}
-            <div style={rowStyle}>
+            <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 w-full">
               {['normal', 'caution', 'fault', 'resolved'].map(s => (
-                <div key={s} style={itemStyle}>
-                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[s] }} />
-                  <span style={labelStyle}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
+                <div key={s} className="inline-flex items-center gap-[5px] flex-shrink-0">
+                  <div className="w-[9px] h-[9px] rounded-full" style={{ background: STATUS_COLOR[s] }} />
+                  <span className="text-caption font-medium leading-none text-text-secondary whitespace-nowrap">{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
                 </div>
               ))}
               {/* Phase 24: 미배치 마커 범례 */}
               {planType === 'extinguisher' && (
-                <div style={itemStyle}>
-                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 6, fontWeight: 700, color: '#fff', lineHeight: 1 }}>?</span>
+                <div className="inline-flex items-center gap-[5px] flex-shrink-0">
+                  <div className="w-[9px] h-[9px] rounded-full bg-[#ef4444] flex items-center justify-center">
+                    <span className="text-[6px] font-bold text-white leading-none">?</span>
                   </div>
-                  <span style={labelStyle}>미배치</span>
+                  <span className="text-caption font-medium leading-none text-text-secondary whitespace-nowrap">미배치</span>
                 </div>
               )}
               {planType === 'extinguisher' && (
                 <>
-                  <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px', flexShrink: 0 }} />
+                  <div className="w-px h-3 bg-border-default mx-0.5 flex-shrink-0" />
                   {(['warn', 'imminent', 'danger'] as const).map(w => {
                     const stroke = REPLACE_WARNING_STROKE[w]
                     const label = { warn: '도래', imminent: '임박', danger: '초과' }[w]
                     return (
-                      <div key={w} style={itemStyle}>
+                      <div key={w} className="inline-flex items-center gap-[5px] flex-shrink-0">
                         <MarkerIcon
                           markerType="fire_extinguisher"
-                          color="#888"
+                          color="var(--text-tertiary)"
                           size={13}
                           strokeColor={stroke.color}
                           strokeWidth={stroke.width}
                           dangerBadge={w === 'danger'}
                         />
-                        <span style={labelStyle}>{label}</span>
+                        <span className="text-caption font-medium leading-none text-text-secondary whitespace-nowrap">{label}</span>
                       </div>
                     )
                   })}
