@@ -6,6 +6,7 @@ import { usePhotoUpload } from '../hooks/usePhotoUpload'
 import { PhotoButton } from '../components/PhotoButton'
 import { useAuthStore } from '../stores/authStore'
 import toast from 'react-hot-toast'
+import { ChevronLeft, Image, RotateCcw, Trash2, Check } from 'lucide-react'
 
 const ZONE_LABEL: Record<string, string> = { office: '사무동', research: '연구동', basement: '지하', common: '지하' }
 
@@ -13,16 +14,16 @@ import { fmtKstDateTime as fmtDate } from '../utils/datetime'
 
 function KVRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <span style={{ fontSize: 12, color: 'var(--t3)', width: 64, flexShrink: 0 }}>{label}</span>
-      <span style={{ fontSize: 14, color: 'var(--t1)', flex: 1, lineHeight: 1.5 }}>{children}</span>
+    <div className="flex gap-3 items-start">
+      <span className="text-caption leading-relaxed text-text-tertiary w-16 flex-shrink-0">{label}</span>
+      <span className="text-body-sm leading-relaxed text-text-primary flex-1">{children}</span>
     </div>
   )
 }
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 10 }}>
+    <div className="text-caption font-bold leading-none mb-2.5 text-text-tertiary">
       {children}
     </div>
   )
@@ -265,68 +266,46 @@ export default function RemediationDetailPage() {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
-      {/* 자체 헤더 */}
-      <div style={{
-        height: 48,
-        background: 'rgba(22,27,34,0.97)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        flexShrink: 0,
-      }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }} className="bg-surface-page">
+      {/* 자체 헤더 — sketch .det-page-hd */}
+      <div className="h-12 bg-surface-raised border-b border-border-default flex items-center justify-center relative flex-shrink-0 px-3">
         <button
           aria-label="목록으로 돌아가기"
           onClick={() => navigate(-1)}
-          style={{
-            position: 'absolute',
-            left: 12,
-            width: 36,
-            height: 36,
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            color: 'var(--t1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
+          className="absolute left-3 w-9 h-9 border-none bg-transparent cursor-pointer text-text-primary flex items-center justify-center"
         >
-          <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft size={20} />
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>조치 상세</span>
+        <span className="text-base font-bold leading-tight text-text-primary">조치 상세</span>
       </div>
 
       {/* 로딩 */}
       {isLoading && (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ width: 28, height: 28, border: '2px solid var(--bd2)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+          <div className="border-2 border-border-strong border-t-accent rounded-full" style={{ width: 28, height: 28, animation: 'spin .7s linear infinite' }} />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
       )}
 
       {/* 에러 */}
       {error && !isLoading && (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', fontSize: 14, color: 'var(--t2)' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }} className="text-body-sm text-text-secondary">
           항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.
         </div>
       )}
 
       {/* 콘텐츠 */}
       {!isLoading && !error && record && (
-        <div style={{
-          flex: 1,
-          overflowY: 'auto',
-          paddingBottom: record.status === 'open' ? 'calc(72px + var(--sab, 0px))' : 24,
-        }}>
-          {/* Section 1: 점검 정보 */}
-          <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+        <div
+          className="flex-1 overflow-y-auto"
+          style={{
+            paddingBottom: record.status === 'open' ? 'calc(72px + var(--sab, 0px))' : 24,
+          }}
+        >
+          {/* Section 1: 점검 정보 — sketch .det-section */}
+          <div className="py-5 px-4 border-b border-border-default">
             <SectionHeader>점검 정보</SectionHeader>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="flex flex-col gap-2">
               <KVRow label="카테고리">{record.category}</KVRow>
               <KVRow label="위치">
                 {(() => {
@@ -339,41 +318,34 @@ export default function RemediationDetailPage() {
               <KVRow label="점검일">{fmtDate(record.checkedAt)}</KVRow>
               <KVRow label="점검자">{record.staffName ?? '-'}</KVRow>
               <KVRow label="판정결과">
-                <span style={{
-                  display: 'inline-block',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  padding: '2px 6px',
-                  borderRadius: 5,
-                  background: record.result === 'bad' ? 'rgba(239,68,68,.13)' : 'rgba(245,158,11,.13)',
-                  color: record.result === 'bad' ? 'var(--danger)' : 'var(--warn)',
-                }}>
-                  {record.result === 'bad' ? '불량' : '주의'}
-                </span>
+                {record.result === 'bad'
+                  ? <span className="inline-flex items-center text-caption font-bold leading-none px-1.5 py-0.5 rounded-[5px] bg-danger-bg text-danger">불량</span>
+                  : <span className="inline-flex items-center text-caption font-bold leading-none px-1.5 py-0.5 rounded-[5px] bg-warning-bg text-warning">주의</span>
+                }
               </KVRow>
             </div>
           </div>
 
-          {/* Section 2: 점검 기록 */}
-          <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+          {/* Section 2: 점검 기록 — sketch .det-section */}
+          <div className="py-5 px-4 border-b border-border-default">
             <SectionHeader>점검 기록</SectionHeader>
-            <p style={{ fontSize: 14, color: record.memo ? 'var(--t1)' : 'var(--t3)', lineHeight: 1.5, margin: 0 }}>
+            <p className={`text-body-sm leading-relaxed m-0 whitespace-pre-wrap ${record.memo ? 'text-text-primary' : 'text-text-tertiary'}`}>
               {record.memo ?? '메모 없음'}
             </p>
             {record.photoKey && (
               <img
                 src={'/api/uploads/' + record.photoKey}
                 alt="점검 사진"
-                style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12 }}
+                className="w-full max-h-60 object-cover rounded-[10px] border border-border-default block mt-3 bg-surface-sunken"
               />
             )}
           </div>
 
-          {/* Section 3: 조치 완료 정보 (resolved only) */}
+          {/* Section 3: 조치 완료 정보 (resolved only) — sketch .det-section */}
           {record.status === 'resolved' && (
-            <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--bd)' }}>
+            <div className="py-5 px-4 border-b border-border-default">
               <SectionHeader>조치 완료</SectionHeader>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="flex flex-col gap-2">
                 <KVRow label="조치일시">{fmtDate(record.resolvedAt)}</KVRow>
                 <KVRow label="조치자">{record.resolvedBy ?? '-'}</KVRow>
                 <KVRow label="조치 메모">
@@ -387,105 +359,103 @@ export default function RemediationDetailPage() {
                 <img
                   src={'/api/uploads/' + record.resolutionPhotoKey}
                   alt="조치 사진"
-                  style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block', marginTop: 12 }}
+                  className="w-full max-h-60 object-cover rounded-[10px] border border-border-default block mt-3 bg-surface-sunken"
                 />
               )}
             </div>
           )}
 
-          {/* Admin 액션 영역 */}
+          {/* Admin 액션 영역 — sketch .det-admin-row */}
           {isAdmin && (
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bd)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="py-3.5 px-4 border-b border-border-default flex gap-2 flex-wrap">
               {record.status === 'resolved' && (
                 <button
                   onClick={handleUnresolve}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, border: '1px solid var(--warn)',
-                    background: 'transparent', color: 'var(--warn)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  }}
-                >조치 취소</button>
+                  className="px-3.5 py-2 rounded-md bg-transparent text-caption font-bold leading-none cursor-pointer inline-flex items-center gap-1 border border-warning-bar text-warning-bar"
+                >
+                  <RotateCcw size={14} />조치 취소
+                </button>
               )}
               <button
                 onClick={handleDelete}
-                style={{
-                  padding: '8px 14px', borderRadius: 8, border: '1px solid var(--danger)',
-                  background: 'transparent', color: 'var(--danger)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                }}
-              >점검 기록 삭제</button>
+                className="px-3.5 py-2 rounded-md bg-transparent text-caption font-bold leading-none cursor-pointer inline-flex items-center gap-1 border border-danger-bar text-danger-bar"
+              >
+                <Trash2 size={14} />점검 기록 삭제
+              </button>
             </div>
           )}
 
-          {/* Section 4: 조치 내용 입력 (open only) */}
+          {/* Section 4: 조치 내용 입력 (open only) — sketch .det-section */}
           {record.status !== 'resolved' && (
-            <div style={{ padding: '20px 16px' }}>
+            <div className="py-5 px-4">
               <SectionHeader>조치 내용 입력</SectionHeader>
 
-              {/* 유도등: 조치 피커 */}
+              {/* 유도등: 조치 피커 — sketch .det-picker */}
               {isGuideLight && (
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="flex gap-[5px] mb-2.5">
                   {(['본체 교체', '예비전원 교체', '직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setActionPick(opt)} style={{
-                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
+                    <button
+                      key={opt}
+                      onClick={() => setActionPick(opt)}
+                      className={`flex-1 rounded-[10px] cursor-pointer font-bold leading-tight text-center border text-caption px-1 py-2.5${actionPick === opt ? ' border-2 border-accent text-accent' : ' border-border-default bg-surface-raised text-text-secondary'}`}
+                      style={actionPick === opt ? { background: 'rgba(59,130,246,0.12)' } : undefined}
+                    >{opt}</button>
                   ))}
                 </div>
               )}
 
-              {/* 소화기: 조치 피커 */}
+              {/* 소화기: 조치 피커 — sketch .det-picker */}
               {isExtinguisher && (
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="flex gap-[5px] mb-2.5">
                   {(['받침 교체', '소화기 교체', '직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setActionPick(opt)} style={{
-                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
+                    <button
+                      key={opt}
+                      onClick={() => setActionPick(opt)}
+                      className={`flex-1 rounded-[10px] cursor-pointer font-bold leading-tight text-center border text-caption px-1 py-2.5${actionPick === opt ? ' border-2 border-accent text-accent' : ' border-border-default bg-surface-raised text-text-secondary'}`}
+                      style={actionPick === opt ? { background: 'rgba(59,130,246,0.12)' } : undefined}
+                    >{opt}</button>
                   ))}
                 </div>
               )}
 
-              {/* 소화전: 조치 피커 */}
+              {/* 소화전: 조치 피커 (4-옵션 tight) — sketch .det-picker.tight, 11px 화이트리스트 */}
               {isHydrant && (
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="flex gap-[5px] mb-2.5">
                   {(['경종 교체', '위치표시등 교체', '호스걸이 교체', '직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setActionPick(opt)} style={{
-                      flex: 1, padding: '10px 2px', borderRadius: 10, cursor: 'pointer',
-                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize: 11, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
+                    <button
+                      key={opt}
+                      onClick={() => setActionPick(opt)}
+                      className={`flex-1 rounded-[10px] cursor-pointer font-bold leading-tight text-center border${actionPick === opt ? ' border-2 border-accent text-accent' : ' border-border-default bg-surface-raised text-text-secondary'}`}
+                      style={actionPick === opt ? { fontSize: 11, padding: '10px 2px', background: 'rgba(59,130,246,0.12)' } : { fontSize: 11, padding: '10px 2px' }}
+                    >{opt}</button>
                   ))}
                 </div>
               )}
 
-              {/* 방화셔터: 조치 피커 */}
+              {/* 방화셔터: 조치 피커 — sketch .det-picker */}
               {isFireShutter && (
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="flex gap-[5px] mb-2.5">
                   {(['방화셔터 라인 표시함', '연동제어기 기판 교체', '직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setActionPick(opt)} style={{
-                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize: 11, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
+                    <button
+                      key={opt}
+                      onClick={() => setActionPick(opt)}
+                      className={`flex-1 rounded-[10px] cursor-pointer font-bold leading-tight text-center border text-caption px-1 py-2.5${actionPick === opt ? ' border-2 border-accent text-accent' : ' border-border-default bg-surface-raised text-text-secondary'}`}
+                      style={actionPick === opt ? { background: 'rgba(59,130,246,0.12)' } : undefined}
+                    >{opt}</button>
                   ))}
                 </div>
               )}
 
-              {/* 전실제연댐퍼: 조치 피커 */}
+              {/* 전실제연댐퍼: 조치 피커 — sketch .det-picker */}
               {isSmokeDamper && (
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="flex gap-[5px] mb-2.5">
                   {(['기판 교체', '모터 교체', '직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setActionPick(opt)} style={{
-                      flex: 1, padding: '10px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: actionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: actionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg2)',
-                      fontSize: 12, fontWeight: 700, color: actionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
+                    <button
+                      key={opt}
+                      onClick={() => setActionPick(opt)}
+                      className={`flex-1 rounded-[10px] cursor-pointer font-bold leading-tight text-center border text-caption px-1 py-2.5${actionPick === opt ? ' border-2 border-accent text-accent' : ' border-border-default bg-surface-raised text-text-secondary'}`}
+                      style={actionPick === opt ? { background: 'rgba(59,130,246,0.12)' } : undefined}
+                    >{opt}</button>
                   ))}
                 </div>
               )}
@@ -496,57 +466,36 @@ export default function RemediationDetailPage() {
                   value={memo}
                   onChange={e => setMemo(e.target.value)}
                   placeholder="조치 내용을 입력하세요 (필수)"
-                  style={{
-                    width: '100%',
-                    minHeight: 96,
-                    background: 'var(--bg3)',
-                    border: '1px solid var(--bd2)',
-                    borderRadius: 10,
-                    fontSize: 14,
-                    color: 'var(--t1)',
-                    padding: 12,
-                    resize: 'vertical',
-                    boxSizing: 'border-box',
-                    fontFamily: 'Noto Sans KR, sans-serif',
-                    lineHeight: 1.5,
-                  }}
+                  className="w-full min-h-24 bg-surface-sunken border border-border-strong rounded-[10px] text-body-sm leading-relaxed text-text-primary p-3 resize-y box-border font-sans"
                 />
               )}
 
-              {/* 소모 자재 + 사진 (모든 카테고리 공통) */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>소모 자재</span>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+              {/* 소모 자재 + 사진 (모든 카테고리 공통) — sketch .det-mat-row* */}
+              <div className="flex items-center justify-between mt-3 mb-1">
+                <span className="text-caption leading-none text-text-tertiary">소모 자재</span>
+                <span className="text-caption leading-none text-text-tertiary">조치 사진 (선택)</span>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
+              <div className="flex gap-2 items-start">
+                <div className="flex-1 min-w-0 flex flex-col gap-1 h-[72px]">
                   <input
                     type="text"
                     value={materialName}
                     onChange={e => setMaterialName(e.target.value)}
                     placeholder="자재명"
-                    style={{
-                      flex: 1, minHeight: 0, minWidth: 0, width: '100%',
-                      background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
-                      fontSize: 13, color: 'var(--t1)', padding: '0 10px',
-                      boxSizing: 'border-box', fontFamily: 'inherit',
-                    }}
+                    className="flex-1 min-h-0 min-w-0 w-full bg-surface-sunken border border-border-strong rounded-md text-label text-text-primary px-2.5 box-border"
+                    style={{ fontFamily: 'inherit' }}
                   />
-                  <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+                  <div className="relative flex-1 min-h-0 min-w-0">
                     <input
                       type="number"
                       min={0}
                       value={materialCount}
                       onChange={e => setMaterialCount(e.target.value)}
                       placeholder="0"
-                      style={{
-                        width: '100%', height: '100%', minWidth: 0,
-                        background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8,
-                        fontSize: 13, color: 'var(--t1)', padding: '0 28px 0 10px',
-                        boxSizing: 'border-box', fontFamily: 'inherit',
-                      }}
+                      className="w-full h-full min-w-0 bg-surface-sunken border border-border-strong rounded-md text-label text-text-primary pr-7 pl-2.5 box-border"
+                      style={{ fontFamily: 'inherit' }}
                     />
-                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-caption leading-none text-text-tertiary pointer-events-none">ea</span>
                   </div>
                 </div>
                 <PhotoButton hook={photo} label="촬영" noCapture />
@@ -556,35 +505,19 @@ export default function RemediationDetailPage() {
         </div>
       )}
 
-      {/* 고정 하단 CTA (open only) */}
+      {/* 고정 하단 CTA (open only) — sketch .det-cta */}
       {!isLoading && !error && record && record.status !== 'resolved' && (
-        <div style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: 'var(--bg)',
-          borderTop: '1px solid var(--bd)',
-          padding: '12px 16px',
-          paddingBottom: 'calc(12px + var(--sab, 0px))',
-        }}>
+        <div
+          className="fixed bottom-0 left-0 right-0 bg-surface-page border-t border-border-default px-4 py-3"
+          style={{ paddingBottom: 'calc(12px + var(--sab, 0px))' }}
+        >
           <button
             onClick={handleResolve}
             disabled={submitting}
-            style={{
-              width: '100%',
-              height: 48,
-              background: 'var(--acl)',
-              color: '#fff',
-              fontSize: 14,
-              fontWeight: 700,
-              border: 'none',
-              borderRadius: 12,
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.5 : 1,
-              transition: 'opacity 0.15s',
-            }}
+            className="w-full h-12 bg-accent text-on-accent text-body-sm font-bold border-none rounded-xl transition-opacity flex items-center justify-center gap-1.5 leading-none"
+            style={{ cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.5 : 1 }}
           >
+            <Check size={16} />
             {submitting ? '처리 중...' : '조치 완료'}
           </button>
         </div>
