@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
+import { Camera, ScanLine, Loader2 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import type { CheckPoint } from '../types'
 
@@ -172,14 +173,14 @@ export default function QRScanPage() {
     stage === 'scan' ? (
       <button
         onClick={() => { stopCamera(); setStage('manual') }}
-        style={{ height:32, padding:'0 10px', borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:600, color:'var(--t2)', cursor:'pointer' }}
+        className="h-8 px-2.5 rounded-md bg-surface-raised border border-border-default text-caption font-semibold text-text-secondary cursor-pointer"
       >
         수동입력
       </button>
     ) : (
       <button
         onClick={() => { setStage('scan'); startCamera() }}
-        style={{ height:32, padding:'0 10px', borderRadius:7, background:'var(--bg3)', border:'1px solid var(--bd)', fontSize:11, fontWeight:600, color:'var(--acl)', cursor:'pointer' }}
+        className="h-8 px-2.5 rounded-md bg-surface-raised border border-border-default text-caption font-semibold text-accent cursor-pointer"
       >
         카메라
       </button>
@@ -187,43 +188,53 @@ export default function QRScanPage() {
 
   // ────────────────────────────────────────────────────────
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
       {headerSlot && createPortal(headerToggleBtn, headerSlot)}
 
       {/* 본문 */}
-      <main style={{ flex:1, minHeight:0, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+      <main className="flex-1 min-h-0 overflow-y-auto flex flex-col">
 
         {/* ── 스캔 화면 ── */}
         {stage === 'scan' && (
-          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', padding:'20px 16px', gap:16 }}>
+          <div className="flex-1 flex flex-col items-center px-4 py-5 gap-4">
 
-            <div style={{ width:'100%', maxWidth:320, borderRadius:20, overflow:'hidden', background:'#000', boxShadow:'0 0 0 1px var(--bd2)', position:'relative' }}>
+            <div className="w-full max-w-[320px] rounded-[20px] overflow-hidden bg-black ring-1 ring-border-strong relative">
               <div id={QR_REGION_ID} style={{ width:'100%' }} />
               {loading && (
-                <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10 }}>
-                  <Spinner />
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
+                  <Loader2 size={28} className="animate-spin text-accent" />
                 </div>
               )}
             </div>
 
             {camError ? (
-              <div style={{ width:'100%', maxWidth:320, background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.2)', borderRadius:12, padding:'14px 16px', textAlign:'center' }}>
-                <div style={{ fontSize:28, marginBottom:8 }}>📷</div>
-                <div style={{ fontSize:12, color:'var(--t2)', lineHeight:1.6, whiteSpace:'pre-line', marginBottom:12 }}>{camError}</div>
-                <div style={{ display:'flex', gap:8 }}>
-                  <button onClick={startCamera} style={{ ...primaryBtnSt, flex:1 }}>다시 시도</button>
-                  <button onClick={() => { stopCamera(); setStage('manual') }} style={{ ...ghostBtnSt, flex:1 }}>수동 입력</button>
+              <div className="w-full max-w-[320px] bg-danger-bg border border-danger-bar/40 rounded-xl p-4 text-center">
+                <Camera size={28} className="text-danger mx-auto mb-2" />
+                <div className="text-caption text-text-secondary leading-relaxed whitespace-pre-line mb-3">{camError}</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={startCamera}
+                    className="flex-1 py-3 rounded-xl border-0 bg-accent text-on-accent text-body-sm font-bold cursor-pointer transition-opacity"
+                  >
+                    다시 시도
+                  </button>
+                  <button
+                    onClick={() => { stopCamera(); setStage('manual') }}
+                    className="flex-1 py-3 px-4 rounded-xl bg-surface-raised border border-border-default text-text-secondary text-caption font-bold cursor-pointer"
+                  >
+                    수동 입력
+                  </button>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize:12, color:'var(--t2)', textAlign:'center' }}>
+              <div className="text-caption text-text-secondary text-center">
                 QR 코드를 카메라에 비춰주세요
               </div>
             )}
 
             {cpError && (
-              <div style={{ width:'100%', maxWidth:320, background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:10, padding:'10px 13px', fontSize:11, color:'var(--danger)', textAlign:'center', whiteSpace:'pre-line', lineHeight:1.5 }}>
+              <div className="w-full max-w-[320px] bg-danger-bg border border-danger-bar/40 rounded-lg px-3 py-2.5 text-caption text-danger text-center whitespace-pre-line leading-relaxed">
                 {cpError}
               </div>
             )}
@@ -232,28 +243,28 @@ export default function QRScanPage() {
 
         {/* ── 수동 입력 ── */}
         {stage === 'manual' && (
-          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, gap:16 }}>
-            <div style={{ fontSize:40, textAlign:'center' }}>🔍</div>
-            <div style={{ width:'100%', maxWidth:320 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:'var(--t2)', display:'block', marginBottom:6 }}>QR 코드 값</label>
+          <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+            <ScanLine size={40} className="text-text-secondary mx-auto" />
+            <div className="w-full max-w-[320px]">
+              <label className="block text-caption font-bold text-text-secondary mb-1.5">QR 코드 값</label>
               <input
                 autoFocus
                 value={manualQr}
                 onChange={e => setManualQr(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
                 placeholder="예: QR-3F-OFF-001"
-                style={inputSt}
+                className="w-full px-3.5 py-3 rounded-lg bg-surface-raised border border-border-default text-text-primary text-body-sm outline-none font-inherit"
               />
             </div>
             <button
               onClick={handleManualSearch}
               disabled={!manualQr.trim() || loading}
-              style={{ ...primaryBtnSt, width:'100%', maxWidth:320, opacity:(!manualQr.trim() || loading) ? 0.5 : 1 }}
+              className={`w-full max-w-[320px] py-3 rounded-xl border-0 bg-accent text-on-accent text-body-sm font-bold cursor-pointer transition-opacity ${(!manualQr.trim() || loading) ? 'opacity-50' : ''}`}
             >
               {loading ? '조회 중...' : '체크포인트 조회'}
             </button>
             {cpError && (
-              <div style={{ width:'100%', maxWidth:320, background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.25)', borderRadius:10, padding:'10px 13px', fontSize:11, color:'var(--danger)', textAlign:'center', whiteSpace:'pre-line', lineHeight:1.5 }}>
+              <div className="w-full max-w-[320px] bg-danger-bg border border-danger-bar/40 rounded-lg px-3 py-2.5 text-caption text-danger text-center whitespace-pre-line leading-relaxed">
                 {cpError}
               </div>
             )}
@@ -264,34 +275,4 @@ export default function QRScanPage() {
 
     </div>
   )
-}
-
-// ── 서브 컴포넌트 ──────────────────────────────────────────
-function Spinner() {
-  return (
-    <div style={{ width:28, height:28, border:'2px solid rgba(255,255,255,.2)', borderTopColor:'var(--acl)', borderRadius:'50%', animation:'spin .7s linear infinite' }}>
-      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
-    </div>
-  )
-}
-
-// ── 공통 스타일 ───────────────────────────────────────────
-const primaryBtnSt: React.CSSProperties = {
-  width:'100%', padding:'13px 0', borderRadius:12, border:'none',
-  background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-  color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
-  boxShadow:'0 4px 14px rgba(37,99,235,0.35)', transition:'opacity .13s',
-}
-
-const ghostBtnSt: React.CSSProperties = {
-  padding:'12px 16px', borderRadius:12,
-  background:'var(--bg2)', border:'1px solid var(--bd2)',
-  color:'var(--t2)', fontSize:12, fontWeight:600, cursor:'pointer',
-}
-
-const inputSt: React.CSSProperties = {
-  width:'100%', padding:'11px 13px', borderRadius:10,
-  background:'var(--bg2)', border:'1px solid var(--bd2)',
-  color:'var(--t1)', fontSize:13, outline:'none',
-  fontFamily:'inherit',
 }
