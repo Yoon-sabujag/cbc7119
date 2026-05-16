@@ -173,14 +173,14 @@ export default function QRScanPage() {
     stage === 'scan' ? (
       <button
         onClick={() => { stopCamera(); setStage('manual') }}
-        className="h-8 px-2.5 rounded-md bg-surface-raised border border-border-default text-caption font-semibold text-text-secondary cursor-pointer"
+        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-text-secondary cursor-pointer"
       >
         수동입력
       </button>
     ) : (
       <button
         onClick={() => { setStage('scan'); startCamera() }}
-        className="h-8 px-2.5 rounded-md bg-surface-raised border border-border-default text-caption font-semibold text-accent cursor-pointer"
+        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-accent cursor-pointer"
       >
         카메라
       </button>
@@ -215,13 +215,13 @@ export default function QRScanPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={startCamera}
-                    className="flex-1 py-3 rounded-xl border-0 bg-accent text-on-accent text-body-sm font-bold cursor-pointer transition-opacity"
+                    className="flex-1 py-[13px] rounded-xl border-0 bg-accent text-on-accent text-body font-bold cursor-pointer transition-opacity"
                   >
                     다시 시도
                   </button>
                   <button
                     onClick={() => { stopCamera(); setStage('manual') }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-surface-raised border border-border-default text-text-secondary text-caption font-bold cursor-pointer"
+                    className="flex-1 py-3 px-4 rounded-xl bg-surface-sunken border border-border-default text-text-secondary text-body-sm font-semibold cursor-pointer"
                   >
                     수동 입력
                   </button>
@@ -253,13 +253,13 @@ export default function QRScanPage() {
                 onChange={e => setManualQr(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleManualSearch()}
                 placeholder="예: QR-3F-OFF-001"
-                className="w-full px-3.5 py-3 rounded-lg bg-surface-raised border border-border-default text-text-primary text-body-sm outline-none font-inherit"
+                className="w-full px-3.5 py-3 rounded-lg bg-surface-sunken border border-border-default text-text-primary text-body-sm outline-none font-inherit"
               />
             </div>
             <button
               onClick={handleManualSearch}
               disabled={!manualQr.trim() || loading}
-              className={`w-full max-w-[320px] py-3 rounded-xl border-0 bg-accent text-on-accent text-body-sm font-bold cursor-pointer transition-opacity ${(!manualQr.trim() || loading) ? 'opacity-50' : ''}`}
+              className={`w-full max-w-[320px] py-[13px] rounded-xl border-0 bg-accent text-on-accent text-body font-bold cursor-pointer transition-opacity ${(!manualQr.trim() || loading) ? 'opacity-50' : ''}`}
             >
               {loading ? '조회 중...' : '체크포인트 조회'}
             </button>
