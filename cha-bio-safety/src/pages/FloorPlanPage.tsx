@@ -1687,95 +1687,99 @@ export default function FloorPlanPage() {
         // 일정한 사이즈(유도등 모달 자연 높이 ≈ 290px)로 통일.
         if (isAccessBlocked) {
           return (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-              <div style={{ position: 'relative', width: '90%', maxWidth: 340, height: 290, background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setInspectModal(false)}>
+              <div className="relative w-[90%] max-w-[340px] h-[290px] bg-surface-raised rounded-2xl border border-border-strong" onClick={e => e.stopPropagation()}>
                 <AccessBlockedPopup onConfirm={() => { setInspectModal(false); setSelected(null) }} />
               </div>
             </div>
           )
         }
         return (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-          <div style={{ position: 'relative', width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setInspectModal(false)}>
+          <div className="relative w-[90%] max-w-[340px] bg-surface-raised rounded-2xl p-5 border border-border-strong max-h-[86vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="text-body-sm font-bold text-text-primary mb-1">점검 기록 입력</div>
+            <div className="text-caption text-text-tertiary mb-3.5">
               {selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
             </div>
 
             {planType === 'extinguisher' && inspectExtDetail && (
-              <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)', marginBottom:8 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
-                  <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.location || (inspectExtDetail as any).cp_location || selected?.cp_location || '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufacturer ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufactured_at ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.approval_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.prefix_code ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.seal_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.serial_no ?? '-'}</span></div>
-                  {selected?.check_point_id && <div><span style={{ color:'var(--t3)' }}>ID </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{selected.check_point_id}</span></div>}
+              <div className="bg-surface-sunken rounded-[10px] px-3 py-2.5 border border-border-default mb-2">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-caption">
+                  <div><span className="text-text-tertiary">위치 </span><span className="text-text-primary font-semibold">{inspectExtDetail.location || (inspectExtDetail as any).cp_location || selected?.cp_location || '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조업체 </span><span className="text-text-primary font-semibold">{inspectExtDetail.manufacturer ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조년월 </span><span className="text-text-primary font-semibold">{inspectExtDetail.manufactured_at ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">형식승인 </span><span className="text-text-primary font-semibold">{inspectExtDetail.approval_no ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">접두문자 </span><span className="text-text-primary font-semibold">{inspectExtDetail.prefix_code ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">증지번호 </span><span className="text-text-primary font-semibold">{inspectExtDetail.seal_no ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조번호 </span><span className="text-text-primary font-semibold">{inspectExtDetail.serial_no ?? '-'}</span></div>
+                  {selected?.check_point_id && <div><span className="text-text-tertiary">ID </span><span className="text-text-primary font-semibold">{selected.check_point_id}</span></div>}
                 </div>
               </div>
             )}
             {/* Phase 24: 소화기 정보 수정 + 분리 서브액션 행 */}
             {planType === 'extinguisher' && inspectExtDetail && (
-              <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+              <div className="flex gap-1.5 mb-3.5">
                 <button
                   onClick={() => {
                     setInspectModal(false)
                     navigate(`/extinguishers/${inspectExtDetail.id}`)
                   }}
-                  style={{ flex:1, height:32, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  className="flex-1 h-9 rounded-lg bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
                 >정보 수정</button>
                 <button
                   onClick={() => {
                     setInspectModal(false)
                     setUnassignConfirm(inspectExtDetail)
                   }}
-                  style={{ flex:1, height:32, borderRadius:8, background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.3)', color:'var(--danger,#ef4444)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  className="flex-1 h-9 rounded-lg bg-danger-bg border border-danger-bar/30 text-danger text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
                 >소화기 분리</button>
               </div>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 결과</div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-              {([['normal','정상','#22c55e'],['caution','주의','#eab308'],['bad','불량','#ef4444']] as const).map(([val, label, color]) => (
-                <button key={val} onClick={() => setInspectResult(val)} style={{
-                  flex: 1, padding: '10px 4px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: inspectResult === val ? color + '22' : 'var(--bg3)',
-                  color: inspectResult === val ? color : 'var(--t3)',
-                  border: inspectResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
-                }}>{label}</button>
+            <div className="text-caption font-semibold text-text-tertiary mb-1.5">점검 결과</div>
+            <div className="flex gap-1.5 mb-3.5">
+              {([
+                ['normal', '정상', 'safe'],
+                ['caution', '주의', 'warning'],
+                ['bad',    '불량', 'danger'],
+              ] as const).map(([val, label, tok]) => (
+                <button key={val} onClick={() => setInspectResult(val as 'normal' | 'caution' | 'bad')} className={`flex-1 h-11 rounded-[10px] text-body-sm font-bold cursor-pointer inline-flex items-center justify-center ${
+                  inspectResult === val
+                    ? tok === 'safe'    ? 'bg-safe-bg border-2 border-safe-bar text-safe'
+                    : tok === 'warning' ? 'bg-warning-bg border-2 border-warning-bar text-warning'
+                    :                    'bg-danger-bg border-2 border-danger-bar text-danger'
+                    : 'bg-surface-sunken border border-border-default text-text-tertiary'
+                }`}>{label}</button>
               ))}
             </div>
 
             {needSymptom && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>증상</div>
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5">증상</div>
+                <div className="flex gap-[5px] mb-3 flex-wrap">
                   {['점등 이상','예비전원 이상','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setInspectSymptomPick(s)} style={{
-                      flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: inspectSymptomPick === s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: inspectSymptomPick === s ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
-                      fontSize: 11, fontWeight: 700, color: inspectSymptomPick === s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
+                    <button key={s} onClick={() => setInspectSymptomPick(s)} className={`flex-1 min-w-[80px] h-10 rounded-[10px] text-label font-semibold cursor-pointer ${
+                      inspectSymptomPick === s
+                        ? 'bg-accent border border-accent text-on-accent'
+                        : 'bg-surface-sunken border border-border-default text-text-secondary'
+                    }`}>{s}</button>
                   ))}
                 </div>
               </>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>
+            <div className="flex items-center justify-between mb-[5px]">
+              <label className="text-caption font-semibold text-text-tertiary tracking-[0.05em]">
                 {needSymptom && inspectSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
               </label>
-              <span style={{ fontSize: 10, color: 'var(--t3)' }}>점검 사진 (선택)</span>
+              <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14 }}>
+            <div className="flex gap-2 items-start mb-3.5">
               <textarea
                 value={inspectMemo}
                 onChange={e => setInspectMemo(e.target.value)}
                 placeholder="특이사항을 입력하세요"
-                style={{ flex: 1, height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                className="flex-1 h-[72px] px-3 py-2.5 rounded-[10px] bg-surface-sunken border border-border-default text-text-primary text-label resize-none font-[inherit] outline-none box-border"
               />
               <PhotoButton hook={inspectPhoto} label="촬영" noCapture />
             </div>
@@ -1783,36 +1787,41 @@ export default function FloorPlanPage() {
             {/* paired 비상콘센트 (소화전 마커 + 같은 location_no BC 매핑이 있을 때만 노출) */}
             {pairedBC && (
               <>
-                <div style={{ height:1, background:'var(--bd)', margin:'10px 0' }} />
-                <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)', marginBottom:10 }}>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>{pairedBC.category}</div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{pairedBC.location}</div>
-                  {pairedBC.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{pairedBC.description}</div>}
+                <div className="h-px bg-border-default my-2.5" />
+                <div className="bg-surface-sunken rounded-[10px] px-3 py-2 border border-border-default mb-2.5">
+                  <div className="text-caption font-bold text-text-tertiary tracking-[0.03em]">{pairedBC.category}</div>
+                  <div className="text-label font-bold text-text-primary mt-px">{pairedBC.location}</div>
+                  {pairedBC.description && <div className="text-caption text-text-tertiary mt-0.5">{pairedBC.description}</div>}
                 </div>
-                <div style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>비상콘센트 점검 결과</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    {([['normal','정상','#22c55e'],['caution','주의','#eab308'],['bad','불량','#ef4444']] as const).map(([val, label, color]) => (
-                      <button key={val} onClick={() => setInspectBcResult(val)} style={{
-                        flex:1, padding:'10px 4px', borderRadius:10, fontSize:12, fontWeight:700, cursor:'pointer',
-                        background: inspectBcResult === val ? color + '22' : 'var(--bg3)',
-                        color: inspectBcResult === val ? color : 'var(--t3)',
-                        border: inspectBcResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
-                      }}>{label}</button>
+                <div className="mb-2.5">
+                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-[0.05em]">비상콘센트 점검 결과</div>
+                  <div className="flex gap-1.5">
+                    {([
+                      ['normal', '정상', 'safe'],
+                      ['caution', '주의', 'warning'],
+                      ['bad',    '불량', 'danger'],
+                    ] as const).map(([val, label, tok]) => (
+                      <button key={val} onClick={() => setInspectBcResult(val as 'normal' | 'caution' | 'bad')} className={`flex-1 h-11 rounded-[10px] text-body-sm font-bold cursor-pointer inline-flex items-center justify-center ${
+                        inspectBcResult === val
+                          ? tok === 'safe'    ? 'bg-safe-bg border-2 border-safe-bar text-safe'
+                          : tok === 'warning' ? 'bg-warning-bg border-2 border-warning-bar text-warning'
+                          :                    'bg-danger-bg border-2 border-danger-bar text-danger'
+                          : 'bg-surface-sunken border border-border-default text-text-tertiary'
+                      }`}>{label}</button>
                     ))}
                   </div>
                 </div>
-                <div style={{ marginBottom:14 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                    <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                    <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+                <div className="mb-3.5">
+                  <div className="flex items-center justify-between mb-[5px]">
+                    <label className="text-caption font-semibold text-text-tertiary tracking-[0.05em]">특이사항 (선택)</label>
+                    <span className="text-caption text-text-tertiary">점검 사진 (선택)</span>
                   </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                  <div className="flex gap-2 items-start">
                     <textarea
                       value={inspectBcMemo}
                       onChange={e => setInspectBcMemo(e.target.value)}
                       placeholder="특이사항을 입력하세요"
-                      style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+                      className="flex-1 h-[72px] px-3 py-2.5 rounded-[10px] bg-surface-sunken border border-border-default text-text-primary text-label resize-none font-[inherit] outline-none box-border"
                     />
                     <PhotoButton hook={inspectBcPhoto} label="촬영" noCapture />
                   </div>
@@ -1820,8 +1829,8 @@ export default function FloorPlanPage() {
               </>
             )}
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setInspectModal(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <div className="flex gap-2">
+              <button onClick={() => setInspectModal(false)} className="flex-1 h-[42px] rounded-[10px] bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">
                 취소
               </button>
               <button
@@ -1888,7 +1897,7 @@ export default function FloorPlanPage() {
                     setInspectSubmitting(false)
                   }
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'default' : 'pointer' }}
+                className={`flex-1 h-[42px] rounded-[10px] border-none text-label font-bold ${(inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'bg-border-strong text-text-tertiary cursor-default' : 'bg-accent text-on-accent cursor-pointer'}`}
               >
                 {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
               </button>
