@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { Camera, ScanLine, Loader2 } from 'lucide-react'
+import { Camera, ScanLine, Loader2, Keyboard } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import type { CheckPoint } from '../types'
 
@@ -173,16 +173,18 @@ export default function QRScanPage() {
     stage === 'scan' ? (
       <button
         onClick={() => { stopCamera(); setStage('manual') }}
-        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-text-secondary cursor-pointer"
+        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-text-secondary cursor-pointer inline-flex items-center gap-1"
       >
-        수동입력
+        <Keyboard size={14} />
+        <span>수동입력</span>
       </button>
     ) : (
       <button
         onClick={() => { setStage('scan'); startCamera() }}
-        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-accent cursor-pointer"
+        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-accent cursor-pointer inline-flex items-center gap-1"
       >
-        카메라
+        <Camera size={14} />
+        <span>카메라</span>
       </button>
     )
 
@@ -215,13 +217,13 @@ export default function QRScanPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={startCamera}
-                    className="flex-1 py-[13px] rounded-xl border-0 bg-accent text-on-accent text-body font-bold cursor-pointer transition-opacity"
+                    className="w-full py-[13px] rounded-xl border-0 bg-accent text-on-accent text-body font-bold cursor-pointer transition-opacity"
                   >
                     다시 시도
                   </button>
                   <button
                     onClick={() => { stopCamera(); setStage('manual') }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-surface-sunken border border-border-default text-text-secondary text-body-sm font-semibold cursor-pointer"
+                    className="py-3 px-4 rounded-xl bg-surface-sunken border border-border-default text-text-secondary text-body-sm font-semibold cursor-pointer"
                   >
                     수동 입력
                   </button>
