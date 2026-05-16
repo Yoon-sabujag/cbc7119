@@ -353,7 +353,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary leading-tight">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary leading-tight">{group.labels[0]}</div>
           {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5 leading-tight">{group.labels.slice(1).join(' · ')}</div>}
         </div>
       </div>
@@ -595,10 +595,10 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Video size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary leading-tight">CCTV 점검</div>
+          <div className="text-body font-bold text-text-primary leading-tight">CCTV 점검</div>
           <div className="text-caption text-text-tertiary mt-0.5 leading-tight">B1F 방재센터 DVR 12대</div>
         </div>
         {allDone && !justSaved && (
@@ -814,7 +814,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <SmokeVentIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
@@ -836,7 +836,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)}
-                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                 {BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
@@ -882,7 +882,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSelectedId(cp.id)}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {getPositionLabel(cp)}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -1519,9 +1519,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
     >
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <BarChart3 size={18} className="text-text-secondary" />
-        <span className="text-title font-bold text-text-primary">DIV 점검</span>
+        <span className="text-body font-bold text-text-primary">DIV 점검</span>
         {currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -2018,9 +2018,9 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
     >
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Wind size={18} className="text-text-secondary" />
-        <span className="text-title font-bold text-text-primary">컴프레셔 점검</span>
+        <span className="text-body font-bold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -2344,7 +2344,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Zap size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
         </div>
       </div>
 
@@ -2358,7 +2358,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
             const isActive = zone === z
             const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
@@ -2595,7 +2595,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
       <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Car size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
           {group.labels.length > 1 && (
             <div className="text-caption text-text-tertiary mt-0.5">· {group.labels.slice(1).join(' · ')}</div>
           )}
@@ -2612,7 +2612,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
             const isActive = item === label
             const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)} className={`${baseCls} ${stateCls}`}>
@@ -2634,7 +2634,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
               const isActive = subItem === door
               const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
               const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                             : doneDoor  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                             : doneDoor  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                              :             'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={door} onClick={() => setSubItem(door)} className={`${baseCls} ${stateCls}`}>
@@ -2977,7 +2977,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
@@ -3000,7 +3000,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)}
-                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                 {label}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
@@ -3024,7 +3024,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {num}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -3039,7 +3039,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
-                  className={`px-2.5 py-[7px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`px-2.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {cp.location}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -3063,7 +3063,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSubItem(cp.location)}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {cp.location}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
