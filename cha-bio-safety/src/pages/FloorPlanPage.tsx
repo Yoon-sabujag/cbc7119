@@ -976,7 +976,7 @@ export default function FloorPlanPage() {
           <button
             key={p.key}
             onClick={() => p.ready && setPlanType(p.key)}
-            className={`flex-1 flex items-center justify-center px-2 py-1 rounded-sm text-caption font-bold transition-colors relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'border-[1.5px] border-accent bg-accent text-text-on-accent' : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'}`}
+            className={`flex-1 flex items-center justify-center px-2 py-1 rounded-sm text-caption font-bold transition-colors relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'bg-accent border border-accent text-text-on-accent' : 'bg-surface-sunken border border-border-default text-text-tertiary'}`}
           >
             {p.label}
             {!p.ready && <span className="absolute -top-1.5 -right-0.5 text-[10px] leading-none bg-surface-sunken text-text-tertiary px-1 py-px rounded border border-border-default">준비중</span>}
@@ -991,7 +991,7 @@ export default function FloorPlanPage() {
             <button
               key={f}
               onClick={() => setFloor(f)}
-              className={`shrink-0 px-3 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${floor === f ? 'border-[1.5px] border-accent bg-accent text-text-on-accent' : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'}`}
+              className={`shrink-0 px-3 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${floor === f ? 'bg-accent border border-accent text-text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
             >
               {f}
             </button>
