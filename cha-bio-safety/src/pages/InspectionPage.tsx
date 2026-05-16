@@ -1530,6 +1530,71 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
         )}
       </div>
 
+      {/* 월초/월말 선택 — sticky raised wrapper (zone/line 영역 통일 룰) */}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
+        <div className="flex gap-2">
+          {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
+            const sel = timing === t
+            return (
+              <button key={t}
+                onClick={() => setTiming(t)}
+                className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                  sel
+                    ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                    : 'border border-border-strong bg-surface-page text-text-secondary'
+                }`}>
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 구역 선택 — sticky raised wrapper */}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+        <div className="flex gap-2">
+          {(['research','office','underground'] as DivZone[]).map(z => {
+            const sel = zone === z
+            return (
+              <button key={z}
+                onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                  sel
+                    ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                    : 'border border-border-strong bg-surface-page text-text-secondary'
+                }`}>
+                {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 라인 선택 (연구동/사무동) — sticky raised wrapper */}
+      {zone && zone !== 'underground' && (
+        <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+          <div className="flex gap-2">
+            {(zone === 'research' ? [1,2] : [3]).map(l => {
+              const sel = line === l
+              return (
+                <button key={l}
+                  onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
+                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                    sel
+                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                      : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
+                  DIV #{l}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* 본문 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
       <div className="relative flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {popupState && (
@@ -1542,72 +1607,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
             onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
           />
         )}
-
-        {/* 월초/월말 선택 */}
-        <div>
-          <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
-          <div className="flex gap-2">
-            {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
-              const sel = timing === t
-              return (
-                <button key={t}
-                  onClick={() => setTiming(t)}
-                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                    sel
-                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                      : 'border border-border-strong bg-surface-page text-text-secondary'
-                  }`}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 구역 선택 */}
-        <div>
-          <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
-          <div className="flex gap-2">
-            {(['research','office','underground'] as DivZone[]).map(z => {
-              const sel = zone === z
-              return (
-                <button key={z}
-                  onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                    sel
-                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                      : 'border border-border-strong bg-surface-page text-text-secondary'
-                  }`}>
-                  {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 라인 선택 (연구동/사무동) */}
-        {zone && zone !== 'underground' && (
-          <div>
-            <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
-            <div className="flex gap-2">
-              {(zone === 'research' ? [1,2] : [3]).map(l => {
-                const sel = line === l
-                return (
-                  <button key={l}
-                    onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                      sel
-                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                        : 'border border-border-strong bg-surface-page text-text-secondary'
-                    }`}>
-                    DIV #{l}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
 
         {/* 점검 폼 */}
         {currentPt && (
@@ -2030,57 +2029,57 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
         )}
       </div>
 
-      {/* 본문 */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
-        {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
-        {mode !== 'from-div' && (
-          <>
-            {/* 구역 선택 */}
-            <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+      {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 — sticky raised wrapper (zone/line 영역 통일 룰) */}
+      {mode !== 'from-div' && (
+        <>
+          {/* 구역 선택 */}
+          <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+            <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+            <div className="flex gap-2">
+              {(['research','office','underground'] as DivZone[]).map(z => {
+                const sel = zone === z
+                return (
+                  <button key={z}
+                    onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                      sel
+                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                        : 'border border-border-strong bg-surface-page text-text-secondary'
+                    }`}>
+                    {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 라인 선택 (연구동/사무동) */}
+          {zone && zone !== 'underground' && (
+            <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
               <div className="flex gap-2">
-                {(['research','office','underground'] as DivZone[]).map(z => {
-                  const sel = zone === z
+                {(zone === 'research' ? [1,2] : [3]).map(l => {
+                  const sel = line === l
                   return (
-                    <button key={z}
-                      onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                    <button key={l}
+                      onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
                       className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
                         sel
                           ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                           : 'border border-border-strong bg-surface-page text-text-secondary'
                       }`}>
-                      {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                      컴프 #{l}
                     </button>
                   )
                 })}
               </div>
             </div>
+          )}
+        </>
+      )}
 
-            {/* 라인 선택 (연구동/사무동) */}
-            {zone && zone !== 'underground' && (
-              <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
-                <div className="flex gap-2">
-                  {(zone === 'research' ? [1,2] : [3]).map(l => {
-                    const sel = line === l
-                    return (
-                      <button key={l}
-                        onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                        className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                          sel
-                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                            : 'border border-border-strong bg-surface-page text-text-secondary'
-                        }`}>
-                        컴프 #{l}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
+      {/* 본문 */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {/* 점검 폼 영역 — 개소 네비 카드는 항상 표시, 재진입 팝업은 입력 폼만 덮음 */}
         {currentPt && (
           <div className="flex flex-col gap-3.5">
