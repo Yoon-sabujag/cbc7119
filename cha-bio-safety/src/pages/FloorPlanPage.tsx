@@ -948,7 +948,7 @@ export default function FloorPlanPage() {
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
-            className="w-8 h-8 flex-shrink-0 rounded-lg bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center cursor-pointer"
+            className="w-8 h-8 flex-shrink-0 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center cursor-pointer"
           >
             <ChevronLeft size={15} />
           </button>
@@ -957,14 +957,14 @@ export default function FloorPlanPage() {
         {canEditMarker && (
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}
-            className={`h-8 px-3 rounded-lg text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms] ${editMode ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
+            className={`h-8 px-3 rounded-sm text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms] ${editMode ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
           >
             {editMode ? '편집 완료' : '마커 편집'}
           </button>
         )}
         <button
           onClick={() => { setScale(1); setTranslate({ x: 0, y: 0 }) }}
-          className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms]"
+          className="h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms]"
         >
           축소보기
         </button>
@@ -976,7 +976,7 @@ export default function FloorPlanPage() {
           <button
             key={p.key}
             onClick={() => p.ready && setPlanType(p.key)}
-            className={`flex-1 h-9 rounded-lg text-label font-semibold transition-[background] duration-[130ms] inline-flex items-center justify-center relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-tertiary'}`}
+            className={`flex-1 h-9 rounded-sm text-label font-semibold transition-[background] duration-[130ms] inline-flex items-center justify-center relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-tertiary'}`}
           >
             {p.label}
             {!p.ready && <span className="absolute -top-1.5 -right-0.5 text-[10px] leading-none bg-surface-sunken text-text-tertiary px-1 py-px rounded border border-border-default">준비중</span>}
@@ -990,7 +990,7 @@ export default function FloorPlanPage() {
           <button
             key={f}
             onClick={() => setFloor(f)}
-            className={`flex-shrink-0 h-8 px-3 rounded-lg text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center transition-[background] duration-[130ms] ${floor === f ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
+            className={`flex-shrink-0 h-8 px-3 rounded-sm text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center transition-[background] duration-[130ms] ${floor === f ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
           >
             {f}
           </button>
@@ -1438,7 +1438,7 @@ export default function FloorPlanPage() {
                     <button
                       key={z.key}
                       onClick={() => setEditZone(z.key)}
-                      className={`flex-1 py-2 rounded-lg text-caption font-bold cursor-pointer ${
+                      className={`flex-1 py-2 rounded-sm text-caption font-bold cursor-pointer ${
                         editZone === z.key
                           ? 'bg-accent text-on-accent border-0'
                           : 'bg-surface-sunken text-text-secondary border border-border-default'
@@ -1455,7 +1455,7 @@ export default function FloorPlanPage() {
                 <button
                   key={mt.key}
                   onClick={() => setEditMarkerType(mt.key as MarkerType)}
-                  className={`px-1 py-2 rounded-lg text-caption font-semibold cursor-pointer flex flex-col items-center gap-[3px] leading-[1.2] ${
+                  className={`px-1 py-2 rounded-sm text-caption font-semibold cursor-pointer flex flex-col items-center gap-[3px] leading-[1.2] ${
                     editMarkerType === mt.key
                       ? 'bg-accent text-on-accent border-0'
                       : 'bg-surface-sunken text-text-secondary border border-border-default'
@@ -1472,7 +1472,7 @@ export default function FloorPlanPage() {
               value={editLabel}
               onChange={e => setEditLabel(e.target.value)}
               placeholder="예: 피난구 B5-01"
-              className="w-full px-3 py-2.5 rounded-lg bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
+              className="w-full px-3 py-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
             />
 
             {/* Phase 24: extinguisher plan type — 소화기 관련 액션 버튼 (점검 개소 연결 셀렉터 제거) */}
@@ -1487,7 +1487,7 @@ export default function FloorPlanPage() {
                     <div className="flex gap-2 mb-3.5">
                       <button
                         onClick={() => { setUnassignConfirm(mappedExt as ExtinguisherDetail); setEditMarker(false) }}
-                        className="flex-1 py-2 rounded-lg text-caption font-bold cursor-pointer bg-danger-bg text-danger border border-danger-bar/30"
+                        className="flex-1 py-2 rounded-sm text-caption font-bold cursor-pointer bg-danger-bg text-danger border border-danger-bar/30"
                       >소화기 분리</button>
                     </div>
                   </>
@@ -1550,7 +1550,7 @@ export default function FloorPlanPage() {
                     <button
                       key={z.key}
                       onClick={() => setAddZone(z.key)}
-                      className={`flex-1 py-2 rounded-lg text-caption font-bold cursor-pointer ${
+                      className={`flex-1 py-2 rounded-sm text-caption font-bold cursor-pointer ${
                         addZone === z.key
                           ? 'bg-accent text-on-accent border-0'
                           : 'bg-surface-sunken text-text-secondary border border-border-default'
@@ -1567,7 +1567,7 @@ export default function FloorPlanPage() {
                 <button
                   key={mt.key}
                   onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
-                  className={`px-1 py-2 rounded-lg text-caption font-semibold cursor-pointer flex flex-col items-center gap-[3px] leading-[1.2] ${
+                  className={`px-1 py-2 rounded-sm text-caption font-semibold cursor-pointer flex flex-col items-center gap-[3px] leading-[1.2] ${
                     addMarkerType === mt.key
                       ? 'bg-accent text-on-accent border-0'
                       : 'bg-surface-sunken text-text-secondary border border-border-default'
@@ -1587,7 +1587,7 @@ export default function FloorPlanPage() {
                   value={addLabel}
                   onChange={e => setAddLabel(e.target.value)}
                   placeholder="예: 5번계단 뒤"
-                  className="w-full px-3 py-2.5 rounded-lg bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
+                  className="w-full px-3 py-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
                 />
                 <div className="text-caption text-text-tertiary mb-1.5">구역 *</div>
                 <div className="flex gap-1.5 mb-3.5">
@@ -1599,7 +1599,7 @@ export default function FloorPlanPage() {
                     <button
                       key={z.key}
                       onClick={() => setAddZone(z.key)}
-                      className={`flex-1 py-2 rounded-lg text-caption font-bold cursor-pointer ${
+                      className={`flex-1 py-2 rounded-sm text-caption font-bold cursor-pointer ${
                         addZone === z.key
                           ? 'bg-accent text-on-accent border-0'
                           : 'bg-surface-sunken text-text-secondary border border-border-default'
@@ -1615,7 +1615,7 @@ export default function FloorPlanPage() {
                   value={addLabel}
                   onChange={e => setAddLabel(e.target.value)}
                   placeholder="예: 피난구 B5-01"
-                  className="w-full px-3 py-2.5 rounded-lg bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
+                  className="w-full px-3 py-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-primary text-body-sm mb-3.5 box-border"
                 />
               </>
             )}
@@ -1717,14 +1717,14 @@ export default function FloorPlanPage() {
                     setInspectModal(false)
                     navigate(`/extinguishers/${inspectExtDetail.id}`)
                   }}
-                  className="flex-1 h-9 rounded-lg bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
+                  className="flex-1 h-9 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
                 >정보 수정</button>
                 <button
                   onClick={() => {
                     setInspectModal(false)
                     setUnassignConfirm(inspectExtDetail)
                   }}
-                  className="flex-1 h-9 rounded-lg bg-danger-bg border border-danger-bar/30 text-danger text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
+                  className="flex-1 h-9 rounded-sm bg-danger-bg border border-danger-bar/30 text-danger text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center"
                 >소화기 분리</button>
               </div>
             )}
@@ -2053,7 +2053,7 @@ export default function FloorPlanPage() {
                       value={resolveMaterialName}
                       onChange={e => setResolveMaterialName(e.target.value)}
                       placeholder="자재명"
-                      className="flex-1 min-h-0 min-w-0 w-full px-2.5 rounded-lg bg-surface-sunken border border-border-strong text-text-primary text-body-sm box-border font-[inherit]"
+                      className="flex-1 min-h-0 min-w-0 w-full px-2.5 rounded-sm bg-surface-sunken border border-border-strong text-text-primary text-body-sm box-border font-[inherit]"
                     />
                     <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
                       <input
@@ -2062,7 +2062,7 @@ export default function FloorPlanPage() {
                         value={resolveMaterialCount}
                         onChange={e => setResolveMaterialCount(e.target.value)}
                         placeholder="0"
-                        className="w-full h-full min-w-0 pl-2.5 pr-7 rounded-lg bg-surface-sunken border border-border-strong text-text-primary text-body-sm box-border font-[inherit]"
+                        className="w-full h-full min-w-0 pl-2.5 pr-7 rounded-sm bg-surface-sunken border border-border-strong text-text-primary text-body-sm box-border font-[inherit]"
                       />
                       <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} className="text-caption text-text-tertiary">ea</span>
                     </div>
