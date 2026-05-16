@@ -236,3 +236,4 @@ Resume file: None
 *Milestone v1.4 roadmap created: 2026-04-08*
 | 2026-04-20 | fast | 직원관리 직급순 정렬 | ✅ |
 | 2026-04-29 | fast | PhotoSourceModal 취소 버튼이 BottomNav에 가려지지 않게 padding-bottom 보강 (35a498e) | ✅ |
+| 2026-05-16 | fast | PhotoSourceModal v0.1.1 토큰+lucide 변환 (📷→Camera/🖼️→ImageIcon, --bg/bg2/bg3/t1/t3 → surface-*/text-*, hover 상태 추가, 호출처 7곳 자동 정합) — f0ee9b5 | ✅ |
