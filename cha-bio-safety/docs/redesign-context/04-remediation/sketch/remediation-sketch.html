@@ -1,0 +1,1504 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>조치 관리 재디자인 시안 v0.1.1 — Remediation 5 상태 (260516-q2i)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (03-qr-scan/sketch/qr-scan-sketch.html 인프라 1:1 mirror)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-subtle:   rgba(255, 255, 255, 0.08);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-subtle:   rgba(0, 0, 0, 0.08);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-xl:   20px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      --nav-h: 54px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --button-height:    40px;
+      }
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 (3C 동일 — v0.1.1 시각 토큰)
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+    .bg-overlay    { background-color: var(--surface-overlay); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+    .text-warning  { color: var(--warning); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+    .bg-warning-bg  { background-color: var(--warning-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-subtle     { border-color: var(--border-subtle); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-b-subtle   { border-bottom: 1px solid var(--border-subtle); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 393px; height: 852px; }
+    .viewport-desktop { width: 1280px; height: 720px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 페이지 섹션 타이틀 (시안 외곽)
+     * ===================================================================== */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 */
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-warn    { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-danger  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #22c55e; }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #0ea5e9; }
+    .cat-title-warn  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #f59e0b; }
+    .cat-title-danger{ font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #ef4444; }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #8b949e; }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; line-height: 1.55; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; line-height: 1.55; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs   { width: 12px; height: 12px; flex-shrink: 0; }
+    .icon-sm   { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-md   { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-lg   { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-xl   { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-2xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-3xl  { width: 36px; height: 36px; flex-shrink: 0; }
+    .icon-5xl  { width: 40px; height: 40px; flex-shrink: 0; }
+
+    /* blink animation (RemediationPage.tsx line 250 동일) */
+    @keyframes blink { 0%,100% { opacity: 0.6 } 50% { opacity: 0.3 } }
+    .anim-blink { animation: blink 2s ease-in-out infinite; }
+
+    /* =====================================================================
+     * Remediation 페이지 전용 CSS — 모두 v0.1.1 토큰 기반
+     * ===================================================================== */
+
+    /* 페이지 헤더 */
+    .rem-page-hd {
+      height: 52px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+    .rem-page-hd-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    /* 필터 바 (sticky) */
+    .rem-filter-bar {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    /* 탭 바 */
+    .rem-tabs {
+      display: flex;
+      height: 44px;
+      border-bottom: 1px solid var(--border-default);
+    }
+    .rem-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-tertiary);
+      font-family: inherit;
+      border-bottom: 2px solid transparent;
+      transition: color .13s;
+    }
+    .rem-tab.is-active {
+      background: var(--surface-active);
+      color: var(--text-primary);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    /* 필터 로우 */
+    .rem-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+    }
+    .rem-cat-select {
+      height: 36px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 12px;
+      padding: 0 8px;
+      font-family: inherit;
+      flex: 1;
+      min-width: 0;
+    }
+    .rem-period-btn {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      background: transparent;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+    .rem-period-btn.is-active {
+      background: var(--surface-active);
+      color: var(--text-primary);
+    }
+
+    /* 목록 */
+    .rem-list {
+      overflow-y: auto;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    .rem-list::-webkit-scrollbar { display: none; }
+    .rem-list { scrollbar-width: none; }
+
+    /* 카드 */
+    .rem-card {
+      display: flex;
+      gap: 10px;
+      padding: 12px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      position: relative;
+    }
+    .rem-card.is-selected {
+      border: 2px solid var(--accent);
+    }
+
+    /* 카드 좌측 색바 — 상태 기준 (결과 기준 금지) */
+    .rem-card-bar {
+      width: 4px;
+      flex-shrink: 0;
+      align-self: stretch;
+      border-radius: 2px;
+    }
+    .rem-card-bar.fire { background: var(--status-fire-bar); }  /* 미조치 */
+    .rem-card-bar.safe { background: var(--status-safe-bar); }  /* 완료 */
+
+    /* 배지 — leading-none 명시 (feedback_text_caption_leading_none 룰) */
+    .rem-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 5px;
+      line-height: 1;  /* leading-none: 작은 컨테이너(12px) 안 시각적 과다 패딩 방지 */
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+    }
+    .rem-badge.danger  { background: var(--status-danger-bg);  color: var(--status-danger); }   /* 불량 */
+    .rem-badge.warning { background: var(--status-warning-bg); color: var(--status-warning); }  /* 주의 */
+    .rem-badge.fire    { background: var(--status-fire-bg);    color: var(--status-fire); }     /* 미조치 */
+    .rem-badge.safe    { background: var(--status-safe-bg);    color: var(--status-safe); }     /* 완료 */
+
+    /* 스켈레톤 */
+    .rem-skeleton {
+      background: var(--surface-sunken);
+      border-radius: var(--radius-md);
+      height: 88px;
+      flex-shrink: 0;
+    }
+
+    /* 빈 상태 */
+    .rem-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 60px 16px;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    /* 에러 */
+    .rem-error {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 데스크톱 상세 패널 */
+    .rem-detail-pane {
+      overflow-y: auto;
+      padding: 20px 28px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .rem-detail-pane::-webkit-scrollbar { display: none; }
+    .rem-detail-pane { scrollbar-width: none; }
+
+    .rem-detail-empty {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 13px;
+    }
+
+    .rem-detail-hd {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .rem-detail-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .rem-detail-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* 보고서 다운로드 버튼 — 단색 accent (§6.4 룰: 그라디언트 금지, 3C 일관) */
+    .rem-download-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent);  /* 옛 그라디언트(#1d4ed8→#2563eb) → §6.4 룰 단색 v0.1.1 accent */
+      color: var(--text-on-accent);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: inherit;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* KV 테이블 */
+    .rem-kv-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .rem-kv-table th {
+      width: 110px;
+      padding: 8px 12px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .rem-kv-table td {
+      padding: 8px 12px;
+      border: 1px solid var(--border-default);
+      font-size: 13px;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    /* 사진 그리드 */
+    .rem-photo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .rem-photo-card {
+      border: 1px solid var(--border-default);
+      border-radius: 10px;
+      padding: 12px;
+      background: var(--surface-raised);
+    }
+    .rem-photo-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .rem-photo-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    /* 다운로드 보조 버튼 — 11px (의도된 예외: 보조 버튼 축소). 노안 룰상 12px 상향 검토 권장 */
+    .rem-photo-dl-btn {
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      font-size: 11px;  /* TODO: 노안 룰 12px 상향 검토 (현재 보조 버튼 예외 11px 유지) */
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      line-height: 1;
+      font-family: inherit;
+    }
+    .rem-photo-img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #000;
+      display: block;
+    }
+    .rem-photo-empty {
+      height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      background: var(--surface-sunken);
+      border-radius: 6px;
+    }
+
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 색 결정 4박스
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">조치 관리 재디자인 시안 v0.1.1</div>
+      <div class="page-section-sub">
+        Remediation Page — 모바일/데스크톱 &times; 다크/라이트 &times; 5 상태 시각화 (260516-q2i)<br/>
+        03-qr-scan/sketch/qr-scan-sketch.html 인프라 1:1 mirror. 다음 quick task 에서 TSX 변환 1:1 매핑 source 로 사용.
+      </div>
+    </div>
+
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">카드 좌측 색바 룰</div>
+        <div class="cat-label-dark">상태 기준 — 미조치=fire / 완료=safe</div>
+        <div class="cat-sub-dark">결과 색이 아닌 <strong>상태 색</strong>. 메모 feedback_inspection_unresolved_color 강제. 옛 코드 <span class="text-mono">result==='bad' ? --danger : --warn</span> 폐기 → <span class="text-mono">--status-fire-bar</span> / <span class="text-mono">--status-safe-bar</span>.</div>
+      </div>
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">결과 배지 룰</div>
+        <div class="cat-label-dark">불량=danger, 주의=warning 페어</div>
+        <div class="cat-sub-dark">불량 = <span class="text-mono">--status-danger-bg</span> + <span class="text-mono">--status-danger</span>. 주의 = <span class="text-mono">--status-warning-bg</span> + <span class="text-mono">--status-warning</span>. 옛 인라인 rgba 4건 → 토큰 페어 교체.</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">보고서 다운로드 버튼</div>
+        <div class="cat-label-dark">단색 var(--accent) — 그라디언트 금지</div>
+        <div class="cat-sub-dark">§6.4 룰 + 3C 일관. 옛 그라디언트(135deg,#1d4ed8→#2563eb) → 단색 v0.1.1 accent (다크 #3b82f6 / 라이트 #1f6feb). qr-scan-sketch VP4 결정 동일.</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">데스크톱 분할 / 사진 버튼</div>
+        <div class="cat-label-dark">좌 50% 목록 / 우 50% 보고서 상세</div>
+        <div class="cat-sub-dark">우측 빈 슬롯 = "좌측에서 항목을 선택하세요". 사진 다운로드 보조 버튼 <strong>11px</strong> 의도된 예외 — 노안 룰 12px 상향 검토 옵션 코드 주석으로 명시. 사용자 판단 요청.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1 — 모바일 · 다크 · 정상 리스트 (불량/주의 × 미조치/완료 mix 6 카드)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · 정상 리스트 (불량/주의 × 미조치/완료 mix 6 카드 — 탭="미조치" 시각 시안이나 완료 카드도 mix 표시)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+
+        <!-- 페이지 헤더 -->
+        <div class="rem-page-hd">
+          <span class="rem-page-hd-title">조치 관리</span>
+        </div>
+
+        <!-- 필터 바 (sticky) -->
+        <div class="rem-filter-bar">
+          <div class="rem-tabs">
+            <button class="rem-tab">전체</button>
+            <button class="rem-tab is-active">미조치</button>
+            <button class="rem-tab">완료</button>
+          </div>
+          <div class="rem-filter-row">
+            <select class="rem-cat-select">
+              <option>전체 카테고리</option>
+              <option>자동화재탐지설비</option>
+              <option>옥내소화전</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>소화기</option>
+              <option>전실제연댐퍼</option>
+              <option>가스계소화설비</option>
+              <option>스프링클러</option>
+            </select>
+            <button class="rem-period-btn">7일</button>
+            <button class="rem-period-btn is-active">30일</button>
+            <button class="rem-period-btn">90일</button>
+            <button class="rem-period-btn">전체</button>
+          </div>
+        </div>
+
+        <!-- 목록 -->
+        <div class="rem-list">
+
+          <!-- 카드 1: 자동화재탐지설비 · 미조치 · 불량 -->
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동화재탐지설비</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">사무동 B2</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">감지기 동작불량 - 1차 패턴 미검출</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-15</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 2: 유도등 · 미조치 · 불량 -->
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">유도등</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">3F 연구동 A동 EXIT-A12</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">LED 불점등 (3개소)</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-14</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 3: 소화기 · 미조치 · 주의 -->
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">소화기</span>
+                <span class="rem-badge warning">주의</span>
+              </div>
+              <div class="text-caption text-t2">1F 연구동 SE-101</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">압력 미달 (2.3 MPa)</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-13</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 4: 방화셔터 · 완료 · 불량 -->
+          <div class="rem-card">
+            <div class="rem-card-bar safe"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">방화셔터</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">B1 사무동</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">비상시 작동 미확인 — 컨트롤러 점등</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-12</span>
+                <span class="rem-badge safe">완료</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 5: 전실제연댐퍼 · 완료 · 주의 -->
+          <div class="rem-card">
+            <div class="rem-card-bar safe"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">전실제연댐퍼</span>
+                <span class="rem-badge warning">주의</span>
+              </div>
+              <div class="text-caption text-t2">RF 옥상</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동 개방 지연 8초 (기준 5초)</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-10</span>
+                <span class="rem-badge safe">완료</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 카드 6: 스프링클러 · 미조치 · 주의 -->
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">스프링클러</span>
+                <span class="rem-badge warning">주의</span>
+              </div>
+              <div class="text-caption text-t2">4F 연구동</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">경보밸브 누설 미세</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-07</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- BottomNav placeholder -->
+        <div class="bd-t bg-raised px-4 py-3 text-center flex-shrink-0">
+          <div class="text-caption text-t3">(BottomNav placeholder)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP2 — 모바일 · 다크 · 빈 상태 (records.length === 0)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 다크 · 빈 상태 (records.length === 0, !isLoading, !isError)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+
+        <div class="rem-page-hd">
+          <span class="rem-page-hd-title">조치 관리</span>
+        </div>
+
+        <div class="rem-filter-bar">
+          <div class="rem-tabs">
+            <button class="rem-tab">전체</button>
+            <button class="rem-tab is-active">미조치</button>
+            <button class="rem-tab">완료</button>
+          </div>
+          <div class="rem-filter-row">
+            <select class="rem-cat-select">
+              <option>전체 카테고리</option>
+            </select>
+            <button class="rem-period-btn">7일</button>
+            <button class="rem-period-btn is-active">30일</button>
+            <button class="rem-period-btn">90일</button>
+            <button class="rem-period-btn">전체</button>
+          </div>
+        </div>
+
+        <div class="rem-list">
+          <div class="rem-empty">
+            <i data-lucide="inbox" class="icon-3xl" style="color:var(--text-tertiary);"></i>
+            <div class="text-body" style="font-weight:700;color:var(--text-primary);">조치 항목 없음</div>
+            <div class="text-caption" style="color:var(--text-secondary);text-align:center;">선택한 조건에 해당하는 불량/주의 항목이 없습니다.</div>
+          </div>
+        </div>
+
+        <div class="bd-t bg-raised px-4 py-3 text-center flex-shrink-0">
+          <div class="text-caption text-t3">(BottomNav placeholder)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP3 — 모바일 · 다크 · 로딩 (skeleton 3개, blink animation)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP3 · 모바일 · 다크 · 로딩 (isLoading=true — skeleton 3개 blink)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+
+        <div class="rem-page-hd">
+          <span class="rem-page-hd-title">조치 관리</span>
+        </div>
+
+        <div class="rem-filter-bar">
+          <div class="rem-tabs">
+            <button class="rem-tab">전체</button>
+            <button class="rem-tab is-active">미조치</button>
+            <button class="rem-tab">완료</button>
+          </div>
+          <div class="rem-filter-row">
+            <select class="rem-cat-select">
+              <option>전체 카테고리</option>
+            </select>
+            <button class="rem-period-btn">7일</button>
+            <button class="rem-period-btn is-active">30일</button>
+            <button class="rem-period-btn">90일</button>
+            <button class="rem-period-btn">전체</button>
+          </div>
+        </div>
+
+        <div class="rem-list">
+          <div class="rem-skeleton anim-blink"></div>
+          <div class="rem-skeleton anim-blink" style="animation-delay:0.3s;"></div>
+          <div class="rem-skeleton anim-blink" style="animation-delay:0.6s;"></div>
+        </div>
+
+        <div class="bd-t bg-raised px-4 py-3 text-center flex-shrink-0">
+          <div class="text-caption text-t3">(BottomNav placeholder)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4 — 모바일 · 다크 · 에러 (목록 로드 실패)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP4 · 모바일 · 다크 · 에러 (isError=true — 목록 로드 실패)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+
+        <div class="rem-page-hd">
+          <span class="rem-page-hd-title">조치 관리</span>
+        </div>
+
+        <div class="rem-filter-bar">
+          <div class="rem-tabs">
+            <button class="rem-tab">전체</button>
+            <button class="rem-tab is-active">미조치</button>
+            <button class="rem-tab">완료</button>
+          </div>
+          <div class="rem-filter-row">
+            <select class="rem-cat-select">
+              <option>전체 카테고리</option>
+            </select>
+            <button class="rem-period-btn">7일</button>
+            <button class="rem-period-btn is-active">30일</button>
+            <button class="rem-period-btn">90일</button>
+            <button class="rem-period-btn">전체</button>
+          </div>
+        </div>
+
+        <div class="rem-list">
+          <div class="rem-error">
+            <i data-lucide="alert-circle" class="icon-2xl" style="color:var(--status-danger-bar);margin-bottom:8px;"></i>
+            <div class="text-body-sm" style="color:var(--text-secondary);">목록을 불러오지 못했습니다.</div>
+            <div class="text-caption" style="color:var(--text-tertiary);">화면을 당겨서 다시 시도하세요.</div>
+          </div>
+        </div>
+
+        <div class="bd-t bg-raised px-4 py-3 text-center flex-shrink-0">
+          <div class="text-caption text-t3">(BottomNav placeholder)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP5 — 데스크톱 · 다크 · 좌(50%) 목록 / 우(50%) 보고서 상세 (자동화재탐지설비 미조치 선택)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP5 · 데스크톱 · 다크 · 좌(50%) 목록 / 우(50%) 보고서 상세 (자동화재탐지설비 미조치 선택)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+      <div class="desktop-shell">
+
+        <!-- 좌측: 목록 (50%) -->
+        <div style="width:50%;flex-shrink:0;min-width:0;border-right:1px solid var(--border-default);display:flex;flex-direction:column;height:100%;">
+
+          <div class="rem-filter-bar" style="position:relative;">
+            <div class="rem-tabs">
+              <button class="rem-tab">전체</button>
+              <button class="rem-tab is-active">미조치</button>
+              <button class="rem-tab">완료</button>
+            </div>
+            <div class="rem-filter-row">
+              <select class="rem-cat-select">
+                <option>전체 카테고리</option>
+                <option>자동화재탐지설비</option>
+              </select>
+              <button class="rem-period-btn">7일</button>
+              <button class="rem-period-btn is-active">30일</button>
+              <button class="rem-period-btn">90일</button>
+              <button class="rem-period-btn">전체</button>
+            </div>
+          </div>
+
+          <div class="rem-list">
+
+            <!-- 카드 1: 선택됨 (is-selected) -->
+            <div class="rem-card is-selected">
+              <div class="rem-card-bar fire"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동화재탐지설비</span>
+                  <span class="rem-badge danger">불량</span>
+                </div>
+                <div class="text-caption text-t2">사무동 B2</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">감지기 동작불량 - 1차 패턴 미검출</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-15</span>
+                  <span class="rem-badge fire">미조치</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar fire"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">유도등</span>
+                  <span class="rem-badge danger">불량</span>
+                </div>
+                <div class="text-caption text-t2">3F 연구동 A동 EXIT-A12</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">LED 불점등 (3개소)</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-14</span>
+                  <span class="rem-badge fire">미조치</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar fire"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">소화기</span>
+                  <span class="rem-badge warning">주의</span>
+                </div>
+                <div class="text-caption text-t2">1F 연구동 SE-101</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">압력 미달 (2.3 MPa)</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-13</span>
+                  <span class="rem-badge fire">미조치</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar fire"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">스프링클러</span>
+                  <span class="rem-badge warning">주의</span>
+                </div>
+                <div class="text-caption text-t2">4F 연구동</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">경보밸브 누설 미세</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-07</span>
+                  <span class="rem-badge fire">미조치</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 우측: 상세 보고서 (50%) -->
+        <div style="width:50%;flex-shrink:0;min-width:0;height:100%;overflow:hidden;">
+          <div class="rem-detail-pane">
+
+            <div class="rem-detail-hd">
+              <div style="flex:1;">
+                <div class="rem-detail-title">자동화재탐지설비</div>
+                <div class="rem-detail-sub">사무동 B2</div>
+              </div>
+              <button class="rem-download-btn">
+                <i data-lucide="download" class="icon-sm"></i>
+                보고서 다운로드
+              </button>
+            </div>
+
+            <table class="rem-kv-table">
+              <tbody>
+                <tr>
+                  <th>카테고리</th>
+                  <td>자동화재탐지설비</td>
+                </tr>
+                <tr>
+                  <th>위치</th>
+                  <td>사무동 B2</td>
+                </tr>
+                <tr>
+                  <th>점검일시</th>
+                  <td>2026-05-15 14:32</td>
+                </tr>
+                <tr>
+                  <th>점검자</th>
+                  <td>윤종엽</td>
+                </tr>
+                <tr>
+                  <th>판정결과</th>
+                  <td><span class="rem-badge danger">불량</span></td>
+                </tr>
+                <tr>
+                  <th>상태</th>
+                  <td><span class="rem-badge fire">미조치</span></td>
+                </tr>
+                <tr>
+                  <th>점검 메모</th>
+                  <td>감지기 동작불량&#10;1차 패턴 미검출&#10;전원 재공급 필요</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="rem-photo-grid">
+              <!-- 조치 전 사진 -->
+              <div class="rem-photo-card">
+                <div class="rem-photo-hd">
+                  <span class="rem-photo-label">
+                    <i data-lucide="camera" class="icon-xs"></i>
+                    조치 전 (불량)
+                  </span>
+                  <button class="rem-photo-dl-btn">
+                    <i data-lucide="download" class="icon-xs"></i>
+                    다운로드
+                  </button>
+                </div>
+                <div class="rem-photo-empty">사진 placeholder</div>
+              </div>
+              <!-- 조치 후 사진 (status=open이므로 비어있음) -->
+              <div class="rem-photo-card">
+                <div class="rem-photo-hd">
+                  <span class="rem-photo-label">
+                    <i data-lucide="camera" class="icon-xs"></i>
+                    조치 후
+                  </span>
+                </div>
+                <div class="rem-photo-empty">아직 조치 전</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP6 — 데스크톱 · 다크 · 우측 빈 슬롯 (목록 비어있고 detail 미선택)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP6 · 데스크톱 · 다크 · 우측 빈 슬롯 (!detail — 좌측 목록 있으나 아직 미선택)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+      <div class="desktop-shell">
+
+        <!-- 좌측: 목록 (50%) -->
+        <div style="width:50%;flex-shrink:0;min-width:0;border-right:1px solid var(--border-default);display:flex;flex-direction:column;height:100%;">
+          <div class="rem-filter-bar" style="position:relative;">
+            <div class="rem-tabs">
+              <button class="rem-tab is-active">전체</button>
+              <button class="rem-tab">미조치</button>
+              <button class="rem-tab">완료</button>
+            </div>
+            <div class="rem-filter-row">
+              <select class="rem-cat-select"><option>전체 카테고리</option></select>
+              <button class="rem-period-btn is-active">7일</button>
+              <button class="rem-period-btn">30일</button>
+              <button class="rem-period-btn">90일</button>
+              <button class="rem-period-btn">전체</button>
+            </div>
+          </div>
+          <div class="rem-list">
+            <div class="rem-empty">
+              <i data-lucide="inbox" class="icon-3xl" style="color:var(--text-tertiary);"></i>
+              <div class="text-body" style="font-weight:700;color:var(--text-primary);">조치 항목 없음</div>
+              <div class="text-caption" style="color:var(--text-secondary);text-align:center;">선택한 조건에 해당하는 불량/주의 항목이 없습니다.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측: 빈 슬롯 (50%) -->
+        <div style="width:50%;flex-shrink:0;min-width:0;height:100%;">
+          <div class="rem-detail-empty">
+            좌측에서 항목을 선택하세요
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP7 — 모바일 · 라이트 · 정상 리스트 (라이트 토큰 분기 검증)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">📱 VP7 · 모바일 · 라이트 · 정상 리스트 (라이트 토큰 분기 검증 — VP1 과 동일 데이터)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="light">
+      <div class="page-shell">
+
+        <div class="rem-page-hd">
+          <span class="rem-page-hd-title">조치 관리</span>
+        </div>
+
+        <div class="rem-filter-bar">
+          <div class="rem-tabs">
+            <button class="rem-tab">전체</button>
+            <button class="rem-tab is-active">미조치</button>
+            <button class="rem-tab">완료</button>
+          </div>
+          <div class="rem-filter-row">
+            <select class="rem-cat-select">
+              <option>전체 카테고리</option>
+            </select>
+            <button class="rem-period-btn">7일</button>
+            <button class="rem-period-btn is-active">30일</button>
+            <button class="rem-period-btn">90일</button>
+            <button class="rem-period-btn">전체</button>
+          </div>
+        </div>
+
+        <div class="rem-list">
+
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동화재탐지설비</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">사무동 B2</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">감지기 동작불량 - 1차 패턴 미검출</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-15</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">유도등</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">3F 연구동 A동 EXIT-A12</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">LED 불점등 (3개소)</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-14</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rem-card">
+            <div class="rem-card-bar safe"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">방화셔터</span>
+                <span class="rem-badge danger">불량</span>
+              </div>
+              <div class="text-caption text-t2">B1 사무동</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">비상시 작동 미확인 — 컨트롤러 점등</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-12</span>
+                <span class="rem-badge safe">완료</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rem-card">
+            <div class="rem-card-bar safe"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">전실제연댐퍼</span>
+                <span class="rem-badge warning">주의</span>
+              </div>
+              <div class="text-caption text-t2">RF 옥상</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동 개방 지연 8초 (기준 5초)</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-10</span>
+                <span class="rem-badge safe">완료</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rem-card">
+            <div class="rem-card-bar fire"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">스프링클러</span>
+                <span class="rem-badge warning">주의</span>
+              </div>
+              <div class="text-caption text-t2">4F 연구동</div>
+              <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">경보밸브 누설 미세</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-caption text-t3">2026-05-07</span>
+                <span class="rem-badge fire">미조치</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bd-t bg-raised px-4 py-3 text-center flex-shrink-0">
+          <div class="text-caption text-t3">(BottomNav placeholder)</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP8 — 데스크톱 · 라이트 · 좌목록/우상세 (방화셔터 완료 선택 — resolved KV 4 row 추가)
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">🖥️ VP8 · 데스크톱 · 라이트 · 좌목록/우상세 (방화셔터 완료 선택 — resolved KV 4 row + 사진 그리드)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="light">
+      <div class="desktop-shell">
+
+        <!-- 좌측: 목록 (50%) -->
+        <div style="width:50%;flex-shrink:0;min-width:0;border-right:1px solid var(--border-default);display:flex;flex-direction:column;height:100%;">
+          <div class="rem-filter-bar" style="position:relative;">
+            <div class="rem-tabs">
+              <button class="rem-tab">전체</button>
+              <button class="rem-tab">미조치</button>
+              <button class="rem-tab is-active">완료</button>
+            </div>
+            <div class="rem-filter-row">
+              <select class="rem-cat-select"><option>전체 카테고리</option></select>
+              <button class="rem-period-btn">7일</button>
+              <button class="rem-period-btn is-active">30일</button>
+              <button class="rem-period-btn">90일</button>
+              <button class="rem-period-btn">전체</button>
+            </div>
+          </div>
+          <div class="rem-list">
+
+            <div class="rem-card is-selected">
+              <div class="rem-card-bar safe"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">방화셔터</span>
+                  <span class="rem-badge danger">불량</span>
+                </div>
+                <div class="text-caption text-t2">B1 사무동</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">비상시 작동 미확인 — 컨트롤러 점등</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-12</span>
+                  <span class="rem-badge safe">완료</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar safe"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">전실제연댐퍼</span>
+                  <span class="rem-badge warning">주의</span>
+                </div>
+                <div class="text-caption text-t2">RF 옥상</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동 개방 지연 8초 (기준 5초)</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-10</span>
+                  <span class="rem-badge safe">완료</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar safe"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">옥내소화전</span>
+                  <span class="rem-badge warning">주의</span>
+                </div>
+                <div class="text-caption text-t2">2F 연구동 B동</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">압력계 미세 떨림 — 관경 점검 권고</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-09</span>
+                  <span class="rem-badge safe">완료</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="rem-card">
+              <div class="rem-card-bar safe"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-body-sm" style="font-weight:700;color:var(--text-primary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">가스계소화설비</span>
+                  <span class="rem-badge danger">불량</span>
+                </div>
+                <div class="text-caption text-t2">B2 사무동</div>
+                <div class="text-caption" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">기동용기 압력 게이지 &darr;</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                  <span class="text-caption text-t3">2026-05-08</span>
+                  <span class="rem-badge safe">완료</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 우측: 상세 보고서 (50%) — resolved 상태 -->
+        <div style="width:50%;flex-shrink:0;min-width:0;height:100%;overflow:hidden;">
+          <div class="rem-detail-pane">
+
+            <div class="rem-detail-hd">
+              <div style="flex:1;">
+                <div class="rem-detail-title">방화셔터</div>
+                <div class="rem-detail-sub">B1 사무동</div>
+              </div>
+              <button class="rem-download-btn">
+                <i data-lucide="download" class="icon-sm"></i>
+                보고서 다운로드
+              </button>
+            </div>
+
+            <table class="rem-kv-table">
+              <tbody>
+                <tr>
+                  <th>카테고리</th>
+                  <td>방화셔터</td>
+                </tr>
+                <tr>
+                  <th>위치</th>
+                  <td>B1 사무동</td>
+                </tr>
+                <tr>
+                  <th>점검일시</th>
+                  <td>2026-05-12 10:15</td>
+                </tr>
+                <tr>
+                  <th>점검자</th>
+                  <td>윤종엽</td>
+                </tr>
+                <tr>
+                  <th>판정결과</th>
+                  <td><span class="rem-badge danger">불량</span></td>
+                </tr>
+                <tr>
+                  <th>상태</th>
+                  <td><span class="rem-badge safe">완료</span></td>
+                </tr>
+                <tr>
+                  <th>점검 메모</th>
+                  <td>비상시 작동 미확인&#10;컨트롤러 점등 확인 필요</td>
+                </tr>
+                <!-- status === 'resolved' 추가 4 row -->
+                <tr>
+                  <th>조치일시</th>
+                  <td>2026-05-12 16:40</td>
+                </tr>
+                <tr>
+                  <th>조치자</th>
+                  <td>윤종엽</td>
+                </tr>
+                <tr>
+                  <th>조치 내용</th>
+                  <td>컨트롤러 제어반 전원 차단 후 재기동. 수동 개방/복귀 테스트 정상 확인. 퓨즈 교체 완료.</td>
+                </tr>
+                <tr>
+                  <th>소모 자재</th>
+                  <td>퓨즈 3A × 2개</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="rem-photo-grid">
+              <!-- 조치 전 사진 -->
+              <div class="rem-photo-card">
+                <div class="rem-photo-hd">
+                  <span class="rem-photo-label">
+                    <i data-lucide="camera" class="icon-xs"></i>
+                    조치 전 (불량)
+                  </span>
+                  <button class="rem-photo-dl-btn">
+                    <i data-lucide="download" class="icon-xs"></i>
+                    다운로드
+                  </button>
+                </div>
+                <div class="rem-photo-empty">사진 placeholder</div>
+              </div>
+              <!-- 조치 후 사진 (resolved — 사진 있음 placeholder) -->
+              <div class="rem-photo-card">
+                <div class="rem-photo-hd">
+                  <span class="rem-photo-label">
+                    <i data-lucide="camera" class="icon-xs"></i>
+                    조치 후
+                  </span>
+                  <button class="rem-photo-dl-btn">
+                    <i data-lucide="download" class="icon-xs"></i>
+                    다운로드
+                  </button>
+                </div>
+                <div class="rem-photo-empty">사진 placeholder</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
