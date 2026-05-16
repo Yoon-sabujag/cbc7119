@@ -374,33 +374,24 @@
       color: var(--status-danger-bar);
     }
 
-    /* ── 결과 토글 3택 (정상/주의/불량) — 04+05 mirror ── */
+    /* ── 결과 토글 3택 (정상/주의/불량) — 02 mirror (height auto + rounded-pill + 1.5px border + icon) ── */
     .fp-result-row { display: flex; gap: 6px; margin-bottom: 14px; }
     .fp-result-btn {
-      flex: 1; height: 44px;
-      border-radius: 10px;
-      background: var(--surface-sunken);
-      border: 1px solid var(--border-default);
+      flex: 1;
+      padding: 9px 8px;
+      border-radius: 99px;
+      background: var(--surface-raised);
+      border: 1.5px solid var(--border-default);
       color: var(--text-tertiary);
       font-size: 14px; font-weight: 700; line-height: 1;
-      cursor: pointer; font-family: inherit;
       display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; font-family: inherit;
+      white-space: nowrap;
+      transition: background-color .13s, border-color .13s, color .13s;
     }
-    .fp-result-btn.is-active-safe {
-      background: var(--status-safe-bg);
-      border: 2px solid var(--status-safe-bar);
-      color: var(--status-safe-bar);
-    }
-    .fp-result-btn.is-active-warning {
-      background: var(--status-warning-bg);
-      border: 2px solid var(--status-warning-bar);
-      color: var(--status-warning-bar);
-    }
-    .fp-result-btn.is-active-danger {
-      background: var(--status-danger-bg);
-      border: 2px solid var(--status-danger-bar);
-      color: var(--status-danger-bar);
-    }
+    .fp-result-btn.is-active-safe    { background: var(--status-safe-bg);    border-color: var(--status-safe);    color: var(--status-safe); }
+    .fp-result-btn.is-active-warning { background: var(--status-warning-bg); border-color: var(--status-warning); color: var(--status-warning); }
+    .fp-result-btn.is-active-danger  { background: var(--status-danger-bg);  border-color: var(--status-danger);  color: var(--status-danger); }
 
     /* ── 증상 피커 (05 detail mirror) ── */
     .fp-symptom-row { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }

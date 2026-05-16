@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft, Trash2, X } from 'lucide-react'
+import { ChevronLeft, Trash2, X, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
@@ -1730,20 +1730,29 @@ export default function FloorPlanPage() {
             )}
 
             <div className="text-caption font-semibold text-text-tertiary mb-1.5">점검 결과</div>
-            <div className="flex gap-1.5 mb-3.5">
+            <div className="flex gap-2 mb-3.5">
               {([
-                ['normal', '정상', 'safe'],
-                ['caution', '주의', 'warning'],
-                ['bad',    '불량', 'danger'],
-              ] as const).map(([val, label, tok]) => (
-                <button key={val} onClick={() => setInspectResult(val as 'normal' | 'caution' | 'bad')} className={`flex-1 h-11 rounded-[10px] text-body-sm font-bold cursor-pointer inline-flex items-center justify-center ${
-                  inspectResult === val
-                    ? tok === 'safe'    ? 'bg-safe-bg border-2 border-safe-bar text-safe'
-                    : tok === 'warning' ? 'bg-warning-bg border-2 border-warning-bar text-warning'
-                    :                    'bg-danger-bg border-2 border-danger-bar text-danger'
-                    : 'bg-surface-sunken border border-border-default text-text-tertiary'
-                }`}>{label}</button>
-              ))}
+                ['normal',  '정상', CheckCircle2,   'safe'],
+                ['caution', '주의', AlertTriangle,  'warning'],
+                ['bad',     '불량', XCircle,        'danger'],
+              ] as const).map(([val, label, Icon, tok]) => {
+                const active = inspectResult === val
+                const stateCls = active
+                  ? tok === 'safe'    ? 'border-safe bg-safe-bg text-safe'
+                    : tok === 'warning' ? 'border-warning bg-warning-bg text-warning'
+                    :                     'border-danger bg-danger-bg text-danger'
+                  : 'border-border-default bg-surface-raised text-text-tertiary'
+                return (
+                  <button
+                    key={val}
+                    onClick={() => setInspectResult(val as 'normal' | 'caution' | 'bad')}
+                    className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${stateCls}`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {label}
+                  </button>
+                )
+              })}
             </div>
 
             {needSymptom && (
@@ -1788,20 +1797,29 @@ export default function FloorPlanPage() {
                 </div>
                 <div className="mb-2.5">
                   <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-[0.05em]">비상콘센트 점검 결과</div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     {([
-                      ['normal', '정상', 'safe'],
-                      ['caution', '주의', 'warning'],
-                      ['bad',    '불량', 'danger'],
-                    ] as const).map(([val, label, tok]) => (
-                      <button key={val} onClick={() => setInspectBcResult(val as 'normal' | 'caution' | 'bad')} className={`flex-1 h-11 rounded-[10px] text-body-sm font-bold cursor-pointer inline-flex items-center justify-center ${
-                        inspectBcResult === val
-                          ? tok === 'safe'    ? 'bg-safe-bg border-2 border-safe-bar text-safe'
-                          : tok === 'warning' ? 'bg-warning-bg border-2 border-warning-bar text-warning'
-                          :                    'bg-danger-bg border-2 border-danger-bar text-danger'
-                          : 'bg-surface-sunken border border-border-default text-text-tertiary'
-                      }`}>{label}</button>
-                    ))}
+                      ['normal',  '정상', CheckCircle2,   'safe'],
+                      ['caution', '주의', AlertTriangle,  'warning'],
+                      ['bad',     '불량', XCircle,        'danger'],
+                    ] as const).map(([val, label, Icon, tok]) => {
+                      const active = inspectBcResult === val
+                      const stateCls = active
+                        ? tok === 'safe'    ? 'border-safe bg-safe-bg text-safe'
+                          : tok === 'warning' ? 'border-warning bg-warning-bg text-warning'
+                          :                     'border-danger bg-danger-bg text-danger'
+                        : 'border-border-default bg-surface-raised text-text-tertiary'
+                      return (
+                        <button
+                          key={val}
+                          onClick={() => setInspectBcResult(val as 'normal' | 'caution' | 'bad')}
+                          className={`flex-1 px-2 py-[9px] rounded-pill border-[1.5px] text-body-sm font-bold whitespace-nowrap inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors ${stateCls}`}
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {label}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
                 <div className="mb-3.5">
