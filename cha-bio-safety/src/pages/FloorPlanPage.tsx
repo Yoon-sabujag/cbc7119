@@ -944,7 +944,7 @@ export default function FloorPlanPage() {
 
       {/* ── 헤더 ─────────────────────────────────────── */}
       {/* 데스크톱: height 54 + padding '0 20px', 뒤로가기 제거 (사이드바 nav). 모바일: 기존 유지 */}
-      <header className={`flex-shrink-0 flex items-center bg-surface-raised border-b border-border-default ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'px-3 py-2 gap-2'}`}>
+      <header className={`flex-shrink-0 flex items-center bg-surface-raised border-b border-border-default ${isDesktop ? 'h-[54px] px-5 gap-2.5' : 'px-4 py-2.5 gap-2.5'}`}>
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
@@ -953,30 +953,30 @@ export default function FloorPlanPage() {
             <ChevronLeft size={15} />
           </button>
         )}
-        <span className={`flex-1 font-bold text-text-primary truncate ${isDesktop ? 'text-body' : 'text-body-sm'}`}>소방 시설 도면</span>
+        <span className="flex-1 font-bold text-text-primary truncate text-body">소방 시설 도면</span>
         {canEditMarker && (
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}
-            className={`h-8 px-3 rounded-sm text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms] ${editMode ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
+            className={`h-input px-3 rounded-sm text-caption font-semibold cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms] ${editMode ? 'bg-accent border border-accent text-text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
           >
             {editMode ? '편집 완료' : '마커 편집'}
           </button>
         )}
         <button
           onClick={() => { setScale(1); setTranslate({ x: 0, y: 0 }) }}
-          className="h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms]"
+          className="h-input px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold cursor-pointer inline-flex items-center gap-1 transition-[background,border-color] duration-[130ms]"
         >
           축소보기
         </button>
       </header>
 
       {/* ── 도면 종류 선택 ───────────────────────────── */}
-      <div className="flex-shrink-0 flex gap-1 px-3 py-2 bg-surface-raised border-b border-border-default">
+      <div className="flex-shrink-0 flex gap-1.5 px-3.5 py-2 bg-surface-raised border-b border-border-default">
         {PLAN_TYPES.map(p => (
           <button
             key={p.key}
             onClick={() => p.ready && setPlanType(p.key)}
-            className={`flex-1 h-9 rounded-sm text-label font-semibold transition-[background] duration-[130ms] inline-flex items-center justify-center relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-tertiary'}`}
+            className={`flex-1 flex items-center justify-center px-2 py-1 rounded-sm text-caption font-bold transition-colors relative ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'} ${planType === p.key ? 'border-[1.5px] border-accent bg-accent text-text-on-accent' : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'}`}
           >
             {p.label}
             {!p.ready && <span className="absolute -top-1.5 -right-0.5 text-[10px] leading-none bg-surface-sunken text-text-tertiary px-1 py-px rounded border border-border-default">준비중</span>}
@@ -985,16 +985,18 @@ export default function FloorPlanPage() {
       </div>
 
       {/* ── 층 선택 탭 ───────────────────────────────── */}
-      <div className="flex-shrink-0 flex gap-1 overflow-x-auto px-3 py-2 bg-surface-raised border-b border-border-default">
-        {FLOORS.map(f => (
-          <button
-            key={f}
-            onClick={() => setFloor(f)}
-            className={`flex-shrink-0 h-8 px-3 rounded-sm text-caption font-semibold leading-none cursor-pointer inline-flex items-center justify-center transition-[background] duration-[130ms] ${floor === f ? 'bg-accent border border-accent text-on-accent' : 'bg-surface-sunken border border-border-default text-text-secondary'}`}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="shrink-0 px-3.5 py-2 bg-surface-raised border-b border-border-default">
+        <div className="flex gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FLOORS.map(f => (
+            <button
+              key={f}
+              onClick={() => setFloor(f)}
+              className={`shrink-0 px-3 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${floor === f ? 'border-[1.5px] border-accent bg-accent text-text-on-accent' : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'}`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── 도면 캔버스 (핀치줌) ──────────────────────── */}
