@@ -100,14 +100,14 @@ const MARKER_TYPES_MAP: Record<PlanType, { key: string; label: [string, string] 
   extinguisher: EXTINGUISHER_MARKER_TYPES,
 }
 
-// ── 상태별 색상 ─────────────────────────────────────────
+// ── 상태별 색상 (tokens.css var() 로 토큰화 — §6.2 negative rule 예외: 마커 fill 상태 표현 매체) ──
 const STATUS_COLOR: Record<string, string> = {
-  uninspected: '#9ca3af',
-  normal:      '#22c55e',
-  caution:     '#eab308',
-  bad:         '#ef4444',
-  fault:       '#ef4444',
-  resolved:    '#3b82f6',
+  uninspected: 'var(--text-tertiary)',
+  normal:      'var(--status-safe-bar)',
+  caution:     'var(--status-warning-bar)',
+  bad:         'var(--status-danger-bar)',
+  fault:       'var(--status-danger-bar)',
+  resolved:    'var(--accent)',
 }
 
 function getMarkerStatus(m: FloorPlanMarker): string {
@@ -252,6 +252,7 @@ function MarkerIcon({
   if (!dangerBadge) return svg
 
   // danger 마커 — 우상단 ! 배지 (시안 A안). pointerEvents:none 으로 클릭 통과.
+  // 컨테이너 14×14 (12px 텍스트가 들어가도록 확장 — 노안 12px 마지노 룰)
   return (
     <div style={{ position: 'relative', display: 'inline-block', lineHeight: 0 }}>
       {svg}
@@ -259,15 +260,15 @@ function MarkerIcon({
         position: 'absolute',
         top: -8,
         right: -8,
-        width: 12,
-        height: 12,
+        width: 14,
+        height: 14,
         background: '#ef4444',
         border: '1.5px solid #fff',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 900,
         color: '#fff',
         lineHeight: 1,
@@ -1230,7 +1231,7 @@ export default function FloorPlanPage() {
         }
 
         const actionButtons = (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             {canInspect && (
               <button
                 onClick={() => {
@@ -1238,7 +1239,7 @@ export default function FloorPlanPage() {
                   if (selected?.description?.includes('접근불가')) { openInspectModal(); return }
                   const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal()
                 }}
-                style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                className="flex-1 h-11 rounded-[10px] bg-accent border-none text-on-accent text-body-sm font-bold cursor-pointer inline-flex items-center justify-center"
               >
                 점검 기록 입력
               </button>
@@ -1246,7 +1247,7 @@ export default function FloorPlanPage() {
             {canResolve && (
               <button
                 onClick={() => { setResolveMemo(''); resolvePhoto.reset(); setResolveModal(true) }}
-                style={{ flex: 1, height: 46, borderRadius: 12, background: 'linear-gradient(135deg,#f59e0b,#ef4444)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                className="flex-1 h-11 rounded-[10px] bg-[var(--status-fire-bar)] border-none text-white text-body-sm font-bold cursor-pointer inline-flex items-center justify-center"
               >
                 조치
               </button>
@@ -1255,15 +1256,15 @@ export default function FloorPlanPage() {
               <>
                 <button
                   onClick={openEditMarkerModal}
-                  style={{ flex: 1, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: isDesktop ? 13 : 14, fontWeight: 600, cursor: 'pointer' }}
+                  className={`flex-1 ${isDesktop ? 'h-[38px] rounded-[10px] text-label' : 'h-11 rounded-[10px] text-body-sm'} bg-surface-sunken border border-border-default text-text-primary font-semibold cursor-pointer inline-flex items-center justify-center`}
                 >
                   수정
                 </button>
                 <button
                   onClick={() => { if (confirm('마커를 삭제하시겠습니까?')) deleteMutation.mutate(selected.id) }}
-                  style={{ width: isDesktop ? 38 : 46, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  className={`${isDesktop ? 'w-[38px] h-[38px] rounded-[10px]' : 'w-11 h-11 rounded-[10px]'} bg-danger-bg border border-danger-bar/30 text-danger cursor-pointer inline-flex items-center justify-center flex-shrink-0`}
                 >
-                  <svg width={18} height={18} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                  <Trash2 size={18} />
                 </button>
               </>
             )}
@@ -1283,13 +1284,9 @@ export default function FloorPlanPage() {
                 top: bp.arrowDir === 'bottom' ? bp.top + BALLOON_GAP : undefined,
                 bottom: bp.arrowDir === 'top' ? (containerRef.current?.clientHeight ?? 600) - bp.top + BALLOON_GAP : undefined,
                 width: BALLOON_W,
-                background: 'var(--bg2)',
-                border: '1px solid var(--bd2)',
-                borderRadius: 14,
-                padding: '14px 16px 16px',
                 zIndex: 30,
-                boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
               }}
+              className="bg-surface-raised border border-border-strong rounded-[14px] px-4 pt-[14px] pb-4 shadow-[0_8px_32px_rgba(0,0,0,0.45)]"
               onClick={e => e.stopPropagation()}
             >
               {/* 화살표 */}
@@ -1297,31 +1294,31 @@ export default function FloorPlanPage() {
                 position: 'absolute',
                 left: Math.max(16, Math.min(bp.left - Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)), BALLOON_W - 16)),
                 ...(bp.arrowDir === 'bottom'
-                  ? { top: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid var(--bg2)' }
-                  : { bottom: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid var(--bg2)' }
+                  ? { top: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid var(--surface-raised)' }
+                  : { bottom: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid var(--surface-raised)' }
                 ),
                 width: 0, height: 0, transform: 'translateX(-8px)',
               }} />
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                  background: statusColor + '22',
-                  border: `1.5px solid ${statusColor}55`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <div className="flex items-start gap-2.5 mb-3">
+                <div
+                  className="w-9 h-9 rounded-[9px] flex-shrink-0 flex items-center justify-center"
+                  style={{ background: statusColor + '22', border: `1.5px solid ${statusColor}55` }}
+                >
                   <MarkerIcon markerType={selected.marker_type} color={statusColor} size={20} />
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{markerLabel}</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
-                    {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
-                    <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
-                    {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="text-body-sm font-bold text-text-primary mb-0.5">{markerLabel}</div>
+                  <div className="flex gap-1.5 flex-wrap items-center">
+                    <span className="text-caption text-text-tertiary">{floor}</span>
+                    {selected.check_point_id && <span className="text-caption text-text-tertiary">ID: {selected.check_point_id}</span>}
+                    <span className="text-caption font-bold" style={{ color: statusColor }}>{statusLabel}</span>
+                    {selected.last_inspected_at && <span className="text-caption text-text-tertiary">최근 {selected.last_inspected_at.slice(0, 10)}</span>}
                   </div>
                 </div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 16, cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}>✕</button>
+                <button onClick={() => setSelected(null)} className="w-7 h-7 flex-shrink-0 bg-transparent border-none text-text-tertiary cursor-pointer inline-flex items-center justify-center rounded-[6px]">
+                  <X size={16} />
+                </button>
               </div>
               {actionButtons}
             </div>
@@ -1331,34 +1328,30 @@ export default function FloorPlanPage() {
         // ── 모바일: 바텀시트 ──
         return (
           <div
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
-              borderRadius: '16px 16px 0 0', padding: '16px 16px 20px', zIndex: 30,
-              boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
-            }}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30 }}
+            className="bg-surface-raised border-t border-border-strong rounded-t-2xl px-4 pt-3.5 pb-5 shadow-[0_-8px_32px_rgba(0,0,0,0.4)]"
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd2)', margin: '0 auto 14px' }} />
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                background: statusColor + '22',
-                border: `1.5px solid ${statusColor}55`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+            <div className="w-9 h-1 rounded-sm bg-border-strong mx-auto mb-3.5" />
+            <div className="flex items-start gap-3 mb-4">
+              <div
+                className="w-10 h-10 rounded-[10px] flex-shrink-0 flex items-center justify-center"
+                style={{ background: statusColor + '22', border: `1.5px solid ${statusColor}55` }}
+              >
                 <MarkerIcon markerType={selected.marker_type} color={statusColor} size={22} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>{markerLabel}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
-                  {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
-                  <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
-                  {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="text-body-sm font-bold text-text-primary mb-0.5">{markerLabel}</div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-caption text-text-tertiary">{floor}</span>
+                  {selected.check_point_id && <span className="text-caption text-text-tertiary">ID: {selected.check_point_id}</span>}
+                  <span className="text-caption font-bold" style={{ color: statusColor }}>{statusLabel}</span>
+                  {selected.last_inspected_at && <span className="text-caption text-text-tertiary">최근 {selected.last_inspected_at.slice(0, 10)}</span>}
                 </div>
               </div>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}>✕</button>
+              <button onClick={() => setSelected(null)} className="w-8 h-8 flex-shrink-0 bg-transparent border-none text-text-tertiary cursor-pointer inline-flex items-center justify-center">
+                <X size={18} />
+              </button>
             </div>
             {actionButtons}
           </div>
