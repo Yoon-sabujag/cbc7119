@@ -173,7 +173,7 @@ export default function QRScanPage() {
     stage === 'scan' ? (
       <button
         onClick={() => { stopCamera(); setStage('manual') }}
-        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-text-secondary cursor-pointer inline-flex items-center gap-1"
+        className="h-[32px] px-3 rounded-[7px] bg-surface-sunken border border-border-default text-caption font-semibold leading-none text-text-secondary cursor-pointer inline-flex items-center gap-1"
       >
         <Keyboard size={14} />
         <span>수동입력</span>
@@ -181,7 +181,7 @@ export default function QRScanPage() {
     ) : (
       <button
         onClick={() => { setStage('scan'); startCamera() }}
-        className="h-8 px-3 rounded-lg bg-surface-sunken border border-border-default text-caption font-semibold text-accent cursor-pointer inline-flex items-center gap-1"
+        className="h-[32px] px-3 rounded-[7px] bg-surface-sunken border border-border-default text-caption font-semibold leading-none text-accent cursor-pointer inline-flex items-center gap-1"
       >
         <Camera size={14} />
         <span>카메라</span>
