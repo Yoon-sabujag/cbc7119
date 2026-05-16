@@ -21,7 +21,7 @@ import { CCTV_DVRS } from '../utils/cctv'
 import {
   ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
-  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Square, Server,
+  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
   // Zone (3종)
   FlaskConical, Building2, TrainFront,
   // 결과 (5종)
@@ -815,7 +815,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
 
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
-        <Square className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
+        <SmokeVentIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
         </div>
@@ -3819,7 +3819,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     >
 
       {/* ── 헤더 ── */}
-      <div className="shrink-0 bg-surface-raised border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
+      <div className="shrink-0 bg-surface-page border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
         {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary truncate">{group.labels[0]}</div>
