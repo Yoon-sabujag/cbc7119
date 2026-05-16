@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>조치 상세 재디자인 시안 v0.1.1 — RemediationDetail (260516-rhl)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (03-qr-scan/sketch/qr-scan-sketch.html 인프라 1:1 mirror)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-subtle:   rgba(255, 255, 255, 0.08);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --warning:    #f59e0b;
+      --warning-bg: rgba(234, 179, 8, 0.18);
+
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-subtle:   rgba(0, 0, 0, 0.08);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --warning:    #b45309;
+      --warning-bg: rgba(234, 179, 8, 0.10);
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-xl:   20px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      --nav-h: 54px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --button-height:    40px;
+      }
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 (3C 동일 — v0.1.1 시각 토큰)
+     * ===================================================================== */
+    .bg-page       { background-color: var(--surface-page); }
+    .bg-raised     { background-color: var(--surface-raised); }
+    .bg-sunken     { background-color: var(--surface-sunken); }
+    .bg-active     { background-color: var(--surface-active); }
+    .bg-overlay    { background-color: var(--surface-overlay); }
+
+    .text-t1       { color: var(--text-primary); }
+    .text-t2       { color: var(--text-secondary); }
+    .text-t3       { color: var(--text-tertiary); }
+    .text-on-accent{ color: var(--text-on-accent); }
+    .text-acl      { color: var(--accent); }
+    .text-link     { color: var(--text-link); }
+
+    .text-safe     { color: var(--status-safe-bar); }
+    .text-warn     { color: var(--status-warning-bar); }
+    .text-danger   { color: var(--status-danger-bar); }
+    .text-info     { color: var(--status-info-bar); }
+    .text-fire     { color: var(--status-fire-bar); }
+    .text-warning  { color: var(--warning); }
+
+    .bg-safe       { background-color: var(--status-safe-bar); }
+    .bg-warn       { background-color: var(--status-warning-bar); }
+    .bg-danger     { background-color: var(--status-danger-bar); }
+    .bg-info       { background-color: var(--status-info-bar); }
+    .bg-fire       { background-color: var(--status-fire-bar); }
+
+    .bg-safe-soft   { background-color: var(--status-safe-bg); }
+    .bg-warn-soft   { background-color: var(--status-warning-bg); }
+    .bg-danger-soft { background-color: var(--status-danger-bg); }
+    .bg-info-soft   { background-color: var(--status-info-bg); }
+    .bg-fire-soft   { background-color: var(--status-fire-bg); }
+    .bg-warning-bg  { background-color: var(--warning-bg); }
+
+    .bg-acl        { background-color: var(--accent); }
+    .bg-acl-soft   { background-color: rgba(59,130,246,0.12); }
+
+    .bd            { border: 1px solid var(--border-default); }
+    .bd-subtle     { border-color: var(--border-subtle); }
+    .bd-strong     { border-color: var(--border-strong); }
+    .bd-b          { border-bottom: 1px solid var(--border-default); }
+    .bd-b-subtle   { border-bottom: 1px solid var(--border-subtle); }
+    .bd-t          { border-top: 1px solid var(--border-default); }
+    .bd-r          { border-right: 1px solid var(--border-default); }
+    .bd-l          { border-left: 1px solid var(--border-default); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 393px; height: 852px; }
+    .viewport-desktop { width: 1280px; height: 720px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 페이지 섹션 타이틀 (시안 외곽)
+     * ===================================================================== */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 */
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-warn    { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-danger  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #22c55e; }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #0ea5e9; }
+    .cat-title-warn  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #f59e0b; }
+    .cat-title-danger{ font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #ef4444; }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #8b949e; }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; line-height: 1.55; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; line-height: 1.55; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs   { width: 12px; height: 12px; flex-shrink: 0; }
+    .icon-sm   { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-md   { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-lg   { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-xl   { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-2xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-3xl  { width: 36px; height: 36px; flex-shrink: 0; }
+    .icon-5xl  { width: 40px; height: 40px; flex-shrink: 0; }
+
+    /* blink animation */
+    @keyframes blink { 0%,100% { opacity: 0.6 } 50% { opacity: 0.3 } }
+    .anim-blink { animation: blink 2s ease-in-out infinite; }
+
+    /* =====================================================================
+     * RemediationDetail 페이지 전용 CSS — 모두 v0.1.1 토큰 기반 (.det-* prefix)
+     * ===================================================================== */
+
+    /* 자체 헤더 (TSX line 270~302) */
+    .det-page-hd {
+      height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      position: relative; padding: 0 12px;
+      background: var(--surface-raised); border-bottom: 1px solid var(--border-default);
+    }
+    .det-back-btn {
+      position: absolute; left: 12px; width: 36px; height: 36px; border: none; background: none;
+      cursor: pointer; color: var(--text-primary);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .det-page-hd-title { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+
+    /* 본문 컨테이너 (TSX line 320~325) */
+    .det-body { flex: 1; overflow-y: auto; }
+    .det-body.has-cta { padding-bottom: 72px; }
+    .det-body::-webkit-scrollbar { display: none; }
+    .det-body { scrollbar-width: none; }
+
+    /* 섹션 (TSX line 327, 358, 374, 420 공통 패턴) */
+    .det-section { padding: 20px 16px; border-bottom: 1px solid var(--border-default); }
+    .det-section-hd {
+      font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 10px; line-height: 1;
+    }
+
+    /* KV row (TSX line 14~21 verbatim 매핑) */
+    .det-kv-list { display: flex; flex-direction: column; gap: 8px; }
+    .det-kv-row { display: flex; gap: 12px; align-items: flex-start; }
+    .det-kv-label {
+      font-size: 12px; color: var(--text-tertiary); width: 64px; flex-shrink: 0; line-height: 1.5;
+    }
+    .det-kv-value {
+      font-size: 14px; color: var(--text-primary); flex: 1; line-height: 1.5;
+    }
+
+    /* 결과/상태 배지 (04 sketch .rem-badge 룰 동일 — leading-none 명시) */
+    .det-badge {
+      font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 5px;
+      line-height: 1; white-space: nowrap; flex-shrink: 0;
+      display: inline-flex; align-items: center;
+    }
+    .det-badge.danger  { background: var(--status-danger-bg);  color: var(--status-danger); }   /* 불량 */
+    .det-badge.warning { background: var(--status-warning-bg); color: var(--status-warning); }  /* 주의 */
+    .det-badge.fire    { background: var(--status-fire-bg);    color: var(--status-fire); }     /* 미조치 */
+    .det-badge.safe    { background: var(--status-safe-bg);    color: var(--status-safe); }     /* 완료 */
+
+    /* 점검 메모 본문 (TSX line 360~362) */
+    .det-memo {
+      font-size: 14px; line-height: 1.5; color: var(--text-primary); margin: 0; white-space: pre-wrap;
+    }
+    .det-memo.empty { color: var(--text-tertiary); }
+
+    /* 점검/조치 사진 (TSX line 363~369, 386~392) */
+    .det-photo {
+      width: 100%; max-height: 240px; object-fit: cover; border-radius: 10px;
+      border: 1px solid var(--border-default); display: block; margin-top: 12px;
+      background: var(--surface-sunken);
+    }
+    .det-photo-empty {
+      height: 180px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary); font-size: 12px; background: var(--surface-sunken);
+      border-radius: 10px; border: 1px solid var(--border-default); margin-top: 12px;
+      flex-direction: column; gap: 6px;
+    }
+
+    /* Admin 액션 영역 (TSX line 397~416) */
+    .det-admin-row {
+      padding: 14px 16px; border-bottom: 1px solid var(--border-default);
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .det-admin-btn {
+      padding: 8px 14px; border-radius: 8px; background: transparent;
+      font-size: 12px; font-weight: 700; cursor: pointer; line-height: 1;
+      font-family: inherit; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .det-admin-btn.warn   { border: 1px solid var(--status-warning-bar); color: var(--status-warning-bar); }
+    .det-admin-btn.danger { border: 1px solid var(--status-danger-bar);  color: var(--status-danger-bar); }
+
+    /* 조치 피커 — 옵션 버튼 (TSX line 425~491 — 5종 동일 패턴) */
+    .det-picker { display: flex; gap: 5px; margin-bottom: 10px; }
+    .det-picker-opt {
+      flex: 1; padding: 10px 4px; border-radius: 10px; cursor: pointer;
+      font-size: 12px; font-weight: 700; line-height: 1.2;
+      font-family: inherit; text-align: center;
+      border: 1px solid var(--border-default);
+      background: var(--surface-raised);
+      color: var(--text-secondary);
+    }
+    .det-picker-opt.is-active {
+      border: 2px solid var(--accent);
+      background: rgba(59,130,246,0.12);
+      color: var(--accent);
+    }
+    /* 4-옵션 피커 (소화전) — 11px (의도된 예외, 좁은 슬롯) */
+    .det-picker.tight .det-picker-opt { font-size: 11px; padding: 10px 2px; }
+
+    /* textarea (TSX line 495~513) */
+    .det-textarea {
+      width: 100%; min-height: 96px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      font-size: 14px; line-height: 1.5;
+      color: var(--text-primary);
+      padding: 12px; resize: vertical; box-sizing: border-box;
+      font-family: var(--font-sans);
+    }
+    .det-textarea::placeholder { color: var(--text-tertiary); }
+
+    /* 소모 자재 + 사진 row (TSX line 517~553) */
+    .det-mat-row-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 12px; margin-bottom: 4px;
+    }
+    .det-mat-row-hd-label { font-size: 12px; color: var(--text-tertiary); line-height: 1; }
+    .det-mat-row { display: flex; gap: 8px; align-items: flex-start; }
+    .det-mat-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; height: 72px; }
+    .det-mat-input {
+      flex: 1; min-height: 0; min-width: 0; width: 100%;
+      background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: 8px;
+      font-size: 13px; color: var(--text-primary); padding: 0 10px;
+      box-sizing: border-box; font-family: inherit;
+    }
+    .det-mat-input::placeholder { color: var(--text-tertiary); }
+    .det-mat-num-wrap { position: relative; flex: 1; min-height: 0; min-width: 0; }
+    .det-mat-num {
+      width: 100%; height: 100%; min-width: 0;
+      background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: 8px;
+      font-size: 13px; color: var(--text-primary); padding: 0 28px 0 10px;
+      box-sizing: border-box; font-family: inherit;
+    }
+    .det-mat-num-suffix {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      font-size: 12px; color: var(--text-tertiary); pointer-events: none; line-height: 1;
+    }
+
+    /* PhotoButton — TSX PhotoButton.tsx (72×72 dashed) */
+    .det-photo-btn {
+      width: 72px; height: 72px; border-radius: 10px;
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-strong);
+      color: var(--text-tertiary);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; flex-shrink: 0;
+      font-family: inherit;
+    }
+    .det-photo-btn .icon-xl { color: var(--text-secondary); }
+
+    /* PhotoButton — preview 상태 */
+    .det-photo-preview {
+      position: relative; display: inline-block; width: 72px; height: 72px; flex-shrink: 0;
+    }
+    .det-photo-preview img {
+      width: 72px; height: 72px; object-fit: cover; border-radius: 10px;
+      border: 1px solid var(--border-default); display: block;
+      background: var(--surface-sunken);
+    }
+    .det-photo-preview-remove {
+      position: absolute; top: -6px; right: -6px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--status-danger-bar); border: none; color: #fff;
+      font-size: 12px; font-weight: 700; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* 고정 하단 CTA (TSX line 560~591) */
+    .det-cta {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--surface-page);
+      border-top: 1px solid var(--border-default);
+      padding: 12px 16px;
+    }
+    .det-cta-btn {
+      width: 100%; height: 48px;
+      background: var(--accent); color: var(--text-on-accent);
+      font-size: 14px; font-weight: 700;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: opacity .15s; line-height: 1;
+      font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+
+    /* 데스크톱 standalone view — modal-like card (1280×720 안 중앙 정렬) */
+    .det-desktop-shell {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 100%; padding: 24px;
+      background: var(--surface-page); box-sizing: border-box;
+    }
+    .det-desktop-card {
+      width: 720px; max-height: 100%;
+      display: flex; flex-direction: column;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 16px; overflow: hidden;
+      position: relative; min-height: 0;
+    }
+
+    /* 사진 placeholder 썸네일 (시안 내 preview 시연용) */
+    .det-thumb-placeholder {
+      width: 72px; height: 72px; border-radius: 10px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 색 결정 4박스
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">조치 상세 재디자인 시안 v0.1.1</div>
+      <div class="page-section-sub">
+        RemediationDetail Page — 모바일/데스크톱 × 다크/라이트 × 6 viewport (260516-rhl)<br/>
+        04-remediation/sketch/remediation-sketch.html (feb8da9) 1:1 mirror. 다음 quick task 에서 TSX 변환 1:1 매핑 source 로 사용.
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-danger">
+        <div class="cat-title-danger">결과 + 상태 배지 페어</div>
+        <div class="cat-label-dark">불량=danger / 주의=warning / 미조치=fire / 완료=safe</div>
+        <div class="cat-sub-dark">04 sketch 와 1:1 일관. 옛 RemediationDetailPage line 348~351 인라인 rgba (rgba(239,68,68,.13) / rgba(245,158,11,.13)) 폐기 → <span class="text-mono">--status-{danger,warning}-{bg,fg}</span> 페어 교체.</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">고정 하단 CTA</div>
+        <div class="cat-label-dark">단색 var(--accent) — 그라디언트 금지</div>
+        <div class="cat-sub-dark">옛 line 577 var(--acl) 단색은 유지. 04 sketch 보고서 다운로드 결정 동일. 노안 룰 height 48px / fontSize 14 / fontWeight 700.</div>
+      </div>
+      <div class="cat-box-warn">
+        <div class="cat-title-warn">조치 피커 5 카테고리 통합 패턴</div>
+        <div class="cat-label-dark">.det-picker (3 옵션) + .det-picker.tight (4 옵션, 11px 예외)</div>
+        <div class="cat-sub-dark">5종 useEffect (유도등/소화기/소화전/방화셔터/전실제연댐퍼) 보존. 비즈니스 로직 변경 0건 — 시각만 재정렬. 활성 = 2px var(--accent) + bg rgba(59,130,246,.12).</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">데스크톱 + Admin + 노안 11→12px 상향</div>
+        <div class="cat-label-dark">standalone modal-like card 720px / admin 2버튼 outline / 자재 라벨 12px</div>
+        <div class="cat-sub-dark">데스크톱 본 페이지 = standalone view (목록 동행 X — RemediationDetailPage 는 라우트 단독). 옛 자재 라벨 11px (line 518/519) → 12px 상향 (feedback_text_caption_leading_none + 노안 12px 마지노선). det-picker.tight 11px = 4-옵션 소화전 의도된 예외.</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================
+       VP1: 모바일 · 다크 · 자동화재탐지설비 불량 미조치 (status='open', textarea-only)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · 자동화재탐지설비 불량 미조치 (status=open)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 -->
+        <div class="det-page-hd">
+          <button class="det-back-btn" aria-label="목록으로 돌아가기">
+            <i data-lucide="chevron-left" class="icon-lg"></i>
+          </button>
+          <span class="det-page-hd-title">조치 상세</span>
+        </div>
+
+        <!-- 본문 (has-cta: open 상태) -->
+        <div class="det-body has-cta">
+
+          <!-- Section 1: 점검 정보 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 정보</div>
+            <div class="det-kv-list">
+              <div class="det-kv-row">
+                <span class="det-kv-label">카테고리</span>
+                <span class="det-kv-value">자동화재탐지설비</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">위치</span>
+                <span class="det-kv-value">사무동 B2</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검일</span>
+                <span class="det-kv-value">2026-05-15 14:32</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검자</span>
+                <span class="det-kv-value">윤종엽</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">판정결과</span>
+                <span class="det-kv-value">
+                  <span class="det-badge danger">불량</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 점검 기록 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 기록</div>
+            <p class="det-memo">감지기 동작불량 - 1차 패턴 미검출. 전원 재공급 필요</p>
+            <div class="det-photo-empty">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span>점검 사진 없음</span>
+            </div>
+          </div>
+
+          <!-- Section 4: 조치 내용 입력 (open, 자탐 = textarea-only) -->
+          <div class="det-section" style="border-bottom: none;">
+            <div class="det-section-hd">조치 내용 입력</div>
+            <!-- 자동화재탐지설비: 피커 없음 → textarea만 -->
+            <textarea class="det-textarea" placeholder="조치 내용을 입력하세요 (필수)"></textarea>
+
+            <!-- 소모 자재 + 사진 row -->
+            <div class="det-mat-row-hd">
+              <span class="det-mat-row-hd-label">소모 자재</span>
+              <span class="det-mat-row-hd-label">조치 사진 (선택)</span>
+            </div>
+            <div class="det-mat-row">
+              <div class="det-mat-col">
+                <input type="text" class="det-mat-input" placeholder="자재명" />
+                <div class="det-mat-num-wrap">
+                  <input type="number" class="det-mat-num" placeholder="0" />
+                  <span class="det-mat-num-suffix">ea</span>
+                </div>
+              </div>
+              <button class="det-photo-btn">
+                <i data-lucide="camera" class="icon-xl"></i>
+                <span>촬영</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 고정 하단 CTA -->
+        <div class="det-cta">
+          <button class="det-cta-btn">
+            <i data-lucide="check" class="icon-md"></i>
+            조치 완료
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       VP2: 모바일 · 다크 · 유도등 불량 미조치 (status='open', 피커 3-옵션 활성)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 다크 · 유도등 불량 미조치 (status=open, 피커 3-옵션)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 -->
+        <div class="det-page-hd">
+          <button class="det-back-btn" aria-label="목록으로 돌아가기">
+            <i data-lucide="chevron-left" class="icon-lg"></i>
+          </button>
+          <span class="det-page-hd-title">조치 상세</span>
+        </div>
+
+        <!-- 본문 -->
+        <div class="det-body has-cta">
+
+          <!-- Section 1: 점검 정보 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 정보</div>
+            <div class="det-kv-list">
+              <div class="det-kv-row">
+                <span class="det-kv-label">카테고리</span>
+                <span class="det-kv-value">유도등</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">위치</span>
+                <span class="det-kv-value">연구동 3F EXIT-A12</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검일</span>
+                <span class="det-kv-value">2026-05-14 11:08</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검자</span>
+                <span class="det-kv-value">윤종엽</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">판정결과</span>
+                <span class="det-kv-value">
+                  <span class="det-badge danger">불량</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 점검 기록 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 기록</div>
+            <p class="det-memo">점등 이상 — LED 1구 불점등</p>
+            <div class="det-photo-empty">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span>점검 사진 없음</span>
+            </div>
+          </div>
+
+          <!-- Section 4: 조치 내용 입력 (유도등: 3-옵션 피커) -->
+          <div class="det-section" style="border-bottom: none;">
+            <div class="det-section-hd">조치 내용 입력</div>
+
+            <!-- 유도등 피커 (3 옵션, 본체 교체 active) -->
+            <div class="det-picker">
+              <button class="det-picker-opt is-active">본체 교체</button>
+              <button class="det-picker-opt">예비전원 교체</button>
+              <button class="det-picker-opt">직접 입력</button>
+            </div>
+
+            <!-- 소모 자재 + 사진 row (자재 자동 채움 시연) -->
+            <div class="det-mat-row-hd">
+              <span class="det-mat-row-hd-label">소모 자재</span>
+              <span class="det-mat-row-hd-label">조치 사진 (선택)</span>
+            </div>
+            <div class="det-mat-row">
+              <div class="det-mat-col">
+                <input type="text" class="det-mat-input" value="복도통로 유도등" readonly />
+                <div class="det-mat-num-wrap">
+                  <input type="number" class="det-mat-num" value="1" readonly />
+                  <span class="det-mat-num-suffix">ea</span>
+                </div>
+              </div>
+              <!-- PhotoButton preview 상태 시연 -->
+              <div class="det-photo-preview">
+                <div class="det-thumb-placeholder">
+                  <i data-lucide="image" class="icon-xl" style="color: var(--text-tertiary);"></i>
+                </div>
+                <button class="det-photo-preview-remove" aria-label="사진 제거">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 고정 하단 CTA -->
+        <div class="det-cta">
+          <button class="det-cta-btn">
+            <i data-lucide="check" class="icon-md"></i>
+            조치 완료
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       VP3: 모바일 · 다크 · 방화셔터 불량 완료 (status='resolved', 5섹션 + admin)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP3 · 모바일 · 다크 · 방화셔터 불량 완료 (status=resolved, admin 노출)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 -->
+        <div class="det-page-hd">
+          <button class="det-back-btn" aria-label="목록으로 돌아가기">
+            <i data-lucide="chevron-left" class="icon-lg"></i>
+          </button>
+          <span class="det-page-hd-title">조치 상세</span>
+        </div>
+
+        <!-- 본문 (resolved: CTA 없음, has-cta 제거) -->
+        <div class="det-body">
+
+          <!-- Section 1: 점검 정보 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 정보</div>
+            <div class="det-kv-list">
+              <div class="det-kv-row">
+                <span class="det-kv-label">카테고리</span>
+                <span class="det-kv-value">방화셔터</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">위치</span>
+                <span class="det-kv-value">B1 사무동</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검일</span>
+                <span class="det-kv-value">2026-05-12 10:15</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검자</span>
+                <span class="det-kv-value">윤종엽</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">판정결과</span>
+                <span class="det-kv-value">
+                  <span class="det-badge danger">불량</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 점검 기록 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 기록</div>
+            <p class="det-memo">비상시 작동 미확인 — 컨트롤러 점등 필요</p>
+            <div class="det-photo-empty">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span>점검 사진 없음</span>
+            </div>
+          </div>
+
+          <!-- Section 3: 조치 완료 정보 (resolved only) -->
+          <div class="det-section">
+            <div class="det-section-hd">조치 완료</div>
+            <div class="det-kv-list">
+              <div class="det-kv-row">
+                <span class="det-kv-label">조치일시</span>
+                <span class="det-kv-value">2026-05-12 16:40</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">조치자</span>
+                <span class="det-kv-value">윤종엽</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">조치 메모</span>
+                <span class="det-kv-value">컨트롤러 제어반 전원 차단 후 재기동. 수동 개방/복귀 테스트 정상.</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">소모 자재</span>
+                <span class="det-kv-value">방화셔터 스티커 1ea</span>
+              </div>
+            </div>
+            <div class="det-photo-empty">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span>조치 사진 없음</span>
+            </div>
+          </div>
+
+          <!-- Admin 액션 영역 (resolved + admin) -->
+          <div class="det-admin-row">
+            <button class="det-admin-btn warn">
+              <i data-lucide="rotate-ccw" class="icon-sm"></i>
+              조치 취소
+            </button>
+            <button class="det-admin-btn danger">
+              <i data-lucide="trash-2" class="icon-sm"></i>
+              점검 기록 삭제
+            </button>
+          </div>
+
+        </div>
+        <!-- resolved: CTA 없음 -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       VP4: 모바일 · 다크 · 소화전 주의 미조치 (status='open', 피커 4-옵션 tight)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP4 · 모바일 · 다크 · 소화전 주의 미조치 (status=open, 피커 4-옵션 11px)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 -->
+        <div class="det-page-hd">
+          <button class="det-back-btn" aria-label="목록으로 돌아가기">
+            <i data-lucide="chevron-left" class="icon-lg"></i>
+          </button>
+          <span class="det-page-hd-title">조치 상세</span>
+        </div>
+
+        <!-- 본문 -->
+        <div class="det-body has-cta">
+
+          <!-- Section 1: 점검 정보 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 정보</div>
+            <div class="det-kv-list">
+              <div class="det-kv-row">
+                <span class="det-kv-label">카테고리</span>
+                <span class="det-kv-value">옥내소화전</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">위치</span>
+                <span class="det-kv-value">2F 연구동 B동</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검일</span>
+                <span class="det-kv-value">2026-05-13 09:42</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">점검자</span>
+                <span class="det-kv-value">김철수</span>
+              </div>
+              <div class="det-kv-row">
+                <span class="det-kv-label">판정결과</span>
+                <span class="det-kv-value">
+                  <span class="det-badge warning">주의</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 점검 기록 -->
+          <div class="det-section">
+            <div class="det-section-hd">점검 기록</div>
+            <p class="det-memo">위치표시등 점등 이상 — 1구 미점등</p>
+          </div>
+
+          <!-- Section 4: 조치 내용 입력 (소화전: 4-옵션 tight) -->
+          <div class="det-section" style="border-bottom: none;">
+            <div class="det-section-hd">조치 내용 입력</div>
+
+            <!-- 소화전 피커 (4 옵션 tight, 위치표시등 교체 active) -->
+            <div class="det-picker tight">
+              <button class="det-picker-opt">경종 교체</button>
+              <button class="det-picker-opt is-active">위치표시등 교체</button>
+              <button class="det-picker-opt">호스걸이 교체</button>
+              <button class="det-picker-opt">직접 입력</button>
+            </div>
+
+            <!-- 소모 자재 + 사진 row -->
+            <div class="det-mat-row-hd">
+              <span class="det-mat-row-hd-label">소모 자재</span>
+              <span class="det-mat-row-hd-label">조치 사진 (선택)</span>
+            </div>
+            <div class="det-mat-row">
+              <div class="det-mat-col">
+                <input type="text" class="det-mat-input" value="위치표시등" readonly />
+                <div class="det-mat-num-wrap">
+                  <input type="number" class="det-mat-num" value="1" readonly />
+                  <span class="det-mat-num-suffix">ea</span>
+                </div>
+              </div>
+              <button class="det-photo-btn">
+                <i data-lucide="camera" class="icon-xl"></i>
+                <span>촬영</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 고정 하단 CTA -->
+        <div class="det-cta">
+          <button class="det-cta-btn">
+            <i data-lucide="check" class="icon-md"></i>
+            조치 완료
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       VP5: 데스크톱 · 다크 · 소화기 압력 미달 (status='open', det-desktop-card)
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP5 · 데스크톱 · 다크 · 소화기 압력 미달 (status=open, standalone card)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+      <div class="det-desktop-shell">
+        <div class="det-desktop-card">
+          <!-- 자체 헤더 -->
+          <div class="det-page-hd">
+            <button class="det-back-btn" aria-label="목록으로 돌아가기">
+              <i data-lucide="chevron-left" class="icon-lg"></i>
+            </button>
+            <span class="det-page-hd-title">조치 상세</span>
+          </div>
+
+          <!-- 본문 (has-cta: open 상태) -->
+          <div class="det-body has-cta">
+
+            <!-- Section 1: 점검 정보 -->
+            <div class="det-section">
+              <div class="det-section-hd">점검 정보</div>
+              <div class="det-kv-list">
+                <div class="det-kv-row">
+                  <span class="det-kv-label">카테고리</span>
+                  <span class="det-kv-value">소화기</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">위치</span>
+                  <span class="det-kv-value">1F 연구동 SE-101</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">점검일</span>
+                  <span class="det-kv-value">2026-05-13 13:25</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">점검자</span>
+                  <span class="det-kv-value">이영희</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">판정결과</span>
+                  <span class="det-kv-value">
+                    <span class="det-badge warning">주의</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: 점검 기록 -->
+            <div class="det-section">
+              <div class="det-section-hd">점검 기록</div>
+              <p class="det-memo">압력 미달 (2.3 MPa) — 충전 권고</p>
+              <div class="det-photo-empty">
+                <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+                <span>점검 사진 없음</span>
+              </div>
+            </div>
+
+            <!-- Section 4: 조치 내용 입력 (소화기: 3-옵션 피커) -->
+            <div class="det-section" style="border-bottom: none;">
+              <div class="det-section-hd">조치 내용 입력</div>
+
+              <!-- 소화기 피커 (3 옵션, 소화기 교체 active) -->
+              <div class="det-picker">
+                <button class="det-picker-opt">받침 교체</button>
+                <button class="det-picker-opt is-active">소화기 교체</button>
+                <button class="det-picker-opt">직접 입력</button>
+              </div>
+
+              <!-- 소모 자재 + 사진 row -->
+              <div class="det-mat-row-hd">
+                <span class="det-mat-row-hd-label">소모 자재</span>
+                <span class="det-mat-row-hd-label">조치 사진 (선택)</span>
+              </div>
+              <div class="det-mat-row">
+                <div class="det-mat-col">
+                  <input type="text" class="det-mat-input" value="ABC 분말 소화기" readonly />
+                  <div class="det-mat-num-wrap">
+                    <input type="number" class="det-mat-num" value="1" readonly />
+                    <span class="det-mat-num-suffix">ea</span>
+                  </div>
+                </div>
+                <button class="det-photo-btn">
+                  <i data-lucide="camera" class="icon-xl"></i>
+                  <span>촬영</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 고정 하단 CTA (card 안 absolute) -->
+          <div class="det-cta">
+            <button class="det-cta-btn">
+              <i data-lucide="check" class="icon-md"></i>
+              조치 완료
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       VP6: 데스크톱 · 라이트 · 전실제연댐퍼 완료 + admin (status='resolved')
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">🖥️ VP6 · 데스크톱 · 라이트 · 전실제연댐퍼 완료 (status=resolved, admin 노출)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="light">
+      <div class="det-desktop-shell">
+        <div class="det-desktop-card">
+          <!-- 자체 헤더 -->
+          <div class="det-page-hd">
+            <button class="det-back-btn" aria-label="목록으로 돌아가기">
+              <i data-lucide="chevron-left" class="icon-lg"></i>
+            </button>
+            <span class="det-page-hd-title">조치 상세</span>
+          </div>
+
+          <!-- 본문 (resolved: CTA 없음) -->
+          <div class="det-body">
+
+            <!-- Section 1: 점검 정보 -->
+            <div class="det-section">
+              <div class="det-section-hd">점검 정보</div>
+              <div class="det-kv-list">
+                <div class="det-kv-row">
+                  <span class="det-kv-label">카테고리</span>
+                  <span class="det-kv-value">전실제연댐퍼</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">위치</span>
+                  <span class="det-kv-value">RF 옥상</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">점검일</span>
+                  <span class="det-kv-value">2026-05-10 15:50</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">점검자</span>
+                  <span class="det-kv-value">윤종엽</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">판정결과</span>
+                  <span class="det-kv-value">
+                    <span class="det-badge warning">주의</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: 점검 기록 -->
+            <div class="det-section">
+              <div class="det-section-hd">점검 기록</div>
+              <p class="det-memo">기판 조작 불량 — 자동 개방 지연 8초 (기준 5초)</p>
+              <div class="det-photo-empty">
+                <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+                <span>점검 사진 없음</span>
+              </div>
+            </div>
+
+            <!-- Section 3: 조치 완료 정보 (resolved) -->
+            <div class="det-section">
+              <div class="det-section-hd">조치 완료</div>
+              <div class="det-kv-list">
+                <div class="det-kv-row">
+                  <span class="det-kv-label">조치일시</span>
+                  <span class="det-kv-value">2026-05-11 10:20</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">조치자</span>
+                  <span class="det-kv-value">윤종엽</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">조치 메모</span>
+                  <span class="det-kv-value">제어 기판 교체 후 자동 개방 4.2초 정상화. 수동 강제개방 테스트 완료.</span>
+                </div>
+                <div class="det-kv-row">
+                  <span class="det-kv-label">소모 자재</span>
+                  <span class="det-kv-value">제연댐퍼 작동 기판 1ea</span>
+                </div>
+              </div>
+              <div class="det-photo-empty">
+                <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+                <span>조치 사진 없음</span>
+              </div>
+            </div>
+
+            <!-- Admin 액션 영역 (resolved + admin) -->
+            <div class="det-admin-row">
+              <button class="det-admin-btn warn">
+                <i data-lucide="rotate-ccw" class="icon-sm"></i>
+                조치 취소
+              </button>
+              <button class="det-admin-btn danger">
+                <i data-lucide="trash-2" class="icon-sm"></i>
+                점검 기록 삭제
+              </button>
+            </div>
+
+          </div>
+          <!-- resolved: CTA 없음 -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
