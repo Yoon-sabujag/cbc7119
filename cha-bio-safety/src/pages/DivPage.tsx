@@ -29,7 +29,7 @@ function pressureStatus(val: number, ref: number | null, alertOn: 'rise' | 'fall
   return 'ok'
 }
 
-const STATUS_COLOR = { ok: 'var(--safe)', warn: 'var(--warn)', danger: 'var(--danger)' }
+const STATUS_COLOR = { ok: 'var(--status-safe-bar)', warn: 'var(--status-warning-bar)', danger: 'var(--status-danger-bar)' }
 
 // DIV 그룹 레이블
 const POS_LABEL: Record<number, string> = { 1: 'DIV #1', 2: 'DIV #2', 3: 'DIV #3' }
@@ -77,7 +77,7 @@ function daysBetween(a: string, b: string) {
 function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
   const recent = dates.slice(-6)   // 최근 6건
   if (recent.length < 2) {
-    return <div style={{ height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--t3)' }}>기록 없음</div>
+    return <div className="h-[34px] flex items-center justify-center text-[8px] text-text-tertiary">기록 없음</div>
   }
   const intervals = recent.slice(1).map((d, i) => ({
     days: daysBetween(recent[i], d),
@@ -1089,18 +1089,18 @@ export default function DivPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
       {/* ── 헤더 ── */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default px-3 py-2 flex items-center gap-2">
+        <button onClick={() => navigate(-1)} className="w-[34px] h-[34px] rounded-lg bg-surface-sunken border border-border-default cursor-pointer flex items-center justify-center">
+          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+        <span className="flex-1 text-[14px] font-bold text-text-primary">DIV 압력 관리</span>
       </header>
 
       {/* ── 탭 ── */}
-      <div style={{ flexShrink: 0, display: 'flex', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
+      <div className="flex-shrink-0 flex bg-surface-raised border-b border-border-default">
         {([
           { key: 'pressure',   label: '압력 트렌드' },
           { key: 'drain',      label: '챔버배수주기' },
@@ -1110,19 +1110,13 @@ export default function DivPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: 'transparent',
-              color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
-              borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
-              transition: 'color .15s',
-            }}
+            className={`flex-1 px-1 py-[10px] border-none cursor-pointer text-[12px] font-semibold bg-transparent transition-colors border-b-2 ${tab === t.key ? 'text-accent border-accent' : 'text-text-tertiary border-transparent'}`}
           >{t.label}</button>
         ))}
       </div>
 
       {/* ── 컨텐츠 ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="flex-1 overflow-y-auto">
         {tab === 'pressure'   && renderPressureTab()}
         {tab === 'drain'      && renderLogTab('drain')}
         {tab === 'comp_drain' && renderLogTab('comp_drain')}
