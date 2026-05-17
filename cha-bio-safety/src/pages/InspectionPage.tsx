@@ -3890,12 +3890,12 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
               const isSel = f === selectedFloor
               return (
                 <button key={f} onClick={() => handleFloorChange(f)}
-                        className={`shrink-0 px-3 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                        className={`flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
                           isSel
                             ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                            : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'
+                            : 'border border-border-strong bg-surface-page text-text-secondary'
                         }`}>
-                  {f}{fDone > 0 && <span className="ml-0.5 text-caption opacity-75">({fDone})</span>}
+                  {f}{fDone > 0 && <span className="text-caption ml-0.5 opacity-75">({fDone})</span>}
                 </button>
               )
             })}
