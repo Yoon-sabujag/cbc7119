@@ -1100,12 +1100,13 @@ export default function DivPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* ── 헤더 — 다른 자체-헤더 페이지(Schedule/Reports/WorkLog 등) iconBtn 패턴과 통일: 34×34 + border ── */}
-      <header className="flex-shrink-0 flex items-center gap-2 bg-surface-raised border-b border-border-default px-3 pt-2 pb-[9px]">
-        <button onClick={() => navigate(-1)} className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0">
+      {/* ── 헤더 — App GlobalHeader (대시보드) 버튼 사이즈와 일치: 48px 헤더 + 32×32 백버튼 ── */}
+      {/* ⚠ tailwind.config.js spacing override: w-8/h-8 = 48px (Tailwind 기본 32px 아님). 32 명시 ── */}
+      <header className="flex-shrink-0 flex items-center h-12 px-3 bg-surface-raised border-b border-border-default">
+        <button onClick={() => navigate(-1)} className="w-[32px] h-[32px] rounded-[7px] bg-surface-sunken flex items-center justify-center text-text-secondary cursor-pointer border-0">
           <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span className="flex-1 text-[14px] font-bold text-text-primary">DIV 압력 관리</span>
+        <span className="flex-1 text-[13px] font-bold text-text-primary ml-2">DIV 압력 관리</span>
       </header>
 
       {/* ── 탭 ── */}
