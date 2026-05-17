@@ -306,8 +306,8 @@ export default function DivPage() {
                         <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                           {div.loc.replace(/^[^\)]+\) /, '')}
                         </span>
-                        {alarm && <span className="text-[12px] font-bold text-status-danger flex-shrink-0">이상</span>}
-                        {warn  && <span className="text-[12px] font-bold text-status-warning-bar flex-shrink-0">주의</span>}
+                        {alarm && <span className="text-[12px] font-bold text-danger flex-shrink-0">이상</span>}
+                        {warn  && <span className="text-[12px] font-bold text-warning-bar flex-shrink-0">주의</span>}
                         {last  && <span className="text-[12px] text-text-tertiary flex-shrink-0">{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
                       </div>
                       {/* 압력값 */}
@@ -322,11 +322,11 @@ export default function DivPage() {
                           ].map(p => (
                             <div key={p.label} className="text-center flex-1">
                               <div className={`text-[22px] font-bold leading-none font-mono ${
-                                p.s === 'danger' ? 'text-status-danger' :
-                                p.s === 'warn'   ? 'text-status-warning' :
+                                p.s === 'danger' ? 'text-danger' :
+                                p.s === 'warn'   ? 'text-warning' :
                                 p.label === '1차' ? 'text-accent' :
-                                p.label === '2차' ? 'text-status-fire-bar' :
-                                                    'text-status-safe-bar'
+                                p.label === '2차' ? 'text-fire-bar' :
+                                                    'text-safe-bar'
                               }`}>{p.val.toFixed(1)}</div>
                               <div className="text-[12px] text-text-tertiary mt-1.5">{p.label}</div>
                             </div>
@@ -541,8 +541,8 @@ export default function DivPage() {
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
                     <div key={i} className={`text-[14px] font-bold text-center font-mono ${
                       i === 0 ? 'text-accent' :
-                      i === 1 ? 'text-status-fire-bar' :
-                                'text-status-safe-bar'
+                      i === 1 ? 'text-fire-bar' :
+                                'text-safe-bar'
                     }`}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
@@ -679,8 +679,8 @@ export default function DivPage() {
               {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
                 <div key={i} className={`text-[14px] font-bold text-center font-mono ${
                   i === 0 ? 'text-accent' :
-                  i === 1 ? 'text-status-fire-bar' :
-                            'text-status-safe-bar'
+                  i === 1 ? 'text-fire-bar' :
+                            'text-safe-bar'
                 }`}>
                   {v != null ? v.toFixed(1) : '-'}
                 </div>
@@ -788,15 +788,15 @@ export default function DivPage() {
       const oilSum = summarizeMap(oilDateMap)
 
       const counters = [
-        { label: '정상', count: okCount,           bgClass: 'bg-status-safe-bg',    borderClass: 'border-status-safe-bar/25',    textClass: 'text-status-safe-bar' },
-        { label: '주의', count: warnList.length,   bgClass: 'bg-status-warning-bg', borderClass: 'border-status-warning-bar/40', textClass: 'text-status-warning-bar' },
-        { label: '이상', count: dangerList.length, bgClass: 'bg-status-danger-bg',  borderClass: 'border-status-danger-bar/40',  textClass: 'text-status-danger' },
+        { label: '정상', count: okCount,           bgClass: 'bg-safe-bg',    borderClass: 'border-safe-bar/25',    textClass: 'text-safe-bar' },
+        { label: '주의', count: warnList.length,   bgClass: 'bg-warning-bg', borderClass: 'border-warning-bar/40', textClass: 'text-warning-bar' },
+        { label: '이상', count: dangerList.length, bgClass: 'bg-danger-bg',  borderClass: 'border-danger-bar/40',  textClass: 'text-danger' },
       ]
 
       const logCards = [
-        { label: '챔버 배수', sum: drainSum,     colorClass: 'text-status-info' },
+        { label: '챔버 배수', sum: drainSum,     colorClass: 'text-info' },
         { label: '탱크 배수', sum: compDrainSum, colorClass: 'text-[#8b4513]' },
-        { label: '오일 보충', sum: oilSum,       colorClass: 'text-status-fire-bar' },
+        { label: '오일 보충', sum: oilSum,       colorClass: 'text-fire-bar' },
       ]
 
       const alertItems = [...dangerList, ...warnList]
@@ -806,7 +806,7 @@ export default function DivPage() {
           {/* 섹션 1: 측정점 현황 */}
           <div>
             <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
-              <BarChart3 className="w-4 h-4" />
+              <BarChart3 size={16} />
               34개 측정점 현황
             </div>
             <div className="grid grid-cols-3 gap-2.5">
@@ -822,7 +822,7 @@ export default function DivPage() {
           {/* 섹션 2: 배수/오일 현황 */}
           <div>
             <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
-              <Droplets className="w-4 h-4" />
+              <Droplets size={16} />
               배수/오일 현황
             </div>
             <div className="grid grid-cols-3 gap-2.5">
@@ -843,7 +843,7 @@ export default function DivPage() {
           {/* 섹션 3: 이상/주의 리스트 */}
           <div>
             <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
-              <AlertTriangle className="w-4 h-4" />
+              <AlertTriangle size={16} />
               이상/주의 포인트
             </div>
             {alertItems.length === 0 ? (
@@ -860,12 +860,12 @@ export default function DivPage() {
                       onClick={() => setSelDiv(item.point as DivPoint)}
                       className={`flex items-center gap-2.5 p-[10px_12px] rounded-lg cursor-pointer text-left border ${
                         isDanger
-                          ? 'bg-status-danger-bg/50 border-status-danger-bar/30'
-                          : 'bg-status-warning-bg/50 border-status-warning-bar/30'
+                          ? 'bg-danger-bg/50 border-danger-bar/30'
+                          : 'bg-warning-bg/50 border-warning-bar/30'
                       }`}
                     >
-                      <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold flex-shrink-0 min-w-[56px] ${isDanger ? 'text-status-danger' : 'text-status-warning-bar'}`}>
-                        <span className={`w-2 h-2 rounded-full inline-block ${isDanger ? 'bg-status-danger' : 'bg-status-warning-bar'}`} />
+                      <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold flex-shrink-0 min-w-[56px] ${isDanger ? 'text-danger' : 'text-warning-bar'}`}>
+                        <span className={`w-2 h-2 rounded-full inline-block ${isDanger ? 'bg-danger' : 'bg-warning-bar'}`} />
                         {isDanger ? '이상' : '주의'}
                       </span>
                       <span className="text-[14px] font-bold text-text-primary font-mono flex-shrink-0 min-w-[80px]">
@@ -874,7 +874,7 @@ export default function DivPage() {
                       <span className="text-[12px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                         {item.point.floorLabel} · {item.point.loc}
                       </span>
-                      <span className={`text-[12px] font-bold font-mono flex-shrink-0 ${isDanger ? 'text-status-danger' : 'text-status-warning-bar'}`}>
+                      <span className={`text-[12px] font-bold font-mono flex-shrink-0 ${isDanger ? 'text-danger' : 'text-warning-bar'}`}>
                         {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
                       </span>
                     </button>
@@ -961,7 +961,7 @@ export default function DivPage() {
         {/* 상단 알림 배너 */}
         <div className="flex-shrink-0 bg-surface-raised border-b border-border-default p-[8px_24px] flex items-center gap-2.5 overflow-x-auto">
           <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-text-secondary flex-shrink-0">
-            <AlertTriangle className="w-[14px] h-[14px]" />
+            <AlertTriangle size={14} />
             이상 {dangerList.length}건 · 주의 {warnList.length}건
           </span>
           {[...dangerList, ...warnList].map(item => (
@@ -970,11 +970,11 @@ export default function DivPage() {
               onClick={() => setSelDiv(item.point as DivPoint)}
               className={`flex-shrink-0 inline-flex items-center gap-1.5 border rounded-2xl px-2.5 py-1 text-[11px] font-bold cursor-pointer whitespace-nowrap ${
                 item.status === 'danger'
-                  ? 'border-status-danger-bar/40 bg-status-danger-bg text-status-danger'
-                  : 'border-status-warning-bar/40 bg-status-warning-bg text-status-warning-bar'
+                  ? 'border-danger-bar/40 bg-danger-bg text-danger'
+                  : 'border-warning-bar/40 bg-warning-bg text-warning-bar'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full inline-block ${item.status === 'danger' ? 'bg-status-danger' : 'bg-status-warning-bar'}`} />
+              <span className={`w-2 h-2 rounded-full inline-block ${item.status === 'danger' ? 'bg-danger' : 'bg-warning-bar'}`} />
               {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
             </button>
           ))}
@@ -1017,17 +1017,17 @@ export default function DivPage() {
 
                     let bgClass = 'bg-surface-raised'
                     let borderClass = 'border border-border-default'
-                    if (status === 'danger')      { bgClass = 'bg-status-danger-bg';  borderClass = 'border border-status-danger-bar/40' }
-                    else if (status === 'warn')   { bgClass = 'bg-status-warning-bg'; borderClass = 'border border-status-warning-bar/40' }
-                    else if (last)                { bgClass = 'bg-status-safe-bg';    borderClass = 'border border-status-safe-bar/25' }
+                    if (status === 'danger')      { bgClass = 'bg-danger-bg';  borderClass = 'border border-danger-bar/40' }
+                    else if (status === 'warn')   { bgClass = 'bg-warning-bg'; borderClass = 'border border-warning-bar/40' }
+                    else if (last)                { bgClass = 'bg-safe-bg';    borderClass = 'border border-safe-bar/25' }
                     const selectedBorder = selected ? 'border-2 border-accent' : borderClass
                     const padding = selected ? 'p-[9px_11px]' : 'p-[10px_12px]'
 
                     const colColor = (col: '1차' | '2차' | '세팅') => {
                       if (info?.worstKind === col) {
-                        return status === 'danger' ? 'text-status-danger' : status === 'warn' ? 'text-status-warning' : ''
+                        return status === 'danger' ? 'text-danger' : status === 'warn' ? 'text-warning' : ''
                       }
-                      return col === '1차' ? 'text-accent' : col === '2차' ? 'text-status-fire-bar' : 'text-status-safe-bar'
+                      return col === '1차' ? 'text-accent' : col === '2차' ? 'text-fire-bar' : 'text-safe-bar'
                     }
 
                     return (
@@ -1038,10 +1038,10 @@ export default function DivPage() {
                       >
                         {/* 우상단 배지 */}
                         {status === 'danger' && (
-                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-status-danger">이상</span>
+                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-danger">이상</span>
                         )}
                         {status === 'warn' && (
-                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-status-warning-bar">주의</span>
+                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-warning-bar">주의</span>
                         )}
                         {/* 좌상단: 개소번호 + 월 (세로 스택) */}
                         <div className="absolute top-2 left-3 flex flex-col gap-0.5">
@@ -1070,13 +1070,13 @@ export default function DivPage() {
             {/* 범례 */}
             <div className="mt-4 p-[12px_12px] border-t border-border-default flex gap-4 flex-wrap text-[12px] text-text-tertiary">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-[14px] h-[14px] bg-status-safe-bg border border-status-safe-bar/25 rounded-[3px]" /> 정상
+                <span className="inline-block w-[14px] h-[14px] bg-safe-bg border border-safe-bar/25 rounded-[3px]" /> 정상
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-[14px] h-[14px] bg-status-warning-bg border border-status-warning-bar/40 rounded-[3px]" /> 주의
+                <span className="inline-block w-[14px] h-[14px] bg-warning-bg border border-warning-bar/40 rounded-[3px]" /> 주의
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-[14px] h-[14px] bg-status-danger-bg border border-status-danger-bar/40 rounded-[3px]" /> 이상
+                <span className="inline-block w-[14px] h-[14px] bg-danger-bg border border-danger-bar/40 rounded-[3px]" /> 이상
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-[14px] h-[14px] bg-surface-sunken border border-dashed border-border-default rounded-[3px]" /> 해당없음
