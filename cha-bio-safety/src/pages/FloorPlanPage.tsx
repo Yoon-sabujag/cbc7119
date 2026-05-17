@@ -1392,84 +1392,65 @@ export default function FloorPlanPage() {
 
       {/* ── 범례 — BottomNav 사이즈(54 + safe-area) 기본, 항목 많으면 wrap 으로 자동 확장.
              각 row 는 양끝 정렬(space-between), 폭 부족시 두 줄로 wrap. 가로 스크롤 없음. ── */}
-      {(() => {
-        const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }
-        const labelStyle: React.CSSProperties = { fontSize: 10.5, color: 'var(--t2)', fontWeight: 500, whiteSpace: 'nowrap' }
-        const rowStyle: React.CSSProperties = {
-          display: 'flex',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          gap: '6px 8px',
-          width: '100%',
-        }
-        return (
-          <div
-            data-no-print
-            style={{
-              flexShrink: 0,
-              background: 'var(--bg2)',
-              borderTop: '1px solid var(--bd)',
-              padding: '1px 12px 26px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: 8,
-              minHeight: 93,
-            }}
-          >
-            {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
-            <div style={rowStyle}>
-              {currentMarkerTypes.map(mt => (
-                <div key={mt.key} style={itemStyle}>
-                  <MarkerIcon markerType={mt.key} color="#888" size={13} />
-                  <span style={labelStyle}>{mt.label.join('')}</span>
-                </div>
-              ))}
+      <div
+        data-no-print
+        className="shrink-0 bg-surface-raised border-t border-border-default px-3 pt-px pb-6 flex flex-col gap-2 min-h-[93px] justify-between"
+      >
+        {/* Row 1: 마커 종류 — 양끝 정렬, 안 들어가면 두 줄로 wrap */}
+        <div className="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+          {currentMarkerTypes.map(mt => (
+            <div key={mt.key} className="flex items-center gap-1.5 shrink-0">
+              <MarkerIcon markerType={mt.key} color="#888" size={13} />
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{mt.label.join('')}</span>
             </div>
-            {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 연한 */}
-            <div style={rowStyle}>
-              {['normal', 'caution', 'fault', 'resolved'].map(s => (
-                <div key={s} style={itemStyle}>
-                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: STATUS_COLOR[s] }} />
-                  <span style={labelStyle}>{{ normal: '정상', caution: '주의', fault: '불량', resolved: '완료' }[s]}</span>
-                </div>
-              ))}
-              {/* Phase 24: 미배치 마커 범례 */}
-              {planType === 'extinguisher' && (
-                <div style={itemStyle}>
-                  <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: 6, fontWeight: 700, color: '#fff', lineHeight: 1 }}>?</span>
+          ))}
+        </div>
+        {/* Row 2: 점검 상태 + (planType==='extinguisher' 일 때) 미배치 + replace warning */}
+        <div className="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+          {([
+            { key: 'normal',   label: '정상', dotCls: 'bg-safe-bar' },
+            { key: 'caution',  label: '주의', dotCls: 'bg-warning-bar' },
+            { key: 'fault',    label: '불량', dotCls: 'bg-danger-bar' },
+            { key: 'resolved', label: '완료', dotCls: 'bg-info-bar' },
+          ] as const).map(s => (
+            <div key={s.key} className="flex items-center gap-1.5 shrink-0">
+              <div className={`w-2.5 h-2.5 rounded-full ${s.dotCls}`} />
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{s.label}</span>
+            </div>
+          ))}
+          {/* Phase 24: 미배치 마커 범례 */}
+          {planType === 'extinguisher' && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <div className="w-2.5 h-2.5 rounded-full bg-danger-bar flex items-center justify-center">
+                <span className="text-[6px] font-bold text-text-on-accent leading-none">?</span>
+              </div>
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">미배치</span>
+            </div>
+          )}
+          {planType === 'extinguisher' && (
+            <>
+              <div className="w-px h-3 bg-border-default mx-0.5 shrink-0" />
+              {(['warn', 'imminent', 'danger'] as const).map(w => {
+                const stroke = REPLACE_WARNING_STROKE[w]
+                const label = { warn: '도래', imminent: '임박', danger: '초과' }[w]
+                return (
+                  <div key={w} className="flex items-center gap-1.5 shrink-0">
+                    <MarkerIcon
+                      markerType="fire_extinguisher"
+                      color="#888"
+                      size={13}
+                      strokeColor={stroke.color}
+                      strokeWidth={stroke.width}
+                      dangerBadge={w === 'danger'}
+                    />
+                    <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{label}</span>
                   </div>
-                  <span style={labelStyle}>미배치</span>
-                </div>
-              )}
-              {planType === 'extinguisher' && (
-                <>
-                  <div style={{ width: 1, height: 12, background: 'var(--bd)', margin: '0 2px', flexShrink: 0 }} />
-                  {(['warn', 'imminent', 'danger'] as const).map(w => {
-                    const stroke = REPLACE_WARNING_STROKE[w]
-                    const label = { warn: '도래', imminent: '임박', danger: '초과' }[w]
-                    return (
-                      <div key={w} style={itemStyle}>
-                        <MarkerIcon
-                          markerType="fire_extinguisher"
-                          color="#888"
-                          size={13}
-                          strokeColor={stroke.color}
-                          strokeWidth={stroke.width}
-                          dangerBadge={w === 'danger'}
-                        />
-                        <span style={labelStyle}>{label}</span>
-                      </div>
-                    )
-                  })}
-                </>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+                )
+              })}
+            </>
+          )}
+        </div>
+      </div>
 
       {/* ── 마커 수정 모달 ───────────────────────────── */}
       {editMarker && selected && (
