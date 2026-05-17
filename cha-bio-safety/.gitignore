@@ -13,3 +13,6 @@ BOTTOMNAV_POSITION_ANALYSIS.md
 QR Code/
 inspections/
 *.bak
+
+# wrangler pages deploy artifact (built on the fly)
+_worker.bundle
