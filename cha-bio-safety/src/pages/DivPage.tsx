@@ -412,46 +412,47 @@ export default function DivPage() {
     const W = typeof window !== 'undefined' ? window.innerWidth - 32 : 358
     const n = hist.length
 
+    const colColors = ['text-accent', 'text-status-fire-bar', 'text-status-safe-bar'] as const
     return (
       <div
-        style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.5)' }}
+        className="fixed inset-0 z-40 flex flex-col justify-end bg-black/50"
         onClick={closeDetail}
       >
         <div
-          style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', padding: '16px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}
+          className="bg-surface-raised rounded-t-2xl p-4 pb-9 max-h-[80vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* 타이틀 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div className="flex items-center gap-2.5 mb-4">
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{selDiv.floorLabel} · {selDiv.loc}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{POS_LABEL[selDiv.pos]} · {selDiv.id}</div>
+              <div className="text-[16px] font-bold text-text-primary">{selDiv.floorLabel} · {selDiv.loc}</div>
+              <div className="text-[11px] text-text-tertiary mt-0.5">{POS_LABEL[selDiv.pos]} · {selDiv.id}</div>
             </div>
             {/* 연도 선택 */}
-            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
-                {year > 2023 && <button onClick={e => { e.stopPropagation(); setYear(y => y - 1) }} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>‹</button>}
+            <div className="flex items-center ml-auto">
+              <div className="w-[30px] flex justify-center">
+                {year > 2023 && <button onClick={e => { e.stopPropagation(); setYear(y => y - 1) }} className="bg-surface-sunken border-none cursor-pointer rounded-md px-2 py-1 text-text-secondary text-[15px]">‹</button>}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 38, textAlign: 'center', display: 'inline-block' }}>{year}</span>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
-                {year < new Date().getFullYear() && <button onClick={e => { e.stopPropagation(); setYear(y => y + 1) }} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>›</button>}
+              <span className="text-[13px] font-bold text-text-primary w-[38px] text-center inline-block">{year}</span>
+              <div className="w-[30px] flex justify-center">
+                {year < new Date().getFullYear() && <button onClick={e => { e.stopPropagation(); setYear(y => y + 1) }} className="bg-surface-sunken border-none cursor-pointer rounded-md px-2 py-1 text-text-secondary text-[15px]">›</button>}
               </div>
             </div>
             <button
               onClick={closeDetail}
-              style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 20, cursor: 'pointer' }}
+              className="bg-transparent border-none text-text-tertiary text-[20px] cursor-pointer"
             >✕</button>
           </div>
 
           {/* 3개 분리 차트 */}
           {hist.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--t3)', padding: '30px 0', fontSize: 13 }}>데이터 없음</div>
+            <div className="text-center text-text-tertiary py-[30px] text-[13px]">데이터 없음</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
               {([
-                { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
-                { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
-                { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
+                { key: 'pressure_1' as const,   label: '1차압',  color: 'var(--accent)',          dashed: false },
+                { key: 'pressure_2' as const,   label: '2차압',  color: 'var(--status-fire-bar)', dashed: false },
+                { key: 'pressure_set' as const, label: '세팅압', color: 'var(--status-safe-bar)', dashed: true  },
               ] as const).map(({ key, label, color, dashed }) => {
                 const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
                 if (vals.length === 0) return null
@@ -466,9 +467,9 @@ export default function DivPage() {
                 const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
                 return (
                   <div key={key}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 3 }}>{label}</div>
-                    <div style={{ overflowX: 'auto' }}>
-                      <svg width={Math.max(W, n * 28)} height={sH} style={{ display: 'block' }}>
+                    <div className="text-[10px] font-bold mb-[3px]" style={{ color }}>{label}</div>
+                    <div className="overflow-x-auto">
+                      <svg width={Math.max(W, n * 28)} height={sH} className="block">
                         {sTicks.map((t, ti) => (
                           <g key={ti}>
                             <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
@@ -505,7 +506,7 @@ export default function DivPage() {
                           return (
                             <g key={i}>
                               <circle cx={cx} cy={cy} r={3}
-                                fill={isLate ? color : 'var(--bg2)'}
+                                fill={isLate ? color : 'var(--surface-raised)'}
                                 stroke={color} strokeWidth={isLate ? 0 : 1.5}
                               />
                               <text
@@ -527,17 +528,17 @@ export default function DivPage() {
 
           {/* 수치 테이블 */}
           {hist.length > 0 && (
-            <div style={{ marginTop: 14, borderRadius: 10, border: '1px solid var(--bd)', overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', background: 'var(--bg3)', padding: '7px 10px' }}>
+            <div className="mt-3.5 rounded-[10px] border border-border-default overflow-hidden">
+              <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken px-2.5 py-[7px]">
                 {['월', '1차압', '2차압', '세팅압'].map(h => (
-                  <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
+                  <div key={h} className="text-[9px] font-bold text-text-tertiary text-center">{h}</div>
                 ))}
               </div>
               {[...hist].reverse().slice(0, 24).map((r: any) => (
-                <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
-                  <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
+                <div key={`${r.year}-${r.month}-${r.timing}`} className="grid grid-cols-[60px_1fr_1fr_1fr] px-2.5 py-[7px] border-t border-border-default">
+                  <div className="text-[10px] text-text-tertiary text-center font-[JetBrains_Mono,monospace]">{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <div key={i} className={`text-[12px] font-bold text-center font-[JetBrains_Mono,monospace] ${colColors[i]}`}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
