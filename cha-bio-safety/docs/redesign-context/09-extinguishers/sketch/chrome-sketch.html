@@ -93,33 +93,55 @@
       overflow: hidden;
     }
 
-    /* 헤더 mock (GlobalHeader 흉내) */
+    /* ────────────────────────────────────────────────────────────
+       헤더 mock — 실제 GlobalHeader 사양 1:1 인용
+       header: height 48, padding 0 12, surface-raised + border-default 하단 보더
+       내부 32×32 버튼 (햄버거 / 뒤로가기 / 설정톱니) 공통 스펙:
+         width/height 32px · radius-sm (8px) · surface-sunken · border none ·
+         color text-secondary · SVG 15×15 stroke-width 2 (톱니만 1.8)
+       11-div fix 54a1c8d 에서 박제된 룰. App.tsx backBtn (l.145-155) +
+       GlobalHeader.tsx 햄버거 (l.20-33) + settingsGearBtn 와 1:1 매핑.
+       ──────────────────────────────────────────────────────────── */
     .mock-header {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px;
+      display: flex; align-items: center; gap: 0;
+      height: 48px;
+      padding: 0 12px;
       background: var(--surface-raised);
       border-bottom: 1px solid var(--border-default);
     }
-    .mock-header .back {
+    .mock-header .icon-btn {
       width: 32px; height: 32px;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
       display: inline-flex; align-items: center; justify-content: center;
-      color: var(--text-secondary); font-size: 16px; font-weight: 700;
+      cursor: pointer;
+    }
+    .mock-header .icon-btn svg {
+      width: 15px; height: 15px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
     }
     .mock-header .title {
       flex: 1;
-      font-size: 14px; font-weight: 700; color: var(--text-primary);
+      margin: 0 8px;
+      text-align: left;
+      font-size: 13px; font-weight: 700; color: var(--text-primary);
+      line-height: 1;
     }
     .mock-header .reg-btn {
       height: 32px; padding: 0 10px;
       border-radius: var(--radius-sm);
       background: var(--accent); color: var(--accent-fg);
       font-size: 12px; font-weight: 700; line-height: 1;
-      border: none; display: inline-flex; align-items: center;
-    }
-    .mock-header .gear {
-      width: 32px; height: 32px;
-      display: inline-flex; align-items: center; justify-content: center;
-      color: var(--text-secondary); font-size: 16px;
+      border: none;
+      display: inline-flex; align-items: center;
+      cursor: pointer;
     }
 
     /* dot (chip 좌측) */
@@ -157,10 +179,17 @@
   <div class="frame-mobile" data-viewport="V1">
     <!-- 헤더 (portal slot 흉내) -->
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <!-- Filter bar wrapper -->
     <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
@@ -194,10 +223,17 @@
   <p class="vp-desc">?fromMarker 진입 시 배너 노출, 탭 기본값 "미배치", select 빈 상태로 자동 리셋.</p>
   <div class="frame-mobile" data-viewport="V2">
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <!-- 마커 동행 배너 -->
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--status-info-bg); border-bottom: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; line-height: 1.4;">
@@ -234,10 +270,17 @@
   <p class="vp-desc">replaceCounts.warn>0 & imm>0 & danger>0 인 상태. warn chip 클릭하여 active. dot + 텍스트만 (이모지 0).</p>
   <div class="frame-mobile" data-viewport="V3">
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
       <div style="display: flex;">
@@ -280,10 +323,17 @@
   <p class="vp-desc">4 탭 중 "폐기" active 변형. 폐기된 자산만 표시 모드.</p>
   <div class="frame-mobile" data-viewport="V4">
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
       <div style="display: flex;">
@@ -314,10 +364,17 @@
   <p class="vp-desc">데스크톱 폭에서 filter row gap/flex 동작. select 3개 + input 2배 flex.</p>
   <div class="frame-desktop" data-viewport="V5">
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
       <div style="display: flex;">
@@ -348,10 +405,17 @@
   <p class="vp-desc">배너 + 4탭(미배치 active) + 필터 + chip 3 (imminent active). 모든 chrome 변형 일괄 노출.</p>
   <div class="frame-desktop" data-viewport="V6">
     <div class="mock-header">
-      <span class="back">‹</span>
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
       <span class="title">소화기 관리</span>
       <button class="reg-btn">+ 새로 등록</button>
-      <span class="gear">⚙</span>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </div>
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--status-info-bg); border-bottom: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; line-height: 1.4;">
       <span><span class="dot"></span>&nbsp;「사무동 5F」 위치에 자동 배치됩니다.</span>
@@ -398,6 +462,8 @@
     <p class="rules-desc">chrome 영역 (헤더 portal + 마커 배너 + 4탭 + 필터 + chip 3종) 토큰 매핑. TSX 변환 wave 에서 verbatim 인용.</p>
     <ul>
       <li>페이지 wrapper: surface-page + text-primary</li>
+      <li>GlobalHeader 통일: height 48 / padding 0 12 / surface-raised + border-default 하단 보더 / 타이틀 fontSize 13 fontWeight 700 + text-primary</li>
+      <li><strong>GlobalHeader 32×32 아이콘 버튼 (햄버거 / 뒤로가기 / 설정톱니) 공통 스펙</strong> — width/height 32 / radius-sm / surface-sunken / border none / color text-secondary / 내부 SVG 15×15 stroke-width 2 (톱니만 1.8). 11-div fix 에서 박제된 룰 (App.tsx backBtn = GlobalHeader 햄버거 = settingsGearBtn 1:1 동일).</li>
       <li>헤더 portal "+ 새로 등록" 버튼: accent + accent-fg, height 32, radius-sm</li>
       <li>마커 동행 배너: status-info-bg + status-info-bar 보더 + status-info 텍스트. dot 6px 좌측.</li>
       <li>Filter bar wrapper: surface-raised + border-default 하단 보더</li>
