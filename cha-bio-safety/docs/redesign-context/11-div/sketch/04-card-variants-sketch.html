@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 4 · 측정점 카드 (정상/주의/이상)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-fire-bar:    #f97316;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-warning:     #fbbf24;
+      --status-danger:      #f87171;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(1, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 880px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 · 정상 / 주의 / 이상 세 카드 한 화면 -->
+    <div>
+      <div class="label">VP1 · 모바일 다크 · 393×400 (정상 / 주의 / 이상 세 카드 한 화면)</div>
+      <div class="frame" style="height: 400px; padding: 12px 12px;">
+        <!-- 층 라벨 -->
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 8px; padding-left: 2px; letter-spacing: 0.04em;">
+          2F (지상2층)
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+
+          <!-- DIV #1 정상 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">1차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">2차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">세팅</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DIV #2 주의 (1차만 warn — 직전 대비 ±10%) -->
+          <div style="background: var(--surface-raised); border: 1px solid rgba(245,158,11,0.4); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #2</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-2</span>
+              <span style="font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0;">주의</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-warning);">0.9</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">1차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.4</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">2차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.5</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">세팅</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DIV #3 이상 (2차 danger — 직전 대비 ±20%) -->
+          <div style="background: var(--surface-raised); border: 1px solid rgba(239,68,68,0.5); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #3</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-3</span>
+              <span style="font-size: 12px; font-weight: 700; color: var(--status-danger); flex-shrink: 0;">이상</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--accent);">0.8</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">1차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-danger);">0.3</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">2차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.7</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">세팅</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>옵션 B (영역 3 채택) 패턴 기반 — 정상/주의/이상 3 변형</b></p>
+    <p style="margin-bottom: 4px;">• 카드 border 강조 (좌측 색바 없이): 정상 = <b>border-default</b> / 주의 = <b>warning-bar/40</b> / 이상 = <b>danger-bar/50</b></p>
+    <p style="margin-bottom: 4px;">• 카드 헤더 우측 배지: 주의 = <b>"주의" 12px font-bold text-warning-bar</b> / 이상 = <b>"이상" 12px font-bold text-danger</b> (정상은 배지 없음)</p>
+    <p style="margin-bottom: 4px;">• 컬럼 값 색은 <b>각 컬럼 individual status 기준</b> (DivPage.tsx pressureStatus()):</p>
+    <p style="margin-bottom: 4px; padding-left: 12px;">- ok → 원래 컬럼 색 (1차 accent / 2차 fire-bar / 세팅 safe-bar)</p>
+    <p style="margin-bottom: 4px; padding-left: 12px;">- warn (±10%) → <b>text-status-warning</b> (#fbbf24)</p>
+    <p style="margin-bottom: 10px; padding-left: 12px;">- danger (±20%) → <b>text-status-danger</b> (#f87171)</p>
+    <p style="margin-bottom: 4px;"><b>샘플 시나리오</b></p>
+    <p style="margin-bottom: 4px; padding-left: 12px;">- #1 정상 — 모든 컬럼 ok</p>
+    <p style="margin-bottom: 4px; padding-left: 12px;">- #2 주의 — 1차만 warn (직전 대비 ±10%), 2차/세팅은 정상 색 유지, 카드 border + "주의" 배지</p>
+    <p style="margin-bottom: 10px; padding-left: 12px;">- #3 이상 — 2차 danger (직전 대비 ±20%), 1차/세팅은 정상 색 유지, 카드 border + "이상" 배지</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>좌측 색바 4px</b> 추가 (border-l-[4px] border-status-warning-bar / danger-bar) — 강조 ↑. §6.2 negative rule.</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>배지를 chip 형태</b> (bg-status-bg + 패딩 + 둥근 모서리) — 단순 텍스트 대신 시각 강조 ↑.</p>
+    <p>현재 패턴으로 OK 면 영역 5 (IntervalBar 카드 — 배수/오일/탱크 탭) 진행. 대안 추가 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>
