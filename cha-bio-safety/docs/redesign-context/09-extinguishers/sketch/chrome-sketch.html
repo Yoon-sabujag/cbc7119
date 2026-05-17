@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 소화기 chrome · v0.1.1 재디자인 시안 (wave 1)</title>
+  <style>
+    /* ──────────────────────────────────────────────────────────────
+       :root — v0.1.1 토큰 (단일 source)
+       이 정의 블록 + body / frame chrome raw hex 만 예외.
+       카드 / chrome 내부엔 var(--...) 만 사용.
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      /* Surface (5단계) */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      /* Accent */
+      --accent:          #3b82f6;
+      --accent-fg:       #ffffff;
+
+      /* Status — info (마커 동행 배너) */
+      --status-info:     #38bdf8;
+      --status-info-bar: #0ea5e9;
+      --status-info-bg:  rgba(14, 165, 233, 0.12);
+
+      /* Status — warning (교체 도래 chip) */
+      --status-warning:     #facc15;
+      --status-warning-bar: #eab308;
+      --status-warning-bg:  rgba(234, 179, 8, 0.12);
+
+      /* Status — fire (교체 임박 chip) */
+      --status-fire:     #fb923c;
+      --status-fire-bar: #f97316;
+      --status-fire-bg:  rgba(249, 115, 22, 0.12);
+
+      /* Status — danger (교체 초과 chip) */
+      --status-danger:     #f87171;
+      --status-danger-bar: #ef4444;
+      --status-danger-bg:  rgba(239, 68, 68, 0.12);
+
+      /* Radius */
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px 0; color: var(--text-primary); }
+    h1 + p { margin: 0 0 24px 0; color: var(--text-tertiary); font-size: 13px; max-width: 760px; }
+    h2 {
+      font-size: 14px; margin: 28px 0 6px 0; color: var(--text-primary);
+      padding: 8px 12px; background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent); border-radius: 4px;
+    }
+    .vp-desc { margin: 0 0 12px 0; padding: 0 12px; color: var(--text-tertiary); font-size: 12px; }
+
+    /* mock frame: 모바일 360 / 데스크톱 1024 */
+    .frame-mobile {
+      width: 360px;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .frame-desktop {
+      width: 1024px;
+      max-width: 100%;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    /* ────────────────────────────────────────────────────────────
+       헤더 mock — 실제 GlobalHeader 사양 1:1 인용
+       header: height 48, padding 0 12, surface-raised + border-default 하단 보더
+       내부 32×32 버튼 (햄버거 / 뒤로가기 / 설정톱니) 공통 스펙:
+         width/height 32px · radius-sm (8px) · surface-sunken · border none ·
+         color text-secondary · SVG 15×15 stroke-width 2 (톱니만 1.8)
+       11-div fix 54a1c8d 에서 박제된 룰. App.tsx backBtn (l.145-155) +
+       GlobalHeader.tsx 햄버거 (l.20-33) + settingsGearBtn 와 1:1 매핑.
+       ──────────────────────────────────────────────────────────── */
+    .mock-header {
+      display: flex; align-items: center; gap: 0;
+      height: 48px;
+      padding: 0 12px;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+    }
+    .mock-header .icon-btn {
+      width: 32px; height: 32px;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .mock-header .icon-btn svg {
+      width: 15px; height: 15px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+    }
+    .mock-header .title {
+      flex: 1;
+      margin: 0 8px;
+      text-align: left;
+      font-size: 13px; font-weight: 700; color: var(--text-primary);
+      line-height: 1;
+    }
+    .mock-header .reg-btn {
+      height: 32px; padding: 0 10px;
+      border-radius: var(--radius-sm);
+      background: var(--accent); color: var(--accent-fg);
+      font-size: 12px; font-weight: 700; line-height: 1;
+      border: none;
+      display: inline-flex; align-items: center;
+      cursor: pointer;
+    }
+
+    /* dot (chip 좌측) */
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+
+    /* rule 박스 */
+    .rules {
+      margin-top: 40px; padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 1024px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>09. 소화기 관리 chrome — v0.1.1 재디자인 시안 (wave 1)</h1>
+  <p>
+    ExtinguishersListPage chrome 영역 (페이지 wrapper + 헤더 portal "+ 새로 등록" + 마커 동행 배너 +
+    Filter bar: 4탭 / 4 select·input / 교체경고 chip 3종) v0.1.1 토큰 단일 source 재정의.
+    비즈니스 로직 0 변경 — 탭 분기 / fromMarker / replaceCounts 조건부 / select 옵션 list 그대로.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · 모바일 chrome — 기본 (탭=전체, 배너 OFF, chip 없음)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · 모바일 chrome — 기본 (탭 "전체" active / 마커 배너 OFF / chip 없음)</h2>
+  <p class="vp-desc">헤더 + Filter bar(4탭 + 4 select·input) — 일상 상태. chip 영역 비노출 (replaceCounts 모두 0).</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <!-- 헤더 (portal slot 흉내) -->
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Filter bar wrapper -->
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <!-- Row 1: 4탭 (전체 active) -->
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">폐기</button>
+      </div>
+      <!-- Row 2: 4 select/input -->
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · 모바일 chrome — 마커 동행 배너 ON (탭=미배치)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · 모바일 chrome — 마커 동행 배너 ON (탭 "미배치" active)</h2>
+  <p class="vp-desc">?fromMarker 진입 시 배너 노출, 탭 기본값 "미배치", select 빈 상태로 자동 리셋.</p>
+  <div class="frame-mobile" data-viewport="V2">
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <!-- 마커 동행 배너 -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--status-info-bg); border-bottom: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; line-height: 1.4;">
+      <span><span class="dot"></span>&nbsp;「연구동 3F」 위치에 자동 배치됩니다.</span>
+      <button style="flex-shrink: 0; background: transparent; border: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; padding: 2px 8px; border-radius: var(--radius-sm); line-height: 1;">취소</button>
+    </div>
+    <!-- Filter bar -->
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">폐기</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · 모바일 chrome — chip 3종 노출 (warn/imminent/danger 각 1개씩, warn active)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · 모바일 chrome — 교체 경고 chip 3종 (warn active, imminent/danger inactive)</h2>
+  <p class="vp-desc">replaceCounts.warn>0 & imm>0 & danger>0 인 상태. warn chip 클릭하여 active. dot + 텍스트만 (이모지 0).</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">폐기</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+      <!-- Row 3: 교체 경고 chip -->
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px;">
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); border: 1.5px solid var(--status-warning-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 도래 4
+        </button>
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-fire-bg); color: var(--status-fire); border: 1px solid var(--status-fire-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 임박 2
+        </button>
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 초과 1
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · 모바일 chrome — 탭 "폐기" active
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · 모바일 chrome — 탭 "폐기" active</h2>
+  <p class="vp-desc">4 탭 중 "폐기" active 변형. 폐기된 자산만 표시 모드.</p>
+  <div class="frame-mobile" data-viewport="V4">
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">폐기</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V5 · 데스크톱 chrome — 기본 (배너 OFF, 탭=전체, chip 없음)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V5 · 데스크톱 chrome — 기본 (1024 폭, 탭 "전체", chip 없음)</h2>
+  <p class="vp-desc">데스크톱 폭에서 filter row gap/flex 동작. select 3개 + input 2배 flex.</p>
+  <div class="frame-desktop" data-viewport="V5">
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">폐기</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V6 · 데스크톱 chrome — 마커 배너 + chip 노출
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V6 · 데스크톱 chrome — 마커 배너 + 교체 경고 chip 3종</h2>
+  <p class="vp-desc">배너 + 4탭(미배치 active) + 필터 + chip 3 (imminent active). 모든 chrome 변형 일괄 노출.</p>
+  <div class="frame-desktop" data-viewport="V6">
+    <div class="mock-header">
+      <button class="icon-btn" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <span class="title">소화기 관리</span>
+      <button class="reg-btn">+ 새로 등록</button>
+      <button class="icon-btn" aria-label="설정">
+        <svg viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; background: var(--status-info-bg); border-bottom: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; line-height: 1.4;">
+      <span><span class="dot"></span>&nbsp;「사무동 5F」 위치에 자동 배치됩니다.</span>
+      <button style="flex-shrink: 0; background: transparent; border: 1px solid var(--status-info-bar); color: var(--status-info); font-size: 12px; padding: 2px 8px; border-radius: var(--radius-sm); line-height: 1;">취소</button>
+    </div>
+    <div style="background: var(--surface-raised); border-bottom: 1px solid var(--border-default);">
+      <div style="display: flex;">
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">전체</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: var(--surface-active); color: var(--text-primary); font-size: 12px; font-weight: 700; border-bottom: 2px solid var(--accent);">미배치</button>
+        <button style="flex: 1; height: 44px; border: none; background: transparent; color: var(--text-tertiary); font-size: 12px; font-weight: 700; border-bottom: 2px solid transparent;">폐기</button>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px;">
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>구역 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>층 전체</option>
+        </select>
+        <select style="flex: 1; min-width: 80px; height: 32px; padding: 0 8px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 12px;">
+          <option>종류 전체</option>
+        </select>
+        <input type="text" placeholder="증지번호·제조번호 검색" style="flex: 2; min-width: 120px; height: 32px; padding: 0 10px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none;" />
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px;">
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); border: 1px solid var(--status-warning-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 도래 4
+        </button>
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-fire-bg); color: var(--status-fire); border: 1.5px solid var(--status-fire-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 임박 2
+        </button>
+        <button style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar); border-radius: var(--radius-sm);">
+          <span class="dot"></span>교체 초과 1
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Rule 박스 — self-documentation (금지 리터럴은 한글 풀이)
+       ════════════════════════════════════════════════════════════ -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1</h3>
+    <p class="rules-desc">chrome 영역 (헤더 portal + 마커 배너 + 4탭 + 필터 + chip 3종) 토큰 매핑. TSX 변환 wave 에서 verbatim 인용.</p>
+    <ul>
+      <li>페이지 wrapper: surface-page + text-primary</li>
+      <li>GlobalHeader 통일: height 48 / padding 0 12 / surface-raised + border-default 하단 보더 / 타이틀 fontSize 13 fontWeight 700 + text-primary</li>
+      <li><strong>GlobalHeader 32×32 아이콘 버튼 (햄버거 / 뒤로가기 / 설정톱니) 공통 스펙</strong> — width/height 32 / radius-sm / surface-sunken / border none / color text-secondary / 내부 SVG 15×15 stroke-width 2 (톱니만 1.8). 11-div fix 에서 박제된 룰 (App.tsx backBtn = GlobalHeader 햄버거 = settingsGearBtn 1:1 동일).</li>
+      <li>헤더 portal "+ 새로 등록" 버튼: accent + accent-fg, height 32, radius-sm</li>
+      <li>마커 동행 배너: status-info-bg + status-info-bar 보더 + status-info 텍스트. dot 6px 좌측.</li>
+      <li>Filter bar wrapper: surface-raised + border-default 하단 보더</li>
+      <li>4탭: height 44, fontSize 12 fontWeight 700. active = surface-active + text-primary + accent 2px border-bottom. inactive = transparent + text-tertiary + transparent border-bottom.</li>
+      <li>Filter row: select/input 모두 height 32, surface-sunken bg, border-strong 1px, radius-sm. select=text-secondary, input=text-primary.</li>
+      <li>교체 경고 chip 3종: warn=status-warning, imminent=status-fire, danger=status-danger. 공통 패턴: bg + bar 보더 + 텍스트색 + 좌측 dot. active = border 1.5px, inactive = border 1px.</li>
+      <li>작은 컨테이너 안 12px (chip / 취소버튼 / 헤더 등록버튼) 은 line-height 1</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰 (verify gate)</h3>
+    <ul>
+      <li>옛 alias 토큰 (bg / bg2-4 / bd / bd2 / t1-3 / safe / warn / danger / info / acl) 0건</li>
+      <li>raw 색 (hex / rgba) 0건 — :root + body / frame chrome 만 예외</li>
+      <li>그라디언트 일체 0건</li>
+      <li>이모지 일체 (체크/엑스/별/경고/도구/클립보드 등) 0건 — 텍스트 또는 dot 만</li>
+      <li>그림자 / 블러 / backdrop 효과 0건 — 위계는 보더로 표현</li>
+      <li>카드 / chrome 내부 폰트 9 / 10 / 11px 0건 — 마지노선 12px</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존 (TSX 변환 wave 에서 그대로 사용)</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      이 sketch 는 시각 디자인만. searchParams.get('tab') 기본값 분기 / useEffect hasMarkerContext 자동 리셋 /
+      zones·floors·EXTINGUISHER_TYPES 옵션 list / replaceCounts.warn|imm|danger 조건부 chip 노출 /
+      replaceFilter active 분기 / dismissMarkerContext 핸들러 — 모두 0 변경.
+    </p>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 모바일 chrome 기본 (전체 active / 배너 OFF / chip 없음)</li>
+      <li>V2 모바일 chrome 마커 배너 ON (미배치 active)</li>
+      <li>V3 모바일 chrome chip 3종 (warn active, imminent/danger inactive)</li>
+      <li>V4 모바일 chrome 탭 "폐기" active</li>
+      <li>V5 데스크톱 chrome 기본</li>
+      <li>V6 데스크톱 chrome 마커 배너 + chip 3종 (imminent active)</li>
+    </ul>
+  </div>
+
+</body>
+</html>

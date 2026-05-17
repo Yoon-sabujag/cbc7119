@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 소화기 확인 모달 4종 · v0.1.1 재디자인 시안 (wave 5)</title>
+  <style>
+    :root {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --accent-fg:       #ffffff;
+
+      --status-danger:     #f87171;
+      --status-danger-bar: #ef4444;
+      --status-danger-bg:  rgba(239, 68, 68, 0.12);
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px 0; color: var(--text-primary); }
+    h1 + p { margin: 0 0 24px 0; color: var(--text-tertiary); font-size: 13px; max-width: 760px; }
+    h2 {
+      font-size: 14px; margin: 28px 0 6px 0; color: var(--text-primary);
+      padding: 8px 12px; background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent); border-radius: 4px;
+    }
+    .vp-desc { margin: 0 0 12px 0; padding: 0 12px; color: var(--text-tertiary); font-size: 12px; }
+
+    .frame-mobile {
+      width: 360px; height: 280px;
+      background: var(--surface-overlay);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .rules {
+      margin-top: 40px; padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 1024px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>09. 소화기 확인 모달 4종 — v0.1.1 재디자인 시안 (wave 5)</h1>
+  <p>
+    ConfirmModal (l.1075-1103) 의 4 호출처 (분리 / 폐기 / 삭제 / 스왑) + loading 변형 sketch.
+    primaryStyle = 'acl' (일반 액션) | 'danger' (위험 액션) 2 톤 분기. maxWidth 320 (다른 모달 360 보다 작음).
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · 소화기 분리 (primary acl)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · 분리 (primary acl, "분리")</h2>
+  <p class="vp-desc">confirmUnassign — 위치에서 분리, 자산은 미배치 상태로 유지.</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <div style="width: 90%; max-width: 320px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">소화기 분리</div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">「연구동 5F · 복도」 위치에서 분리합니다. 자산은 미배치 상태로 유지됩니다.</div>
+      <div style="display: flex; gap: 8px;">
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">취소</button>
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); border: none; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; cursor: pointer;">분리</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · 소화기 폐기 (primary danger)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · 폐기 (primary danger, "폐기")</h2>
+  <p class="vp-desc">confirmDispose — 폐기 처리, 더 이상 배치 불가. 점검 이력 보존.</p>
+  <div class="frame-mobile" data-viewport="V2">
+    <div style="width: 90%; max-width: 320px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">소화기 폐기</div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">이 자산은 폐기 처리되어 더 이상 배치할 수 없습니다. 점검 이력은 보존됩니다.</div>
+      <div style="display: flex; gap: 8px;">
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">취소</button>
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); border: none; background: var(--status-danger-bar); color: var(--accent-fg); font-size: 13px; font-weight: 700; cursor: pointer;">폐기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · 소화기 삭제 (primary danger, 영구 삭제)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · 삭제 (primary danger, "삭제" — 영구 삭제, 되돌릴 수 없음)</h2>
+  <p class="vp-desc">confirmDelete — hard delete, 점검 기록 없는 경우만. 강한 위험 표현.</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div style="width: 90%; max-width: 320px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">소화기 삭제</div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">이 자산은 점검 기록이 없어 영구 삭제됩니다. 되돌릴 수 없습니다.</div>
+      <div style="display: flex; gap: 8px;">
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">취소</button>
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); border: none; background: var(--status-danger-bar); color: var(--accent-fg); font-size: 13px; font-weight: 700; cursor: pointer;">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · 위치 스왑 (primary acl)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · 스왑 (primary acl, "스왑")</h2>
+  <p class="vp-desc">swapTarget — 양쪽 자산이 위치를 서로 바꿈. 양쪽 배치 동시 변경.</p>
+  <div class="frame-mobile" data-viewport="V4">
+    <div style="width: 90%; max-width: 320px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">위치 스왑</div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">「사무동 3F · 계단실」 위치 소화기와 서로 바꿉니다. 양쪽 배치가 동시에 변경됩니다.</div>
+      <div style="display: flex; gap: 8px;">
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;">취소</button>
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); border: none; background: var(--accent); color: var(--accent-fg); font-size: 13px; font-weight: 700; cursor: pointer;">스왑</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V5 · 처리 중 (loading, danger 톤 폐기 예시)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V5 · 처리 중 (loading=true, "처리 중…")</h2>
+  <p class="vp-desc">onConfirm 진행 중. primary 톤 유지 + opacity 0.7 + cursor not-allowed + 라벨 "처리 중…".</p>
+  <div class="frame-mobile" data-viewport="V5">
+    <div style="width: 90%; max-width: 320px; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px;">소화기 폐기</div>
+      <div style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">이 자산은 폐기 처리되어 더 이상 배치할 수 없습니다. 점검 이력은 보존됩니다.</div>
+      <div style="display: flex; gap: 8px;">
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; opacity: 0.7;">취소</button>
+        <button style="flex: 1; height: 42px; border-radius: var(--radius-md); border: none; background: var(--status-danger-bar); color: var(--accent-fg); font-size: 13px; font-weight: 700; cursor: not-allowed; opacity: 0.7;">처리 중…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rule 박스 -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1 (확인 모달)</h3>
+    <ul>
+      <li>모달 wrapper: surface-raised + border-strong 1px + radius-lg + maxWidth 320 (다른 모달 360 보다 작음)</li>
+      <li>타이틀: fontSize 16 / fontWeight 700 / text-primary / marginBottom 10</li>
+      <li>body: fontSize 13 / text-secondary / lineHeight 1.6 / marginBottom 16. 「」 인용부호로 위치/대상 강조.</li>
+      <li>취소 버튼: flex 1 / height 42 / radius-md / surface-sunken + border-default 1px / text-secondary / fontSize 13 / fontWeight 600</li>
+      <li>primary 버튼 — 2 톤 분기:
+        <ul>
+          <li><strong>acl</strong> (일반 액션, 분리/스왑) = accent + accent-fg + border none</li>
+          <li><strong>danger</strong> (위험 액션, 폐기/삭제) = status-danger-bar + accent-fg + border none</li>
+        </ul>
+      </li>
+      <li>loading: primary 톤 유지 + opacity 0.7 + cursor not-allowed + 라벨 "처리 중…"</li>
+    </ul>
+    <hr/>
+    <h3>위험도 분기 — primaryStyle 의 의미</h3>
+    <ul>
+      <li>acl 톤: 양방향 가역 액션 (분리 → 재배치 가능 / 스왑 → 다시 스왑 가능)</li>
+      <li>danger 톤: 불가역 액션 또는 데이터 상태 변경 (폐기 = 비가역 / 삭제 = 영구 삭제)</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰</h3>
+    <ul>
+      <li>옛 alias (bg / bd / t1-3 / acl / safe / warn / danger 단독 / info / fire) 0건</li>
+      <li>raw 색 (hex / rgba) 0건 — :root + body / frame chrome 만 예외</li>
+      <li>그라디언트 / 그림자 / 블러 / 이모지 0건</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      ConfirmModalProps (title / body / primaryLabel / primaryStyle / onConfirm / onCancel / loading) /
+      4 mutation isPending 분기 (unassign/dispose/remove/swap) / body 동적 텍스트 (cp_location ?? zoneLabelKo) — 모두 0 변경.
+    </p>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 분리 (acl) — 위치에서 분리, 미배치 유지</li>
+      <li>V2 폐기 (danger) — 더 이상 배치 불가, 이력 보존</li>
+      <li>V3 삭제 (danger) — 영구 삭제, 되돌릴 수 없음</li>
+      <li>V4 스왑 (acl) — 양쪽 배치 동시 변경</li>
+      <li>V5 처리 중 (loading=true) — danger 톤 + opacity 0.7 + "처리 중…"</li>
+    </ul>
+  </div>
+
+</body>
+</html>
