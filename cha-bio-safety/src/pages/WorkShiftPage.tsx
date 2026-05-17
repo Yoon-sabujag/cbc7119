@@ -236,7 +236,7 @@ export default function WorkShiftPage() {
           <div className="flex gap-3.5 pt-3 pb-4 justify-center flex-wrap flex-shrink-0">
             {(['당','비','주','휴'] as RawShift[]).map(sh => (
               <div key={sh} className="flex items-center gap-1.5">
-                <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center font-extrabold text-label leading-none border-[1.5px] ${CHIP_CLASS[sh]}`}>
+                <div className={`w-[26px] h-[26px] rounded-[6px] flex items-center justify-center font-extrabold text-label leading-none border-[1.5px] ${CHIP_CLASS[sh]}`}>
                   {sh}
                 </div>
                 <span className="text-label text-text-secondary">{SHIFT_LABEL[sh]}</span>
