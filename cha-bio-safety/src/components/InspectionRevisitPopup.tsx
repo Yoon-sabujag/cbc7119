@@ -45,39 +45,38 @@ export function InspectionRevisitPopup({
     : `${when}에 ${who}에 의해\n조치 대기중인 개소입니다.\n조치 내용을 입력하시겠습니까?`
 
   return (
-    <div role="alertdialog" aria-label={variant === 'completed' ? '이미 점검된 개소' : '조치 대기 중인 개소'} style={{
-      position:'absolute', inset:0, zIndex:10,
-      background:'var(--surface-raised)', border:'1px solid var(--border-default)', borderRadius:12,
-      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      gap:10, padding:20,
-    }}>
+    <div
+      role="alertdialog"
+      aria-label={variant === 'completed' ? '이미 점검된 개소' : '조치 대기 중인 개소'}
+      className="absolute inset-0 z-10 bg-surface-raised border border-border-default rounded-md flex flex-col items-center justify-center gap-2.5 p-5"
+    >
       {variant === 'completed'
-        ? <CheckCircle2 size={32} color="var(--status-safe)" />
-        : <Wrench size={32} color="var(--status-fire)" />}
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
+        ? <CheckCircle2 size={32} className="text-safe" />
+        : <Wrench size={32} className="text-fire" />}
+      <div className="text-label font-bold text-text-primary text-center leading-snug whitespace-pre-line">
         {message}
       </div>
 
       {variant === 'completed' && (
         <button
           onClick={onClose}
-          style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+          className="mt-1 px-8 py-2.5 rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
         >
           확인
         </button>
       )}
 
       {variant === 'pending-action' && (
-        <div style={{ marginTop:4, display:'flex', gap:8 }}>
+        <div className="mt-1 flex gap-2">
           <button
             onClick={onClose}
-            style={{ padding:'10px 22px', borderRadius:10, background:'var(--surface-page)', border:'1px solid var(--border-strong)', color:'var(--text-secondary)', fontSize:13, fontWeight:700, cursor:'pointer' }}
+            className="px-6 py-2.5 rounded-sm bg-surface-page border border-border-strong text-text-secondary text-label font-bold cursor-pointer"
           >
             취소
           </button>
           <button
             onClick={() => { if (recordId) onGoToRemediation?.(recordId) }}
-            style={{ padding:'10px 22px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+            className="px-6 py-2.5 rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
           >
             이동
           </button>
