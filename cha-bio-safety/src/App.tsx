@@ -74,7 +74,7 @@ const MOBILE_NO_NAV_PATHS = ['/', '/login', '/schedule', '/reports', '/workshift
 const DESKTOP_NO_NAV_PATHS = ['/', '/login']
 
 // 데스크톱: 페이지가 자체 풍부한 헤더(액션 버튼 등)를 가져 App.tsx 의 제목 헤더가 중복인 경로
-const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift', '/annual-plan']
+const DESKTOP_HEADER_HIDE_PATHS = ['/elevator', '/div', '/floorplan', '/workshift']
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': '대시보드',

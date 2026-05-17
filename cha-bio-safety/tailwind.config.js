@@ -60,7 +60,6 @@ export default {
         accent:            'var(--accent)',
         'accent-hover':    'var(--accent-hover)',
         'accent-active':   'var(--accent-active)',
-        'accent-soft':     'var(--accent-soft)',
 
         // Status — foreground
         safe:    'var(--status-safe)',
@@ -88,21 +87,6 @@ export default {
         'duty-night':  'var(--duty-night)',
         'duty-off':    'var(--duty-off)',
         'duty-leave':  'var(--duty-leave)',
-
-        // Duty — soft bg (셀 채움)
-        'duty-day-bg':    'var(--duty-day-bg)',
-        'duty-night-bg':  'var(--duty-night-bg)',
-        'duty-off-bg':    'var(--duty-off-bg)',
-        'duty-leave-bg':  'var(--duty-leave-bg)',
-
-        // Calendar red (공휴일/주말 — status-danger 와 의미 분리)
-        'cal-red':     'var(--cal-red)',
-      },
-
-      backgroundImage: {
-        // design-system §6.4 — 유일한 CTA 그라디언트 (단색 surface 룰의 명시적 예외)
-        'cta-gradient':       'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
-        'cta-gradient-hover': 'linear-gradient(135deg, #1e40af, #0284c7)',
       },
 
       borderRadius: {
