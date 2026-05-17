@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>06 FloorPlanPage 범례 통일 시안 v0.1 (Wave 4)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'] },
+          fontSize: {
+            caption:   ['12px', { lineHeight: '1.5', fontWeight: '400' }],
+            label:     ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+            body:      ['16px', { lineHeight: '1.7', fontWeight: '400' }],
+          },
+          colors: {
+            'surface-page': 'var(--surface-page)', 'surface-raised': 'var(--surface-raised)',
+            'surface-sunken': 'var(--surface-sunken)',
+            'text-primary': 'var(--text-primary)', 'text-secondary': 'var(--text-secondary)',
+            'text-tertiary': 'var(--text-tertiary)', 'text-on-accent': 'var(--text-on-accent)',
+            'border-default': 'var(--border-default)', 'border-strong': 'var(--border-strong)',
+            accent: 'var(--accent)',
+            safe: 'var(--status-safe)', warning: 'var(--status-warning)',
+            danger: 'var(--status-danger)', fire: 'var(--status-fire)', info: 'var(--status-info)',
+            'safe-bar': 'var(--status-safe-bar)', 'warning-bar': 'var(--status-warning-bar)',
+            'danger-bar': 'var(--status-danger-bar)', 'info-bar': 'var(--status-info-bar)', 'fire-bar': 'var(--status-fire-bar)',
+          },
+          borderRadius: { sm: '8px', md: '12px', lg: '16px', pill: '99px' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22);
+      --accent:#3b82f6;
+      --status-safe:#4ade80; --status-warning:#fbbf24; --status-danger:#f87171; --status-info:#38bdf8; --status-fire:#fb923c;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-info-bar:#0ea5e9; --status-fire-bar:#f97316;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    body { font-family: 'Pretendard Variable', 'Pretendard', system-ui, sans-serif; background: #1a1d22; color: #e6edf3; -webkit-font-smoothing: antialiased; }
+    .meta-h1 { font-size: 22px; font-weight: 700; }
+    .meta-p  { font-size: 13px; color: #8b949e; margin-top: 4px; }
+    .meta-h2 { font-size: 15px; font-weight: 600; color: #adb6c0; margin-bottom: 8px; }
+    .meta-section-h { font-size: 18px; font-weight: 700; margin: 28px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .meta-question { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.4); border-radius: 8px; padding: 14px 16px; margin: 12px 0; font-size: 13px; color: #e6edf3; }
+    .meta-question strong { color: #60a5fa; }
+    .viewport-frame { border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden; background: var(--surface-page); color: var(--text-primary); position: relative; display: flex; flex-direction: column; }
+    .viewport-mobile { width: 375px; height: 280px; }
+    .viewport-frame * { font-family: inherit; }
+    /* mock 마커 SVG (sketch placeholder — 실제 TSX 는 MarkerIcon 컴포넌트 사용) */
+    .mock-marker { width: 13px; height: 13px; display: inline-flex; align-items: center; justify-content: center; }
+    .mock-marker svg { width: 100%; height: 100%; fill: none; stroke: #888; stroke-width: 1.5; }
+  </style>
+</head>
+<body class="p-8" data-theme="dark">
+
+  <header class="mb-6">
+    <h1 class="meta-h1">06 FloorPlanPage 범례 통일 시안 v0.1 — Wave 4</h1>
+    <p class="meta-p">
+      <strong>대상:</strong> 범례 영역 (line 1393~1472) — 도면 캔버스 아래 BottomNav 위치, 마커 종류 + 점검 상태 + (extinguisher 한정) 미배치 / replace warning.<br/>
+      <strong>현재:</strong> 인라인 <code>var(--bg2)/var(--bd)/var(--t2)</code> + <code>STATUS_COLOR</code> hex 값 (raw #22c55e/#eab308/#ef4444/#3b82f6) + 라벨 <code>10.5px</code>.
+    </p>
+  </header>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       핵심 결정 사항 (사용자 컨펌 필요)
+       ──────────────────────────────────────────────────────────────── -->
+  <section class="mt-6">
+    <h2 class="meta-section-h">결정 사항 (사용자 컨펌 필요)</h2>
+
+    <div class="meta-question">
+      <strong>Q1. 라벨 폰트 크기</strong> — 현재 10.5px. 노안 룰 (12px 마지노) 적용 어떻게?<br/>
+      <span class="text-text-tertiary">옵션: (a) 10.5px 유지 / (b) 11px 격상 / (c) 12px (text-caption) 격상</span><br/>
+      <span class="text-text-secondary">시안 권장: <strong>11px</strong> — 범례 row 가 모바일에서 2줄 wrap 안 되도록. 12px 격상 시 wrap 빈도 증가.</span>
+    </div>
+
+    <div class="meta-question">
+      <strong>Q2. 점검 상태 색</strong> — 현재 인라인 hex (#22c55e/#eab308/#ef4444/#3b82f6).<br/>
+      <span class="text-text-tertiary">옵션: (a) hex 유지 / (b) status-bar 토큰 (bg-safe-bar / bg-warning-bar / bg-danger-bar / bg-info-bar)</span><br/>
+      <span class="text-text-secondary">시안 권장: <strong>(b) status-bar 토큰</strong> — 다크/라이트 분기 자동, 일관성. 다크 색 값은 hex 와 거의 동일.</span>
+    </div>
+
+    <div class="meta-question">
+      <strong>Q3. 미배치 마커 빨강 배지</strong> — 현재 인라인 #ef4444.<br/>
+      <span class="text-text-secondary">시안 권장: <strong>bg-danger-bar</strong> (Q2 와 일관)</span>
+    </div>
+
+    <div class="meta-question">
+      <strong>Q4. 점검 상태 4종에 "fault" 포함</strong> — 현재 코드는 ['normal', 'caution', 'fault', 'resolved']. <code>fault</code> 는 <code>STATUS_COLOR</code> 에서 <code>bad</code> 와 동일 색 (#ef4444).<br/>
+      <span class="text-text-tertiary">메모리 <code>feedback_inspection_unresolved_color</code>: 미조치 = fire (주황). fault 는 점검 결과 자체가 불량.</span><br/>
+      <span class="text-text-secondary">시안 권장: <strong>fault 라벨 "불량"</strong> 유지 + 색은 <code>bg-danger-bar</code> (빨강) — 점검 결과로서의 불량. 마커 popup 의 미조치 fire 와는 분리.</span>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       Section A: guidelamp variant (6 마커 + 점검상태 4)
+       ──────────────────────────────────────────────────────────────── -->
+  <h2 class="meta-section-h">A. 유도등 도면 범례 (6 마커 + 점검 상태)</h2>
+  <p class="meta-p mb-4">
+    Row 1 = 6 유도등 마커 종류 (벽부피난구/천장피난구/거실통로/복도통로/계단통로/객석통로). Row 2 = 4 점검 상태.
+  </p>
+
+  <div class="grid grid-cols-2 gap-8">
+    <!-- A1: 11px 라벨 (권장) -->
+    <section>
+      <div class="meta-h2">옵션 b: 라벨 <strong>11px</strong> (권장)</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스 mock)</div>
+        <div class="shrink-0 bg-surface-raised border-t border-border-default px-3 pt-1 pb-6 flex flex-col gap-2 min-h-[93px] justify-between">
+          <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">벽부피난구</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="2,4 14,4 11,12 5,12"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">천장피난구</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="2,3 14,3 8,13"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">거실통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="8,2 14,8 8,14 2,8"/><line x1="2" y1="8" x2="14" y2="8" stroke="#888"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">계단통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="8,2 14,8 8,14 2,8"/><line x1="8" y1="2" x2="8" y2="14" stroke="#888"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">복도통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">객석통로</span>
+            </div>
+          </div>
+          <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-safe-bar"></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">정상</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-warning-bar"></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">주의</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-danger-bar"></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">불량</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-info-bar"></span>
+              <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">완료</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A2: 12px text-caption (격상 옵션) -->
+    <section>
+      <div class="meta-h2">옵션 c: 라벨 <strong>12px (text-caption)</strong> — 격상</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스 mock)</div>
+        <div class="shrink-0 bg-surface-raised border-t border-border-default px-3 pt-1 pb-6 flex flex-col gap-2 min-h-[93px] justify-between">
+          <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">벽부피난구</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="2,4 14,4 11,12 5,12"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">천장피난구</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="2,3 14,3 8,13"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">거실통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="8,2 14,8 8,14 2,8"/><line x1="2" y1="8" x2="14" y2="8" stroke="#888"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">계단통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><polygon points="8,2 14,8 8,14 2,8"/><line x1="8" y1="2" x2="8" y2="14" stroke="#888"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">복도통로</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">객석통로</span>
+            </div>
+          </div>
+          <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-safe-bar"></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">정상</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-warning-bar"></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">주의</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-danger-bar"></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">불량</span>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-info-bar"></span>
+              <span class="text-caption text-text-secondary font-medium whitespace-nowrap">완료</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       Section B: extinguisher variant (가장 복잡 — 모든 요소)
+       ──────────────────────────────────────────────────────────────── -->
+  <h2 class="meta-section-h">B. 소화기·소화전 도면 범례 (7 마커 + 4 상태 + 미배치 + replace warning 3종)</h2>
+  <p class="meta-p mb-4">
+    Row 1 = 7 마커 (분말 3.3kg/분말 20kg/할로겐/K급/소화전/완강기/DIV). Row 2 = 4 상태 + 미배치 + 도래/임박/초과 (분말 stroke 색 분기).
+    가장 복잡한 variant. 모바일 viewport 에서 wrap 두 줄로 보일 가능성.
+  </p>
+
+  <section>
+    <div class="meta-h2">옵션 b: 라벨 11px (권장)</div>
+    <div class="viewport-frame viewport-mobile">
+      <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스 mock — 소화기·소화전)</div>
+      <div class="shrink-0 bg-surface-raised border-t border-border-default px-3 pt-1 pb-6 flex flex-col gap-2 min-h-[93px] justify-between">
+        <!-- Row 1: 7 마커 -->
+        <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">분말3.3kg</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">분말20kg</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">할로겐</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">K급주방</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">소화전</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">완강기</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">DIV</span></div>
+        </div>
+        <!-- Row 2: 상태 4 + 미배치 + 구분선 + replace warning 3 -->
+        <div class="flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full">
+          <div class="flex items-center gap-1.5 shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-safe-bar"></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">정상</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-warning-bar"></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">주의</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-danger-bar"></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">불량</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="w-2.5 h-2.5 rounded-full bg-info-bar"></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">완료</span></div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <span class="w-2.5 h-2.5 rounded-full bg-danger-bar flex items-center justify-center text-[6px] font-bold text-text-on-accent leading-none">?</span>
+            <span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">미배치</span>
+          </div>
+          <div class="w-px h-3 bg-border-default shrink-0"></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="#fbbf24" stroke-width="2"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">도래</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="#f59e0b" stroke-width="2.5"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">임박</span></div>
+          <div class="flex items-center gap-1.5 shrink-0"><span class="mock-marker"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="#ef4444" stroke-width="3"/></svg></span><span class="text-[11px] text-text-secondary font-medium whitespace-nowrap">초과</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       적용 룰 요약
+       ──────────────────────────────────────────────────────────────── -->
+  <section class="mt-10 max-w-4xl">
+    <h2 class="meta-section-h">적용된 룰 (Wave 1~3 패턴 mirror)</h2>
+    <ul class="space-y-1.5 text-label text-text-secondary list-disc pl-5">
+      <li>wrapper: <code>shrink-0 bg-surface-raised border-t border-border-default px-3 pt-1 pb-6 flex flex-col gap-2 min-h-[93px] justify-between</code> (옛 <code>var(--bg2)/var(--bd)</code> 폐기)</li>
+      <li>row: <code>flex items-center flex-wrap justify-between gap-x-2 gap-y-1.5 w-full</code></li>
+      <li>마커 item: <code>flex items-center gap-1.5 shrink-0</code> + <code>&lt;MarkerIcon size=13 color="#888" /&gt;</code> 그대로</li>
+      <li>점검 상태 dot: <code>w-2.5 h-2.5 rounded-full bg-{safe|warning|danger|info}-bar</code> (옛 STATUS_COLOR hex 폐기 → status-bar 토큰)</li>
+      <li>미배치 빨강 ?: <code>w-2.5 h-2.5 rounded-full bg-danger-bar flex items-center justify-center text-[6px] font-bold text-text-on-accent leading-none</code></li>
+      <li>구분선: <code>w-px h-3 bg-border-default shrink-0</code></li>
+      <li>라벨: <strong>옵션 b 권장</strong> <code>text-[11px] text-text-secondary font-medium whitespace-nowrap</code> (옛 10.5px 격상)</li>
+      <li>replace warning (분말 도래/임박/초과): MarkerIcon strokeColor/strokeWidth/dangerBadge prop 그대로 — REPLACE_WARNING_STROKE 매핑 보존</li>
+      <li>data-no-print 속성 보존 (PDF 출력 시 범례 숨김)</li>
+    </ul>
+  </section>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>
