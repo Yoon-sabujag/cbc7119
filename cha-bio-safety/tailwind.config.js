@@ -99,6 +99,12 @@ export default {
         'cal-red':     'var(--cal-red)',
       },
 
+      backgroundImage: {
+        // design-system §6.4 — 유일한 CTA 그라디언트 (단색 surface 룰의 명시적 예외)
+        'cta-gradient':       'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
+        'cta-gradient-hover': 'linear-gradient(135deg, #1e40af, #0284c7)',
+      },
+
       borderRadius: {
         sm:   '8px',
         md:   '12px',
