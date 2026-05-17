@@ -264,19 +264,19 @@ export default function DivPage() {
   // ── 압력 트렌드 탭: 층별 3열 그리드 ─────────────────────────
   function renderPressureTab() {
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[6px_8px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
+            <div key={group[0].floor} className="mb-1">
               {/* 층 라벨 */}
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+              <div className="text-[9px] font-bold text-text-tertiary mb-0.5 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="grid grid-cols-3 gap-1">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
                   if (!div) return <div key={pos} />
@@ -293,39 +293,40 @@ export default function DivPage() {
                     <div
                       key={div.id}
                       onClick={() => setSelDiv(div)}
-                      style={{
-                        background: 'var(--bg2)',
-                        border: `1px solid ${alarm ? 'rgba(239,68,68,.4)' : warn ? 'rgba(245,158,11,.3)' : 'var(--bd)'}`,
-                        borderRadius: 8, padding: '5px 5px 4px', cursor: 'pointer',
-                      }}
+                      className={`bg-surface-raised rounded-lg p-[5px_5px_4px] cursor-pointer border ${
+                        alarm ? 'border-status-danger-bar/40'
+                        : warn ? 'border-status-warning-bar/30'
+                        : 'border-border-default'
+                      }`}
                     >
                       {/* 헤더: 호기 · 위치 · 월 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <div className="flex items-center gap-[3px] mb-0.5">
+                        <span className="text-[8px] font-bold text-text-tertiary flex-shrink-0">#{pos}</span>
+                        <span className="text-[7px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                           {div.loc.replace(/^[^\)]+\) /, '')}
                         </span>
-                        {alarm && <span style={{ fontSize: 7, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>이상</span>}
-                        {warn  && <span style={{ fontSize: 7, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>주의</span>}
-                        {last  && <span style={{ fontSize: 7, color: 'var(--t3)', flexShrink: 0 }}>{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
+                        {alarm && <span className="text-[7px] font-bold text-status-danger-bar flex-shrink-0">이상</span>}
+                        {warn  && <span className="text-[7px] font-bold text-status-warning-bar flex-shrink-0">주의</span>}
+                        {last  && <span className="text-[7px] text-text-tertiary flex-shrink-0">{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
                       </div>
                       {/* 압력값: SVG와 동일한 34px 고정 높이 */}
-                      <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
+                      <div className="h-[34px] flex items-center">
                         {!last ? (
-                          <div style={{ width: '100%', textAlign: 'center', fontSize: 9, color: 'var(--t3)' }}>-</div>
+                          <div className="w-full text-center text-[9px] text-text-tertiary">-</div>
                         ) : (
-                          <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
+                          <div className="flex justify-around w-full">
                             {[
-                              { label: '1차', val: last.v1, col: '#3b82f6', s: s1 },
-                              { label: '2차', val: last.v2, col: '#f97316',  s: s2 },
-                              { label: '세팅', val: last.vc, col: '#22c55e', s: sc },
+                              { label: '1차', val: last.v1, colClass: 'text-accent', s: s1 },
+                              { label: '2차', val: last.v2, colClass: 'text-status-fire-bar', s: s2 },
+                              { label: '세팅', val: last.vc, colClass: 'text-status-safe-bar', s: sc },
                             ].map(p => (
-                              <div key={p.label} style={{ textAlign: 'center', flex: 1 }}>
-                                <div style={{
-                                  fontSize: 14, fontWeight: 800, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace',
-                                  color: p.s === 'danger' ? 'var(--danger)' : p.s === 'warn' ? '#f59e0b' : p.col,
-                                }}>{p.val.toFixed(1)}</div>
-                                <div style={{ fontSize: 7, color: 'var(--t3)', marginTop: 3 }}>{p.label}</div>
+                              <div key={p.label} className="text-center flex-1">
+                                <div className={`text-[14px] font-extrabold leading-none font-[JetBrains_Mono,monospace] ${
+                                  p.s === 'danger' ? 'text-status-danger-bar'
+                                  : p.s === 'warn' ? 'text-status-warning-bar'
+                                  : p.colClass
+                                }`}>{p.val.toFixed(1)}</div>
+                                <div className="text-[7px] text-text-tertiary mt-[3px]">{p.label}</div>
                               </div>
                             ))}
                           </div>
@@ -345,30 +346,30 @@ export default function DivPage() {
   // ── 배수/오일 탭: 층별 3열 간격 막대차트 ────────────────────
   function renderLogTab(type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
-    const color   = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const color   = type === 'drain' ? 'var(--status-info)' : type === 'comp_drain' ? '#8b4513' : 'var(--status-fire-bar)'
 
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[6px_8px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+            <div key={group[0].floor} className="mb-1">
+              <div className="text-[9px] font-bold text-text-tertiary mb-0.5 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="grid grid-cols-3 gap-1">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
                   if (!div) return <div key={pos} />
                   const dates = dateMap[div.id] ?? []
                   return (
-                    <div key={div.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '5px 5px 4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                    <div key={div.id} className="bg-surface-raised border border-border-default rounded-lg p-[5px_5px_4px]">
+                      <div className="flex items-center gap-[3px] mb-0.5">
+                        <span className="text-[8px] font-bold text-text-tertiary flex-shrink-0">#{pos}</span>
+                        <span className="text-[7px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{div.loc.replace(/^[^\)]+\) /, '')}</span>
                       </div>
                       <IntervalBar dates={dates} color={color} />
                     </div>
