@@ -23,7 +23,6 @@ import {
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
   // Zone (3종)
-  FlaskConical, Building2, TrainFront,
   // 결과 (5종)
   CheckCircle2, AlertTriangle, XCircle, Wrench, HelpCircle,
 } from 'lucide-react'
@@ -1532,7 +1531,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
       {/* 월초/월말 선택 — sticky raised wrapper (zone/line 영역 통일 룰) */}
       <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
-        <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 구분</div>
         <div className="flex gap-2">
           {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
             const sel = timing === t
@@ -1553,7 +1552,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
       {/* 구역 선택 — sticky raised wrapper */}
       <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
-        <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">구역 선택</div>
         <div className="flex gap-2">
           {(['research','office','underground'] as DivZone[]).map(z => {
             const sel = zone === z
@@ -1575,7 +1574,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       {/* 라인 선택 (연구동/사무동) — sticky raised wrapper */}
       {zone && zone !== 'underground' && (
         <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
-          <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+          <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">라인 선택</div>
           <div className="flex gap-2">
             {(zone === 'research' ? [1,2] : [3]).map(l => {
               const sel = line === l
@@ -1737,7 +1736,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
             {/* 배수 / 컴프 점검 */}
             <div className="flex gap-2.5">
               <div className="flex-1">
-                <div className="text-caption font-semibold text-text-tertiary mb-2">배수</div>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">배수</div>
                 <div className="flex gap-1.5">
                   <button onClick={() => setDrain('none')}
                     className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
@@ -1758,7 +1757,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
                 </div>
               </div>
               <div className="flex-1">
-                <div className="text-caption font-semibold text-text-tertiary mb-2">컴프 점검</div>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">컴프 점검</div>
                 <button onClick={() => setShowCompressor(true)}
                   className="w-full px-2.5 py-2 rounded-sm text-label font-bold cursor-pointer border border-border-default bg-surface-active text-text-primary inline-flex items-center justify-center gap-1.5">
                   <Wind size={14} className="text-text-secondary" />
@@ -1769,7 +1768,7 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
 
             {/* 점검 결과 */}
             <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-2">점검 결과</div>
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
               <div className="flex gap-2">
                 {(['normal','caution','bad'] as const).map(r => {
                   const active = result === r
@@ -2034,7 +2033,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
         <>
           {/* 구역 선택 */}
           <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
-            <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+            <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">구역 선택</div>
             <div className="flex gap-2">
               {(['research','office','underground'] as DivZone[]).map(z => {
                 const sel = zone === z
@@ -2056,7 +2055,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
           {/* 라인 선택 (연구동/사무동) */}
           {zone && zone !== 'underground' && (
             <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
-              <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+              <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">라인 선택</div>
               <div className="flex gap-2">
                 {(zone === 'research' ? [1,2] : [3]).map(l => {
                   const sel = line === l
@@ -2171,7 +2170,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
                   </div>
                 </div>
                 <div className="flex-1">
-                  <div className="text-caption font-semibold text-text-tertiary mb-2">컴프 오일</div>
+                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">컴프 오일</div>
                   <div className="flex gap-1.5">
                     <button onClick={() => setOil('sufficient')}
                       className={`flex-1 px-2 py-2 rounded-sm text-label font-bold cursor-pointer ${
@@ -2195,7 +2194,7 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
 
               {/* 점검 결과 */}
               <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-2">점검 결과</div>
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
                 <div className="flex gap-2">
                   {(['normal','caution','bad'] as const).map(r => {
                     const active = result === r
@@ -3795,12 +3794,6 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     }
   }
 
-  // Zone 아이콘 lucide 매핑 (§7.5)
-  const ZONE_LUCIDE: Record<ZoneKey, IconComp> = {
-    research: FlaskConical,
-    office: Building2,
-    underground: TrainFront,
-  }
   // 현재 group 의 lucide/커스텀 아이콘 (헤더용)
   const headerGroupIdx = CATEGORY_GROUPS.findIndex(g => g === group)
   const HeaderIcon = headerGroupIdx >= 0 ? CATEGORY_ICONS[headerGroupIdx] : null
@@ -3841,15 +3834,14 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         <div className="flex gap-1.5">
           {ZONE_CONFIG.filter(z => availableZones.includes(z.key)).map(z => {
             const isSel = z.key === selectedZone
-            const ZIcon = ZONE_LUCIDE[z.key]
             return (
               <button key={z.key} onClick={() => handleZoneChange(z.key)}
-                      className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                      className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
                         isSel
                           ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                          : 'border border-border-strong bg-surface-page text-text-secondary hover:bg-surface-active'
+                          : 'border border-border-strong bg-surface-page text-text-secondary'
                       }`}>
-                <ZIcon size={14} />{z.label}
+                {z.label}
               </button>
             )
           })}
@@ -5334,15 +5326,15 @@ function FireAlarmModal({ onClose }: { onClose: () => void }) {
   }
 
   const labelCls = 'text-caption font-semibold text-text-tertiary mb-1.5 block'
-  const inputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-page text-text-primary text-label outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
+  const inputCls = 'w-full box-border px-3 py-2.5 rounded-sm border border-border-default bg-surface-raised text-text-primary text-label outline-none min-w-0 [appearance:none] [-webkit-appearance:none] focus:border-border-focus transition-colors'
 
   return (
     <div className="fixed left-0 right-0 z-[99] bg-surface-page flex flex-col overflow-hidden"
          style={{ top: 'var(--sat, 0px)', bottom: NAV_BOTTOM }}>
       {/* 헤더 */}
-      <div className="shrink-0 bg-surface-raised border-b border-border-default px-3.5 py-2.5 flex items-center gap-2.5">
-        <Bell size={20} className="text-text-secondary" />
-        <span className="text-body-sm font-bold text-text-primary">화재수신반 기록</span>
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+        <Bell size={18} className="text-text-secondary flex-shrink-0" />
+        <span className="text-body font-bold text-text-primary">화재수신반 기록</span>
       </div>
 
       {/* 스크롤 본문 */}
