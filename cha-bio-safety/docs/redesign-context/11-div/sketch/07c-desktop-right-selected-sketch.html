@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 7c-2 · 데스크톱 우측 패널 (선택 상태)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-fire-bar:#f97316;
+      --status-safe-bar:#22c55e;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 640px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 1080px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 데스크톱 다크 — 선택 상태 (헤더 + 4탭 + 1차압 차트) -->
+    <div>
+      <div class="label">VP1 · 데스크톱 다크 · 640×520 (선택 상태 — 헤더 + 4탭 + 1차압 차트 예시. 2차/세팅 차트 동일 패턴)</div>
+      <div class="frame" style="height: 520px; padding: 20px 24px; overflow-y: auto;">
+        <div style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 40px;">
+
+          <!-- 헤더 -->
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">2층 · 2층 Z3-1 (DIV1)</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">DIV #1 · DIV-2F-1</div>
+            </div>
+            <!-- 연도 네비 (pressure 탭만 표시) -->
+            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+              <div style="width: 30px; display: flex; justify-content: center;">
+                <button style="background: var(--surface-sunken); border: none; border-radius: 6px; padding: 4px 8px; color: var(--text-secondary); font-size: 15px;">‹</button>
+              </div>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); width: 38px; text-align: center;">2026</span>
+              <div style="width: 30px;"></div>
+            </div>
+            <button style="background: none; border: none; color: var(--text-tertiary); font-size: 22px; flex-shrink: 0;">✕</button>
+          </div>
+
+          <!-- 내부 4탭 -->
+          <div style="display: flex; border-bottom: 1px solid var(--border-default);">
+            <button style="flex: 1; padding: 10px 4px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--accent); border-bottom: 2px solid var(--accent);">압력 트렌드</button>
+            <button style="flex: 1; padding: 10px 4px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-tertiary); border-bottom: 2px solid transparent;">챔버배수</button>
+            <button style="flex: 1; padding: 10px 4px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-tertiary); border-bottom: 2px solid transparent;">오일</button>
+            <button style="flex: 1; padding: 10px 4px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--text-tertiary); border-bottom: 2px solid transparent;">탱크배수</button>
+          </div>
+
+          <!-- 1차압 차트 (예시 — 2차/세팅 차트는 동일 패턴, 색만 다름) -->
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">1차압</div>
+            <div style="overflow-x: auto;">
+              <svg width="592" height="160" style="display: block;">
+                <text x="29" y="42" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.9</text>
+                <line x1="34" y1="38" x2="580" y2="38" stroke="rgba(255,255,255,0.05)"/>
+                <text x="29" y="82" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.7</text>
+                <line x1="34" y1="78" x2="580" y2="78" stroke="rgba(255,255,255,0.05)"/>
+                <text x="29" y="122" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.5</text>
+                <line x1="34" y1="118" x2="580" y2="118" stroke="rgba(255,255,255,0.05)"/>
+                <text x="80"  y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">06</text>
+                <text x="170" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">08</text>
+                <text x="260" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">10</text>
+                <text x="350" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">12</text>
+                <text x="440" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">02</text>
+                <text x="530" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">04</text>
+                <polyline points="80,90 170,80 260,75 350,85 440,70 530,82" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+                <g><circle cx="80" cy="90" r="3" fill="var(--accent)"/><text x="80" y="72" text-anchor="middle" transform="rotate(-90, 80, 72)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.6</text></g>
+                <g><circle cx="170" cy="80" r="3" fill="var(--accent)"/><text x="170" y="62" text-anchor="middle" transform="rotate(-90, 170, 62)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+                <g><circle cx="260" cy="75" r="3" fill="var(--surface-raised)" stroke="var(--accent)" stroke-width="1.5"/><text x="260" y="57" text-anchor="middle" transform="rotate(-90, 260, 57)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+                <g><circle cx="350" cy="85" r="3" fill="var(--accent)"/><text x="350" y="67" text-anchor="middle" transform="rotate(-90, 350, 67)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.6</text></g>
+                <g><circle cx="440" cy="70" r="3" fill="var(--surface-raised)" stroke="var(--accent)" stroke-width="1.5"/><text x="440" y="52" text-anchor="middle" transform="rotate(-90, 440, 52)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.8</text></g>
+                <g><circle cx="530" cy="82" r="3" fill="var(--accent)"/><text x="530" y="64" text-anchor="middle" transform="rotate(-90, 530, 64)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+              </svg>
+            </div>
+          </div>
+
+          <!-- (placeholder) 2차압 / 세팅압 차트 메모 -->
+          <div style="background: var(--surface-raised); border: 1px dashed var(--border-default); border-radius: 8px; padding: 16px; text-align: center; color: var(--text-tertiary); font-size: 13px;">
+            ↑ 2차압 (status-fire-bar) + 세팅압 (status-safe-bar dashed) 차트 — 동일 패턴, 색만 다름<br/>
+            <span style="font-size: 12px;">(영역 6 모달 차트 sketch 와 매핑 동일. 데스크톱은 width 만 600 → 더 큼)</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>데스크톱 우측 패널 선택 상태 (DivPage.tsx line 871~932 verbatim + 색 토큰화 + 글씨 격상)</b></p>
+    <p style="margin-bottom: 4px;"><b>헤더 영역</b></p>
+    <p style="margin-bottom: 4px;">• 1줄 <b>16px font-bold</b> "층 라벨 · loc" (verbatim)</p>
+    <p style="margin-bottom: 4px;">• 2줄 <b>12px text-tertiary</b> "POS_LABEL · id" (verbatim 11 → 12 격상)</p>
+    <p style="margin-bottom: 4px;">• 연도 네비 <b>‹ 2026 ›</b> — pressure 탭일 때만 표시 (verbatim)</p>
+    <p style="margin-bottom: 10px;">• 닫기 ✕ <b>22px text-tertiary</b> (verbatim)</p>
+    <p style="margin-bottom: 4px;"><b>내부 4탭</b></p>
+    <p style="margin-bottom: 4px;">• 4탭 라벨: <b>"압력 트렌드 / 챔버배수 / 오일 / 탱크배수"</b> (verbatim — 모바일 탭은 "압력 트렌드 / 챔버배수주기 / 오일 주기 / 탱크배수주기" 로 더 김. 데스크톱은 공간 절약 위해 짧게)</p>
+    <p style="margin-bottom: 4px;">• 탭 버튼 <b>flex-1 px-1 py-2.5 + 13px font-semibold</b> (verbatim 8/4 padding + 12 → 10/4 + 13 격상)</p>
+    <p style="margin-bottom: 10px;">• 선택 <b>text-accent + border-b-2 border-accent</b> / 비선택 <b>text-text-tertiary + border-b-2 border-transparent</b></p>
+    <p style="margin-bottom: 4px;"><b>탭 콘텐츠 — 차트</b></p>
+    <p style="margin-bottom: 4px;">• 압력 트렌드 탭: 차트 3종 (1차/2차/세팅) — 영역 6 모달 차트와 <b>동일 패턴 (sketch verbatim)</b>. 데스크톱 W=600 (모바일 W=358, 데스크톱이 더 큼)</p>
+    <p style="margin-bottom: 4px;">• 차트 = renderDesktopPressureChart line 552~. 헤더 라벨 12 / Y축 12 / X축 11 / 값 11px (영역 6 매핑 동일)</p>
+    <p style="margin-bottom: 10px;">• 챔버배수/오일/탱크배수 탭: IntervalBar timeline (renderDesktopLogTimeline line 685~) — 영역 5 IntervalBar 카드 패턴 mirror. 별도 sketch 없음 (영역 5 sketch 의 매핑 그대로)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>탭 라벨 모바일과 통일</b> ("챔버배수 → 챔버배수주기" 등 풀 네임) — 단 데스크톱 4탭 길이 부족할 수 있음 (test 필요).</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>닫기 ✕ → lucide X</b> (영역 7a/7c-1 의 lucide 정책 일관) — verbatim 22px → lucide X 18~20px.</p>
+    <p>현재 패턴으로 OK 면 영역 7 데스크톱 전체 완결 (7a 헤더+배너 / 7b 매트릭스 / 7c-1 빈 상태 / 7c-2 선택 상태). 다음 = TSX 변환 진입 또는 통합 확인. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>

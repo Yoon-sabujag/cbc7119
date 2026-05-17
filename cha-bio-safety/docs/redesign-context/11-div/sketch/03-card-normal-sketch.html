@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 3 · 측정점 카드 (정상)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-fire-bar:#f97316;
+      --status-safe-bar:#22c55e;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 880px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 옵션 A · verbatim (DivPage.tsx 그대로, 7-9-14px) -->
+    <div>
+      <div class="label">VP1 · 옵션 A · verbatim (실제 페이지 그대로 — 7/8/9/14px 컴팩트)</div>
+      <div class="frame" style="height: 132px; padding: 6px 8px;">
+        <!-- 층 라벨 -->
+        <div style="font-size: 9px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 2px; padding-left: 2px; letter-spacing: 0.04em;">
+          2F (지상2층)
+        </div>
+        <!-- 카드 3열 -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+          <!-- DIV #1 정상 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 5px 5px 4px;">
+            <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 2px;">
+              <span style="font-size: 8px; font-weight: 700; color: var(--text-tertiary); flex-shrink: 0;">#1</span>
+              <span style="font-size: 7px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-1</span>
+              <span style="font-size: 7px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="height: 34px; display: flex; align-items: center;">
+              <div style="display: flex; justify-content: space-around; width: 100%;">
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--accent);">0.7</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">1차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-fire-bar);">0.5</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">2차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-safe-bar);">0.6</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">세팅</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- DIV #2 정상 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 5px 5px 4px;">
+            <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 2px;">
+              <span style="font-size: 8px; font-weight: 700; color: var(--text-tertiary); flex-shrink: 0;">#2</span>
+              <span style="font-size: 7px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-2</span>
+              <span style="font-size: 7px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="height: 34px; display: flex; align-items: center;">
+              <div style="display: flex; justify-content: space-around; width: 100%;">
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--accent);">0.6</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">1차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-fire-bar);">0.4</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">2차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-safe-bar);">0.5</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">세팅</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- DIV #3 정상 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 5px 5px 4px;">
+            <div style="display: flex; align-items: center; gap: 3px; margin-bottom: 2px;">
+              <span style="font-size: 8px; font-weight: 700; color: var(--text-tertiary); flex-shrink: 0;">#3</span>
+              <span style="font-size: 7px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-3</span>
+              <span style="font-size: 7px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="height: 34px; display: flex; align-items: center;">
+              <div style="display: flex; justify-content: space-around; width: 100%;">
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--accent);">0.8</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">1차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-fire-bar);">0.5</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">2차</div>
+                </div>
+                <div style="text-align: center; flex: 1;">
+                  <div class="mono" style="font-size: 14px; font-weight: 800; line-height: 1; color: var(--status-safe-bar);">0.7</div>
+                  <div style="font-size: 7px; color: var(--text-tertiary); margin-top: 3px;">세팅</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP2 옵션 B · 노안 격상 (12/14/22px) -->
+    <div>
+      <div class="label">VP2 · 옵션 B · 노안 격상 (12/14/22px — 정보 밀도 양보, 한 화면 카드 ↓)</div>
+      <div class="frame" style="height: 264px; padding: 12px 12px;">
+        <!-- 층 라벨 -->
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 8px; padding-left: 2px; letter-spacing: 0.04em;">
+          2F (지상2층)
+        </div>
+        <!-- 카드 1열 (큰 카드) -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- DIV #1 정상 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">1차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">2차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">세팅</div>
+              </div>
+            </div>
+          </div>
+          <!-- DIV #2 정상 (옵션 B 는 큰 카드라 한 화면에 2~3개만 보임) -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #2</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-2</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">5월</span>
+            </div>
+            <div style="display: flex; justify-content: space-around;">
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--accent);">0.6</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">1차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.4</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">2차</div>
+              </div>
+              <div style="text-align: center; flex: 1;">
+                <div class="mono" style="font-size: 22px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.5</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">세팅</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>두 옵션 비교 — 정상 카드 (이상/주의 변형은 영역 4 에서)</b></p>
+    <p style="margin-bottom: 10px;"><b>옵션 A · verbatim (실제 페이지 그대로)</b></p>
+    <p style="margin-bottom: 4px;">• 3열 grid (한 행에 DIV #1/#2/#3, 정보 밀도 ↑)</p>
+    <p style="margin-bottom: 4px;">• 위치 라벨 7px, 압력값 14px, 컬럼 라벨 7px</p>
+    <p style="margin-bottom: 4px;">• 카드 padding 5px 5px 4px (매우 작음)</p>
+    <p style="margin-bottom: 10px;">• 모바일 한 화면에 6~9 행 (18~27 측정점) 표시 가능</p>
+    <p style="margin-bottom: 10px;"><b>옵션 B · 노안 격상</b></p>
+    <p style="margin-bottom: 4px;">• 1열 (한 행에 DIV #1 만, 카드 크게)</p>
+    <p style="margin-bottom: 4px;">• 카드 헤더 라벨 14px, 압력값 22px, 컬럼 라벨 12px</p>
+    <p style="margin-bottom: 4px;">• 카드 padding 10px 12px</p>
+    <p style="margin-bottom: 10px;">• 모바일 한 화면에 2~3 카드 (스크롤 ↑)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>색 매핑 (양 옵션 동일)</b></p>
+    <p style="margin-bottom: 4px;">• 1차 압력 <b>text-accent</b> (#3b82f6 verbatim)</p>
+    <p style="margin-bottom: 4px;">• 2차 압력 <b>text-status-fire-bar</b> (#f97316 verbatim)</p>
+    <p style="margin-bottom: 10px;">• 세팅 압력 <b>text-status-safe-bar</b> (#22c55e verbatim)</p>
+    <p>A 선택 → 영역 4 (이상/주의 변형) 같은 컴팩트 패턴<br/>
+       B 선택 → 영역 4 같은 큰 카드 패턴<br/>
+       또는 절충 (예: 2열 grid + 14px 압력값) 가능. 어떤 거 가져갈지 알려줘.</p>
+  </div>
+
+</body>
+</html>

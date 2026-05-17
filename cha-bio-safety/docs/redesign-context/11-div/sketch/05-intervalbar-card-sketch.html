@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 5 · IntervalBar 카드 (배수/오일/탱크)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --status-info:        #38bdf8;
+      --status-fire-bar:    #f97316;
+      --brown:              #8b4513;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 880px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 · 챔버배수주기 탭 (drain) — 정상 + 기록 없음 -->
+    <div>
+      <div class="label">VP1 · 모바일 다크 · 393×400 (챔버배수주기 탭 — IntervalBar 격상 + 기록 없음 변형)</div>
+      <div class="frame" style="height: 400px; padding: 12px 12px;">
+        <!-- 층 라벨 -->
+        <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-bottom: 8px; padding-left: 2px; letter-spacing: 0.04em;">
+          2F (지상2층)
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+
+          <!-- DIV #1 — 기록 있음 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">최근 5/12</span>
+            </div>
+            <!-- IntervalBar 격상 SVG -->
+            <svg width="100%" height="70" viewBox="0 0 152 70" preserveAspectRatio="xMidYMid meet">
+              <!-- 5 막대 (간격 5개), barW=24, gap=6, topPad=10, barMaxH=36, labelH=20 -->
+              <g>
+                <rect x="0"   y="22" width="24" height="24" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="12"  y="18" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">14</text>
+                <text x="12"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">02</text>
+                <text x="12"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">12</text>
+              </g>
+              <g>
+                <rect x="30"  y="10" width="24" height="36" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="42"  y="6"  text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">21</text>
+                <text x="42"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">03</text>
+                <text x="42"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">05</text>
+              </g>
+              <g>
+                <rect x="60"  y="22" width="24" height="24" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="72"  y="18" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">14</text>
+                <text x="72"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">03</text>
+                <text x="72"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">19</text>
+              </g>
+              <g>
+                <rect x="90"  y="16" width="24" height="30" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="102" y="12" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">17</text>
+                <text x="102" y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">04</text>
+                <text x="102" y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">05</text>
+              </g>
+              <g>
+                <rect x="120" y="26" width="24" height="20" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="132" y="22" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">12</text>
+                <text x="132" y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">05</text>
+                <text x="132" y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">12</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- DIV #2 — 기록 있음 (간격 짧음, 막대 작은 차이) -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #2</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-2</span>
+              <span style="font-size: 12px; color: var(--text-tertiary); flex-shrink: 0;">최근 5/10</span>
+            </div>
+            <svg width="100%" height="70" viewBox="0 0 152 70" preserveAspectRatio="xMidYMid meet">
+              <g>
+                <rect x="0"   y="16" width="24" height="30" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="12"  y="12" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">18</text>
+                <text x="12"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">02</text>
+                <text x="12"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">10</text>
+              </g>
+              <g>
+                <rect x="30"  y="20" width="24" height="26" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="42"  y="16" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">15</text>
+                <text x="42"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">02</text>
+                <text x="42"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">25</text>
+              </g>
+              <g>
+                <rect x="60"  y="18" width="24" height="28" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="72"  y="14" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">16</text>
+                <text x="72"  y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">03</text>
+                <text x="72"  y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">12</text>
+              </g>
+              <g>
+                <rect x="90"  y="10" width="24" height="36" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="102" y="6"  text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">21</text>
+                <text x="102" y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">04</text>
+                <text x="102" y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">02</text>
+              </g>
+              <g>
+                <rect x="120" y="22" width="24" height="24" rx="3" fill="var(--status-info)" opacity="0.85"/>
+                <text x="132" y="18" text-anchor="middle" font-size="10" fill="var(--status-info)" font-family="JetBrains Mono" opacity="0.9">14</text>
+                <text x="132" y="58" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.65)" font-family="JetBrains Mono">05</text>
+                <text x="132" y="68" text-anchor="middle" font-size="10" fill="rgba(139,148,158,0.5)" font-family="JetBrains Mono">10</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- DIV #3 — 기록 없음 변형 -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #3</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-3</span>
+            </div>
+            <div style="height: 70px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-tertiary);">
+              기록 없음
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- VP2 · 3 탭 색 비교 (drain / oil / comp_drain) -->
+    <div>
+      <div class="label">VP2 · 모바일 다크 · 393×400 (3 탭 색 비교 — drain/oil/comp_drain)</div>
+      <div class="frame" style="height: 400px; padding: 12px 12px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+
+          <!-- drain (status-info) -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">DRAIN · 챔버배수주기</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">DIV #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary);">최근 5/12</span>
+            </div>
+            <svg width="100%" height="70" viewBox="0 0 152 70" preserveAspectRatio="xMidYMid meet">
+              <rect x="0"   y="22" width="24" height="24" rx="3" fill="var(--status-info)" opacity="0.85"/>
+              <rect x="30"  y="10" width="24" height="36" rx="3" fill="var(--status-info)" opacity="0.85"/>
+              <rect x="60"  y="22" width="24" height="24" rx="3" fill="var(--status-info)" opacity="0.85"/>
+              <rect x="90"  y="16" width="24" height="30" rx="3" fill="var(--status-info)" opacity="0.85"/>
+              <rect x="120" y="26" width="24" height="20" rx="3" fill="var(--status-info)" opacity="0.85"/>
+            </svg>
+          </div>
+
+          <!-- oil (status-fire-bar) -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">OIL · 오일 주기</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">COMP #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary);">최근 5/05</span>
+            </div>
+            <svg width="100%" height="70" viewBox="0 0 152 70" preserveAspectRatio="xMidYMid meet">
+              <rect x="0"   y="20" width="24" height="26" rx="3" fill="var(--status-fire-bar)" opacity="0.85"/>
+              <rect x="30"  y="14" width="24" height="32" rx="3" fill="var(--status-fire-bar)" opacity="0.85"/>
+              <rect x="60"  y="20" width="24" height="26" rx="3" fill="var(--status-fire-bar)" opacity="0.85"/>
+              <rect x="90"  y="18" width="24" height="28" rx="3" fill="var(--status-fire-bar)" opacity="0.85"/>
+              <rect x="120" y="22" width="24" height="24" rx="3" fill="var(--status-fire-bar)" opacity="0.85"/>
+            </svg>
+          </div>
+
+          <!-- comp_drain (raw #8b4513 brown — 토큰 미정의) -->
+          <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; padding: 10px 12px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+              <span style="font-size: 11px; color: var(--text-tertiary); font-weight: 600;">COMP_DRAIN · 탱크배수주기 (raw #8b4513)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-size: 14px; font-weight: 700; color: var(--text-primary);">COMP #1</span>
+              <span style="font-size: 13px; color: var(--text-secondary); flex: 1;">Z3-1</span>
+              <span style="font-size: 12px; color: var(--text-tertiary);">최근 4/28</span>
+            </div>
+            <svg width="100%" height="70" viewBox="0 0 152 70" preserveAspectRatio="xMidYMid meet">
+              <rect x="0"   y="24" width="24" height="22" rx="3" fill="var(--brown)" opacity="0.85"/>
+              <rect x="30"  y="18" width="24" height="28" rx="3" fill="var(--brown)" opacity="0.85"/>
+              <rect x="60"  y="14" width="24" height="32" rx="3" fill="var(--brown)" opacity="0.85"/>
+              <rect x="90"  y="22" width="24" height="24" rx="3" fill="var(--brown)" opacity="0.85"/>
+              <rect x="120" y="20" width="24" height="26" rx="3" fill="var(--brown)" opacity="0.85"/>
+            </svg>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>IntervalBar 카드 — 옵션 B 격상 패턴 (영역 3/4 와 동일 카드 폭/padding/헤더)</b></p>
+    <p style="margin-bottom: 4px;">• 카드 구조: 영역 3/4 와 동일 (bg-raised + border-default + rounded-lg + padding 10px 12px + 헤더 14/13/12px)</p>
+    <p style="margin-bottom: 4px;">• 헤더 우측 텍스트: 가장 최근 기록일 ("최근 5/12" 같은) <b>12px text-tertiary</b></p>
+    <p style="margin-bottom: 10px;">• IntervalBar SVG <b>격상</b>: barW 13→24 / gap 3→6 / barMaxH 15→36 / fontSize 5/5.5→10 (verbatim 7-9-14 → 10-12-14 모두 격상)</p>
+    <p style="margin-bottom: 4px;"><b>탭별 색 매핑 (VP2 색 비교 확인)</b></p>
+    <p style="margin-bottom: 4px;">• drain (챔버배수주기) → <b>var(--status-info)</b> = #38bdf8 (sketch raw 완벽 일치)</p>
+    <p style="margin-bottom: 4px;">• oil (오일 주기) → <b>var(--status-fire-bar)</b> = #f97316 (sketch raw 완벽 일치)</p>
+    <p style="margin-bottom: 10px;">• comp_drain (탱크배수주기) → <b>raw #8b4513</b> (갈색 — v0.1.1 토큰 미정의 예외)</p>
+    <p style="margin-bottom: 4px;"><b>빈 데이터 (기록 없음) 변형</b></p>
+    <p style="margin-bottom: 10px;">• "기록 없음" <b>13px text-tertiary</b> 중앙 (verbatim 8px → 13px 격상)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>comp_drain 갈색 → text-status-warning-bar</b> (#f59e0b 황색) — 토큰 체계 내 매핑. 단 의미 변경 (갈색 → 황색).</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>막대 더 크게</b> (barMaxH 36 → 48) — 더 큰 시각화. 카드 height ↑.</p>
+    <p>현재 패턴으로 OK 면 영역 6 (입력 모달 — DIV 챔버배수/컴프 오일/컴프 탱크 중 하나) 진행. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>

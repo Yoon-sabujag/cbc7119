@@ -8,6 +8,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, BarChart3, Droplets } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { DIV_POINTS, type DivPoint } from '../constants/divPoints'
@@ -29,7 +30,7 @@ function pressureStatus(val: number, ref: number | null, alertOn: 'rise' | 'fall
   return 'ok'
 }
 
-const STATUS_COLOR = { ok: 'var(--safe)', warn: 'var(--warn)', danger: 'var(--danger)' }
+const STATUS_COLOR = { ok: 'var(--status-safe)', warn: 'var(--status-warning)', danger: 'var(--status-danger)' }
 
 // DIV 그룹 레이블
 const POS_LABEL: Record<number, string> = { 1: 'DIV #1', 2: 'DIV #2', 3: 'DIV #3' }
@@ -77,7 +78,7 @@ function daysBetween(a: string, b: string) {
 function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
   const recent = dates.slice(-6)   // 최근 6건
   if (recent.length < 2) {
-    return <div style={{ height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--t3)' }}>기록 없음</div>
+    return <div className="h-[70px] flex items-center justify-center text-[13px] text-text-tertiary">기록 없음</div>
   }
   const intervals = recent.slice(1).map((d, i) => ({
     days: daysBetween(recent[i], d),
@@ -85,7 +86,7 @@ function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
     dd:   d.slice(8, 10),  // "DD"
   }))
   const maxDays = Math.max(...intervals.map(iv => iv.days))
-  const barW = 13, gap = 3, topPad = 6, barMaxH = 15, labelH = 11
+  const barW = 24, gap = 6, topPad = 10, barMaxH = 36, labelH = 20
   const n = intervals.length
   const totalW = n * (barW + gap) - gap
   const totalH = topPad + barMaxH + labelH + 2
@@ -97,15 +98,15 @@ function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
         const barY = topPad + barMaxH - h
         return (
           <g key={i}>
-            <rect x={x} y={barY} width={barW} height={h} rx={2} fill={color} opacity={0.85} />
+            <rect x={x} y={barY} width={barW} height={h} rx={3} fill={color} opacity={0.85} />
             <text x={x + barW / 2} y={barY - 2} textAnchor="middle"
-              fontSize="5.5" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}>
+              fontSize="10" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}>
               {days}
             </text>
-            <text x={x + barW / 2} y={topPad + barMaxH + 7} textAnchor="middle"
-              fontSize="5" fill="rgba(139,148,158,0.55)" fontFamily="JetBrains Mono, monospace">{mm}</text>
-            <text x={x + barW / 2} y={topPad + barMaxH + 14} textAnchor="middle"
-              fontSize="5" fill="rgba(139,148,158,0.45)" fontFamily="JetBrains Mono, monospace">{dd}</text>
+            <text x={x + barW / 2} y={topPad + barMaxH + 12} textAnchor="middle"
+              fontSize="10" fill="rgba(139,148,158,0.65)" fontFamily="JetBrains Mono, monospace">{mm}</text>
+            <text x={x + barW / 2} y={topPad + barMaxH + 22} textAnchor="middle"
+              fontSize="10" fill="rgba(139,148,158,0.5)" fontFamily="JetBrains Mono, monospace">{dd}</text>
           </g>
         )
       })}
@@ -261,25 +262,25 @@ export default function DivPage() {
     }
   }, [selDiv?.id, selHistory.length])
 
-  // ── 압력 트렌드 탭: 층별 3열 그리드 ─────────────────────────
+  // ── 압력 트렌드 탭: 층별 1열 카드 ─────────────────────────
   function renderPressureTab() {
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[12px_12px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
+            <div key={group[0].floor} className="mb-1">
               {/* 층 라벨 */}
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+              <div className="text-[12px] font-bold text-text-tertiary mb-2 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="flex flex-col gap-2">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
-                  if (!div) return <div key={pos} />
+                  if (!div) return null
                   const hist   = pressureMap[div.id] ?? []
                   const last   = hist[hist.length - 1]
                   const prev   = hist[hist.length - 2]
@@ -293,44 +294,45 @@ export default function DivPage() {
                     <div
                       key={div.id}
                       onClick={() => setSelDiv(div)}
-                      style={{
-                        background: 'var(--bg2)',
-                        border: `1px solid ${alarm ? 'rgba(239,68,68,.4)' : warn ? 'rgba(245,158,11,.3)' : 'var(--bd)'}`,
-                        borderRadius: 8, padding: '5px 5px 4px', cursor: 'pointer',
-                      }}
+                      className={`bg-surface-raised rounded-lg cursor-pointer ${
+                        alarm ? 'border border-border-default border-l-4 border-l-status-danger-bar p-[10px_12px_10px_9px]' :
+                        warn  ? 'border border-border-default border-l-4 border-l-status-warning-bar p-[10px_12px_10px_9px]' :
+                                'border border-border-default p-[10px_12px]'
+                      }`}
                     >
-                      {/* 헤더: 호기 · 위치 · 월 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {/* 헤더: 호기 · 위치 · 배지 · 월 */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
+                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                           {div.loc.replace(/^[^\)]+\) /, '')}
                         </span>
-                        {alarm && <span style={{ fontSize: 7, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>이상</span>}
-                        {warn  && <span style={{ fontSize: 7, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>주의</span>}
-                        {last  && <span style={{ fontSize: 7, color: 'var(--t3)', flexShrink: 0 }}>{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
+                        {alarm && <span className="text-[12px] font-bold text-status-danger flex-shrink-0">이상</span>}
+                        {warn  && <span className="text-[12px] font-bold text-status-warning-bar flex-shrink-0">주의</span>}
+                        {last  && <span className="text-[12px] text-text-tertiary flex-shrink-0">{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
                       </div>
-                      {/* 압력값: SVG와 동일한 34px 고정 높이 */}
-                      <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
-                        {!last ? (
-                          <div style={{ width: '100%', textAlign: 'center', fontSize: 9, color: 'var(--t3)' }}>-</div>
-                        ) : (
-                          <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
-                            {[
-                              { label: '1차', val: last.v1, col: '#3b82f6', s: s1 },
-                              { label: '2차', val: last.v2, col: '#f97316',  s: s2 },
-                              { label: '세팅', val: last.vc, col: '#22c55e', s: sc },
-                            ].map(p => (
-                              <div key={p.label} style={{ textAlign: 'center', flex: 1 }}>
-                                <div style={{
-                                  fontSize: 14, fontWeight: 800, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace',
-                                  color: p.s === 'danger' ? 'var(--danger)' : p.s === 'warn' ? '#f59e0b' : p.col,
-                                }}>{p.val.toFixed(1)}</div>
-                                <div style={{ fontSize: 7, color: 'var(--t3)', marginTop: 3 }}>{p.label}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {/* 압력값 */}
+                      {!last ? (
+                        <div className="w-full text-center text-[13px] text-text-tertiary">-</div>
+                      ) : (
+                        <div className="flex justify-around">
+                          {[
+                            { label: '1차', val: last.v1, s: s1 },
+                            { label: '2차', val: last.v2, s: s2 },
+                            { label: '세팅', val: last.vc, s: sc },
+                          ].map(p => (
+                            <div key={p.label} className="text-center flex-1">
+                              <div className={`text-[22px] font-bold leading-none font-mono ${
+                                p.s === 'danger' ? 'text-status-danger' :
+                                p.s === 'warn'   ? 'text-status-warning' :
+                                p.label === '1차' ? 'text-accent' :
+                                p.label === '2차' ? 'text-status-fire-bar' :
+                                                    'text-status-safe-bar'
+                              }`}>{p.val.toFixed(1)}</div>
+                              <div className="text-[12px] text-text-tertiary mt-1.5">{p.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -342,33 +344,34 @@ export default function DivPage() {
     )
   }
 
-  // ── 배수/오일 탭: 층별 3열 간격 막대차트 ────────────────────
+  // ── 배수/오일 탭: 층별 1열 간격 막대차트 ────────────────────
   function renderLogTab(type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
-    const color   = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const color   = type === 'drain' ? 'var(--status-info)' : type === 'comp_drain' ? '#8b4513' : 'var(--status-fire-bar)'
 
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[12px_12px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+            <div key={group[0].floor} className="mb-1">
+              <div className="text-[12px] font-bold text-text-tertiary mb-2 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="flex flex-col gap-2">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
-                  if (!div) return <div key={pos} />
+                  if (!div) return null
                   const dates = dateMap[div.id] ?? []
                   return (
-                    <div key={div.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '5px 5px 4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                    <div key={div.id} className="bg-surface-raised border border-border-default rounded-lg p-[10px_12px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
+                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                        {dates.length > 0 && <span className="text-[12px] text-text-tertiary flex-shrink-0">최근 {dates[dates.length-1]?.slice(5)?.replace('-', '/') ?? ''}</span>}
                       </div>
                       <IntervalBar dates={dates} color={color} />
                     </div>
@@ -413,44 +416,44 @@ export default function DivPage() {
 
     return (
       <div
-        style={{ position: 'fixed', inset: 0, zIndex: 40, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.5)' }}
+        className="fixed inset-0 z-40 flex flex-col justify-end bg-black/50"
         onClick={closeDetail}
       >
         <div
-          style={{ background: 'var(--bg2)', borderRadius: '16px 16px 0 0', padding: '16px 16px 36px', maxHeight: '80vh', overflowY: 'auto' }}
+          className="bg-surface-raised rounded-t-2xl p-[16px_16px_36px] max-h-[80vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
           {/* 타이틀 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div className="flex items-center gap-2.5 mb-4">
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{selDiv.floorLabel} · {selDiv.loc}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{POS_LABEL[selDiv.pos]} · {selDiv.id}</div>
+              <div className="text-[16px] font-bold text-text-primary">{selDiv.floorLabel} · {selDiv.loc}</div>
+              <div className="text-[12px] text-text-tertiary mt-0.5">{POS_LABEL[selDiv.pos]} · {selDiv.id}</div>
             </div>
             {/* 연도 선택 */}
-            <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
-                {year > 2023 && <button onClick={e => { e.stopPropagation(); setYear(y => y - 1) }} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>‹</button>}
+            <div className="flex items-center ml-auto">
+              <div className="w-[30px] flex justify-center">
+                {year > 2023 && <button onClick={e => { e.stopPropagation(); setYear(y => y - 1) }} className="bg-surface-sunken border-0 rounded-md px-2 py-1 text-text-secondary text-[15px] cursor-pointer">‹</button>}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 38, textAlign: 'center', display: 'inline-block' }}>{year}</span>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
-                {year < new Date().getFullYear() && <button onClick={e => { e.stopPropagation(); setYear(y => y + 1) }} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>›</button>}
+              <span className="text-[13px] font-bold text-text-primary w-[38px] text-center inline-block">{year}</span>
+              <div className="w-[30px] flex justify-center">
+                {year < new Date().getFullYear() && <button onClick={e => { e.stopPropagation(); setYear(y => y + 1) }} className="bg-surface-sunken border-0 rounded-md px-2 py-1 text-text-secondary text-[15px] cursor-pointer">›</button>}
               </div>
             </div>
             <button
               onClick={closeDetail}
-              style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 20, cursor: 'pointer' }}
+              className="bg-transparent border-0 text-text-tertiary text-[20px] cursor-pointer"
             >✕</button>
           </div>
 
           {/* 3개 분리 차트 */}
           {hist.length === 0 ? (
-            <div style={{ textAlign: 'center', color: 'var(--t3)', padding: '30px 0', fontSize: 13 }}>데이터 없음</div>
+            <div className="text-center text-text-tertiary py-[30px] text-[13px]">데이터 없음</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="flex flex-col gap-2.5">
               {([
-                { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
-                { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
-                { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
+                { key: 'pressure_1' as const,   label: '1차압',  color: 'var(--accent)',          dashed: false },
+                { key: 'pressure_2' as const,   label: '2차압',  color: 'var(--status-fire-bar)', dashed: false },
+                { key: 'pressure_set' as const, label: '세팅압', color: 'var(--status-safe-bar)', dashed: true  },
               ] as const).map(({ key, label, color, dashed }) => {
                 const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
                 if (vals.length === 0) return null
@@ -465,12 +468,12 @@ export default function DivPage() {
                 const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
                 return (
                   <div key={key}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 3 }}>{label}</div>
-                    <div style={{ overflowX: 'auto' }}>
-                      <svg width={Math.max(W, n * 28)} height={sH} style={{ display: 'block' }}>
+                    <div className="text-[12px] font-bold mb-1" style={{ color }}>{label}</div>
+                    <div className="overflow-x-auto">
+                      <svg width={Math.max(W, n * 28)} height={sH} className="block">
                         {sTicks.map((t, ti) => (
                           <g key={ti}>
-                            <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
+                            <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="12" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
                             <line x1={sPadL} y1={spy(t)} x2={W - sPadR} y2={spy(t)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                           </g>
                         ))}
@@ -486,8 +489,8 @@ export default function DivPage() {
                             }
                           }
                           return labels.map((L, idx) => (
-                            <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="10" fontFamily="JetBrains Mono, monospace">
-                              {String(L.m).padStart(2, '0')}
+                            <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
+                              {String(L.m).padStart(2, '00')}
                             </text>
                           ))
                         })()}
@@ -504,7 +507,7 @@ export default function DivPage() {
                           return (
                             <g key={i}>
                               <circle cx={cx} cy={cy} r={3}
-                                fill={isLate ? color : 'var(--bg2)'}
+                                fill={isLate ? color : 'var(--surface-raised)'}
                                 stroke={color} strokeWidth={isLate ? 0 : 1.5}
                               />
                               <text
@@ -526,17 +529,21 @@ export default function DivPage() {
 
           {/* 수치 테이블 */}
           {hist.length > 0 && (
-            <div style={{ marginTop: 14, borderRadius: 10, border: '1px solid var(--bd)', overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', background: 'var(--bg3)', padding: '7px 10px' }}>
+            <div className="mt-3.5 rounded-[10px] border border-border-default overflow-hidden">
+              <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken p-[8px_10px]">
                 {['월', '1차압', '2차압', '세팅압'].map(h => (
-                  <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
+                  <div key={h} className="text-[12px] font-bold text-text-tertiary text-center">{h}</div>
                 ))}
               </div>
               {[...hist].reverse().slice(0, 24).map((r: any) => (
-                <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
-                  <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
+                <div key={`${r.year}-${r.month}-${r.timing}`} className="grid grid-cols-[60px_1fr_1fr_1fr] p-[8px_10px] border-t border-border-default">
+                  <div className="text-[13px] text-text-secondary text-center font-mono">{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
                   {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                    <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                    <div key={i} className={`text-[14px] font-bold text-center font-mono ${
+                      i === 0 ? 'text-accent' :
+                      i === 1 ? 'text-status-fire-bar' :
+                                'text-status-safe-bar'
+                    }`}>
                       {v != null ? v.toFixed(1) : '-'}
                     </div>
                   ))}
@@ -577,16 +584,16 @@ export default function DivPage() {
     const n = hist.length
 
     if (hist.length === 0) {
-      return <div style={{ color: 'var(--t3)', padding: '30px 0', textAlign: 'center', fontSize: 13 }}>데이터 없음</div>
+      return <div className="text-text-tertiary py-[30px] text-center text-[13px]">데이터 없음</div>
     }
 
     return (
       <div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {([
-            { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
-            { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
-            { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
+            { key: 'pressure_1' as const,   label: '1차압',  color: 'var(--accent)',          dashed: false },
+            { key: 'pressure_2' as const,   label: '2차압',  color: 'var(--status-fire-bar)', dashed: false },
+            { key: 'pressure_set' as const, label: '세팅압', color: 'var(--status-safe-bar)', dashed: true  },
           ] as const).map(({ key, label, color, dashed }) => {
             const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
             if (vals.length === 0) return null
@@ -601,12 +608,12 @@ export default function DivPage() {
             const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
             return (
               <div key={key}>
-                <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 3 }}>{label}</div>
-                <div style={{ overflowX: 'auto' }}>
-                  <svg width={Math.max(W, n * 28)} height={sH} style={{ display: 'block' }}>
+                <div className="text-[12px] font-bold mb-1" style={{ color }}>{label}</div>
+                <div className="overflow-x-auto">
+                  <svg width={Math.max(W, n * 28)} height={sH} className="block">
                     {sTicks.map((t, ti) => (
                       <g key={ti}>
-                        <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
+                        <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="12" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
                         <line x1={sPadL} y1={spy(t)} x2={W - sPadR} y2={spy(t)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                       </g>
                     ))}
@@ -622,7 +629,7 @@ export default function DivPage() {
                         }
                       }
                       return labels.map((L, idx) => (
-                        <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="10" fontFamily="JetBrains Mono, monospace">
+                        <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
                           {String(L.m).padStart(2, '0')}
                         </text>
                       ))
@@ -640,7 +647,7 @@ export default function DivPage() {
                       return (
                         <g key={i}>
                           <circle cx={cx} cy={cy} r={3}
-                            fill={isLate ? color : 'var(--bg2)'}
+                            fill={isLate ? color : 'var(--surface-raised)'}
                             stroke={color} strokeWidth={isLate ? 0 : 1.5}
                           />
                           <text
@@ -660,17 +667,21 @@ export default function DivPage() {
         </div>
 
         {/* 수치 테이블 */}
-        <div style={{ marginTop: 14, borderRadius: 10, border: '1px solid var(--bd)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', background: 'var(--bg3)', padding: '7px 10px' }}>
+        <div className="mt-3.5 rounded-[10px] border border-border-default overflow-hidden">
+          <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken p-[8px_10px]">
             {['월', '1차압', '2차압', '세팅압'].map(h => (
-              <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
+              <div key={h} className="text-[12px] font-bold text-text-tertiary text-center">{h}</div>
             ))}
           </div>
           {[...hist].reverse().slice(0, 24).map((r: any) => (
-            <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
-              <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
+            <div key={`${r.year}-${r.month}-${r.timing}`} className="grid grid-cols-[60px_1fr_1fr_1fr] p-[8px_10px] border-t border-border-default">
+              <div className="text-[13px] text-text-secondary text-center font-mono">{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
               {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                <div key={i} className={`text-[14px] font-bold text-center font-mono ${
+                  i === 0 ? 'text-accent' :
+                  i === 1 ? 'text-status-fire-bar' :
+                            'text-status-safe-bar'
+                }`}>
                   {v != null ? v.toFixed(1) : '-'}
                 </div>
               ))}
@@ -685,7 +696,7 @@ export default function DivPage() {
   function renderDesktopLogTimeline(div: DivPoint, type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
     const dates = dateMap[div.id] ?? []
-    const color = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const color = type === 'drain' ? 'var(--status-info)' : type === 'comp_drain' ? '#8b4513' : 'var(--status-fire-bar)'
     const label = type === 'drain' ? '챔버 배수' : type === 'comp_drain' ? '탱크 배수' : '오일 보충'
 
     // 데스크톱용 큰 막대그래프: 최근 6건 → 5개 간격
@@ -705,11 +716,11 @@ export default function DivPage() {
     const chartH  = topPad + barMaxH + 70
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '.04em' }}>{label} 간격</div>
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '18px 20px' }}>
+      <div className="flex flex-col gap-3.5">
+        <div className="text-[12px] font-bold tracking-[0.04em]" style={{ color }}>{label} 간격</div>
+        <div className="bg-surface-raised border border-border-default rounded-[10px] p-[18px_20px]">
           {intervals.length === 0 ? (
-            <div style={{ height: chartH, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>
+            <div className="flex items-center justify-center text-text-tertiary text-[13px]" style={{ height: chartH }}>
               기록이 부족하여 간격을 표시할 수 없습니다 (최소 2건 필요)
             </div>
           ) : (
@@ -728,23 +739,23 @@ export default function DivPage() {
                       {days}일
                     </text>
                     <text x={cx} y={labelY} textAnchor="middle"
-                      fontSize="16" fontWeight="700" fill="var(--t2)" fontFamily="JetBrains Mono, monospace">{Number(mm)}월</text>
+                      fontSize="16" fontWeight="700" fill="var(--text-secondary)" fontFamily="JetBrains Mono, monospace">{Number(mm)}월</text>
                     <text x={cx} y={subY} textAnchor="middle"
-                      fontSize="14" fill="var(--t3)" fontFamily="JetBrains Mono, monospace">{Number(dd)}일</text>
+                      fontSize="14" fill="var(--text-tertiary)" fontFamily="JetBrains Mono, monospace">{Number(dd)}일</text>
                   </g>
                 )
               })}
             </svg>
           )}
         </div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', marginTop: 6 }}>최근 기록</div>
+        <div className="text-[12px] font-bold text-text-tertiary mt-1.5">최근 기록</div>
         {dates.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center' }}>기록 없음</div>
+          <div className="text-[13px] text-text-tertiary p-4 text-center">기록 없음</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {[...dates].reverse().slice(0, 20).map(d => (
-              <div key={d} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: 'var(--bg2)', borderRadius: 8, border: '1px solid var(--bd)' }}>
-                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--t1)' }}>{d}</span>
+              <div key={d} className="flex gap-2.5 p-[8px_12px] bg-surface-raised rounded-lg border border-border-default">
+                <span className="text-[13px] font-mono text-text-primary">{d}</span>
               </div>
             ))}
           </div>
@@ -777,29 +788,32 @@ export default function DivPage() {
       const oilSum = summarizeMap(oilDateMap)
 
       const counters = [
-        { label: '정상', count: okCount, color: '#22c55e', bg: 'rgba(34,197,94,.12)', border: 'rgba(34,197,94,.25)' },
-        { label: '주의', count: warnList.length, color: '#f59e0b', bg: 'rgba(245,158,11,.18)', border: 'rgba(245,158,11,.4)' },
-        { label: '이상', count: dangerList.length, color: 'var(--danger)', bg: 'rgba(239,68,68,.18)', border: 'rgba(239,68,68,.4)' },
+        { label: '정상', count: okCount,           bgClass: 'bg-status-safe-bg',    borderClass: 'border-status-safe-bar/25',    textClass: 'text-status-safe-bar' },
+        { label: '주의', count: warnList.length,   bgClass: 'bg-status-warning-bg', borderClass: 'border-status-warning-bar/40', textClass: 'text-status-warning-bar' },
+        { label: '이상', count: dangerList.length, bgClass: 'bg-status-danger-bg',  borderClass: 'border-status-danger-bar/40',  textClass: 'text-status-danger' },
       ]
 
       const logCards = [
-        { label: '챔버 배수', sum: drainSum, color: '#38bdf8' },
-        { label: '탱크 배수', sum: compDrainSum, color: '#8b4513' },
-        { label: '오일 보충', sum: oilSum, color: '#f97316' },
+        { label: '챔버 배수', sum: drainSum,     colorClass: 'text-status-info' },
+        { label: '탱크 배수', sum: compDrainSum, colorClass: 'text-[#8b4513]' },
+        { label: '오일 보충', sum: oilSum,       colorClass: 'text-status-fire-bar' },
       ]
 
       const alertItems = [...dangerList, ...warnList]
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="flex flex-col gap-[18px]">
           {/* 섹션 1: 측정점 현황 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>◆ 34개 측정점 현황</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
+              <BarChart3 className="w-4 h-4" />
+              34개 측정점 현황
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
               {counters.map(c => (
-                <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: c.color, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace' }}>{c.count}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 6, fontWeight: 600 }}>{c.label}</div>
+                <div key={c.label} className={`${c.bgClass} border ${c.borderClass} rounded-[10px] p-[14px_12px] text-center`}>
+                  <div className={`text-[28px] font-extrabold leading-none font-mono ${c.textClass}`}>{c.count}</div>
+                  <div className="text-[12px] text-text-secondary mt-1.5 font-semibold">{c.label}</div>
                 </div>
               ))}
             </div>
@@ -807,15 +821,18 @@ export default function DivPage() {
 
           {/* 섹션 2: 배수/오일 현황 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 배수/오일 현황 ──</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
+              <Droplets className="w-4 h-4" />
+              배수/오일 현황
+            </div>
+            <div className="grid grid-cols-3 gap-2.5">
               {logCards.map(card => (
-                <div key={card.label} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '12px 12px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: card.color, marginBottom: 6, letterSpacing: '.04em' }}>{card.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace' }}>
+                <div key={card.label} className="bg-surface-raised border border-border-default rounded-[10px] p-[12px_12px]">
+                  <div className={`text-[12px] font-bold mb-1.5 tracking-[0.04em] ${card.colorClass}`}>{card.label}</div>
+                  <div className="text-[18px] font-extrabold text-text-primary font-mono">
                     {card.sum.avg != null ? `평균 ${card.sum.avg}일` : '기록 없음'}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>
+                  <div className="text-[12px] text-text-tertiary mt-1 font-mono">
                     {card.sum.recent ? `최근 ${card.sum.recent}` : '—'}
                   </div>
                 </div>
@@ -825,37 +842,39 @@ export default function DivPage() {
 
           {/* 섹션 3: 이상/주의 리스트 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 이상/주의 포인트 ──</div>
+            <div className="inline-flex items-center gap-2 text-[13px] font-bold text-text-secondary mb-2.5">
+              <AlertTriangle className="w-4 h-4" />
+              이상/주의 포인트
+            </div>
             {alertItems.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8 }}>
+              <div className="text-[12px] text-text-tertiary p-4 text-center bg-surface-raised border border-border-default rounded-lg">
                 이상·주의 포인트가 없습니다
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {alertItems.map(item => {
                   const isDanger = item.status === 'danger'
                   return (
                     <button
                       key={item.point.id}
                       onClick={() => setSelDiv(item.point as DivPoint)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px',
-                        background: isDanger ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
-                        border: `1px solid ${isDanger ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`,
-                        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                      }}
+                      className={`flex items-center gap-2.5 p-[10px_12px] rounded-lg cursor-pointer text-left border ${
+                        isDanger
+                          ? 'bg-status-danger-bg/50 border-status-danger-bar/30'
+                          : 'bg-status-warning-bg/50 border-status-warning-bar/30'
+                      }`}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', flexShrink: 0, minWidth: 32 }}>
-                        {isDanger ? '● 이상' : '◐ 주의'}
+                      <span className={`inline-flex items-center gap-1.5 text-[12px] font-bold flex-shrink-0 min-w-[56px] ${isDanger ? 'text-status-danger' : 'text-status-warning-bar'}`}>
+                        <span className={`w-2 h-2 rounded-full inline-block ${isDanger ? 'bg-status-danger' : 'bg-status-warning-bar'}`} />
+                        {isDanger ? '이상' : '주의'}
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0, minWidth: 48 }}>
+                      <span className="text-[14px] font-bold text-text-primary font-mono flex-shrink-0 min-w-[80px]">
                         {item.point.id}
                       </span>
-                      <span style={{ fontSize: 11, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <span className="text-[12px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                         {item.point.floorLabel} · {item.point.loc}
                       </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                      <span className={`text-[12px] font-bold font-mono flex-shrink-0 ${isDanger ? 'text-status-danger' : 'text-status-warning-bar'}`}>
                         {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
                       </span>
                     </button>
@@ -871,40 +890,40 @@ export default function DivPage() {
     // B. 선택 상태: 제목 + 연도 네비 + 내부 탭 + 탭 콘텐츠
     const selectedDiv: DivPoint = selDiv
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 40 }}>
+      <div className="flex flex-col gap-3.5 pb-10">
         {/* 헤더: 제목 + 연도 네비 + ✕ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 min-w-0">
+            <div className="text-[16px] font-bold text-text-primary">
               {selectedDiv.floorLabel} · {selectedDiv.loc}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
+            <div className="text-[12px] text-text-tertiary mt-0.5">
               {POS_LABEL[selectedDiv.pos]} · {selectedDiv.id}
             </div>
           </div>
           {tab === 'pressure' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="w-[30px] flex justify-center">
                 {year > 2023 && (
-                  <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>‹</button>
+                  <button onClick={() => setYear(y => y - 1)} className="bg-surface-sunken border-0 rounded-md px-2 py-1 text-text-secondary text-[15px] cursor-pointer">‹</button>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 38, textAlign: 'center', display: 'inline-block' }}>{year}</span>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+              <span className="text-[13px] font-bold text-text-primary w-[38px] text-center inline-block">{year}</span>
+              <div className="w-[30px] flex justify-center">
                 {year < new Date().getFullYear() && (
-                  <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>›</button>
+                  <button onClick={() => setYear(y => y + 1)} className="bg-surface-sunken border-0 rounded-md px-2 py-1 text-text-secondary text-[15px] cursor-pointer">›</button>
                 )}
               </div>
             </div>
           )}
           <button
             onClick={closeDetail}
-            style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 22, cursor: 'pointer', flexShrink: 0 }}
+            className="bg-transparent border-0 text-text-tertiary text-[22px] cursor-pointer flex-shrink-0"
           >✕</button>
         </div>
 
         {/* 내부 탭 */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--bd)' }}>
+        <div className="flex border-b border-border-default">
           {([
             { key: 'pressure',   label: '압력 트렌드' },
             { key: 'drain',      label: '챔버배수' },
@@ -914,12 +933,9 @@ export default function DivPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              style={{
-                flex: 1, padding: '8px 4px', border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: 12, fontWeight: 600,
-                color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
-                borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
-              }}
+              className={`flex-1 p-[10px_4px] border-0 bg-transparent cursor-pointer text-[13px] font-semibold border-b-2 ${
+                tab === t.key ? 'text-accent border-accent' : 'text-text-tertiary border-transparent'
+              }`}
             >{t.label}</button>
           ))}
         </div>
@@ -936,68 +952,62 @@ export default function DivPage() {
   // ── 데스크톱: 전체 레이아웃 (헤더 + 배너 + 좌 매트릭스 + 우 상세) ─────────
   function renderDesktopLayout() {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-        {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
-        <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+      <div className="h-full flex flex-col overflow-hidden bg-surface-page">
+        {/* 헤더 — 데스크톱 표준 (sketch 07a) */}
+        <header className="flex-shrink-0 h-[54px] bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
+          <span className="flex-1 text-[16px] font-bold text-text-primary">DIV 압력 관리</span>
         </header>
 
         {/* 상단 알림 배너 */}
-        <div style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 24px', display: 'flex', alignItems: 'center', gap: 10, overflowX: 'auto' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>
-            ⚠ 이상 {dangerList.length}건 · 주의 {warnList.length}건
+        <div className="flex-shrink-0 bg-surface-raised border-b border-border-default p-[8px_24px] flex items-center gap-2.5 overflow-x-auto">
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-text-secondary flex-shrink-0">
+            <AlertTriangle className="w-[14px] h-[14px]" />
+            이상 {dangerList.length}건 · 주의 {warnList.length}건
           </span>
           {[...dangerList, ...warnList].map(item => (
             <button
               key={item.point.id}
               onClick={() => setSelDiv(item.point as DivPoint)}
-              style={{
-                flexShrink: 0,
-                border: '1px solid',
-                borderColor: item.status === 'danger' ? 'rgba(239,68,68,.4)' : 'rgba(245,158,11,.4)',
-                background: item.status === 'danger' ? 'rgba(239,68,68,.12)' : 'rgba(245,158,11,.12)',
-                color: item.status === 'danger' ? 'var(--danger)' : '#f59e0b',
-                borderRadius: 16, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              className={`flex-shrink-0 inline-flex items-center gap-1.5 border rounded-2xl px-2.5 py-1 text-[11px] font-bold cursor-pointer whitespace-nowrap ${
+                item.status === 'danger'
+                  ? 'border-status-danger-bar/40 bg-status-danger-bg text-status-danger'
+                  : 'border-status-warning-bar/40 bg-status-warning-bg text-status-warning-bar'
+              }`}
             >
-              {item.status === 'danger' ? '●' : '◐'} {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
+              <span className={`w-2 h-2 rounded-full inline-block ${item.status === 'danger' ? 'bg-status-danger' : 'bg-status-warning-bar'}`} />
+              {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
             </button>
           ))}
           {dangerList.length === 0 && warnList.length === 0 && (
-            <span style={{ fontSize: 11, color: 'var(--t3)' }}>모든 포인트 정상</span>
+            <span className="text-[11px] text-text-tertiary">모든 포인트 정상</span>
           )}
         </div>
 
         {/* 본문: 좌 매트릭스 / 우 상세 */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 flex overflow-hidden">
           {/* 좌측 매트릭스 */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
+          <div className="flex-1 min-w-0 border-r border-border-default overflow-y-auto p-[20px_24px]">
             {/* 테이블 헤더 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--bd)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>층</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#1 연구동</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#2 연구동</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#3 사무동</div>
+            <div className="grid grid-cols-[80px_repeat(3,1fr)] gap-2 mb-2.5 pb-2.5 border-b border-border-default">
+              <div className="text-[12px] font-bold text-text-tertiary">층</div>
+              <div className="text-[12px] font-bold text-text-tertiary text-center">#1 연구동</div>
+              <div className="text-[12px] font-bold text-text-tertiary text-center">#2 연구동</div>
+              <div className="text-[12px] font-bold text-text-tertiary text-center">#3 사무동</div>
             </div>
 
             {FLOOR_GROUPS.map(group => {
               const floorLabel = group[0].floorLabel
               return (
-                <div key={group[0].floor} style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 6 }}>
+                <div key={group[0].floor} className="grid grid-cols-[80px_repeat(3,1fr)] gap-2 mb-2">
                   {/* 층 라벨 */}
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                  <div className="text-[13px] font-bold text-text-secondary flex items-center pl-1">
                     {floorLabel}
                   </div>
                   {[1, 2, 3].map(pos => {
                     const div = group.find(g => g.pos === pos) as DivPoint | undefined
                     if (!div) {
                       return (
-                        <div key={pos} style={{
-                          background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 8,
-                          minHeight: 54, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--t3)', fontSize: 14,
-                        }}>—</div>
+                        <div key={pos} className="bg-surface-sunken border border-dashed border-border-default rounded-lg min-h-[80px] flex items-center justify-center text-text-tertiary text-[16px] p-[10px_12px]">—</div>
                       )
                     }
                     const info = pointStatusList.find(p => p.point.id === div.id)
@@ -1005,50 +1015,49 @@ export default function DivPage() {
                     const last = info?.last ?? null
                     const selected = selDiv?.id === div.id
 
-                    let bg = 'var(--bg2)'
-                    let border = 'var(--bd)'
-                    if (status === 'danger')      { bg = 'rgba(239,68,68,.18)';  border = 'rgba(239,68,68,.4)' }
-                    else if (status === 'warn')   { bg = 'rgba(245,158,11,.18)'; border = 'rgba(245,158,11,.4)' }
-                    else if (last)                { bg = 'rgba(34,197,94,.12)';  border = 'rgba(34,197,94,.25)' }
+                    let bgClass = 'bg-surface-raised'
+                    let borderClass = 'border border-border-default'
+                    if (status === 'danger')      { bgClass = 'bg-status-danger-bg';  borderClass = 'border border-status-danger-bar/40' }
+                    else if (status === 'warn')   { bgClass = 'bg-status-warning-bg'; borderClass = 'border border-status-warning-bar/40' }
+                    else if (last)                { bgClass = 'bg-status-safe-bg';    borderClass = 'border border-status-safe-bar/25' }
+                    const selectedBorder = selected ? 'border-2 border-accent' : borderClass
+                    const padding = selected ? 'p-[9px_11px]' : 'p-[10px_12px]'
+
+                    const colColor = (col: '1차' | '2차' | '세팅') => {
+                      if (info?.worstKind === col) {
+                        return status === 'danger' ? 'text-status-danger' : status === 'warn' ? 'text-status-warning' : ''
+                      }
+                      return col === '1차' ? 'text-accent' : col === '2차' ? 'text-status-fire-bar' : 'text-status-safe-bar'
+                    }
 
                     return (
                       <div
                         key={pos}
                         onClick={() => setSelDiv(div)}
-                        style={{
-                          background: bg,
-                          border: selected ? '2px solid var(--acl)' : `1px solid ${border}`,
-                          borderRadius: 8,
-                          padding: selected ? '7px 9px' : '8px 10px',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          minHeight: 64,
-                          display: 'flex', flexDirection: 'column',
-                          transition: 'background .1s',
-                        }}
+                        className={`${bgClass} ${selectedBorder} ${padding} rounded-lg relative min-h-[80px] flex flex-col cursor-pointer transition-colors`}
                       >
-                        {/* 우상단 뱃지 */}
+                        {/* 우상단 배지 */}
                         {status === 'danger' && (
-                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: 'var(--danger)' }}>이상</span>
+                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-status-danger">이상</span>
                         )}
                         {status === 'warn' && (
-                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: '#f59e0b' }}>주의</span>
+                          <span className="absolute top-1.5 right-2.5 text-[11px] font-bold text-status-warning-bar">주의</span>
                         )}
                         {/* 좌상단: 개소번호 + 월 (세로 스택) */}
-                        <div style={{ position: 'absolute', top: 6, left: 10, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)', lineHeight: 1 }}>{div.id}</div>
-                          <div style={{ fontSize: 9, color: 'var(--t3)', lineHeight: 1 }}>
+                        <div className="absolute top-2 left-3 flex flex-col gap-0.5">
+                          <div className="text-[13px] font-bold text-text-primary leading-none">{div.id}</div>
+                          <div className="text-[12px] text-text-tertiary leading-none">
                             {last ? `${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
                           </div>
                         </div>
                         {/* 중앙: 1차/2차/세팅압 */}
                         {last && (
-                          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
-                            <span style={{ color: '#3b82f6' }}>{last.v1.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
-                            <span style={{ color: '#f97316' }}>{last.v2.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
-                            <span style={{ color: '#22c55e' }}>{last.vc.toFixed(1)}</span>
+                          <div className="absolute bottom-2.5 left-0 right-0 flex justify-center items-center gap-2.5 font-mono leading-none">
+                            <span className={`text-[18px] font-bold ${colColor('1차')}`}>{last.v1.toFixed(1)}</span>
+                            <span className="text-[13px] text-text-tertiary font-normal">|</span>
+                            <span className={`text-[18px] font-bold ${colColor('2차')}`}>{last.v2.toFixed(1)}</span>
+                            <span className="text-[13px] text-text-tertiary font-normal">|</span>
+                            <span className={`text-[18px] font-bold ${colColor('세팅')}`}>{last.vc.toFixed(1)}</span>
                           </div>
                         )}
                       </div>
@@ -1059,24 +1068,24 @@ export default function DivPage() {
             })}
 
             {/* 범례 */}
-            <div style={{ marginTop: 16, padding: '10px 12px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--t3)', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(34,197,94,.12)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 3 }} /> 정상
+            <div className="mt-4 p-[12px_12px] border-t border-border-default flex gap-4 flex-wrap text-[12px] text-text-tertiary">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-[14px] h-[14px] bg-status-safe-bg border border-status-safe-bar/25 rounded-[3px]" /> 정상
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(245,158,11,.18)', border: '1px solid rgba(245,158,11,.4)', borderRadius: 3 }} /> 주의
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-[14px] h-[14px] bg-status-warning-bg border border-status-warning-bar/40 rounded-[3px]" /> 주의
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(239,68,68,.18)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 3 }} /> 이상
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-[14px] h-[14px] bg-status-danger-bg border border-status-danger-bar/40 rounded-[3px]" /> 이상
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 3 }} /> 해당없음
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-[14px] h-[14px] bg-surface-sunken border border-dashed border-border-default rounded-[3px]" /> 해당없음
               </span>
             </div>
           </div>
 
           {/* 우측 상세 패널 */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 24px' }}>
+          <div className="flex-1 min-w-0 overflow-y-auto p-[20px_24px]">
             {renderDesktopRightPanel()}
           </div>
         </div>
@@ -1089,18 +1098,18 @@ export default function DivPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
       {/* ── 헤더 ── */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      <header className="flex-shrink-0 flex items-center h-12 px-3 bg-surface-raised border-b border-border-default">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-[7px] bg-surface-sunken flex items-center justify-center text-text-secondary cursor-pointer border-0">
+          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+        <span className="flex-1 text-[13px] font-bold text-text-primary ml-2">DIV 압력 관리</span>
       </header>
 
       {/* ── 탭 ── */}
-      <div style={{ flexShrink: 0, display: 'flex', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
+      <div className="flex-shrink-0 flex bg-surface-raised border-b border-border-default">
         {([
           { key: 'pressure',   label: '압력 트렌드' },
           { key: 'drain',      label: '챔버배수주기' },
@@ -1110,19 +1119,13 @@ export default function DivPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: 'transparent',
-              color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
-              borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
-              transition: 'color .15s',
-            }}
+            className={`flex-1 px-1 py-2.5 text-[12px] font-semibold bg-transparent cursor-pointer transition-colors border-b-2 ${tab === t.key ? 'text-accent border-accent' : 'text-text-tertiary border-transparent'}`}
           >{t.label}</button>
         ))}
       </div>
 
       {/* ── 컨텐츠 ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="flex-1 overflow-y-auto">
         {tab === 'pressure'   && renderPressureTab()}
         {tab === 'drain'      && renderLogTab('drain')}
         {tab === 'comp_drain' && renderLogTab('comp_drain')}

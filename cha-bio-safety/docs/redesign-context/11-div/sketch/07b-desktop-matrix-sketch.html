@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 7b · 데스크톱 매트릭스</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-fire-bar: #f97316;
+      --status-safe-bar: #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger:   #f87171;
+      --safe-bg:    rgba(34,197,94,0.12);
+      --safe-bd:    rgba(34,197,94,0.25);
+      --warn-bg:    rgba(245,158,11,0.18);
+      --warn-bd:    rgba(245,158,11,0.4);
+      --danger-bg:  rgba(239,68,68,0.18);
+      --danger-bd:  rgba(239,68,68,0.4);
+    }
+    [data-theme="light"] {
+      --surface-page:   #ffffff;
+      --surface-raised: #f6f8fa;
+      --surface-sunken: #ebeef1;
+      --text-primary:   #1f2328;
+      --text-secondary: #4d5562;
+      --text-tertiary:  #656d76;
+      --border-default: #d8dee4;
+      --accent:         #1f6feb;
+      --status-fire-bar:#9a3412;
+      --status-safe-bar:#166534;
+      --status-warning-bar:#854d0e;
+      --status-danger:  #991b1b;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 1280px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 1280px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 데스크톱 다크 — 매트릭스 (좌측 본문, 우측 미포함) -->
+    <div>
+      <div class="label">VP1 · 데스크톱 다크 · 1280×640 (좌측 매트릭스, 6층 × 3포지션 + 범례. 우측 상세 패널은 영역 7c)</div>
+      <div class="frame" data-theme="dark" style="height: 640px;">
+        <!-- 매트릭스 컨테이너 (전체 1280 의 좌측 ~50% 영역 시각화. 실제는 flex: 1) -->
+        <div style="width: 720px; height: 100%; border-right: 1px solid var(--border-default); overflow-y: auto; padding: 20px 24px;">
+
+          <!-- 테이블 헤더 -->
+          <div style="display: grid; grid-template-columns: 80px repeat(3, 1fr); gap: 8px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-default);">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary);">층</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">#1 연구동</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">#2 연구동</div>
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">#3 사무동</div>
+          </div>
+
+          <!-- 5F: 정상 / 정상 / 해당없음 -->
+          <div style="display: grid; grid-template-columns: 80px repeat(3, 1fr); gap: 8px; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; padding-left: 4px;">5F</div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-5F-1</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.6</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.4</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.5</span>
+              </div>
+            </div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px; display: flex; flex-direction: column; gap: 2px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-5F-2</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</span>
+              </div>
+            </div>
+            <div style="background: var(--surface-sunken); border: 1px dashed var(--border-default); border-radius: 8px; padding: 10px 12px; min-height: 80px; display: flex; align-items: center; justify-content: center; color: var(--text-tertiary); font-size: 16px;">—</div>
+          </div>
+
+          <!-- 4F: 정상 / 주의 / 정상 -->
+          <div style="display: grid; grid-template-columns: 80px repeat(3, 1fr); gap: 8px; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; padding-left: 4px;">4F</div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-4F-1</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</span>
+              </div>
+            </div>
+            <div style="background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <span style="position: absolute; top: 6px; right: 10px; font-size: 11px; font-weight: 700; color: var(--status-warning-bar);">주의</span>
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-4F-2</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.6</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.4</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: #fbbf24;">0.4</span>
+              </div>
+            </div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-4F-3</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3F: 주의 / 정상 / 정상 -->
+          <div style="display: grid; grid-template-columns: 80px repeat(3, 1fr); gap: 8px; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; padding-left: 4px;">3F</div>
+            <div style="background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <span style="position: absolute; top: 6px; right: 10px; font-size: 11px; font-weight: 700; color: var(--status-warning-bar);">주의</span>
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-3F-1</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.6</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: #fbbf24;">0.3</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.5</span>
+              </div>
+            </div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-3F-2</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</span>
+              </div>
+            </div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-3F-3</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.8</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.7</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2F: 이상 (선택됨) / 주의 / 정상 -->
+          <div style="display: grid; grid-template-columns: 80px repeat(3, 1fr); gap: 8px; margin-bottom: 8px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); display: flex; align-items: center; padding-left: 4px;">2F</div>
+            <!-- 선택됨 (border 2px accent) -->
+            <div style="background: var(--danger-bg); border: 2px solid var(--accent); border-radius: 8px; padding: 9px 11px; min-height: 80px; position: relative; cursor: pointer;">
+              <span style="position: absolute; top: 6px; right: 10px; font-size: 11px; font-weight: 700; color: var(--status-danger);">이상</span>
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-2F-1</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.8</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-danger);">0.3</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.7</span>
+              </div>
+            </div>
+            <div style="background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <span style="position: absolute; top: 6px; right: 10px; font-size: 11px; font-weight: 700; color: var(--status-warning-bar);">주의</span>
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-2F-2</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: #fbbf24;">0.9</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.4</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.5</span>
+              </div>
+            </div>
+            <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 8px; padding: 10px 12px; min-height: 80px; position: relative; cursor: pointer;">
+              <div style="position: absolute; top: 8px; left: 12px;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); line-height: 1;">DIV-2F-3</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); line-height: 1; margin-top: 2px;">5월초</div>
+              </div>
+              <div style="position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--accent);">0.7</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-fire-bar);">0.5</span>
+                <span style="font-size: 13px; color: var(--text-tertiary); font-weight: 400;">|</span>
+                <span class="mono" style="font-size: 18px; font-weight: 700; line-height: 1; color: var(--status-safe-bar);">0.6</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 범례 -->
+          <div style="margin-top: 16px; padding: 12px 12px; border-top: 1px solid var(--border-default); display: flex; gap: 16px; font-size: 12px; color: var(--text-tertiary); flex-wrap: wrap;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 14px; height: 14px; background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 3px;"></span> 정상
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 14px; height: 14px; background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 3px;"></span> 주의
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 14px; height: 14px; background: var(--danger-bg); border: 1px solid var(--danger-bd); border-radius: 3px;"></span> 이상
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 14px; height: 14px; background: var(--surface-sunken); border: 1px dashed var(--border-default); border-radius: 3px;"></span> 해당없음
+            </span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>데스크톱 좌측 매트릭스 (DivPage.tsx line 972~1075 verbatim + 색 토큰화 + 글씨 격상)</b></p>
+    <p style="margin-bottom: 4px;"><b>구조</b></p>
+    <p style="margin-bottom: 4px;">• 컨테이너 <b>flex: 1 (좌측 절반) + border-right + overflow-y auto + padding 20/24</b> (verbatim)</p>
+    <p style="margin-bottom: 4px;">• 테이블 헤더 <b>grid 80px + 3×1fr</b> + 컬럼 라벨 "층 / #1 연구동 / #2 연구동 / #3 사무동" (verbatim)</p>
+    <p style="margin-bottom: 10px;">• 각 행 <b>grid 80px + 3×1fr + gap 8px</b></p>
+    <p style="margin-bottom: 4px;"><b>셀 (4 상태)</b></p>
+    <p style="margin-bottom: 4px;">• 정상 = <b>bg-status-safe-bg + border-safe-bar/25</b></p>
+    <p style="margin-bottom: 4px;">• 주의 = <b>bg-status-warning-bg + border-warning-bar/40</b> + 우상단 "주의" 배지 11px font-bold</p>
+    <p style="margin-bottom: 4px;">• 이상 = <b>bg-status-danger-bg + border-danger-bar/40</b> + "이상" 배지</p>
+    <p style="margin-bottom: 4px;">• 해당없음 = <b>bg-surface-sunken + border-dashed default + "—" 16px</b></p>
+    <p style="margin-bottom: 10px;">• 선택 = <b>border 2px accent</b> + padding 9/11 (다른 셀 10/12)</p>
+    <p style="margin-bottom: 4px;"><b>셀 내용 (글씨 격상 — verbatim → 노안 친화)</b></p>
+    <p style="margin-bottom: 4px;">• 좌상단 개소번호 <b>13px font-bold</b> (verbatim 10px → 13px)</p>
+    <p style="margin-bottom: 4px;">• 좌상단 월 <b>12px text-tertiary</b> (verbatim 9px → 12px)</p>
+    <p style="margin-bottom: 4px;">• 중앙 1차|2차|세팅 <b>18px mono font-bold</b> + 컬럼 색 (verbatim 15px → 18px)</p>
+    <p style="margin-bottom: 4px;">• 구분자 "|" <b>13px text-tertiary font-normal</b> (verbatim 12px → 13px 미세)</p>
+    <p style="margin-bottom: 10px;">• 우상단 배지 <b>11px font-bold</b> (verbatim 8px → 11px)</p>
+    <p style="margin-bottom: 4px;"><b>범례</b></p>
+    <p style="margin-bottom: 4px;">• padding 12/12 + border-top + flex gap 16</p>
+    <p style="margin-bottom: 10px;">• 색 박스 <b>14×14 rounded-sm</b> + 라벨 <b>12px text-tertiary</b> (verbatim 11px → 12px + 박스 12→14)</p>
+    <p style="margin-bottom: 4px;"><b>컬럼 값 색 매핑 (영역 3/4 와 동일)</b></p>
+    <p style="margin-bottom: 4px;">• 1차 ok → text-accent / warn → status-warning (#fbbf24) / danger → status-danger</p>
+    <p style="margin-bottom: 4px;">• 2차 ok → text-status-fire-bar / warn → status-warning / danger → status-danger</p>
+    <p style="margin-bottom: 10px;">• 세팅 ok → text-status-safe-bar / warn → status-warning / danger → status-danger</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>중앙 값 더 격상</b> (18 → 22) — 강조 ↑. 셀 minHeight 80 → 96 필요할 수 있음.</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>1차/2차/세팅 컬럼 라벨 추가</b> (값 위에 작은 라벨) — 어떤 값이 1차/2차/세팅인지 명시. 현재는 색으로만 구분.</p>
+    <p>현재 패턴으로 OK 면 영역 7c (우측 상세 패널 — 차트/타임라인/빈 상태) 진행. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>

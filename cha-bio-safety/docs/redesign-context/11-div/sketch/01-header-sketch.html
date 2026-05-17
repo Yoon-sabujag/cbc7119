@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 1 · 자체 헤더</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --border-strong:  rgba(255,255,255,0.22);
+    }
+    [data-theme="light"] {
+      --surface-page:   #ffffff;
+      --surface-raised: #f6f8fa;
+      --surface-sunken: #ebeef1;
+      --text-primary:   #1f2328;
+      --text-secondary: #4d5562;
+      --text-tertiary:  #656d76;
+      --border-default: #d8dee4;
+      --border-strong:  #afb8c1;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 393px; }
+    .note b { color: #e6edf3; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 모바일 다크 -->
+    <div>
+      <div class="label">VP1 · 모바일 다크 · 393×88 (App GlobalHeader verbatim 매칭)</div>
+      <div class="frame" data-theme="dark" style="height: 88px;">
+        <!-- 자체 헤더 -->
+        <header class="flex items-center h-12 px-3 bg-[var(--surface-raised)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-[7px] bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)] ml-2">DIV 압력 관리</span>
+        </header>
+      </div>
+    </div>
+
+    <!-- VP2 모바일 라이트 -->
+    <div>
+      <div class="label">VP2 · 모바일 라이트 · 393×88 (App GlobalHeader verbatim 매칭)</div>
+      <div class="frame" data-theme="light" style="height: 88px;">
+        <header class="flex items-center h-12 px-3 bg-[var(--surface-raised)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-[7px] bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)] ml-2">DIV 압력 관리</span>
+        </header>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>App GlobalHeader.tsx verbatim 매칭</b> (대시보드/메인 등 모든 페이지가 쓰는 글로벌 헤더와 동일 사이즈)</p>
+    <p style="margin-bottom: 4px;">• 헤더 높이 <b>48px</b> (h-12)</p>
+    <p style="margin-bottom: 4px;">• 헤더 padding <b>0 12px</b> (px-3) + 좌측 버튼 ↔ 제목 사이 8px gap (ml-2)</p>
+    <p style="margin-bottom: 4px;">• 헤더 배경 <b>bg-surface-raised</b> (var(--bg2)) + border-b border-default</p>
+    <p style="margin-bottom: 4px;">• 좌측 버튼 <b>32×32 rounded-[7px]</b> bg-surface-sunken (var(--bg3)) <b>border 없음</b></p>
+    <p style="margin-bottom: 4px;">• 좌측 버튼 아이콘 <b>svg 15×15</b> stroke-2 text-secondary (lucide 아니라 원본 svg verbatim)</p>
+    <p style="margin-bottom: 4px;">• 제목 <b>fontSize 13 fontWeight 700</b> text-primary</p>
+    <p style="margin-bottom: 10px;">• 우측 액션 <b>없음</b> (실제 DivPage.tsx 헤더에 없음)</p>
+    <p><b>차이점:</b> App 헤더는 메뉴 햄버거(`onMenuOpen`) 인데, 자체 헤더 페이지는 백 버튼(`navigate(-1)`)으로 leftSlot 교체. 사이즈·radius·색·아이콘 사이즈는 동일.</p>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 6 · 측정점 상세 모달</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-fire-bar: #f97316;
+      --status-safe-bar: #22c55e;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: #000;
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(1, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 880px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 · 모바일 다크 · 모달 풀 뷰 -->
+    <div>
+      <div class="label">VP1 · 모바일 다크 · 393×720 (측정점 상세 모달 — 바텀시트 + 차트 3종 + 수치 테이블)</div>
+      <div class="frame" style="height: 720px;">
+
+        <!-- 배경 dim (overlay) -->
+        <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.5);"></div>
+
+        <!-- 바텀시트 모달 -->
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface-raised); border-radius: 16px 16px 0 0; padding: 16px 16px 36px; max-height: 80vh; overflow-y: auto;">
+
+          <!-- 타이틀 영역 -->
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div>
+              <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">2F · 2층 Z3-1 (DIV1)</div>
+              <div style="font-size: 12px; color: var(--text-tertiary); margin-top: 2px;">DIV #1 · DIV-2F-1</div>
+            </div>
+            <!-- 연도 선택 -->
+            <div style="display: flex; align-items: center; margin-left: auto;">
+              <div style="width: 30px; display: flex; justify-content: center;">
+                <button style="background: var(--surface-sunken); border: none; border-radius: 6px; padding: 4px 8px; color: var(--text-secondary); font-size: 15px;">‹</button>
+              </div>
+              <span style="font-size: 13px; font-weight: 700; color: var(--text-primary); width: 38px; text-align: center;">2026</span>
+              <div style="width: 30px; display: flex; justify-content: center;">
+                <!-- 올해라 ▶ 비활성 (공간만 유지) -->
+              </div>
+            </div>
+            <button style="background: none; border: none; color: var(--text-tertiary); font-size: 20px;">✕</button>
+          </div>
+
+          <!-- 차트 3종 -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+
+            <!-- 1차압 -->
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px;">1차압</div>
+              <div style="overflow-x: auto;">
+                <svg width="361" height="160" style="display: block;">
+                  <!-- Y 축 tick label + grid line (3개) -->
+                  <text x="29" y="42" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.9</text>
+                  <line x1="34" y1="38" x2="349" y2="38" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="82" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.7</text>
+                  <line x1="34" y1="78" x2="349" y2="78" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="122" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.5</text>
+                  <line x1="34" y1="118" x2="349" y2="118" stroke="rgba(255,255,255,0.05)"/>
+                  <!-- X 축 월 라벨 -->
+                  <text x="50"  y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">06</text>
+                  <text x="100" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">08</text>
+                  <text x="150" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">10</text>
+                  <text x="200" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">12</text>
+                  <text x="250" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">02</text>
+                  <text x="300" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">04</text>
+                  <!-- polyline -->
+                  <polyline points="50,90 100,80 150,75 200,85 250,70 300,82" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+                  <!-- 데이터 점 + 값 텍스트 (rotate -90) -->
+                  <g><circle cx="50" cy="90" r="3" fill="var(--accent)"/><text x="50" y="72" text-anchor="middle" transform="rotate(-90, 50, 72)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.6</text></g>
+                  <g><circle cx="100" cy="80" r="3" fill="var(--accent)"/><text x="100" y="62" text-anchor="middle" transform="rotate(-90, 100, 62)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+                  <g><circle cx="150" cy="75" r="3" fill="var(--surface-raised)" stroke="var(--accent)" stroke-width="1.5"/><text x="150" y="57" text-anchor="middle" transform="rotate(-90, 150, 57)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+                  <g><circle cx="200" cy="85" r="3" fill="var(--accent)"/><text x="200" y="67" text-anchor="middle" transform="rotate(-90, 200, 67)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.6</text></g>
+                  <g><circle cx="250" cy="70" r="3" fill="var(--surface-raised)" stroke="var(--accent)" stroke-width="1.5"/><text x="250" y="52" text-anchor="middle" transform="rotate(-90, 250, 52)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.8</text></g>
+                  <g><circle cx="300" cy="82" r="3" fill="var(--accent)"/><text x="300" y="64" text-anchor="middle" transform="rotate(-90, 300, 64)" font-size="11" fill="var(--accent)" font-family="JetBrains Mono" opacity="0.9">0.7</text></g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 2차압 -->
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--status-fire-bar); margin-bottom: 4px;">2차압</div>
+              <div style="overflow-x: auto;">
+                <svg width="361" height="160" style="display: block;">
+                  <text x="29" y="42" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.7</text>
+                  <line x1="34" y1="38" x2="349" y2="38" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="82" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.5</text>
+                  <line x1="34" y1="78" x2="349" y2="78" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="122" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.3</text>
+                  <line x1="34" y1="118" x2="349" y2="118" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="50"  y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">06</text>
+                  <text x="150" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">10</text>
+                  <text x="250" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">02</text>
+                  <polyline points="50,85 100,90 150,82 200,95 250,88 300,92" fill="none" stroke="var(--status-fire-bar)" stroke-width="2" stroke-linejoin="round"/>
+                  <g><circle cx="50" cy="85" r="3" fill="var(--status-fire-bar)"/></g>
+                  <g><circle cx="100" cy="90" r="3" fill="var(--status-fire-bar)"/></g>
+                  <g><circle cx="150" cy="82" r="3" fill="var(--surface-raised)" stroke="var(--status-fire-bar)" stroke-width="1.5"/></g>
+                  <g><circle cx="200" cy="95" r="3" fill="var(--status-fire-bar)"/></g>
+                  <g><circle cx="250" cy="88" r="3" fill="var(--surface-raised)" stroke="var(--status-fire-bar)" stroke-width="1.5"/></g>
+                  <g><circle cx="300" cy="92" r="3" fill="var(--status-fire-bar)"/></g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 세팅압 (dashed) -->
+            <div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--status-safe-bar); margin-bottom: 4px;">세팅압</div>
+              <div style="overflow-x: auto;">
+                <svg width="361" height="160" style="display: block;">
+                  <text x="29" y="42" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.8</text>
+                  <line x1="34" y1="38" x2="349" y2="38" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="82" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.6</text>
+                  <line x1="34" y1="78" x2="349" y2="78" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="29" y="122" text-anchor="end" fill="rgba(139,148,158,0.7)" font-size="12" font-family="JetBrains Mono">0.4</text>
+                  <line x1="34" y1="118" x2="349" y2="118" stroke="rgba(255,255,255,0.05)"/>
+                  <text x="50"  y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">06</text>
+                  <text x="150" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">10</text>
+                  <text x="250" y="156" text-anchor="middle" fill="rgba(139,148,158,0.6)" font-size="11" font-family="JetBrains Mono">02</text>
+                  <polyline points="50,80 100,78 150,82 200,80 250,78 300,80" fill="none" stroke="var(--status-safe-bar)" stroke-width="2" stroke-linejoin="round" stroke-dasharray="4 2"/>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 수치 테이블 -->
+          <div style="margin-top: 14px; border-radius: 10px; border: 1px solid var(--border-default); overflow: hidden;">
+            <!-- 헤더 -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 1fr 1fr; background: var(--surface-sunken); padding: 8px 10px;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">월</div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">1차압</div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">2차압</div>
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-tertiary); text-align: center;">세팅압</div>
+            </div>
+            <!-- 행들 -->
+            <div style="display: grid; grid-template-columns: 60px 1fr 1fr 1fr; padding: 8px 10px; border-top: 1px solid var(--border-default);">
+              <div class="mono" style="font-size: 13px; color: var(--text-secondary); text-align: center;">05초</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--accent); text-align: center;">0.7</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-fire-bar); text-align: center;">0.5</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-safe-bar); text-align: center;">0.6</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 60px 1fr 1fr 1fr; padding: 8px 10px; border-top: 1px solid var(--border-default);">
+              <div class="mono" style="font-size: 13px; color: var(--text-secondary); text-align: center;">04말</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--accent); text-align: center;">0.6</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-fire-bar); text-align: center;">0.5</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-safe-bar); text-align: center;">0.6</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 60px 1fr 1fr 1fr; padding: 8px 10px; border-top: 1px solid var(--border-default);">
+              <div class="mono" style="font-size: 13px; color: var(--text-secondary); text-align: center;">04초</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--accent); text-align: center;">0.8</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-fire-bar); text-align: center;">0.5</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-safe-bar); text-align: center;">0.6</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 60px 1fr 1fr 1fr; padding: 8px 10px; border-top: 1px solid var(--border-default);">
+              <div class="mono" style="font-size: 13px; color: var(--text-secondary); text-align: center;">03말</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--accent); text-align: center;">0.7</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-fire-bar); text-align: center;">0.4</div>
+              <div class="mono" style="font-size: 14px; font-weight: 700; color: var(--status-safe-bar); text-align: center;">0.6</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>측정점 상세 모달 (renderDivDetail line 386) — read-only 바텀시트</b></p>
+    <p style="margin-bottom: 4px;">• 모달 형태 <b>fixed inset-0 + 바텀시트 max-height 80vh overflow-y-auto</b> (verbatim)</p>
+    <p style="margin-bottom: 4px;">• 배경 dim <b>rgba(0,0,0,0.5)</b> + 클릭 시 closeDetail</p>
+    <p style="margin-bottom: 4px;">• 시트 <b>bg-surface-raised + border-radius 16px 16px 0 0 + padding 16/16/36</b></p>
+    <p style="margin-bottom: 10px;">• 닫기 ✕ 우상단 <b>20px text-tertiary</b></p>
+    <p style="margin-bottom: 4px;"><b>타이틀 영역</b></p>
+    <p style="margin-bottom: 4px;">• 1줄 <b>16px font-bold</b> = "층 라벨 · loc"</p>
+    <p style="margin-bottom: 4px;">• 2줄 <b>12px text-tertiary</b> = "DIV #N · 측정점 ID" (verbatim 11px → 12px 격상)</p>
+    <p style="margin-bottom: 10px;">• 연도 선택 <b>‹ 2026 ›</b> (양옆 작은 버튼 + 가운데 13px 700)</p>
+    <p style="margin-bottom: 4px;"><b>차트 3종 (1차압 / 2차압 / 세팅압)</b></p>
+    <p style="margin-bottom: 4px;">• 헤더 라벨 <b>12px font-bold</b> + 컬럼 색 (verbatim 10px → 12px 격상)</p>
+    <p style="margin-bottom: 4px;">• Y 축 tick <b>12px JetBrains Mono</b> + grid line (verbatim 11px → 12px 격상)</p>
+    <p style="margin-bottom: 4px;">• X 축 월 라벨 <b>11px JetBrains Mono</b> (verbatim 10px → 11px — 차트 안 좁아서 미세 격상)</p>
+    <p style="margin-bottom: 4px;">• polyline + 데이터 점 (late=fill / early=stroke) + 값 텍스트 rotate -90 <b>11px</b></p>
+    <p style="margin-bottom: 4px;">• 라인 색: 1차 <b>accent</b> / 2차 <b>status-fire-bar</b> / 세팅 <b>status-safe-bar dashed</b></p>
+    <p style="margin-bottom: 10px;">• overflow-x auto (월 많으면 가로 스크롤, n × 28px 최소 width)</p>
+    <p style="margin-bottom: 4px;"><b>수치 테이블</b></p>
+    <p style="margin-bottom: 4px;">• grid <b>60px 1fr 1fr 1fr</b> + border-default rounded 10px</p>
+    <p style="margin-bottom: 4px;">• 헤더 <b>bg-surface-sunken + 12px font-bold</b> (verbatim 9px → 12px 격상)</p>
+    <p style="margin-bottom: 4px;">• 행 월 <b>13px text-secondary mono</b> (verbatim 10px → 13px 격상)</p>
+    <p style="margin-bottom: 10px;">• 행 값 <b>14px font-bold mono</b> + 컬럼 색 (verbatim 12px → 14px 격상)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>차트 영역 spacing 격상</b> (sH 160 → 200) — 차트 키워서 더 보기 편함. 단 한 화면 차트 ↓.</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>수치 테이블 행 수 격상</b> (12개 → 6개 보임) — 행 padding 8 → 12. 정보 밀도 ↓.</p>
+    <p>현재 패턴으로 OK 면 영역 7 (데스크톱 사이드바 + 메인 — 마지막) 진행. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>
