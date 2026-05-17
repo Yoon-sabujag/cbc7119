@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 7c · 섹션 헤더 옵션 비교</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --accent:         #3b82f6;
+      --status-info:    #38bdf8;
+      --status-warning-bar: #f59e0b;
+      --status-danger:  #f87171;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 640px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+      padding: 20px 24px;
+    }
+    .label { font-size: 13px; color: #e6edf3; font-weight: 700; margin-bottom: 8px; }
+    .sub { font-size: 12px; color: #8b949e; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+    .section { margin-bottom: 22px; }
+    .placeholder { background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 8px; height: 36px; margin-top: 10px; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 1320px; }
+    .note b { color: #e6edf3; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- 옵션 A · 마커 제거 -->
+    <div>
+      <div class="label">옵션 A · 마커 제거 (글씨만)</div>
+      <div class="sub">가장 깔끔. 글씨 굵기 + 색으로 위계.</div>
+      <div class="frame">
+        <div class="section">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">34개 측정점 현황</div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">배수/오일 현황</div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary);">이상/주의 포인트</div>
+          <div class="placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 옵션 B · lucide 아이콘 -->
+    <div>
+      <div class="label">옵션 B · lucide 아이콘 + 글씨</div>
+      <div class="sub">영역 7a (⚠ → AlertTriangle) 와 일관. 시각 명확.</div>
+      <div class="frame">
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <i data-lucide="bar-chart-3" style="width: 16px; height: 16px;"></i>
+            34개 측정점 현황
+          </div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <i data-lucide="droplets" style="width: 16px; height: 16px;"></i>
+            배수/오일 현황
+          </div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i>
+            이상/주의 포인트
+          </div>
+          <div class="placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 옵션 C · 좌측 색바 -->
+    <div>
+      <div class="label">옵션 C · 좌측 색바 3px (accent)</div>
+      <div class="sub">§6.2 룰. 세로 라인 강조. 단조로움.</div>
+      <div class="frame">
+        <div class="section">
+          <div style="border-left: 3px solid var(--accent); padding-left: 10px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">34개 측정점 현황</div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="border-left: 3px solid var(--accent); padding-left: 10px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">배수/오일 현황</div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="border-left: 3px solid var(--accent); padding-left: 10px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">이상/주의 포인트</div>
+          <div class="placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 옵션 D · 색 점 + 글씨 -->
+    <div>
+      <div class="label">옵션 D · 색 점 + 글씨 (섹션 의미 색)</div>
+      <div class="sub">영역 7c-1 리스트의 색 점 패턴과 일관. 섹션마다 다른 색.</div>
+      <div class="frame">
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+            34개 측정점 현황
+          </div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-info); display: inline-block;"></span>
+            배수/오일 현황
+          </div>
+          <div class="placeholder"></div>
+        </div>
+        <div class="section">
+          <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary);">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span>
+            이상/주의 포인트
+          </div>
+          <div class="placeholder"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>lucide.createIcons();</script>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>섹션 헤더 4 옵션 비교</b> — 글씨 크기·색·간격 모두 동일 (13px font-bold text-secondary), 마커만 다름.</p>
+    <p style="margin-bottom: 4px;">• <b>옵션 A 마커 제거</b> — 가장 단순. 글씨에만 집중. v0.1.1 다른 페이지 패턴과 일관.</p>
+    <p style="margin-bottom: 4px;">• <b>옵션 B lucide 아이콘</b> — 영역 7a (⚠ → AlertTriangle) 와 일관. 데스크톱 흐름 안에서 시각 마커 통일.</p>
+    <p style="margin-bottom: 4px;">• <b>옵션 C 좌측 색바</b> — §6.2 룰 강조. 단 모든 섹션 같은 accent 색이라 단조로움 (아니면 섹션별 다른 색으로 분기).</p>
+    <p style="margin-bottom: 10px;">• <b>옵션 D 색 점</b> — 영역 7c-1 리스트의 ●/◐ 패턴과 일관. 섹션마다 의미 색 (측정점=accent / 배수=info / 알림=warning).</p>
+    <p>비교해서 어느 옵션? 선택하면 영역 7c-1 sketch 의 섹션 헤더에 적용 + 영역 7c-2 (선택 상태) 진행.</p>
+  </div>
+
+</body>
+</html>
