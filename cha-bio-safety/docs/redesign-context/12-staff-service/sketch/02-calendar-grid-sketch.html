@@ -395,15 +395,15 @@
     .bg-shift-leave { background: var(--duty-leave); }
 
     /* 휴가 카테고리 hex 6종 (UI-SPEC §3.5) — raw hex 인라인 예외 */
-    .bg-leave-annual   { background: #22c55e; }
-    .bg-leave-official { background: #a855f7; }
-    .bg-leave-condol   { background: #f97316; }
-    .bg-leave-sick     { background: #ef4444; }
-    .bg-leave-health   { background: #ec4899; }
-    .bg-leave-other    { background: #6366f1; }
+    .bg-leave-annual   { background: #42d778; }
+    .bg-leave-official { background: #8f42d7; }
+    .bg-leave-condol   { background: #d78042; }
+    .bg-leave-sick     { background: #d74242; }
+    .bg-leave-health   { background: #d7428c; }
+    .bg-leave-other    { background: #4244d7; }
     /* 반차 그라디언트 — leaveHex × dutyVar (UI-SPEC §3.5) */
-    .bg-half-am-annual { background: linear-gradient(135deg, #22c55e 50%, var(--duty-day) 50%); }
-    .bg-half-pm-annual { background: linear-gradient(135deg, var(--duty-day) 50%, #22c55e 50%); }
+    .bg-half-am-annual { background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%); }
+    .bg-half-pm-annual { background: linear-gradient(135deg, var(--duty-day) 50%, #42d778 50%); }
 
     /* ============================================================
      * State-matrix legend strip — 12 variants × 다크/라이트
@@ -598,7 +598,7 @@
               <div class="cal-cell-spacer"></div>
               <div class="cal-cell-info"><div class="hname">어린이날</div></div>
             </div>
-            <!-- 5/6 Wed — 내연차 full (연차 #22c55e) -->
+            <!-- 5/6 Wed — 내연차 full (연차 #42d778) -->
             <div class="cal-cell bg-leave-annual">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">연차</span>
@@ -606,7 +606,7 @@
               </div>
               <div class="cal-cell-spacer"></div>
             </div>
-            <!-- 5/7 Thu — 내연차 full (공가 #a855f7) -->
+            <!-- 5/7 Thu — 내연차 full (공가 #8f42d7) -->
             <div class="cal-cell bg-leave-official">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">공가</span>
@@ -614,7 +614,7 @@
               </div>
               <div class="cal-cell-spacer"></div>
             </div>
-            <!-- 5/8 Fri — 내연차 full (경조 #f97316) -->
+            <!-- 5/8 Fri — 내연차 full (경조 #d78042) -->
             <div class="cal-cell bg-leave-condol">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">경조</span>
@@ -622,7 +622,7 @@
               </div>
               <div class="cal-cell-spacer"></div>
             </div>
-            <!-- 5/9 Sat — 내연차 full (병가 #ef4444) -->
+            <!-- 5/9 Sat — 내연차 full (병가 #d74242) -->
             <div class="cal-cell bg-leave-sick">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">병가</span>
@@ -632,7 +632,7 @@
             </div>
 
             <!-- Row 3: 5/10~5/16 -->
-            <!-- 5/10 Sun — 어버이날 (sun + 보건 leave #ec4899) — sketch 데모 -->
+            <!-- 5/10 Sun — 어버이날 (sun + 보건 leave #d7428c) — sketch 데모 -->
             <div class="cal-cell bg-leave-health">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">보건</span>
@@ -641,7 +641,7 @@
               <div class="cal-cell-spacer"></div>
               <div class="cal-cell-info"><div class="hname">어버이날</div></div>
             </div>
-            <!-- 5/11 Mon — 기타 leave #6366f1 -->
+            <!-- 5/11 Mon — 기타 leave #4244d7 -->
             <div class="cal-cell bg-leave-other">
               <div class="cal-cell-row">
                 <span class="cal-cell-shift leave">기타</span>
@@ -1183,13 +1183,13 @@
             <div class="cal-cell-spacer"></div>
           </div>
         </div>
-        <div class="label">연차 #22c55e · 공가 #a855f7 · 경조 #f97316 · 병가 #ef4444 · 보건 #ec4899 · 기타 #6366f1</div>
+        <div class="label">연차 #42d778 · 공가 #8f42d7 · 경조 #d78042 · 병가 #d74242 · 보건 #d7428c · 기타 #4244d7</div>
       </div>
 
       <!-- 5. 내연차 half_am -->
       <div class="matrix-card">
         <div class="cell-wrap">
-          <div class="cal-cell" style="background: linear-gradient(135deg, #22c55e 50%, var(--duty-day) 50%);">
+          <div class="cal-cell" style="background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%);">
             <div class="cal-cell-row">
               <span class="cal-cell-shift leave">전반</span>
               <span class="cal-cell-date">12</span>
@@ -1203,7 +1203,7 @@
       <!-- 6. 내연차 half_pm -->
       <div class="matrix-card">
         <div class="cell-wrap">
-          <div class="cal-cell" style="background: linear-gradient(135deg, var(--duty-day) 50%, #22c55e 50%);">
+          <div class="cal-cell" style="background: linear-gradient(135deg, var(--duty-day) 50%, #42d778 50%);">
             <div class="cal-cell-row">
               <span class="cal-cell-shift leave">후반</span>
               <span class="cal-cell-date">13</span>
@@ -1383,13 +1383,13 @@
             <div class="cal-cell-spacer"></div>
           </div>
         </div>
-        <div class="label">연차 #22c55e · 공가 #a855f7 · 경조 #f97316 · 병가 #ef4444 · 보건 #ec4899 · 기타 #6366f1</div>
+        <div class="label">연차 #42d778 · 공가 #8f42d7 · 경조 #d78042 · 병가 #d74242 · 보건 #d7428c · 기타 #4244d7</div>
       </div>
 
       <!-- 5. 내연차 half_am -->
       <div class="matrix-card">
         <div class="cell-wrap">
-          <div class="cal-cell" style="background: linear-gradient(135deg, #22c55e 50%, var(--duty-day) 50%);">
+          <div class="cal-cell" style="background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%);">
             <div class="cal-cell-row">
               <span class="cal-cell-shift leave">전반</span>
               <span class="cal-cell-date">12</span>
@@ -1403,7 +1403,7 @@
       <!-- 6. 내연차 half_pm -->
       <div class="matrix-card">
         <div class="cell-wrap">
-          <div class="cal-cell" style="background: linear-gradient(135deg, var(--duty-day) 50%, #22c55e 50%);">
+          <div class="cal-cell" style="background: linear-gradient(135deg, var(--duty-day) 50%, #42d778 50%);">
             <div class="cal-cell-row">
               <span class="cal-cell-shift leave">후반</span>
               <span class="cal-cell-date">13</span>
@@ -1549,15 +1549,16 @@
       <li>blocked overlay = absolute inset 0 + bg rgba(0, 0, 0, 0.25)</li>
     </ul>
 
-    <h3>휴가 카테고리 hex 6종 (UI-SPEC §3.5) — 라이트 모드 호환 검증</h3>
+    <h3>휴가 카테고리 hex 6종 (UI-SPEC §3.5 + §14 OQ #1) — 채도 정규화 set (v2)</h3>
     <ul>
-      <li>연차 #22c55e — 셀 배경 위 흰 텍스트 rgba(255, 255, 255, 0.9) 가독성: 다크 OK / 라이트 ?</li>
-      <li>공가 #a855f7 — 다크 OK / 라이트 ?</li>
-      <li>경조 #f97316 — 다크 OK / 라이트 ?</li>
-      <li>병가 #ef4444 — 다크 OK / 라이트 ?</li>
-      <li>보건 #ec4899 — 다크 OK / 라이트 ?</li>
-      <li>기타 #6366f1 — 다크 OK / 라이트 ?</li>
-      <li>→ W2 sketch 컨펌 단계에서 사용자 시각 판단. 라이트 모드 채도가 너무 강하면 별도 라이트 hex 추가 (§14 OQ #1).</li>
+      <li>모든 카테고리 = hsl(hue, 65%, 55%) 통일 — 라이트/다크 양쪽 시각 강도 균형. hue 만 카테고리별로 유지.</li>
+      <li>연차 #42d778 (hue 142 green) ← 구 #22c55e</li>
+      <li>공가 #8f42d7 (hue 271 purple) ← 구 #a855f7</li>
+      <li>경조 #d78042 (hue 25 orange) ← 구 #f97316</li>
+      <li>병가 #d74242 (hue 0 red) ← 구 #ef4444</li>
+      <li>보건 #d7428c (hue 330 pink) ← 구 #ec4899</li>
+      <li>기타 #4244d7 (hue 239 indigo) ← 구 #6366f1</li>
+      <li>→ status-safe-bar(#22c55e) / status-danger-bar(#ef4444) / duty-night(#ef4444) 토큰 값은 우연히 같았던 hex 가 정규화로 분리됨 — 의미상 별개 시스템(카테고리 vs status vs duty) 분리 정합 OK.</li>
     </ul>
 
     <h3>typography 룰 (UI-SPEC §7.1 + 노안 룰)</h3>
@@ -1583,7 +1584,7 @@
       <li>alias 토큰 (옛 약식 surface · border · text · accent · status · duty 변수명) 0건</li>
       <li>긴급/조치-대기 status 토큰 (4종 변형) 0건</li>
       <li>9 · 10 · 11 px 0건 (font-size 9 / 10 / 11 px 패턴 0)</li>
-      <li>raw hex 예외만: 카테고리 6 hex (#22c55e / #a855f7 / #f97316 / #ef4444 / #ec4899 / #6366f1), 노랑 선택 #facc15, halo rgba(59 130 246 0.35), blocked rgba(0 0 0 0.25), holidayName #fca5a5, page bg #0f1218, frame border #2a2f3a, light matrix bg #ffffff / border #d0d7de, 오늘 칩 글자 #ffffff + box-shadow rgba(0 0 0 0.35)</li>
+      <li>raw hex 예외만: 카테고리 6 hex (#42d778 / #8f42d7 / #d78042 / #d74242 / #d7428c / #4244d7), 노랑 선택 #facc15, halo rgba(59 130 246 0.35), blocked rgba(0 0 0 0.25), holidayName #fca5a5, page bg #0f1218, frame border #2a2f3a, light matrix bg #ffffff / border #d0d7de, 오늘 칩 글자 #ffffff + box-shadow rgba(0 0 0 0.35)</li>
     </ul>
 
     <h3>다음 wave</h3>
