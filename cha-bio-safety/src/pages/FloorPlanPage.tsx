@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle, FlaskConical, Building2, TrainFront } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
@@ -1473,60 +1473,65 @@ export default function FloorPlanPage() {
 
       {/* ── 마커 수정 모달 ───────────────────────────── */}
       {editMarker && selected && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setEditMarker(false)}>
-          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>마커 수정</div>
+        <div className="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4" onClick={() => setEditMarker(false)}>
+          <div className="w-[90%] max-w-[340px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-body font-bold text-text-primary mb-4">마커 수정</div>
 
             {(planType === 'guidelamp' || planType === 'extinguisher') && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역</div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                <div className="text-caption text-text-tertiary mb-1.5">구역</div>
+                <div className="flex gap-1.5 mb-3.5">
                   {([
-                    { key: 'research', label: '연구동' },
-                    { key: 'office',   label: '사무동' },
-                    { key: 'basement', label: '지하'   },
-                  ] as const).map(z => (
-                    <button
-                      key={z.key}
-                      onClick={() => setEditZone(z.key)}
-                      style={{
-                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                        background: editZone === z.key ? 'var(--acl)' : 'var(--bg3)',
-                        color: editZone === z.key ? '#fff' : 'var(--t2)',
-                        border: editZone === z.key ? 'none' : '1px solid var(--bd)',
-                      }}
-                    >{z.label}</button>
-                  ))}
+                    { key: 'research', label: '연구동', Icon: FlaskConical },
+                    { key: 'office',   label: '사무동', Icon: Building2 },
+                    { key: 'basement', label: '지하',   Icon: TrainFront },
+                  ] as const).map(z => {
+                    const ZIcon = z.Icon
+                    const isSel = editZone === z.key
+                    return (
+                      <button
+                        key={z.key}
+                        onClick={() => setEditZone(z.key)}
+                        className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                          isSel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-default bg-surface-page text-text-secondary'
+                        }`}
+                      ><ZIcon size={14} />{z.label}</button>
+                    )
+                  })}
                 </div>
               </>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
-              {addOptionMarkerTypes.map(mt => (
-                <button
-                  key={mt.key}
-                  onClick={() => setEditMarkerType(mt.key as MarkerType)}
-                  style={{
-                    padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    background: editMarkerType === mt.key ? 'var(--acl)' : 'var(--bg3)',
-                    color: editMarkerType === mt.key ? '#fff' : 'var(--t2)',
-                    border: editMarkerType === mt.key ? 'none' : '1px solid var(--bd)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, lineHeight: 1.2,
-                  }}
-                >
-                  <MarkerIcon markerType={mt.key} color={editMarkerType === mt.key ? '#fff' : '#888'} size={16} />
-                  <span>{mt.label[0]}</span><span>{mt.label[1]}</span>
-                </button>
-              ))}
+            <div className="text-caption text-text-tertiary mb-1.5">{({ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' } as const)[planType]}</div>
+            <div className="grid grid-cols-3 gap-1.5 mb-3.5">
+              {addOptionMarkerTypes.map(mt => {
+                const isSel = editMarkerType === mt.key
+                return (
+                  <button
+                    key={mt.key}
+                    onClick={() => setEditMarkerType(mt.key as MarkerType)}
+                    className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors ${
+                      isSel
+                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                        : 'border border-border-default bg-surface-page text-text-secondary'
+                    }`}
+                  >
+                    <MarkerIcon markerType={mt.key} color={isSel ? '#fff' : '#888'} size={16} />
+                    <span className="text-caption font-semibold leading-none">{mt.label[0]}</span>
+                    <span className="text-caption font-semibold leading-none">{mt.label[1]}</span>
+                  </button>
+                )
+              })}
             </div>
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{planType === 'extinguisher' ? '개소명' : '라벨'}</div>
+            <div className="text-caption text-text-tertiary mb-1.5">{planType === 'extinguisher' ? '개소명' : '라벨'}</div>
             <input
               value={editLabel}
               onChange={e => setEditLabel(e.target.value)}
               placeholder="예: 피난구 B5-01"
-              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
+              className="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary"
             />
 
             {/* Phase 24: extinguisher plan type — 소화기 관련 액션 버튼 (점검 개소 연결 셀렉터 제거) */}
@@ -1537,14 +1542,12 @@ export default function FloorPlanPage() {
                 : null
               if (mappedExt) {
                 return (
-                  <>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                      <button
-                        onClick={() => { setUnassignConfirm(mappedExt as ExtinguisherDetail); setEditMarker(false) }}
-                        style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: '1px solid rgba(239,68,68,.3)' }}
-                      >소화기 분리</button>
-                    </div>
-                  </>
+                  <div className="flex gap-2 mb-3.5">
+                    <button
+                      onClick={() => { setUnassignConfirm(mappedExt as ExtinguisherDetail); setEditMarker(false) }}
+                      className="flex-1 h-input rounded-sm bg-danger-bg border border-danger-bar/40 text-danger text-label font-semibold cursor-pointer"
+                    >소화기 분리</button>
+                  </div>
                 )
               }
               // 미배치 마커 — 소화기 배치 버튼. fromMarker 는 marker_id (FPM-) 또는 cp_id (CP-FE-) 둘 다 지원.
@@ -1555,13 +1558,13 @@ export default function FloorPlanPage() {
                     const ref = selected.check_point_id || selected.id
                     navigate(`/extinguishers?fromMarker=${ref}&zone=${(selected as any).zone ?? ''}&floor=${selected.floor ?? floor}`)
                   }}
-                  style={{ width: '100%', height: 42, borderRadius: 10, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 14 }}
+                  className="w-full h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer mb-3.5"
                 >소화기 배치</button>
               )
             })()}
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setEditMarker(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <div className="flex gap-2">
+              <button onClick={() => setEditMarker(false)} className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">
                 취소
               </button>
               <button
@@ -1577,7 +1580,7 @@ export default function FloorPlanPage() {
                     onSuccess: () => { setEditMarker(false); setSelected(null); toast.success('마커 수정됨') }
                   })
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
               >
                 저장
               </button>
@@ -1588,101 +1591,109 @@ export default function FloorPlanPage() {
 
       {/* ── 마커 추가 모달 ───────────────────────────── */}
       {addModal && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setAddModal(null)}>
-          <div style={{ width: '85%', maxWidth: 320, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>마커 추가</div>
+        <div className="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4" onClick={() => setAddModal(null)}>
+          <div className="w-[85%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-body font-bold text-text-primary mb-4">마커 추가</div>
 
             {planType === 'guidelamp' && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역</div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                <div className="text-caption text-text-tertiary mb-1.5">구역</div>
+                <div className="flex gap-1.5 mb-3.5">
                   {([
-                    { key: 'research', label: '연구동' },
-                    { key: 'office',   label: '사무동' },
-                    { key: 'basement', label: '지하'   },
-                  ] as const).map(z => (
-                    <button
-                      key={z.key}
-                      onClick={() => setAddZone(z.key)}
-                      style={{
-                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                        background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
-                        color: addZone === z.key ? '#fff' : 'var(--t2)',
-                        border: addZone === z.key ? 'none' : '1px solid var(--bd)',
-                      }}
-                    >{z.label}</button>
-                  ))}
+                    { key: 'research', label: '연구동', Icon: FlaskConical },
+                    { key: 'office',   label: '사무동', Icon: Building2 },
+                    { key: 'basement', label: '지하',   Icon: TrainFront },
+                  ] as const).map(z => {
+                    const ZIcon = z.Icon
+                    const isSel = addZone === z.key
+                    return (
+                      <button
+                        key={z.key}
+                        onClick={() => setAddZone(z.key)}
+                        className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                          isSel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-default bg-surface-page text-text-secondary'
+                        }`}
+                      ><ZIcon size={14} />{z.label}</button>
+                    )
+                  })}
                 </div>
               </>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{{ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' }[planType]}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
-              {addOptionMarkerTypes.map(mt => (
-                <button
-                  key={mt.key}
-                  onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
-                  style={{
-                    padding: '8px 4px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    background: addMarkerType === mt.key ? 'var(--acl)' : 'var(--bg3)',
-                    color: addMarkerType === mt.key ? '#fff' : 'var(--t2)',
-                    border: addMarkerType === mt.key ? 'none' : '1px solid var(--bd)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, lineHeight: 1.2,
-                  }}
-                >
-                  <MarkerIcon markerType={mt.key} color={addMarkerType === mt.key ? '#fff' : '#888'} size={16} />
-                  <span>{mt.label[0]}</span><span>{mt.label[1]}</span>
-                </button>
-              ))}
+            <div className="text-caption text-text-tertiary mb-1.5">{({ detector: '감지기 종류', sprinkler: '스프링클러 종류', guidelamp: '유도등 종류', extinguisher: '마커 종류' } as const)[planType]}</div>
+            <div className="grid grid-cols-3 gap-1.5 mb-3.5">
+              {addOptionMarkerTypes.map(mt => {
+                const isSel = addMarkerType === mt.key
+                return (
+                  <button
+                    key={mt.key}
+                    onClick={() => { setAddMarkerType(mt.key as MarkerType); setAddCheckpointId(null); loadAddCheckpoints(mt.key) }}
+                    className={`flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors ${
+                      isSel
+                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                        : 'border border-border-default bg-surface-page text-text-secondary'
+                    }`}
+                  >
+                    <MarkerIcon markerType={mt.key} color={isSel ? '#fff' : '#888'} size={16} />
+                    <span className="text-caption font-semibold leading-none">{mt.label[0]}</span>
+                    <span className="text-caption font-semibold leading-none">{mt.label[1]}</span>
+                  </button>
+                )
+              })}
             </div>
 
             {/* Phase 24: extinguisher plan type — 개소명 + 구역 만 입력 */}
             {planType === 'extinguisher' ? (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>개소명 *</div>
+                <div className="text-caption text-text-tertiary mb-1.5">개소명 *</div>
                 <input
                   value={addLabel}
                   onChange={e => setAddLabel(e.target.value)}
                   placeholder="예: 5번계단 뒤"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
+                  className="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary"
                 />
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>구역 *</div>
-                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                <div className="text-caption text-text-tertiary mb-1.5">구역 *</div>
+                <div className="flex gap-1.5 mb-3.5">
                   {([
-                    { key: 'research', label: '연구동' },
-                    { key: 'office',   label: '사무동' },
-                    { key: 'basement', label: '지하'   },
-                  ] as const).map(z => (
-                    <button
-                      key={z.key}
-                      onClick={() => setAddZone(z.key)}
-                      style={{
-                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                        background: addZone === z.key ? 'var(--acl)' : 'var(--bg3)',
-                        color: addZone === z.key ? '#fff' : 'var(--t2)',
-                        border: addZone === z.key ? 'none' : '1px solid var(--bd)',
-                      }}
-                    >{z.label}</button>
-                  ))}
+                    { key: 'research', label: '연구동', Icon: FlaskConical },
+                    { key: 'office',   label: '사무동', Icon: Building2 },
+                    { key: 'basement', label: '지하',   Icon: TrainFront },
+                  ] as const).map(z => {
+                    const ZIcon = z.Icon
+                    const isSel = addZone === z.key
+                    return (
+                      <button
+                        key={z.key}
+                        onClick={() => setAddZone(z.key)}
+                        className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                          isSel
+                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                            : 'border border-border-default bg-surface-page text-text-secondary'
+                        }`}
+                      ><ZIcon size={14} />{z.label}</button>
+                    )
+                  })}
                 </div>
               </>
             ) : (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>라벨 (선택)</div>
+                <div className="text-caption text-text-tertiary mb-1.5">라벨 (선택)</div>
                 <input
                   value={addLabel}
                   onChange={e => setAddLabel(e.target.value)}
                   placeholder="예: 피난구 B5-01"
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: 13, marginBottom: 14, boxSizing: 'border-box' }}
+                  className="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary"
                 />
               </>
             )}
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setAddModal(null)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <div className="flex gap-2">
+              <button onClick={() => setAddModal(null)} className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">
                 취소
               </button>
-              <button disabled={addSubmitting} onClick={submitAddMarker} style={{ flex: 1, height: 42, borderRadius: 10, background: addSubmitting ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: addSubmitting ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: addSubmitting ? 'default' : 'pointer' }}>
+              <button disabled={addSubmitting} onClick={submitAddMarker} className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:cursor-default">
                 {addSubmitting ? '등록 중...' : '추가'}
               </button>
             </div>
