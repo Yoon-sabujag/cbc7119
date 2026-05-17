@@ -1,3 +1,15 @@
+## ⚠ 이 리포 전용 룰 (cbc7119-design)
+
+이 리포는 **디자인 프리뷰 전용** (`cbc7119-preview` 자동 배포만). 직원 도메인 `cbc7119` 은 이 콘솔에서 절대 다루지 않는다.
+
+- **wrangler 명령 절대 금지** (`.claude/settings.json` 에서 deny 됨)
+- **npm run deploy 절대 금지** (직원 도메인으로 가는 경로)
+- 모든 redesign 작업 흐름: `main` 분기 → `redesign/NN-name` 브랜치 → 머지 → GitHub Actions 가 `cbc7119-preview` 로 자동 배포
+- 직원 도메인 반영은 별도 결정 — 이 콘솔/리포에서 진행하지 않는다
+- 매 페이지 시작 전 `/clear` + `git checkout main && git pull` + 새 브랜치
+
+---
+
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
