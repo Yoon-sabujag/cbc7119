@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>지적사항 상세 재디자인 시안 v0.1.1 — ElevatorFindingDetail (260517-kup)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (아이콘) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 — 다크/라이트 [data-theme] 컨테이너 패턴
+     * (05-remediation-detail/sketch/remediation-detail-sketch.html 인프라 1:1 mirror)
+     * ===================================================================== */
+
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-subtle:   rgba(255, 255, 255, 0.08);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --bg:     var(--surface-page);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-subtle:   rgba(0, 0, 0, 0.08);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --bg:     var(--surface-page);
+    }
+
+    /* Spacing tokens (테마 무관) */
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --button-height:    44px;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-xl:   20px;
+      --radius-pill: 99px;
+
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+
+      --nav-h: 54px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --button-height:    40px;
+      }
+    }
+
+    /* =====================================================================
+     * typography.css 인라인 — 7단계 + mono. 12px 미만 사용 금지.
+     * ===================================================================== */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .text-mono     { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================================
+     * 토큰 → CSS class 매핑 (v0.1.1 시각 토큰)
+     * ===================================================================== */
+    .bg-surface-page       { background-color: var(--surface-page); }
+    .bg-surface-raised     { background-color: var(--surface-raised); }
+    .bg-surface-sunken     { background-color: var(--surface-sunken); }
+    .bg-surface-active     { background-color: var(--surface-active); }
+
+    .text-text-primary     { color: var(--text-primary); }
+    .text-text-secondary   { color: var(--text-secondary); }
+    .text-text-tertiary    { color: var(--text-tertiary); }
+    .text-text-on-accent   { color: var(--text-on-accent); }
+
+    .text-status-safe      { color: var(--status-safe); }
+    .text-status-warning   { color: var(--status-warning); }
+    .text-status-danger    { color: var(--status-danger); }
+    .text-status-info      { color: var(--status-info); }
+    .text-status-fire      { color: var(--status-fire); }
+
+    .bg-status-safe-bg     { background-color: var(--status-safe-bg); }
+    .bg-status-warning-bg  { background-color: var(--status-warning-bg); }
+    .bg-status-danger-bg   { background-color: var(--status-danger-bg); }
+    .bg-status-info-bg     { background-color: var(--status-info-bg); }
+    .bg-status-fire-bg     { background-color: var(--status-fire-bg); }
+
+    .bg-status-safe-bar    { background-color: var(--status-safe-bar); }
+    .bg-status-danger-bar  { background-color: var(--status-danger-bar); }
+
+    .border-status-safe-bar  { border-color: var(--status-safe-bar); }
+    .border-status-info-bg   { border-color: var(--status-info-bg); }
+
+    .bg-accent             { background-color: var(--accent); }
+    .text-accent           { color: var(--accent); }
+    .border-border-default { border-color: var(--border-default); }
+    .border-border-strong  { border-color: var(--border-strong); }
+
+    .rounded-pill { border-radius: var(--radius-pill); }
+    .rounded-sm   { border-radius: var(--radius-sm); }
+    .rounded-md   { border-radius: var(--radius-md); }
+
+    /* =====================================================================
+     * 시안 메타 스타일 (시안 외곽 / viewport 프레임)
+     * (05 remediation-detail-sketch.html verbatim mirror)
+     * ===================================================================== */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .meta-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 6px 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      display: inline-block;
+    }
+
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .viewport-mobile  { width: 393px; height: 852px; }
+    .viewport-desktop { width: 1280px; height: 720px; }
+
+    .viewport-frame * { font-family: inherit; }
+
+    .page-shell    { display: flex; flex-direction: column; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+    .desktop-shell { display: flex; height: 100%; background: var(--surface-page); color: var(--text-primary); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* =====================================================================
+     * 페이지 섹션 타이틀 (시안 외곽)
+     * ===================================================================== */
+    .page-section-title { font-size: 28px; font-weight: 700; line-height: 1.15; color: #e6edf3; }
+    .page-section-sub   { font-size: 16px; margin-top: 8px; color: #8b949e; }
+
+    /* 헤더 카탈로그 박스 */
+    .cat-box-safe    { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  border-radius: 12px; padding: 16px; }
+    .cat-box-info    { background: rgba(14,165,233,0.12); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-warn    { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-fire    { background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.3); border-radius: 12px; padding: 16px; }
+    .cat-box-mute    { background: rgba(255,255,255,0.05);border: 1px solid rgba(255,255,255,0.1);border-radius: 12px; padding: 16px; }
+    .cat-title-safe  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #22c55e; }
+    .cat-title-info  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #0ea5e9; }
+    .cat-title-warn  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #f59e0b; }
+    .cat-title-fire  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #fb923c; }
+    .cat-title-mute  { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #8b949e; }
+    .cat-label-dark  { font-size: 13px; font-weight: 600; color: #e6edf3; line-height: 1.55; }
+    .cat-sub-dark    { font-size: 12px; margin-top: 4px; color: #8b949e; line-height: 1.55; }
+
+    /* 아이콘 사이즈 */
+    .icon-xs   { width: 12px; height: 12px; flex-shrink: 0; }
+    .icon-sm   { width: 14px; height: 14px; flex-shrink: 0; }
+    .icon-md   { width: 16px; height: 16px; flex-shrink: 0; }
+    .icon-lg   { width: 20px; height: 20px; flex-shrink: 0; }
+    .icon-xl   { width: 24px; height: 24px; flex-shrink: 0; }
+    .icon-2xl  { width: 28px; height: 28px; flex-shrink: 0; }
+    .icon-3xl  { width: 36px; height: 36px; flex-shrink: 0; }
+
+    /* =====================================================================
+     * ElevatorFindingDetail 페이지 전용 CSS — v0.1.1 토큰 기반 (.efnd-* prefix)
+     * 05 remediation-detail → 08 찾기 상세 mirror
+     * ===================================================================== */
+
+    /* 자체 헤더 — chrome 룰 §2.1 (bg-surface-page + border-b + h-12 = 48px) */
+    .efnd-page-hd {
+      height: 48px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      background: var(--surface-page);
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* 백 버튼 — chrome 룰 §7.2 (w-8 h-7 = 32×28) */
+    .efnd-back-btn {
+      position: absolute; left: 12px;
+      width: 32px; height: 28px;
+      border-radius: 8px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* 헤더 타이틀 — chrome 룰 §2.3 (text-body font-bold text-text-primary) */
+    .efnd-page-hd-title {
+      font-size: 16px; font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.2;
+    }
+
+    /* 본문 컨테이너 */
+    .efnd-body { flex: 1; overflow-y: auto; }
+    .efnd-body.has-cta { padding-bottom: 72px; }
+    .efnd-body::-webkit-scrollbar { display: none; }
+    .efnd-body { scrollbar-width: none; }
+
+    /* 섹션 공통 (TSX line 270: padding:20px 16px / borderBottom:1px solid border-default) */
+    .efnd-section { padding: 20px 16px; border-bottom: 1px solid var(--border-default); }
+    .efnd-section-hd {
+      font-size: 12px; font-weight: 700;
+      color: var(--text-tertiary);
+      margin-bottom: 10px;
+      line-height: 1;
+      letter-spacing: 0.04em;
+    }
+
+    /* 섹션 헤더 행 (타이틀 + 배지 flex 정렬) */
+    .efnd-section-hd-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    /* 상태 배지 */
+    .efnd-badge {
+      font-size: 12px; font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      line-height: 1; white-space: nowrap; flex-shrink: 0;
+      display: inline-flex; align-items: center;
+    }
+    /* 미조치 = fire (주황) — memory: feedback_inspection_unresolved_color */
+    .efnd-badge.fire {
+      background: var(--status-fire-bg);
+      color: var(--status-fire);
+    }
+    /* 조치완료 = safe (녹) */
+    .efnd-badge.safe {
+      background: var(--status-safe-bg);
+      color: var(--status-safe);
+    }
+
+    /* KVRow (TSX KVRow 함수 verbatim: gap:12 / label width:64 12px t3 / value 14px t1 lh:1.5) */
+    .efnd-kv-list { display: flex; flex-direction: column; gap: 8px; }
+    .efnd-kv-row  { display: flex; gap: 12px; align-items: flex-start; }
+    .efnd-kv-label {
+      font-size: 12px; color: var(--text-tertiary);
+      width: 64px; flex-shrink: 0; line-height: 1.5;
+    }
+    .efnd-kv-value {
+      font-size: 14px; color: var(--text-primary);
+      flex: 1; line-height: 1.5;
+    }
+
+    /* 지적 사진 (TSX line 295~310: maxHeight:240 / cursor:pointer) */
+    .efnd-photo {
+      width: 100%; max-height: 240px; object-fit: cover;
+      border-radius: 10px; border: 1px solid var(--border-default);
+      display: block; margin-top: 12px;
+      background: var(--surface-sunken);
+      cursor: pointer;
+    }
+    .efnd-photo-empty {
+      height: 80px; display: flex; align-items: center;
+      color: var(--text-tertiary); font-size: 13px;
+      margin-top: 8px; gap: 6px;
+    }
+
+    /* 수리이력 선택 버튼 (TSX line 322~325: info 페어) */
+    .efnd-repair-picker-btn {
+      width: 100%; margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(14, 165, 233, 0.08);
+      border: 1px solid rgba(14, 165, 233, 0.2);
+      color: var(--status-info);
+      font-size: 12px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-family: inherit; line-height: 1;
+    }
+
+    /* 수리이력 drawer (TSX line 327~344: bg3 + max-h:200) */
+    .efnd-repair-drawer {
+      margin-bottom: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .efnd-repair-card {
+      padding: 8px 10px; border-radius: 6px;
+      cursor: pointer; margin-bottom: 4px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+    }
+    .efnd-repair-card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .efnd-repair-card-sub   { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+    /* linkedRepair badge (TSX line 345~352: safe-bg outline) */
+    .efnd-linked-badge {
+      margin-bottom: 12px;
+      background: var(--status-safe-bg);
+      border: 1px solid var(--status-safe-bar);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .efnd-linked-badge-text { flex: 1; font-size: 13px; }
+    .efnd-linked-dismiss {
+      background: none; border: none;
+      color: var(--text-tertiary);
+      font-size: 14px; cursor: pointer; line-height: 1;
+    }
+
+    /* 조치일 라벨 */
+    .efnd-field-label {
+      font-size: 12px; color: var(--text-tertiary);
+      margin-bottom: 4px; line-height: 1.4;
+    }
+
+    /* 조치일 input (chrome 룰 §6.2 input 패턴) */
+    .efnd-date-input {
+      width: 100%; padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none; font-family: inherit;
+      box-sizing: border-box;
+      -webkit-appearance: none; appearance: none;
+      margin-bottom: 12px;
+    }
+
+    /* textarea (chrome 룰 §6.2) */
+    .efnd-textarea {
+      width: 100%; min-height: 88px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      font-size: 14px; line-height: 1.5;
+      color: var(--text-primary);
+      padding: 12px; resize: vertical; box-sizing: border-box;
+      font-family: var(--font-sans); outline: none;
+    }
+    .efnd-textarea::placeholder { color: var(--text-tertiary); }
+
+    /* 조치 사진 추가 버튼 (TSX line 406~417: 72×72 dashed) */
+    .efnd-photo-btn {
+      width: 72px; height: 72px; flex-shrink: 0;
+      border-radius: 10px;
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-strong);
+      color: var(--text-tertiary);
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      font-family: inherit; font-size: 12px;
+    }
+
+    /* 사진 썸네일 (TSX line 421~424) */
+    .efnd-thumb-wrap { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+    .efnd-thumb-img  {
+      width: 72px; height: 72px; object-fit: cover;
+      border-radius: 10px; border: 1px solid var(--border-default);
+      display: block; background: var(--surface-sunken);
+    }
+    /* 썸네일 ✕ 삭제 (TSX: 18×18 danger) */
+    .efnd-thumb-remove {
+      position: absolute; top: -4px; right: -4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--status-danger-bar); border: none; color: #fff;
+      font-size: 12px; font-weight: 700; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* 고정 하단 CTA wrapper (TSX line 470~479) */
+    .efnd-cta {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--surface-page);
+      border-top: 1px solid var(--border-default);
+      padding: 12px 16px;
+    }
+    /* CTA 버튼 (h-12 = 48px, bg-accent, 14px 700) */
+    .efnd-cta-btn {
+      width: 100%; height: 48px;
+      background: var(--accent); color: var(--text-on-accent);
+      font-size: 14px; font-weight: 700;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: opacity .15s; line-height: 1;
+      font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .efnd-cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* 데스크톱 standalone view (05 det-desktop-shell/card 패턴 mirror) */
+    .efnd-desktop-shell {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 100%; padding: 24px;
+      background: var(--surface-page); box-sizing: border-box;
+    }
+    .efnd-desktop-card {
+      width: 720px; max-height: 100%;
+      display: flex; flex-direction: column;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 16px; overflow: hidden;
+      position: relative; min-height: 0;
+    }
+
+    /* 조치 결과 — 다중 사진 그리드 (TSX line 452~460: 80×80 wrap) */
+    .efnd-result-photos {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;
+    }
+    .efnd-result-photo-item {
+      width: 80px; height: 80px; object-fit: cover;
+      border-radius: 8px; border: 1px solid var(--border-default);
+      cursor: pointer; background: var(--surface-sunken);
+    }
+
+    /* placeholder 이미지 박스 */
+    .efnd-photo-placeholder {
+      width: 100%; max-height: 240px; height: 160px;
+      background: var(--surface-sunken);
+      border-radius: 10px; border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 12px; flex-direction: column; gap: 6px;
+    }
+    .efnd-thumb-placeholder {
+      width: 72px; height: 72px; flex-shrink: 0;
+      border-radius: 10px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .efnd-result-placeholder {
+      width: 80px; height: 80px;
+      border-radius: 8px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<main class="max-w-[1600px] mx-auto px-6 py-12 space-y-16">
+
+  <!-- ================================================================
+       시안 헤더 — 색 결정 박스
+       ================================================================ -->
+  <header class="space-y-4">
+    <div>
+      <div class="page-section-title">지적사항 상세 재디자인 시안 v0.1.1</div>
+      <div class="page-section-sub">
+        ElevatorFindingDetail Page — 모바일/데스크톱 × 다크/라이트 × 4 viewport (260517-kup)<br/>
+        05-remediation-detail/sketch/remediation-detail-sketch.html 1:1 mirror. 다음 quick task 에서 TSX 변환 1:1 매핑 source 로 사용.
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-3 mt-4">
+      <div class="cat-box-fire">
+        <div class="cat-title-fire">상태 배지 페어</div>
+        <div class="cat-label-dark">미조치=fire (주황) / 조치완료=safe (녹)</div>
+        <div class="cat-sub-dark">TSX line 273~278 의 옛 <span class="text-mono">--danger</span> (미조치) 사용은 통일 룰 위반 → <span class="text-mono">--status-fire</span> 로 교정. memory: feedback_inspection_unresolved_color.</div>
+      </div>
+      <div class="cat-box-info">
+        <div class="cat-title-info">고정 하단 CTA</div>
+        <div class="cat-label-dark">단색 var(--accent) — 그라디언트 금지</div>
+        <div class="cat-sub-dark">TSX line 480 구 토큰 단색 → <span class="text-mono">--accent</span>. h-12 (48px) / 14px 700. 노안 친화.</div>
+      </div>
+      <div class="cat-box-safe">
+        <div class="cat-title-safe">KVRow + 섹션 레이아웃</div>
+        <div class="cat-label-dark">label w-16 (64px) text-caption text-text-tertiary / value text-label text-text-primary</div>
+        <div class="cat-sub-dark">TSX KVRow 함수 (line 101~108) verbatim. gap:12 → gap-3. 12px 이상 노안 마지노선.</div>
+      </div>
+      <div class="cat-box-mute">
+        <div class="cat-title-mute">헤더 chrome + 데스크톱</div>
+        <div class="cat-label-dark">h-12 (48px) bg-surface-page / 백 버튼 w-8 h-7 / 타이틀 text-body font-bold</div>
+        <div class="cat-sub-dark">06 chrome 룰 §2.1 / §7.2 mirror. 데스크톱 standalone card (720px) — 05 det-desktop-card 패턴.</div>
+      </div>
+    </div>
+  </header>
+
+
+  <!-- ================================================================
+       VP1: 모바일 · 다크 · 미조치 (status='open')
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP1 · 모바일 · 다크 · 미조치 (status=open)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 (chrome 룰 §2.1 / §7.2) -->
+        <div class="efnd-page-hd">
+          <button class="efnd-back-btn" aria-label="뒤로 가기">
+            <i data-lucide="chevron-left" class="icon-md"></i>
+          </button>
+          <span class="efnd-page-hd-title">지적사항 상세</span>
+        </div>
+
+        <!-- 본문 (has-cta: open 상태) -->
+        <div class="efnd-body has-cta">
+
+          <!-- Section 1: 지적 정보 -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd-row">
+              <div class="efnd-section-hd" style="margin-bottom:0;">지적 정보</div>
+              <!-- 미조치 배지 = fire (주황) -->
+              <span class="efnd-badge fire">미조치</span>
+            </div>
+            <div class="efnd-kv-list">
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">지적 내용</span>
+                <span class="efnd-kv-value" style="white-space: pre-wrap;">1호기 비상정지 스위치 동작 불량 — 점검 시 응답 지연</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">위치</span>
+                <span class="efnd-kv-value">B1F 기계실 / 1호기 제어반</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록일</span>
+                <span class="efnd-kv-value">2026.05.10 14:32</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록자</span>
+                <span class="efnd-kv-value">김검사관 (한국승강기안전공단)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 지적 사진 -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd">지적 사진</div>
+            <!-- 사진 있음 → mock placeholder (클릭 시 이미지 뷰어 진입) -->
+            <div class="efnd-photo-placeholder" style="cursor:pointer;">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span class="text-caption text-text-tertiary">사진 (클릭 → 이미지 뷰어)</span>
+            </div>
+          </div>
+
+          <!-- Section 3: 조치 내용 (open 상태만) -->
+          <div class="efnd-section" style="border-bottom: none;">
+            <div class="efnd-section-hd">조치 내용</div>
+
+            <!-- 수리이력에서 선택 버튼 (linkedRepair 없을 때) -->
+            <button class="efnd-repair-picker-btn">
+              <i data-lucide="wrench" class="icon-sm"></i>
+              🔧 수리이력에서 조치 선택
+            </button>
+
+            <!-- 조치일 -->
+            <div class="efnd-field-label">조치일</div>
+            <input type="date" class="efnd-date-input" value="2026-05-17" />
+
+            <!-- 조치 내용 textarea -->
+            <textarea class="efnd-textarea" placeholder="조치 내용을 입력하세요" rows="4"></textarea>
+
+            <!-- 조치 사진 N/5 -->
+            <div style="margin-top: 12px;">
+              <div class="efnd-field-label">조치 사진 (0/5)</div>
+              <div style="display: flex; gap: 8px; overflow-x: auto;">
+                <!-- 추가 버튼만 (0장) -->
+                <button class="efnd-photo-btn">
+                  <i data-lucide="camera" class="icon-lg"></i>
+                  <span>0/5</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 고정 하단 CTA (open 상태) -->
+        <div class="efnd-cta">
+          <button class="efnd-cta-btn">
+            <i data-lucide="check" class="icon-md"></i>
+            조치 완료
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP2: 모바일 · 다크 · 조치 완료 (status='resolved')
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">📱 VP2 · 모바일 · 다크 · 조치 완료 (status=resolved)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="dark">
+      <div class="page-shell">
+        <!-- 자체 헤더 -->
+        <div class="efnd-page-hd">
+          <button class="efnd-back-btn" aria-label="뒤로 가기">
+            <i data-lucide="chevron-left" class="icon-md"></i>
+          </button>
+          <span class="efnd-page-hd-title">지적사항 상세</span>
+        </div>
+
+        <!-- 본문 (resolved: 하단 CTA 없음, padding-bottom 24px) -->
+        <div class="efnd-body" style="padding-bottom: 24px;">
+
+          <!-- Section 1: 지적 정보 -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd-row">
+              <div class="efnd-section-hd" style="margin-bottom:0;">지적 정보</div>
+              <!-- 조치완료 배지 = safe (녹) -->
+              <span class="efnd-badge safe">조치완료</span>
+            </div>
+            <div class="efnd-kv-list">
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">지적 내용</span>
+                <span class="efnd-kv-value" style="white-space: pre-wrap;">2호기 도어 개폐 센서 오작동 — 간헐적 오경보</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">위치</span>
+                <span class="efnd-kv-value">3F 로비 / 2호기</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록일</span>
+                <span class="efnd-kv-value">2026.04.22 09:15</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록자</span>
+                <span class="efnd-kv-value">박검사관 (한국승강기안전공단)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 지적 사진 -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd">지적 사진</div>
+            <div class="efnd-photo-placeholder" style="cursor:pointer;">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span class="text-caption text-text-tertiary">사진 (클릭 → 이미지 뷰어)</span>
+            </div>
+          </div>
+
+          <!-- Section 4: 조치 결과 (resolved 상태) -->
+          <div class="efnd-section" style="border-bottom: none;">
+            <div class="efnd-section-hd">조치 결과</div>
+            <div class="efnd-kv-list">
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치일시</span>
+                <span class="efnd-kv-value">2026.04.25 14:00</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치자</span>
+                <span class="efnd-kv-value">윤종엽 (방재팀)</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치 내용</span>
+                <span class="efnd-kv-value" style="white-space: pre-wrap;">도어 개폐 센서 교체 완료. 케이블 재연결 후 정상 동작 확인.</span>
+              </div>
+            </div>
+            <!-- 단일 조치 사진 (max-h 240) -->
+            <div class="efnd-photo-placeholder" style="cursor:pointer; margin-top:12px;">
+              <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+              <span class="text-caption text-text-tertiary">조치 사진 (클릭 → 이미지 뷰어)</span>
+            </div>
+          </div>
+
+        </div>
+        <!-- resolved: 하단 CTA 없음 -->
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP3: 데스크톱 · 다크 · 미조치 + 수리이력 picker 활성 (status='open')
+       ================================================================ -->
+  <section data-theme="dark" class="space-y-3">
+    <div class="meta-label">🖥️ VP3 · 데스크톱 · 다크 · 미조치 + 수리이력 picker 활성 (status=open)</div>
+    <div class="viewport-frame viewport-desktop" data-theme="dark">
+      <div class="desktop-shell">
+        <!-- 데스크톱: standalone card (05 det-desktop-shell/card mirror) -->
+        <div class="efnd-desktop-shell">
+          <div class="efnd-desktop-card">
+
+            <!-- 자체 헤더 (데스크톱 — h-[54px] 옵션 선택, 06 chrome 룰 §2.1 분기) -->
+            <div class="efnd-page-hd" style="height:54px; flex-shrink:0;">
+              <button class="efnd-back-btn" aria-label="뒤로 가기">
+                <i data-lucide="chevron-left" class="icon-md"></i>
+              </button>
+              <span class="efnd-page-hd-title">지적사항 상세</span>
+            </div>
+
+            <!-- 본문 (has-cta) -->
+            <div class="efnd-body has-cta" style="overflow-y: auto;">
+
+              <!-- Section 1: 지적 정보 -->
+              <div class="efnd-section">
+                <div class="efnd-section-hd-row">
+                  <div class="efnd-section-hd" style="margin-bottom:0;">지적 정보</div>
+                  <span class="efnd-badge fire">미조치</span>
+                </div>
+                <div class="efnd-kv-list">
+                  <div class="efnd-kv-row">
+                    <span class="efnd-kv-label">지적 내용</span>
+                    <span class="efnd-kv-value" style="white-space: pre-wrap;">1호기 비상정지 스위치 동작 불량 — 점검 시 응답 지연</span>
+                  </div>
+                  <div class="efnd-kv-row">
+                    <span class="efnd-kv-label">위치</span>
+                    <span class="efnd-kv-value">B1F 기계실 / 1호기 제어반</span>
+                  </div>
+                  <div class="efnd-kv-row">
+                    <span class="efnd-kv-label">등록일</span>
+                    <span class="efnd-kv-value">2026.05.10 14:32</span>
+                  </div>
+                  <div class="efnd-kv-row">
+                    <span class="efnd-kv-label">등록자</span>
+                    <span class="efnd-kv-value">김검사관 (한국승강기안전공단)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Section 2: 지적 사진 -->
+              <div class="efnd-section">
+                <div class="efnd-section-hd">지적 사진</div>
+                <div class="efnd-photo-placeholder" style="cursor:pointer;">
+                  <i data-lucide="image" class="icon-2xl" style="color: var(--text-tertiary);"></i>
+                  <span class="text-caption text-text-tertiary">사진 (클릭 → 이미지 뷰어)</span>
+                </div>
+              </div>
+
+              <!-- Section 3: 조치 내용 — 수리이력 picker 열린 상태 -->
+              <div class="efnd-section" style="border-bottom: none;">
+                <div class="efnd-section-hd">조치 내용</div>
+
+                <!-- 수리이력 picker 버튼 (열림 상태) -->
+                <button class="efnd-repair-picker-btn" style="background: rgba(14, 165, 233, 0.14); border-color: rgba(14, 165, 233, 0.4);">
+                  <i data-lucide="wrench" class="icon-sm"></i>
+                  🔧 수리이력에서 조치 선택
+                </button>
+
+                <!-- 수리이력 drawer (열린 상태 — max-h 200px 2건 mock) -->
+                <div class="efnd-repair-drawer">
+                  <div class="efnd-repair-card">
+                    <div class="efnd-repair-card-title">비상정지 스위치 부품 교체</div>
+                    <div class="efnd-repair-card-sub">2026.05.12 · (주)승강기서비스</div>
+                  </div>
+                  <div class="efnd-repair-card">
+                    <div class="efnd-repair-card-title">제어반 배선 점검 및 조치</div>
+                    <div class="efnd-repair-card-sub">2026.04.28 · (주)승강기서비스</div>
+                  </div>
+                </div>
+
+                <!-- linkedRepair badge (연결됨 상태) -->
+                <div class="efnd-linked-badge">
+                  <div class="efnd-linked-badge-text">
+                    <span class="text-label" style="font-weight:700; color: var(--status-safe);">🔧 연결됨: </span>
+                    <span class="text-label text-text-primary">2026.05.12 · 비상정지 스위치 부품 교체</span>
+                  </div>
+                  <button class="efnd-linked-dismiss">✕</button>
+                </div>
+
+                <!-- 조치일 -->
+                <div class="efnd-field-label">조치일</div>
+                <input type="date" class="efnd-date-input" value="2026-05-12" />
+
+                <!-- textarea -->
+                <textarea class="efnd-textarea" rows="3">비상정지 스위치 부품 교체 완료. 제어반 배선 점검 후 정상 동작 확인.</textarea>
+
+                <!-- 조치 사진 2/5 (썸네일 2개 + 추가 버튼) -->
+                <div style="margin-top: 12px;">
+                  <div class="efnd-field-label">조치 사진 (2/5)</div>
+                  <div style="display: flex; gap: 8px; overflow-x: auto;">
+                    <!-- 썸네일 1 -->
+                    <div class="efnd-thumb-wrap">
+                      <div class="efnd-thumb-placeholder">
+                        <i data-lucide="image" class="icon-lg" style="color: var(--text-tertiary);"></i>
+                      </div>
+                      <button class="efnd-thumb-remove">✕</button>
+                    </div>
+                    <!-- 썸네일 2 -->
+                    <div class="efnd-thumb-wrap">
+                      <div class="efnd-thumb-placeholder">
+                        <i data-lucide="image" class="icon-lg" style="color: var(--text-tertiary);"></i>
+                      </div>
+                      <button class="efnd-thumb-remove">✕</button>
+                    </div>
+                    <!-- 추가 버튼 (2/5 → 3장 더 가능) -->
+                    <button class="efnd-photo-btn">
+                      <i data-lucide="camera" class="icon-lg"></i>
+                      <span>2/5</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 고정 하단 CTA -->
+            <div class="efnd-cta">
+              <button class="efnd-cta-btn">
+                <i data-lucide="check" class="icon-md"></i>
+                조치 완료
+              </button>
+            </div>
+
+          </div><!-- /efnd-desktop-card -->
+        </div><!-- /efnd-desktop-shell -->
+      </div><!-- /desktop-shell -->
+    </div>
+  </section>
+
+
+  <!-- ================================================================
+       VP4: 모바일 · 라이트 · 조치 완료 + 다중 사진 + 이미지 뷰어 callout
+       ================================================================ -->
+  <section data-theme="light" class="space-y-3">
+    <div class="meta-label">📱 VP4 · 모바일 · 라이트 · 조치 완료 + 다중 사진 (status=resolved)</div>
+    <div class="viewport-frame viewport-mobile" data-theme="light">
+      <div class="page-shell">
+        <!-- 자체 헤더 (라이트) -->
+        <div class="efnd-page-hd">
+          <button class="efnd-back-btn" aria-label="뒤로 가기">
+            <i data-lucide="chevron-left" class="icon-md"></i>
+          </button>
+          <span class="efnd-page-hd-title">지적사항 상세</span>
+        </div>
+
+        <!-- 본문 (resolved: 하단 CTA 없음) -->
+        <div class="efnd-body" style="padding-bottom: 24px;">
+
+          <!-- Section 1: 지적 정보 -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd-row">
+              <div class="efnd-section-hd" style="margin-bottom:0;">지적 정보</div>
+              <span class="efnd-badge safe">조치완료</span>
+            </div>
+            <div class="efnd-kv-list">
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">지적 내용</span>
+                <span class="efnd-kv-value" style="white-space: pre-wrap;">3호기 완충기 점검 — 유압 누유 발견</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">위치</span>
+                <span class="efnd-kv-value">B2F 피트 / 3호기</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록일</span>
+                <span class="efnd-kv-value">2026.03.15 10:00</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">등록자</span>
+                <span class="efnd-kv-value">최검사관 (한국승강기안전공단)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: 지적 사진 (없음 케이스) -->
+          <div class="efnd-section">
+            <div class="efnd-section-hd">지적 사진</div>
+            <div class="efnd-photo-empty">
+              <i data-lucide="image-off" class="icon-md"></i>
+              <span>사진 없음</span>
+            </div>
+          </div>
+
+          <!-- Section 4: 조치 결과 + 다중 사진 (3장) -->
+          <div class="efnd-section" style="border-bottom: none;">
+            <div class="efnd-section-hd">조치 결과</div>
+            <div class="efnd-kv-list">
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치일시</span>
+                <span class="efnd-kv-value">2026.03.20 09:30</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치자</span>
+                <span class="efnd-kv-value">이기술 (승강기서비스)</span>
+              </div>
+              <div class="efnd-kv-row">
+                <span class="efnd-kv-label">조치 내용</span>
+                <span class="efnd-kv-value" style="white-space: pre-wrap;">유압 실린더 실링 교체 완료. 오일 보충 후 압력 테스트 정상.</span>
+              </div>
+            </div>
+            <!-- 다중 조치 사진 (80×80 wrap, 3장 mock) -->
+            <div class="efnd-result-photos">
+              <div class="efnd-result-placeholder">
+                <i data-lucide="image" style="color: var(--text-tertiary); width:20px; height:20px;"></i>
+              </div>
+              <div class="efnd-result-placeholder">
+                <i data-lucide="image" style="color: var(--text-tertiary); width:20px; height:20px;"></i>
+              </div>
+              <div class="efnd-result-placeholder">
+                <i data-lucide="image" style="color: var(--text-tertiary); width:20px; height:20px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 이미지 뷰어 진입 callout (VP4 내 — 시각 결정 명시) -->
+          <div style="margin: 16px; padding: 14px; background: rgba(14,165,233,0.08); border: 1px solid rgba(14,165,233,0.25); border-radius: 10px;">
+            <div class="text-caption" style="font-weight:700; color: var(--status-info); margin-bottom:6px;">
+              이미지 뷰어 진입 시 (zIndex 300 fullscreen)
+            </div>
+            <div class="text-caption text-text-tertiary" style="line-height:1.6;">
+              · 배경: rgba(0,0,0,0.95) fixed overlay<br/>
+              · 우상단 ✕ 닫기 버튼 (24px white, padding-top: 12px+SAT)<br/>
+              · 핀치줌 (scale 1~5 범위) + 패닝 + 더블탭 2.5× toggle<br/>
+              · 실제 인터랙션 로직은 TSX line 9~91 보존 — 시안에서는 정적 표현만
+            </div>
+          </div>
+
+        </div>
+        <!-- resolved: 하단 CTA 없음 -->
+
+      </div>
+    </div>
+  </section>
+
+
+</main>
+
+<script>
+  // Lucide 아이콘 초기화
+  lucide.createIcons();
+</script>
+</body>
+</html>
