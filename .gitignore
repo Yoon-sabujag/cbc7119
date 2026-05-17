@@ -8,3 +8,7 @@ stitch-mobile-spec.md
 캡쳐/
 승강기검사서/
 작업용/
+
+# Worktree-local Claude config (per-worktree overrides, not committed)
+CLAUDE.local.md
+.claude/settings.local.json
