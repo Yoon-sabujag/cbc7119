@@ -21,7 +21,7 @@ import { CCTV_DVRS } from '../utils/cctv'
 import {
   ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
-  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Square, Server,
+  Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
   // Zone (3종)
   FlaskConical, Building2, TrainFront,
   // 결과 (5종)
@@ -353,7 +353,7 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary leading-tight">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary leading-tight">{group.labels[0]}</div>
           {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5 leading-tight">{group.labels.slice(1).join(' · ')}</div>}
         </div>
       </div>
@@ -595,10 +595,10 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Video size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary leading-tight">CCTV 점검</div>
+          <div className="text-body font-bold text-text-primary leading-tight">CCTV 점검</div>
           <div className="text-caption text-text-tertiary mt-0.5 leading-tight">B1F 방재센터 DVR 12대</div>
         </div>
         {allDone && !justSaved && (
@@ -814,8 +814,8 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
-        <Square className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+        <SmokeVentIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
         </div>
@@ -836,7 +836,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)}
-                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                 {BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
@@ -882,7 +882,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSelectedId(cp.id)}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {getPositionLabel(cp)}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -1519,9 +1519,9 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
       style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM }}
     >
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <BarChart3 size={18} className="text-text-secondary" />
-        <span className="text-title font-bold text-text-primary">DIV 점검</span>
+        <span className="text-body font-bold text-text-primary">DIV 점검</span>
         {currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -1529,6 +1529,71 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{underPickIdx+1} / {underPending.length}</span>
         )}
       </div>
+
+      {/* 월초/월말 선택 — sticky raised wrapper (zone/line 영역 통일 룰) */}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
+        <div className="flex gap-2">
+          {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
+            const sel = timing === t
+            return (
+              <button key={t}
+                onClick={() => setTiming(t)}
+                className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                  sel
+                    ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                    : 'border border-border-strong bg-surface-page text-text-secondary'
+                }`}>
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 구역 선택 — sticky raised wrapper */}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+        <div className="flex gap-2">
+          {(['research','office','underground'] as DivZone[]).map(z => {
+            const sel = zone === z
+            return (
+              <button key={z}
+                onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                  sel
+                    ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                    : 'border border-border-strong bg-surface-page text-text-secondary'
+                }`}>
+                {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 라인 선택 (연구동/사무동) — sticky raised wrapper */}
+      {zone && zone !== 'underground' && (
+        <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+          <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
+          <div className="flex gap-2">
+            {(zone === 'research' ? [1,2] : [3]).map(l => {
+              const sel = line === l
+              return (
+                <button key={l}
+                  onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
+                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                    sel
+                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                      : 'border border-border-strong bg-surface-page text-text-secondary'
+                  }`}>
+                  DIV #{l}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* 본문 (재진입 팝업 부분 오버레이의 부모 — position:relative 필수) */}
       <div className="relative flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
@@ -1542,72 +1607,6 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
             onGoToRemediation={(recordId) => { dismiss(); navigate('/remediation/' + recordId) }}
           />
         )}
-
-        {/* 월초/월말 선택 */}
-        <div>
-          <div className="text-caption font-semibold text-text-tertiary mb-2">점검 구분</div>
-          <div className="flex gap-2">
-            {([['early','월초 점검'],['late','월말 점검']] as const).map(([t, label]) => {
-              const sel = timing === t
-              return (
-                <button key={t}
-                  onClick={() => setTiming(t)}
-                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                    sel
-                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                      : 'border border-border-strong bg-surface-page text-text-secondary'
-                  }`}>
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 구역 선택 */}
-        <div>
-          <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
-          <div className="flex gap-2">
-            {(['research','office','underground'] as DivZone[]).map(z => {
-              const sel = zone === z
-              return (
-                <button key={z}
-                  onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                  className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                    sel
-                      ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                      : 'border border-border-strong bg-surface-page text-text-secondary'
-                  }`}>
-                  {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* 라인 선택 (연구동/사무동) */}
-        {zone && zone !== 'underground' && (
-          <div>
-            <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
-            <div className="flex gap-2">
-              {(zone === 'research' ? [1,2] : [3]).map(l => {
-                const sel = line === l
-                return (
-                  <button key={l}
-                    onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                      sel
-                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                        : 'border border-border-strong bg-surface-page text-text-secondary'
-                    }`}>
-                    DIV #{l}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
 
         {/* 점검 폼 */}
         {currentPt && (
@@ -2019,9 +2018,9 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
       style={{ top:'var(--sat, 0px)', bottom: NAV_BOTTOM, zIndex: mode === 'from-div' ? 120 : 99 }}
     >
       {/* 헤더 */}
-      <div className="flex items-center px-4 py-3 border-b border-border-default gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Wind size={18} className="text-text-secondary" />
-        <span className="text-title font-bold text-text-primary">컴프레셔 점검</span>
+        <span className="text-body font-bold text-text-primary">컴프레셔 점검</span>
         {mode !== 'from-div' && currentPt && totalSteps && (
           <span className="ml-auto text-caption font-semibold text-text-tertiary">{lineIdx+1} / {totalSteps}</span>
         )}
@@ -2030,57 +2029,57 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
         )}
       </div>
 
-      {/* 본문 */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
-        {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 */}
-        {mode !== 'from-div' && (
-          <>
-            {/* 구역 선택 */}
-            <div>
-              <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+      {/* from-div 모드가 아닐 때만 구역/라인 선택 표시 — sticky raised wrapper (zone/line 영역 통일 룰) */}
+      {mode !== 'from-div' && (
+        <>
+          {/* 구역 선택 */}
+          <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+            <div className="text-caption font-semibold text-text-tertiary mb-2">구역 선택</div>
+            <div className="flex gap-2">
+              {(['research','office','underground'] as DivZone[]).map(z => {
+                const sel = zone === z
+                return (
+                  <button key={z}
+                    onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                      sel
+                        ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                        : 'border border-border-strong bg-surface-page text-text-secondary'
+                    }`}>
+                    {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* 라인 선택 (연구동/사무동) */}
+          {zone && zone !== 'underground' && (
+            <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
               <div className="flex gap-2">
-                {(['research','office','underground'] as DivZone[]).map(z => {
-                  const sel = zone === z
+                {(zone === 'research' ? [1,2] : [3]).map(l => {
+                  const sel = line === l
                   return (
-                    <button key={z}
-                      onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
+                    <button key={l}
+                      onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
                       className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
                         sel
                           ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                           : 'border border-border-strong bg-surface-page text-text-secondary'
                       }`}>
-                      {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                      컴프 #{l}
                     </button>
                   )
                 })}
               </div>
             </div>
+          )}
+        </>
+      )}
 
-            {/* 라인 선택 (연구동/사무동) */}
-            {zone && zone !== 'underground' && (
-              <div>
-                <div className="text-caption font-semibold text-text-tertiary mb-2">라인 선택</div>
-                <div className="flex gap-2">
-                  {(zone === 'research' ? [1,2] : [3]).map(l => {
-                    const sel = line === l
-                    return (
-                      <button key={l}
-                        onClick={() => { setLine(l); setLineIdx(0); resetForm() }}
-                        className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
-                          sel
-                            ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                            : 'border border-border-strong bg-surface-page text-text-secondary'
-                        }`}>
-                        컴프 #{l}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
+      {/* 본문 */}
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {/* 점검 폼 영역 — 개소 네비 카드는 항상 표시, 재진입 팝업은 입력 폼만 덮음 */}
         {currentPt && (
           <div className="flex flex-col gap-3.5">
@@ -2345,7 +2344,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
       <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Zap size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
         </div>
       </div>
 
@@ -2359,7 +2358,7 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
             const isActive = zone === z
             const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
@@ -2596,7 +2595,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
       <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Car size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-bold text-text-primary">{group.labels[0]}</div>
+          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
           {group.labels.length > 1 && (
             <div className="text-caption text-text-tertiary mt-0.5">· {group.labels.slice(1).join(' · ')}</div>
           )}
@@ -2613,7 +2612,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
             const isActive = item === label
             const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                           : allDone   ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)} className={`${baseCls} ${stateCls}`}>
@@ -2635,7 +2634,7 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
               const isActive = subItem === door
               const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
               const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
-                             : doneDoor  ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                             : doneDoor  ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                              :             'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={door} onClick={() => setSubItem(door)} className={`${baseCls} ${stateCls}`}>
@@ -2978,7 +2977,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
     >
 
       {/* 헤더 */}
-      <div className="flex items-center gap-2 px-4 py-3 bg-surface-page border-b border-border-default flex-shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
         <div className="flex-1">
           <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
@@ -3001,7 +3000,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={label} onClick={() => setItem(label)}
-                className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                 {label}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
@@ -3025,7 +3024,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={num} onClick={() => { setSelectedEquip(null); setSelectedStair(num) }}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {num}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -3040,7 +3039,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => { setSelectedStair(null); setSelectedEquip(cp.id) }}
-                  className={`px-2.5 py-[7px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`px-2.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {cp.location}{done && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -3064,7 +3063,7 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
                   : 'border border-border-strong bg-surface-page text-text-secondary'
               return (
                 <button key={cp.id} onClick={() => setSubItem(cp.location)}
-                  className={`flex-1 basis-0 min-w-0 px-2 py-[9px] rounded-[9px] text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                  className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
                   {cp.location}{isDone && <span className="text-caption ml-1 opacity-80">✓</span>}
                 </button>
               )
@@ -3819,7 +3818,7 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
     >
 
       {/* ── 헤더 ── */}
-      <div className="shrink-0 bg-surface-raised border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
+      <div className="shrink-0 bg-surface-page border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
         {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
         <div className="flex-1 min-w-0">
           <div className="text-body font-bold text-text-primary truncate">{group.labels[0]}</div>
