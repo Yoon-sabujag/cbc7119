@@ -97,30 +97,33 @@ export default function WorkShiftPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 자체 헤더 — sketch verbatim (모바일/데스크톱 분기) */}
+      {/* 자체 헤더 — App 헤더 톤 통일 (데스크톱 54h text-body / 모바일 48h text-label) */}
       <header
         className={`flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center ${
-          isDesktop ? 'h-[54px] px-5 gap-2.5' : 'px-3 py-2 gap-2'
+          isDesktop ? 'h-[54px] px-5 gap-2.5' : 'h-12 px-3 gap-2'
         }`}
       >
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
             aria-label="뒤로가기"
-            className="w-9 h-9 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer"
+            className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
         )}
-        <span className={`flex-1 font-bold text-text-primary ${isDesktop ? 'text-title' : 'text-body'}`}>
+        <span className={`flex-1 font-bold text-text-primary ${isDesktop ? 'text-body' : 'text-label'}`}>
           월간 출근부
         </span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}
-          className="h-9 px-3.5 rounded-sm bg-accent hover:bg-accent-hover text-text-on-accent text-label font-semibold cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          className={[
+            'rounded-sm bg-accent hover:bg-accent-hover text-text-on-accent font-semibold cursor-pointer inline-flex items-center disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+            isDesktop ? 'h-9 px-3.5 text-label gap-1.5' : 'h-8 px-2.5 text-caption gap-1 leading-none',
+          ].join(' ')}
         >
-          <FileDown size={14} />
+          <FileDown size={isDesktop ? 14 : 13} />
           {dlLoading ? '생성중...' : '엑셀 저장'}
         </button>
       </header>

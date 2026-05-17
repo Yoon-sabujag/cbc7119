@@ -103,7 +103,7 @@ export default function AnnualPlanPage() {
 
         {/* 자체 헤더 — sketch verbatim */}
         <header className="flex-shrink-0 h-[54px] px-5 bg-surface-raised border-b border-border-default flex items-center gap-2.5">
-          <span className="flex-1 text-title font-bold text-text-primary">연간 업무 추진 계획</span>
+          <span className="flex-1 text-body font-bold text-text-primary">연간 업무 추진 계획</span>
           <div className="flex items-center gap-3">
             <span className="text-caption text-text-tertiary">
               대상 연도 <strong className="text-text-primary font-bold text-label">{nextYear}년</strong>
@@ -123,9 +123,9 @@ export default function AnnualPlanPage() {
             <button
               onClick={handleDownload}
               disabled={loading}
-              className="h-11 px-4 rounded-sm bg-cta-gradient hover:bg-cta-gradient-hover text-white text-body-sm font-bold cursor-pointer inline-flex items-center gap-2 disabled:bg-none disabled:bg-surface-sunken disabled:text-text-tertiary disabled:cursor-not-allowed transition-colors"
+              className="h-9 px-3.5 rounded-sm bg-cta-gradient hover:bg-cta-gradient-hover text-white text-label font-semibold cursor-pointer inline-flex items-center gap-1.5 disabled:bg-none disabled:bg-surface-sunken disabled:text-text-tertiary disabled:cursor-not-allowed transition-colors"
             >
-              <FileDown size={16} />
+              <FileDown size={14} />
               {loading ? '생성 중...' : '엑셀 다운로드'}
             </button>
           </div>
@@ -145,16 +145,16 @@ export default function AnnualPlanPage() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 자체 헤더 */}
-      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2 px-3 py-2">
+      {/* 자체 헤더 — App 헤더 톤 통일 (48h text-label) */}
+      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2 h-12 px-3">
         <button
           onClick={() => navigate(-1)}
           aria-label="뒤로가기"
-          className="w-9 h-9 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0"
+          className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={15} />
         </button>
-        <span className="flex-1 text-body font-bold text-text-primary">연간 업무 추진 계획</span>
+        <span className="flex-1 text-label font-bold text-text-primary">연간 업무 추진 계획</span>
         <button
           onClick={() => setCalibMode(m => !m)}
           className={[
