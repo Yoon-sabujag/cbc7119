@@ -152,24 +152,54 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
     const { start, end } = getWeekBounds(today)
     const todayDow = new Date(today).getDay() // 1=월…5=금
 
+    // 260518-multiday-fix: 오늘 일정 SELECT 가 multi-day (date + end_date) 후속일을 놓치는 버그 수정.
+    // - SchedulePage matchesDate (src/pages/SchedulePage.tsx:154-162) 와 동일 룰:
+    //   * 단일 일자 (end_date NULL): 사용자가 명시한 거니까 주말/공휴일이라도 표시
+    //   * multi-day range 안의 day: 주말·공휴일 자동 제외
+    // - schedule API GET /?date= (functions/api/schedule/index.ts:14-15) 와 동일 범위 쿼리.
+    // - 통계 (inspTot, todayCats) 는 표시되는 일정 리스트에서 파생 → 일관성 보장 + 쿼리 절약.
+    const todayIsHoliday = await env.DB.prepare(
+      `SELECT 1 FROM holidays WHERE date = ?`
+    ).bind(today).first<{ '1': number }>()
+    const todayIsWeekend = todayDow === 0 || todayDow === 6
+    const todayBlockedForRange = todayIsWeekend || !!todayIsHoliday
+
     // ── 오늘 일정 ───────────────────────────────────────
-    const schedRows = await env.DB.prepare(`
-      SELECT id, title, date, time, category, status, inspection_category, memo
+    // multi-day 일정 (end_date 있음) + 단일 일자 모두 잡기 위해 범위 쿼리 사용.
+    const rawSchedRows = await env.DB.prepare(`
+      SELECT id, title, date, end_date, time, category, status, inspection_category, memo
       FROM schedule_items
-      WHERE date = ?
+      WHERE date <= ? AND COALESCE(end_date, date) >= ?
       ORDER BY CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC
-    `).bind(today).all<Record<string,string>>()
+    `).bind(today, today).all<Record<string, any>>()
+
+    // matchesDate 룰: range 안의 주말/공휴일은 제외. 단일 일자는 항상 통과.
+    const todaySchedRowsFiltered = (rawSchedRows.results ?? []).filter((r: any) => {
+      const isRange = !!r.end_date && r.end_date !== r.date
+      if (!isRange) return true
+      return !todayBlockedForRange
+    })
+    const schedRows = { results: todaySchedRowsFiltered }
+
+    // 오늘 inspect 일정 카테고리 (필터 후 리스트에서 derive — 동일 룰 보장)
+    const todayInspectCats = Array.from(new Set(
+      todaySchedRowsFiltered
+        .filter((r: any) => r.category === 'inspect' && r.inspection_category)
+        .map((r: any) => r.inspection_category as string)
+    ))
 
     // ── 통계 ────────────────────────────────────────────
     // 오늘 inspect 일정의 inspection_category 기준 목표 개소
-    const inspTot = await env.DB.prepare(`
-      SELECT COUNT(*) as n FROM check_points
-      WHERE is_active=1
-        AND category IN (
-          SELECT inspection_category FROM schedule_items
-          WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL
-        )
-    `).bind(today).first<{n:number}>()
+    let inspTotN = 0
+    if (todayInspectCats.length > 0) {
+      const placeholders = todayInspectCats.map(() => '?').join(',')
+      const r = await env.DB.prepare(
+        `SELECT COUNT(*) as n FROM check_points
+         WHERE is_active=1 AND category IN (${placeholders})`
+      ).bind(...todayInspectCats).first<{ n: number }>()
+      inspTotN = r?.n ?? 0
+    }
+    const inspTot = { n: inspTotN }
 
     // 오늘 inspect 일정이 걸린 카테고리마다 이번 달 전체 윈도우로 완료 개소를 집계.
     // 260427: 직전 "연속 블록" 기준은 비연속 일정에서 오늘만 포함되어 월간 카드와 어긋나는
@@ -181,14 +211,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, data }) => {
       const lastDay = new Date(y, m, 0).getDate()
       return `${y}-${String(m).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
     })()
-    const todayCats = await env.DB.prepare(
-      `SELECT DISTINCT inspection_category FROM schedule_items
-       WHERE date=? AND category='inspect' AND inspection_category IS NOT NULL`
-    ).bind(today).all<{ inspection_category: string }>()
 
     let inspDoneN = 0
-    for (const row of (todayCats.results ?? [])) {
-      const cat = row.inspection_category
+    for (const cat of todayInspectCats) {
       // 260427-1dc: DIV/컴프레셔는 월 반반(1~15 / 16~말) 분할, 그 외는 월 전체 윈도우
       const [startDate, endDate] = CYCLE_CATEGORIES.has(cat)
         ? getCycleHalfRange(today, _monthEnd)
