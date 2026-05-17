@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10 CCTV 현황 · v0.1.1 재디자인 시안</title>
+  <style>
+    /* ──────────────────────────────────────────────────────────────
+       :root — v0.1.1 토큰 단일 source
+       :root 정의 블록 + body / frame chrome 의 raw hex 만 예외.
+       카드 내부 마크업에는 var(--...) 만 사용 (verify gate 강제).
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+
+      --status-safe:     #4ade80;
+      --status-safe-bar: #22c55e;
+      --status-safe-bg:  rgba(34, 197, 94, 0.16);
+
+      --status-info:     #38bdf8;
+      --status-info-bar: #0ea5e9;
+      --status-info-bg:  rgba(14, 165, 233, 0.16);
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 28px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 12px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    /* mock frame */
+    .frame-mobile {
+      width: 360px;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .frame-desktop {
+      width: 960px;
+      max-width: 100%;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    /* dot (배지 좌측) */
+    .dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 99px;
+      background: currentColor;
+    }
+
+    /* rule 박스 */
+    .rules {
+      margin-top: 40px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 960px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>10. CCTV 현황 — v0.1.1 재디자인 시안</h1>
+  <p>
+    DVR 13대 카드 그리드 — 시각 디자인만, 비즈니스 로직 0 변경.
+    시안 OK 후 TSX 변환 wave (별도 quick) 의 verbatim 인용 원천.
+    데이터, 데스크톱 분기, 합계 계산, 추정 분기, 교체일자 분기 모두 원본 그대로.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · 모바일 1열 · 표준 카드 (확정 / 다포트 — DVR 1)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · 모바일 1열 · 표준 카드 (확정 보존 / 3포트 / 교체일자 모두 기존)</h2>
+  <p class="vp-desc">DVR 1 — 16ch · 녹화구역 8F, 7F · 보존 50일 (safe dot) · 포트 #4 2TB / #5 2TB / #6 1TB · 합계 5TB · 포트 3개</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      <!-- card: DVR 1 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 1</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">16ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-safe-bg); border: 1px solid var(--status-safe-bar); color: var(--status-safe);">
+            <span class="dot"></span>50일
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>8F, 7F
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#4</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#5</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#6</div>
+          <div style="font-size: 12px; color: var(--text-primary);">1TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 5TB · 포트 3개</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · 데스크톱 2열 · 두 카드 모두 확정 (DVR 1 + DVR 2) + 페이지 출처
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · 데스크톱 2열 · 두 카드 모두 확정 (DVR 1 + DVR 2) + 페이지 출처</h2>
+  <p class="vp-desc">데스크톱 max-width 960 · grid 2열 · DVR 1 + DVR 2 (둘 다 safe 배지) · 하단 페이지 출처 노출</p>
+  <div class="frame-desktop" data-viewport="V2">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 960px; margin: 0 auto;">
+      <!-- card: DVR 1 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 1</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">16ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-safe-bg); border: 1px solid var(--status-safe-bar); color: var(--status-safe);">
+            <span class="dot"></span>50일
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>8F, 7F
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#4</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#5</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#6</div>
+          <div style="font-size: 12px; color: var(--text-primary);">1TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 5TB · 포트 3개</div>
+      </div>
+      <!-- card: DVR 2 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 2</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">16ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-safe-bg); border: 1px solid var(--status-safe-bar); color: var(--status-safe);">
+            <span class="dot"></span>50일
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>6F, 5F
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#4</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#5</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#6</div>
+          <div style="font-size: 12px; color: var(--text-primary);">1TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 5TB · 포트 3개</div>
+      </div>
+    </div>
+    <div style="font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 12px 0 0 0; line-height: 1;">출처: CCTV 녹화 설비 현황 2025-12-05</div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · 모바일 · 추정 보존 배지 (info) + 교체일자 강조 (info) — DVR 13
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · 모바일 · 추정 보존 배지 (info) + 교체일자 강조 (info) — DVR 13</h2>
+  <p class="vp-desc">DVR 13 — 7ch · 녹화구역 국제회의실, 대강당 · 보존 120일 (추정) · 포트 #1 4TB · 교체일자 2026-04-28 강조</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      <!-- card: DVR 13 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 13</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">7ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info);">
+            <span class="dot"></span>120일 (추정)
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>국제회의실, 대강당
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#1</div>
+          <div style="font-size: 12px; color: var(--text-primary);">4TB</div>
+          <div style="font-size: 12px; color: var(--status-info); font-weight: 700;">2026-04-28</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 4TB · 포트 1개</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · 모바일 · 다포트(3) + 교체일자 강조 2 + 기존 1 — DVR 7
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · 모바일 · 다포트(3) + 교체일자 강조 2 / 기존 1 한 카드 — DVR 7</h2>
+  <p class="vp-desc">DVR 7 — 15ch · 녹화구역 B1F, B2F · 보존 63일 (safe) · #4 2025-12-05(info) / #5 기존 / #6 2025-12-05(info)</p>
+  <div class="frame-mobile" data-viewport="V4">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      <!-- card: DVR 7 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 7</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">15ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-safe-bg); border: 1px solid var(--status-safe-bar); color: var(--status-safe);">
+            <span class="dot"></span>63일
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>B1F, B2F
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#4</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--status-info); font-weight: 700;">2025-12-05</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#5</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#6</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--status-info); font-weight: 700;">2025-12-05</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 6TB · 포트 3개</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V5 · 모바일 · 단일 포트 변형 (DVR 12 — 카드 균형 검증)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V5 · 모바일 · 단일 포트 카드 (DVR 12) — 포트 표 1행 시각 균형</h2>
+  <p class="vp-desc">DVR 12 — 8ch · 녹화구역 리서치프라자, 서버실 · 보존 91일 (safe) · #2 2TB 기존 · 합계 2TB · 포트 1개</p>
+  <div class="frame-mobile" data-viewport="V5">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+      <!-- card: DVR 12 -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 12</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">8ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-safe-bg); border: 1px solid var(--status-safe-bar); color: var(--status-safe);">
+            <span class="dot"></span>91일
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>리서치프라자, 서버실
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#2</div>
+          <div style="font-size: 12px; color: var(--text-primary);">2TB</div>
+          <div style="font-size: 12px; color: var(--text-tertiary);">기존</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 2TB · 포트 1개</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V6 · 데스크톱 2열 · odd-row (DVR 13 1개 + 오른쪽 빈 슬롯)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V6 · 데스크톱 2열 · odd-row 마지막 행 (DVR 13 + 빈 슬롯) — 13÷2 = 7+1</h2>
+  <p class="vp-desc">데스크톱 grid 의 마지막 행이 한쪽만 채워지는 시각 균형 검증. 빈 슬롯은 비워둠.</p>
+  <div class="frame-desktop" data-viewport="V6">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 960px; margin: 0 auto;">
+      <!-- card: DVR 13 (V3 와 동일 데이터) -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-primary);">DVR 13</span>
+          <span style="font-size: 12px; font-weight: 600; color: var(--text-tertiary); line-height: 1;">7ch</span>
+          <span style="flex: 1;"></span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info);">
+            <span class="dot"></span>120일 (추정)
+          </span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
+          <span style="color: var(--text-tertiary);">녹화구역 </span>국제회의실, 대강당
+        </div>
+        <div style="background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-sm); padding: 8px 10px; display: grid; grid-template-columns: auto 1fr 1fr; gap: 4px 10px;">
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">포트</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">용량</div>
+          <div style="font-size: 12px; color: var(--text-tertiary); font-weight: 600;">교체일자</div>
+          <div style="font-size: 12px; color: var(--text-primary); font-weight: 700;">#1</div>
+          <div style="font-size: 12px; color: var(--text-primary);">4TB</div>
+          <div style="font-size: 12px; color: var(--status-info); font-weight: 700;">2026-04-28</div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: right; margin-top: 6px; line-height: 1;">합계 4TB · 포트 1개</div>
+      </div>
+      <!-- 빈 슬롯 (grid cell 만 차지) -->
+      <div></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Rule 박스 — sketch self-documentation
+       (verify gate FAIL 회피: 금지 토큰명, 그라디언트, raw 색, 이모지, 그림자 효과 등의
+        리터럴을 본문에 박지 않고 한글 설명으로 풀어 표기)
+       ════════════════════════════════════════════════════════════ -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1</h3>
+    <p class="rules-desc">이 sketch 는 다음 룰을 강제. TSX 변환 wave 에서도 그대로 인용.</p>
+    <ul>
+      <li>토큰 단일 source: surface 3 / text 3 / border 2 / accent 1 / status-safe 3 / status-info 3 / radius 3 — 이외 토큰 추가 금지</li>
+      <li>카드 chrome: surface-raised + border-default 1px + radius-md + padding 12 — 모바일 / 데스크톱 동일</li>
+      <li>포트 표 sub-card: surface-page + border-default + radius-sm (raised 카드 안에 page 톤 sub-card)</li>
+      <li>보존기간 배지: 확정 = safe 톤 (safe-bg + safe-bar 보더 + safe 텍스트) / 추정 = info 톤 (info-bg + info-bar 보더 + info 텍스트). 두 톤 모두 좌측 6px dot.</li>
+      <li>교체일자: "기존" = text-tertiary / 날짜(YYYY-MM-DD) = status-info + bold</li>
+      <li>작은 컨테이너 안 12px 텍스트는 line-height 1 (배지 / 푸터 / 채널수 3 곳) — feedback_text_caption_leading_none 룰 강제</li>
+      <li>그리드: 모바일 1열 gap 8 · 데스크톱 2열 gap 12 · max-width 960</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰 (verify gate 강제)</h3>
+    <ul>
+      <li>옛 alias 토큰 (bg / bg2 / bd / t1 / t2 / t3 / safe 단독 / warn / danger / fire / c-day 등) 0건</li>
+      <li>raw 색 값 (hex / rgba) 0건 — :root 정의 블록 + sketch body / frame chrome 만 예외, 카드 내부엔 0건</li>
+      <li>그라디언트 일체 0건 (단색 강조만)</li>
+      <li>이모지 일체 0건 — 모든 표시는 텍스트 또는 CSS dot 으로</li>
+      <li>그림자 / 블러 / backdrop 효과 0건 — 위계는 보더로 표현</li>
+      <li>카드 내부 폰트 9 / 10 / 11px 0건 — 마지노선 12px</li>
+      <li>09 / 11 / 02 와 다른 카드 chrome (radius / padding scale) 사용 금지 — radius-md + padding 12 + 1px default 통일</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존 (TSX 변환 wave 에서 그대로 사용)</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      이 sketch 는 시각 디자인만. CCTV_DVRS 데이터 구조 / useIsDesktop 분기 / 합계 계산 (TB suffix 만 parseFloat) / 추정여부 분기 (retention 의 추정 포함 여부) / 교체일자 분기 (replaced 가 기존이 아닌 경우 강조) — 4 분기 모두 0 변경.
+    </p>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 모바일 1열 · DVR 1 · safe 배지 · 3포트 모두 기존</li>
+      <li>V2 데스크톱 2열 · DVR 1 + DVR 2 · 둘 다 safe · 페이지 출처 푸터 노출</li>
+      <li>V3 모바일 · DVR 13 · info 배지 (추정) + info 교체일자 강조 (2026-04-28)</li>
+      <li>V4 모바일 · DVR 7 · safe 배지 / 포트 표 안에 info 강조 2 + 기존 1 동시 노출</li>
+      <li>V5 모바일 · DVR 12 · 단일 포트 카드 시각 균형 검증</li>
+      <li>V6 데스크톱 2열 · DVR 13 + 빈 슬롯 (odd-row 마지막 행)</li>
+    </ul>
+  </div>
+
+</body>
+</html>
