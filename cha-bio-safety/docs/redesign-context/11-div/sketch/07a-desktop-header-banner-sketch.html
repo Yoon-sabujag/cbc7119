@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 7a · 데스크톱 헤더 + 알림 배너</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --status-danger:      #f87171;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bg:   rgba(239,68,68,0.12);
+      --status-warning-bg:  rgba(245,158,11,0.12);
+      --status-danger-border: rgba(239,68,68,0.4);
+      --status-warning-border:rgba(245,158,11,0.4);
+    }
+    [data-theme="light"] {
+      --surface-page:   #ffffff;
+      --surface-raised: #f6f8fa;
+      --surface-sunken: #ebeef1;
+      --text-primary:   #1f2328;
+      --text-secondary: #4d5562;
+      --text-tertiary:  #656d76;
+      --border-default: #d8dee4;
+      --status-danger:      #991b1b;
+      --status-warning-bar: #854d0e;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 1280px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 1280px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 데스크톱 다크 -->
+    <div>
+      <div class="label">VP1 · 데스크톱 다크 · 1280×120 (헤더 + 알림 배너, 이상 2건 / 주의 3건)</div>
+      <div class="frame" data-theme="dark" style="height: 120px;">
+
+        <!-- 헤더 -->
+        <header style="flex-shrink: 0; height: 54px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 0 20px; display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 16px; font-weight: 700; color: var(--text-primary);">DIV 압력 관리</span>
+        </header>
+
+        <!-- 알림 배너 -->
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 24px; display: flex; align-items: center; gap: 10px; overflow-x: auto;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">⚠ 이상 2건 · 주의 3건</span>
+          <!-- 이상 칩 (danger) -->
+          <button style="flex-shrink: 0; border: 1px solid var(--status-danger-border); background: var(--status-danger-bg); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">● DIV-2F-1 2차 -22%</button>
+          <button style="flex-shrink: 0; border: 1px solid var(--status-danger-border); background: var(--status-danger-bg); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">● DIV-B1-3 1차 +25%</button>
+          <!-- 주의 칩 (warn) -->
+          <button style="flex-shrink: 0; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-2F-2 1차 +12%</button>
+          <button style="flex-shrink: 0; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-3F-1 2차 -13%</button>
+          <button style="flex-shrink: 0; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-4F-2 세팅 -11%</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- VP2 데스크톱 다크 — 빈 상태 (정상) -->
+    <div>
+      <div class="label">VP2 · 데스크톱 다크 · 1280×120 (헤더 + 알림 배너, 모두 정상)</div>
+      <div class="frame" data-theme="dark" style="height: 120px;">
+        <header style="flex-shrink: 0; height: 54px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 0 20px; display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 16px; font-weight: 700; color: var(--text-primary);">DIV 압력 관리</span>
+        </header>
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 24px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">⚠ 이상 0건 · 주의 0건</span>
+          <span style="font-size: 11px; color: var(--text-tertiary);">모든 포인트 정상</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP3 데스크톱 라이트 -->
+    <div>
+      <div class="label">VP3 · 데스크톱 라이트 · 1280×120 (헤더 + 알림 배너)</div>
+      <div class="frame" data-theme="light" style="height: 120px;">
+        <header style="flex-shrink: 0; height: 54px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 0 20px; display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 16px; font-weight: 700; color: var(--text-primary);">DIV 압력 관리</span>
+        </header>
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 24px; display: flex; align-items: center; gap: 10px; overflow-x: auto;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">⚠ 이상 2건 · 주의 3건</span>
+          <button style="flex-shrink: 0; border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.12); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">● DIV-2F-1 2차 -22%</button>
+          <button style="flex-shrink: 0; border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.12); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">● DIV-B1-3 1차 +25%</button>
+          <button style="flex-shrink: 0; border: 1px solid rgba(245,158,11,0.4); background: rgba(245,158,11,0.12); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-2F-2 1차 +12%</button>
+          <button style="flex-shrink: 0; border: 1px solid rgba(245,158,11,0.4); background: rgba(245,158,11,0.12); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-3F-1 2차 -13%</button>
+          <button style="flex-shrink: 0; border: 1px solid rgba(245,158,11,0.4); background: rgba(245,158,11,0.12); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">◐ DIV-4F-2 세팅 -11%</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>데스크톱 헤더 + 알림 배너 (DivPage.tsx line 941~970 verbatim + 색만 v0.1.1 토큰화)</b></p>
+    <p style="margin-bottom: 4px;"><b>헤더</b></p>
+    <p style="margin-bottom: 4px;">• 높이 <b>54px</b> + padding <b>0 20px</b> + bg-surface-raised + border-b border-default (verbatim)</p>
+    <p style="margin-bottom: 10px;">• 제목 <b>16px font-bold text-primary</b> "DIV 압력 관리" (verbatim — 백 버튼 없음)</p>
+    <p style="margin-bottom: 4px;"><b>알림 배너</b></p>
+    <p style="margin-bottom: 4px;">• 컨테이너 bg-surface-raised + border-b + padding <b>8px 24px</b> + flex + gap 10 + overflow-x auto (verbatim)</p>
+    <p style="margin-bottom: 4px;">• 라벨 <b>"⚠ 이상 N건 · 주의 N건"</b> 12px font-bold text-secondary (verbatim — ⚠ 이모지 유지)</p>
+    <p style="margin-bottom: 4px;">• 이상 칩 <b>border-status-danger-border + bg-status-danger-bg + text-status-danger</b> rounded-16 padding 4/10 + 11px font-bold</p>
+    <p style="margin-bottom: 4px;">• 주의 칩 <b>border-status-warning-border + bg-status-warning-bg + text-status-warning-bar</b></p>
+    <p style="margin-bottom: 4px;">• 칩 텍스트 = "● 또는 ◐ + point.id + worstKind + pct%" (verbatim)</p>
+    <p style="margin-bottom: 10px;">• 빈 상태 (모두 정상) "모든 포인트 정상" <b>11px text-tertiary</b></p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>설계 결정</b></p>
+    <p style="margin-bottom: 4px;">• 데스크톱 헤더에는 <b>백 버튼 없음</b> — App 의 데스크톱 사이드메뉴로 다른 페이지 이동 (모바일과 다른 점)</p>
+    <p style="margin-bottom: 4px;">• 알림 배너의 칩 = 이상/주의 측정점 빠른 점프 (클릭 시 우측 상세 패널 열림)</p>
+    <p style="margin-bottom: 10px;">• 모바일 4탭 대신 데스크톱은 매트릭스 한 화면 (영역 7b 에서)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>⚠/●/◐ 이모지 → lucide 아이콘</b> (AlertTriangle / Circle / CircleHalf) — 일관성 ↑. 단 시각 변경.</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>알림 배너 라벨/칩 폰트 격상</b> (12px → 13/14px) — 노안 친화. 단 한 줄 fit 안 맞을 수도.</p>
+    <p>현재 패턴으로 OK 면 영역 7b (매트릭스 — 층×포지션 그리드) 진행. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>
