@@ -445,39 +445,45 @@ export default function ExtinguishersListPage() {
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'warn' ? null : 'warn')}
                 style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
                   padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'warn' ? 'var(--status-warning-bg)' : 'var(--status-warning-bg)',
+                  background: 'var(--status-warning-bg)',
                   color: 'var(--status-warning)',
-                  border: replaceFilter === 'warn' ? '1.5px solid var(--status-warning-bar)' : '1px solid var(--status-warning-bg)',
+                  border: replaceFilter === 'warn' ? '1.5px solid var(--status-warning-bar)' : '1px solid var(--status-warning-bar)',
                 }}
               >
-                ⚠️ 교체 도래 {replaceCounts.warn}
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                교체 도래 {replaceCounts.warn}
               </button>
             )}
             {replaceCounts.imm > 0 && (
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'imminent' ? null : 'imminent')}
                 style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
                   padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'imminent' ? 'var(--status-fire-bg)' : 'var(--status-fire-bg)',
+                  background: 'var(--status-fire-bg)',
                   color: 'var(--status-fire)',
-                  border: replaceFilter === 'imminent' ? '1.5px solid var(--status-fire-bar)' : '1px solid var(--status-fire-bg)',
+                  border: replaceFilter === 'imminent' ? '1.5px solid var(--status-fire-bar)' : '1px solid var(--status-fire-bar)',
                 }}
               >
-                ⚠️ 교체 임박 {replaceCounts.imm}
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                교체 임박 {replaceCounts.imm}
               </button>
             )}
             {replaceCounts.danger > 0 && (
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'danger' ? null : 'danger')}
                 style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
                   padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'danger' ? 'var(--status-danger-bg)' : 'var(--status-danger-bg)',
+                  background: 'var(--status-danger-bg)',
                   color: 'var(--status-danger)',
-                  border: replaceFilter === 'danger' ? '1.5px solid var(--status-danger-bar)' : '1px solid var(--status-danger-bg)',
+                  border: replaceFilter === 'danger' ? '1.5px solid var(--status-danger-bar)' : '1px solid var(--status-danger-bar)',
                 }}
               >
-                ⚠️ 교체 초과 {replaceCounts.danger}
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+                교체 초과 {replaceCounts.danger}
               </button>
             )}
           </div>
@@ -681,11 +687,13 @@ function ExtinguisherCard({
           {item.type ?? '-'}
         </span>
         <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
           fontSize: 12, fontWeight: 700,
           padding: '2px 8px', borderRadius: 'var(--radius-sm)',
           background: badgeBg, color: badgeColor,
           flexShrink: 0,
         }}>
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
           {badgeLabel}
         </span>
       </div>
@@ -709,14 +717,21 @@ function ExtinguisherCard({
         <span style={{
           fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
           flex: 1, minWidth: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 4,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {item.cp_id
-            ? `📍 ${zoneLabelKo(item.cp_zone)} ${item.cp_floor ?? ''}${item.cp_location ? ' · ' + item.cp_location : ''}`
-            : '위치 미지정'}
+          {item.cp_id ? (
+            <>
+              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {zoneLabelKo(item.cp_zone)} {item.cp_floor ?? ''}{item.cp_location ? ' · ' + item.cp_location : ''}
+              </span>
+            </>
+          ) : '위치 미지정'}
         </span>
         {warning && (
           <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1,
             fontSize: 12, fontWeight: 700,
             padding: '2px 8px', borderRadius: 'var(--radius-sm)',
             background: warning === 'danger' ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
@@ -724,7 +739,8 @@ function ExtinguisherCard({
             border: `1px solid ${warning === 'danger' ? 'var(--status-danger-bar)' : 'var(--status-warning-bar)'}`,
             flexShrink: 0,
           }}>
-            ⚠️ 교체 {warning === 'warn' ? '도래' : warning === 'imminent' ? '임박' : '초과'}
+            <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor', flexShrink: 0 }} />
+            교체 {warning === 'warn' ? '도래' : warning === 'imminent' ? '임박' : '초과'}
           </span>
         )}
       </div>
