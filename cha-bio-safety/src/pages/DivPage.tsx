@@ -78,7 +78,7 @@ function daysBetween(a: string, b: string) {
 function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
   const recent = dates.slice(-6)   // 최근 6건
   if (recent.length < 2) {
-    return <div style={{ height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'var(--t3)' }}>기록 없음</div>
+    return <div className="h-[70px] flex items-center justify-center text-[13px] text-text-tertiary">기록 없음</div>
   }
   const intervals = recent.slice(1).map((d, i) => ({
     days: daysBetween(recent[i], d),
@@ -86,7 +86,7 @@ function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
     dd:   d.slice(8, 10),  // "DD"
   }))
   const maxDays = Math.max(...intervals.map(iv => iv.days))
-  const barW = 13, gap = 3, topPad = 6, barMaxH = 15, labelH = 11
+  const barW = 24, gap = 6, topPad = 10, barMaxH = 36, labelH = 20
   const n = intervals.length
   const totalW = n * (barW + gap) - gap
   const totalH = topPad + barMaxH + labelH + 2
@@ -98,15 +98,15 @@ function IntervalBar({ dates, color }: { dates: string[]; color: string }) {
         const barY = topPad + barMaxH - h
         return (
           <g key={i}>
-            <rect x={x} y={barY} width={barW} height={h} rx={2} fill={color} opacity={0.85} />
+            <rect x={x} y={barY} width={barW} height={h} rx={3} fill={color} opacity={0.85} />
             <text x={x + barW / 2} y={barY - 2} textAnchor="middle"
-              fontSize="5.5" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}>
+              fontSize="10" fill={color} fontFamily="JetBrains Mono, monospace" opacity={0.9}>
               {days}
             </text>
-            <text x={x + barW / 2} y={topPad + barMaxH + 7} textAnchor="middle"
-              fontSize="5" fill="rgba(139,148,158,0.55)" fontFamily="JetBrains Mono, monospace">{mm}</text>
-            <text x={x + barW / 2} y={topPad + barMaxH + 14} textAnchor="middle"
-              fontSize="5" fill="rgba(139,148,158,0.45)" fontFamily="JetBrains Mono, monospace">{dd}</text>
+            <text x={x + barW / 2} y={topPad + barMaxH + 12} textAnchor="middle"
+              fontSize="10" fill="rgba(139,148,158,0.65)" fontFamily="JetBrains Mono, monospace">{mm}</text>
+            <text x={x + barW / 2} y={topPad + barMaxH + 22} textAnchor="middle"
+              fontSize="10" fill="rgba(139,148,158,0.5)" fontFamily="JetBrains Mono, monospace">{dd}</text>
           </g>
         )
       })}
@@ -262,25 +262,25 @@ export default function DivPage() {
     }
   }, [selDiv?.id, selHistory.length])
 
-  // ── 압력 트렌드 탭: 층별 3열 그리드 ─────────────────────────
+  // ── 압력 트렌드 탭: 층별 1열 카드 ─────────────────────────
   function renderPressureTab() {
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[12px_12px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
+            <div key={group[0].floor} className="mb-1">
               {/* 층 라벨 */}
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+              <div className="text-[12px] font-bold text-text-tertiary mb-2 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="flex flex-col gap-2">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
-                  if (!div) return <div key={pos} />
+                  if (!div) return null
                   const hist   = pressureMap[div.id] ?? []
                   const last   = hist[hist.length - 1]
                   const prev   = hist[hist.length - 2]
@@ -294,44 +294,45 @@ export default function DivPage() {
                     <div
                       key={div.id}
                       onClick={() => setSelDiv(div)}
-                      style={{
-                        background: 'var(--bg2)',
-                        border: `1px solid ${alarm ? 'rgba(239,68,68,.4)' : warn ? 'rgba(245,158,11,.3)' : 'var(--bd)'}`,
-                        borderRadius: 8, padding: '5px 5px 4px', cursor: 'pointer',
-                      }}
+                      className={`bg-surface-raised rounded-lg cursor-pointer ${
+                        alarm ? 'border border-border-default border-l-4 border-l-status-danger-bar p-[10px_12px_10px_9px]' :
+                        warn  ? 'border border-border-default border-l-4 border-l-status-warning-bar p-[10px_12px_10px_9px]' :
+                                'border border-border-default p-[10px_12px]'
+                      }`}
                     >
-                      {/* 헤더: 호기 · 위치 · 월 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {/* 헤더: 호기 · 위치 · 배지 · 월 */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
+                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                           {div.loc.replace(/^[^\)]+\) /, '')}
                         </span>
-                        {alarm && <span style={{ fontSize: 7, fontWeight: 700, color: 'var(--danger)', flexShrink: 0 }}>이상</span>}
-                        {warn  && <span style={{ fontSize: 7, fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>주의</span>}
-                        {last  && <span style={{ fontSize: 7, color: 'var(--t3)', flexShrink: 0 }}>{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
+                        {alarm && <span className="text-[12px] font-bold text-status-danger flex-shrink-0">이상</span>}
+                        {warn  && <span className="text-[12px] font-bold text-status-warning-bar flex-shrink-0">주의</span>}
+                        {last  && <span className="text-[12px] text-text-tertiary flex-shrink-0">{last.month}월{last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}</span>}
                       </div>
-                      {/* 압력값: SVG와 동일한 34px 고정 높이 */}
-                      <div style={{ height: 34, display: 'flex', alignItems: 'center' }}>
-                        {!last ? (
-                          <div style={{ width: '100%', textAlign: 'center', fontSize: 9, color: 'var(--t3)' }}>-</div>
-                        ) : (
-                          <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%' }}>
-                            {[
-                              { label: '1차', val: last.v1, col: '#3b82f6', s: s1 },
-                              { label: '2차', val: last.v2, col: '#f97316',  s: s2 },
-                              { label: '세팅', val: last.vc, col: '#22c55e', s: sc },
-                            ].map(p => (
-                              <div key={p.label} style={{ textAlign: 'center', flex: 1 }}>
-                                <div style={{
-                                  fontSize: 14, fontWeight: 800, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace',
-                                  color: p.s === 'danger' ? 'var(--danger)' : p.s === 'warn' ? '#f59e0b' : p.col,
-                                }}>{p.val.toFixed(1)}</div>
-                                <div style={{ fontSize: 7, color: 'var(--t3)', marginTop: 3 }}>{p.label}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      {/* 압력값 */}
+                      {!last ? (
+                        <div className="w-full text-center text-[13px] text-text-tertiary">-</div>
+                      ) : (
+                        <div className="flex justify-around">
+                          {[
+                            { label: '1차', val: last.v1, s: s1 },
+                            { label: '2차', val: last.v2, s: s2 },
+                            { label: '세팅', val: last.vc, s: sc },
+                          ].map(p => (
+                            <div key={p.label} className="text-center flex-1">
+                              <div className={`text-[22px] font-bold leading-none font-mono ${
+                                p.s === 'danger' ? 'text-status-danger' :
+                                p.s === 'warn'   ? 'text-status-warning' :
+                                p.label === '1차' ? 'text-accent' :
+                                p.label === '2차' ? 'text-status-fire-bar' :
+                                                    'text-status-safe-bar'
+                              }`}>{p.val.toFixed(1)}</div>
+                              <div className="text-[12px] text-text-tertiary mt-1.5">{p.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -343,33 +344,34 @@ export default function DivPage() {
     )
   }
 
-  // ── 배수/오일 탭: 층별 3열 간격 막대차트 ────────────────────
+  // ── 배수/오일 탭: 층별 1열 간격 막대차트 ────────────────────
   function renderLogTab(type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
-    const color   = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const color   = type === 'drain' ? 'var(--status-info)' : type === 'comp_drain' ? '#8b4513' : 'var(--status-fire-bar)'
 
     return (
-      <div style={{ padding: '6px 8px 80px' }}>
+      <div className="p-[12px_12px_80px]">
         {FLOOR_GROUPS.map(group => {
           const byPos: Partial<Record<number, DivPoint>> = {}
           for (const p of group) byPos[p.pos] = p
           const floorLabel = group[0].floorLabel
 
           return (
-            <div key={group[0].floor} style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', marginBottom: 2, paddingLeft: 2, letterSpacing: '0.04em' }}>
+            <div key={group[0].floor} className="mb-1">
+              <div className="text-[12px] font-bold text-text-tertiary mb-2 pl-0.5 tracking-[0.04em]">
                 {floorLabel}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+              <div className="flex flex-col gap-2">
                 {[1, 2, 3].map(pos => {
                   const div = byPos[pos]
-                  if (!div) return <div key={pos} />
+                  if (!div) return null
                   const dates = dateMap[div.id] ?? []
                   return (
-                    <div key={div.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8, padding: '5px 5px 4px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginBottom: 2 }}>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: 'var(--t3)', flexShrink: 0 }}>#{pos}</span>
-                        <span style={{ fontSize: 7, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                    <div key={div.id} className="bg-surface-raised border border-border-default rounded-lg p-[10px_12px]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[14px] font-bold text-text-primary flex-shrink-0">DIV #{pos}</span>
+                        <span className="text-[13px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">{div.loc.replace(/^[^\)]+\) /, '')}</span>
+                        {dates.length > 0 && <span className="text-[12px] text-text-tertiary flex-shrink-0">최근 {dates[dates.length-1]?.slice(5)?.replace('-', '/') ?? ''}</span>}
                       </div>
                       <IntervalBar dates={dates} color={color} />
                     </div>
