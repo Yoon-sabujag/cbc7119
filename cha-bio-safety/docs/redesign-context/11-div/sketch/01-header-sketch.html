@@ -48,27 +48,27 @@
 
     <!-- VP1 모바일 다크 -->
     <div>
-      <div class="label">VP1 · 모바일 다크 · 393×88</div>
+      <div class="label">VP1 · 모바일 다크 · 393×88 (App GlobalHeader verbatim 매칭)</div>
       <div class="frame" data-theme="dark" style="height: 88px;">
         <!-- 자체 헤더 -->
-        <header class="flex items-center gap-2.5 h-12 px-4 bg-[var(--surface-page)] border-b border-[var(--border-default)]">
-          <button class="w-8 h-8 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)]">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <header class="flex items-center h-12 px-3 bg-[var(--surface-raised)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-[7px] bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)]">DIV 압력 관리</span>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)] ml-2">DIV 압력 관리</span>
         </header>
       </div>
     </div>
 
     <!-- VP2 모바일 라이트 -->
     <div>
-      <div class="label">VP2 · 모바일 라이트 · 393×88</div>
+      <div class="label">VP2 · 모바일 라이트 · 393×88 (App GlobalHeader verbatim 매칭)</div>
       <div class="frame" data-theme="light" style="height: 88px;">
-        <header class="flex items-center gap-2.5 h-12 px-4 bg-[var(--surface-page)] border-b border-[var(--border-default)]">
-          <button class="w-8 h-8 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)]">
-            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        <header class="flex items-center h-12 px-3 bg-[var(--surface-raised)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-[7px] bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
-          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)]">DIV 압력 관리</span>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)] ml-2">DIV 압력 관리</span>
         </header>
       </div>
     </div>
@@ -76,14 +76,15 @@
   </div>
 
   <div class="note">
-    <p style="margin-bottom: 10px;"><b>적용 룰:</b> 16/17 자체 헤더 통일 룰 (project_redesign_self_header_chrome.md)</p>
-    <p style="margin-bottom: 4px;">• 헤더 높이 <b>h-12 (48px)</b></p>
-    <p style="margin-bottom: 4px;">• 백 버튼 <b>w-8 h-8 (32×32)</b> rounded-sm + bg-surface-sunken + border-border-default</p>
-    <p style="margin-bottom: 4px;">• 백 버튼 아이콘 lucide <b>ChevronLeft 16px</b> text-text-secondary</p>
-    <p style="margin-bottom: 4px;">• 제목 <b>text-label (13px) font-bold</b> text-text-primary</p>
-    <p style="margin-bottom: 4px;">• 우측 액션 <b>없음</b> (실제 DivPage.tsx 헤더에 없음 — 만들지 않음)</p>
-    <p style="margin-bottom: 10px;">• bg-surface-page + border-b border-border-default</p>
-    <p><b>검토 항목:</b> 헤더 사이즈 / 백 버튼 모양 / 제목 폰트 크기 / 라이트 모드 색감 정도. 데스크톱 변형(h-[54px])은 OK 시 다음 단계에서.</p>
+    <p style="margin-bottom: 10px;"><b>App GlobalHeader.tsx verbatim 매칭</b> (대시보드/메인 등 모든 페이지가 쓰는 글로벌 헤더와 동일 사이즈)</p>
+    <p style="margin-bottom: 4px;">• 헤더 높이 <b>48px</b> (h-12)</p>
+    <p style="margin-bottom: 4px;">• 헤더 padding <b>0 12px</b> (px-3) + 좌측 버튼 ↔ 제목 사이 8px gap (ml-2)</p>
+    <p style="margin-bottom: 4px;">• 헤더 배경 <b>bg-surface-raised</b> (var(--bg2)) + border-b border-default</p>
+    <p style="margin-bottom: 4px;">• 좌측 버튼 <b>32×32 rounded-[7px]</b> bg-surface-sunken (var(--bg3)) <b>border 없음</b></p>
+    <p style="margin-bottom: 4px;">• 좌측 버튼 아이콘 <b>svg 15×15</b> stroke-2 text-secondary (lucide 아니라 원본 svg verbatim)</p>
+    <p style="margin-bottom: 4px;">• 제목 <b>fontSize 13 fontWeight 700</b> text-primary</p>
+    <p style="margin-bottom: 10px;">• 우측 액션 <b>없음</b> (실제 DivPage.tsx 헤더에 없음)</p>
+    <p><b>차이점:</b> App 헤더는 메뉴 햄버거(`onMenuOpen`) 인데, 자체 헤더 페이지는 백 버튼(`navigate(-1)`)으로 leftSlot 교체. 사이즈·radius·색·아이콘 사이즈는 동일.</p>
   </div>
 
   <script>lucide.createIcons();</script>
