@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 1 · 자체 헤더</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --border-strong:  rgba(255,255,255,0.22);
+    }
+    [data-theme="light"] {
+      --surface-page:   #ffffff;
+      --surface-raised: #f6f8fa;
+      --surface-sunken: #ebeef1;
+      --text-primary:   #1f2328;
+      --text-secondary: #4d5562;
+      --text-tertiary:  #656d76;
+      --border-default: #d8dee4;
+      --border-strong:  #afb8c1;
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 393px; }
+    .note b { color: #e6edf3; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 모바일 다크 -->
+    <div>
+      <div class="label">VP1 · 모바일 다크 · 393×88</div>
+      <div class="frame" data-theme="dark" style="height: 88px;">
+        <!-- 자체 헤더 -->
+        <header class="flex items-center gap-2.5 h-12 px-4 bg-[var(--surface-page)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)]">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)]">DIV 압력 관리</span>
+        </header>
+      </div>
+    </div>
+
+    <!-- VP2 모바일 라이트 -->
+    <div>
+      <div class="label">VP2 · 모바일 라이트 · 393×88</div>
+      <div class="frame" data-theme="light" style="height: 88px;">
+        <header class="flex items-center gap-2.5 h-12 px-4 bg-[var(--surface-page)] border-b border-[var(--border-default)]">
+          <button class="w-8 h-8 rounded-sm bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)]">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          </button>
+          <span class="flex-1 text-[13px] font-bold text-[var(--text-primary)]">DIV 압력 관리</span>
+        </header>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>적용 룰:</b> 16/17 자체 헤더 통일 룰 (project_redesign_self_header_chrome.md)</p>
+    <p style="margin-bottom: 4px;">• 헤더 높이 <b>h-12 (48px)</b></p>
+    <p style="margin-bottom: 4px;">• 백 버튼 <b>w-8 h-8 (32×32)</b> rounded-sm + bg-surface-sunken + border-border-default</p>
+    <p style="margin-bottom: 4px;">• 백 버튼 아이콘 lucide <b>ChevronLeft 16px</b> text-text-secondary</p>
+    <p style="margin-bottom: 4px;">• 제목 <b>text-label (13px) font-bold</b> text-text-primary</p>
+    <p style="margin-bottom: 4px;">• 우측 액션 <b>없음</b> (실제 DivPage.tsx 헤더에 없음 — 만들지 않음)</p>
+    <p style="margin-bottom: 10px;">• bg-surface-page + border-b border-border-default</p>
+    <p><b>검토 항목:</b> 헤더 사이즈 / 백 버튼 모양 / 제목 폰트 크기 / 라이트 모드 색감 정도. 데스크톱 변형(h-[54px])은 OK 시 다음 단계에서.</p>
+  </div>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>
