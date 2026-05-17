@@ -101,8 +101,8 @@ export default function AnnualPlanPage() {
     return (
       <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-        {/* 자체 헤더 — 06 FloorPlanPage chrome 룰 표준 */}
-        <header className="flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0">
+        {/* 자체 헤더 — 대시보드 톤 표준 */}
+        <header className="flex items-center gap-2.5 h-[54px] px-5 bg-surface-raised border-b border-border-default flex-shrink-0">
           <div className="flex-1 min-w-0">
             <div className="text-body font-bold text-text-primary truncate">연간 업무 추진 계획</div>
           </div>
@@ -112,8 +112,8 @@ export default function AnnualPlanPage() {
           <button
             onClick={() => setCalibMode(m => !m)}
             className={calibMode
-              ? 'h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
-              : 'h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
+              ? 'h-8 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
+              : 'h-8 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
           >
             <Crosshair size={12} />
             {calibMode ? '취소' : '위치 조정'}
@@ -121,7 +121,7 @@ export default function AnnualPlanPage() {
           <button
             onClick={handleDownload}
             disabled={loading}
-            className="h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="h-8 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <FileDown size={12} />
             {loading ? '생성중...' : '엑셀 다운로드'}
@@ -142,23 +142,23 @@ export default function AnnualPlanPage() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 자체 헤더 — 06 FloorPlanPage chrome 룰 표준 */}
-      <header className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+      {/* 자체 헤더 — 대시보드 톤 표준 */}
+      <header className="flex items-center gap-2 h-12 px-3 bg-surface-raised border-b border-border-default flex-shrink-0">
         <button
           onClick={() => navigate(-1)}
           aria-label="뒤로가기"
-          className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
+          className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={15} />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">연간 업무 추진 계획</div>
+          <div className="text-label font-bold text-text-primary truncate">연간 업무 추진 계획</div>
         </div>
         <button
           onClick={() => setCalibMode(m => !m)}
           className={calibMode
-            ? 'h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
-            : 'h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
+            ? 'h-8 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
+            : 'h-8 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
         >
           <Crosshair size={12} />
           {calibMode ? '취소' : '위치 조정'}
