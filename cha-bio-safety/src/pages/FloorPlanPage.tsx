@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
@@ -938,84 +939,83 @@ export default function FloorPlanPage() {
   const planReady = PLAN_TYPES.find(p => p.key === planType)?.ready
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page relative">
 
       {/* ── 헤더 ─────────────────────────────────────── */}
-      {/* 데스크톱: height 54 + padding '0 20px', 뒤로가기 제거 (사이드바 nav). 모바일: 기존 유지 */}
-      <header style={{
-        flexShrink: 0,
-        ...(isDesktop
-          ? { height: 54, padding: '0 20px' }
-          : { padding: '8px 12px' }),
-        background: 'var(--bg2)', borderBottom: '1px solid var(--bd)',
-        display: 'flex', alignItems: 'center', gap: isDesktop ? 10 : 8,
-      }}>
+      {/* 데스크톱: h-[54px] px-5, 뒤로가기 제거 (사이드바 nav). 모바일: px-4 py-2.5 + 뒤로가기 */}
+      <header
+        className={isDesktop
+          ? "flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0"
+          : "flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0"}
+      >
         {!isDesktop && (
-          <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
+          >
+            <ChevronLeft size={15} />
           </button>
         )}
-        <span style={{ flex: 1, fontSize: isDesktop ? 16 : 14, fontWeight: 700, color: 'var(--t1)' }}>소방 시설 도면</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+        </div>
         {canEditMarker && (
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}
-            style={{
-              height: 30, padding: '0 10px', borderRadius: 7,
-              background: editMode ? 'var(--acl)' : 'var(--bg3)',
-              border: editMode ? 'none' : '1px solid var(--bd)',
-              color: editMode ? '#fff' : 'var(--t2)',
-              fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            }}
+            className={editMode
+              ? "h-8 px-3 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold"
+              : "h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold"}
           >
             {editMode ? '편집 완료' : '마커 편집'}
           </button>
         )}
         <button
           onClick={() => { setScale(1); setTranslate({ x: 0, y: 0 }) }}
-          style={{ height: 30, padding: '0 10px', borderRadius: 7, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+          className="h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold"
         >
-          축소보기
+          축소 보기
         </button>
       </header>
 
       {/* ── 도면 종류 선택 ───────────────────────────── */}
-      <div style={{ flexShrink: 0, display: 'flex', gap: 4, padding: '7px 10px', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
-        {PLAN_TYPES.map(p => (
-          <button
-            key={p.key}
-            onClick={() => p.ready && setPlanType(p.key)}
-            style={{
-              flex: 1, padding: '6px 4px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-              cursor: p.ready ? 'pointer' : 'default',
-              background: planType === p.key ? 'var(--acl)' : 'var(--bg3)',
-              color: planType === p.key ? '#fff' : p.ready ? 'var(--t2)' : 'var(--t3)',
-              border: planType === p.key ? 'none' : '1px solid var(--bd)',
-              opacity: p.ready ? 1 : 0.4,
-              position: 'relative',
-            }}
-          >
-            {p.label}
-            {!p.ready && <span style={{ position: 'absolute', top: -6, right: -2, fontSize: 8, background: 'var(--bg3)', color: 'var(--t3)', padding: '1px 4px', borderRadius: 4, border: '1px solid var(--bd)' }}>준비중</span>}
-          </button>
-        ))}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+        <div className="flex gap-1.5">
+          {PLAN_TYPES.map(p => (
+            <button
+              key={p.key}
+              onClick={() => p.ready && setPlanType(p.key)}
+              className={planType === p.key
+                ? "relative flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent"
+                : `relative flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap transition-colors border border-border-strong bg-surface-page text-text-secondary ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'}`}
+            >
+              {p.label}
+              {!p.ready && (
+                <span className="absolute -top-1.5 -right-0.5 text-[8px] bg-surface-sunken text-text-tertiary px-1 py-0.5 rounded-sm border border-border-default">
+                  준비중
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── 층 선택 탭 ───────────────────────────────── */}
-      <div style={{ flexShrink: 0, overflowX: 'auto', display: 'flex', gap: 4, padding: '7px 10px', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
-        {FLOORS.map(f => (
-          <button
-            key={f}
-            onClick={() => setFloor(f)}
-            style={{
-              flexShrink: 0, padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              background: floor === f ? 'var(--acl)' : 'var(--bg3)',
-              color: floor === f ? '#fff' : 'var(--t2)',
-              border: floor === f ? 'none' : '1px solid var(--bd)',
-            }}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+        <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+        <div className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FLOORS.map(f => (
+            <button
+              key={f}
+              onClick={() => setFloor(f)}
+              className={floor === f
+                ? "flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent"
+                : "flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-strong bg-surface-page text-text-secondary"}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── 도면 캔버스 (핀치줌) ──────────────────────── */}
