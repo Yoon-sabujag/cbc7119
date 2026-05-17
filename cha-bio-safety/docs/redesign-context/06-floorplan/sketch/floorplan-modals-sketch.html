@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>06 FloorPlanPage 모달 통일 시안 v0.1 (Wave 1 — 마커 popup / inspectModal / resolveModal)</title>
+
+  <!-- Tailwind CDN (시안 전용) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Pretendard (typography.css 와 동일) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+
+  <!-- Lucide CDN (시안 한정 근사 아이콘 — TSX 변환 시 커스텀 아이콘 사용) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <!--
+    Tailwind config 인라인 — 디자인 토큰을 utility 로 노출
+    (cha-bio-safety/docs/redesign-context/00-design-context/tailwind.config.js v0.1.0 mirror)
+  -->
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard Variable', 'Pretendard', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'D2 Coding', 'monospace'],
+          },
+          fontSize: {
+            caption:   ['12px', { lineHeight: '1.5', fontWeight: '400' }],
+            label:     ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+            'body-sm': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
+            body:      ['16px', { lineHeight: '1.7', fontWeight: '400' }],
+            title:     ['18px', { lineHeight: '1.4', fontWeight: '500' }],
+            heading:   ['22px', { lineHeight: '1.3', fontWeight: '600', letterSpacing: '-0.01em' }],
+            display:   ['28px', { lineHeight: '1.0', fontWeight: '500', letterSpacing: '-0.02em' }],
+          },
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'surface-overlay': 'var(--surface-overlay)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'text-link':       'var(--text-link)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'border-focus':    'var(--border-focus)',
+            accent:            'var(--accent)',
+            'accent-hover':    'var(--accent-hover)',
+            'accent-active':   'var(--accent-active)',
+            safe:    'var(--status-safe)',
+            warning: 'var(--status-warning)',
+            danger:  'var(--status-danger)',
+            info:    'var(--status-info)',
+            fire:    'var(--status-fire)',
+            'safe-bar':    'var(--status-safe-bar)',
+            'warning-bar': 'var(--status-warning-bar)',
+            'danger-bar':  'var(--status-danger-bar)',
+            'info-bar':    'var(--status-info-bar)',
+            'fire-bar':    'var(--status-fire-bar)',
+            'safe-bg':    'var(--status-safe-bg)',
+            'warning-bg': 'var(--status-warning-bg)',
+            'danger-bg':  'var(--status-danger-bg)',
+            'info-bg':    'var(--status-info-bg)',
+            'fire-bg':    'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            sm:   '8px',
+            md:   '12px',
+            lg:   '16px',
+            pill: '99px',
+          },
+          height:    { input: 'var(--input-height)', button: 'var(--button-height)' },
+          minHeight: { input: 'var(--input-height)', button: 'var(--button-height)' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* =====================================================================
+     * tokens.css 인라인 (v0.1.1 토큰만 — 옛 alias --bg/--bg2/--bg3/--bd/--t1/--t2/--t3/--acl 제거)
+     * grep gate: 시안 본문에 alias 토큰 0건 보장
+     * ===================================================================== */
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+    }
+
+    :root {
+      --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px; --space-7: 32px; --space-8: 48px;
+      --input-height:  44px;
+      --button-height: 44px;
+      --font-sans: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'D2 Coding', monospace;
+    }
+
+    /* typography 매핑 (tokens.css 와 동일) */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+
+    /* 시안 메타 */
+    body {
+      font-family: var(--font-sans);
+      background: #1a1d22;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+    .meta-h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+    .meta-p  { font-size: 13px; color: #8b949e; margin-top: 4px; }
+    .meta-h2 { font-size: 15px; font-weight: 600; color: #adb6c0; margin-bottom: 8px; }
+
+    /* viewport frames */
+    .viewport-frame {
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      overflow: hidden;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    .viewport-mobile  { width: 375px;  height: 812px; }
+    .viewport-desktop { width: 1280px; height: 800px; }
+    .viewport-frame * { font-family: inherit; }
+
+    /* 가로 스크롤 스크롤바 숨김 */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { scrollbar-width: none; }
+
+    /* 모달 보조 */
+    .modal-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 50;
+    }
+    .modal-backdrop.center {
+      align-items: center;
+    }
+    .modal-box {
+      position: relative;
+      width: 90%; max-width: 320px;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 86%; overflow-y: auto;
+    }
+    .modal-box.desktop {
+      max-width: 400px;
+    }
+    .balloon-arrow-bottom {
+      width: 0; height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+    }
+
+    /* rule note 박스 */
+    .rule-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 16px 18px;
+      color: #c9d1d9;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .rule-box code {
+      background: rgba(255,255,255,0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .rule-box h2 { font-size: 15px; font-weight: 700; color: #e6edf3; margin-bottom: 10px; }
+    .rule-box ul { list-style: disc; padding-left: 18px; }
+    .rule-box li + li { margin-top: 4px; }
+  </style>
+</head>
+
+<body class="p-10">
+
+  <!-- ─────────────── 페이지 헤더 ─────────────── -->
+  <header class="mb-8">
+    <div class="meta-h1">06 FloorPlanPage 모달 통일 시안 v0.1 (Wave 1)</div>
+    <div class="meta-p">
+      룰 문서: <code style="background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px">cha-bio-safety/docs/redesign-context/00-design-context/inspection-modal-chrome-rules.md</code> §5 / §6.2 / §7 —
+      Wave 1 범위: <b>마커 선택 정보 popup / inspectModal (점검 기록 입력) / resolveModal (조치 입력)</b>.
+      외부 popup (InspectionRevisitPopup / AccessBlockedPopup) 은 별도 Wave 보류.
+    </div>
+  </header>
+
+  <main class="flex flex-col gap-12">
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SECTION A — 마커 선택 정보 popup (3 viewport)
+         A1 모바일 sheet (status=normal / safe)
+         A2 모바일 sheet (status=bad / fire, 미조치)
+         A3 데스크톱 balloon (status=uninspected)
+         ════════════════════════════════════════════════════════════════════ -->
+    <section>
+      <div class="meta-h2">A. 마커 선택 정보 popup — 모바일 sheet × 2 + 데스크톱 balloon × 1</div>
+
+      <div class="grid gap-8" style="grid-template-columns: 375px 375px 1280px;">
+
+        <!-- ─────────── A1: Mobile · Dark · status=normal (safe) ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">A1 모바일 다크 · 정상 (safe)</div>
+          <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+            <!-- 헤더 stub (모바일) -->
+            <div class="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <button class="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center">
+                <i data-lucide="chevron-left" style="width:14px;height:14px"></i>
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+              </div>
+            </div>
+            <!-- 도면 캔버스 placeholder -->
+            <div class="flex-1 bg-surface-page flex items-center justify-center text-text-tertiary text-caption">
+              도면 캔버스 (3F · 유도등) · 마커 1개 선택됨
+            </div>
+
+            <!-- 백드롭 + 모바일 sheet (bottom sheet) -->
+            <div class="modal-backdrop">
+              <div class="bg-surface-raised border-t border-border-default rounded-t-lg px-4 pt-3 pb-5 z-50 w-full">
+                <!-- grab handle -->
+                <div class="w-9 h-1 rounded-pill bg-border-default mx-auto mb-3.5"></div>
+                <!-- 컨텐츠 row -->
+                <div class="flex items-start gap-3 mb-4">
+                  <!-- 아이콘 박스 40x40 (safe) -->
+                  <div class="w-10 h-10 rounded-sm flex-shrink-0 flex items-center justify-center bg-safe-bg border-[1.5px] border-safe">
+                    <i data-lucide="zap" style="width:22px;height:22px" class="text-safe"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-label font-bold text-text-primary mb-1">M2 비상등 1번</div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                      <span class="text-caption text-text-tertiary leading-none">3F</span>
+                      <span class="text-caption text-text-tertiary leading-none">CP-3-1-GL</span>
+                      <span class="text-caption font-bold text-safe leading-none">정상</span>
+                      <span class="text-caption text-text-tertiary leading-none">최근 2026-05-15</span>
+                    </div>
+                  </div>
+                  <button class="text-text-tertiary -mt-1 p-1">
+                    <i data-lucide="x" style="width:16px;height:16px"></i>
+                  </button>
+                </div>
+                <!-- 단일 액션 (normal 이므로 점검 기록 입력만) -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">점검 기록 입력</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /A1 -->
+
+        <!-- ─────────── A2: Mobile · Dark · status=bad (fire, 미조치) ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">A2 모바일 다크 · 불량 / 미조치 (fire)</div>
+          <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+            <!-- 헤더 stub -->
+            <div class="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <button class="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center">
+                <i data-lucide="chevron-left" style="width:14px;height:14px"></i>
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub (소화기·소화전 선택) -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+              </div>
+            </div>
+            <!-- 도면 캔버스 placeholder -->
+            <div class="flex-1 bg-surface-page flex items-center justify-center text-text-tertiary text-caption">
+              도면 캔버스 (5F · 소화기) · 미조치 마커
+            </div>
+
+            <!-- 백드롭 + sheet (bad/미조치 fire 톤) -->
+            <div class="modal-backdrop">
+              <div class="bg-surface-raised border-t border-border-default rounded-t-lg px-4 pt-3 pb-5 z-50 w-full">
+                <div class="w-9 h-1 rounded-pill bg-border-default mx-auto mb-3.5"></div>
+                <div class="flex items-start gap-3 mb-4">
+                  <!-- 아이콘 박스 (fire / 미조치) -->
+                  <div class="w-10 h-10 rounded-sm flex-shrink-0 flex items-center justify-center bg-fire-bg border-[1.5px] border-fire">
+                    <i data-lucide="flame" style="width:22px;height:22px" class="text-fire"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-label font-bold text-text-primary mb-1">M5 소화기 분말 3.3kg</div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                      <span class="text-caption text-text-tertiary leading-none">5F</span>
+                      <span class="text-caption text-text-tertiary leading-none">CP-5-2-FE</span>
+                      <span class="text-caption font-bold text-fire leading-none">불량</span>
+                      <span class="text-caption text-text-tertiary leading-none">최근 2026-05-10</span>
+                    </div>
+                  </div>
+                  <button class="text-text-tertiary -mt-1 p-1">
+                    <i data-lucide="x" style="width:16px;height:16px"></i>
+                  </button>
+                </div>
+                <!-- 2 액션: 점검 기록 입력 + 조치 입력 (둘 다 단색 accent) -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">점검 기록 입력</button>
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">조치 입력</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /A2 -->
+
+        <!-- ─────────── A3: Desktop · Dark · status=uninspected (balloon) ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">A3 데스크톱 다크 · 미점검 (uninspected) · balloon</div>
+          <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+            <!-- 데스크톱 헤더 stub (h-[54px] px-5, 뒤로가기 없음) -->
+            <div class="flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">1F</button>
+              </div>
+            </div>
+            <!-- 도면 캔버스 placeholder -->
+            <div class="flex-1 bg-surface-page flex items-center justify-center text-text-tertiary text-caption">
+              도면 캔버스 (1F · 감지기) · 마커 1개 선택됨 (balloon — 백드롭 없음)
+            </div>
+
+            <!-- desktop balloon (백드롭 없음) -->
+            <div class="absolute top-[260px] left-[480px] w-[320px] bg-surface-raised border border-border-default rounded-md p-4 z-30" style="box-shadow:0 8px 32px rgba(0,0,0,0.45);">
+              <!-- arrow (위쪽 화살표 — balloon 이 마커 아래쪽에 있다는 가정) -->
+              <div class="absolute -top-2 left-[150px] balloon-arrow-bottom" style="border-bottom:8px solid var(--surface-raised);"></div>
+              <!-- 컨텐츠 row -->
+              <div class="flex items-start gap-3 mb-3">
+                <!-- 아이콘 박스 36x36 (uninspected — surface-sunken 톤) -->
+                <div class="w-9 h-9 rounded-sm flex-shrink-0 flex items-center justify-center bg-surface-sunken border border-border-default">
+                  <i data-lucide="help-circle" style="width:20px;height:20px" class="text-text-tertiary"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-label font-bold text-text-primary mb-1">M3 감지기</div>
+                  <div class="flex flex-wrap gap-2 items-center">
+                    <span class="text-caption text-text-tertiary leading-none">1F</span>
+                    <span class="text-caption font-bold text-text-tertiary leading-none">미점검</span>
+                  </div>
+                </div>
+                <button class="text-text-tertiary -mt-1 p-1">
+                  <i data-lucide="x" style="width:16px;height:16px"></i>
+                </button>
+              </div>
+              <!-- 단일 액션 -->
+              <div class="flex gap-2">
+                <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">점검 기록 입력</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /A3 -->
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SECTION B — inspectModal "점검 기록 입력" (2 viewport)
+         B1 모바일 다크 (소화기 카테고리, 결과=normal 선택, KV grid + 정보수정/소화기분리)
+         B2 데스크톱 다크 (소화전 카테고리, paired BC 포함, 결과=caution 선택)
+         ════════════════════════════════════════════════════════════════════ -->
+    <section>
+      <div class="meta-h2">B. inspectModal — 점검 기록 입력 (소화기 KV / paired BC 분기)</div>
+
+      <div class="grid gap-10" style="grid-template-columns: 375px 1280px;">
+
+        <!-- ─────────── B1: Mobile · Dark · 소화기 normal 선택 ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">B1 모바일 다크 · 소화기 + 결과=정상 (safe)</div>
+          <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+            <!-- 헤더 stub -->
+            <div class="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <button class="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center">
+                <i data-lucide="chevron-left" style="width:14px;height:14px"></i>
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+              </div>
+            </div>
+            <div class="flex-1 bg-surface-page"></div>
+
+            <!-- 백드롭 + 중앙 정렬 모달 -->
+            <div class="modal-backdrop center">
+              <div class="modal-box bg-surface-raised border border-border-default">
+                <!-- 헤더 -->
+                <div class="text-body font-bold text-text-primary mb-1 leading-snug">점검 기록 입력</div>
+                <div class="text-caption text-text-tertiary mb-4 leading-none">B1F 방재센터 · 5F</div>
+
+                <!-- 소화기 KV grid (소화기 카테고리 분기) -->
+                <div class="bg-surface-page border border-border-default rounded-sm p-3 mb-2">
+                  <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-caption">
+                    <div><span class="text-text-tertiary">위치 </span><span class="text-text-primary font-semibold">방재센터 외</span></div>
+                    <div><span class="text-text-tertiary">제조업체 </span><span class="text-text-primary font-semibold">한국소방</span></div>
+                    <div><span class="text-text-tertiary">제조년월 </span><span class="text-text-primary font-semibold">2024-03</span></div>
+                    <div><span class="text-text-tertiary">형식승인 </span><span class="text-text-primary font-semibold">한24-1234</span></div>
+                    <div><span class="text-text-tertiary">접두문자 </span><span class="text-text-primary font-semibold">AB</span></div>
+                    <div><span class="text-text-tertiary">증지번호 </span><span class="text-text-primary font-semibold">25-7-1</span></div>
+                    <div><span class="text-text-tertiary">제조번호 </span><span class="text-text-primary font-semibold">SN-2024-001</span></div>
+                    <div><span class="text-text-tertiary">ID </span><span class="text-text-primary font-semibold">CP-5-2-FE</span></div>
+                  </div>
+                </div>
+                <!-- 정보수정 + 소화기분리 row -->
+                <div class="flex gap-1.5 mb-3.5">
+                  <button class="flex-1 h-8 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">정보 수정</button>
+                  <button class="flex-1 h-8 rounded-sm bg-danger-bg border border-danger-bar text-danger text-caption font-semibold leading-none">소화기 분리</button>
+                </div>
+
+                <!-- 점검 결과 3택 -->
+                <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+                <div class="flex gap-1.5 mb-3.5">
+                  <!-- normal 선택 (safe) -->
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border-[1.5px] border-safe bg-safe-bg text-safe">
+                    <i data-lucide="check-circle" style="width:14px;height:14px"></i>정상
+                  </button>
+                  <!-- caution 비선택 -->
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="alert-triangle" style="width:14px;height:14px"></i>주의
+                  </button>
+                  <!-- bad 비선택 -->
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="x-circle" style="width:14px;height:14px"></i>불량
+                  </button>
+                </div>
+
+                <!-- 특이사항 라벨 row -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                  <span class="text-caption text-text-tertiary leading-none">점검 사진 (선택)</span>
+                </div>
+                <!-- textarea + PhotoButton row -->
+                <div class="flex gap-2 items-start mb-3.5">
+                  <textarea class="flex-1 h-18 rounded-sm bg-surface-page border border-border-default text-text-primary text-label leading-relaxed p-2.5 outline-none box-border resize-none" placeholder="특이사항을 입력하세요" style="height:72px"></textarea>
+                  <div class="w-18 h-18 rounded-sm bg-surface-page border border-dashed border-border-default flex flex-col items-center justify-center gap-1 text-text-tertiary" style="width:72px;height:72px">
+                    <i data-lucide="camera" style="width:18px;height:18px"></i>
+                    <span class="text-caption leading-none">촬영</span>
+                  </div>
+                </div>
+
+                <!-- 하단 액션 -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold">취소</button>
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">저장</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /B1 -->
+
+        <!-- ─────────── B2: Desktop · Dark · 소화전 + paired BC + caution 선택 ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">B2 데스크톱 다크 · 소화전 + paired BC + 결과=주의 (warning)</div>
+          <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+            <!-- 데스크톱 헤더 stub -->
+            <div class="flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">B1</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+              </div>
+            </div>
+            <div class="flex-1 bg-surface-page"></div>
+
+            <!-- 백드롭 + 중앙 모달 (데스크톱 — 더 넓음) -->
+            <div class="modal-backdrop center">
+              <div class="modal-box desktop bg-surface-raised border border-border-default">
+                <div class="text-body font-bold text-text-primary mb-1 leading-snug">점검 기록 입력</div>
+                <div class="text-caption text-text-tertiary mb-4 leading-none">B1F 옥내소화전 1번 · B1F</div>
+
+                <!-- 점검 결과 3택 (caution 선택 / warning) -->
+                <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+                <div class="flex gap-1.5 mb-3.5">
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="check-circle" style="width:14px;height:14px"></i>정상
+                  </button>
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border-[1.5px] border-warning bg-warning-bg text-warning">
+                    <i data-lucide="alert-triangle" style="width:14px;height:14px"></i>주의
+                  </button>
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="x-circle" style="width:14px;height:14px"></i>불량
+                  </button>
+                </div>
+
+                <!-- 특이사항 라벨 row -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                  <span class="text-caption text-text-tertiary leading-none">점검 사진 (선택)</span>
+                </div>
+                <!-- textarea + PhotoButton row -->
+                <div class="flex gap-2 items-start mb-3.5">
+                  <textarea class="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label leading-relaxed p-2.5 outline-none box-border resize-none" placeholder="특이사항을 입력하세요" style="height:72px">방수구 누수 미세함</textarea>
+                  <div class="rounded-sm bg-surface-page border border-dashed border-border-default flex flex-col items-center justify-center gap-1 text-text-tertiary" style="width:72px;height:72px">
+                    <i data-lucide="camera" style="width:18px;height:18px"></i>
+                    <span class="text-caption leading-none">촬영</span>
+                  </div>
+                </div>
+
+                <!-- divider -->
+                <div class="h-px bg-border-default my-3"></div>
+
+                <!-- paired BC 섹션 -->
+                <div class="bg-surface-page border border-border-default rounded-sm px-3 py-2 mb-2.5">
+                  <div class="text-caption text-text-tertiary leading-none mb-0.5">비상콘센트</div>
+                  <div class="text-label font-bold text-text-primary">B1F 옥내소화전 1번 BC</div>
+                </div>
+
+                <!-- BC 점검 결과 3택 (bad 선택 / danger) — 3 status 페어 모두 시안에 등장하도록 의도적 선택 -->
+                <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">BC 점검 결과</div>
+                <div class="flex gap-1.5 mb-3.5">
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="check-circle" style="width:14px;height:14px"></i>정상
+                  </button>
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">
+                    <i data-lucide="alert-triangle" style="width:14px;height:14px"></i>주의
+                  </button>
+                  <button class="flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-sm text-label font-bold border-[1.5px] border-danger bg-danger-bg text-danger">
+                    <i data-lucide="x-circle" style="width:14px;height:14px"></i>불량
+                  </button>
+                </div>
+
+                <!-- BC 특이사항 row -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-caption font-semibold text-text-tertiary tracking-wider">BC 특이사항 (선택)</label>
+                  <span class="text-caption text-text-tertiary leading-none">BC 점검 사진 (선택)</span>
+                </div>
+                <div class="flex gap-2 items-start mb-3.5">
+                  <textarea class="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label leading-relaxed p-2.5 outline-none box-border resize-none" placeholder="BC 특이사항을 입력하세요" style="height:72px"></textarea>
+                  <div class="rounded-sm bg-surface-page border border-dashed border-border-default flex flex-col items-center justify-center gap-1 text-text-tertiary" style="width:72px;height:72px">
+                    <i data-lucide="camera" style="width:18px;height:18px"></i>
+                    <span class="text-caption leading-none">촬영</span>
+                  </div>
+                </div>
+
+                <!-- 하단 액션 -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold">취소</button>
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">저장</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /B2 -->
+
+      </div>
+    </section>
+
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         SECTION C — resolveModal "조치 입력" (2 viewport)
+         C1 모바일 다크 (유도등 카테고리, "본체 교체" 선택 + 자재 입력)
+         C2 데스크톱 다크 (감지기 카테고리, memo textarea 분기)
+         ════════════════════════════════════════════════════════════════════ -->
+    <section>
+      <div class="meta-h2">C. resolveModal — 조치 입력 (유도등 자재 입력 / 감지기 memo 분기)</div>
+
+      <div class="grid gap-10" style="grid-template-columns: 375px 1280px;">
+
+        <!-- ─────────── C1: Mobile · Dark · 유도등 + 본체 교체 + 자재 ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">C1 모바일 다크 · 유도등 + "본체 교체" 선택 + 자재 입력</div>
+          <div class="viewport-frame viewport-mobile" data-theme="dark">
+
+            <!-- 헤더 stub -->
+            <div class="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <button class="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center">
+                <i data-lucide="chevron-left" style="width:14px;height:14px"></i>
+              </button>
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub (유도등 선택) -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+              </div>
+            </div>
+            <div class="flex-1 bg-surface-page"></div>
+
+            <!-- 백드롭 + 중앙 모달 -->
+            <div class="modal-backdrop center">
+              <div class="modal-box bg-surface-raised border border-border-default">
+                <!-- 헤더 -->
+                <div class="text-body font-bold text-text-primary mb-1 leading-snug">조치 입력</div>
+                <div class="text-caption text-text-tertiary mb-3 leading-none">M2 비상등 1번 · 3F</div>
+
+                <!-- 지적 메모 배지 (warning 톤) -->
+                <div class="bg-warning-bg border border-warning-bar rounded-sm px-2.5 py-1.5 text-caption text-warning mb-3 leading-snug">
+                  지적: 예비전원 점멸
+                </div>
+
+                <!-- 조치 피커 3택 (라벨 없음 — 실제 코드 미러) -->
+                <div class="flex gap-1.5 mb-3.5">
+                  <!-- 본체 교체 (선택) -->
+                  <button class="flex-1 px-2 py-2 rounded-sm text-label font-bold border-[1.5px] border-accent bg-accent text-text-on-accent">본체 교체</button>
+                  <!-- 예비전원 교체 (비선택) -->
+                  <button class="flex-1 px-2 py-2 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">예비전원 교체</button>
+                  <!-- 직접 입력 (비선택) -->
+                  <button class="flex-1 px-2 py-2 rounded-sm text-label font-bold border border-border-default bg-surface-page text-text-secondary">직접 입력</button>
+                </div>
+
+                <!-- 소모 자재 라벨 row -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-caption font-semibold text-text-tertiary tracking-wider">소모 자재</label>
+                  <span class="text-caption text-text-tertiary leading-none">조치 사진 (선택)</span>
+                </div>
+
+                <!-- 자재명+개수 + PhotoButton row -->
+                <div class="flex gap-2 items-start mb-3.5">
+                  <div class="flex-1 flex flex-col gap-1">
+                    <input type="text" value="유도등 본체" placeholder="자재명" class="w-full h-9 rounded-sm bg-surface-page border border-border-default text-text-primary text-label px-3 outline-none box-border" />
+                    <div class="relative">
+                      <input type="text" value="1" placeholder="0" class="w-full h-9 rounded-sm bg-surface-page border border-border-default text-text-primary text-label px-3 pr-7 outline-none box-border" />
+                      <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-caption text-text-tertiary pointer-events-none leading-none">ea</span>
+                    </div>
+                  </div>
+                  <div class="rounded-sm bg-surface-page border border-dashed border-border-default flex flex-col items-center justify-center gap-1 text-text-tertiary" style="width:72px;height:80px">
+                    <i data-lucide="camera" style="width:18px;height:18px"></i>
+                    <span class="text-caption leading-none">촬영</span>
+                  </div>
+                </div>
+
+                <!-- 하단 액션 (단색 accent — gradient 폐기) -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold">취소</button>
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">조치 완료</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /C1 -->
+
+        <!-- ─────────── C2: Desktop · Dark · 감지기 + memo textarea ─────────── -->
+        <div>
+          <div class="meta-h2" style="margin-bottom:6px">C2 데스크톱 다크 · 감지기 (memo textarea 분기 / 자재 input 없음)</div>
+          <div class="viewport-frame viewport-desktop" data-theme="dark">
+
+            <!-- 데스크톱 헤더 stub -->
+            <div class="flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0">
+              <div class="flex-1 min-w-0">
+                <div class="text-body font-bold text-text-primary truncate">소방 시설 도면</div>
+              </div>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">마커 편집</button>
+              <button class="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none">축소 보기</button>
+            </div>
+            <!-- 도면 종류 stub (감지기 선택) -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">도면 종류</div>
+              <div class="flex gap-1.5">
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">유도등</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">감지기</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">스프링클러</button>
+                <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">소화기·소화전</button>
+              </div>
+            </div>
+            <!-- 층 선택 stub -->
+            <div class="bg-surface-raised border-b border-border-default px-3.5 py-2 flex-shrink-0">
+              <div class="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">층 선택</div>
+              <div class="flex gap-1 overflow-x-auto no-scrollbar">
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">5F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">3F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border-[1.5px] border-accent bg-accent text-text-on-accent">2F</button>
+                <button class="flex-shrink-0 px-3.5 py-1.5 rounded-sm text-label font-bold whitespace-nowrap border border-border-strong bg-surface-page text-text-secondary">1F</button>
+              </div>
+            </div>
+            <div class="flex-1 bg-surface-page"></div>
+
+            <!-- 백드롭 + 중앙 모달 (데스크톱) -->
+            <div class="modal-backdrop center">
+              <div class="modal-box desktop bg-surface-raised border border-border-default">
+                <div class="text-body font-bold text-text-primary mb-1 leading-snug">조치 입력</div>
+                <div class="text-caption text-text-tertiary mb-3 leading-none">M7 감지기 · 2F</div>
+
+                <!-- 지적 메모 배지 -->
+                <div class="bg-warning-bg border border-warning-bar rounded-sm px-2.5 py-1.5 text-caption text-warning mb-3 leading-snug">
+                  지적: 감지부 손상
+                </div>
+
+                <!-- planType !== 'guidelamp' → memo textarea 분기 (자재 input 없음) -->
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-caption font-semibold text-text-tertiary tracking-wider">조치 내용 (필수)</label>
+                  <span class="text-caption text-text-tertiary leading-none">조치 사진 (선택)</span>
+                </div>
+                <div class="flex gap-2 items-start mb-3.5">
+                  <textarea class="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label leading-relaxed p-2.5 outline-none box-border resize-none" placeholder="조치 내용을 입력하세요" style="height:96px">감지부 교체 완료. 신호 정상 복귀 확인.</textarea>
+                  <div class="rounded-sm bg-surface-page border border-dashed border-border-default flex flex-col items-center justify-center gap-1 text-text-tertiary" style="width:72px;height:96px">
+                    <i data-lucide="camera" style="width:18px;height:18px"></i>
+                    <span class="text-caption leading-none">촬영</span>
+                  </div>
+                </div>
+
+                <!-- 하단 액션 -->
+                <div class="flex gap-2">
+                  <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold">취소</button>
+                  <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold">조치 완료</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <!-- /C2 -->
+
+      </div>
+    </section>
+
+
+    <!-- ────────────────── 적용 룰 요약 ────────────────── -->
+    <section class="mt-12">
+      <div class="meta-h2">적용 룰 요약 (chrome 통일)</div>
+      <div class="rule-box">
+        <h2>06 FloorPlanPage Wave 1 모달 통일 룰</h2>
+        <ul>
+          <li><b>v0.1.1 토큰만</b> — 옛 alias (<code>--bg/--bg2/--bg3/--bd/--bd2/--t1~3/--acl/--warn/--danger</code>) 0건.</li>
+          <li><b>이모지 X 문자 폐기</b> — <code>lucide x</code> / <code>lucide check-circle</code> / <code>lucide alert-triangle</code> / <code>lucide x-circle</code> / <code>lucide camera</code> 사용.</li>
+          <li><b>그라디언트 0건</b> — CTA 는 단색 <code>bg-accent text-text-on-accent</code>. 05 RemediationDetailPage mirror.</li>
+          <li><b>모달 wrapper 일관성:</b> <code>bg-surface-raised border border-border-default rounded-md p-5</code> (모바일 max-width 320 · 데스크톱 max-width 400).</li>
+          <li><b>점검 결과 3택 (B 모달):</b> 02 InspectionPage 패턴 mirror — 선택 시 <code>border-[1.5px]</code> + status 토큰 페어 (safe-bg/safe / warning-bg/warning / danger-bg/danger), 비선택 <code>border border-border-default bg-surface-page text-text-secondary</code>.</li>
+          <li><b>조치 피커 3택 (C 모달):</b> 증상 피커와 동일 — 선택 1.5px accent / 비선택 1px border-default + page. 라벨 없이 바로 row.</li>
+          <li><b>input / textarea bg:</b> 룰 §6.2 는 본문이 surface-page 일 때 raised 패턴. <b>모달 안에서는 wrapper(raised) → input(page)</b> 분기로 시각 구분 (모달 내부 컨테이너 패턴).</li>
+          <li><b>정보수정 / 소화기분리 (h-8 row):</b> <code>text-caption</code> + <code>leading-none</code> 명시 (메모리 룰 <code>feedback_text_caption_leading_none</code>).</li>
+          <li><b>마커 정보 popup:</b> 아이콘 박스 = status 토큰 페어 (<code>bg-{status}-bg border-[1.5px] border-{status}</code>) + statusLabel 색 일치. uninspected 만 <code>surface-sunken + border-default</code> 회색 톤.</li>
+          <li><b>메모리 룰 <code>feedback_inspection_unresolved_color</code>:</b> 미조치 = <b>fire (주황)</b> 톤 / 완료 = <b>safe (녹)</b>. danger 가 아닌 fire 사용.</li>
+          <li><b>지적 메모 배지 (C 모달):</b> <code>bg-warning-bg border border-warning-bar rounded-sm px-2.5 py-1.5 text-caption text-warning</code> — 검은 본문 위에서 노란 카드로 부각.</li>
+          <li><b>PhotoButton placeholder:</b> <code>bg-surface-page border border-dashed border-border-default</code> + <code>lucide camera</code> + "촬영" 라벨 (text-caption leading-none).</li>
+          <li><b>액션 row 단색 accent:</b> 취소 <code>bg-surface-sunken border border-border-default</code> + 저장/조치 완료 <code>bg-accent text-text-on-accent</code>. 높이 <code>h-input</code>.</li>
+        </ul>
+        <div style="margin-top:10px;font-size:12px;color:#8b949e;">
+          Wave 1 범위 한정 — <b>InspectionRevisitPopup / AccessBlockedPopup</b> 외부 컴포넌트는 별도 Wave 보류. TSX 변환은 별도 quick task — 이 sketch 의 className 을 verbatim 인용 예정.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>
