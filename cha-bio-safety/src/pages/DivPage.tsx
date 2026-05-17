@@ -931,68 +931,60 @@ export default function DivPage() {
   // ── 데스크톱: 전체 레이아웃 (헤더 + 배너 + 좌 매트릭스 + 우 상세) ─────────
   function renderDesktopLayout() {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-        {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 14/700) */}
-        <header style={{ flexShrink: 0, height: 54, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '0 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 1, fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+      <div className="h-full flex flex-col overflow-hidden bg-surface-page">
+        {/* 헤더 — 데스크톱 표준 (height 54, padding '0 20px', title 16/700) */}
+        <header className="flex-shrink-0 h-[54px] bg-surface-raised border-b border-border-default px-5 flex items-center gap-2.5">
+          <span className="flex-1 text-[16px] font-bold text-text-primary">DIV 압력 관리</span>
         </header>
 
         {/* 상단 알림 배너 */}
-        <div style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 24px', display: 'flex', alignItems: 'center', gap: 10, overflowX: 'auto' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', flexShrink: 0 }}>
+        <div className="flex-shrink-0 bg-surface-raised border-b border-border-default px-6 py-2 flex items-center gap-2.5 overflow-x-auto">
+          <span className="text-[12px] font-bold text-text-secondary flex-shrink-0">
             ⚠ 이상 {dangerList.length}건 · 주의 {warnList.length}건
           </span>
           {[...dangerList, ...warnList].map(item => (
             <button
               key={item.point.id}
               onClick={() => setSelDiv(item.point as DivPoint)}
-              style={{
-                flexShrink: 0,
-                border: '1px solid',
-                borderColor: item.status === 'danger' ? 'rgba(239,68,68,.4)' : 'rgba(245,158,11,.4)',
-                background: item.status === 'danger' ? 'rgba(239,68,68,.12)' : 'rgba(245,158,11,.12)',
-                color: item.status === 'danger' ? 'var(--danger)' : '#f59e0b',
-                borderRadius: 16, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              className={`flex-shrink-0 border rounded-2xl px-2.5 py-1 text-[11px] font-bold cursor-pointer whitespace-nowrap ${
+                item.status === 'danger'
+                  ? 'border-status-danger-bar/40 bg-status-danger-bar/[0.12] text-status-danger-bar'
+                  : 'border-status-warning-bar/40 bg-status-warning-bar/[0.12] text-status-warning-bar'
+              }`}
             >
               {item.status === 'danger' ? '●' : '◐'} {item.point.id} {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
             </button>
           ))}
           {dangerList.length === 0 && warnList.length === 0 && (
-            <span style={{ fontSize: 11, color: 'var(--t3)' }}>모든 포인트 정상</span>
+            <span className="text-[11px] text-text-tertiary">모든 포인트 정상</span>
           )}
         </div>
 
         {/* 본문: 좌 매트릭스 / 우 상세 */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 flex overflow-hidden">
           {/* 좌측 매트릭스 */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '20px 24px' }}>
+          <div className="flex-1 min-w-0 border-r border-border-default overflow-y-auto px-6 py-5">
             {/* 테이블 헤더 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--bd)' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>층</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#1 연구동</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#2 연구동</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>#3 사무동</div>
+            <div className="grid grid-cols-[80px_repeat(3,1fr)] gap-1.5 mb-2 pb-2 border-b border-border-default">
+              <div className="text-[11px] font-bold text-text-tertiary">층</div>
+              <div className="text-[11px] font-bold text-text-tertiary text-center">#1 연구동</div>
+              <div className="text-[11px] font-bold text-text-tertiary text-center">#2 연구동</div>
+              <div className="text-[11px] font-bold text-text-tertiary text-center">#3 사무동</div>
             </div>
 
             {FLOOR_GROUPS.map(group => {
               const floorLabel = group[0].floorLabel
               return (
-                <div key={group[0].floor} style={{ display: 'grid', gridTemplateColumns: '80px repeat(3, 1fr)', gap: 6, marginBottom: 6 }}>
+                <div key={group[0].floor} className="grid grid-cols-[80px_repeat(3,1fr)] gap-1.5 mb-1.5">
                   {/* 층 라벨 */}
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', display: 'flex', alignItems: 'center', paddingLeft: 4 }}>
+                  <div className="text-[12px] font-bold text-text-secondary flex items-center pl-1">
                     {floorLabel}
                   </div>
                   {[1, 2, 3].map(pos => {
                     const div = group.find(g => g.pos === pos) as DivPoint | undefined
                     if (!div) {
                       return (
-                        <div key={pos} style={{
-                          background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 8,
-                          minHeight: 54, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--t3)', fontSize: 14,
-                        }}>—</div>
+                        <div key={pos} className="bg-surface-sunken border border-dashed border-border-default rounded-lg min-h-[54px] flex items-center justify-center text-text-tertiary text-[14px]">—</div>
                       )
                     }
                     const info = pointStatusList.find(p => p.point.id === div.id)
@@ -1000,50 +992,40 @@ export default function DivPage() {
                     const last = info?.last ?? null
                     const selected = selDiv?.id === div.id
 
-                    let bg = 'var(--bg2)'
-                    let border = 'var(--bd)'
-                    if (status === 'danger')      { bg = 'rgba(239,68,68,.18)';  border = 'rgba(239,68,68,.4)' }
-                    else if (status === 'warn')   { bg = 'rgba(245,158,11,.18)'; border = 'rgba(245,158,11,.4)' }
-                    else if (last)                { bg = 'rgba(34,197,94,.12)';  border = 'rgba(34,197,94,.25)' }
+                    let bgClass = 'bg-surface-raised'
+                    let borderClass = 'border-border-default'
+                    if (status === 'danger')      { bgClass = 'bg-status-danger-bar/[0.18]';  borderClass = 'border-status-danger-bar/40' }
+                    else if (status === 'warn')   { bgClass = 'bg-status-warning-bar/[0.18]'; borderClass = 'border-status-warning-bar/40' }
+                    else if (last)                { bgClass = 'bg-status-safe-bar/[0.12]';    borderClass = 'border-status-safe-bar/25' }
 
                     return (
                       <div
                         key={pos}
                         onClick={() => setSelDiv(div)}
-                        style={{
-                          background: bg,
-                          border: selected ? '2px solid var(--acl)' : `1px solid ${border}`,
-                          borderRadius: 8,
-                          padding: selected ? '7px 9px' : '8px 10px',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          minHeight: 64,
-                          display: 'flex', flexDirection: 'column',
-                          transition: 'background .1s',
-                        }}
+                        className={`rounded-lg cursor-pointer relative min-h-[64px] flex flex-col transition-colors ${bgClass} ${selected ? 'border-2 border-accent px-[9px] py-[7px]' : `border ${borderClass} px-2.5 py-2`}`}
                       >
                         {/* 우상단 뱃지 */}
                         {status === 'danger' && (
-                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: 'var(--danger)' }}>이상</span>
+                          <span className="absolute top-1 right-1.5 text-[8px] font-bold text-status-danger-bar">이상</span>
                         )}
                         {status === 'warn' && (
-                          <span style={{ position: 'absolute', top: 4, right: 6, fontSize: 8, fontWeight: 700, color: '#f59e0b' }}>주의</span>
+                          <span className="absolute top-1 right-1.5 text-[8px] font-bold text-status-warning-bar">주의</span>
                         )}
                         {/* 좌상단: 개소번호 + 월 (세로 스택) */}
-                        <div style={{ position: 'absolute', top: 6, left: 10, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t1)', lineHeight: 1 }}>{div.id}</div>
-                          <div style={{ fontSize: 9, color: 'var(--t3)', lineHeight: 1 }}>
+                        <div className="absolute top-1.5 left-2.5 flex flex-col gap-px">
+                          <div className="text-[10px] font-bold text-text-primary leading-none">{div.id}</div>
+                          <div className="text-[9px] text-text-tertiary leading-none">
                             {last ? `${last.month}월${last.timing === 'early' ? '초' : last.timing === 'late' ? '말' : ''}` : '기록 없음'}
                           </div>
                         </div>
                         {/* 중앙: 1차/2차/세팅압 */}
                         {last && (
-                          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, fontFamily: 'JetBrains Mono, monospace', fontSize: 15, fontWeight: 700, lineHeight: 1 }}>
-                            <span style={{ color: '#3b82f6' }}>{last.v1.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
-                            <span style={{ color: '#f97316' }}>{last.v2.toFixed(1)}</span>
-                            <span style={{ color: 'var(--t3)', fontWeight: 400, fontSize: 12 }}>|</span>
-                            <span style={{ color: '#22c55e' }}>{last.vc.toFixed(1)}</span>
+                          <div className="flex-1 flex justify-center items-center gap-2 font-[JetBrains_Mono,monospace] text-[15px] font-bold leading-none">
+                            <span className="text-accent">{last.v1.toFixed(1)}</span>
+                            <span className="text-text-tertiary font-normal text-[12px]">|</span>
+                            <span className="text-status-fire-bar">{last.v2.toFixed(1)}</span>
+                            <span className="text-text-tertiary font-normal text-[12px]">|</span>
+                            <span className="text-status-safe-bar">{last.vc.toFixed(1)}</span>
                           </div>
                         )}
                       </div>
@@ -1054,24 +1036,24 @@ export default function DivPage() {
             })}
 
             {/* 범례 */}
-            <div style={{ marginTop: 16, padding: '10px 12px', borderTop: '1px solid var(--bd)', display: 'flex', gap: 16, fontSize: 11, color: 'var(--t3)', flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(34,197,94,.12)', border: '1px solid rgba(34,197,94,.25)', borderRadius: 3 }} /> 정상
+            <div className="mt-4 px-3 py-2.5 border-t border-border-default flex gap-4 text-[11px] text-text-tertiary flex-wrap">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-[3px] bg-status-safe-bar/[0.12] border border-status-safe-bar/25" /> 정상
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(245,158,11,.18)', border: '1px solid rgba(245,158,11,.4)', borderRadius: 3 }} /> 주의
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-[3px] bg-status-warning-bar/[0.18] border border-status-warning-bar/40" /> 주의
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'rgba(239,68,68,.18)', border: '1px solid rgba(239,68,68,.4)', borderRadius: 3 }} /> 이상
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-[3px] bg-status-danger-bar/[0.18] border border-status-danger-bar/40" /> 이상
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ display: 'inline-block', width: 12, height: 12, background: 'var(--bg3)', border: '1px dashed var(--bd)', borderRadius: 3 }} /> 해당없음
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-[3px] bg-surface-sunken border-dashed border border-border-default" /> 해당없음
               </span>
             </div>
           </div>
 
           {/* 우측 상세 패널 */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', padding: '20px 24px' }}>
+          <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5">
             {renderDesktopRightPanel()}
           </div>
         </div>
