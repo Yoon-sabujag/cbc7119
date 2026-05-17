@@ -5,6 +5,7 @@
   <title>11-div · 영역 7a · 데스크톱 헤더 + 알림 배너</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     :root {
       --surface-page:   #0a0d12;
@@ -109,7 +110,48 @@
       </div>
     </div>
 
+    <!-- VP4 데스크톱 다크 — 대안 1 적용 (lucide 아이콘 + 점 div) -->
+    <div>
+      <div class="label">VP4 · 대안 1 적용 · 데스크톱 다크 · 1280×120 (⚠/●/◐ 이모지 → lucide + 색 점)</div>
+      <div class="frame" data-theme="dark" style="height: 120px;">
+        <header style="flex-shrink: 0; height: 54px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 0 20px; display: flex; align-items: center; gap: 10px;">
+          <span style="flex: 1; font-size: 16px; font-weight: 700; color: var(--text-primary);">DIV 압력 관리</span>
+        </header>
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 24px; display: flex; align-items: center; gap: 10px; overflow-x: auto;">
+          <!-- 라벨: ⚠ → lucide AlertTriangle -->
+          <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;">
+            <i data-lucide="alert-triangle" style="width: 14px; height: 14px;"></i>
+            이상 2건 · 주의 3건
+          </span>
+          <!-- 이상 칩 (● → 색 점 div) -->
+          <button style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--status-danger-border); background: var(--status-danger-bg); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-danger); display: inline-block;"></span>
+            DIV-2F-1 2차 -22%
+          </button>
+          <button style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--status-danger-border); background: var(--status-danger-bg); color: var(--status-danger); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-danger); display: inline-block;"></span>
+            DIV-B1-3 1차 +25%
+          </button>
+          <!-- 주의 칩 (◐ → 색 점 div, 반쯤 채움 느낌은 outline + fill 좌 절반 으로 가능하지만 단순 점으로) -->
+          <button style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span>
+            DIV-2F-2 1차 +12%
+          </button>
+          <button style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span>
+            DIV-3F-1 2차 -13%
+          </button>
+          <button style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--status-warning-border); background: var(--status-warning-bg); color: var(--status-warning-bar); border-radius: 16px; padding: 4px 10px; font-size: 11px; font-weight: 700; white-space: nowrap;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span>
+            DIV-4F-2 세팅 -11%
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
+
+  <script>lucide.createIcons();</script>
 
   <div class="note">
     <p style="margin-bottom: 10px;"><b>데스크톱 헤더 + 알림 배너 (DivPage.tsx line 941~970 verbatim + 색만 v0.1.1 토큰화)</b></p>
