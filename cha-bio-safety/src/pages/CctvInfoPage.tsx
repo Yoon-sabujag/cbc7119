@@ -8,7 +8,7 @@ export default function CctvInfoPage() {
     <div style={{
       flex: 1,
       overflowY: 'auto',
-      background: 'var(--bg)',
+      background: 'var(--surface-page)',
       padding: isDesktop ? '20px 24px' : '12px 14px',
     }}>
       <div style={{
@@ -22,46 +22,63 @@ export default function CctvInfoPage() {
           const totalCap = dvr.ports.reduce((s, p) => s + (p.cap.endsWith('TB') ? parseFloat(p.cap) : 0), 0)
           const isEstimate = dvr.retention.includes('추정')
           return (
-            <div key={dvr.no} style={{ background: 'var(--bg2)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--bd)' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{dvr.label}</span>
-                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)' }}>{dvr.channels}ch</span>
+            <div key={dvr.no} style={{
+              background: 'var(--surface-raised)',
+              borderRadius: 'var(--radius-md)',
+              padding: 12,
+              border: '1px solid var(--border-default)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{dvr.label}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', lineHeight: 1 }}>{dvr.channels}ch</span>
                 <span style={{ flex: 1 }} />
                 <span style={{
-                  fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
-                  background: isEstimate ? 'rgba(234,179,8,.12)' : 'rgba(34,197,94,.1)',
-                  color: isEstimate ? '#a16207' : 'var(--safe)',
-                  border: `1px solid ${isEstimate ? 'rgba(234,179,8,.3)' : 'rgba(34,197,94,.25)'}`,
-                }}>{dvr.retention}</span>
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: 12, fontWeight: 700, lineHeight: 1,
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-pill)',
+                  background: isEstimate ? 'var(--status-info-bg)' : 'var(--status-safe-bg)',
+                  color: isEstimate ? 'var(--status-info)' : 'var(--status-safe)',
+                  border: `1px solid ${isEstimate ? 'var(--status-info-bar)' : 'var(--status-safe-bar)'}`,
+                }}>
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: 99, background: 'currentColor' }} />
+                  {dvr.retention}
+                </span>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 8 }}>
-                <span style={{ color: 'var(--t3)' }}>녹화구역 </span>{dvr.desc}
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>녹화구역 </span>{dvr.desc}
               </div>
               <div style={{
                 display: 'grid', gridTemplateColumns: 'auto 1fr 1fr', gap: '4px 10px',
-                fontSize: 11, background: 'var(--bg)', borderRadius: 7, padding: '7px 10px',
-                border: '1px solid var(--bd)',
+                background: 'var(--surface-page)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '8px 10px',
+                border: '1px solid var(--border-default)',
               }}>
-                <div style={{ color: 'var(--t3)', fontWeight: 600 }}>포트</div>
-                <div style={{ color: 'var(--t3)', fontWeight: 600 }}>용량</div>
-                <div style={{ color: 'var(--t3)', fontWeight: 600 }}>교체일자</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>포트</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>용량</div>
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 600 }}>교체일자</div>
                 {dvr.ports.flatMap(p => {
                   const isReplaced = p.replaced !== '기존'
                   return [
-                    <div key={`p-${p.p}`} style={{ color: 'var(--t1)', fontWeight: 700 }}>#{p.p}</div>,
-                    <div key={`c-${p.p}`} style={{ color: 'var(--t1)' }}>{p.cap}</div>,
-                    <div key={`r-${p.p}`} style={{ color: isReplaced ? '#1d4ed8' : 'var(--t2)', fontWeight: isReplaced ? 700 : 400 }}>{p.replaced}</div>,
+                    <div key={`p-${p.p}`} style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 700 }}>#{p.p}</div>,
+                    <div key={`c-${p.p}`} style={{ fontSize: 12, color: 'var(--text-primary)' }}>{p.cap}</div>,
+                    <div key={`r-${p.p}`} style={{
+                      fontSize: 12,
+                      color: isReplaced ? 'var(--status-info)' : 'var(--text-tertiary)',
+                      fontWeight: isReplaced ? 700 : 400,
+                    }}>{p.replaced}</div>,
                   ]
                 })}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 6, textAlign: 'right' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6, textAlign: 'right', lineHeight: 1 }}>
                 합계 {totalCap}TB · 포트 {dvr.ports.length}개
               </div>
             </div>
           )
         })}
       </div>
-      <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', padding: '14px 0 8px' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '12px 0 0 0', lineHeight: 1 }}>
         출처: CCTV 녹화 설비 현황 {CCTV_INFO_UPDATED}
       </div>
     </div>
