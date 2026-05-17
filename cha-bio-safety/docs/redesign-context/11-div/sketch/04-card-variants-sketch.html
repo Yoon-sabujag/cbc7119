@@ -77,7 +77,7 @@
           </div>
 
           <!-- DIV #2 주의 (1차만 warn — 직전 대비 ±10%) -->
-          <div style="background: var(--surface-raised); border: 1px solid rgba(245,158,11,0.4); border-radius: 8px; padding: 10px 12px;">
+          <div style="background: var(--surface-raised); border-top: 1px solid var(--border-default); border-right: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); border-left: 4px solid var(--status-warning-bar); border-radius: 8px; padding: 10px 12px 10px 9px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #2</span>
               <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-2</span>
@@ -101,7 +101,7 @@
           </div>
 
           <!-- DIV #3 이상 (2차 danger — 직전 대비 ±20%) -->
-          <div style="background: var(--surface-raised); border: 1px solid rgba(239,68,68,0.5); border-radius: 8px; padding: 10px 12px;">
+          <div style="background: var(--surface-raised); border-top: 1px solid var(--border-default); border-right: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); border-left: 4px solid var(--status-danger-bar); border-radius: 8px; padding: 10px 12px 10px 9px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
               <span style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0;">DIV #3</span>
               <span style="font-size: 13px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Z3-3</span>
@@ -132,7 +132,7 @@
 
   <div class="note">
     <p style="margin-bottom: 10px;"><b>옵션 B (영역 3 채택) 패턴 기반 — 정상/주의/이상 3 변형</b></p>
-    <p style="margin-bottom: 4px;">• 카드 border 강조 (좌측 색바 없이): 정상 = <b>border-default</b> / 주의 = <b>warning-bar/40</b> / 이상 = <b>danger-bar/50</b></p>
+    <p style="margin-bottom: 4px;">• 카드 border: 정상 = <b>border-default 1px (모든 변)</b> / 주의 = <b>border 1px + 좌측 4px status-warning-bar</b> / 이상 = <b>border 1px + 좌측 4px status-danger-bar</b> (§6.2 negative rule — 정상은 흑백, 주의/이상만 좌측 색바)</p>
     <p style="margin-bottom: 4px;">• 카드 헤더 우측 배지: 주의 = <b>"주의" 12px font-bold text-warning-bar</b> / 이상 = <b>"이상" 12px font-bold text-danger</b> (정상은 배지 없음)</p>
     <p style="margin-bottom: 4px;">• 컬럼 값 색은 <b>각 컬럼 individual status 기준</b> (DivPage.tsx pressureStatus()):</p>
     <p style="margin-bottom: 4px; padding-left: 12px;">- ok → 원래 컬럼 색 (1차 accent / 2차 fire-bar / 세팅 safe-bar)</p>
@@ -144,9 +144,9 @@
     <p style="margin-bottom: 10px; padding-left: 12px;">- #3 이상 — 2차 danger (직전 대비 ±20%), 1차/세팅은 정상 색 유지, 카드 border + "이상" 배지</p>
     <hr/>
     <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
-    <p style="margin-bottom: 4px;">대안 1. <b>좌측 색바 4px</b> 추가 (border-l-[4px] border-status-warning-bar / danger-bar) — 강조 ↑. §6.2 negative rule.</p>
+    <p style="margin-bottom: 4px;">대안 1. <s>좌측 색바 4px 추가</s> — <b>현재 패턴에 적용 완료</b>. §6.2 negative rule.</p>
     <p style="margin-bottom: 4px;">대안 2. <b>배지를 chip 형태</b> (bg-status-bg + 패딩 + 둥근 모서리) — 단순 텍스트 대신 시각 강조 ↑.</p>
-    <p>현재 패턴으로 OK 면 영역 5 (IntervalBar 카드 — 배수/오일/탱크 탭) 진행. 대안 추가 보고 싶으면 알려줘.</p>
+    <p>현재 패턴으로 OK 면 영역 5 (IntervalBar 카드 — 배수/오일/탱크 탭) 진행. 대안 2 추가 보고 싶으면 알려줘.</p>
   </div>
 
 </body>
