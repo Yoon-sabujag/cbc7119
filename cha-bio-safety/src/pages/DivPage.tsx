@@ -780,29 +780,29 @@ export default function DivPage() {
       const oilSum = summarizeMap(oilDateMap)
 
       const counters = [
-        { label: '정상', count: okCount, color: '#22c55e', bg: 'rgba(34,197,94,.12)', border: 'rgba(34,197,94,.25)' },
-        { label: '주의', count: warnList.length, color: '#f59e0b', bg: 'rgba(245,158,11,.18)', border: 'rgba(245,158,11,.4)' },
-        { label: '이상', count: dangerList.length, color: 'var(--danger)', bg: 'rgba(239,68,68,.18)', border: 'rgba(239,68,68,.4)' },
+        { label: '정상', count: okCount, colorClass: 'text-status-safe-bar', bgBorderClass: 'bg-status-safe-bar/[0.12] border-status-safe-bar/25' },
+        { label: '주의', count: warnList.length, colorClass: 'text-status-warning-bar', bgBorderClass: 'bg-status-warning-bar/[0.18] border-status-warning-bar/40' },
+        { label: '이상', count: dangerList.length, colorClass: 'text-status-danger-bar', bgBorderClass: 'bg-status-danger-bar/[0.18] border-status-danger-bar/40' },
       ]
 
       const logCards = [
-        { label: '챔버 배수', sum: drainSum, color: '#38bdf8' },
-        { label: '탱크 배수', sum: compDrainSum, color: '#8b4513' },
-        { label: '오일 보충', sum: oilSum, color: '#f97316' },
+        { label: '챔버 배수', sum: drainSum, colorClass: 'text-status-info-bar' },
+        { label: '탱크 배수', sum: compDrainSum, colorClass: 'text-[#8b4513]' },
+        { label: '오일 보충', sum: oilSum, colorClass: 'text-status-fire-bar' },
       ]
 
       const alertItems = [...dangerList, ...warnList]
 
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div className="flex flex-col gap-[18px]">
           {/* 섹션 1: 측정점 현황 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>◆ 34개 측정점 현황</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="text-[12px] font-bold text-text-secondary mb-2">◆ 34개 측정점 현황</div>
+            <div className="grid grid-cols-3 gap-2.5">
               {counters.map(c => (
-                <div key={c.label} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: '14px 12px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: c.color, lineHeight: 1, fontFamily: 'JetBrains Mono, monospace' }}>{c.count}</div>
-                  <div style={{ fontSize: 11, color: 'var(--t2)', marginTop: 6, fontWeight: 600 }}>{c.label}</div>
+                <div key={c.label} className={`border rounded-[10px] px-3 py-3.5 text-center ${c.bgBorderClass}`}>
+                  <div className={`text-[28px] font-extrabold leading-none font-[JetBrains_Mono,monospace] ${c.colorClass}`}>{c.count}</div>
+                  <div className="text-[11px] text-text-secondary mt-1.5 font-semibold">{c.label}</div>
                 </div>
               ))}
             </div>
@@ -810,15 +810,15 @@ export default function DivPage() {
 
           {/* 섹션 2: 배수/오일 현황 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 배수/오일 현황 ──</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div className="text-[12px] font-bold text-text-secondary mb-2">── 배수/오일 현황 ──</div>
+            <div className="grid grid-cols-3 gap-2.5">
               {logCards.map(card => (
-                <div key={card.label} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '12px 12px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: card.color, marginBottom: 6, letterSpacing: '.04em' }}>{card.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace' }}>
+                <div key={card.label} className="bg-surface-raised border border-border-default rounded-[10px] p-3">
+                  <div className={`text-[11px] font-bold mb-1.5 tracking-[0.04em] ${card.colorClass}`}>{card.label}</div>
+                  <div className="text-[16px] font-extrabold text-text-primary font-[JetBrains_Mono,monospace]">
                     {card.sum.avg != null ? `평균 ${card.sum.avg}일` : '기록 없음'}
                   </div>
-                  <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4, fontFamily: 'JetBrains Mono, monospace' }}>
+                  <div className="text-[10px] text-text-tertiary mt-1 font-[JetBrains_Mono,monospace]">
                     {card.sum.recent ? `최근 ${card.sum.recent}` : '—'}
                   </div>
                 </div>
@@ -828,37 +828,34 @@ export default function DivPage() {
 
           {/* 섹션 3: 이상/주의 리스트 */}
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>── 이상/주의 포인트 ──</div>
+            <div className="text-[12px] font-bold text-text-secondary mb-2">── 이상/주의 포인트 ──</div>
             {alertItems.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center', background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 8 }}>
+              <div className="text-[12px] text-text-tertiary p-4 text-center bg-surface-raised border border-border-default rounded-lg">
                 이상·주의 포인트가 없습니다
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="flex flex-col gap-1.5">
                 {alertItems.map(item => {
                   const isDanger = item.status === 'danger'
                   return (
                     <button
                       key={item.point.id}
                       onClick={() => setSelDiv(item.point as DivPoint)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 12px',
-                        background: isDanger ? 'rgba(239,68,68,.08)' : 'rgba(245,158,11,.08)',
-                        border: `1px solid ${isDanger ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`,
-                        borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                      }}
+                      className={`flex items-center gap-2.5 px-3 py-2.5 border rounded-lg cursor-pointer text-left ${
+                        isDanger ? 'bg-status-danger-bar/[0.08] border-status-danger-bar/30'
+                                 : 'bg-status-warning-bar/[0.08] border-status-warning-bar/30'
+                      }`}
                     >
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', flexShrink: 0, minWidth: 32 }}>
+                      <span className={`text-[11px] font-bold flex-shrink-0 min-w-[32px] ${isDanger ? 'text-status-danger-bar' : 'text-status-warning-bar'}`}>
                         {isDanger ? '● 이상' : '◐ 주의'}
                       </span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0, minWidth: 48 }}>
+                      <span className="text-[13px] font-bold text-text-primary font-[JetBrains_Mono,monospace] flex-shrink-0 min-w-[48px]">
                         {item.point.id}
                       </span>
-                      <span style={{ fontSize: 11, color: 'var(--t2)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <span className="text-[11px] text-text-secondary flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                         {item.point.floorLabel} · {item.point.loc}
                       </span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: isDanger ? 'var(--danger)' : '#f59e0b', fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                      <span className={`text-[11px] font-bold font-[JetBrains_Mono,monospace] flex-shrink-0 ${isDanger ? 'text-status-danger-bar' : 'text-status-warning-bar'}`}>
                         {item.worstKind ?? ''}{item.pct != null ? ` ${item.pct > 0 ? '+' : ''}${item.pct}%` : ''}
                       </span>
                     </button>
@@ -874,40 +871,40 @@ export default function DivPage() {
     // B. 선택 상태: 제목 + 연도 네비 + 내부 탭 + 탭 콘텐츠
     const selectedDiv: DivPoint = selDiv
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingBottom: 40 }}>
+      <div className="flex flex-col gap-3.5 pb-10">
         {/* 헤더: 제목 + 연도 네비 + ✕ */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+        <div className="flex items-center gap-2.5">
+          <div className="flex-1 min-w-0">
+            <div className="text-[16px] font-bold text-text-primary">
               {selectedDiv.floorLabel} · {selectedDiv.loc}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
+            <div className="text-[11px] text-text-tertiary mt-0.5">
               {POS_LABEL[selectedDiv.pos]} · {selectedDiv.id}
             </div>
           </div>
           {tab === 'pressure' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="w-[30px] flex justify-center">
                 {year > 2023 && (
-                  <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>‹</button>
+                  <button onClick={() => setYear(y => y - 1)} className="bg-surface-sunken border-none cursor-pointer rounded-md px-2 py-1 text-text-secondary text-[15px]">‹</button>
                 )}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', width: 38, textAlign: 'center', display: 'inline-block' }}>{year}</span>
-              <div style={{ width: 30, display: 'flex', justifyContent: 'center' }}>
+              <span className="text-[13px] font-bold text-text-primary w-[38px] text-center inline-block">{year}</span>
+              <div className="w-[30px] flex justify-center">
                 {year < new Date().getFullYear() && (
-                  <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '4px 8px', color: 'var(--t2)', fontSize: 15 }}>›</button>
+                  <button onClick={() => setYear(y => y + 1)} className="bg-surface-sunken border-none cursor-pointer rounded-md px-2 py-1 text-text-secondary text-[15px]">›</button>
                 )}
               </div>
             </div>
           )}
           <button
             onClick={closeDetail}
-            style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 22, cursor: 'pointer', flexShrink: 0 }}
+            className="bg-transparent border-none text-text-tertiary text-[22px] cursor-pointer flex-shrink-0"
           >✕</button>
         </div>
 
         {/* 내부 탭 */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--bd)' }}>
+        <div className="flex border-b border-border-default">
           {([
             { key: 'pressure',   label: '압력 트렌드' },
             { key: 'drain',      label: '챔버배수' },
@@ -917,12 +914,7 @@ export default function DivPage() {
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              style={{
-                flex: 1, padding: '8px 4px', border: 'none', background: 'transparent', cursor: 'pointer',
-                fontSize: 12, fontWeight: 600,
-                color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
-                borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
-              }}
+              className={`flex-1 px-1 py-2 border-none bg-transparent cursor-pointer text-[12px] font-semibold border-b-2 ${tab === t.key ? 'text-accent border-accent' : 'text-text-tertiary border-transparent'}`}
             >{t.label}</button>
           ))}
         </div>
