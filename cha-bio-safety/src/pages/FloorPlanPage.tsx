@@ -1401,7 +1401,7 @@ export default function FloorPlanPage() {
           {currentMarkerTypes.map(mt => (
             <div key={mt.key} className="flex items-center gap-1.5 shrink-0">
               <MarkerIcon markerType={mt.key} color="#888" size={13} />
-              <span className="text-caption text-text-secondary font-medium whitespace-nowrap leading-none">{mt.label.join('')}</span>
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{mt.label.join('')}</span>
             </div>
           ))}
         </div>
@@ -1415,7 +1415,7 @@ export default function FloorPlanPage() {
           ] as const).map(s => (
             <div key={s.key} className="flex items-center gap-1.5 shrink-0">
               <div className={`w-2.5 h-2.5 rounded-full ${s.dotCls}`} />
-              <span className="text-caption text-text-secondary font-medium whitespace-nowrap leading-none">{s.label}</span>
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{s.label}</span>
             </div>
           ))}
           {/* Phase 24: 미배치 마커 범례 */}
@@ -1424,7 +1424,7 @@ export default function FloorPlanPage() {
               <div className="w-2.5 h-2.5 rounded-full bg-danger-bar flex items-center justify-center">
                 <span className="text-[6px] font-bold text-text-on-accent leading-none">?</span>
               </div>
-              <span className="text-caption text-text-secondary font-medium whitespace-nowrap leading-none">미배치</span>
+              <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">미배치</span>
             </div>
           )}
           {planType === 'extinguisher' && (
@@ -1443,7 +1443,7 @@ export default function FloorPlanPage() {
                       strokeWidth={stroke.width}
                       dangerBadge={w === 'danger'}
                     />
-                    <span className="text-caption text-text-secondary font-medium whitespace-nowrap leading-none">{label}</span>
+                    <span className="text-[11px] text-text-secondary font-medium whitespace-nowrap">{label}</span>
                   </div>
                 )
               })}
