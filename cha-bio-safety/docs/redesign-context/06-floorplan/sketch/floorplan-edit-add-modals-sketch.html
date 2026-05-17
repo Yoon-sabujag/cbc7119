@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>06 FloorPlanPage 모달 통일 시안 v0.3 (Wave 3 — editMarker + addModal)</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: ['selector', '[data-theme="dark"]'],
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Pretendard Variable', 'Pretendard', 'system-ui', 'sans-serif'] },
+          fontSize: {
+            caption:   ['12px', { lineHeight: '1.5', fontWeight: '400' }],
+            label:     ['13px', { lineHeight: '1.5', fontWeight: '400' }],
+            'body-sm': ['14px', { lineHeight: '1.6', fontWeight: '400' }],
+            body:      ['16px', { lineHeight: '1.7', fontWeight: '400' }],
+          },
+          colors: {
+            'surface-page': 'var(--surface-page)', 'surface-raised': 'var(--surface-raised)',
+            'surface-sunken': 'var(--surface-sunken)', 'surface-active': 'var(--surface-active)',
+            'text-primary': 'var(--text-primary)', 'text-secondary': 'var(--text-secondary)',
+            'text-tertiary': 'var(--text-tertiary)', 'text-on-accent': 'var(--text-on-accent)',
+            'border-default': 'var(--border-default)', 'border-strong': 'var(--border-strong)',
+            accent: 'var(--accent)',
+            safe: 'var(--status-safe)', warning: 'var(--status-warning)',
+            danger: 'var(--status-danger)', fire: 'var(--status-fire)', info: 'var(--status-info)',
+            'safe-bar': 'var(--status-safe-bar)', 'warning-bar': 'var(--status-warning-bar)',
+            'danger-bar': 'var(--status-danger-bar)', 'fire-bar': 'var(--status-fire-bar)',
+            'safe-bg': 'var(--status-safe-bg)', 'warning-bg': 'var(--status-warning-bg)',
+            'danger-bg': 'var(--status-danger-bg)', 'fire-bg': 'var(--status-fire-bg)',
+          },
+          borderRadius: { sm: '8px', md: '12px', lg: '16px', pill: '99px' },
+          height:    { input: 'var(--input-height)' },
+          minHeight: { input: 'var(--input-height)' },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    [data-theme="dark"] {
+      --surface-page:#0a0d12; --surface-raised:#1a1f27; --surface-sunken:#232a33; --surface-active:#2c333d;
+      --text-primary:#e6edf3; --text-secondary:#adb6c0; --text-tertiary:#8b949e; --text-on-accent:#ffffff;
+      --border-default:rgba(255,255,255,0.14); --border-strong:rgba(255,255,255,0.22);
+      --accent:#3b82f6;
+      --status-safe:#4ade80; --status-warning:#fbbf24; --status-danger:#f87171; --status-info:#38bdf8; --status-fire:#fb923c;
+      --status-safe-bar:#22c55e; --status-warning-bar:#f59e0b; --status-danger-bar:#ef4444; --status-info-bar:#0ea5e9; --status-fire-bar:#f97316;
+      --status-safe-bg:rgba(34,197,94,0.16); --status-warning-bg:rgba(245,158,11,0.16);
+      --status-danger-bg:rgba(239,68,68,0.16); --status-info-bg:rgba(14,165,233,0.16); --status-fire-bg:rgba(249,115,22,0.16);
+    }
+    :root { --input-height: 44px; }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    body { font-family: 'Pretendard Variable', 'Pretendard', system-ui, sans-serif; background: #1a1d22; color: #e6edf3; -webkit-font-smoothing: antialiased; }
+    .meta-h1 { font-size: 22px; font-weight: 700; }
+    .meta-p  { font-size: 13px; color: #8b949e; margin-top: 4px; }
+    .meta-h2 { font-size: 15px; font-weight: 600; color: #adb6c0; margin-bottom: 8px; }
+    .meta-section-h { font-size: 18px; font-weight: 700; margin: 28px 0 12px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .viewport-frame { border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); overflow: hidden; background: var(--surface-page); color: var(--text-primary); position: relative; display: flex; flex-direction: column; }
+    .viewport-mobile  { width: 375px;  height: 812px; }
+    .viewport-desktop { width: 1100px; height: 760px; }
+    .viewport-frame * { font-family: inherit; }
+  </style>
+</head>
+<body class="p-8" data-theme="dark">
+
+  <header class="mb-6">
+    <h1 class="meta-h1">06 FloorPlanPage 모달 통일 시안 v0.3 — Wave 3 (editMarker + addModal)</h1>
+    <p class="meta-p">
+      <strong>대상:</strong> editMarker (마커 수정, 편집모드+마커 선택) · addModal (마커 추가, 편집모드+빈 곳 탭)<br/>
+      <strong>패턴:</strong> Wave 1/2 mirror — wrapper raised + 라벨 caption tertiary + zone 3택 (02 패턴 + 아이콘) + marker 종류 grid (옵션 카드) + input + 액션 row.<br/>
+      <strong>variant:</strong> guidelamp/감지기/스프링클러 (구역 선택 X, 라벨 옵션) · extinguisher (개소명 필수 + 구역 필수 + 분리/배치 분기)
+    </p>
+  </header>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       Section A: editMarker — 마커 수정 (guidelamp variant)
+       ──────────────────────────────────────────────────────────────── -->
+  <h2 class="meta-section-h">A. editMarker — 마커 수정 (유도등 variant)</h2>
+  <p class="meta-p mb-4">
+    편집 모드 + 마커 선택 → "수정" 버튼. zone 3택 + 유도등 종류 grid + 라벨 input + 저장.
+  </p>
+
+  <div class="grid grid-cols-2 gap-8">
+    <!-- A1: 모바일 다크 -->
+    <section>
+      <div class="meta-h2">모바일 · 다크 (375 × 812)</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[90%] max-w-[340px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 수정</div>
+
+            <!-- 구역 -->
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+
+            <!-- 유도등 종류 -->
+            <div class="text-caption text-text-tertiary mb-1.5">유도등 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="square" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">벽부</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px" class="rotate-180"></i>
+                <span class="text-caption font-semibold leading-none">천장</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">계단</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">복도</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">거실</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">객석</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+            </div>
+
+            <!-- 라벨 input -->
+            <div class="text-caption text-text-tertiary mb-1.5">라벨</div>
+            <input value="피난구 B5-01" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5" />
+
+            <!-- 액션 -->
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">저장</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+
+    <!-- A2: 데스크톱 다크 -->
+    <section>
+      <div class="meta-h2">데스크톱 · 다크 (1100 × 760)</div>
+      <div class="viewport-frame viewport-desktop">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[90%] max-w-[340px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 수정</div>
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+            <div class="text-caption text-text-tertiary mb-1.5">유도등 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="square" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">벽부</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px" class="rotate-180"></i>
+                <span class="text-caption font-semibold leading-none">천장</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">계단</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">복도</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">거실</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">객석</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+            </div>
+            <div class="text-caption text-text-tertiary mb-1.5">라벨</div>
+            <input value="피난구 B5-01" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5" />
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">저장</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       Section B: editMarker — extinguisher variant (분리 버튼 표시)
+       ──────────────────────────────────────────────────────────────── -->
+  <h2 class="meta-section-h">B. editMarker — 마커 수정 (소화기 variant + 소화기 분리 버튼)</h2>
+  <p class="meta-p mb-4">
+    소화기 카테고리 + 자산 매핑된 마커 (mappedExt 있음). 분리 버튼은 위험 톤 outline.
+  </p>
+
+  <div class="grid grid-cols-2 gap-8">
+    <section>
+      <div class="meta-h2">모바일 · 다크 (소화기 자산 있음)</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[90%] max-w-[340px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 수정</div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">마커 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flame" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">소화기</span>
+                <span class="text-caption font-semibold leading-none">빈 개소</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="droplet" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">소화전</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="arrow-down" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">완강기</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">DIV</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">개소명</div>
+            <input value="5F 회의실 입구" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5" />
+
+            <!-- 소화기 분리 버튼 (mappedExt 있을 때) -->
+            <div class="flex gap-2 mb-3.5">
+              <button class="flex-1 h-input rounded-sm bg-danger-bg border border-danger-bar/40 text-danger text-label font-semibold cursor-pointer">소화기 분리</button>
+            </div>
+
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">저장</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="meta-h2">모바일 · 다크 (소화기 미배치 — 배치 버튼)</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[90%] max-w-[340px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 수정</div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">마커 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flame" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">소화기</span>
+                <span class="text-caption font-semibold leading-none">빈 개소</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="droplet" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">소화전</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="arrow-down" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">완강기</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">DIV</span>
+                <span class="text-caption font-semibold leading-none">&nbsp;</span>
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">개소명</div>
+            <input value="B1-3 복도" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5" />
+
+            <!-- 소화기 배치 버튼 (mappedExt 없을 때) -->
+            <button class="w-full h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer mb-3.5">소화기 배치</button>
+
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">저장</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       Section C: addModal — 마커 추가 (guidelamp variant)
+       ──────────────────────────────────────────────────────────────── -->
+  <h2 class="meta-section-h">C. addModal — 마커 추가 (유도등 variant)</h2>
+  <p class="meta-p mb-4">
+    편집 모드 + 빈 곳 탭 → 마커 추가. zone 3택 (유도등 한정) + 종류 grid + 라벨 input (선택) + 추가.
+  </p>
+
+  <div class="grid grid-cols-2 gap-8">
+    <section>
+      <div class="meta-h2">모바일 · 다크 (375 × 812)</div>
+      <div class="viewport-frame viewport-mobile">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[85%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 추가</div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">유도등 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="square" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">벽부</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="triangle" style="width:16px;height:16px" class="rotate-180"></i>
+                <span class="text-caption font-semibold leading-none">천장</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">계단</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">복도</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">거실</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">객석</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">라벨 (선택)</div>
+            <input placeholder="예: 피난구 B5-01" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary" />
+
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">추가</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+
+    <section>
+      <div class="meta-h2">데스크톱 · 다크 (1100 × 760)</div>
+      <div class="viewport-frame viewport-desktop">
+        <div class="absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4">
+          <div class="w-[85%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5">
+            <div class="text-body font-bold text-text-primary mb-4">마커 추가</div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">구역</div>
+            <div class="flex gap-1.5 mb-3.5">
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="flask-conical" style="width:14px;height:14px"></i>연구동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="building-2" style="width:14px;height:14px"></i>사무동
+              </button>
+              <button class="flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="train-front" style="width:14px;height:14px"></i>지하
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">유도등 종류</div>
+            <div class="grid grid-cols-3 gap-1.5 mb-3.5">
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="square" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">벽부</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent">
+                <i data-lucide="triangle" style="width:16px;height:16px" class="rotate-180"></i>
+                <span class="text-caption font-semibold leading-none">천장</span>
+                <span class="text-caption font-semibold leading-none">피난구</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">계단</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="diamond" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">복도</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="triangle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">거실</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+              <button class="flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm cursor-pointer transition-colors border border-border-default bg-surface-page text-text-secondary">
+                <i data-lucide="circle" style="width:16px;height:16px"></i>
+                <span class="text-caption font-semibold leading-none">객석</span>
+                <span class="text-caption font-semibold leading-none">통로</span>
+              </button>
+            </div>
+
+            <div class="text-caption text-text-tertiary mb-1.5">라벨 (선택)</div>
+            <input placeholder="예: 피난구 B5-01" class="w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border mb-3.5 placeholder:text-text-tertiary" />
+
+            <div class="flex gap-2">
+              <button class="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
+              <button class="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer">추가</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex-1 bg-[#1a1f2b] flex items-center justify-center text-text-tertiary text-caption opacity-60">(도면 캔버스)</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ──────────────────────────────────────────────────────────────────
+       적용 룰 요약
+       ──────────────────────────────────────────────────────────────── -->
+  <section class="mt-10 max-w-4xl">
+    <h2 class="meta-section-h">적용된 룰 (Wave 1/2 패턴 mirror + 02 inspection-modal-chrome-rules)</h2>
+    <ul class="space-y-1.5 text-label text-text-secondary list-disc pl-5">
+      <li>모달 wrapper: <code>w-[90%] (또는 85%) max-w-[340|320px] max-h-[80%] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5</code></li>
+      <li>백드롭: <code>absolute inset-0 z-[40] bg-black/60 flex items-center justify-center p-4</code> (도면 캔버스 안 — fixed 아님)</li>
+      <li>타이틀: <code>text-body font-bold text-text-primary mb-4</code> (16px)</li>
+      <li>라벨: <code>text-caption text-text-tertiary mb-1.5</code> (구역 / 유도등 종류 / 개소명 / 라벨)</li>
+      <li>zone 3택 (02 §3.2 mirror + ZONE_ICONS): <code>flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold</code> + 아이콘 <code>size={14}</code> (연구동 <code>FlaskConical</code> / 사무동 <code>Building2</code> / 지하 <code>TrainFront</code>)</li>
+      <li>marker 종류 grid (옵션 카드): <code>grid grid-cols-3 gap-1.5</code> + <code>flex flex-col items-center gap-0.5 px-1 py-2 rounded-sm</code> + <code>&lt;MarkerIcon size=16&gt;</code> (sketch 의 lucide 는 placeholder — 실제 TSX 는 기존 MarkerIcon 그대로) + 2-line text-caption font-semibold leading-none</li>
+      <li>선택 상태: <code>border-[1.5px] border-accent bg-accent text-text-on-accent</code> / 비선택: <code>border border-border-default bg-surface-page text-text-secondary</code></li>
+      <li>input: <code>w-full px-3 h-input rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border</code> + <code>placeholder:text-text-tertiary</code></li>
+      <li>소화기 분리 (mappedExt 있음): <code>flex-1 h-input rounded-sm bg-danger-bg border border-danger-bar/40 text-danger text-label font-semibold</code> (위험 outline 톤)</li>
+      <li>소화기 배치 (mappedExt 없음): <code>w-full h-input rounded-sm bg-accent text-text-on-accent text-label font-bold</code> (일반 진행)</li>
+      <li>액션 row 취소: <code>flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold</code></li>
+      <li>액션 row 저장/추가: <code>flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold</code></li>
+      <li>옛 var() 토큰 (--bg2/--bg3/--bd/--bd2/--t1/--t2/--t3/--acl/--danger) 0건</li>
+      <li>옛 rgba 인라인 (rgba(239,68,68,...)) 0건 — danger 토큰 페어로 교체</li>
+    </ul>
+    <h2 class="meta-section-h">시안 한정 (TSX 변환 시 교체)</h2>
+    <ul class="space-y-1.5 text-label text-text-secondary list-disc pl-5">
+      <li>marker 종류 grid 안의 lucide 아이콘 (square/triangle/diamond/flame/droplet 등) 은 sketch placeholder — 실제 TSX 는 기존 <code>&lt;MarkerIcon markerType={mt.key} color={...} size={16}/&gt;</code> 호출 그대로 사용</li>
+      <li>zone 아이콘 (FlaskConical/Building2/TrainFront) 은 TSX 도 동일하게 lucide-react 사용</li>
+    </ul>
+  </section>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>
