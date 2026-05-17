@@ -5,6 +5,7 @@
   <title>11-div · 영역 7c-1 · 데스크톱 우측 패널 (빈 상태)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     :root {
       --surface-page:   #0a0d12;
@@ -60,7 +61,10 @@
 
           <!-- 섹션 1: 34개 측정점 현황 (정상/주의/이상 카운터 3카드) -->
           <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">◆ 34개 측정점 현황</div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">
+              <i data-lucide="bar-chart-3" style="width: 16px; height: 16px;"></i>
+              34개 측정점 현황
+            </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
               <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 10px; padding: 16px 12px; text-align: center;">
                 <div class="mono" style="font-size: 28px; font-weight: 800; color: var(--status-safe-bar); line-height: 1;">29</div>
@@ -79,7 +83,10 @@
 
           <!-- 섹션 2: 배수/오일 현황 (3카드) -->
           <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">── 배수/오일 현황 ──</div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">
+              <i data-lucide="droplets" style="width: 16px; height: 16px;"></i>
+              배수/오일 현황
+            </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
               <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 10px; padding: 14px 12px;">
                 <div style="font-size: 12px; font-weight: 700; color: var(--status-info); margin-bottom: 8px; letter-spacing: 0.04em;">챔버 배수</div>
@@ -101,7 +108,10 @@
 
           <!-- 섹션 3: 이상/주의 포인트 리스트 -->
           <div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">── 이상/주의 포인트 ──</div>
+            <div style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">
+              <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i>
+              이상/주의 포인트
+            </div>
             <div style="display: flex; flex-direction: column; gap: 6px;">
 
               <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--danger-soft-bg); border: 1px solid var(--danger-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
@@ -186,5 +196,6 @@
     <p>현재 패턴으로 OK 면 영역 7c-2 (선택 상태 — 헤더 + 4탭 + 압력 차트) 진행. 대안 보고 싶으면 알려줘.</p>
   </div>
 
+  <script>lucide.createIcons();</script>
 </body>
 </html>
