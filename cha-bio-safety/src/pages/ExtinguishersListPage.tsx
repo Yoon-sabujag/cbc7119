@@ -13,8 +13,8 @@ type MappingTab = 'all' | 'unmapped' | 'mapped' | 'disposed'
 type Item = ExtinguisherListResponse['items'][number]
 
 const SKELETON_STYLE: React.CSSProperties = {
-  background: 'var(--bg3)',
-  borderRadius: 12,
+  background: 'var(--surface-sunken)',
+  borderRadius: 'var(--radius-md)',
   height: 88,
   animation: 'blink 2s ease-in-out infinite',
 }
@@ -314,7 +314,7 @@ export default function ExtinguishersListPage() {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', minHeight: '100%',
-      background: 'var(--bg)', color: 'var(--t1)',
+      background: 'var(--surface-page)', color: 'var(--text-primary)',
     }}>
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
@@ -323,9 +323,9 @@ export default function ExtinguishersListPage() {
         <button
           onClick={() => setRegisterOpen(true)}
           style={{
-            height: 32, padding: '0 10px', borderRadius: 7,
-            background: 'var(--acl)', border: 'none',
-            color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            height: 32, padding: '0 10px', borderRadius: 'var(--radius-sm)',
+            background: 'var(--accent)', border: 'none',
+            color: 'var(--accent-fg)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
           }}
         >+ 새로 등록</button>,
         headerSlot,
@@ -336,18 +336,18 @@ export default function ExtinguishersListPage() {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '8px 12px',
-          background: 'rgba(14,165,233,.10)',
-          borderBottom: '1px solid rgba(14,165,233,.25)',
-          fontSize: 11, color: 'var(--info)',
+          background: 'var(--status-info-bg)',
+          borderBottom: '1px solid var(--status-info-bar)',
+          fontSize: 12, color: 'var(--status-info)',
           flexShrink: 0, gap: 8,
         }}>
           <span>ⓘ &nbsp;{ctxZone ? `「${zoneLabelKo(ctxZone)} ${ctxFloor ?? ''}」 위치에 자동 배치됩니다.` : '해당 위치에 자동 배치됩니다.'}</span>
           <button
             onClick={dismissMarkerContext}
             style={{
-              background: 'transparent', border: '1px solid rgba(14,165,233,.35)',
-              color: 'var(--info)', fontSize: 11, padding: '2px 8px',
-              borderRadius: 6, cursor: 'pointer', flexShrink: 0,
+              background: 'transparent', border: '1px solid var(--status-info-bar)',
+              color: 'var(--status-info)', fontSize: 12, padding: '2px 8px',
+              borderRadius: 'var(--radius-sm)', cursor: 'pointer', flexShrink: 0,
             }}
           >
             취소
@@ -356,7 +356,7 @@ export default function ExtinguishersListPage() {
       )}
 
       {/* ─── Filter bar ─────────────────────────────────────────────── */}
-      <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
+      <div style={{ background: 'var(--surface-raised)', borderBottom: '1px solid var(--border-default)', flexShrink: 0 }}>
         {/* Row 1: Mapping tab chips */}
         <div style={{ display: 'flex' }}>
           {([
@@ -370,10 +370,10 @@ export default function ExtinguishersListPage() {
               onClick={() => setTab(t.key)}
               style={{
                 flex: 1, height: 44, border: 'none',
-                background: tab === t.key ? 'var(--bg4)' : 'transparent',
-                color: tab === t.key ? 'var(--t1)' : 'var(--t3)',
+                background: tab === t.key ? 'var(--surface-active)' : 'transparent',
+                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
                 fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                borderBottom: tab === t.key ? '2px solid var(--acl)' : '2px solid transparent',
+                borderBottom: tab === t.key ? '2px solid var(--accent)' : '2px solid transparent',
               }}
             >
               {t.label}
@@ -390,8 +390,8 @@ export default function ExtinguishersListPage() {
             onChange={e => setZone(e.target.value)}
             style={{
               flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--bg3)', border: '1px solid var(--bd2)',
-              borderRadius: 8, color: 'var(--t2)', fontSize: 12,
+              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
             }}
           >
             <option value="">구역 전체</option>
@@ -403,8 +403,8 @@ export default function ExtinguishersListPage() {
             onChange={e => setFloor(e.target.value)}
             style={{
               flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--bg3)', border: '1px solid var(--bd2)',
-              borderRadius: 8, color: 'var(--t2)', fontSize: 12,
+              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
             }}
           >
             <option value="">층 전체</option>
@@ -416,8 +416,8 @@ export default function ExtinguishersListPage() {
             onChange={e => setType(e.target.value)}
             style={{
               flex: 1, minWidth: 80, height: 32, padding: '0 8px',
-              background: 'var(--bg3)', border: '1px solid var(--bd2)',
-              borderRadius: 8, color: 'var(--t2)', fontSize: 12,
+              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--text-secondary)', fontSize: 12,
             }}
           >
             <option value="">종류 전체</option>
@@ -431,8 +431,8 @@ export default function ExtinguishersListPage() {
             onChange={e => setQ(e.target.value)}
             style={{
               flex: 2, minWidth: 120, height: 32, padding: '0 10px',
-              background: 'var(--bg3)', border: '1px solid var(--bd2)',
-              borderRadius: 8, color: 'var(--t1)', fontSize: 12,
+              background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 12,
               outline: 'none',
             }}
           />
@@ -445,10 +445,10 @@ export default function ExtinguishersListPage() {
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'warn' ? null : 'warn')}
                 style={{
-                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'warn' ? 'rgba(234,179,8,.25)' : 'rgba(234,179,8,.08)',
-                  color: '#a16207',
-                  border: replaceFilter === 'warn' ? '1.5px solid rgba(234,179,8,.5)' : '1px solid rgba(234,179,8,.25)',
+                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'warn' ? 'var(--status-warning-bg)' : 'var(--status-warning-bg)',
+                  color: 'var(--status-warning)',
+                  border: replaceFilter === 'warn' ? '1.5px solid var(--status-warning-bar)' : '1px solid var(--status-warning-bg)',
                 }}
               >
                 ⚠️ 교체 도래 {replaceCounts.warn}
@@ -458,10 +458,10 @@ export default function ExtinguishersListPage() {
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'imminent' ? null : 'imminent')}
                 style={{
-                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'imminent' ? 'rgba(249,115,22,.25)' : 'rgba(249,115,22,.08)',
-                  color: '#c2410c',
-                  border: replaceFilter === 'imminent' ? '1.5px solid rgba(249,115,22,.5)' : '1px solid rgba(249,115,22,.25)',
+                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'imminent' ? 'var(--status-fire-bg)' : 'var(--status-fire-bg)',
+                  color: 'var(--status-fire)',
+                  border: replaceFilter === 'imminent' ? '1.5px solid var(--status-fire-bar)' : '1px solid var(--status-fire-bg)',
                 }}
               >
                 ⚠️ 교체 임박 {replaceCounts.imm}
@@ -471,10 +471,10 @@ export default function ExtinguishersListPage() {
               <button
                 onClick={() => setReplaceFilter(replaceFilter === 'danger' ? null : 'danger')}
                 style={{
-                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  background: replaceFilter === 'danger' ? 'rgba(239,68,68,.25)' : 'rgba(239,68,68,.08)',
-                  color: '#b91c1c',
-                  border: replaceFilter === 'danger' ? '1.5px solid rgba(239,68,68,.5)' : '1px solid rgba(239,68,68,.25)',
+                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  background: replaceFilter === 'danger' ? 'var(--status-danger-bg)' : 'var(--status-danger-bg)',
+                  color: 'var(--status-danger)',
+                  border: replaceFilter === 'danger' ? '1.5px solid var(--status-danger-bar)' : '1px solid var(--status-danger-bg)',
                 }}
               >
                 ⚠️ 교체 초과 {replaceCounts.danger}
@@ -505,14 +505,14 @@ export default function ExtinguishersListPage() {
             alignItems: 'center', justifyContent: 'center',
             gap: 8, padding: '60px 16px',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>목록을 불러오지 못했습니다</div>
-            <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>네트워크 상태를 확인하고 다시 시도해 주세요.</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>목록을 불러오지 못했습니다</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>네트워크 상태를 확인하고 다시 시도해 주세요.</div>
             <button
               onClick={() => refetch()}
               style={{
-                marginTop: 8, height: 36, padding: '0 16px', borderRadius: 8,
-                background: 'var(--bg3)', border: '1px solid var(--bd2)',
-                color: 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                marginTop: 8, height: 36, padding: '0 16px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+                color: 'var(--text-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
               }}
             >
               다시 시도
@@ -527,8 +527,8 @@ export default function ExtinguishersListPage() {
             alignItems: 'center', justifyContent: 'center',
             gap: 8, padding: '60px 16px',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>해당하는 소화기가 없습니다</div>
-            <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center', lineHeight: 1.6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>해당하는 소화기가 없습니다</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6 }}>
               필터를 조정하거나 우상단 「+ 새로 등록」 으로 새 자산을 추가해 주세요.
             </div>
           </div>
@@ -653,11 +653,11 @@ function ExtinguisherCard({
   // Mapping-state badge LOCKED colors per UI-SPEC §Color
   let badgeBg = '', badgeColor = '', badgeLabel = ''
   if (state === 'disposed') {
-    badgeBg = 'rgba(245,158,11,.15)'; badgeColor = 'var(--warn)'; badgeLabel = '폐기'
+    badgeBg = 'var(--status-warning-bg)'; badgeColor = 'var(--status-warning)'; badgeLabel = '폐기'
   } else if (item.cp_id) {
-    badgeBg = 'rgba(59,130,246,.15)'; badgeColor = 'var(--acl)'; badgeLabel = '배치됨'
+    badgeBg = 'var(--accent-bg)'; badgeColor = 'var(--accent)'; badgeLabel = '배치됨'
   } else {
-    badgeBg = 'rgba(239,68,68,.15)'; badgeColor = 'var(--danger)'; badgeLabel = '미배치'
+    badgeBg = 'var(--status-danger-bg)'; badgeColor = 'var(--status-danger)'; badgeLabel = '미배치'
   }
 
   const isDisposed = state === 'disposed'
@@ -666,9 +666,9 @@ function ExtinguisherCard({
     <div
       onClick={!isDisposed ? onToggle : undefined}
       style={{
-        background: isDisposed ? 'var(--bg3)' : 'var(--bg2)',
-        border: expanded && !isDisposed ? '1.5px solid var(--acl)' : '1px solid var(--bd)',
-        borderRadius: 12, padding: 12,
+        background: isDisposed ? 'var(--surface-sunken)' : 'var(--surface-raised)',
+        border: expanded && !isDisposed ? '1.5px solid var(--accent)' : '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-md)', padding: 12,
         display: 'flex', flexDirection: 'column', gap: 6,
         cursor: isDisposed ? 'default' : 'pointer',
         opacity: isDisposed ? 0.6 : 1,
@@ -677,12 +677,12 @@ function ExtinguisherCard({
     >
       {/* Row 1: 종류 + badge */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>
           {item.type ?? '-'}
         </span>
         <span style={{
-          fontSize: 11, fontWeight: 700,
-          padding: '2px 8px', borderRadius: 5,
+          fontSize: 12, fontWeight: 700,
+          padding: '2px 8px', borderRadius: 'var(--radius-sm)',
           background: badgeBg, color: badgeColor,
           flexShrink: 0,
         }}>
@@ -693,7 +693,7 @@ function ExtinguisherCard({
       {/* Row 2: 제조번호 · 증지번호 (상세 펼침에 나머지 필드 노출) */}
       {(item.serial_no || item.seal_no) && (
         <div style={{
-          fontSize: 12, fontWeight: 500, color: 'var(--t2)',
+          fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)',
           fontFamily: "'JetBrains Mono', monospace",
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
@@ -707,7 +707,7 @@ function ExtinguisherCard({
       {/* Row 3: location + warning chip (오른쪽 하단) — 한 줄에 배치해 카드 높이 절약 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{
-          fontSize: 11, fontWeight: 500, color: 'var(--t3)',
+          fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
           flex: 1, minWidth: 0,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
@@ -717,11 +717,11 @@ function ExtinguisherCard({
         </span>
         {warning && (
           <span style={{
-            fontSize: 11, fontWeight: 700,
-            padding: '2px 8px', borderRadius: 5,
-            background: warning === 'danger' ? 'rgba(239,68,68,.15)' : 'rgba(245,158,11,.15)',
-            color: warning === 'danger' ? 'var(--danger)' : 'var(--warn)',
-            border: `1px solid ${warning === 'danger' ? 'rgba(239,68,68,.3)' : 'rgba(245,158,11,.3)'}`,
+            fontSize: 12, fontWeight: 700,
+            padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+            background: warning === 'danger' ? 'var(--status-danger-bg)' : 'var(--status-warning-bg)',
+            color: warning === 'danger' ? 'var(--status-danger)' : 'var(--status-warning)',
+            border: `1px solid ${warning === 'danger' ? 'var(--status-danger-bar)' : 'var(--status-warning-bar)'}`,
             flexShrink: 0,
           }}>
             ⚠️ 교체 {warning === 'warn' ? '도래' : warning === 'imminent' ? '임박' : '초과'}
@@ -734,9 +734,9 @@ function ExtinguisherCard({
         <>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 1fr',
-            gap: '3px 12px', fontSize: 11,
+            gap: '3px 12px', fontSize: 12,
             marginTop: 4, paddingTop: 8,
-            borderTop: '1px solid var(--bd)',
+            borderTop: '1px solid var(--border-default)',
           }}>
             <DetailField label="접두문자" value={item.prefix_code} />
             <DetailField label="형식승인" value={item.approval_no} mono />
@@ -775,7 +775,7 @@ function ExtinguisherCard({
 
       {/* 폐기 상태: 조회만 */}
       {isDisposed && (
-        <div style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center', padding: '4px 0' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', padding: '4px 0' }}>
           폐기된 자산입니다.
         </div>
       )}
@@ -784,24 +784,24 @@ function ExtinguisherCard({
 }
 
 const actionBtnStyle: React.CSSProperties = {
-  flex: 1, height: 36, borderRadius: 8,
+  flex: 1, height: 36, borderRadius: 'var(--radius-sm)',
   fontSize: 12, fontWeight: 700, cursor: 'pointer',
-  background: 'var(--bg3)', color: 'var(--t1)',
-  border: '1px solid var(--bd2)',
+  background: 'var(--surface-sunken)', color: 'var(--text-primary)',
+  border: '1px solid var(--border-strong)',
 }
 
 const dangerBtnStyle: React.CSSProperties = {
-  color: 'var(--danger)',
-  border: '1px solid rgba(239,68,68,.3)',
-  background: 'rgba(239,68,68,.08)',
+  color: 'var(--status-danger)',
+  border: '1px solid var(--status-danger-bar)',
+  background: 'var(--status-danger-bg)',
 }
 
 function DetailField({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <span style={{ color: 'var(--t3)', fontWeight: 400 }}>{label}</span>
+      <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}>{label}</span>
       <span style={{
-        color: 'var(--t1)', fontWeight: 700,
+        color: 'var(--text-primary)', fontWeight: 700,
         fontFamily: mono ? "'JetBrains Mono', monospace" : 'inherit',
       }}>
         {value ?? '-'}
@@ -861,7 +861,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
   return (
     <ModalBackdrop onClose={onClose}>
       <div style={modalWrapperStyle} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', marginBottom: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
           소화기 등록
         </div>
 
@@ -882,10 +882,10 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
           {EXTINGUISHER_TYPES.map(t => (
             <button key={t} onClick={() => setType(t)} style={{
-              padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              background: type === t ? 'var(--acl)' : 'var(--bg3)',
-              color: type === t ? '#fff' : 'var(--t2)',
-              border: type === t ? 'none' : '1px solid var(--bd)',
+              padding: '8px 0', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              background: type === t ? 'var(--accent)' : 'var(--surface-sunken)',
+              color: type === t ? 'var(--accent-fg)' : 'var(--text-secondary)',
+              border: type === t ? 'none' : '1px solid var(--border-default)',
             }}>{t}</button>
           ))}
         </div>
@@ -915,7 +915,7 @@ function RegisterModal({ hasMarkerContext, ctxZone, ctxFloor, onClose, onSubmit 
             onClick={handleSubmit}
             disabled={submitting}
             style={submitting
-              ? { ...primaryBtnStyle, background: 'var(--bd2)', color: 'var(--t3)', cursor: 'not-allowed' }
+              ? { ...primaryBtnStyle, background: 'var(--border-strong)', color: 'var(--text-tertiary)', cursor: 'not-allowed' }
               : primaryBtnStyle}
           >
             {submitting ? '등록 중…' : (hasMarkerContext ? '등록 후 배치' : '등록')}
@@ -960,10 +960,10 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
 
   const counterChipStyle: React.CSSProperties = {
     display: 'inline-flex', alignItems: 'center',
-    padding: '2px 8px', borderRadius: 5,
-    fontSize: 11, fontWeight: 700, flexShrink: 0,
-    background: changedCount === 0 ? 'var(--bg3)' : changedCount <= 3 ? 'rgba(59,130,246,.15)' : 'rgba(239,68,68,.15)',
-    color:      changedCount === 0 ? 'var(--t3)' : changedCount <= 3 ? 'var(--acl)' : 'var(--danger)',
+    padding: '2px 8px', borderRadius: 'var(--radius-sm)',
+    fontSize: 12, fontWeight: 700, flexShrink: 0,
+    background: changedCount === 0 ? 'var(--surface-sunken)' : changedCount <= 3 ? 'var(--accent-bg)' : 'var(--status-danger-bg)',
+    color:      changedCount === 0 ? 'var(--text-tertiary)' : changedCount <= 3 ? 'var(--accent)' : 'var(--status-danger)',
   }
 
   const saveDisabled = changedCount > 3 || changedCount === 0
@@ -982,20 +982,20 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
   }
 
   const borderForField = (original: string | null | undefined, current: string): string =>
-    norm(current) !== norm(original) ? 'var(--acl)' : 'var(--bd2)'
+    norm(current) !== norm(original) ? 'var(--accent)' : 'var(--border-strong)'
 
   return (
     <ModalBackdrop onClose={onClose}>
       <div style={modalWrapperStyle} onClick={e => e.stopPropagation()}>
         {/* Header with counter chip */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: changedCount > 3 ? 8 : 16 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>정보 수정</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>정보 수정</span>
           <span style={counterChipStyle}>변경: {changedCount} / 3</span>
         </div>
 
         {/* Microcopy when n>3 */}
         {changedCount > 3 && (
-          <div style={{ fontSize: 11, color: 'var(--danger)', marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: 'var(--status-danger)', marginBottom: 12 }}>
             4개 이상 변경하려면 「폐기 후 재등록」을 사용하세요.
           </div>
         )}
@@ -1008,10 +1008,10 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
             const isChanged = norm(t) !== norm(item.type) && isActive
             return (
               <button key={t} onClick={() => setType(t)} style={{
-                padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                background: isActive ? 'var(--acl)' : 'var(--bg3)',
-                color: isActive ? '#fff' : 'var(--t2)',
-                border: isChanged ? '1.5px solid var(--acl)' : (isActive ? 'none' : '1px solid var(--bd)'),
+                padding: '8px 0', borderRadius: 'var(--radius-sm)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                background: isActive ? 'var(--accent)' : 'var(--surface-sunken)',
+                color: isActive ? 'var(--accent-fg)' : 'var(--text-secondary)',
+                border: isChanged ? '1.5px solid var(--accent)' : (isActive ? 'none' : '1px solid var(--border-default)'),
               }}>{t}</button>
             )
           })}
@@ -1048,7 +1048,7 @@ function EditModal({ item, onClose, onSubmit, saving }: EditModalProps) {
             onClick={handleSave}
             disabled={saveDisabled}
             style={saveDisabled
-              ? { ...primaryBtnStyle, background: 'var(--bd2)', color: 'var(--t3)', cursor: 'not-allowed', border: '1px solid rgba(239,68,68,.3)' }
+              ? { ...primaryBtnStyle, background: 'var(--border-strong)', color: 'var(--text-tertiary)', cursor: 'not-allowed', border: '1px solid var(--status-danger-bar)' }
               : primaryBtnStyle
             }
           >
@@ -1076,22 +1076,22 @@ function ConfirmModal({ title, body, primaryLabel, primaryStyle, onConfirm, onCa
   return (
     <ModalBackdrop onClose={onCancel}>
       <div style={{ ...modalWrapperStyle, maxWidth: 320 }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', marginBottom: 10 }}>{title}</div>
-        <div style={{ fontSize: 13, color: 'var(--t2)', lineHeight: 1.6, marginBottom: 16 }}>{body}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>{title}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 16 }}>{body}</div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={onCancel} style={{
-            flex: 1, height: 42, borderRadius: 10,
-            background: 'var(--bg3)', border: '1px solid var(--bd)',
-            color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            flex: 1, height: 42, borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-sunken)', border: '1px solid var(--border-default)',
+            color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}>취소</button>
           <button
             onClick={onConfirm}
             disabled={loading}
             style={{
-              flex: 1, height: 42, borderRadius: 10, border: 'none',
+              flex: 1, height: 42, borderRadius: 'var(--radius-md)', border: 'none',
               fontSize: 13, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-              background: primaryStyle === 'acl' ? 'var(--acl)' : 'var(--danger)',
-              color: '#fff', opacity: loading ? 0.7 : 1,
+              background: primaryStyle === 'acl' ? 'var(--accent)' : 'var(--status-danger)',
+              color: 'var(--accent-fg)', opacity: loading ? 0.7 : 1,
             }}
           >
             {loading ? '처리 중…' : primaryLabel}
@@ -1110,7 +1110,7 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
       style={{
         position: 'fixed', inset: 0, zIndex: 40,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.6)',
+        background: 'var(--surface-overlay)',
       }}
       onClick={onClose}
     >
@@ -1123,7 +1123,7 @@ function ModalBackdrop({ children, onClose }: { children: React.ReactNode; onClo
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 11, fontWeight: 500, color: 'var(--t3)', marginBottom: 6 }}>
+    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)', marginBottom: 6 }}>
       {children}
     </div>
   )
@@ -1133,36 +1133,36 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 const modalWrapperStyle: React.CSSProperties = {
   width: '90%', maxWidth: 360,
-  background: 'var(--bg2)', borderRadius: 16, padding: 20,
-  border: '1px solid var(--bd2)', maxHeight: '80vh', overflowY: 'auto',
+  background: 'var(--surface-raised)', borderRadius: 'var(--radius-lg)', padding: 20,
+  border: '1px solid var(--border-strong)', maxHeight: '80vh', overflowY: 'auto',
 }
 
 const infoBannerStyle: React.CSSProperties = {
-  background: 'rgba(14,165,233,.10)',
-  border: '1px solid rgba(14,165,233,.25)',
-  color: 'var(--info)',
-  padding: '8px 12px', borderRadius: 8,
-  fontSize: 11, marginBottom: 14, lineHeight: 1.5,
+  background: 'var(--status-info-bg)',
+  border: '1px solid var(--status-info-bar)',
+  color: 'var(--status-info)',
+  padding: '8px 12px', borderRadius: 'var(--radius-sm)',
+  fontSize: 12, marginBottom: 14, lineHeight: 1.5,
 }
 
 const inputStyle: React.CSSProperties = {
   width: '100%', height: 40, padding: '0 12px',
-  background: 'var(--bg3)', border: '1px solid var(--bd2)',
-  borderRadius: 8, color: 'var(--t1)', fontSize: 13,
+  background: 'var(--surface-sunken)', border: '1px solid var(--border-strong)',
+  borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: 13,
   outline: 'none', marginBottom: 14, boxSizing: 'border-box',
   fontFamily: 'inherit',
 }
 
 const cancelBtnStyle: React.CSSProperties = {
   padding: '12px 18px',
-  background: 'var(--bg)', color: 'var(--t2)',
-  border: '1px solid var(--bd2)', borderRadius: 12,
+  background: 'var(--surface-page)', color: 'var(--text-secondary)',
+  border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)',
   fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
 }
 
 const primaryBtnStyle: React.CSSProperties = {
   flex: 1, padding: '13px 0',
-  background: 'var(--acl)', color: '#fff',
-  border: 'none', borderRadius: 12,
+  background: 'var(--accent)', color: 'var(--accent-fg)',
+  border: 'none', borderRadius: 'var(--radius-md)',
   fontSize: 13, fontWeight: 700, cursor: 'pointer',
 }
