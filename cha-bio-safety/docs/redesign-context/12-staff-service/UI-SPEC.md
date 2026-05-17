@@ -1,7 +1,8 @@
 ---
 phase: redesign-12
 slug: staff-service-redesign
-status: draft
+status: approved
+reviewed_at: 2026-05-18
 design-system: v0.1.1
 shadcn_initialized: false
 preset: none
