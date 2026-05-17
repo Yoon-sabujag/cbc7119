@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 카드 grid 상태 3종 · v0.1.1 재디자인 시안 (wave 6)</title>
+  <style>
+    :root {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --accent-fg:       #ffffff;
+
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 0.3; }
+    }
+
+    body {
+      margin: 0; padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px 0; color: var(--text-primary); }
+    h1 + p { margin: 0 0 24px 0; color: var(--text-tertiary); font-size: 13px; max-width: 760px; }
+    h2 {
+      font-size: 14px; margin: 28px 0 6px 0; color: var(--text-primary);
+      padding: 8px 12px; background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent); border-radius: 4px;
+    }
+    .vp-desc { margin: 0 0 12px 0; padding: 0 12px; color: var(--text-tertiary); font-size: 12px; }
+
+    .frame-mobile {
+      width: 360px;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 400px;
+    }
+    .frame-desktop {
+      width: 1024px;
+      max-width: 100%;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 300px;
+    }
+
+    .skeleton {
+      background: var(--surface-sunken);
+      border-radius: var(--radius-md);
+      height: 88px;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .rules {
+      margin-top: 40px; padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 1024px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>09. 카드 grid 상태 3종 — v0.1.1 재디자인 시안 (wave 6, 최종)</h1>
+  <p>
+    Card grid wrapper (l.487-555) 안 3 상태 (Loading skeleton / Error / Empty) sketch.
+    이 wave 가 09 sketch 시리즈 마지막 — 완료 후 TSX 변환 wave 진입.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · Loading skeleton 모바일 1열
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · Loading 모바일 1열 — 3 skeleton 카드 (blink animation)</h2>
+  <p class="vp-desc">isLoading=true. 카드 자리 차지 skeleton 3개, blink 2s ease-in-out infinite (opacity 0.6 ↔ 0.3).</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · Loading skeleton 데스크톱 3열
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · Loading 데스크톱 3열 — 3 skeleton 카드 (1행)</h2>
+  <p class="vp-desc">isDesktop=true. gridCols = "1fr 1fr 1fr". 3 skeleton 한 행에 배치.</p>
+  <div class="frame-desktop" data-viewport="V2">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · Error 모바일 — 재시도 버튼
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · Error 모바일 — "목록을 불러오지 못했습니다" + 재시도 버튼</h2>
+  <p class="vp-desc">isError=true. 중앙 정렬 + 타이틀 + 안내 + 재시도 버튼.</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 60px 16px; min-height: 376px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">목록을 불러오지 못했습니다</div>
+      <div style="font-size: 12px; color: var(--text-secondary); text-align: center;">네트워크 상태를 확인하고 다시 시도해 주세요.</div>
+      <button style="margin-top: 8px; height: 36px; padding: 0 16px; border-radius: var(--radius-sm); background: var(--surface-sunken); border: 1px solid var(--border-strong); color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer;">다시 시도</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · Empty 모바일 — 안내 텍스트
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · Empty 모바일 — "해당하는 소화기가 없습니다" + 안내</h2>
+  <p class="vp-desc">items.length === 0. 중앙 정렬 + 타이틀 + 「+ 새로 등록」 사용 안내. 재시도 버튼 없음.</p>
+  <div class="frame-mobile" data-viewport="V4">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 60px 16px; min-height: 376px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary);">해당하는 소화기가 없습니다</div>
+      <div style="font-size: 12px; color: var(--text-secondary); text-align: center; line-height: 1.6;">
+        필터를 조정하거나 우상단 「+ 새로 등록」 으로 새 자산을 추가해 주세요.
+      </div>
+    </div>
+  </div>
+
+  <!-- Rule 박스 -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1 (카드 grid 상태 3종)</h3>
+    <ul>
+      <li>SKELETON: surface-sunken + radius-md + height 88 + blink 2s infinite (0.6 ↔ 0.3 opacity). 카드 자리 차지.</li>
+      <li>gridCols 반응형 — 모바일 1열 / 768+ 2열 / 데스크톱 3열 / gap 12.</li>
+      <li>Error / Empty 공통 wrapper — flex column 중앙 정렬 / gap 8 / padding 60 16</li>
+      <li>타이틀 fontSize 16 / fontWeight 700 / text-primary (두 상태 공통)</li>
+      <li>안내 텍스트 fontSize 12 / text-secondary / textAlign center (Empty 만 lineHeight 1.6)</li>
+      <li>재시도 버튼 (Error 만): height 36 / padding 0 16 / radius-sm / surface-sunken + border-strong 1px / text-primary / fontSize 12 / fontWeight 700</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰</h3>
+    <ul>
+      <li>옛 alias (bg / bd / t1-3 / acl / safe / warn / danger 단독 / info / fire) 0건</li>
+      <li>raw 색 (hex / rgba) 0건 — :root + body / frame chrome 만 예외</li>
+      <li>그라디언트 / 그림자 / 블러 / 이모지 0건</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      isLoading / isError / items.length === 0 분기 / refetch() 핸들러 / gridCols 반응형 (useIsDesktop + window.innerWidth) —
+      모두 0 변경. blink @keyframes 그대로.
+    </p>
+    <hr/>
+    <h3>09 sketch 시리즈 완결 — 다음 단계</h3>
+    <ul>
+      <li>wave 1 chrome / wave 2 card / wave 3 register / wave 4 edit / wave 5 confirm / wave 6 states</li>
+      <li>총 6 sketch HTML 파일 + 32 viewport 변형</li>
+      <li>다음: <strong>TSX 변환 wave</strong> — ExtinguishersListPage.tsx (1168 lines) 의 alias 60 + raw hex 8 → v0.1.1 토큰 단일 source. 6 sketch verbatim 인용 원천.</li>
+    </ul>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 Loading 모바일 1열 (3 skeleton)</li>
+      <li>V2 Loading 데스크톱 3열 (3 skeleton 1행)</li>
+      <li>V3 Error (재시도 버튼)</li>
+      <li>V4 Empty (안내 텍스트만)</li>
+    </ul>
+  </div>
+
+</body>
+</html>
