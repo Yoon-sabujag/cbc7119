@@ -13,19 +13,18 @@ export interface AccessBlockedPopupProps {
 
 export function AccessBlockedPopup({ onConfirm }: AccessBlockedPopupProps) {
   return (
-    <div role="alertdialog" aria-label="접근 불가 안내" style={{
-      position:'absolute', inset:0, zIndex:10,
-      background:'var(--surface-raised)', border:'1px solid var(--border-default)', borderRadius:12,
-      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      gap:10, padding:20,
-    }}>
-      <ShieldAlert size={32} color="var(--status-danger)" />
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)', textAlign:'center', lineHeight:1.55, whiteSpace:'pre-line' }}>
+    <div
+      role="alertdialog"
+      aria-label="접근 불가 안내"
+      className="absolute inset-0 z-10 bg-surface-raised border border-border-default rounded-md flex flex-col items-center justify-center gap-2.5 p-5"
+    >
+      <ShieldAlert size={32} className="text-danger" />
+      <div className="text-label font-bold text-text-primary text-center leading-snug whitespace-pre-line">
         {'접근 불가 개소입니다.\n점검 기록 없이 다음 개소로 이동합니다.'}
       </div>
       <button
         onClick={onConfirm}
-        style={{ marginTop:4, padding:'10px 32px', borderRadius:10, border:'none', background:'var(--accent)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+        className="mt-1 px-8 py-2.5 rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
       >
         확인
       </button>
