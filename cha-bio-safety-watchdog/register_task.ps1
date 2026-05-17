@@ -1,13 +1,23 @@
 ﻿# CHA Bio Watchdog - Register Scheduled Task
 # Trigger: 30s after logon + every 2 min keepalive
 # Settings: Hidden window, restart on failure (1 min interval x3)
+#
+# NOTE (2026-05-17): Action 을 powershell.exe 직접 호출에서 wscript.exe + Run-Hidden.vbs
+# 패턴으로 교체. Windows PowerShell 5.1 의 conhost 초기화 순서 한계로 -WindowStyle Hidden
+# 만으로는 2분마다 콘솔 깜빡임이 발생했음. wscript.exe 는 console 자체를 생성하지 않음.
 
 $scriptDir = $PSScriptRoot
 $keepalive = Join-Path $scriptDir "watchdog_keepalive.ps1"
+$vbsLauncher = Join-Path $scriptDir "Run-Hidden.vbs"
 $taskName = "CHA Bio File Organizer"
 
 if (-not (Test-Path $keepalive)) {
     Write-Error "watchdog_keepalive.ps1 not found: $keepalive"
+    exit 1
+}
+
+if (-not (Test-Path $vbsLauncher)) {
+    Write-Error "Run-Hidden.vbs not found: $vbsLauncher"
     exit 1
 }
 
@@ -62,8 +72,8 @@ $xml = @"
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>powershell.exe</Command>
-      <Arguments>-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "$keepalive"</Arguments>
+      <Command>wscript.exe</Command>
+      <Arguments>"$vbsLauncher" "$keepalive"</Arguments>
     </Exec>
   </Actions>
 </Task>
@@ -85,6 +95,7 @@ Write-Host ""
 Write-Host "[OK] Scheduled task registered." -ForegroundColor Green
 Write-Host "     - Auto-start 30s after logon"
 Write-Host "     - Health check every 2 min, auto-restart if dead"
+Write-Host "     - Launcher: wscript.exe + Run-Hidden.vbs (no console flicker)"
 Write-Host ""
 
 schtasks /Run /TN $taskName 2>$null | Out-Null
