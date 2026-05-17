@@ -2004,14 +2004,14 @@ export default function FloorPlanPage() {
       {/* ── 인라인 조치 모달 ────────────────────── */}
       {/* ── Phase 24: 소화기 분리 확인 모달 ──────────────── */}
       {unassignConfirm && (
-        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setUnassignConfirm(null)}>
-          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 분리</div>
-            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
-              <span style={{ fontWeight:600, color:'var(--t1)' }}>{unassignConfirm.location}</span>에서 소화기를 분리하면 이 개소는 미배치 상태가 됩니다.
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setUnassignConfirm(null)}>
+          <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-body font-bold text-text-primary mb-2">소화기 분리</div>
+            <div className="text-caption text-text-secondary leading-relaxed mb-4">
+              <span className="font-semibold text-text-primary">{unassignConfirm.location}</span>에서 소화기를 분리하면 이 개소는 미배치 상태가 됩니다.
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button onClick={() => setUnassignConfirm(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
+            <div className="flex gap-2">
+              <button onClick={() => setUnassignConfirm(null)} className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
               <button
                 disabled={unassignMutation.isPending}
                 onClick={() => {
@@ -2020,7 +2020,7 @@ export default function FloorPlanPage() {
                     onSuccess: () => { setUnassignConfirm(null); setSelected(null) }
                   })
                 }}
-                style={{ flex:1, height:42, borderRadius:10, background:unassignMutation.isPending ? 'var(--bd2)' : 'rgba(239,68,68,0.85)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:unassignMutation.isPending ? 'default' : 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-danger-bar text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:cursor-default"
               >{unassignMutation.isPending ? '처리 중...' : '분리'}</button>
             </div>
           </div>
@@ -2029,15 +2029,15 @@ export default function FloorPlanPage() {
 
       {/* ── Phase 24: 미배치 마커 안내 모달 (점검 모드) ──── */}
       {emptyMarkerModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setEmptyMarkerModal(null)}>
-          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 미배치</div>
-            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
-              <span style={{ fontWeight:600, color:'var(--t1)' }}>{emptyMarkerModal.label || '이 개소'}</span>에 소화기가 배치되지 않았습니다.<br/>
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setEmptyMarkerModal(null)}>
+          <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-body font-bold text-text-primary mb-2">소화기 미배치</div>
+            <div className="text-caption text-text-secondary leading-relaxed mb-4">
+              <span className="font-semibold text-text-primary">{emptyMarkerModal.label || '이 개소'}</span>에 소화기가 배치되지 않았습니다.<br/>
               소화기 관리 페이지에서 배치할 수 있습니다.
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button onClick={() => setEmptyMarkerModal(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>닫기</button>
+            <div className="flex gap-2">
+              <button onClick={() => setEmptyMarkerModal(null)} className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">닫기</button>
               <button
                 onClick={() => {
                   const m = emptyMarkerModal
@@ -2045,7 +2045,7 @@ export default function FloorPlanPage() {
                   const ref = m.check_point_id || m.id
                   navigate(`/extinguishers?fromMarker=${ref}&zone=${(m as any).zone ?? ''}&floor=${m.floor ?? floor}`)
                 }}
-                style={{ flex:1, height:42, borderRadius:10, background:'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
               >소화기 배치하기</button>
             </div>
           </div>
@@ -2054,14 +2054,14 @@ export default function FloorPlanPage() {
 
       {/* ── Phase 24: 소화기 배치 확인 모달 (placing 모드) ── */}
       {placingConfirm && isPlacingMode && (
-        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={() => setPlacingConfirm(null)}>
-          <div style={{ width:'90%', maxWidth:320, background:'var(--bg2)', borderRadius:16, padding:20, border:'1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize:15, fontWeight:700, color:'var(--t1)', marginBottom:8 }}>소화기 배치</div>
-            <div style={{ fontSize:12, color:'var(--t2)', marginBottom:16, lineHeight:1.5 }}>
-              <span style={{ fontWeight:600, color:'var(--t1)' }}>{placingConfirm.label || '이 개소'}</span>에 소화기를 배치하시겠습니까?
+        <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4" onClick={() => setPlacingConfirm(null)}>
+          <div className="w-[90%] max-w-[320px] bg-surface-raised border border-border-default rounded-md p-5" onClick={e => e.stopPropagation()}>
+            <div className="text-body font-bold text-text-primary mb-2">소화기 배치</div>
+            <div className="text-caption text-text-secondary leading-relaxed mb-4">
+              <span className="font-semibold text-text-primary">{placingConfirm.label || '이 개소'}</span>에 소화기를 배치하시겠습니까?
             </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <button onClick={() => setPlacingConfirm(null)} style={{ flex:1, height:42, borderRadius:10, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:13, fontWeight:600, cursor:'pointer' }}>취소</button>
+            <div className="flex gap-2">
+              <button onClick={() => setPlacingConfirm(null)} className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer">취소</button>
               <button
                 disabled={assignMutation.isPending}
                 onClick={async () => {
@@ -2082,7 +2082,7 @@ export default function FloorPlanPage() {
                     setPlacingConfirm(null); navigate(-1)
                   } catch (e: any) { toast.error(e?.message ?? '배치 실패') }
                 }}
-                style={{ flex:1, height:42, borderRadius:10, background:assignMutation.isPending ? 'var(--bd2)' : 'var(--acl)', border:'none', color:'#fff', fontSize:13, fontWeight:700, cursor:assignMutation.isPending ? 'default' : 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:cursor-default"
               >{assignMutation.isPending ? '처리 중...' : '배치'}</button>
             </div>
           </div>
