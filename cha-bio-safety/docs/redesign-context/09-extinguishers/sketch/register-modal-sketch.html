@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 소화기 등록 모달 · v0.1.1 재디자인 시안 (wave 3)</title>
+  <style>
+    :root {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      /* Accent */
+      --accent:          #3b82f6;
+      --accent-fg:       #ffffff;
+
+      /* Status info (안내 배너) */
+      --status-info:     #38bdf8;
+      --status-info-bar: #0ea5e9;
+      --status-info-bg:  rgba(14, 165, 233, 0.12);
+
+      /* Radius */
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px 0; color: var(--text-primary); }
+    h1 + p { margin: 0 0 24px 0; color: var(--text-tertiary); font-size: 13px; max-width: 760px; }
+    h2 {
+      font-size: 14px; margin: 28px 0 6px 0; color: var(--text-primary);
+      padding: 8px 12px; background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent); border-radius: 4px;
+    }
+    .vp-desc { margin: 0 0 12px 0; padding: 0 12px; color: var(--text-tertiary); font-size: 12px; }
+
+    /* mock frame — backdrop 흉내 */
+    .frame-mobile {
+      width: 360px; height: 560px;
+      background: var(--surface-overlay);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .frame-desktop {
+      width: 1024px; height: 600px;
+      max-width: 100%;
+      background: var(--surface-overlay);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+
+    /* dot */
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+
+    /* rule 박스 */
+    .rules {
+      margin-top: 40px; padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 1024px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>09. 소화기 등록 모달 — v0.1.1 재디자인 시안 (wave 3)</h1>
+  <p>
+    RegisterModal (l.823-927) + ModalBackdrop + FieldLabel + 공통 modal styles (l.1107-1168) 의 v0.1.1 토큰 sketch.
+    4 viewport — 마커 동행 OFF / ON / 등록 중 / 데스크톱. 비즈니스 로직 (localStorage lastReg, handleSubmit, primary 라벨 분기) 0 변경.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · 모바일 — 마커 동행 OFF (종류 "분말 3.3kg" active)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · 모바일 등록 모달 — 마커 동행 OFF, 종류 "분말 3.3kg" active</h2>
+  <p class="vp-desc">info banner "최대 3개 필드 수정 가능" + 종류 grid + 6 input + 취소/등록 액션.</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <div style="width: 90%; max-width: 360px; max-height: 540px; overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <!-- 타이틀 -->
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">소화기 등록</div>
+      <!-- info banner -->
+      <div style="display: inline-flex; width: 100%; align-items: flex-start; gap: 6px; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; margin-bottom: 14px;">
+        <span class="dot" style="margin-top: 5px; flex-shrink: 0;"></span>등록 후 한 번에 최대 3개 필드만 수정 가능합니다.
+      </div>
+      <!-- 종류 라벨 -->
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">종류</div>
+      <!-- 종류 3-col grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px;">
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-fg); border: none;">분말 3.3kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">분말 20kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">이산화탄소</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">할로겐</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">강화액</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">K급</button>
+      </div>
+      <!-- 6 필드 -->
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조업체</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 한울방재" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">형식승인번호</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 수소 10-19-3" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조년월</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 2016-11" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조번호</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 104448" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">접두문자</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px; text-transform: uppercase;" placeholder="예: BBPD" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">증지번호</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 63848" />
+      <!-- Action row -->
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button style="padding: 12px 18px; background: var(--surface-page); color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">취소</button>
+        <button style="flex: 1; padding: 13px 0; background: var(--accent); color: var(--accent-fg); border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 700; cursor: pointer;">등록</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · 모바일 — 마커 동행 ON
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · 모바일 등록 모달 — 마커 동행 ON (자동 배치 안내)</h2>
+  <p class="vp-desc">마커 동행 배너 추가 노출 + 등록 버튼 라벨 "등록 후 배치".</p>
+  <div class="frame-mobile" data-viewport="V2">
+    <div style="width: 90%; max-width: 360px; max-height: 540px; overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">소화기 등록</div>
+      <div style="display: inline-flex; width: 100%; align-items: flex-start; gap: 6px; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; margin-bottom: 14px;">
+        <span class="dot" style="margin-top: 5px; flex-shrink: 0;"></span>등록 후 한 번에 최대 3개 필드만 수정 가능합니다.
+      </div>
+      <!-- 마커 동행 배너 -->
+      <div style="display: inline-flex; width: 100%; align-items: flex-start; gap: 6px; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; margin-bottom: 14px;">
+        <span class="dot" style="margin-top: 5px; flex-shrink: 0;"></span>「연구동 3F」 위치에 자동 배치됩니다.
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">종류</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px;">
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-fg); border: none;">분말 3.3kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">분말 20kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">이산화탄소</button>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조업체</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 한울방재" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조년월</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 2016-11" />
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button style="padding: 12px 18px; background: var(--surface-page); color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">취소</button>
+        <button style="flex: 1; padding: 13px 0; background: var(--accent); color: var(--accent-fg); border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 700; cursor: pointer;">등록 후 배치</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · 모바일 — 등록 중 (submit disabled)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · 모바일 등록 모달 — 등록 중 (submit disabled 톤)</h2>
+  <p class="vp-desc">handleSubmit 진행 중 submit 버튼 disabled. bg border-strong + color text-tertiary + "등록 중…" 라벨.</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div style="width: 90%; max-width: 360px; max-height: 540px; overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">소화기 등록</div>
+      <div style="display: inline-flex; width: 100%; align-items: flex-start; gap: 6px; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; margin-bottom: 14px;">
+        <span class="dot" style="margin-top: 5px; flex-shrink: 0;"></span>등록 후 한 번에 최대 3개 필드만 수정 가능합니다.
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">종류</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px;">
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-fg); border: none;">분말 3.3kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">분말 20kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">이산화탄소</button>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조업체</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" value="한울방재" />
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button style="padding: 12px 18px; background: var(--surface-page); color: var(--text-tertiary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: not-allowed; white-space: nowrap; opacity: 0.7;">취소</button>
+        <button style="flex: 1; padding: 13px 0; background: var(--border-strong); color: var(--text-tertiary); border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 700; cursor: not-allowed;">등록 중…</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · 데스크톱 — 마커 동행 OFF (모달 사이즈 고정, backdrop 넓게)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · 데스크톱 등록 모달 — 모달 사이즈 동일, backdrop overlay 톤 강조</h2>
+  <p class="vp-desc">모달 자체 maxWidth 360 고정 → 데스크톱에서도 동일 폭. backdrop overlay 만 넓게.</p>
+  <div class="frame-desktop" data-viewport="V4">
+    <div style="width: 90%; max-width: 360px; max-height: 540px; overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 20px;">
+      <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">소화기 등록</div>
+      <div style="display: inline-flex; width: 100%; align-items: flex-start; gap: 6px; background: var(--status-info-bg); border: 1px solid var(--status-info-bar); color: var(--status-info); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 12px; line-height: 1.5; margin-bottom: 14px;">
+        <span class="dot" style="margin-top: 5px; flex-shrink: 0;"></span>등록 후 한 번에 최대 3개 필드만 수정 가능합니다.
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">종류</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 14px;">
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-fg); border: none;">분말 3.3kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">분말 20kg</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">이산화탄소</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">할로겐</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">강화액</button>
+        <button style="padding: 8px 0; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-secondary); border: 1px solid var(--border-default);">K급</button>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">제조업체</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 한울방재" />
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px;">형식승인번호</div>
+      <input style="width: 100%; height: 40px; padding: 0 12px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; outline: none; margin-bottom: 14px;" placeholder="예: 수소 10-19-3" />
+      <div style="display: flex; gap: 8px; margin-top: 16px;">
+        <button style="padding: 12px 18px; background: var(--surface-page); color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;">취소</button>
+        <button style="flex: 1; padding: 13px 0; background: var(--accent); color: var(--accent-fg); border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 700; cursor: pointer;">등록</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rule 박스 -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1 (등록 모달)</h3>
+    <p class="rules-desc">RegisterModal + ModalBackdrop + FieldLabel + 공통 modal styles 의 토큰 매핑. EditModal / ConfirmModal 도 동일 공통 스타일 재사용.</p>
+    <ul>
+      <li>ModalBackdrop: position fixed inset 0 / zIndex 40 / surface-overlay (rgba 0 0 0 0.6 의 토큰)</li>
+      <li>모달 wrapper: surface-raised + border-strong 1px + radius-lg (16) + maxWidth 360 + maxHeight 80vh + padding 20</li>
+      <li>모달 타이틀: fontSize 16 / fontWeight 700 / text-primary / marginBottom 16</li>
+      <li>info banner: status-info 페어 (bg + bar 1px + text) + radius-sm + fontSize 12 + 좌측 dot</li>
+      <li>FieldLabel: fontSize 12 / fontWeight 500 / text-tertiary / marginBottom 6</li>
+      <li>input: surface-sunken + border-strong 1px + radius-sm + text-primary + fontSize 13 + height 40 + marginBottom 14</li>
+      <li>종류 grid 버튼: padding 8 0 + radius-sm + fontSize 12 + fontWeight 700. active = accent + accent-fg + border none. inactive = surface-sunken + text-secondary + border-default 1px.</li>
+      <li>취소 버튼: surface-page + text-secondary + border-strong 1px + radius-md + fontSize 13 + padding 12 18</li>
+      <li>등록 (primary) 버튼: accent + accent-fg + radius-md + fontSize 13 + flex 1 + padding 13 0. disabled = border-strong bg + text-tertiary + cursor not-allowed.</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰</h3>
+    <ul>
+      <li>옛 alias (bg / bg2-4 / bd / bd2 / t1-3 / acl / info / safe / warn / danger) 0건</li>
+      <li>raw 색 (hex / rgba) 0건 — :root + body / frame chrome 만 예외</li>
+      <li>그라디언트 / 그림자 / 블러 일체 0건</li>
+      <li>이모지 일체 (체크 / 경고 / 핀 등) 0건 — dot 또는 텍스트로</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      localStorage 'cbc24:lastRegisteredExt' load / handleSubmit validation (type 필수) / setSubmitting state / 마커 동행 시 primary 라벨 "등록 후 배치" / 부모가 모달 닫음 — 모두 0 변경.
+    </p>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 모바일 마커 OFF (종류 "분말 3.3kg" active / 6 input / 등록 버튼)</li>
+      <li>V2 모바일 마커 ON (2개 info banner / "등록 후 배치" 라벨)</li>
+      <li>V3 모바일 등록 중 (submit disabled 톤)</li>
+      <li>V4 데스크톱 (모달 사이즈 동일, backdrop overlay 강조)</li>
+    </ul>
+  </div>
+
+</body>
+</html>
