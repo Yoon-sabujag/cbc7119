@@ -101,34 +101,31 @@ export default function AnnualPlanPage() {
     return (
       <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-        {/* 자체 헤더 — sketch verbatim */}
-        <header className="flex-shrink-0 h-[54px] px-5 bg-surface-raised border-b border-border-default flex items-center gap-2.5">
-          <span className="flex-1 text-body font-bold text-text-primary">연간 업무 추진 계획</span>
-          <div className="flex items-center gap-3">
-            <span className="text-caption text-text-tertiary">
-              대상 연도 <strong className="text-text-primary font-bold text-label">{nextYear}년</strong>
-            </span>
-            <button
-              onClick={() => setCalibMode(m => !m)}
-              className={[
-                'h-9 px-3 rounded-sm text-label font-semibold cursor-pointer inline-flex items-center gap-1.5 transition-colors',
-                calibMode
-                  ? 'bg-accent-soft border border-accent text-accent'
-                  : 'bg-surface-sunken border border-border-default text-text-secondary hover:bg-surface-active',
-              ].join(' ')}
-            >
-              <Crosshair size={14} />
-              {calibMode ? '취소' : '위치 조정'}
-            </button>
-            <button
-              onClick={handleDownload}
-              disabled={loading}
-              className="h-9 px-3.5 rounded-sm bg-cta-gradient hover:bg-cta-gradient-hover text-white text-label font-semibold cursor-pointer inline-flex items-center gap-1.5 disabled:bg-none disabled:bg-surface-sunken disabled:text-text-tertiary disabled:cursor-not-allowed transition-colors"
-            >
-              <FileDown size={14} />
-              {loading ? '생성 중...' : '엑셀 다운로드'}
-            </button>
+        {/* 자체 헤더 — 06 FloorPlanPage chrome 룰 표준 */}
+        <header className="flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            <div className="text-body font-bold text-text-primary truncate">연간 업무 추진 계획</div>
           </div>
+          <span className="text-caption text-text-tertiary whitespace-nowrap">
+            대상 연도 <strong className="text-text-primary font-bold">{nextYear}년</strong>
+          </span>
+          <button
+            onClick={() => setCalibMode(m => !m)}
+            className={calibMode
+              ? 'h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
+              : 'h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
+          >
+            <Crosshair size={12} />
+            {calibMode ? '취소' : '위치 조정'}
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={loading}
+            className="h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <FileDown size={12} />
+            {loading ? '생성중...' : '엑셀 다운로드'}
+          </button>
         </header>
 
         {/* 미리보기 영역 */}
@@ -145,26 +142,25 @@ export default function AnnualPlanPage() {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 자체 헤더 — App 헤더 톤 통일 (48h text-label) */}
-      <header className="flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center gap-2 h-12 px-3">
+      {/* 자체 헤더 — 06 FloorPlanPage chrome 룰 표준 */}
+      <header className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <button
           onClick={() => navigate(-1)}
           aria-label="뒤로가기"
-          className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0"
+          className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
         >
-          <ChevronLeft size={15} />
+          <ChevronLeft size={14} />
         </button>
-        <span className="flex-1 text-label font-bold text-text-primary">연간 업무 추진 계획</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-text-primary truncate">연간 업무 추진 계획</div>
+        </div>
         <button
           onClick={() => setCalibMode(m => !m)}
-          className={[
-            'h-8 px-2.5 rounded-sm text-caption font-semibold cursor-pointer inline-flex items-center gap-1 leading-none transition-colors',
-            calibMode
-              ? 'bg-accent-soft border border-accent text-accent'
-              : 'bg-surface-sunken border border-border-default text-text-secondary',
-          ].join(' ')}
+          className={calibMode
+            ? 'h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'
+            : 'h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer'}
         >
-          <Crosshair size={13} />
+          <Crosshair size={12} />
           {calibMode ? '취소' : '위치 조정'}
         </button>
       </header>
