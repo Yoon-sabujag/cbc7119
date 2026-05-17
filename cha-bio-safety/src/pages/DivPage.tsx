@@ -30,7 +30,7 @@ function pressureStatus(val: number, ref: number | null, alertOn: 'rise' | 'fall
   return 'ok'
 }
 
-const STATUS_COLOR = { ok: 'var(--safe)', warn: 'var(--warn)', danger: 'var(--danger)' }
+const STATUS_COLOR = { ok: 'var(--status-safe)', warn: 'var(--status-warning)', danger: 'var(--status-danger)' }
 
 // DIV 그룹 레이블
 const POS_LABEL: Record<number, string> = { 1: 'DIV #1', 2: 'DIV #2', 3: 'DIV #3' }
