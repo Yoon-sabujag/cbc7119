@@ -66,6 +66,18 @@
   --duty-night:  #ef4444;
   --duty-off:    #3b82f6;
   --duty-leave:  #6b7280;
+
+  /* === Duty — soft bg (셀 채움) === */
+  --duty-day-bg:    rgba(245, 158, 11, 0.16);
+  --duty-night-bg:  rgba(239, 68, 68, 0.16);
+  --duty-off-bg:    rgba(59, 130, 246, 0.16);
+  --duty-leave-bg:  rgba(107, 114, 128, 0.16);
+
+  /* === Accent — soft bg (today 강조, 일부 hover) === */
+  --accent-soft:    rgba(59, 130, 246, 0.16);
+
+  /* === Calendar red (공휴일/주말 — status-danger 와 의미 분리) === */
+  --cal-red:        #ef4444;
 }
 
 /* ============================================================
@@ -116,6 +128,15 @@
   --duty-night:  #b91c1c;
   --duty-off:    #1f6feb;
   --duty-leave:  #6b7280;
+
+  --duty-day-bg:    rgba(180, 83, 9, 0.10);
+  --duty-night-bg:  rgba(185, 28, 28, 0.10);
+  --duty-off-bg:    rgba(31, 111, 235, 0.10);
+  --duty-leave-bg:  rgba(107, 114, 128, 0.10);
+
+  --accent-soft:    rgba(31, 111, 235, 0.10);
+
+  --cal-red:        #b91c1c;
 }
 
 /* ============================================================
