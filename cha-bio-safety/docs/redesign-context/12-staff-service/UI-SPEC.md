@@ -117,6 +117,7 @@ page_title: 연차 및 식사
 | BottomSheet drag-handle | width 36, height 4 | 패턴 표준 (모든 페이지) |
 | 데스크톱 중앙 패널 폭 | **280px 고정** (`flex-shrink-0`) | 휴가신청서 폼 컬럼 — 기존 값 유지 |
 | 우측 PDF preview 최대 폭 | `max-w-[595px]` | A4 폭 (595pt @ 72dpi) — PDF 좌표 정합성 |
+| PDF 업로드 라벨 세로 패딩 | `{isDesktop ? 'py-12' : 'py-3'}` (48 vs 12) | 데스크톱 = 드롭존(큰 hit area), 모바일 = 컴팩트 버튼 (§5.10) |
 
 ---
 
@@ -149,7 +150,7 @@ page_title: 연차 및 식사
 `--accent` (`bg-accent`, `text-text-on-accent`) — 사용 위치 **완전 열거**:
 
 1. 달력 "오늘" 표시 칩 (현재 #3b82f6 → `bg-accent`)
-2. 달력 셀 "선택됨" 상태 보더 (현재 #facc15 → **유지 검토** — 노란 보더는 selected 의미 명확, accent 와 시각 분리됨. **결정: `border-warning-bar` 유지**가 더 정확. accent 는 보더 아닌 채움 액션에만)
+2. 달력 셀 "선택됨" 상태 보더 — **결정: `border-warning-bar`** (기존 #facc15 유지). accent 는 보더가 아닌 채움 액션에만 사용.
 3. 휴가 종류 버튼 "선택됨" (active) — `bg-accent text-text-on-accent border border-accent`
 4. "PDF 다운로드" 데스크톱 버튼 (현재 `--acl` → `bg-accent text-text-on-accent`)
 5. 식단표 업로드 영역 dragOver 시 `border-accent`
@@ -177,7 +178,7 @@ page_title: 연차 및 식사
 | `danger` (`bg-danger-bg text-danger`) | 일요일 날짜 텍스트, 공휴일 이름 텍스트 (기존 #ef4444 / #fca5a5) | 빨강 = 휴일/주말 (시각 컨벤션) |
 | `danger` | 식수 합산이 0 이거나 quota 초과 시 (= **위험 임계치** §6.2 룰) — see §7 Stat Card |
 | `info` (`bg-info-bg text-info`) | 토요일 날짜 텍스트 (기존 #3b82f6 / #1e3a5f → `text-info`) | 파랑 = 토요일 (시각 컨벤션) |
-| `fire` | **사용 없음** (이 페이지는 조치 대기 개념 없음) | — |
+| `fire` | **사용 없음** (이 페이지는 조치 대기 개념 없음. 팀원 공가 등 분류 정보는 `info` 토큰 사용 — design-system.md §1.4 의 fire = 조치 대기/긴급 의미 고정과 충돌 방지) | — |
 
 #### 3.4.2 Duty (근무) 색 — status 와 별개 시스템
 
@@ -415,9 +416,11 @@ page_title: 연차 및 식사
 | 연차 잔여 `{remaining}/{quota}일` | `bg-safe-bar` | `text-safe` | `remaining ≤ 1` → `text-danger` |
 | 제공 식수 `{actualMeals}끼` | `bg-info-bar` | `text-info` | — (위험 임계치 없음) |
 | 미사용 식수 `{totalSkipped}끼` | `bg-warning-bar` | `text-warning` | `totalSkipped >= totalProvided * 0.3` → `text-danger` (월 30% 이상 미사용 = 식대 손실 경고) |
-| 주말 식대 `₩{totalAllowance}` | `bg-fire-bar` | `text-fire` | — |
+| 주말 식대 `₩{totalAllowance}` | 카테고리 hex `#a855f7` 인라인 (§3.6 참조, status 토큰 아님) | `text-[#a855f7]` 인라인 | — |
 
-**참고:** 기존 코드는 카드별 임의 hex(#22c55e/#06b6d4/#ec4899/#f97316)를 썼는데, **v0.1.1 룰에 맞춰 status bar 토큰으로 정규화**. 연차=safe(녹), 제공식수=info(파), 미사용=warning(노), 주말식대=fire(주황). 의미 매핑은 다음과 같이 정당화: 연차 잔여는 "정상=safe", 제공식수는 "정보=info", 미사용은 "주의=warning", 주말식대는 "추가/긴급 항목=fire"(이 페이지 한정 의미 — design-system.md §1.4 의 "조치 대기" 정의와 충돌 가능. **결정: fire 대신 별도 카테고리 hex 보라(#a855f7) 유지** — 주말식대는 status 가 아니라 카테고리. 좌측 3px 색바는 `style="background: #a855f7"` 인라인 예외).
+**참고:** 카드 3종(연차/제공식수/미사용식수)은 **v0.1.1 룰에 맞춰 status bar 토큰으로 정규화**: 연차=safe(녹), 제공식수=info(파), 미사용=warning(노). 의미 매핑은 다음과 같이 정당화: 연차 잔여 = "정상=safe", 제공식수 = "정보=info", 미사용 = "주의=warning".
+
+주말식대는 status 가 아니라 **카테고리(§3.6 참조)**. 좌측 3px 색바 · 숫자 색은 카테고리 hex `#a855f7` 인라인 (§3.5 / §3.6 의 카테고리 색 인라인 예외 룰에 등재). status-fire 는 design-system.md §1.4 의 "조치 대기/긴급" 의미 고정 — 분류 정보(주말식대 / 공가)에 사용 금지.
 
 ### 5.6 데스크톱 휴가신청서 폼 (`region.desktop-form`)
 
@@ -680,7 +683,7 @@ page_title: 연차 및 식사
     {teamLeaveList.map(tl => (
       <span class="text-label font-semibold text-text-primary bg-surface-sunken rounded-sm px-2.5 py-1 border border-border-default">
         {name}
-        <span class="ml-1 text-caption font-bold {tl.type.startsWith('official') ? 'text-fire' : 'text-safe'}">
+        <span class="ml-1 text-caption font-bold {tl.type.startsWith('official') ? 'text-info' : 'text-safe'}">
           ({LEAVE_LABEL[tl.type]})
         </span>
       </span>
@@ -688,6 +691,8 @@ page_title: 연차 및 식사
   </div>
 </section>
 ```
+
+**색 룰 사유:** 공가(`official*`)는 **분류 정보**이므로 `text-info` (파랑) 사용. status-fire 는 design-system.md §1.4 의 "조치 대기/긴급" 의미 고정 — 분류 표시에 부적합. 본 변경은 redesign-track 의 작은 의미 정정(UI 색 contract 범위) 이며, "Preserved Business Logic NEGATIVE scope" 와 충돌 없음 (§10 의 NEGATIVE 는 useQuery/useMutation/API/PDF 좌표/calc 에 한정, UI 색은 redesign 범위). 원본 TSX 라인 958 / 1515 의 `color: '#f97316'` 도 TSX 변환 wave 에서 `text-info` 토큰과 동일 의미로 정정.
 
 #### 5.8.6 주말 식대 알림 (조건부)
 
@@ -855,7 +860,7 @@ page_title: 연차 및 식사
 | legend | 칩 라벨 | `text-caption` | `font-normal` | 현재 10 → 12 |
 | summary-cards | 라벨 | `text-caption` | `font-semibold` | 현재 9 → 12 |
 | summary-cards | 숫자 (mobile) | `text-title` | `font-extrabold` | 현재 14 → 18 |
-| summary-cards | 숫자 (desktop) | `text-display` | `font-medium` | 큰 강조 — 28 |
+| summary-cards | 숫자 (desktop) | `text-display` | (typography.css 의 text-display 가 이미 weight 500) | 큰 강조 — 28. `font-medium` 별도 명시 불필요 (redundant) |
 | menu-cards | 카드 제목 | `text-label` | `font-bold` | 현재 10 → 13 |
 | menu-cards | 카드 본문 | `text-label` | `font-normal` | 현재 11 → 13 |
 | menu-upload | 라벨 | `text-label` | `font-semibold` | 현재 12 → 13 |
@@ -1109,12 +1114,14 @@ gsd-ui-checker 가 검증할 항목.
 
 ---
 
-## 14. Open Questions (next session 에서 답할 것)
+## 14. Open Questions
 
-- [ ] **휴가 카테고리 색 라이트 모드 호환**: 현재 hex (#22c55e/#a855f7/#f97316/#ef4444/#ec4899/#6366f1) 가 라이트 모드 셀 배경 + 흰 텍스트로 가독 OK 인지 W2 sketch 단계에서 시각 확인. 만약 라이트 모드 채도가 너무 강하면 별도 라이트 hex 추가 필요.
-- [ ] **주말식대 카테고리 색**: 보라(#a855f7)를 그대로 둘지, `fire-bar` 로 통합할지 — W3 sketch 에서 결정. 현재 spec 은 카테고리 보라 유지.
-- [ ] **`detailPanel` dead code**: 데스크톱 분기에서 사용 안 됨. TSX 변환 wave 에서 grep 으로 사용처 확인 후 제거 또는 보존 결정.
-- [ ] **달력 셀 선택 보더 색**: 현재 `#facc15` (warning bar) 유지 vs accent 통일. spec 은 warning-bar 유지로 결정했으나 W2 시각 확인 필요.
-- [ ] **데스크톱 좌측 패널 detail (선택 셀 정보)**: 현재 코드는 패널을 만들었지만 (`detailPanel`) 실제로는 미렌더. 데스크톱에서도 BottomSheet 패턴을 보여줄지, 데스크톱 전용 inline 정보 패널을 만들지 결정.
+§3.4.1 fire 정책 / §5.5 주말식대 색 / §5.8.5 팀원 연차 칩 색은 모두 본 spec 본문에 **lock** 되었음 (open question 아님).
 
-이 4~5 항목은 sketch wave 진행 중 사용자 결정 후 spec 업데이트.
+남은 sketch-wave 확인 항목:
+
+- [ ] **휴가 카테고리 색 라이트 모드 호환** *[during W2 sketch wave]* — 현재 hex (#22c55e/#a855f7/#f97316/#ef4444/#ec4899/#6366f1) 가 라이트 모드 셀 배경 + 흰 텍스트로 가독 OK 인지 W2 sketch 단계에서 시각 확인. 라이트 모드 채도가 너무 강하면 별도 라이트 hex 추가.
+- [ ] **`detailPanel` dead code** *[during TSX wave (W10)]* — 데스크톱 분기에서 미렌더. TSX 변환 wave 에서 grep 으로 사용처 확인 후 제거 또는 보존 결정.
+- [ ] **데스크톱 좌측 패널 detail (선택 셀 정보)** *[during W6 desktop sketch wave]* — 현재 코드는 `detailPanel` 변수를 만들었지만 실제로는 미렌더. 데스크톱에서도 BottomSheet 패턴을 보여줄지, 데스크톱 전용 inline 정보 패널을 만들지 결정.
+
+이 항목들은 sketch wave 진행 중 사용자 결정 후 spec 업데이트.
