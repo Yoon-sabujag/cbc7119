@@ -1,14 +1,29 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { getMonthlySchedule, DOW_KO, SHIFT_COLOR } from '../utils/shiftCalc'
+import { ChevronLeft, ChevronDown, FileDown } from 'lucide-react'
+import { getMonthlySchedule, DOW_KO } from '../utils/shiftCalc'
 import type { RawShift } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 
 const SHIFT_LABEL: Record<RawShift, string> = { '당':'당직','비':'비번','주':'주간','휴':'휴무' }
-const HDR_H = 52
-const ROW_H = 46
+
+// sketch CSS verbatim — .cell-day/-night/-off/-leave (color + bg pair)
+const CELL_CLASS: Record<RawShift, string> = {
+  '당': 'text-duty-night bg-duty-night-bg',
+  '비': 'text-duty-off   bg-duty-off-bg',
+  '주': 'text-duty-day   bg-duty-day-bg',
+  '휴': 'text-duty-leave bg-duty-leave-bg',
+}
+
+// sketch CSS verbatim — .chip-* (color + bg + 1.5px border)
+const CHIP_CLASS: Record<RawShift, string> = {
+  '당': 'text-duty-night bg-duty-night-bg border-duty-night',
+  '비': 'text-duty-off   bg-duty-off-bg   border-duty-off',
+  '주': 'text-duty-day   bg-duty-day-bg   border-duty-day',
+  '휴': 'text-duty-leave bg-duty-leave-bg border-duty-leave',
+}
 
 export default function WorkShiftPage() {
   const navigate = useNavigate()
@@ -26,7 +41,6 @@ export default function WorkShiftPage() {
       try {
         const res  = await fetch('https://holidays.hyunbin.page/basic.json')
         const data = await res.json() as Record<string, Record<string, string[]>>
-        // { "2026": { "2026-03-01": ["삼일절"], ... } } → ["2026-03-01", "2026-03-02", ...]
         const dates: string[] = []
         for (const yr of Object.values(data)) {
           for (const d of Object.keys(yr)) dates.push(d)
@@ -59,7 +73,6 @@ export default function WorkShiftPage() {
     return holidays.includes(str)
   }
 
-  // 오늘 날짜 열로 자동 스크롤 (화면 가운데 정렬)
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       todayRef.current?.scrollIntoView({ inline: 'center', block: 'nearest' })
@@ -82,60 +95,71 @@ export default function WorkShiftPage() {
   }
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 헤더 — 데스크톱: 표준 (height 54, padding '0 20px', 뒤로가기 X). 모바일: 기존 */}
-      <header style={{
-        flexShrink:0,
-        ...(isDesktop
-          ? { height: 54, padding: '0 20px' }
-          : { padding: '8px 12px 9px' }),
-        background:'var(--bg2)', borderBottom:'1px solid var(--bd)',
-        display:'flex', alignItems:'center', gap: isDesktop ? 10 : 8,
-      }}>
+      {/* 자체 헤더 — sketch verbatim (모바일/데스크톱 분기) */}
+      <header
+        className={`flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center ${
+          isDesktop ? 'h-[54px] px-5 gap-2.5' : 'px-3 py-2 gap-2'
+        }`}
+      >
         {!isDesktop && (
-          <button onClick={() => navigate(-1)} style={{ width:34, height:34, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="뒤로가기"
+            className="w-9 h-9 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer"
+          >
+            <ChevronLeft size={16} />
           </button>
         )}
-        <span style={{ flex:1, fontSize: isDesktop ? 16 : 14, fontWeight:700, color:'var(--t1)' }}>월간 출근부</span>
+        <span className={`flex-1 font-bold text-text-primary ${isDesktop ? 'text-title' : 'text-body'}`}>
+          월간 출근부
+        </span>
         <button
           onClick={handleExcel}
           disabled={dlLoading}
-          style={{ height:34, padding:'0 14px', borderRadius:8, background:'var(--acl)', border:'none', color:'#fff', fontSize:12, fontWeight:600, cursor:'pointer', opacity: dlLoading ? 0.6 : 1 }}
+          className="h-9 px-3.5 rounded-sm bg-accent hover:bg-accent-hover text-text-on-accent text-label font-semibold cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
+          <FileDown size={14} />
           {dlLoading ? '생성중...' : '엑셀 저장'}
         </button>
       </header>
 
-      {/* 년/월 선택 */}
-      <div style={{ flexShrink:0, display:'flex', gap:8, padding:'10px 12px', background:'var(--bg2)', borderBottom:'1px solid var(--bd)' }}>
-        <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ padding:'7px 10px', borderRadius:9, background:'var(--bg3)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:13, outline:'none' }}>
-          {[2025,2026,2027].map(y => <option key={y} value={y}>{y}년</option>)}
-        </select>
-        <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ padding:'7px 10px', borderRadius:9, background:'var(--bg3)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:13, outline:'none' }}>
-          {Array.from({length:12},(_,i) => i+1).map(m => <option key={m} value={m}>{m}월</option>)}
-        </select>
+      {/* 연/월 선택 */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2.5 bg-surface-raised border-b border-border-default">
+        <div className="relative">
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="appearance-none h-9 pl-3 pr-8 rounded-sm bg-surface-sunken border border-border-default text-text-primary text-body-sm outline-none focus:border-border-focus cursor-pointer"
+          >
+            {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}년</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
+        </div>
+        <div className="relative">
+          <select
+            value={month}
+            onChange={e => setMonth(Number(e.target.value))}
+            className="appearance-none h-9 pl-3 pr-8 rounded-sm bg-surface-sunken border border-border-default text-text-primary text-body-sm outline-none focus:border-border-focus cursor-pointer"
+          >
+            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{m}월</option>)}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none" />
+        </div>
       </div>
 
-      {/* 표 영역 */}
-      <div style={{
-        flex:1, overflow:'auto',
-        display:'flex', flexDirection:'column',
-        alignItems:'center',
-        justifyContent: 'flex-start',
-        paddingTop: isDesktop ? '12vh' : 0,
-      }}>
-        <div style={{ display:'inline-flex', flexDirection:'column', padding: isDesktop ? '0 32px' : '16px 24px' }}>
-          <div style={{ display:'flex' }}>
-            {/* 이름 열 (고정) */}
-            <div style={{ flexShrink:0 }}>
-              <table style={{ borderCollapse:'collapse' }}>
+      {/* 매트릭스 영역 */}
+      <div className={`flex-1 overflow-auto flex flex-col items-center ${isDesktop ? 'pt-[6vh]' : ''}`}>
+        <div className={`inline-flex flex-col ${isDesktop ? 'px-8' : 'px-4 pt-4'}`}>
+          <div className="flex">
+
+            {/* 좌측 이름 컬럼 (고정) */}
+            <div className="flex-shrink-0">
+              <table className="border-collapse">
                 <thead>
                   <tr>
-                    <th style={{ height:HDR_H, width:82, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t2)', fontSize:12, fontWeight:700, whiteSpace:'nowrap' }}>
+                    <th className="h-[52px] w-[88px] px-2.5 border border-border-default bg-surface-sunken text-text-tertiary text-caption font-bold whitespace-nowrap">
                       이름
                     </th>
                   </tr>
@@ -143,9 +167,9 @@ export default function WorkShiftPage() {
                 <tbody>
                   {staffRows.map(s => (
                     <tr key={s.id}>
-                      <td style={{ height:ROW_H, padding:'0 10px', border:'1px solid var(--bd)', background:'var(--bg2)', whiteSpace:'nowrap' }}>
-                        <div style={{ fontSize:14, fontWeight:700, color:'var(--t1)' }}>{s.name}</div>
-                        <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{s.title}</div>
+                      <td className="h-[46px] px-2.5 border border-border-default bg-surface-raised whitespace-nowrap text-left">
+                        <div className="text-body-sm font-bold text-text-primary leading-none">{s.name}</div>
+                        <div className="text-caption text-text-tertiary mt-0.5 leading-none">{s.title}</div>
                       </td>
                     </tr>
                   ))}
@@ -153,30 +177,30 @@ export default function WorkShiftPage() {
               </table>
             </div>
 
-            {/* 날짜 열 (가로 스크롤) */}
-            <div ref={scrollRef} style={{ flex:1, overflowX:'auto' }}>
-              <table style={{ borderCollapse:'collapse' }}>
+            {/* 우측 날짜 컬럼 (가로 스크롤) */}
+            <div ref={scrollRef} className="flex-1 overflow-x-auto">
+              <table className="border-collapse">
                 <thead>
                   <tr>
-                    {Array.from({length:daysInMonth},(_,i) => {
+                    {Array.from({ length: daysInMonth }, (_, i) => {
                       const d   = i + 1
-                      const dow = new Date(year, month-1, d).getDay()
+                      const dow = new Date(year, month - 1, d).getDay()
                       const red = isRed(d)
                       const tdy = isToday(d)
                       return (
                         <th
                           key={d}
                           ref={tdy ? todayRef : undefined}
-                          style={{
-                            height: HDR_H, minWidth: 40, padding: '4px 2px',
-                            border: tdy ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                            background: tdy ? 'rgba(59,130,246,0.15)' : 'var(--bg3)',
-                            color: red ? '#ef4444' : 'var(--t2)',
-                            textAlign:'center',
-                          }}
+                          className={[
+                            'h-[52px] min-w-[40px] px-0.5 py-1 text-center',
+                            tdy
+                              ? 'border-2 border-accent bg-accent-soft'
+                              : 'border border-border-default bg-surface-sunken',
+                            red ? 'text-cal-red' : 'text-text-secondary',
+                          ].join(' ')}
                         >
-                          <div style={{ fontWeight:700, fontSize:13 }}>{d}</div>
-                          <div style={{ fontSize:10 }}>{DOW_KO[dow]}</div>
+                          <div className="text-label font-bold leading-tight">{d}</div>
+                          <div className="text-caption leading-none mt-0.5">{DOW_KO[dow]}</div>
                         </th>
                       )
                     })}
@@ -191,12 +215,11 @@ export default function WorkShiftPage() {
                         return (
                           <td
                             key={i}
-                            style={{
-                              height: ROW_H, minWidth: 40, padding: '0 2px',
-                              border: tdy ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                              textAlign:'center', fontWeight:700, fontSize:15,
-                              color: SHIFT_COLOR[sh], background: SHIFT_COLOR[sh]+'22',
-                            }}
+                            className={[
+                              'h-[46px] min-w-[40px] px-0.5 text-center font-bold text-[15px]',
+                              tdy ? 'border-2 border-accent' : 'border border-border-default',
+                              CELL_CLASS[sh],
+                            ].join(' ')}
                           >
                             {sh}
                           </td>
@@ -209,12 +232,14 @@ export default function WorkShiftPage() {
             </div>
           </div>
 
-          {/* 범례 — 테이블 바로 아래 정렬 */}
-          <div style={{ display:'flex', gap:14, padding:'10px 0 28px', flexWrap:'wrap', justifyContent:'center' }}>
+          {/* 범례 */}
+          <div className="flex gap-3.5 pt-3 pb-4 justify-center flex-wrap flex-shrink-0">
             {(['당','비','주','휴'] as RawShift[]).map(sh => (
-              <div key={sh} style={{ display:'flex', alignItems:'center', gap:5, fontSize:12 }}>
-                <div style={{ width:24, height:24, borderRadius:5, background:SHIFT_COLOR[sh]+'22', border:`1.5px solid ${SHIFT_COLOR[sh]}`, display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:13, color:SHIFT_COLOR[sh] }}>{sh}</div>
-                <span style={{ color:'var(--t2)' }}>{SHIFT_LABEL[sh]}</span>
+              <div key={sh} className="flex items-center gap-1.5">
+                <div className={`w-[26px] h-[26px] rounded-md flex items-center justify-center font-extrabold text-label leading-none border-[1.5px] ${CHIP_CLASS[sh]}`}>
+                  {sh}
+                </div>
+                <span className="text-label text-text-secondary">{SHIFT_LABEL[sh]}</span>
               </div>
             ))}
           </div>

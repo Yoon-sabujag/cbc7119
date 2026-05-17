@@ -60,6 +60,7 @@ export default {
         accent:            'var(--accent)',
         'accent-hover':    'var(--accent-hover)',
         'accent-active':   'var(--accent-active)',
+        'accent-soft':     'var(--accent-soft)',
 
         // Status — foreground
         safe:    'var(--status-safe)',
@@ -87,6 +88,15 @@ export default {
         'duty-night':  'var(--duty-night)',
         'duty-off':    'var(--duty-off)',
         'duty-leave':  'var(--duty-leave)',
+
+        // Duty — soft bg (셀 채움)
+        'duty-day-bg':    'var(--duty-day-bg)',
+        'duty-night-bg':  'var(--duty-night-bg)',
+        'duty-off-bg':    'var(--duty-off-bg)',
+        'duty-leave-bg':  'var(--duty-leave-bg)',
+
+        // Calendar red (공휴일/주말 — status-danger 와 의미 분리)
+        'cal-red':     'var(--cal-red)',
       },
 
       borderRadius: {
