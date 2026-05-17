@@ -14,10 +14,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return d.toISOString().slice(0, 10)
     })()
     const schedules = await ctx.env.DB.prepare(
-      `SELECT id, title, date, time, category, status, inspection_category, memo
-       FROM schedule_items WHERE date IN (?, ?)
+      `SELECT id, title, date, end_date, time, category, status, inspection_category, memo
+       FROM schedule_items WHERE date <= ? AND COALESCE(end_date, date) >= ?
        ORDER BY date ASC, CASE WHEN time IS NULL THEN 1 ELSE 0 END, time ASC`
-    ).bind(date, nextDate).all()
+    ).bind(nextDate, date).all()
 
     // ── 연차/휴가 ────────────────────────────────────────
     const leaves = await ctx.env.DB.prepare(

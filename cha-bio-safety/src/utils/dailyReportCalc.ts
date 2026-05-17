@@ -91,8 +91,17 @@ function toDateStr(date: Date): string {
 }
 
 // 범위 일정 매칭: date~endDate 사이에 target이 포함되는지
+// (SchedulePage.tsx:154-162 matchesDate 룰과 동일: 다일짜리 range 안의 주말 자동 제외)
 function scheduleMatchesDate(s: any, target: string): boolean {
-  return target >= s.date && target <= (s.endDate ?? s.end_date ?? s.date)
+  const endDate = s.endDate ?? s.end_date ?? s.date
+  if (target < s.date || target > endDate) return false
+  // 단일 일자는 항상 통과 (주말/공휴일도 사용자가 명시한 날짜)
+  if (endDate === s.date) return true
+  // 다일짜리 range 안의 주말은 자동 제외 (SchedulePage matchesDate 와 동일 룰)
+  const dt = new Date(target + 'T00:00:00')
+  const dow = dt.getDay()
+  if (dow === 0 || dow === 6) return false
+  return true
 }
 
 // ── 인원현황 계산 ─────────────────────────────────────────
