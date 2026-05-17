@@ -22,6 +22,7 @@ import {
   ChevronLeft, ChevronRight, Bell, X, TrendingUp, Flame,
   // 카테고리 lucide (11종)
   Cloud, Shield, Car, Zap, BarChart3, Wind, ArrowDownToLine, Waves, Video, Server,
+  FlaskConical, Building2, TrainFront,
   // Zone (3종)
   // 결과 (5종)
   CheckCircle2, AlertTriangle, XCircle, Wrench, HelpCircle,
@@ -89,6 +90,13 @@ const CATEGORY_ICONS: IconComp[] = [
   Bell,                  // 14. 화재수신반
   Video,                 // 15. CCTV
 ]
+
+// Zone 아이콘 매핑 — 11개 점검 모달의 zone 탭 통일용 (연구동/사무동/지하 패턴)
+const ZONE_ICONS: Record<string, IconComp> = {
+  research:    FlaskConical,
+  office:      Building2,
+  underground: TrainFront,
+}
 
 // 결과 아이콘 매핑 (§7.3)
 const RESULT_ICONS: Record<string, IconComp> = {
@@ -352,8 +360,12 @@ function StairwellModal({ group, allCheckpoints, records, monthRecords, schedule
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <StairsIcon size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary leading-tight">{group.labels[0]}</div>
-          {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5 leading-tight">{group.labels.slice(1).join(' · ')}</div>}
+          <div className="text-body font-bold text-text-primary leading-tight truncate">
+            {group.labels[0]}
+            {group.labels.length > 1 && (
+              <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -597,8 +609,7 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Video size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary leading-tight">CCTV 점검</div>
-          <div className="text-caption text-text-tertiary mt-0.5 leading-tight">B1F 방재센터 DVR 12대</div>
+          <div className="text-body font-bold text-text-primary truncate">CCTV 점검</div>
         </div>
         {allDone && !justSaved && (
           <div className="text-caption font-semibold text-safe bg-safe-bg border border-safe rounded-sm px-2 py-0.5 flex-shrink-0 inline-flex items-center gap-1">
@@ -617,6 +628,11 @@ function CctvModal({ allCheckpoints, records, onClose, onSave }: {
 
       {/* 스크롤 영역 */}
       <div className="flex-1 overflow-y-auto px-3.5 py-3 flex flex-col gap-2.5">
+
+        {/* DVR 총 갯수 표시 (CCTV_DVRS.length 기반 동적) */}
+        <div className="text-caption text-text-tertiary leading-tight">
+          B1F 방재센터 DVR {CCTV_DVRS.length}대
+        </div>
 
         {doneCnt > 0 && !justSaved && (
           <div className="bg-safe-bg border border-safe rounded-sm px-3 py-1.5 text-label font-semibold text-safe inline-flex items-center gap-1.5">
@@ -828,6 +844,7 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
             const zCPs    = allCheckpoints.filter(cp => cp.category === '배연창' && cp.locationNo?.startsWith(BY_LOC_NO[z]))
             const allDone = zCPs.length > 0 && zCPs.every(cp => records[cp.id])
             const isSel   = zone === z
+            const ZIcon   = ZONE_ICONS[z]
             const cls = isSel
               ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
               : allDone
@@ -835,8 +852,8 @@ function BaeyeonModal({ group, allCheckpoints, records, monthRecords, scheduleIt
                 : 'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)}
-                className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
-                {BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
+                className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${cls}`}>
+                {ZIcon && <ZIcon size={14} />}{BY_ZONE_LABELS[z]}{allDone && <span className="text-caption ml-1 opacity-80">✓</span>}
               </button>
             )
           })}
@@ -1556,15 +1573,16 @@ function DivModal({ onClose, onSaveRecord, initialLocationNo, monthRecords, sche
         <div className="flex gap-2">
           {(['research','office','underground'] as DivZone[]).map(z => {
             const sel = zone === z
+            const ZIcon = ZONE_ICONS[z]
             return (
               <button key={z}
                 onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
                   sel
                     ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                     : 'border border-border-strong bg-surface-page text-text-secondary'
                 }`}>
-                {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                {ZIcon && <ZIcon size={14} />}{z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
               </button>
             )
           })}
@@ -2037,15 +2055,16 @@ function CompressorModal({ onClose, onSaveRecord, initialLocationNo, mode = 'sta
             <div className="flex gap-2">
               {(['research','office','underground'] as DivZone[]).map(z => {
                 const sel = zone === z
+                const ZIcon = ZONE_ICONS[z]
                 return (
                   <button key={z}
                     onClick={() => { setZone(z); setLine(null); setLineIdx(0); setUnderPending([...DIV_UNDER_SEQ]); setUnderPickIdx(0); resetForm() }}
-                    className={`flex-1 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
+                    className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-md text-label font-bold transition-colors cursor-pointer ${
                       sel
                         ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                         : 'border border-border-strong bg-surface-page text-text-secondary'
                     }`}>
-                    {z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
+                    {ZIcon && <ZIcon size={14} />}{z==='research' ? '연구동' : z==='office' ? '사무동' : '지하'}
                   </button>
                 )
               })}
@@ -2355,13 +2374,14 @@ function PowerPanelModal({ group, allCheckpoints, records, monthRecords, schedul
             const zCPs   = allCheckpoints.filter(cp => cp.category === '소방용전원공급반' && cp.locationNo?.startsWith(PP_ZONE_PREFIX[z]))
             const allDone = zCPs.length > 0 && zCPs.every(cp => records[cp.id])
             const isActive = zone === z
-            const baseCls  = 'flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors inline-flex items-center justify-center'
+            const ZIcon    = ZONE_ICONS[z]
+            const baseCls  = 'flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold cursor-pointer whitespace-nowrap transition-colors'
             const stateCls = isActive ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                            : allDone   ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
                            :             'border border-border-strong bg-surface-page text-text-secondary'
             return (
               <button key={z} onClick={() => setZone(z)} className={`${baseCls} ${stateCls}`}>
-                {PP_ZONE_LABELS[z]}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
+                {ZIcon && <ZIcon size={14} />}{PP_ZONE_LABELS[z]}{!isActive && allDone && <span className="text-caption ml-1 opacity-85">✓</span>}
               </button>
             )
           })}
@@ -2594,10 +2614,12 @@ function ParkingGateModal({ group, allCheckpoints, records, monthRecords, schedu
       <div className="flex items-center px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0 gap-2.5">
         <Car size={18} className="text-text-secondary flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
-          {group.labels.length > 1 && (
-            <div className="text-caption text-text-tertiary mt-0.5">· {group.labels.slice(1).join(' · ')}</div>
-          )}
+          <div className="text-body font-bold text-text-primary truncate">
+            {group.labels[0]}
+            {group.labels.length > 1 && (
+              <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2979,8 +3001,12 @@ function DamperModal({ group, allCheckpoints, records, monthRecords, scheduleIte
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0">
         <Shield className="w-[18px] h-[18px] text-text-secondary flex-shrink-0" />
         <div className="flex-1">
-          <div className="text-body font-bold text-text-primary">{group.labels[0]}</div>
-          {group.labels.length > 1 && <div className="text-caption text-text-tertiary mt-0.5">{group.labels.slice(1).join(' · ')}</div>}
+          <div className="text-body font-bold text-text-primary truncate">
+            {group.labels[0]}
+            {group.labels.length > 1 && (
+              <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -3814,10 +3840,12 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
       <div className="shrink-0 bg-surface-page border-b border-border-default px-4 py-2.5 flex items-center gap-2.5">
         {HeaderIcon && <HeaderIcon size={22} className="text-text-secondary shrink-0" />}
         <div className="flex-1 min-w-0">
-          <div className="text-body font-bold text-text-primary truncate">{group.labels[0]}</div>
-          {group.labels.length > 1 && (
-            <div className="text-caption text-text-tertiary mt-0.5 truncate">{group.labels.slice(1).join(' · ')}</div>
-          )}
+          <div className="text-body font-bold text-text-primary truncate">
+            {group.labels[0]}
+            {group.labels.length > 1 && (
+              <span className="text-caption text-text-tertiary font-normal ml-1.5">· {group.labels.slice(1).join(' · ')}</span>
+            )}
+          </div>
         </div>
         {isExtinguisher && (
           <button onClick={() => navigate('/extinguishers')}
@@ -3834,14 +3862,15 @@ function InspectionModal({ group, allCheckpoints, records, monthRecords, recordC
         <div className="flex gap-1.5">
           {ZONE_CONFIG.filter(z => availableZones.includes(z.key)).map(z => {
             const isSel = z.key === selectedZone
+            const ZIcon = ZONE_ICONS[z.key]
             return (
               <button key={z.key} onClick={() => handleZoneChange(z.key)}
-                      className={`flex-1 basis-0 min-w-0 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
+                      className={`flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors ${
                         isSel
                           ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
                           : 'border border-border-strong bg-surface-page text-text-secondary'
                       }`}>
-                {z.label}
+                {ZIcon && <ZIcon size={14} />}{z.label}
               </button>
             )
           })}
