@@ -2602,8 +2602,7 @@ function FindingsPanel({ elevatorId, inspectionId, inspectionResult, navigate, h
       {findings.map(f => (
         <div key={f.id} style={{ padding:'4px 6px', background:'var(--bg2)', borderRadius:5, marginBottom:3 }}>
           <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:10 }}>
-            <span style={{ flex:1, color:'var(--t1)', fontWeight:600, cursor:'pointer', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}
-              onClick={() => navigate(`/elevator/findings/${f.id}?eid=${elevatorId}&iid=${inspectionId}`)}>{f.description}</span>
+            <span style={{ flex:1, color:'var(--t1)', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.description}</span>
             <span style={{ fontSize:8, fontWeight:700, padding:'1px 4px', borderRadius:6, flexShrink:0,
               background: f.status === 'open' ? 'rgba(239,68,68,.12)' : 'rgba(34,197,94,.12)',
               color: f.status === 'open' ? 'var(--danger)' : 'var(--safe)',
