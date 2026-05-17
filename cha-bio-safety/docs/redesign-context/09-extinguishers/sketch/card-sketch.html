@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 소화기 카드 · v0.1.1 재디자인 시안 (wave 2)</title>
+  <style>
+    /* ──────────────────────────────────────────────────────────────
+       :root — v0.1.1 토큰 (chrome wave 1 과 동일 + accent-bg 추가)
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      /* Accent — 배치됨 badge + expanded border */
+      --accent:          #3b82f6;
+      --accent-fg:       #ffffff;
+      --accent-bg:       rgba(59, 130, 246, 0.16);
+
+      /* Status — warning (교체 도래 / 임박 / 폐기 badge) */
+      --status-warning:     #facc15;
+      --status-warning-bar: #eab308;
+      --status-warning-bg:  rgba(234, 179, 8, 0.12);
+
+      /* Status — danger (미배치 badge + 교체 초과 chip + action danger 버튼) */
+      --status-danger:     #f87171;
+      --status-danger-bar: #ef4444;
+      --status-danger-bg:  rgba(239, 68, 68, 0.12);
+
+      /* Radius */
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-pill: 99px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0; padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+      line-height: 1.55;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px 0; color: var(--text-primary); }
+    h1 + p { margin: 0 0 24px 0; color: var(--text-tertiary); font-size: 13px; max-width: 760px; }
+    h2 {
+      font-size: 14px; margin: 28px 0 6px 0; color: var(--text-primary);
+      padding: 8px 12px; background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent); border-radius: 4px;
+    }
+    .vp-desc { margin: 0 0 12px 0; padding: 0 12px; color: var(--text-tertiary); font-size: 12px; }
+
+    /* mock frame */
+    .frame-mobile {
+      width: 360px;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .frame-desktop {
+      width: 1024px;
+      max-width: 100%;
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    /* dot (badge / chip / location 좌측) */
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; background: currentColor; }
+
+    /* rule 박스 */
+    .rules {
+      margin-top: 40px; padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 1024px;
+    }
+    .rules h3 { font-size: 14px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules .rules-desc { font-size: 12px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text-secondary); }
+    .rules ul li { margin-bottom: 4px; }
+    .rules hr { border: 0; border-top: 1px solid var(--border-default); margin: 14px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>09. 소화기 카드 — v0.1.1 재디자인 시안 (wave 2)</h1>
+  <p>
+    ExtinguisherCard (l.646-784) 의 시각 디자인을 v0.1.1 토큰으로 재정의.
+    8 viewport 로 상태 매트릭스 (미배치 / 배치됨 / 폐기) × 표시 단계 (collapsed / expanded / warning) 변형 커버.
+    비즈니스 로직 (getMappingState / getReplaceWarning / 3 action state 분기) 0 변경.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V1 · 모바일 collapsed · 미배치 (badge danger, warning 없음)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V1 · 모바일 collapsed — 미배치 (danger badge / 위치 미지정)</h2>
+  <p class="vp-desc">unmapped-clean 또는 unmapped-inspected 자산. badge danger 톤 + dot + 위치 라벨 미지정.</p>
+  <div class="frame-mobile" data-viewport="V1">
+    <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <!-- Row 1: type + badge -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">분말 3.3kg</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); flex-shrink: 0;">
+          <span class="dot"></span>미배치
+        </span>
+      </div>
+      <!-- Row 2: 제조/증지번호 (mono) -->
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 25A12345 · 증지번호: 2024-007
+      </div>
+      <!-- Row 3: location + (warning 없음) -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          위치 미지정
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V2 · 모바일 collapsed · 배치됨 + 교체 도래 (warning yellow)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V2 · 모바일 collapsed — 배치됨 (accent badge) + 교체 도래 (warning chip)</h2>
+  <p class="vp-desc">mapped 자산. 배치됨 accent badge + 위치 표시 + warning chip (warn/imminent 모두 노랑 톤).</p>
+  <div class="frame-mobile" data-viewport="V2">
+    <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">분말 20kg</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--accent-bg); color: var(--accent); flex-shrink: 0;">
+          <span class="dot"></span>배치됨
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 23B89012 · 증지번호: 2022-105
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <span class="dot" style="flex-shrink: 0;"></span>연구동 5F · 복도
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); border: 1px solid var(--status-warning-bar); flex-shrink: 0;">
+          <span class="dot"></span>교체 도래
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V3 · 모바일 expanded mapped — DetailField + 2 action (정보수정 / 분리 danger)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V3 · 모바일 expanded · 배치됨 (mapped action — 정보수정 / 소화기 분리 danger)</h2>
+  <p class="vp-desc">accent 1.5px border 강조 + DetailField grid 2열 + Action row 2 button (mapped 상태).</p>
+  <div class="frame-mobile" data-viewport="V3">
+    <div style="background: var(--surface-raised); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">분말 20kg</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--accent-bg); color: var(--accent); flex-shrink: 0;">
+          <span class="dot"></span>배치됨
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 23B89012 · 증지번호: 2022-105
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <span class="dot" style="flex-shrink: 0;"></span>연구동 5F · 복도
+        </span>
+      </div>
+      <!-- Detail grid -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 12px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border-default);">
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">접두문자</span>
+          <span style="color: var(--text-primary); font-weight: 700;">차바</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">형식승인</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">소화-181</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조년월</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">2022-08</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조업체</span>
+          <span style="color: var(--text-primary); font-weight: 700;">한국소방</span>
+        </div>
+      </div>
+      <!-- Action row -->
+      <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong);">정보 수정</button>
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar);">소화기 분리</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V4 · 모바일 expanded unmapped-clean — 3 action (정보수정 / 배치 / 삭제 danger)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V4 · 모바일 expanded · unmapped-clean (정보수정 / 소화기 배치 / 삭제 danger)</h2>
+  <p class="vp-desc">미배치 + 미점검 자산. 3 action — "삭제" danger 톤 (점검 기록 없을 때만 hard delete 가능).</p>
+  <div class="frame-mobile" data-viewport="V4">
+    <div style="background: var(--surface-raised); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">분말 3.3kg</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); flex-shrink: 0;">
+          <span class="dot"></span>미배치
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 25C00123 · 증지번호: -
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-tertiary);">위치 미지정</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 12px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border-default);">
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">접두문자</span>
+          <span style="color: var(--text-primary); font-weight: 700;">차바</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">형식승인</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">소화-181</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조년월</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">2025-01</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조업체</span>
+          <span style="color: var(--text-primary); font-weight: 700;">한국소방</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong);">정보 수정</button>
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong);">소화기 배치</button>
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar);">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V5 · 모바일 expanded unmapped-inspected — 3 action (정보수정 / 배치 / 폐기 danger)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V5 · 모바일 expanded · unmapped-inspected (정보수정 / 소화기 배치 / 폐기 danger)</h2>
+  <p class="vp-desc">미배치 + 점검 기록 있음. "삭제" 대신 "폐기" 노출 (점검 이력 보존).</p>
+  <div class="frame-mobile" data-viewport="V5">
+    <div style="background: var(--surface-raised); border: 1.5px solid var(--accent); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">이산화탄소</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); flex-shrink: 0;">
+          <span class="dot"></span>미배치
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 22D45678 · 증지번호: 2021-058
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-tertiary);">위치 미지정</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; font-size: 12px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--border-default);">
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">접두문자</span>
+          <span style="color: var(--text-primary); font-weight: 700;">차바</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">형식승인</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">소화-262</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조년월</span>
+          <span style="color: var(--text-primary); font-weight: 700; font-family: 'JetBrains Mono', monospace;">2021-06</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+          <span style="color: var(--text-tertiary); font-weight: 400;">제조업체</span>
+          <span style="color: var(--text-primary); font-weight: 700;">한국소방</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: 4px;">
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong);">정보 수정</button>
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong);">소화기 배치</button>
+        <button style="flex: 1; height: 36px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar);">폐기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V6 · 모바일 disposed — opacity 0.6 + 폐기 라벨
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V6 · 모바일 disposed — surface-sunken + opacity 0.6 + 라벨</h2>
+  <p class="vp-desc">status='폐기' 자산. 카드 톤 다운 (sunken + opacity) + "폐기된 자산입니다." 라벨. 클릭/expand 비활성.</p>
+  <div class="frame-mobile" data-viewport="V6">
+    <div style="background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; opacity: 0.6; cursor: default;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">이산화탄소</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); flex-shrink: 0;">
+          <span class="dot"></span>폐기
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 19A12345 · 증지번호: 2018-042
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-tertiary);">폐기 처리됨</span>
+      </div>
+      <div style="font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 4px 0;">폐기된 자산입니다.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V7 · 모바일 collapsed 배치됨 + 교체 초과 (danger chip)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V7 · 모바일 collapsed · 배치됨 + 교체 초과 (danger chip 빨강)</h2>
+  <p class="vp-desc">warning === 'danger' 분기. chrome 의 chip 3색 중 빨강 톤만 카드의 warning chip 에 사용.</p>
+  <div class="frame-mobile" data-viewport="V7">
+    <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">할로겐</span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--accent-bg); color: var(--accent); flex-shrink: 0;">
+          <span class="dot"></span>배치됨
+        </span>
+      </div>
+      <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+        제조번호: 14A88991 · 증지번호: 2013-021
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <span style="flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <span class="dot" style="flex-shrink: 0;"></span>사무동 3F · 서버실
+        </span>
+        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-danger-bg); color: var(--status-danger); border: 1px solid var(--status-danger-bar); flex-shrink: 0;">
+          <span class="dot"></span>교체 초과
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       V8 · 데스크톱 그리드 2열 (배치+warning / 폐기 동시 노출)
+       ════════════════════════════════════════════════════════════ -->
+  <h2>V8 · 데스크톱 grid 2열 — 배치+warning + 폐기 동시 노출</h2>
+  <p class="vp-desc">데스크톱 grid (모바일 1열 → 데스크톱 2~3열) gap 12. 카드 자체 크기는 동일.</p>
+  <div class="frame-desktop" data-viewport="V8">
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;">
+      <!-- card 1: V2 동일 (배치 + warning) -->
+      <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">분말 20kg</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--accent-bg); color: var(--accent); flex-shrink: 0;">
+            <span class="dot"></span>배치됨
+          </span>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          제조번호: 23B89012 · 증지번호: 2022-105
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <span class="dot" style="flex-shrink: 0;"></span>연구동 5F · 복도
+          </span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); border: 1px solid var(--status-warning-bar); flex-shrink: 0;">
+            <span class="dot"></span>교체 도래
+          </span>
+        </div>
+      </div>
+      <!-- card 2: V6 동일 (폐기) -->
+      <div style="background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 6px; opacity: 0.6; cursor: default;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary);">이산화탄소</span>
+          <span style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; line-height: 1; background: var(--status-warning-bg); color: var(--status-warning); flex-shrink: 0;">
+            <span class="dot"></span>폐기
+          </span>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          제조번호: 19A12345 · 증지번호: 2018-042
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="flex: 1; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text-tertiary);">폐기 처리됨</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 4px 0;">폐기된 자산입니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════
+       Rule 박스
+       ════════════════════════════════════════════════════════════ -->
+  <div class="rules">
+    <h3>적용 룰 — v0.1.1 (카드 영역)</h3>
+    <p class="rules-desc">8 viewport 가 커버하는 카드 변형 매트릭스. TSX 변환 wave 에서 verbatim 인용.</p>
+    <ul>
+      <li>카드 wrapper: surface-raised + border-default 1px + radius-md + padding 12. expanded = accent 1.5px border. disposed = surface-sunken + opacity 0.6.</li>
+      <li>상태 badge 3종 — 배치됨 = accent-bg + accent text / 미배치 = status-danger-bg + status-danger text / 폐기 = status-warning-bg + status-warning text. 좌측 6px dot.</li>
+      <li>type 이름: fontSize 14 / fontWeight 700 / text-primary</li>
+      <li>제조·증지번호: fontSize 12 / fontWeight 500 / text-secondary / mono</li>
+      <li>location: fontSize 12 / fontWeight 500 / text-tertiary / 좌측 dot (이모지 핀 마커 대체)</li>
+      <li>교체 warning chip 2색 — warn+imminent = status-warning 페어 / danger = status-danger 페어. 좌측 dot + 텍스트 "교체 도래/임박/초과". (원본 코드 그대로 — chrome 의 chip 은 3색이지만 카드는 2색)</li>
+      <li>DetailField grid 2열 / gap 3px 12px / fontSize 12 / border-top default / label fontWeight 400 text-tertiary / value fontWeight 700 text-primary (mono 옵션)</li>
+      <li>Action button: flex 1 / height 36 / radius-sm / fontSize 12 / fontWeight 700. 기본 = surface-sunken + text-primary + border-strong. danger = status-danger-bg + status-danger + status-danger-bar.</li>
+      <li>3 state 별 action 분기 — unmapped-clean: 정보수정/배치/삭제(d) / unmapped-inspected: 정보수정/배치/폐기(d) / mapped: 정보수정/분리(d)</li>
+    </ul>
+    <hr/>
+    <h3>금지 룰 (verify gate)</h3>
+    <ul>
+      <li>옛 alias 토큰 (bg / bg2-4 / bd / bd2 / t1-3 / safe / warn / danger / info / acl) 0건</li>
+      <li>raw 색 (hex / rgba) 0건 — :root + body/frame chrome 만 예외</li>
+      <li>그라디언트 / 그림자 / 블러 일체 0건</li>
+      <li>이모지 일체 (핀 / 경고 / 체크 등) 0건 — dot 또는 텍스트로</li>
+      <li>카드 내부 폰트 9 / 10 / 11px 0건 — 마지노선 12px</li>
+    </ul>
+    <hr/>
+    <h3>비즈니스 로직 보존</h3>
+    <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+      getMappingState 분기 (unmapped-clean / unmapped-inspected / mapped / disposed) / getReplaceWarning 분기 (warn / imminent / danger / null) /
+      카드 onClick !isDisposed 만 toggle / Action row e.stopPropagation / DetailField mono 옵션 — 모두 0 변경.
+    </p>
+    <hr/>
+    <h3>Viewport 매트릭스</h3>
+    <ul>
+      <li>V1 모바일 collapsed 미배치 (danger badge)</li>
+      <li>V2 모바일 collapsed 배치됨 + 교체 도래 (warning chip 노랑)</li>
+      <li>V3 모바일 expanded mapped (정보수정 / 분리 d)</li>
+      <li>V4 모바일 expanded unmapped-clean (정보수정 / 배치 / 삭제 d)</li>
+      <li>V5 모바일 expanded unmapped-inspected (정보수정 / 배치 / 폐기 d)</li>
+      <li>V6 모바일 disposed (surface-sunken + opacity 0.6 + 라벨)</li>
+      <li>V7 모바일 collapsed + 교체 초과 (danger chip 빨강)</li>
+      <li>V8 데스크톱 grid 2열 (배치+warning + 폐기 동시)</li>
+    </ul>
+  </div>
+
+</body>
+</html>
