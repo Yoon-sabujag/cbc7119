@@ -8,6 +8,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { AlertTriangle, BarChart3, Droplets } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { DIV_POINTS, type DivPoint } from '../constants/divPoints'
@@ -1089,18 +1090,18 @@ export default function DivPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
       {/* ── 헤더 ── */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      <header className="flex-shrink-0 flex items-center h-12 px-3 bg-surface-raised border-b border-border-default">
+        <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-[7px] bg-surface-sunken flex items-center justify-center text-text-secondary cursor-pointer border-0">
+          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>DIV 압력 관리</span>
+        <span className="flex-1 text-[13px] font-bold text-text-primary ml-2">DIV 압력 관리</span>
       </header>
 
       {/* ── 탭 ── */}
-      <div style={{ flexShrink: 0, display: 'flex', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)' }}>
+      <div className="flex-shrink-0 flex bg-surface-raised border-b border-border-default">
         {([
           { key: 'pressure',   label: '압력 트렌드' },
           { key: 'drain',      label: '챔버배수주기' },
@@ -1110,19 +1111,13 @@ export default function DivPage() {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            style={{
-              flex: 1, padding: '10px 4px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              background: 'transparent',
-              color: tab === t.key ? 'var(--acl)' : 'var(--t3)',
-              borderBottom: `2px solid ${tab === t.key ? 'var(--acl)' : 'transparent'}`,
-              transition: 'color .15s',
-            }}
+            className={`flex-1 px-1 py-2.5 text-[12px] font-semibold bg-transparent cursor-pointer transition-colors border-b-2 ${tab === t.key ? 'text-accent border-accent' : 'text-text-tertiary border-transparent'}`}
           >{t.label}</button>
         ))}
       </div>
 
       {/* ── 컨텐츠 ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="flex-1 overflow-y-auto">
         {tab === 'pressure'   && renderPressureTab()}
         {tab === 'drain'      && renderLogTab('drain')}
         {tab === 'comp_drain' && renderLogTab('comp_drain')}
