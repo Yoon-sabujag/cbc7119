@@ -584,16 +584,16 @@ export default function DivPage() {
     const n = hist.length
 
     if (hist.length === 0) {
-      return <div style={{ color: 'var(--t3)', padding: '30px 0', textAlign: 'center', fontSize: 13 }}>데이터 없음</div>
+      return <div className="text-text-tertiary py-[30px] text-center text-[13px]">데이터 없음</div>
     }
 
     return (
       <div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
           {([
-            { key: 'pressure_1' as const,   label: '1차압',  color: '#3b82f6', dashed: false },
-            { key: 'pressure_2' as const,   label: '2차압',  color: '#f97316', dashed: false },
-            { key: 'pressure_set' as const, label: '세팅압', color: '#22c55e', dashed: true  },
+            { key: 'pressure_1' as const,   label: '1차압',  color: 'var(--accent)',          dashed: false },
+            { key: 'pressure_2' as const,   label: '2차압',  color: 'var(--status-fire-bar)', dashed: false },
+            { key: 'pressure_set' as const, label: '세팅압', color: 'var(--status-safe-bar)', dashed: true  },
           ] as const).map(({ key, label, color, dashed }) => {
             const vals = hist.map((r: any) => r[key]).filter((v: any) => v != null && v > 0)
             if (vals.length === 0) return null
@@ -608,12 +608,12 @@ export default function DivPage() {
             const sTicks = [sMinV, (sMinV + sMaxV) / 2, sMaxV].map(v => Math.round(v * 10) / 10)
             return (
               <div key={key}>
-                <div style={{ fontSize: 10, fontWeight: 700, color, marginBottom: 3 }}>{label}</div>
-                <div style={{ overflowX: 'auto' }}>
-                  <svg width={Math.max(W, n * 28)} height={sH} style={{ display: 'block' }}>
+                <div className="text-[12px] font-bold mb-1" style={{ color }}>{label}</div>
+                <div className="overflow-x-auto">
+                  <svg width={Math.max(W, n * 28)} height={sH} className="block">
                     {sTicks.map((t, ti) => (
                       <g key={ti}>
-                        <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="11" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
+                        <text x={sPadL - 5} y={spy(t) + 4} textAnchor="end" fill="rgba(139,148,158,0.7)" fontSize="12" fontFamily="JetBrains Mono, monospace">{t.toFixed(1)}</text>
                         <line x1={sPadL} y1={spy(t)} x2={W - sPadR} y2={spy(t)} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
                       </g>
                     ))}
@@ -629,7 +629,7 @@ export default function DivPage() {
                         }
                       }
                       return labels.map((L, idx) => (
-                        <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="10" fontFamily="JetBrains Mono, monospace">
+                        <text key={idx} x={L.x} y={sH - 4} textAnchor="middle" fill="rgba(139,148,158,0.6)" fontSize="11" fontFamily="JetBrains Mono, monospace">
                           {String(L.m).padStart(2, '0')}
                         </text>
                       ))
@@ -647,7 +647,7 @@ export default function DivPage() {
                       return (
                         <g key={i}>
                           <circle cx={cx} cy={cy} r={3}
-                            fill={isLate ? color : 'var(--bg2)'}
+                            fill={isLate ? color : 'var(--surface-raised)'}
                             stroke={color} strokeWidth={isLate ? 0 : 1.5}
                           />
                           <text
@@ -667,17 +667,21 @@ export default function DivPage() {
         </div>
 
         {/* 수치 테이블 */}
-        <div style={{ marginTop: 14, borderRadius: 10, border: '1px solid var(--bd)', overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', background: 'var(--bg3)', padding: '7px 10px' }}>
+        <div className="mt-3.5 rounded-[10px] border border-border-default overflow-hidden">
+          <div className="grid grid-cols-[60px_1fr_1fr_1fr] bg-surface-sunken p-[8px_10px]">
             {['월', '1차압', '2차압', '세팅압'].map(h => (
-              <div key={h} style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', textAlign: 'center' }}>{h}</div>
+              <div key={h} className="text-[12px] font-bold text-text-tertiary text-center">{h}</div>
             ))}
           </div>
           {[...hist].reverse().slice(0, 24).map((r: any) => (
-            <div key={`${r.year}-${r.month}-${r.timing}`} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 1fr 1fr', padding: '7px 10px', borderTop: '1px solid var(--bd)' }}>
-              <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
+            <div key={`${r.year}-${r.month}-${r.timing}`} className="grid grid-cols-[60px_1fr_1fr_1fr] p-[8px_10px] border-t border-border-default">
+              <div className="text-[13px] text-text-secondary text-center font-mono">{String(r.month).padStart(2,'0')}{r.timing === 'early' ? '초' : r.timing === 'late' ? '말' : ''}</div>
               {[r.pressure_1, r.pressure_2, r.pressure_set].map((v: number, i: number) => (
-                <div key={i} style={{ fontSize: 12, fontWeight: 700, color: ['#3b82f6','#f97316','#22c55e'][i], textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
+                <div key={i} className={`text-[14px] font-bold text-center font-mono ${
+                  i === 0 ? 'text-accent' :
+                  i === 1 ? 'text-status-fire-bar' :
+                            'text-status-safe-bar'
+                }`}>
                   {v != null ? v.toFixed(1) : '-'}
                 </div>
               ))}
@@ -692,7 +696,7 @@ export default function DivPage() {
   function renderDesktopLogTimeline(div: DivPoint, type: 'drain' | 'comp_drain' | 'compressor') {
     const dateMap = type === 'drain' ? drainDateMap : type === 'comp_drain' ? compDrainDateMap : oilDateMap
     const dates = dateMap[div.id] ?? []
-    const color = type === 'drain' ? '#38bdf8' : type === 'comp_drain' ? '#8b4513' : '#f97316'
+    const color = type === 'drain' ? 'var(--status-info)' : type === 'comp_drain' ? '#8b4513' : 'var(--status-fire-bar)'
     const label = type === 'drain' ? '챔버 배수' : type === 'comp_drain' ? '탱크 배수' : '오일 보충'
 
     // 데스크톱용 큰 막대그래프: 최근 6건 → 5개 간격
@@ -712,11 +716,11 @@ export default function DivPage() {
     const chartH  = topPad + barMaxH + 70
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: '.04em' }}>{label} 간격</div>
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 10, padding: '18px 20px' }}>
+      <div className="flex flex-col gap-3.5">
+        <div className="text-[12px] font-bold tracking-[0.04em]" style={{ color }}>{label} 간격</div>
+        <div className="bg-surface-raised border border-border-default rounded-[10px] p-[18px_20px]">
           {intervals.length === 0 ? (
-            <div style={{ height: chartH, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>
+            <div className="flex items-center justify-center text-text-tertiary text-[13px]" style={{ height: chartH }}>
               기록이 부족하여 간격을 표시할 수 없습니다 (최소 2건 필요)
             </div>
           ) : (
@@ -735,23 +739,23 @@ export default function DivPage() {
                       {days}일
                     </text>
                     <text x={cx} y={labelY} textAnchor="middle"
-                      fontSize="16" fontWeight="700" fill="var(--t2)" fontFamily="JetBrains Mono, monospace">{Number(mm)}월</text>
+                      fontSize="16" fontWeight="700" fill="var(--text-secondary)" fontFamily="JetBrains Mono, monospace">{Number(mm)}월</text>
                     <text x={cx} y={subY} textAnchor="middle"
-                      fontSize="14" fill="var(--t3)" fontFamily="JetBrains Mono, monospace">{Number(dd)}일</text>
+                      fontSize="14" fill="var(--text-tertiary)" fontFamily="JetBrains Mono, monospace">{Number(dd)}일</text>
                   </g>
                 )
               })}
             </svg>
           )}
         </div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', marginTop: 6 }}>최근 기록</div>
+        <div className="text-[12px] font-bold text-text-tertiary mt-1.5">최근 기록</div>
         {dates.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--t3)', padding: 16, textAlign: 'center' }}>기록 없음</div>
+          <div className="text-[13px] text-text-tertiary p-4 text-center">기록 없음</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {[...dates].reverse().slice(0, 20).map(d => (
-              <div key={d} style={{ display: 'flex', gap: 10, padding: '8px 12px', background: 'var(--bg2)', borderRadius: 8, border: '1px solid var(--bd)' }}>
-                <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--t1)' }}>{d}</span>
+              <div key={d} className="flex gap-2.5 p-[8px_12px] bg-surface-raised rounded-lg border border-border-default">
+                <span className="text-[13px] font-mono text-text-primary">{d}</span>
               </div>
             ))}
           </div>
