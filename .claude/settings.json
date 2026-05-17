@@ -1,14 +1,4 @@
 {
-  "permissions": {
-    "deny": [
-      "Bash(wrangler:*)",
-      "Bash(npx wrangler:*)",
-      "Bash(npm run deploy:*)",
-      "Bash(npm run deploy)",
-      "Bash(pnpm run deploy:*)",
-      "Bash(yarn deploy:*)"
-    ]
-  },
   "hooks": {
     "PostToolUse": [
       {
