@@ -97,33 +97,30 @@ export default function WorkShiftPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-surface-page">
 
-      {/* 자체 헤더 — App 헤더 톤 통일 (데스크톱 54h text-body / 모바일 48h text-label) */}
+      {/* 자체 헤더 — 06 FloorPlanPage chrome 룰 표준 (project_redesign_self_header_chrome) */}
       <header
-        className={`flex-shrink-0 bg-surface-raised border-b border-border-default flex items-center ${
-          isDesktop ? 'h-[54px] px-5 gap-2.5' : 'h-12 px-3 gap-2'
-        }`}
+        className={isDesktop
+          ? 'flex items-center gap-2.5 h-[54px] px-5 bg-surface-page border-b border-border-default flex-shrink-0'
+          : 'flex items-center gap-2.5 px-4 py-2.5 bg-surface-page border-b border-border-default flex-shrink-0'}
       >
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
             aria-label="뒤로가기"
-            className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center text-text-secondary cursor-pointer flex-shrink-0"
+            className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={14} />
           </button>
         )}
-        <span className={`flex-1 font-bold text-text-primary ${isDesktop ? 'text-body' : 'text-label'}`}>
-          월간 출근부
-        </span>
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-text-primary truncate">월간 출근부</div>
+        </div>
         <button
           onClick={handleExcel}
           disabled={dlLoading}
-          className={[
-            'rounded-sm bg-accent hover:bg-accent-hover text-text-on-accent font-semibold cursor-pointer inline-flex items-center disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
-            isDesktop ? 'h-9 px-3.5 text-label gap-1.5' : 'h-8 px-2.5 text-caption gap-1 leading-none',
-          ].join(' ')}
+          className="h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none inline-flex items-center gap-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <FileDown size={isDesktop ? 14 : 13} />
+          <FileDown size={12} />
           {dlLoading ? '생성중...' : '엑셀 저장'}
         </button>
       </header>
