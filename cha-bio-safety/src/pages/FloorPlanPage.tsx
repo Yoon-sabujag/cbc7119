@@ -951,9 +951,9 @@ export default function FloorPlanPage() {
         {!isDesktop && (
           <button
             onClick={() => navigate(-1)}
-            className="w-8 h-8 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
+            className="w-7 h-7 rounded-sm bg-surface-sunken border border-border-default text-text-secondary inline-flex items-center justify-center"
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={14} />
           </button>
         )}
         <div className="flex-1 min-w-0">
@@ -963,15 +963,15 @@ export default function FloorPlanPage() {
           <button
             onClick={() => { setEditMode(!editMode); setSelected(null) }}
             className={editMode
-              ? "h-8 px-3 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold"
-              : "h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold"}
+              ? "h-7 px-2.5 rounded-sm bg-accent border border-accent text-text-on-accent text-caption font-semibold leading-none"
+              : "h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none"}
           >
             {editMode ? '편집 완료' : '마커 편집'}
           </button>
         )}
         <button
           onClick={() => { setScale(1); setTranslate({ x: 0, y: 0 }) }}
-          className="h-8 px-3 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold"
+          className="h-7 px-2.5 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none"
         >
           축소 보기
         </button>
