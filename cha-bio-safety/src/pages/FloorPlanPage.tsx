@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, X, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
 import { floorPlanMarkerApi, inspectionApi, extinguisherApi, scheduleApi, api, type FloorPlanMarker, type ExtinguisherDetail } from '../utils/api'
 import { getReplaceWarning, REPLACE_WARNING_STROKE, type ReplaceWarning } from '../utils/extinguisher'
 import { useAuthStore } from '../stores/authStore'
@@ -1149,10 +1149,24 @@ export default function FloorPlanPage() {
 
         {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
         {selected && !addModal && !editMarker && (() => {
-        const statusColor = STATUS_COLOR[getMarkerStatus(selected)] ?? STATUS_COLOR.normal
+        const statusKey = getMarkerStatus(selected)
+        const statusColor = STATUS_COLOR[statusKey] ?? STATUS_COLOR.normal
         // Phase 24: cp_location (실제 위치명) 우선 표시. 없으면 사용자 라벨 → marker_type 라벨 fallback.
         const markerLabel = selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'
-        const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[getMarkerStatus(selected)] ?? '미점검'
+        const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[statusKey] ?? '미점검'
+        // 메모리 룰 feedback_inspection_unresolved_color: bad/fault → fire (주황) 톤, danger 아님
+        const iconBoxCls =
+          statusKey === 'normal'   ? 'bg-safe-bg border-[1.5px] border-safe' :
+          statusKey === 'caution'  ? 'bg-warning-bg border-[1.5px] border-warning' :
+          statusKey === 'bad' || statusKey === 'fault' ? 'bg-fire-bg border-[1.5px] border-fire' :
+          statusKey === 'resolved' ? 'bg-info-bg border-[1.5px] border-info' :
+                                     'bg-surface-sunken border border-border-default'
+        const statusTextCls =
+          statusKey === 'normal'   ? 'text-safe' :
+          statusKey === 'caution'  ? 'text-warning' :
+          statusKey === 'bad' || statusKey === 'fault' ? 'text-fire' :
+          statusKey === 'resolved' ? 'text-info' :
+                                     'text-text-tertiary'
 
         const openEditMarkerModal = () => {
           setEditLabel(selected.label ?? '')
@@ -1252,7 +1266,7 @@ export default function FloorPlanPage() {
         }
 
         const actionButtons = (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="flex gap-2">
             {canInspect && (
               <button
                 onClick={() => {
@@ -1260,7 +1274,7 @@ export default function FloorPlanPage() {
                   if (selected?.description?.includes('접근불가')) { openInspectModal(); return }
                   const r = evalRevisit(); if (r) setRevisitPopup(r); else openInspectModal()
                 }}
-                style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--acl)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
               >
                 점검 기록 입력
               </button>
@@ -1268,7 +1282,7 @@ export default function FloorPlanPage() {
             {canResolve && (
               <button
                 onClick={() => { setResolveMemo(''); resolvePhoto.reset(); setResolveModal(true) }}
-                style={{ flex: 1, height: 46, borderRadius: 12, background: 'linear-gradient(135deg,#f59e0b,#ef4444)', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer"
               >
                 조치
               </button>
@@ -1277,13 +1291,14 @@ export default function FloorPlanPage() {
               <>
                 <button
                   onClick={openEditMarkerModal}
-                  style={{ flex: 1, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t1)', fontSize: isDesktop ? 13 : 14, fontWeight: 600, cursor: 'pointer' }}
+                  className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => { if (confirm('마커를 삭제하시겠습니까?')) deleteMutation.mutate(selected.id) }}
-                  style={{ width: isDesktop ? 38 : 46, height: isDesktop ? 38 : 46, borderRadius: isDesktop ? 10 : 12, background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  className="w-[44px] h-input rounded-sm bg-danger-bg border border-danger-bar text-danger inline-flex items-center justify-center flex-shrink-0 cursor-pointer"
+                  aria-label="삭제"
                 >
                   <svg width={18} height={18} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
@@ -1299,51 +1314,45 @@ export default function FloorPlanPage() {
           const BALLOON_GAP = 16
           return (
             <div
+              className="absolute bg-surface-raised border border-border-default rounded-md p-3.5 z-30"
               style={{
-                position: 'absolute',
                 left: Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)),
                 top: bp.arrowDir === 'bottom' ? bp.top + BALLOON_GAP : undefined,
                 bottom: bp.arrowDir === 'top' ? (containerRef.current?.clientHeight ?? 600) - bp.top + BALLOON_GAP : undefined,
                 width: BALLOON_W,
-                background: 'var(--bg2)',
-                border: '1px solid var(--bd2)',
-                borderRadius: 14,
-                padding: '14px 16px 16px',
-                zIndex: 30,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.45)',
               }}
               onClick={e => e.stopPropagation()}
             >
               {/* 화살표 */}
-              <div style={{
-                position: 'absolute',
-                left: Math.max(16, Math.min(bp.left - Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)), BALLOON_W - 16)),
-                ...(bp.arrowDir === 'bottom'
-                  ? { top: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid var(--bg2)' }
-                  : { bottom: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid var(--bg2)' }
-                ),
-                width: 0, height: 0, transform: 'translateX(-8px)',
-              }} />
+              <div
+                className="absolute"
+                style={{
+                  left: Math.max(16, Math.min(bp.left - Math.max(8, Math.min(bp.left - BALLOON_W / 2, (containerRef.current?.clientWidth ?? 800) - BALLOON_W - 8)), BALLOON_W - 16)),
+                  ...(bp.arrowDir === 'bottom'
+                    ? { top: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '8px solid var(--surface-raised)' }
+                    : { bottom: -8, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid var(--surface-raised)' }
+                  ),
+                  width: 0, height: 0, transform: 'translateX(-8px)',
+                }}
+              />
 
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                  background: statusColor + '22',
-                  border: `1.5px solid ${statusColor}55`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <div className="flex items-start gap-2.5 mb-3">
+                <div className={`w-9 h-9 rounded-sm flex-shrink-0 flex items-center justify-center ${iconBoxCls}`}>
                   <MarkerIcon markerType={selected.marker_type} color={statusColor} size={20} />
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 2 }}>{markerLabel}</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
-                    {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
-                    <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
-                    {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="text-label font-bold text-text-primary mb-1">{markerLabel}</div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <span className="text-caption text-text-tertiary leading-none">{floor}</span>
+                    {selected.check_point_id && <span className="text-caption text-text-tertiary leading-none">ID: {selected.check_point_id}</span>}
+                    <span className={`text-caption font-bold leading-none ${statusTextCls}`}>{statusLabel}</span>
+                    {selected.last_inspected_at && <span className="text-caption text-text-tertiary leading-none">최근 {selected.last_inspected_at.slice(0, 10)}</span>}
                   </div>
                 </div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 16, cursor: 'pointer', padding: '2px 4px', lineHeight: 1 }}>✕</button>
+                <button onClick={() => setSelected(null)} className="text-text-tertiary -mt-1 p-1 cursor-pointer" aria-label="닫기">
+                  <X size={16} />
+                </button>
               </div>
               {actionButtons}
             </div>
@@ -1353,34 +1362,27 @@ export default function FloorPlanPage() {
         // ── 모바일: 바텀시트 ──
         return (
           <div
-            style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: 'var(--bg2)', borderTop: '1px solid var(--bd2)',
-              borderRadius: '16px 16px 0 0', padding: '16px 16px 20px', zIndex: 30,
-              boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
-            }}
+            className="absolute bottom-0 left-0 right-0 bg-surface-raised border-t border-border-default rounded-t-lg px-4 pt-3 pb-5 z-30"
+            style={{ boxShadow: '0 -8px 32px rgba(0,0,0,0.4)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd2)', margin: '0 auto 14px' }} />
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                background: statusColor + '22',
-                border: `1.5px solid ${statusColor}55`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+            <div className="w-9 h-1 rounded-pill bg-border-default mx-auto mb-3.5" />
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-sm flex-shrink-0 flex items-center justify-center ${iconBoxCls}`}>
                 <MarkerIcon markerType={selected.marker_type} color={statusColor} size={22} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 3 }}>{markerLabel}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>{floor}</span>
-                  {selected.check_point_id && <span style={{ fontSize: 11, color: 'var(--t3)' }}>ID: {selected.check_point_id}</span>}
-                  <span style={{ fontSize: 11, fontWeight: 700, color: statusColor }}>{statusLabel}</span>
-                  {selected.last_inspected_at && <span style={{ fontSize: 11, color: 'var(--t3)' }}>최근 {selected.last_inspected_at.slice(0, 10)}</span>}
+              <div className="flex-1 min-w-0">
+                <div className="text-label font-bold text-text-primary mb-1">{markerLabel}</div>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-caption text-text-tertiary leading-none">{floor}</span>
+                  {selected.check_point_id && <span className="text-caption text-text-tertiary leading-none">ID: {selected.check_point_id}</span>}
+                  <span className={`text-caption font-bold leading-none ${statusTextCls}`}>{statusLabel}</span>
+                  {selected.last_inspected_at && <span className="text-caption text-text-tertiary leading-none">최근 {selected.last_inspected_at.slice(0, 10)}</span>}
                 </div>
               </div>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 18, cursor: 'pointer', padding: '2px 6px', lineHeight: 1 }}>✕</button>
+              <button onClick={() => setSelected(null)} className="text-text-tertiary -mt-1 p-1 cursor-pointer" aria-label="닫기">
+                <X size={16} />
+              </button>
             </div>
             {actionButtons}
           </div>
@@ -1736,95 +1738,130 @@ export default function FloorPlanPage() {
         // 일정한 사이즈(유도등 모달 자연 높이 ≈ 290px)로 통일.
         if (isAccessBlocked) {
           return (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-              <div style={{ position: 'relative', width: '90%', maxWidth: 340, height: 290, background: 'var(--bg2)', borderRadius: 16, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
+            <div
+              className="absolute inset-0 z-[50] flex items-center justify-center"
+              style={{ background: 'rgba(0,0,0,0.6)' }}
+              onClick={() => setInspectModal(false)}
+            >
+              <div
+                className="relative w-[90%] max-w-[340px] h-[290px] bg-surface-raised border border-border-default rounded-md"
+                onClick={e => e.stopPropagation()}
+              >
                 <AccessBlockedPopup onConfirm={() => { setInspectModal(false); setSelected(null) }} />
               </div>
             </div>
           )
         }
         return (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setInspectModal(false)}>
-          <div style={{ position: 'relative', width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)', maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>점검 기록 입력</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 14 }}>
+        <div
+          className="absolute inset-0 z-[50] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setInspectModal(false)}
+        >
+          <div
+            className="relative w-[90%] max-w-[340px] max-h-[86vh] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-body font-bold text-text-primary mb-1">점검 기록 입력</div>
+            <div className="text-caption text-text-tertiary mb-3.5">
               {selected.cp_location || selected.label || currentMarkerTypes.find(mt => mt.key === selected.marker_type)?.label.join('') || '마커'} · {floor}
             </div>
 
             {planType === 'extinguisher' && inspectExtDetail && (
-              <div style={{ background:'var(--bg2)', borderRadius:10, padding:'10px 12px', border:'1px solid var(--bd)', marginBottom:8 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'4px 12px', fontSize:11 }}>
-                  <div><span style={{ color:'var(--t3)' }}>위치 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.location || (inspectExtDetail as any).cp_location || selected?.cp_location || '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조업체 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufacturer ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조년월 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.manufactured_at ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>형식승인 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.approval_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>접두문자 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.prefix_code ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>증지번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.seal_no ?? '-'}</span></div>
-                  <div><span style={{ color:'var(--t3)' }}>제조번호 </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{inspectExtDetail.serial_no ?? '-'}</span></div>
-                  {selected?.check_point_id && <div><span style={{ color:'var(--t3)' }}>ID </span><span style={{ color:'var(--t1)', fontWeight:600 }}>{selected.check_point_id}</span></div>}
+              <div className="bg-surface-page border border-border-default rounded-sm px-3 py-2.5 mb-2">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-caption">
+                  <div><span className="text-text-tertiary">위치 </span><span className="text-text-primary font-semibold">{inspectExtDetail.location || (inspectExtDetail as any).cp_location || selected?.cp_location || '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조업체 </span><span className="text-text-primary font-semibold">{inspectExtDetail.manufacturer ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조년월 </span><span className="text-text-primary font-semibold">{inspectExtDetail.manufactured_at ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">형식승인 </span><span className="text-text-primary font-semibold">{inspectExtDetail.approval_no ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">접두문자 </span><span className="text-text-primary font-semibold">{inspectExtDetail.prefix_code ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">증지번호 </span><span className="text-text-primary font-semibold">{inspectExtDetail.seal_no ?? '-'}</span></div>
+                  <div><span className="text-text-tertiary">제조번호 </span><span className="text-text-primary font-semibold">{inspectExtDetail.serial_no ?? '-'}</span></div>
+                  {selected?.check_point_id && <div><span className="text-text-tertiary">ID </span><span className="text-text-primary font-semibold">{selected.check_point_id}</span></div>}
                 </div>
               </div>
             )}
             {/* Phase 24: 소화기 정보 수정 + 분리 서브액션 행 */}
             {planType === 'extinguisher' && inspectExtDetail && (
-              <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+              <div className="flex gap-1.5 mb-3.5">
                 <button
                   onClick={() => {
                     setInspectModal(false)
                     navigate(`/extinguishers/${inspectExtDetail.id}`)
                   }}
-                  style={{ flex:1, height:32, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--t2)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  className="flex-1 h-8 rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-caption font-semibold leading-none cursor-pointer"
                 >정보 수정</button>
                 <button
                   onClick={() => {
                     setInspectModal(false)
                     setUnassignConfirm(inspectExtDetail)
                   }}
-                  style={{ flex:1, height:32, borderRadius:8, background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.3)', color:'var(--danger,#ef4444)', fontSize:11, fontWeight:600, cursor:'pointer' }}
+                  className="flex-1 h-8 rounded-sm bg-danger-bg border border-danger-bar text-danger text-caption font-semibold leading-none cursor-pointer"
                 >소화기 분리</button>
               </div>
             )}
 
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>점검 결과</div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-              {([['normal','정상','#22c55e'],['caution','주의','#eab308'],['bad','불량','#ef4444']] as const).map(([val, label, color]) => (
-                <button key={val} onClick={() => setInspectResult(val)} style={{
-                  flex: 1, padding: '10px 4px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                  background: inspectResult === val ? color + '22' : 'var(--bg3)',
-                  color: inspectResult === val ? color : 'var(--t3)',
-                  border: inspectResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
-                }}>{label}</button>
-              ))}
+            <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">점검 결과</div>
+            <div className="flex gap-1.5 mb-3.5">
+              {([
+                ['normal','정상', CheckCircle2, 'safe'],
+                ['caution','주의', AlertTriangle, 'warning'],
+                ['bad','불량', XCircle, 'danger'],
+              ] as const).map(([val, label, Icon, tone]) => {
+                const sel = inspectResult === val
+                const cls = sel
+                  ? (tone === 'safe' ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                     : tone === 'warning' ? 'border-[1.5px] border-warning bg-warning-bg text-warning'
+                     : 'border-[1.5px] border-danger bg-danger-bg text-danger')
+                  : 'border border-border-default bg-surface-page text-text-secondary'
+                return (
+                  <button
+                    key={val}
+                    onClick={() => setInspectResult(val)}
+                    className={`flex-1 inline-flex items-center justify-center gap-1 px-1 py-2.5 rounded-sm text-caption font-bold cursor-pointer transition-colors ${cls}`}
+                  >
+                    <Icon size={14} />{label}
+                  </button>
+                )
+              })}
             </div>
 
             {needSymptom && (
               <>
-                <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>증상</div>
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-                  {['점등 이상','예비전원 이상','직접 입력'].map(s => (
-                    <button key={s} onClick={() => setInspectSymptomPick(s)} style={{
-                      flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: inspectSymptomPick === s ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: inspectSymptomPick === s ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
-                      fontSize: 11, fontWeight: 700, color: inspectSymptomPick === s ? 'var(--acl)' : 'var(--t2)',
-                    }}>{s}</button>
-                  ))}
+                <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
+                <div className="flex gap-1.5 mb-2.5">
+                  {['점등 이상','예비전원 이상','직접 입력'].map(s => {
+                    const sel = inspectSymptomPick === s
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => setInspectSymptomPick(s)}
+                        className={`flex-1 px-1 py-2.5 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                          sel ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                              : 'border border-border-default bg-surface-page text-text-secondary'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    )
+                  })}
                 </div>
               </>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-              <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-caption font-semibold text-text-tertiary tracking-wider">
                 {needSymptom && inspectSymptomPick === '직접 입력' ? '증상 상세 및 특이사항 (선택)' : '특이사항 (선택)'}
               </label>
-              <span style={{ fontSize: 10, color: 'var(--t3)' }}>점검 사진 (선택)</span>
+              <span className="text-caption text-text-tertiary leading-none">점검 사진 (선택)</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14 }}>
+            <div className="flex gap-2 items-start mb-3.5">
               <textarea
                 value={inspectMemo}
                 onChange={e => setInspectMemo(e.target.value)}
                 placeholder="특이사항을 입력하세요"
-                style={{ flex: 1, height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                className="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label p-2.5 resize-none outline-none box-border"
+                style={{ height: 72, fontFamily: 'inherit' }}
               />
               <PhotoButton hook={inspectPhoto} label="촬영" noCapture />
             </div>
@@ -1832,36 +1869,50 @@ export default function FloorPlanPage() {
             {/* paired 비상콘센트 (소화전 마커 + 같은 location_no BC 매핑이 있을 때만 노출) */}
             {pairedBC && (
               <>
-                <div style={{ height:1, background:'var(--bd)', margin:'10px 0' }} />
-                <div style={{ background:'var(--bg2)', borderRadius:10, padding:'8px 12px', border:'1px solid var(--bd)', marginBottom:10 }}>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>{pairedBC.category}</div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)', marginTop:1 }}>{pairedBC.location}</div>
-                  {pairedBC.description && <div style={{ fontSize:10, color:'var(--t3)', marginTop:2 }}>{pairedBC.description}</div>}
+                <div className="h-px bg-border-default my-2.5" />
+                <div className="bg-surface-page border border-border-default rounded-sm px-3 py-2 mb-2.5">
+                  <div className="text-caption text-text-tertiary">{pairedBC.category}</div>
+                  <div className="text-label font-bold text-text-primary mt-0.5">{pairedBC.location}</div>
+                  {pairedBC.description && <div className="text-caption text-text-tertiary mt-0.5">{pairedBC.description}</div>}
                 </div>
-                <div style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:10, fontWeight:600, color:'var(--t3)', marginBottom:6, letterSpacing:'0.05em' }}>비상콘센트 점검 결과</div>
-                  <div style={{ display:'flex', gap:6 }}>
-                    {([['normal','정상','#22c55e'],['caution','주의','#eab308'],['bad','불량','#ef4444']] as const).map(([val, label, color]) => (
-                      <button key={val} onClick={() => setInspectBcResult(val)} style={{
-                        flex:1, padding:'10px 4px', borderRadius:10, fontSize:12, fontWeight:700, cursor:'pointer',
-                        background: inspectBcResult === val ? color + '22' : 'var(--bg3)',
-                        color: inspectBcResult === val ? color : 'var(--t3)',
-                        border: inspectBcResult === val ? `2px solid ${color}` : '1px solid var(--bd)',
-                      }}>{label}</button>
-                    ))}
+                <div className="mb-2.5">
+                  <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">비상콘센트 점검 결과</div>
+                  <div className="flex gap-1.5">
+                    {([
+                      ['normal','정상', CheckCircle2, 'safe'],
+                      ['caution','주의', AlertTriangle, 'warning'],
+                      ['bad','불량', XCircle, 'danger'],
+                    ] as const).map(([val, label, Icon, tone]) => {
+                      const sel = inspectBcResult === val
+                      const cls = sel
+                        ? (tone === 'safe' ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
+                           : tone === 'warning' ? 'border-[1.5px] border-warning bg-warning-bg text-warning'
+                           : 'border-[1.5px] border-danger bg-danger-bg text-danger')
+                        : 'border border-border-default bg-surface-page text-text-secondary'
+                      return (
+                        <button
+                          key={val}
+                          onClick={() => setInspectBcResult(val)}
+                          className={`flex-1 inline-flex items-center justify-center gap-1 px-1 py-2.5 rounded-sm text-caption font-bold cursor-pointer transition-colors ${cls}`}
+                        >
+                          <Icon size={14} />{label}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
-                <div style={{ marginBottom:14 }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:5 }}>
-                    <label style={{ fontSize:10, fontWeight:600, color:'var(--t3)', letterSpacing:'0.05em' }}>특이사항 (선택)</label>
-                    <span style={{ fontSize:10, color:'var(--t3)' }}>점검 사진 (선택)</span>
+                <div className="mb-3.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-caption font-semibold text-text-tertiary tracking-wider">특이사항 (선택)</label>
+                    <span className="text-caption text-text-tertiary leading-none">점검 사진 (선택)</span>
                   </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
+                  <div className="flex gap-2 items-start">
                     <textarea
                       value={inspectBcMemo}
                       onChange={e => setInspectBcMemo(e.target.value)}
                       placeholder="특이사항을 입력하세요"
-                      style={{ flex:1, height:72, padding:'9px 11px', borderRadius:10, background:'var(--bg2)', border:'1px solid var(--bd2)', color:'var(--t1)', fontSize:12, resize:'none', fontFamily:'inherit', outline:'none', boxSizing:'border-box' }}
+                      className="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label p-2.5 resize-none outline-none box-border"
+                      style={{ height: 72, fontFamily: 'inherit' }}
                     />
                     <PhotoButton hook={inspectBcPhoto} label="촬영" noCapture />
                   </div>
@@ -1869,8 +1920,11 @@ export default function FloorPlanPage() {
               </>
             )}
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setInspectModal(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setInspectModal(false)}
+                className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer"
+              >
                 취소
               </button>
               <button
@@ -1937,7 +1991,7 @@ export default function FloorPlanPage() {
                     setInspectSubmitting(false)
                   }
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--bd2)' : 'var(--acl)', border: 'none', color: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'var(--t3)' : '#fff', fontSize: 13, fontWeight: 700, cursor: (inspectSubmitting || inspectPhoto.uploading || inspectBcPhoto.uploading || isAccessBlocked) ? 'default' : 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:bg-border-default disabled:text-text-disabled disabled:cursor-default"
               >
                 {(inspectPhoto.uploading || inspectBcPhoto.uploading) ? '사진 업로드 중...' : inspectSubmitting ? '저장 중...' : isAccessBlocked ? '접근 불가 개소' : '저장'}
               </button>
@@ -2036,27 +2090,41 @@ export default function FloorPlanPage() {
       )}
 
       {resolveModal && selected?.last_record_id && (
-        <div style={{ position: 'absolute', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }} onClick={() => setResolveModal(false)}>
-          <div style={{ width: '90%', maxWidth: 340, background: 'var(--bg2)', borderRadius: 16, padding: 20, border: '1px solid var(--bd2)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>조치 입력</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{selected.label || '마커'} · {floor}</div>
+        <div
+          className="absolute inset-0 z-[50] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.6)' }}
+          onClick={() => setResolveModal(false)}
+        >
+          <div
+            className="relative w-[90%] max-w-[340px] max-h-[86vh] overflow-y-auto bg-surface-raised border border-border-default rounded-md p-5"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-body font-bold text-text-primary mb-1">조치 입력</div>
+            <div className="text-caption text-text-tertiary mb-1">{selected.label || '마커'} · {floor}</div>
             {selected.last_memo && (
-              <div style={{ fontSize: 11, color: 'var(--warn)', marginBottom: 12, background: 'rgba(245,158,11,.1)', border: '1px solid rgba(245,158,11,.2)', borderRadius: 8, padding: '6px 10px' }}>
+              <div className="text-caption text-warning bg-warning-bg border border-warning-bar rounded-sm px-2.5 py-1.5 mb-3">
                 지적: {selected.last_memo}
               </div>
             )}
             {planType === 'guidelamp' ? (
               <>
                 {/* 조치 피커 */}
-                <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-                  {(['본체 교체','예비전원 교체','직접 입력'] as const).map(opt => (
-                    <button key={opt} onClick={() => setResolveActionPick(opt)} style={{
-                      flex: 1, padding: '9px 4px', borderRadius: 10, cursor: 'pointer',
-                      border: resolveActionPick === opt ? '2px solid var(--acl)' : '1px solid var(--bd)',
-                      background: resolveActionPick === opt ? 'rgba(59,130,246,.12)' : 'var(--bg3)',
-                      fontSize: 11, fontWeight: 700, color: resolveActionPick === opt ? 'var(--acl)' : 'var(--t2)',
-                    }}>{opt}</button>
-                  ))}
+                <div className="flex gap-1.5 mb-2.5">
+                  {(['본체 교체','예비전원 교체','직접 입력'] as const).map(opt => {
+                    const sel = resolveActionPick === opt
+                    return (
+                      <button
+                        key={opt}
+                        onClick={() => setResolveActionPick(opt)}
+                        className={`flex-1 px-1 py-2.5 rounded-sm text-caption font-bold cursor-pointer transition-colors ${
+                          sel ? 'border-[1.5px] border-accent bg-accent text-text-on-accent'
+                              : 'border border-border-default bg-surface-page text-text-secondary'
+                        }`}
+                      >
+                        {opt}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* 직접 입력일 때만 textarea */}
@@ -2065,36 +2133,39 @@ export default function FloorPlanPage() {
                     value={resolveMemo}
                     onChange={e => setResolveMemo(e.target.value)}
                     placeholder="조치 내용을 입력하세요 (필수)"
-                    style={{ width: '100%', height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+                    className="w-full rounded-sm bg-surface-page border border-border-default text-text-primary text-label p-2.5 resize-none outline-none box-border mb-2.5"
+                    style={{ height: 72, fontFamily: 'inherit' }}
                   />
                 )}
 
                 {/* 소모 자재 라벨 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>소모 자재</label>
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-caption font-semibold text-text-tertiary tracking-wider">소모 자재</label>
+                  <span className="text-caption text-text-tertiary leading-none">조치 사진 (선택)</span>
                 </div>
 
                 {/* 자재명 + 개수 + 사진 — 한 줄 */}
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14, maxWidth: '100%' }}>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4, height: 72 }}>
+                <div className="flex gap-2 items-start mb-3.5">
+                  <div className="flex-1 min-w-0 flex flex-col gap-1" style={{ height: 72 }}>
                     <input
                       type="text"
                       value={resolveMaterialName}
                       onChange={e => setResolveMaterialName(e.target.value)}
                       placeholder="자재명"
-                      style={{ flex: 1, minHeight: 0, minWidth: 0, width: '100%', padding: '0 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      className="flex-1 min-h-0 w-full px-2.5 rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border"
+                      style={{ fontFamily: 'inherit' }}
                     />
-                    <div style={{ position: 'relative', flex: 1, minHeight: 0, minWidth: 0 }}>
+                    <div className="relative flex-1 min-h-0">
                       <input
                         type="number"
                         min={0}
                         value={resolveMaterialCount}
                         onChange={e => setResolveMaterialCount(e.target.value)}
                         placeholder="0"
-                        style={{ width: '100%', height: '100%', minWidth: 0, padding: '0 28px 0 10px', borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit' }}
+                        className="w-full h-full pl-2.5 pr-7 rounded-sm bg-surface-page border border-border-default text-text-primary text-label outline-none box-border"
+                        style={{ fontFamily: 'inherit' }}
                       />
-                      <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: 'var(--t3)', pointerEvents: 'none' }}>ea</span>
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-caption text-text-tertiary pointer-events-none">ea</span>
                     </div>
                   </div>
                   <PhotoButton hook={resolvePhoto} label="촬영" noCapture />
@@ -2102,23 +2173,27 @@ export default function FloorPlanPage() {
               </>
             ) : (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--t3)', letterSpacing: '0.05em' }}>조치 내용 (필수)</label>
-                  <span style={{ fontSize: 10, color: 'var(--t3)' }}>조치 사진 (선택)</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-caption font-semibold text-text-tertiary tracking-wider">조치 내용 (필수)</label>
+                  <span className="text-caption text-text-tertiary leading-none">조치 사진 (선택)</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 14 }}>
+                <div className="flex gap-2 items-start mb-3.5">
                   <textarea
                     value={resolveMemo}
                     onChange={e => setResolveMemo(e.target.value)}
                     placeholder="조치 내용을 입력하세요"
-                    style={{ flex: 1, height: 72, padding: '9px 11px', borderRadius: 10, background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 12, resize: 'none', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                    className="flex-1 rounded-sm bg-surface-page border border-border-default text-text-primary text-label p-2.5 resize-none outline-none box-border"
+                    style={{ height: 72, fontFamily: 'inherit' }}
                   />
                   <PhotoButton hook={resolvePhoto} label="촬영" noCapture />
                 </div>
               </>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setResolveModal(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setResolveModal(false)}
+                className="flex-1 h-input rounded-sm bg-surface-sunken border border-border-default text-text-secondary text-label font-semibold cursor-pointer"
+              >
                 취소
               </button>
               <button
@@ -2152,7 +2227,7 @@ export default function FloorPlanPage() {
                     setResolveSubmitting(false)
                   }
                 }}
-                style={{ flex: 1, height: 42, borderRadius: 10, background: (resolveSubmitting || resolvePhoto.uploading) ? 'var(--bd2)' : 'linear-gradient(135deg,#f59e0b,#ef4444)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: (resolveSubmitting || resolvePhoto.uploading) ? 'default' : 'pointer' }}
+                className="flex-1 h-input rounded-sm bg-accent text-text-on-accent text-label font-bold cursor-pointer disabled:opacity-50 disabled:bg-border-default disabled:text-text-disabled disabled:cursor-default"
               >
                 {resolvePhoto.uploading ? '사진 업로드 중...' : resolveSubmitting ? '저장 중...' : '조치 완료'}
               </button>
