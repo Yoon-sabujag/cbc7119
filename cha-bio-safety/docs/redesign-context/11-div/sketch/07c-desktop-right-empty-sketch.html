@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>11-div · 영역 7c-1 · 데스크톱 우측 패널 (빈 상태)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    :root {
+      --surface-page:   #0a0d12;
+      --surface-raised: #1a1f27;
+      --surface-sunken: #232a33;
+      --text-primary:   #e6edf3;
+      --text-secondary: #adb6c0;
+      --text-tertiary:  #8b949e;
+      --border-default: rgba(255,255,255,0.14);
+      --status-info:    #38bdf8;
+      --status-fire-bar:#f97316;
+      --status-safe-bar:#22c55e;
+      --status-warning-bar:#f59e0b;
+      --status-danger:  #f87171;
+      --brown:          #8b4513;
+      --safe-bg:    rgba(34,197,94,0.12);
+      --safe-bd:    rgba(34,197,94,0.25);
+      --warn-bg:    rgba(245,158,11,0.18);
+      --warn-bd:    rgba(245,158,11,0.4);
+      --danger-bg:  rgba(239,68,68,0.18);
+      --danger-bd:  rgba(239,68,68,0.4);
+      --warn-soft-bg: rgba(245,158,11,0.08);
+      --warn-soft-bd: rgba(245,158,11,0.3);
+      --danger-soft-bg: rgba(239,68,68,0.08);
+      --danger-soft-bd: rgba(239,68,68,0.3);
+    }
+    body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: #0a0d12; color: #e6edf3; padding: 32px; }
+    .frame {
+      width: 640px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .label { font-size: 12px; color: #8b949e; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 32px; align-items: start; }
+    .note { margin-top: 16px; font-size: 13px; color: #adb6c0; line-height: 1.6; max-width: 1080px; }
+    .note b { color: #e6edf3; }
+    .note hr { border: 0; border-top: 1px solid #2a2f3a; margin: 12px 0; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <div class="grid">
+
+    <!-- VP1 데스크톱 다크 — 우측 패널 빈 상태 -->
+    <div>
+      <div class="label">VP1 · 데스크톱 다크 · 640×680 (우측 패널 빈 상태 — 측정점 미선택 시 전역 통계 요약 3 섹션. 실제는 1280 의 우측 절반)</div>
+      <div class="frame" style="height: 680px; padding: 20px 24px; overflow-y: auto;">
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+
+          <!-- 섹션 1: 34개 측정점 현황 (정상/주의/이상 카운터 3카드) -->
+          <div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">◆ 34개 측정점 현황</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div style="background: var(--safe-bg); border: 1px solid var(--safe-bd); border-radius: 10px; padding: 16px 12px; text-align: center;">
+                <div class="mono" style="font-size: 28px; font-weight: 800; color: var(--status-safe-bar); line-height: 1;">29</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-weight: 600;">정상</div>
+              </div>
+              <div style="background: var(--warn-bg); border: 1px solid var(--warn-bd); border-radius: 10px; padding: 16px 12px; text-align: center;">
+                <div class="mono" style="font-size: 28px; font-weight: 800; color: var(--status-warning-bar); line-height: 1;">3</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-weight: 600;">주의</div>
+              </div>
+              <div style="background: var(--danger-bg); border: 1px solid var(--danger-bd); border-radius: 10px; padding: 16px 12px; text-align: center;">
+                <div class="mono" style="font-size: 28px; font-weight: 800; color: var(--status-danger); line-height: 1;">2</div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-weight: 600;">이상</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 섹션 2: 배수/오일 현황 (3카드) -->
+          <div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">── 배수/오일 현황 ──</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+              <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 10px; padding: 14px 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--status-info); margin-bottom: 8px; letter-spacing: 0.04em;">챔버 배수</div>
+                <div class="mono" style="font-size: 18px; font-weight: 800; color: var(--text-primary);">평균 17일</div>
+                <div class="mono" style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">최근 2026-05-12</div>
+              </div>
+              <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 10px; padding: 14px 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--brown); margin-bottom: 8px; letter-spacing: 0.04em;">탱크 배수</div>
+                <div class="mono" style="font-size: 18px; font-weight: 800; color: var(--text-primary);">평균 23일</div>
+                <div class="mono" style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">최근 2026-04-28</div>
+              </div>
+              <div style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 10px; padding: 14px 12px;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--status-fire-bar); margin-bottom: 8px; letter-spacing: 0.04em;">오일 보충</div>
+                <div class="mono" style="font-size: 18px; font-weight: 800; color: var(--text-primary);">평균 90일</div>
+                <div class="mono" style="font-size: 12px; color: var(--text-tertiary); margin-top: 6px;">최근 2026-05-05</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 섹션 3: 이상/주의 포인트 리스트 -->
+          <div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px;">── 이상/주의 포인트 ──</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+
+              <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--danger-soft-bg); border: 1px solid var(--danger-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--status-danger); flex-shrink: 0; min-width: 56px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-danger); display: inline-block;"></span> 이상
+                </span>
+                <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; min-width: 80px;">DIV-2F-1</span>
+                <span style="font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">2층 · 2층 Z3-1 (DIV1)</span>
+                <span class="mono" style="font-size: 12px; font-weight: 700; color: var(--status-danger); flex-shrink: 0;">2차 -22%</span>
+              </button>
+
+              <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--danger-soft-bg); border: 1px solid var(--danger-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--status-danger); flex-shrink: 0; min-width: 56px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-danger); display: inline-block;"></span> 이상
+                </span>
+                <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; min-width: 80px;">DIV-B1-3</span>
+                <span style="font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">지하1층 · B1 Z5-3 (DIV3)</span>
+                <span class="mono" style="font-size: 12px; font-weight: 700; color: var(--status-danger); flex-shrink: 0;">1차 +25%</span>
+              </button>
+
+              <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--warn-soft-bg); border: 1px solid var(--warn-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0; min-width: 56px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span> 주의
+                </span>
+                <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; min-width: 80px;">DIV-2F-2</span>
+                <span style="font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">2층 · 2층 Z3-2 (DIV2)</span>
+                <span class="mono" style="font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0;">1차 +12%</span>
+              </button>
+
+              <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--warn-soft-bg); border: 1px solid var(--warn-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0; min-width: 56px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span> 주의
+                </span>
+                <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; min-width: 80px;">DIV-3F-1</span>
+                <span style="font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">3층 · 3층 Z3-1 (DIV1)</span>
+                <span class="mono" style="font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0;">2차 -13%</span>
+              </button>
+
+              <button style="display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--warn-soft-bg); border: 1px solid var(--warn-soft-bd); border-radius: 8px; cursor: pointer; text-align: left;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0; min-width: 56px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--status-warning-bar); display: inline-block;"></span> 주의
+                </span>
+                <span class="mono" style="font-size: 14px; font-weight: 700; color: var(--text-primary); flex-shrink: 0; min-width: 80px;">DIV-4F-2</span>
+                <span style="font-size: 12px; color: var(--text-secondary); flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">4층 · 4층 Z3-2 (DIV2)</span>
+                <span class="mono" style="font-size: 12px; font-weight: 700; color: var(--status-warning-bar); flex-shrink: 0;">세팅 -11%</span>
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <p style="margin-bottom: 10px;"><b>데스크톱 우측 패널 빈 상태 (DivPage.tsx line 757~869 verbatim + 색 토큰화 + 글씨 격상)</b></p>
+    <p style="margin-bottom: 4px;"><b>3 섹션</b></p>
+    <p style="margin-bottom: 4px;">• 1️⃣ 34개 측정점 현황 — 카운터 3 카드 (정상 safe / 주의 warning / 이상 danger)</p>
+    <p style="margin-bottom: 4px;">• 2️⃣ 배수/오일 현황 — 3 카드 (챔버 배수 status-info / 탱크 배수 raw #8b4513 / 오일 보충 status-fire-bar)</p>
+    <p style="margin-bottom: 10px;">• 3️⃣ 이상/주의 포인트 리스트 — 클릭 시 우측 패널 = 측정점 상세 (7c-2 에서)</p>
+    <p style="margin-bottom: 4px;"><b>섹션 1 (카운터 카드)</b></p>
+    <p style="margin-bottom: 4px;">• 카드 padding 16/12 + border-radius 10 + text-center</p>
+    <p style="margin-bottom: 4px;">• 카운트 <b>28px mono font-extrabold</b> + status 색</p>
+    <p style="margin-bottom: 10px;">• 라벨 <b>12px font-semibold text-secondary</b> (verbatim 11px → 12px 격상)</p>
+    <p style="margin-bottom: 4px;"><b>섹션 2 (배수/오일 카드)</b></p>
+    <p style="margin-bottom: 4px;">• 카드 bg-surface-raised + border-default + padding 14/12 + radius 10</p>
+    <p style="margin-bottom: 4px;">• 라벨 <b>12px font-bold + tab 색 + letter-spacing</b> (verbatim 11px → 12px 격상)</p>
+    <p style="margin-bottom: 4px;">• 평균 값 <b>18px mono font-extrabold text-primary</b> (verbatim 16 → 18 격상)</p>
+    <p style="margin-bottom: 10px;">• 최근 날짜 <b>12px mono text-tertiary</b> (verbatim 10 → 12 격상)</p>
+    <p style="margin-bottom: 4px;"><b>섹션 3 (이상/주의 리스트)</b></p>
+    <p style="margin-bottom: 4px;">• row padding 12/14 + bg-status-soft + border-soft + radius 8</p>
+    <p style="margin-bottom: 4px;">• 좌측 상태 라벨 <b>점 div 8×8 + "이상"/"주의" 12px font-bold</b> (대안 1 적용 — ●/◐ 이모지 → 색 점)</p>
+    <p style="margin-bottom: 4px;">• id <b>14px mono font-bold</b> (verbatim 13 → 14)</p>
+    <p style="margin-bottom: 4px;">• 위치 <b>12px text-secondary ellipsis</b> (verbatim 11 → 12)</p>
+    <p style="margin-bottom: 10px;">• pct <b>12px mono font-bold + status 색</b> (verbatim 11 → 12)</p>
+    <hr/>
+    <p style="margin-bottom: 4px;"><b>대안 (검토 항목)</b></p>
+    <p style="margin-bottom: 4px;">대안 1. <b>섹션 헤더 ── ── 와 ◆</b> 의미 통일 — ◆ 1개만 또는 ── ── 없이 (verbatim 은 1=◆ / 2,3=──). 메모성 마커 단순화.</p>
+    <p style="margin-bottom: 4px;">대안 2. <b>섹션 2 평균 18 → 22</b> — 강조 ↑. 카드 padding 키워야.</p>
+    <p>현재 패턴으로 OK 면 영역 7c-2 (선택 상태 — 헤더 + 4탭 + 압력 차트) 진행. 대안 보고 싶으면 알려줘.</p>
+  </div>
+
+</body>
+</html>
