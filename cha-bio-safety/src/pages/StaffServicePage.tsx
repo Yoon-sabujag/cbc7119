@@ -724,7 +724,7 @@ export default function StaffServicePage() {
       ) : (
         <div className={`grid grid-cols-7 ${isDesktop ? 'gap-[2px]' : 'gap-[3px]'}`}>
           {calendarDays.map((cell, idx) => {
-            if (!cell.date) return <div key={`e-${idx}`} className={isDesktop ? 'aspect-[1.2]' : 'aspect-[5/6]'} />
+            if (!cell.date) return <div key={`e-${idx}`} className={isDesktop ? 'aspect-[1.2]' : 'aspect-square'} />
 
             const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
             const isSel = cell.ymd === selDate
@@ -750,7 +750,7 @@ export default function StaffServicePage() {
               <div
                 key={cell.ymd}
                 onClick={() => isClickable && handleDayClick(cell.ymd)}
-                className={`relative flex flex-col overflow-hidden select-none p-0.5 rounded-sm ${isDesktop ? 'aspect-[1.2]' : 'aspect-[5/6]'} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`relative flex flex-col overflow-hidden select-none p-0.5 rounded-sm ${isDesktop ? 'aspect-[1.2]' : 'aspect-square'} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
                   background: cellBg,
                   border: isSel ? '2.5px solid #facc15' : isToday ? '2.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.04)',
@@ -865,7 +865,7 @@ export default function StaffServicePage() {
       ].map(c => (
         <div
           key={c.label}
-          className="flex-1 min-w-[84px] bg-surface-raised border border-border-default rounded-md p-card overflow-hidden"
+          className="flex-1 min-w-[100px] bg-surface-raised border border-border-default rounded-md p-card overflow-hidden"
           style={{ boxShadow: `inset 3px 0 0 ${c.barColor}` }}
         >
           <div className="text-caption text-text-tertiary font-semibold leading-none mb-1.5 whitespace-nowrap">{c.label}</div>
