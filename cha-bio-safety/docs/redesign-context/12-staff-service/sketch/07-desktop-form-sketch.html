@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>W7 — 12 staff-service desktop center form sketch</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim (scoped to .light-frame)
+     * ============================================================ */
+    .light-frame {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — 4의 배수 8pt 그리드 (테마 무관)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Page chrome (sketch 외곽 — token 아님)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    input, textarea { font-family: inherit; }
+
+    .page-bg {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .vp-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: flex-start;
+    }
+    .vp-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .vp-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #7d8a9c;
+      max-width: 280px;
+    }
+
+    /* ============================================================
+     * Typography utilities (typography.css verbatim)
+     * ============================================================ */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+
+    /* ============================================================
+     * Viewport frame — 280px center panel
+     * ============================================================ */
+    .vp-frame {
+      width: 280px;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--surface-page);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .vp-frame[data-theme="dark"]  { border: 1px solid #2a2f3a; }
+    .vp-frame.light-frame { border: 1px solid #d0d7de; }
+
+    /* The form panel itself — mirrors source line 1041 */
+    .center-panel {
+      width: 280px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border-default);
+      padding: var(--modal-padding);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: visible;
+      background: var(--surface-page);
+    }
+
+    /* ============================================================
+     * Form bits
+     * ============================================================ */
+    .form-title {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-primary);
+    }
+    .sel-date-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+    }
+    .sel-date-label {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-primary);
+    }
+    .shift-chip {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-on-accent);
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    .shift-day   { background: var(--duty-day); }
+    .shift-night { background: var(--duty-night); }
+    .shift-off   { background: var(--duty-off); }
+
+    .field-label-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--text-secondary);
+    }
+    .field-help {
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+    .date-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .date-input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .date-input::placeholder { color: var(--text-tertiary); }
+    .date-sep {
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1;
+    }
+    .days-display {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+      color: #facc15;
+      text-align: right;
+      margin-top: 4px;
+    }
+
+    /* DOC_LEAVE_GRID buttons */
+    .grid-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .grid-row-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .grid-row-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+    .btn-leave {
+      padding: 8px 4px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      text-align: center;
+      cursor: pointer;
+      transition: none;
+    }
+    .btn-normal {
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .btn-selected {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-registered {
+      background: var(--status-safe-bg);
+      color: var(--status-safe);
+      border: 2px solid var(--status-safe-bar);
+    }
+
+    /* Reason textarea + 종류 input */
+    .reason-textarea {
+      width: 100%;
+      min-height: 56px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+    }
+    .reason-textarea::placeholder { color: var(--text-tertiary); }
+    .other-input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .other-input::placeholder { color: var(--text-tertiary); }
+
+    /* CTA buttons */
+    .cta-btn {
+      width: 100%;
+      padding: 14px 0;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .cta-apply-active {
+      background: var(--status-safe);
+      color: var(--text-on-accent);
+      border: none;
+    }
+    .cta-apply-disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      border: none;
+    }
+    .cta-pdf {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: none;
+    }
+    .cta-print {
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .cta-spacer {
+      flex: 1;
+      min-height: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-bg">
+
+    <!-- ============================================================
+         W7 — desktop center form — 6 VP state matrix
+         5 dark + 1 light (VP6)
+         ============================================================ -->
+
+    <div class="vp-row">
+
+      <!-- ============================================================
+           VP1 · 초기 — 빈 폼, 신청 비활성
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="center-panel">
+            <!-- B-1 Title -->
+            <div class="form-title">휴가신청서</div>
+
+            <!-- B-2 Selected date row — HIDDEN in VP1 -->
+
+            <!-- B-3 Date-range row -->
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" placeholder="달력에서 선택" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" placeholder="" readonly>
+              </div>
+              <!-- days-display HIDDEN in VP1 -->
+            </div>
+
+            <!-- B-4 DOC_LEAVE_GRID 7-row (all normal) -->
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">연차</button>
+                <button class="btn-leave btn-normal">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">기타특별휴가</button></div>
+            </div>
+
+            <!-- B-5 Reason textarea — HIDDEN in VP1 (no type selected, but disabled state) -->
+            <!-- B-6 종류 input — HIDDEN in VP1 -->
+
+            <!-- B-7 휴가 신청 (disabled) -->
+            <button class="cta-btn cta-apply-disabled">휴가 신청</button>
+
+            <!-- B-8 spacer -->
+            <div class="cta-spacer"></div>
+
+            <!-- B-9 PDF 다운로드 -->
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+
+            <!-- B-10 인쇄 -->
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP1 · 초기 — 빈 폼, 신청 비활성</div>
+      </div>
+
+      <!-- ============================================================
+           VP2 · 연차 선택 — 사유 hidden (ANNUAL_TYPES)
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="center-panel">
+            <div class="form-title">휴가신청서</div>
+
+            <div class="sel-date-row">
+              <span class="sel-date-label">5/18 (월)</span>
+              <span class="shift-chip shift-day">주간</span>
+            </div>
+
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" value="2026-05-18" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" value="2026-05-18" readonly>
+              </div>
+              <div class="days-display">1일간</div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-selected">연차</button>
+                <button class="btn-leave btn-normal">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">기타특별휴가</button></div>
+            </div>
+
+            <!-- Reason hidden (annual selected) -->
+
+            <button class="cta-btn cta-apply-active">휴가 신청</button>
+            <div class="cta-spacer"></div>
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP2 · 연차 선택 — 사유 hidden (ANNUAL_TYPES)</div>
+      </div>
+
+      <!-- ============================================================
+           VP3 · 경조 선택 — 사유 textarea 표시
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="center-panel">
+            <div class="form-title">휴가신청서</div>
+
+            <div class="sel-date-row">
+              <span class="sel-date-label">5/18 (월)</span>
+              <span class="shift-chip shift-day">주간</span>
+            </div>
+
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" value="2026-05-18" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" value="2026-05-20" readonly>
+              </div>
+              <div class="days-display">3일간</div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">연차</button>
+                <button class="btn-leave btn-normal">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-selected">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">기타특별휴가</button></div>
+            </div>
+
+            <!-- Reason textarea (non-annual) -->
+            <div>
+              <div class="field-label" style="margin-bottom: 4px;">사유</div>
+              <textarea class="reason-textarea" placeholder="사유를 입력하세요"></textarea>
+            </div>
+
+            <button class="cta-btn cta-apply-active">휴가 신청</button>
+            <div class="cta-spacer"></div>
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP3 · 경조 선택 — 사유 textarea 표시</div>
+      </div>
+
+    </div>
+
+    <div class="vp-row">
+
+      <!-- ============================================================
+           VP4 · 기타특별 선택 — 사유 + 종류 input 동시 표시
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="center-panel">
+            <div class="form-title">휴가신청서</div>
+
+            <div class="sel-date-row">
+              <span class="sel-date-label">5/19 (화)</span>
+              <span class="shift-chip shift-night">당직</span>
+            </div>
+
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" value="2026-05-19" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" value="2026-05-19" readonly>
+              </div>
+              <div class="days-display">1일간</div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">연차</button>
+                <button class="btn-leave btn-normal">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-selected">기타특별휴가</button></div>
+            </div>
+
+            <!-- Reason textarea -->
+            <div>
+              <div class="field-label" style="margin-bottom: 4px;">사유</div>
+              <textarea class="reason-textarea" placeholder="사유를 입력하세요">가족돌봄 — 자녀 어린이집 휴원</textarea>
+            </div>
+
+            <!-- 기타특별휴가 종류 input -->
+            <div>
+              <div class="field-label" style="margin-bottom: 4px;">기타특별휴가 종류</div>
+              <input type="text" class="other-input" value="가족돌봄" placeholder="예: 가족돌봄, 난임치료 등" readonly>
+            </div>
+
+            <button class="cta-btn cta-apply-active">휴가 신청</button>
+            <div class="cta-spacer"></div>
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP4 · 기타특별 선택 — 사유 + 종류 input 동시 표시</div>
+      </div>
+
+      <!-- ============================================================
+           VP5 · 연차 registered — ✓ + 신규 선택(오전반차) 공존
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="center-panel">
+            <div class="form-title">휴가신청서</div>
+
+            <div class="sel-date-row">
+              <span class="sel-date-label">5/20 (수)</span>
+              <span class="shift-chip shift-off">비번</span>
+            </div>
+
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" value="2026-05-20" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" value="2026-05-20" readonly>
+              </div>
+              <div class="days-display">1일간</div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-registered">연차 ✓</button>
+                <button class="btn-leave btn-selected">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">기타특별휴가</button></div>
+            </div>
+
+            <!-- Reason hidden (오전반차 selected = annual half) -->
+
+            <button class="cta-btn cta-apply-active">휴가 신청</button>
+            <div class="cta-spacer"></div>
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP5 · 연차 registered — ✓ + 신규 선택(오전반차) 공존</div>
+      </div>
+
+      <!-- ============================================================
+           VP6 · 라이트 — VP3 mirror
+           ============================================================ -->
+      <div class="vp-wrap">
+        <div class="vp-frame light-frame">
+          <div class="center-panel">
+            <div class="form-title">휴가신청서</div>
+
+            <div class="sel-date-row">
+              <span class="sel-date-label">5/18 (월)</span>
+              <span class="shift-chip shift-day">주간</span>
+            </div>
+
+            <div>
+              <div class="field-label-row">
+                <span class="field-label">휴가기간</span>
+                <span class="field-help">(달력에서 클릭)</span>
+              </div>
+              <div class="date-row">
+                <input type="text" class="date-input" value="2026-05-18" readonly>
+                <span class="date-sep">~</span>
+                <input type="text" class="date-input" value="2026-05-20" readonly>
+              </div>
+              <div class="days-display">3일간</div>
+            </div>
+
+            <div class="grid-wrap">
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">연차</button>
+                <button class="btn-leave btn-normal">오전반차</button>
+                <button class="btn-leave btn-normal">오후반차</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-selected">경조휴가</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(공상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">병가(사상)</button></div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">보건휴가</button></div>
+              <div class="grid-row-3">
+                <button class="btn-leave btn-normal">공가</button>
+                <button class="btn-leave btn-normal">오전공가</button>
+                <button class="btn-leave btn-normal">오후공가</button>
+              </div>
+              <div class="grid-row-1"><button class="btn-leave btn-normal">기타특별휴가</button></div>
+            </div>
+
+            <div>
+              <div class="field-label" style="margin-bottom: 4px;">사유</div>
+              <textarea class="reason-textarea" placeholder="사유를 입력하세요"></textarea>
+            </div>
+
+            <button class="cta-btn cta-apply-active">휴가 신청</button>
+            <div class="cta-spacer"></div>
+            <button class="cta-btn cta-pdf">PDF 다운로드</button>
+            <button class="cta-btn cta-print">인쇄</button>
+          </div>
+        </div>
+        <div class="vp-caption">VP6 · 라이트 — VP3 미러</div>
+      </div>
+
+    </div>
+
+  </div>
+</body>
+</html>
