@@ -16,3 +16,6 @@ design-system-v0.1/
 
 # 핸드오프 번들 zip (unzipped 사본이 같은 폴더에 있음)
 cha-bio-safety/docs/redesign-context/**/*.zip
+
+# user-supplied screenshots dropped into sketch dirs
+cha-bio-safety/docs/redesign-context/**/스크린샷*.png
