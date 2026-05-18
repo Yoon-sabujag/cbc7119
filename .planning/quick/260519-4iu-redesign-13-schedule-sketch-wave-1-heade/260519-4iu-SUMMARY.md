@@ -92,31 +92,24 @@ commit: e2e19d9
 
 6. **다크/라이트 토글** — 우상단 fixed pill 2개. 데스크톱 frame + 페이지 body 배경 분기
 
-## Open Questions (사용자 답변 대기)
+## Open Questions — LOCKED (2026-05-19 사용자 답변)
 
-### OQ #1 — 라이트 모드 event 카테고리 dot 색
+### OQ #1 ▶ LOCKED a) — 라이트 모드 event 카테고리 dot 색
 
 - 다크: `#e2e8f0` verbatim (SchedulePage.tsx line 84)
-- 라이트 frame 임시 표시: `#94a3b8` (slate-400)
-- **후보:**
-  - a) `#94a3b8` 락
-  - b) `var(--text-secondary)` 매핑 (다크/라이트 자동 분기)
-  - c) 카테고리 색 자체 재선정 (소스 hex 변경 — 다음 wave 에서 비즈 로직 patch 필요)
+- 라이트: **`#94a3b8` (slate-400) lock**
+- TSX 변환 wave 시 다크/라이트 분기 hardcode (var(--text-secondary) 매핑 X, 카테고리 hex 재선정 X)
 
-### OQ #2 — 멀티데이 일정 범위 표시 방식
+### OQ #2 ▶ LOCKED 유지 — 멀티데이 범위 표시
 
-- 현재 시안: 일자 셀당 동일 카테고리 dot 만 4개 연속 (matchesDate 룰 mirror)
-- 대안: 범위 띠 (band) 를 셀 하단에 가로로 깔기 — 시각적 연속성 강조
-- **결정 필요:** dot 유지 vs band 추가
+- **dot 유지** (band 추가 안 함). matchesDate 룰 mirror, source SchedulePage.tsx verbatim
+- 일자 셀당 동일 카테고리 dot 만 표시
 
-### OQ #3 — "오늘" 버튼 위치
+### OQ #3 ▶ LOCKED 제거 — "오늘" 칩 제거
 
-- 현재 시안: 중앙 라벨 "2026년 5월" 우측에 작은 pill 칩
-- **대안:**
-  - a) 우측 끝 (› 버튼 안쪽)
-  - b) 좌측 끝 (‹ 버튼 옆)
-  - c) 캘린더 외부 floating action
-  - d) 칩 자체 제거 (네비게이션만)
+- **칩 자체 제거.** 월/연도 네비는 ‹ / 라벨 / › 3-element 만 (단순화)
+- 적용 위치 3건: 다크 모바일 frame (line 365) / 라이트 모바일 frame (line 651) / 데스크톱 frame (line 948)
+- 5/19 일자 셀의 accent 원형 표식 (오늘 cell visual) 은 유지 — 별개 표식
 
 ## 메모리 룰 준수 체크리스트
 
