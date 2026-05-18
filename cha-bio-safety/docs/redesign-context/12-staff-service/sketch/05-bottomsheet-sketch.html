@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 연차 및 식사 — sketch W5 BottomSheet (헤더 + 휴가폼 + 팀원 + 주말식대 + 닫기)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 (구 #8b949e는 5.0:1 빠듯) */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      /* 긴급/조치-대기 톤은 의도적 누락 — 이 페이지(StaffServicePage)는 §3.4.1 룰로 미사용 */
+
+      /* === Status — bar (좌측 색바) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      /* 긴급/조치-대기 톤은 의도적 누락 — 이 페이지(StaffServicePage)는 §3.4.1 룰로 미사용 */
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 124~146 verbatim (테마 무관)
+     * ============================================================ */
+    :root {
+      /* Primitive scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* Component spacing — 모바일 기본 */
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 — tokens.css line 149~162 verbatim */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;   /* 표준 36px이지만 미숙 사용자 배려 */
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 167~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;   /* input, button, sub-card */
+      --radius-md:   12px;  /* 표준 카드 */
+      --radius-lg:   16px;  /* 모달, 큰 panel */
+      --radius-pill: 99px;  /* 캡슐 배지, 칩 */
+    }
+
+    /* ============================================================
+     * 타이포 — typography.css line 33~95 verbatim
+     * ============================================================ */
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    /* 작은 컨테이너 안 caption — line-height 1 강제 (Q&A "작은 컨테이너 안 text-caption → leading-none") */
+    .leading-none { line-height: 1; }
+    .leading-snug { line-height: 1.2; }
+
+    /* ============================================================
+     * sketch 페이지 외곽 — raw hex 예외 영역 (page bg only)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;  /* raw hex 예외 — 페이지 외곽 만 */
+      color: var(--text-secondary);
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 18px;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+    p.lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 24px 0;
+      max-width: 860px;
+    }
+
+    /* ============================================================
+     * frame-row — frame matrix
+     * ============================================================ */
+    .frame-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .vp-label {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    /* ============================================================
+     * frame-mobile — 393px 모바일 frame (raw hex 예외 #2a2f3a)
+     * BottomSheet 는 페이지 위에 떠 있으므로 min-height 760 + 달력 dim placeholder + 시트
+     * ============================================================ */
+    .frame-mobile {
+      width: 393px;
+      min-height: 760px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;  /* raw hex 예외 — frame border 만 */
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ============================================================
+     * 달력 dim placeholder — sheet 뒤로 살짝 보이는 시각 컨텍스트
+     * ============================================================ */
+    .calendar-placeholder {
+      height: 120px;
+      background: var(--surface-raised);
+      opacity: 0.4;
+      border-bottom: 1px solid var(--border-default);
+      padding: 16px;
+    }
+    .calendar-placeholder .ph-text {
+      color: var(--text-tertiary);
+    }
+    .frame-body-spacer {
+      flex: 1;
+      background: var(--surface-page);
+      opacity: 0.3;
+    }
+
+    /* ============================================================
+     * Overlay — source line 1295~1301 verbatim (raw rgba 예외)
+     * ============================================================ */
+    .sheet-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 90;
+      animation: fadeIn .2s ease;
+    }
+
+    /* ============================================================
+     * Sheet container — source line 1306~1312 NORMALIZED
+     *   --bg2 → --surface-raised
+     * ============================================================ */
+    .sheet {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--surface-raised);
+      border-radius: 20px 20px 0 0;
+      padding: 16px 16px 24px;
+      max-height: 65vh;
+      overflow-y: auto;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+      animation: slideUp .25s ease;
+    }
+
+    /* ============================================================
+     * Drag handle — source line 1314~1316 NORMALIZED
+     *   --bd → --border-default
+     * ============================================================ */
+    .sheet-handle-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border-default);
+    }
+
+    /* ============================================================
+     * Sub-region A — Sheet header (날짜 / shift 칩 / 공휴일 / 식사미사용)
+     * source line 1319~1348 NORMALIZED (--t1/--t3 → --text-*, source 9/10/11 → 12/13)
+     * ============================================================ */
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .sheet-header-date {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .shift-chip {
+      font-size: 12px;            /* source 11 → 12 노안 격상 */
+      font-weight: 700;
+      color: var(--text-on-accent);
+      border-radius: var(--radius-sm);
+      padding: 2px 8px;
+      line-height: 1;
+    }
+    .shift-chip-day    { background: var(--duty-day); }
+    .shift-chip-night  { background: var(--duty-night); }
+    .shift-chip-off    { background: var(--duty-off); }
+    .shift-chip-leave  { background: var(--duty-leave); }
+
+    .holiday-label {
+      font-size: 12px;            /* source 10 → 12 노안 격상 */
+      color: var(--status-danger);
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .meal-skip-wrap {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .meal-skip-label {
+      font-size: 12px;            /* source 9 → 12 노안 격상 */
+      color: var(--text-tertiary);
+      line-height: 1.2;
+      text-align: right;
+    }
+    .meal-skip-btn {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 13px;            /* source 12 → 13 노안 격상 */
+      font-weight: 700;
+      line-height: 1;
+    }
+    .meal-skip-btn .meal-skip-unit {
+      font-size: 12px;            /* source 10 → 12 노안 격상 */
+      font-weight: 500;
+    }
+    .meal-skip-btn-off {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-tertiary);
+    }
+    .meal-skip-btn-on {
+      background: var(--status-warning-bg);
+      border: 1px solid var(--status-warning-bar);
+      color: var(--status-warning);
+    }
+
+    /* ============================================================
+     * Sub-region B — Leave section header + 차단 카피 / 점검 경고 / 기간 / 6-버튼 grid / select / 사유 / CTA
+     * source line 1350~1500 NORMALIZED
+     * ============================================================ */
+    .leave-section {
+      margin-bottom: 16px;
+    }
+    .leave-section-title {
+      font-size: 13px;            /* source 12 → 13 노안 격상 (라벨급 격상) */
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+    .leave-block-copy {
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      color: var(--text-tertiary);
+      padding: 8px 12px;
+      background: var(--surface-sunken);
+      border-radius: var(--radius-sm);
+      line-height: 1.5;
+    }
+    .leave-inspect-warn {
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      color: var(--status-warning);
+      margin-bottom: 6px;
+      padding: 6px 10px;
+      background: var(--status-warning-bg);
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* 기간 선택 row */
+    .leave-range-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto;
+      gap: 4px;
+      align-items: end;
+      margin-bottom: 8px;
+    }
+    .leave-range-label {
+      font-size: 12px;            /* source 10 → 12 노안 격상 */
+      color: var(--text-tertiary);
+      margin-bottom: 2px;
+      line-height: 1;
+    }
+    .leave-range-input {
+      display: block;
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 14px;            /* source 12 → 14 노안 격상 */
+      line-height: 1.2;
+      box-sizing: border-box;
+    }
+    .leave-range-input-placeholder {
+      color: var(--text-tertiary);
+    }
+    .leave-range-tilde {
+      color: var(--text-tertiary);
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      padding-bottom: 8px;
+      line-height: 1;
+    }
+    .leave-days {
+      font-size: 13px;            /* source 13 — 그대로 */
+      color: #facc15;             /* gold raw hex 예외 — UI-SPEC §14 OQ #4 */
+      font-weight: 700;
+      padding-bottom: 6px;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    /* 6-버튼 grid (2행 3열) — source line 1399~1421 NORMALIZED */
+    .leave-btn-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .leave-btn-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .leave-btn {
+      padding: 10px 2px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .leave-btn-normal {
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+    .leave-btn-selected {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: 1px solid var(--accent);
+    }
+    .leave-btn-registered {
+      background: var(--status-safe-bg);
+      color: var(--status-safe);
+      border: 2px solid var(--status-safe-bar);
+    }
+
+    /* 기타 휴가종류 select — source line 1434~1442 NORMALIZED */
+    .leave-other-wrap {
+      margin-bottom: 8px;
+    }
+    .leave-other-select {
+      width: 100%;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      font-size: 14px;            /* source 11 → 14 노안 격상 */
+      padding: 0 10px;
+      line-height: 1.2;
+    }
+
+    /* 사유 입력 — source line 1446~1447 NORMALIZED */
+    .leave-reason-input {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      font-size: 14px;            /* source 11 → 14 노안 격상 */
+      line-height: 1.2;
+      box-sizing: border-box;
+    }
+
+    /* 휴가 신청 CTA — source line 1482~1490 NORMALIZED
+       활성: 옛 초록 raw hex → var(--status-safe-bg/safe/safe-bar) 의미 정합 */
+    .leave-cta-submit {
+      width: 100%;
+      padding: 12px 0;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-size: 16px;            /* source 12 → 16 노안 격상 (CTA 본문 마지노선) */
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+    .leave-cta-submit-disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+    .leave-cta-submit-enabled {
+      background: var(--status-safe);
+      color: var(--text-on-accent);
+    }
+
+    /* PDF 다운로드 CTA — source line 1494~1497 NORMALIZED (#2563eb → --accent) */
+    .leave-cta-pdf {
+      width: 100%;
+      padding: 12px 0;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: none;
+      font-size: 16px;            /* source 12 → 16 노안 격상 */
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * Sub-region C — Team leave chips
+     * source line 1503~1522 NORMALIZED
+     * ============================================================ */
+    .team-section {
+      margin-bottom: 16px;
+    }
+    .team-section-title {
+      font-size: 13px;            /* source 12 → 13 노안 격상 */
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1;
+    }
+    .team-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .team-chip {
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      font-weight: 600;
+      color: var(--text-primary);
+      background: var(--surface-sunken);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      border: 1px solid var(--border-default);
+      line-height: 1.2;
+    }
+    .team-chip-suffix {
+      margin-left: 4px;
+      font-size: 12px;            /* source 10 → 12 노안 격상 */
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .team-chip-suffix-annual { color: var(--status-safe); }
+    .team-chip-suffix-official { color: var(--status-info); }
+
+    /* ============================================================
+     * Sub-region D — Weekend allowance info
+     * source line 1525~1533 NORMALIZED
+     *   옛 보라 raw hex → #8f42d7 (정규화 보라 인라인 유지 — 카테고리 색)
+     *   옛 보라 rgba(...) → rgba(143,66,215,*) (정규화 보라)
+     * ============================================================ */
+    .weekend-allowance {
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      background: rgba(143, 66, 215, 0.08);
+      border: 1px solid rgba(143, 66, 215, 0.2);
+      border-radius: var(--radius-sm);
+    }
+    .weekend-allowance-text {
+      font-size: 13px;            /* source 11 → 13 노안 격상 */
+      color: #8f42d7;             /* 정규화 보라 raw hex (카테고리 색 예외) */
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    /* ============================================================
+     * Sub-region E — Close button
+     * source line 1536~1546 NORMALIZED (--bg3/--bd/--t2 → --surface-sunken/--border-default/--text-secondary)
+     * ============================================================ */
+    .sheet-close-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * Animation keyframes — self-documenting (sheet rendered in final state)
+     * ============================================================ */
+    @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
+
+    /* ============================================================
+     * rules 박스 — W3/W4 verbatim 패턴
+     * ============================================================ */
+    .rules {
+      margin-top: 40px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 860px;
+    }
+    .rules h2 { font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules h3 { font-size: 14px; margin: 16px 0 6px 0; color: var(--text-primary); }
+    .rules p  { font-size: 13px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul, .rules ol { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); }
+    .rules li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>12 · 연차 및 식사 — sketch W5 BottomSheet</h1>
+  <p class="lead">
+    W5 검증 포인트 (UI-SPEC §4.3 + §9): BottomSheet 전체 — 헤더 (날짜 / shift 칩 / 공휴일 / 식사미사용 끼수),
+    휴가 섹션 (차단 카피 / 점검일 경고 / 기간 / 6-버튼 grid 3-state / 기타 select / 사유 / 휴가신청 CTA / PDF 다운로드),
+    팀원 연차, 주말 식대, 닫기 — 6 sub-region × 8 viewport matrix (다크 6 + 라이트 2).
+    NORMALIZED 토큰 (alias 토큰 / OLD categorical hex / 긴급-톤 토큰 / 9·10·11px 0건) 룰 강제.
+  </p>
+
+  <!-- ================================================
+       Row 1 — DARK · VP1 정상 / VP2 등록완료 / VP3 주말차단
+       ================================================ -->
+  <section class="frame-row" data-theme="dark">
+
+    <!-- VP1 · 모바일 다크 · 평일 정상 폼 -->
+    <div>
+      <div class="vp-label">VP1 · 다크 · 평일 정상 폼 (5/18 월 · 당직)</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/18 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/18 (월)</span>
+            <span class="shift-chip shift-chip-night">당직근무</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+
+            <div class="leave-range-row">
+              <div>
+                <div class="leave-range-label">시작일</div>
+                <input class="leave-range-input leave-range-input-placeholder" type="text" value="연-월-일" readonly />
+              </div>
+              <span class="leave-range-tilde">~</span>
+              <div>
+                <div class="leave-range-label">종료일</div>
+                <input class="leave-range-input leave-range-input-placeholder" type="text" value="연-월-일" readonly />
+              </div>
+              <span></span>
+            </div>
+
+            <div class="leave-btn-grid">
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">연차</button>
+                <button class="leave-btn leave-btn-normal">오전반차</button>
+                <button class="leave-btn leave-btn-normal">오후반차</button>
+              </div>
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">공가</button>
+                <button class="leave-btn leave-btn-normal">오전공가</button>
+                <button class="leave-btn leave-btn-normal">오후공가</button>
+              </div>
+            </div>
+
+            <div class="leave-other-wrap">
+              <select class="leave-other-select"><option>기타 휴가 선택...</option></select>
+            </div>
+
+            <button class="leave-cta-submit leave-cta-submit-disabled">휴가 신청</button>
+            <button class="leave-cta-pdf">휴가신청서 다운로드</button>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP2 · 모바일 다크 · 휴가 등록 완료 -->
+    <div>
+      <div class="vp-label">VP2 · 다크 · 등록 완료 (5/18 월 · 당직 · 1끼 · 연차 ✓)</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/18 셀 활성, 연차 등록 표시)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/18 (월)</span>
+            <span class="shift-chip shift-chip-night">당직근무</span>
+            <div class="meal-skip-wrap">
+              <span class="meal-skip-label">식사 미사용<br/>눌러서 표기</span>
+              <button class="meal-skip-btn meal-skip-btn-on">1<span class="meal-skip-unit">끼</span></button>
+            </div>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+
+            <div class="leave-range-row">
+              <div>
+                <div class="leave-range-label">시작일</div>
+                <input class="leave-range-input" type="text" value="2026-05-18" readonly />
+              </div>
+              <span class="leave-range-tilde">~</span>
+              <div>
+                <div class="leave-range-label">종료일</div>
+                <input class="leave-range-input" type="text" value="2026-05-18" readonly />
+              </div>
+              <span class="leave-days">1일</span>
+            </div>
+
+            <div class="leave-btn-grid">
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-registered">연차 ✓</button>
+                <button class="leave-btn leave-btn-normal">오전반차</button>
+                <button class="leave-btn leave-btn-normal">오후반차</button>
+              </div>
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">공가</button>
+                <button class="leave-btn leave-btn-normal">오전공가</button>
+                <button class="leave-btn leave-btn-normal">오후공가</button>
+              </div>
+            </div>
+
+            <div class="leave-other-wrap">
+              <select class="leave-other-select"><option>기타 휴가 선택...</option></select>
+            </div>
+
+            <button class="leave-cta-submit leave-cta-submit-disabled">휴가 신청</button>
+            <button class="leave-cta-pdf">휴가신청서 다운로드</button>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP3 · 모바일 다크 · 주말 차단 -->
+    <div>
+      <div class="vp-label">VP3 · 다크 · 주말 차단 (5/16 토 · 휴무 · 주말식대)</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/16 토요일 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/16 (토)</span>
+            <span class="shift-chip shift-chip-leave">휴무</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+            <div class="leave-block-copy">주말은 휴가 등록이 불가합니다</div>
+          </div>
+
+          <div class="weekend-allowance">
+            <span class="weekend-allowance-text">주말 식대: ₩48,500</span>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================================================
+       Row 2 — DARK · VP4 공휴일차단 / VP5 점검+끼수 / VP6 풀표시
+       ================================================ -->
+  <section class="frame-row" data-theme="dark" style="margin-top: 32px;">
+
+    <!-- VP4 · 모바일 다크 · 공휴일 차단 -->
+    <div>
+      <div class="vp-label">VP4 · 다크 · 공휴일 차단 (5/5 월 · 어린이날)</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/5 어린이날 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/5 (월)</span>
+            <span class="shift-chip shift-chip-leave">휴무</span>
+            <span class="holiday-label">어린이날</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+            <div class="leave-block-copy">공휴일(어린이날)은 휴가 등록이 불가합니다</div>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP5 · 모바일 다크 · 점검일 경고 + 끼수 활성 + 반차 선택 -->
+    <div>
+      <div class="vp-label">VP5 · 다크 · 점검일 경고 + 2끼 + 오후반차 선택</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/20 수요일 점검일 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/20 (수)</span>
+            <span class="shift-chip shift-chip-day">주간근무</span>
+            <div class="meal-skip-wrap">
+              <span class="meal-skip-label">식사 미사용<br/>눌러서 표기</span>
+              <button class="meal-skip-btn meal-skip-btn-on">2<span class="meal-skip-unit">끼</span></button>
+            </div>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+
+            <div class="leave-inspect-warn">소방 점검일 - 휴가 등록 주의</div>
+
+            <div class="leave-range-row">
+              <div>
+                <div class="leave-range-label">시작일</div>
+                <input class="leave-range-input" type="text" value="2026-05-20" readonly />
+              </div>
+              <span class="leave-range-tilde">~</span>
+              <div>
+                <div class="leave-range-label">종료일</div>
+                <input class="leave-range-input" type="text" value="2026-05-20" readonly />
+              </div>
+              <span class="leave-days">1일</span>
+            </div>
+
+            <div class="leave-btn-grid">
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">연차</button>
+                <button class="leave-btn leave-btn-normal">오전반차</button>
+                <button class="leave-btn leave-btn-selected">오후반차</button>
+              </div>
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">공가</button>
+                <button class="leave-btn leave-btn-normal">오전공가</button>
+                <button class="leave-btn leave-btn-normal">오후공가</button>
+              </div>
+            </div>
+
+            <div class="leave-other-wrap">
+              <select class="leave-other-select"><option>기타 휴가 선택...</option></select>
+            </div>
+
+            <button class="leave-cta-submit leave-cta-submit-enabled">휴가 신청</button>
+            <button class="leave-cta-pdf">휴가신청서 다운로드</button>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP6 · 모바일 다크 · 풀 표시 (당직+팀원+주말식대) -->
+    <div>
+      <div class="vp-label">VP6 · 다크 · 풀 표시 (5/17 일 · 비번 · 팀원3 · 주말식대)</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/17 일요일 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/17 (일)</span>
+            <span class="shift-chip shift-chip-off">비번</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+            <div class="leave-block-copy">주말은 휴가 등록이 불가합니다</div>
+          </div>
+
+          <div class="team-section">
+            <div class="team-section-title">팀원 연차</div>
+            <div class="team-chips">
+              <span class="team-chip">박보융<span class="team-chip-suffix team-chip-suffix-annual">(오후반차)</span></span>
+              <span class="team-chip">김영민<span class="team-chip-suffix team-chip-suffix-official">(공가)</span></span>
+              <span class="team-chip">이재훈<span class="team-chip-suffix team-chip-suffix-annual">(연차)</span></span>
+            </div>
+          </div>
+
+          <div class="weekend-allowance">
+            <span class="weekend-allowance-text">주말 식대: ₩48,500</span>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================================================
+       Row 3 — LIGHT · VP7 정상 / VP8 풀 표시
+       ================================================ -->
+  <section class="frame-row" data-theme="light" style="margin-top: 32px;">
+
+    <!-- VP7 · 모바일 라이트 · VP1 의 라이트 모드 (정상 폼) -->
+    <div>
+      <div class="vp-label">VP7 · 라이트 · 평일 정상 폼 (5/18 월 · 당직)</div>
+      <div class="frame-mobile" data-theme="light">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/18 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/18 (월)</span>
+            <span class="shift-chip shift-chip-night">당직근무</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+
+            <div class="leave-range-row">
+              <div>
+                <div class="leave-range-label">시작일</div>
+                <input class="leave-range-input leave-range-input-placeholder" type="text" value="연-월-일" readonly />
+              </div>
+              <span class="leave-range-tilde">~</span>
+              <div>
+                <div class="leave-range-label">종료일</div>
+                <input class="leave-range-input leave-range-input-placeholder" type="text" value="연-월-일" readonly />
+              </div>
+              <span></span>
+            </div>
+
+            <div class="leave-btn-grid">
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">연차</button>
+                <button class="leave-btn leave-btn-normal">오전반차</button>
+                <button class="leave-btn leave-btn-normal">오후반차</button>
+              </div>
+              <div class="leave-btn-row">
+                <button class="leave-btn leave-btn-normal">공가</button>
+                <button class="leave-btn leave-btn-normal">오전공가</button>
+                <button class="leave-btn leave-btn-normal">오후공가</button>
+              </div>
+            </div>
+
+            <div class="leave-other-wrap">
+              <select class="leave-other-select"><option>기타 휴가 선택...</option></select>
+            </div>
+
+            <button class="leave-cta-submit leave-cta-submit-disabled">휴가 신청</button>
+            <button class="leave-cta-pdf">휴가신청서 다운로드</button>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VP8 · 모바일 라이트 · 풀 표시 (VP6 라이트) -->
+    <div>
+      <div class="vp-label">VP8 · 라이트 · 풀 표시 (5/17 일 · 비번 · 팀원3 · 주말식대)</div>
+      <div class="frame-mobile" data-theme="light">
+        <div class="calendar-placeholder">
+          <div class="text-caption leading-none ph-text">달력 (placeholder — 5/17 일요일 셀 활성)</div>
+        </div>
+        <div class="frame-body-spacer"></div>
+
+        <div class="sheet-overlay"></div>
+
+        <div class="sheet">
+          <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+
+          <div class="sheet-header">
+            <span class="sheet-header-date">5/17 (일)</span>
+            <span class="shift-chip shift-chip-off">비번</span>
+          </div>
+
+          <div class="leave-section">
+            <div class="leave-section-title">휴가</div>
+            <div class="leave-block-copy">주말은 휴가 등록이 불가합니다</div>
+          </div>
+
+          <div class="team-section">
+            <div class="team-section-title">팀원 연차</div>
+            <div class="team-chips">
+              <span class="team-chip">박보융<span class="team-chip-suffix team-chip-suffix-annual">(오후반차)</span></span>
+              <span class="team-chip">김영민<span class="team-chip-suffix team-chip-suffix-official">(공가)</span></span>
+              <span class="team-chip">이재훈<span class="team-chip-suffix team-chip-suffix-annual">(연차)</span></span>
+            </div>
+          </div>
+
+          <div class="weekend-allowance">
+            <span class="weekend-allowance-text">주말 식대: ₩48,500</span>
+          </div>
+
+          <button class="sheet-close-btn">닫기</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ================================================
+       rules 박스 — W3/W4 verbatim 패턴 (7 섹션)
+       ================================================ -->
+  <div class="rules">
+    <h2>적용 룰 — W5 BottomSheet 6 sub-region × 8 viewport</h2>
+    <p>본 sketch 는 StaffServicePage.tsx line 1293~1549 (BottomSheet 전체) 의 W5 검증 포인트 (UI-SPEC §4.3 + §9) 를 NORMALIZED 룰 + 8-viewport matrix (다크 6 + 라이트 2) 로 시각 고정한다.</p>
+
+    <h3>6 sub-region 룰 (UI-SPEC §9)</h3>
+    <ul>
+      <li>(A) 헤더: 드래그핸들 + 날짜 (16px font-bold) + shift 칩 (4 duty 토큰) + 공휴일 라벨 (조건부, status-danger) + 식사미사용 끼수 (조건부, 0=비활성/N=warning)</li>
+      <li>(B) 휴가 섹션: 헤더 "휴가" (13px font-bold) → 차단 카피 (주말/공휴일) OR 폼 (점검 경고/기간/6-버튼 grid/select/사유/CTA/PDF)</li>
+      <li>(C) 팀원 연차: 조건부, 헤더 "팀원 연차" + chips (annual=safe / official=info suffix)</li>
+      <li>(D) 주말 식대: 조건부, "주말 식대: ₩{N}" — 정규화 보라 #8f42d7 인라인 (카테고리 색)</li>
+      <li>(E) 닫기 버튼: surface-sunken / border-default / text-secondary / radius-md</li>
+      <li>드래그핸들: 36×4 / radius 2 / border-default — sub-region (A) 의 상단 부속</li>
+    </ul>
+
+    <h3>토큰 정규화 매핑 (source → sketch)</h3>
+    <ul>
+      <li>옛 alias "bg2" → var(--surface-raised) — sheet 배경</li>
+      <li>옛 alias "bg3" → var(--surface-sunken) — input/select/사유/닫기/끼수비활성 배경</li>
+      <li>옛 alias "bg"  → var(--surface-sunken) — input 배경 격상 (옛 page 너무 짙음)</li>
+      <li>옛 alias "bd"  → var(--border-default) — 모든 border</li>
+      <li>옛 alias "t1"  → var(--text-primary) — 날짜 + input 텍스트</li>
+      <li>옛 alias "t2"  → var(--text-secondary) — 섹션 헤더 / 버튼 normal</li>
+      <li>옛 alias "t3"  → var(--text-tertiary) — 라벨 / 차단 카피 / 비활성 텍스트</li>
+      <li>옛 alias "acl" → var(--accent) — 6-버튼 grid 선택 상태</li>
+      <li>옛 초록 raw hex 인라인 (등록/CTA 활성) → var(--status-safe) + var(--status-safe-bg) + var(--status-safe-bar)</li>
+      <li>#f59e0b 인라인 (점검 경고/끼수 활성) → var(--status-warning) + var(--status-warning-bg) + var(--status-warning-bar)</li>
+      <li>옛 빨강 raw hex 인라인 (공휴일) → var(--status-danger)</li>
+      <li>옛 오렌지 raw hex 인라인 (팀원 official) → var(--status-info) (UI-SPEC §3.4.1: 분류 정보 = info)</li>
+      <li>#2563eb 인라인 (PDF 다운로드) → var(--accent)</li>
+      <li>옛 보라 raw hex 인라인 (주말 식대) → #8f42d7 (정규화 보라 인라인 유지 — 카테고리 색)</li>
+      <li>rgba(168,85,247,0.08) → rgba(143,66,215,0.08)</li>
+      <li>rgba(168,85,247,0.2)  → rgba(143,66,215,0.2)</li>
+      <li>#facc15 (일수 표시) — raw hex 예외 유지 (UI-SPEC §14 OQ #4)</li>
+    </ul>
+
+    <h3>typography 노안 격상 (source 9·10·11 → 12·13·14·16)</h3>
+    <ul>
+      <li>9 → 12: 식사미사용 라벨 "식사 미사용 / 눌러서 표기"</li>
+      <li>10 → 12: 공휴일 라벨 / 시작일·종료일 라벨 / 끼수 단위 "끼" / 팀원 suffix</li>
+      <li>11 → 13: shift 칩 (12로 격상) · 6-버튼 grid 라벨 · 끼수 숫자 · 차단 카피 · 점검 경고 · ~구분자 · 주말식대 · 팀원 chip · 휴가 헤더</li>
+      <li>11 → 14: select option · 사유 input · 시작일·종료일 input</li>
+      <li>12 → 16: 휴가신청 CTA · PDF 다운로드 CTA · 헤더 날짜</li>
+      <li>13 그대로: 일수 "1일" · 차단 카피</li>
+      <li>14 그대로: 닫기 버튼</li>
+    </ul>
+
+    <h3>색 룰 (UI-SPEC §3.4.1 / §3.5)</h3>
+    <ul>
+      <li>긴급/조치-대기 톤 (조치-대기 prefix 변형 4종) 0건 — §3.4.1 룰 (StaffServicePage 미사용)</li>
+      <li>duty 4 토큰 각 ≥ 1 — VP1/2 night · VP3/4 leave · VP5 day · VP6/8 off</li>
+      <li>status-safe ≥ 2 — VP2 등록 chip · VP5 휴가신청 CTA 활성 · VP6/8 팀원 annual suffix</li>
+      <li>status-warning ≥ 2 — VP2 끼수 활성 · VP5 점검 경고 + 끼수 활성</li>
+      <li>status-danger ≥ 1 — VP4 공휴일 라벨</li>
+      <li>status-info ≥ 1 — VP6/8 팀원 official suffix</li>
+      <li>휴가신청 CTA 활성 = status-safe (행동의 의미 = 정상/완료 컨텍스트)</li>
+      <li>휴가 등록 chip = status-safe-bg + status-safe + 2px status-safe-bar border (등록 = 완료)</li>
+      <li>주말식대 #8f42d7 = 카테고리 색 (status 아님) — 인라인 유지</li>
+      <li>일수 #facc15 = gold raw hex 예외 (UI-SPEC §14 OQ #4)</li>
+    </ul>
+
+    <h3>state matrix (8 viewport)</h3>
+    <ol>
+      <li>VP1 (다크) — 평일 정상 폼 (5/18 월 · 당직 · 폼 비활성 CTA)</li>
+      <li>VP2 (다크) — 휴가 등록 완료 (5/18 월 · 당직 · 1끼 · 연차 ✓ chip)</li>
+      <li>VP3 (다크) — 주말 차단 (5/16 토 · 휴무 · 주말식대 표시)</li>
+      <li>VP4 (다크) — 공휴일 차단 (5/5 월 · 휴무 · 어린이날)</li>
+      <li>VP5 (다크) — 점검일 경고 + 2끼 + 오후반차 선택 (5/20 수 · 주간 · CTA 활성)</li>
+      <li>VP6 (다크) — 풀 표시 (5/17 일 · 비번 · 팀원 3명 · 주말식대)</li>
+      <li>VP7 (라이트) — VP1 의 라이트 (5/18 월 · 당직 · 정상 폼)</li>
+      <li>VP8 (라이트) — VP6 의 라이트 (5/17 일 · 비번 · 팀원 3명 · 주말식대)</li>
+    </ol>
+
+    <h3>source-of-truth 매핑 (TSX 변환 시)</h3>
+    <ul>
+      <li>StaffServicePage.tsx line 1308: 옛 alias "bg2" → var(--surface-raised) (sheet 배경)</li>
+      <li>line 1315: 옛 alias "bd" → var(--border-default) (드래그 핸들 배경)</li>
+      <li>line 1331: 옛 빨강 raw hex → var(--status-danger) + fontSize 10 → 12 (공휴일 라벨)</li>
+      <li>line 1335: fontSize 9 → 12 (식사미사용 라벨)</li>
+      <li>line 1339~1342: rgba(245,158,11,*) + #f59e0b → status-warning-bg + status-warning + status-warning-bar + fontSize 12/10 → 13/12 (끼수 버튼)</li>
+      <li>line 1354: 옛 alias "bg3" → var(--surface-sunken) + fontSize 11 → 13 (차단 카피)</li>
+      <li>line 1360: rgba(245,158,11,0.1) + #f59e0b → status-warning-bg + status-warning + fontSize 11 → 13 (점검 경고)</li>
+      <li>line 1368/1374: fontSize 10 → 12 (시작일/종료일 라벨)</li>
+      <li>line 1370/1376: fontSize 12 → 14 (시작일/종료일 input)</li>
+      <li>line 1372: fontSize 11 → 13 (~구분자)</li>
+      <li>line 1379: #facc15 (gold raw hex 유지 — 일수)</li>
+      <li>line 1409~1412: 옛 초록 rgba/raw hex → status-safe-bg + status-safe + status-safe-bar + fontSize 11 → 13 (6-버튼 grid)</li>
+      <li>line 1436: fontSize 11 → 14 (기타 select)</li>
+      <li>line 1447: fontSize 11 → 14 (사유 input)</li>
+      <li>line 1484~1486: 옛 초록 raw hex → status-safe (활성) + fontSize 12 → 16 (휴가신청 CTA)</li>
+      <li>line 1495: #2563eb → var(--accent) + fontSize 12 → 16 (PDF 다운로드 CTA)</li>
+      <li>line 1510~1515: 옛 alias "bg3" + "bd" → surface-sunken + border-default · 옛 오렌지/초록 raw hex → status-info/status-safe + fontSize 11/10 → 13/12 (팀원 chip)</li>
+      <li>line 1528~1529: 옛 보라 rgba/raw hex → rgba(143,66,215,*) + #8f42d7 + fontSize 11 → 13 (주말식대)</li>
+      <li>line 1540~1541: 옛 alias "bg3" + "bd" + "t2" → surface-sunken + border-default + text-secondary (닫기)</li>
+    </ul>
+
+    <h3>negative gate (verify grep — 본 sketch 검증)</h3>
+    <ol>
+      <li>9 · 10 · 11px font-size 0건</li>
+      <li>이모지 0건 (U+2713 ✓ = Basic Latin Extended, grep `[\x{1F300}-\x{1FAFF}]` 매칭 외 → 통과)</li>
+      <li>긴급/조치-대기 톤 변형 4종 (조치-대기 prefix 의 foreground / -bar / -bg / utility class) 0건</li>
+      <li>v0.0.x 호환 alias 토큰 (tokens.css line 177~197 의 옛 단축 이름 블록 — 배경/보더/텍스트/accent/duty 단축) 0건</li>
+      <li>OLD 카테고리 hex 6종 (옛 초록 / 옛 보라 / 옛 오렌지 / 옛 빨강 / 옛 핑크 / 옛 인디고) — :root 토큰 정의 (--status-*-bar/-bg) 안 예외 외 본문 0건</li>
+      <li>#facc15 (일수 gold) ≥ 1회 — VP2/VP5</li>
+      <li>#8f42d7 (정규화 보라) ≥ 1회 — VP3/VP6/VP8</li>
+      <li>8-viewport matrix — frame-mobile 정확히 8개 / data-theme="dark" ≥ 2 / data-theme="light" ≥ 1</li>
+      <li>6 sub-region 출현 — 닫기 ≥ 8 / 휴가 ≥ 8 / 등록이 불가합니다 ≥ 2 / 팀원 연차 ≥ 2 / 주말 식대: ₩48,500 ≥ 2 / 소방 점검일 - 휴가 등록 주의 ≥ 1 / 휴가 신청 ≥ 1 / 휴가신청서 다운로드 ≥ 1</li>
+      <li>status 토큰 4종 모두 출현 (safe ≥ 2 / warning ≥ 2 / danger ≥ 1 / info ≥ 1)</li>
+      <li>duty 토큰 4종 모두 출현 (day / night / off / leave 각 ≥ 1)</li>
+    </ol>
+
+    <p style="margin-top: 16px;">다음 wave: W6 또는 TSX 변환 wave (StaffServicePage.tsx line 1293~1549 NORMALIZED 적용).</p>
+  </div>
+
+</body>
+</html>
