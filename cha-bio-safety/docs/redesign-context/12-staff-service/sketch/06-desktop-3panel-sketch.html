@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>W6 — 12 staff-service desktop 3-panel sketch</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — 4의 배수 8pt 그리드 (테마 무관)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Page chrome (sketch 외곽 — token 아님)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
+      background: #1a1d24;
+      color: #e6edf3;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    .page-bg {
+      padding: 32px 24px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .frame-label {
+      color: #adb6c0;
+      font-size: 13px;
+      font-weight: 600;
+      align-self: flex-start;
+      max-width: 1280px;
+      width: 100%;
+      margin: 16px auto 0;
+    }
+    .desk-frame {
+      width: 1280px;
+      height: 760px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .desk-frame[data-theme="dark"]  { border: 1px solid #2a2f3a; }
+    .desk-frame[data-theme="light"] { border: 1px solid #d0d7de; }
+  </style>
+</head>
+<body>
+  <div class="page-bg">
+
+    <!-- ========================= -->
+    <!-- DARK FRAME — 1280px        -->
+    <!-- ========================= -->
+    <div class="frame-label">Dark theme — 1280px</div>
+    <div class="desk-frame" data-theme="dark">
+      <div class="page-root" style="height:100%; display:flex; flex-direction:column; overflow:hidden; background: var(--surface-page);">
+
+        <!-- GlobalHeader placeholder 54px -->
+        <header class="gh" style="height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; background: var(--surface-page); border-bottom: 1px solid var(--border-default); flex-shrink:0;">
+          <!-- Hamburger -->
+          <div style="width:32px; height:32px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius: var(--radius-sm); color: var(--text-secondary);">
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+          </div>
+          <!-- Title -->
+          <div style="font-size:15px; font-weight:700; color: var(--text-primary); line-height:1;">연차 및 식사</div>
+          <!-- Cog -->
+          <div style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius: var(--radius-sm); color: var(--text-secondary);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+        </header>
+
+        <!-- 3-panel body -->
+        <div class="body3" style="flex:1; display:flex; overflow:hidden;">
+
+          <!-- ========== LEFT PANEL (dark) ========== -->
+          <section class="left" style="flex:1; min-width:0; border-right:1px solid var(--border-default); overflow-y:auto; padding:0 0 8px;">
+
+            <!-- Calendar W2 (desktop 18/13/1.2) -->
+            <div style="padding: 0 8px;">
+              <!-- Header row: 7-col grid w/ chevrons -->
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); align-items:center; padding: 8px 0;">
+                <button style="grid-column: 1 / 2; width:28px; height:28px; background: var(--surface-sunken); color: var(--text-secondary); border-radius: var(--radius-sm); border:none; display:flex; align-items:center; justify-content:center; font-size:14px;">&lt;</button>
+                <div style="grid-column: 2 / 7; text-align:center; font-size:18px; font-weight:800; color: var(--text-primary); line-height:1;">2026년 5월</div>
+                <button style="grid-column: 7 / 8; width:28px; height:28px; background: var(--surface-sunken); color: var(--text-secondary); border-radius: var(--radius-sm); border:none; display:flex; align-items:center; justify-content:center; font-size:14px; margin-left:auto;">&gt;</button>
+              </div>
+
+              <!-- Weekday row -->
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 2px 0;">
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--status-danger);">일</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">월</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">화</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">수</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">목</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">금</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--status-info);">토</div>
+              </div>
+
+              <!-- 6×7 day grid (May 2026, starts Friday) -->
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+                <!-- Row 1: prev month 4/26 4/27 4/28 4/29 4/30 + 5/1 5/2 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--status-danger);">26</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">27</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">28</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">29</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">30</div></div>
+                <!-- 5/1 metropolis - 주 duty (orange translucent) -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(245, 158, 11, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">1</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-day);">주</div>
+                </div>
+                <!-- 5/2 토 - 당직 duty -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(239, 68, 68, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">2</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-night);">당</div>
+                </div>
+
+                <!-- Row 2: 5/3 (일) 5/4 5/5 어린이날 5/6 5/7 5/8 5/9 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(59, 130, 246, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">3</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-off);">비</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">4</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--status-warning);">소검</div>
+                </div>
+                <!-- 5/5 어린이날 공휴일 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(107, 114, 128, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">5</div>
+                  <div style="font-size:12px; color: var(--status-danger); line-height:1; font-weight:600; margin-top:2px;">어린이날</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-leave);">휴</div>
+                </div>
+                <!-- 5/6 연차 #42d778 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #42d778;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">6</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">윤연</div>
+                </div>
+                <!-- 5/7 공가 #8f42d7 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #8f42d7;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">7</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">김공</div>
+                </div>
+                <!-- 5/8 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">8</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; background: rgba(105, 168, 247, 0.18); color: var(--status-info); border-radius: var(--radius-sm); padding: 0 4px; line-height:1; font-weight:700;">팀 김</div>
+                </div>
+                <!-- 5/9 토 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">9</div>
+                </div>
+
+                <!-- Row 3: 5/10 (일) ~ 5/16 (토) -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">10</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(245, 158, 11, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">11</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-day);">주</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(239, 68, 68, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">12</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-night);">당</div>
+                </div>
+                <!-- 5/13 경조 #d78042 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d78042;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">13</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">이경</div>
+                </div>
+                <!-- 5/14 병가 #d74242 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d74242;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">14</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">박병</div>
+                </div>
+                <!-- 5/15 보건 #d7428c -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d7428c;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">15</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">최보</div>
+                </div>
+                <!-- 5/16 토 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">16</div>
+                </div>
+
+                <!-- Row 4: 5/17 (일) 5/18 today 5/19 5/20 selected 5/21 5/22 5/23 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">17</div>
+                </div>
+                <!-- 5/18 TODAY -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">18</div>
+                    <span style="background: var(--accent); color: var(--text-on-accent); font-size:12px; padding: 0 4px; border-radius: var(--radius-sm); line-height:1; font-weight:700;">오늘</span>
+                  </div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">19</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--status-warning);">승검</div>
+                </div>
+                <!-- 5/20 SELECTED — outline #facc15 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; outline: 2px solid #facc15; outline-offset: -2px;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">20</div>
+                </div>
+                <!-- 5/21 미N -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">21</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: var(--status-warning); font-weight:700; line-height:1;">미2</div>
+                </div>
+                <!-- 5/22 오전반차 그라디언트 (연차 #42d778 + duty-day) -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: linear-gradient(135deg, #42d778 50%, rgba(245,158,11,0.20) 50%);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">22</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">반차</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">23</div>
+                </div>
+
+                <!-- Row 5: 5/24 (일) 5/25 부처님오신날 공휴일 5/26 5/27 5/28 5/29 5/30 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">24</div>
+                </div>
+                <!-- 5/25 부처님오신날 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">25</div>
+                  <div style="font-size:12px; color: var(--status-danger); line-height:1; font-weight:600; margin-top:2px;">부처님오신날</div>
+                </div>
+                <!-- 5/26 blocked diagonal -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(245,158,11,0.18) 4px, rgba(245,158,11,0.18) 8px);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">26</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">27</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">28</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">29</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">30</div>
+                </div>
+
+                <!-- Row 6: 5/31 (일) + next month 6/1~6/6 dimmed -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">31</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">1</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">2</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">3</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">4</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">5</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--status-info);">6</div></div>
+              </div>
+            </div>
+
+            <!-- Legend row (W3) — 11 chips -->
+            <div style="padding: 6px 12px 0; display:flex; flex-wrap:wrap; gap:6px;">
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-day); flex-shrink:0;"></span>주(주간)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-night); flex-shrink:0;"></span>당(당직)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-off); flex-shrink:0;"></span>비(비번)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-leave); flex-shrink:0;"></span>휴(휴무)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #42d778; flex-shrink:0;"></span>연차</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #8f42d7; flex-shrink:0;"></span>공가</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d78042; flex-shrink:0;"></span>경조</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d74242; flex-shrink:0;"></span>병가</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d7428c; flex-shrink:0;"></span>보건</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #4244d7; flex-shrink:0;"></span>기타특별</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%); flex-shrink:0;"></span>반차</div>
+            </div>
+
+            <!-- Summary cards (W3 §6.3) — 4 stat cards -->
+            <div style="display:flex; gap:8px; padding: 14px 12px 0;">
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #42d778; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">연차 잔여</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">12<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 일</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #06b6d4; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">제공 식수</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">48<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 끼</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #d7428c; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">미사용 식수</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">3<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 끼</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #8f42d7; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">주말 식대</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">22,000<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 원</span></div>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--border-default); margin: 4px 12px 0;"></div>
+
+            <!-- Menu section (W4) -->
+            <div style="padding: 8px 4px 0;">
+              <div style="padding: 14px 12px 0;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: var(--card-gap);">
+                  <div style="grid-column: 1 / 2; background: rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #06b6d4; line-height:1; margin-bottom:6px;">중식 A코너</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">잡곡밥 · 미역국<br/>제육볶음 · 콩나물무침<br/>김치 · 요거트</div>
+                  </div>
+                  <div style="grid-column: 2 / 3; background: rgba(215, 66, 140, 0.08); border:1px solid rgba(215, 66, 140, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #d7428c; line-height:1; margin-bottom:6px;">중식 B코너</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">현미밥 · 된장국<br/>고등어구이 · 시금치무침<br/>김치 · 과일</div>
+                  </div>
+                  <div style="grid-column: 1 / 3; background: rgba(215, 128, 66, 0.08); border:1px solid rgba(215, 128, 66, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #d78042; line-height:1; margin-bottom:6px;">석식</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">흰쌀밥 · 김치찌개<br/>닭갈비 · 무생채<br/>김치 · 요거트</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PDF upload dropzone (W4 desktop) -->
+            <div style="padding: 14px 12px;">
+              <div style="padding: 48px 0; border: 2px dashed var(--border-default); background: var(--surface-raised); border-radius: var(--radius-md); text-align:center;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-secondary); line-height:1;">식단표 PDF 드래그앤드롭 또는 클릭하여 업로드</div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- ========== CENTER PANEL (dark) — 280 ========== -->
+          <section class="center" style="width:280px; flex-shrink:0; border-right:1px solid var(--border-default); overflow-y:auto; padding: var(--modal-padding); display:flex; flex-direction:column; gap: var(--space-3);">
+            <div style="font-size:18px; font-weight:700; color: var(--text-primary); line-height:1;">휴가신청서</div>
+            <div style="background: var(--surface-sunken); border: 1px dashed var(--border-default); border-radius: var(--radius-md); padding: 32px 16px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; text-align:center;">
+              <div style="font-size:13px; font-weight:600; color: var(--text-tertiary); line-height:1.5;">Wave 7 sketch 예정</div>
+              <div style="font-size:12px; color: var(--text-tertiary); line-height:1.5;">(중앙 휴가 신청서 폼 전체)</div>
+            </div>
+          </section>
+
+          <!-- ========== RIGHT PANEL (dark) ========== -->
+          <section class="right" style="flex:1; min-width:0; overflow-y:auto; padding: var(--modal-padding); display:flex; align-items:center; justify-content:center;">
+            <div style="background: var(--surface-raised); border: 1px dashed var(--border-default); border-radius: var(--radius-md); padding: 48px 32px; max-width: 595px; width:100%; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; text-align:center;">
+              <div style="font-size:13px; font-weight:600; color: var(--text-tertiary); line-height:1.5;">Wave 8 sketch 예정</div>
+              <div style="font-size:12px; color: var(--text-tertiary); line-height:1.5;">(우측 휴가 신청서 PDF 미리보기<br/>A4 595px max-w · lp[0..16] 오버레이)</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================= -->
+    <!-- LIGHT FRAME — 1280px       -->
+    <!-- ========================= -->
+    <div class="frame-label">Light theme — 1280px</div>
+    <div class="desk-frame" data-theme="light">
+      <div class="page-root" style="height:100%; display:flex; flex-direction:column; overflow:hidden; background: var(--surface-page);">
+
+        <!-- GlobalHeader placeholder 54px -->
+        <header class="gh" style="height:54px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; background: var(--surface-page); border-bottom: 1px solid var(--border-default); flex-shrink:0;">
+          <div style="width:32px; height:32px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; border-radius: var(--radius-sm); color: var(--text-secondary);">
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+            <div style="width:16px; height:2px; background: currentColor;"></div>
+          </div>
+          <div style="font-size:15px; font-weight:700; color: var(--text-primary); line-height:1;">연차 및 식사</div>
+          <div style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius: var(--radius-sm); color: var(--text-secondary);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </div>
+        </header>
+
+        <div class="body3" style="flex:1; display:flex; overflow:hidden;">
+
+          <!-- ========== LEFT PANEL (light) ========== -->
+          <section class="left" style="flex:1; min-width:0; border-right:1px solid var(--border-default); overflow-y:auto; padding:0 0 8px;">
+
+            <!-- Calendar W2 (desktop 18/13/1.2) -->
+            <div style="padding: 0 8px;">
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); align-items:center; padding: 8px 0;">
+                <button style="grid-column: 1 / 2; width:28px; height:28px; background: var(--surface-sunken); color: var(--text-secondary); border-radius: var(--radius-sm); border:none; display:flex; align-items:center; justify-content:center; font-size:14px;">&lt;</button>
+                <div style="grid-column: 2 / 7; text-align:center; font-size:18px; font-weight:800; color: var(--text-primary); line-height:1;">2026년 5월</div>
+                <button style="grid-column: 7 / 8; width:28px; height:28px; background: var(--surface-sunken); color: var(--text-secondary); border-radius: var(--radius-sm); border:none; display:flex; align-items:center; justify-content:center; font-size:14px; margin-left:auto;">&gt;</button>
+              </div>
+
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 2px 0;">
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--status-danger);">일</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">월</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">화</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">수</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">목</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--text-tertiary);">금</div>
+                <div style="font-size:13px; font-weight:700; text-align:center; line-height:1; padding: 4px 0; color: var(--status-info);">토</div>
+              </div>
+
+              <div style="display:grid; grid-template-columns: repeat(7, 1fr); gap: 2px;">
+                <!-- Row 1 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--status-danger);">26</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">27</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">28</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">29</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">30</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(245, 158, 11, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">1</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-day);">주</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(239, 68, 68, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">2</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-night);">당</div>
+                </div>
+
+                <!-- Row 2 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(59, 130, 246, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">3</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-off);">비</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">4</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--status-warning);">소검</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(107, 114, 128, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">5</div>
+                  <div style="font-size:12px; color: var(--status-danger); line-height:1; font-weight:600; margin-top:2px;">어린이날</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-leave);">휴</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #42d778;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">6</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">윤연</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #8f42d7;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">7</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">김공</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">8</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; background: rgba(105, 168, 247, 0.18); color: var(--status-info); border-radius: var(--radius-sm); padding: 0 4px; line-height:1; font-weight:700;">팀 김</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">9</div>
+                </div>
+
+                <!-- Row 3 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">10</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(245, 158, 11, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">11</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-day);">주</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: rgba(239, 68, 68, 0.20);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">12</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--duty-night);">당</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d78042;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">13</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">이경</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d74242;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">14</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">박병</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: #d7428c;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">15</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">최보</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">16</div>
+                </div>
+
+                <!-- Row 4 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">17</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="display:flex; align-items:center; gap:4px;">
+                    <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">18</div>
+                    <span style="background: var(--accent); color: var(--text-on-accent); font-size:12px; padding: 0 4px; border-radius: var(--radius-sm); line-height:1; font-weight:700;">오늘</span>
+                  </div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">19</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; font-weight:700; line-height:1; color: var(--status-warning);">승검</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; outline: 2px solid #facc15; outline-offset: -2px;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">20</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">21</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: var(--status-warning); font-weight:700; line-height:1;">미2</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: linear-gradient(135deg, #42d778 50%, rgba(245,158,11,0.20) 50%);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: #ffffff; text-shadow: 0 0 2px rgba(0,0,0,0.5);">22</div>
+                  <div style="margin-top:auto; align-self:flex-end; font-size:12px; color: rgba(255,255,255,0.92); line-height:1; font-weight:700;">반차</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">23</div>
+                </div>
+
+                <!-- Row 5 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">24</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">25</div>
+                  <div style="font-size:12px; color: var(--status-danger); line-height:1; font-weight:600; margin-top:2px;">부처님오신날</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden; background: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(245,158,11,0.18) 4px, rgba(245,158,11,0.18) 8px);">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">26</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">27</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">28</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--text-primary);">29</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-info);">30</div>
+                </div>
+
+                <!-- Row 6 -->
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;">
+                  <div style="font-size:12px; font-weight:700; line-height:1; color: var(--status-danger);">31</div>
+                </div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">1</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">2</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">3</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">4</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--text-tertiary);">5</div></div>
+                <div style="aspect-ratio: 1.2; padding: 2px; border-radius: var(--radius-sm); display:flex; flex-direction:column; position:relative; overflow:hidden;"><div style="font-size:12px; font-weight:700; line-height:1; opacity: 0.35; color: var(--status-info);">6</div></div>
+              </div>
+            </div>
+
+            <!-- Legend row (W3) -->
+            <div style="padding: 6px 12px 0; display:flex; flex-wrap:wrap; gap:6px;">
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-day); flex-shrink:0;"></span>주(주간)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-night); flex-shrink:0;"></span>당(당직)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-off); flex-shrink:0;"></span>비(비번)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: var(--duty-leave); flex-shrink:0;"></span>휴(휴무)</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #42d778; flex-shrink:0;"></span>연차</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #8f42d7; flex-shrink:0;"></span>공가</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d78042; flex-shrink:0;"></span>경조</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d74242; flex-shrink:0;"></span>병가</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #d7428c; flex-shrink:0;"></span>보건</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: #4244d7; flex-shrink:0;"></span>기타특별</div>
+              <div style="display:inline-flex; align-items:center; gap:4px; font-size:12px; line-height:1; color: var(--text-secondary);"><span style="width:10px; height:10px; border-radius:50%; background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%); flex-shrink:0;"></span>반차</div>
+            </div>
+
+            <!-- Summary cards -->
+            <div style="display:flex; gap:8px; padding: 14px 12px 0;">
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #42d778; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">연차 잔여</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">12<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 일</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #06b6d4; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">제공 식수</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">48<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 끼</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #d7428c; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">미사용 식수</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">3<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 끼</span></div>
+              </div>
+              <div style="flex:1; min-width:0; background: var(--surface-raised); border-radius: var(--radius-md); padding: var(--card-padding); box-shadow: inset 3px 0 0 #8f42d7; display:flex; flex-direction:column; gap:6px;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-tertiary); line-height:1;">주말 식대</div>
+                <div style="font-size:18px; font-weight:800; color: var(--text-primary); line-height:1; white-space:nowrap;">22,000<span style="font-size:12px; color: var(--text-tertiary); font-weight:600;"> 원</span></div>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div style="border-top:1px solid var(--border-default); margin: 4px 12px 0;"></div>
+
+            <!-- Menu section (W4) -->
+            <div style="padding: 8px 4px 0;">
+              <div style="padding: 14px 12px 0;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: var(--card-gap);">
+                  <div style="grid-column: 1 / 2; background: rgba(6, 182, 212, 0.08); border:1px solid rgba(6, 182, 212, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #06b6d4; line-height:1; margin-bottom:6px;">중식 A코너</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">잡곡밥 · 미역국<br/>제육볶음 · 콩나물무침<br/>김치 · 요거트</div>
+                  </div>
+                  <div style="grid-column: 2 / 3; background: rgba(215, 66, 140, 0.08); border:1px solid rgba(215, 66, 140, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #d7428c; line-height:1; margin-bottom:6px;">중식 B코너</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">현미밥 · 된장국<br/>고등어구이 · 시금치무침<br/>김치 · 과일</div>
+                  </div>
+                  <div style="grid-column: 1 / 3; background: rgba(215, 128, 66, 0.08); border:1px solid rgba(215, 128, 66, 0.20); border-radius: var(--radius-md); padding: 10px 12px;">
+                    <div style="font-size:12px; font-weight:700; color: #d78042; line-height:1; margin-bottom:6px;">석식</div>
+                    <div style="font-size:14px; color: var(--text-secondary); line-height:1.625;">흰쌀밥 · 김치찌개<br/>닭갈비 · 무생채<br/>김치 · 요거트</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PDF upload dropzone -->
+            <div style="padding: 14px 12px;">
+              <div style="padding: 48px 0; border: 2px dashed var(--border-default); background: var(--surface-raised); border-radius: var(--radius-md); text-align:center;">
+                <div style="font-size:12px; font-weight:600; color: var(--text-secondary); line-height:1;">식단표 PDF 드래그앤드롭 또는 클릭하여 업로드</div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- ========== CENTER PANEL (light) — 280 ========== -->
+          <section class="center" style="width:280px; flex-shrink:0; border-right:1px solid var(--border-default); overflow-y:auto; padding: var(--modal-padding); display:flex; flex-direction:column; gap: var(--space-3);">
+            <div style="font-size:18px; font-weight:700; color: var(--text-primary); line-height:1;">휴가신청서</div>
+            <div style="background: var(--surface-sunken); border: 1px dashed var(--border-default); border-radius: var(--radius-md); padding: 32px 16px; display:flex; flex-direction:column; gap:8px; align-items:center; justify-content:center; text-align:center;">
+              <div style="font-size:13px; font-weight:600; color: var(--text-tertiary); line-height:1.5;">Wave 7 sketch 예정</div>
+              <div style="font-size:12px; color: var(--text-tertiary); line-height:1.5;">(중앙 휴가 신청서 폼 전체)</div>
+            </div>
+          </section>
+
+          <!-- ========== RIGHT PANEL (light) ========== -->
+          <section class="right" style="flex:1; min-width:0; overflow-y:auto; padding: var(--modal-padding); display:flex; align-items:center; justify-content:center;">
+            <div style="background: var(--surface-raised); border: 1px dashed var(--border-default); border-radius: var(--radius-md); padding: 48px 32px; max-width: 595px; width:100%; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; text-align:center;">
+              <div style="font-size:13px; font-weight:600; color: var(--text-tertiary); line-height:1.5;">Wave 8 sketch 예정</div>
+              <div style="font-size:12px; color: var(--text-tertiary); line-height:1.5;">(우측 휴가 신청서 PDF 미리보기<br/>A4 595px max-w · lp[0..16] 오버레이)</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
