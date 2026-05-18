@@ -7,13 +7,10 @@
   out of scope: 일정 카드 / 미리보기 / AddModal / 데스크톱 우측 컬럼
   참조: design-system.md v0.1.1 §1~§7, SchedulePage.tsx line 81~302 verbatim
 
-  open questions:
-    OQ #1 (라이트 모드 event dot 색): 다크는 #e2e8f0 verbatim, 라이트 frame 에서는 임시 #94a3b8 (slate-400)
-            로 darken. 사용자 컨펌 후 1) #94a3b8 락 / 2) var(--text-secondary) 매핑 / 3) 카테고리 색 재선정 중 선택.
-    OQ #2 (멀티데이 범위 표시 방식): 시안에서는 source 그대로 일자 셀당 dot 만 표시 (matchesDate 룰 mirror).
-            범위 띠 (band) 시각화는 다음 wave 에서 검토. 사용자 컨펌 항목.
-    OQ #3 ("오늘" 버튼 위치): 현재 시안은 중앙 라벨 우측에 작은 칩 (h-7 pill border-accent). 다른 후보:
-            a) 우측 끝 (› 버튼 안쪽), b) 좌측 끝 (‹ 버튼 옆), c) 별도 floating action. 사용자 컨펌 후 락.
+  open questions — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED a) — 라이트 모드 event dot 색 = #94a3b8 (slate-400). 다크는 #e2e8f0 verbatim 유지.
+    OQ #2 ▶ LOCKED 유지 — 멀티데이 범위 표시는 source 그대로 일자 셀당 dot 만 (matchesDate 룰 mirror). band 추가 안 함.
+    OQ #3 ▶ LOCKED 제거 — "오늘" 칩 자체 제거. 월/연도 네비는 ‹ / 라벨 / › 만 (네비게이션 단순화).
 -->
 <head>
   <meta charset="UTF-8" />
@@ -365,15 +362,8 @@
           style="width:36px; height:36px; font-size:20px; line-height:1;">
           ‹
         </button>
-        <!-- 중앙: 라벨 + "오늘" 칩 -->
-        <div class="flex items-center gap-2">
-          <span class="text-title text-text-primary font-semibold">2026년 5월</span>
-          <!-- "오늘" 칩 — OQ #3 위치 컨펌 대기 -->
-          <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
-            style="height:28px; line-height:1; display:inline-flex; align-items:center;">
-            오늘
-          </button>
-        </div>
+        <!-- 중앙: 라벨 (OQ #3 LOCKED: "오늘" 칩 제거) -->
+        <span class="text-title text-text-primary font-semibold">2026년 5월</span>
         <!-- 다음 달 -->
         <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
           style="width:36px; height:36px; font-size:20px; line-height:1;">
@@ -658,13 +648,8 @@
           style="width:36px; height:36px; font-size:20px; line-height:1;">
           ‹
         </button>
-        <div class="flex items-center gap-2">
-          <span class="text-title text-text-primary font-semibold">2026년 5월</span>
-          <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
-            style="height:28px; line-height:1; display:inline-flex; align-items:center;">
-            오늘
-          </button>
-        </div>
+        <!-- 중앙 라벨 (OQ #3 LOCKED: "오늘" 칩 제거) -->
+        <span class="text-title text-text-primary font-semibold">2026년 5월</span>
         <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
           style="width:36px; height:36px; font-size:20px; line-height:1;">
           ›
@@ -721,7 +706,7 @@
               style="padding:6px 0 7px; border-radius:8px; background:rgba(31,111,235,0.15); border:2px solid var(--accent); box-sizing:border-box;">
               <span class="text-caption font-semibold" style="color:var(--accent); line-height:1;">5</span>
               <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
-                <!-- OQ #1: 라이트 임시 #94a3b8 (slate-400). 다크는 #e2e8f0 verbatim -->
+                <!-- OQ #1 LOCKED: 라이트 #94a3b8 (slate-400). 다크는 #e2e8f0 verbatim -->
                 <span style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></span>
               </div>
             </div>
@@ -810,7 +795,7 @@
               <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
                 <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
                 <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
-                <!-- event dot 라이트 darken 적용 (#94a3b8) — OQ #1 -->
+                <!-- event dot 라이트 #94a3b8 — OQ #1 LOCKED -->
                 <span style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></span>
               </div>
             </div>
@@ -960,13 +945,8 @@
               style="width:32px; height:32px; font-size:20px; line-height:1;">
               ‹
             </button>
-            <div class="flex items-center gap-2">
-              <span class="text-title text-text-primary font-semibold">2026년 5월</span>
-              <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
-                style="height:28px; line-height:1; display:inline-flex; align-items:center;">
-                오늘
-              </button>
-            </div>
+            <!-- 중앙 라벨 (OQ #3 LOCKED: "오늘" 칩 제거) -->
+            <span class="text-title text-text-primary font-semibold">2026년 5월</span>
             <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
               style="width:32px; height:32px; font-size:20px; line-height:1;">
               ›
@@ -1048,29 +1028,20 @@
   </section>
 
   <!-- ============================================================
-       OQ (Open Question) 카드 — 사용자 컨펌 항목 3건 (가독성 강화)
+       OQ LOCKED 카드 — 사용자 답변 완료 (2026-05-19)
        ============================================================ -->
   <section class="max-w-[1400px] mx-auto mb-12 p-5 rounded-md-token"
-    style="background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.3);">
-    <h3 class="text-title text-yellow-300 mb-3 font-medium">OQ · 사용자 컨펌 항목 3건</h3>
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">OQ LOCKED · 사용자 답변 완료 (3건)</h3>
     <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
       <li class="mb-2">
-        <strong>OQ #1 — 라이트 모드 event 카테고리 dot 색</strong><br/>
-        다크: <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#e2e8f0</code> verbatim (소스)<br/>
-        라이트 frame 임시 표시: <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#94a3b8</code> (slate-400) → 흰 배경에서 식별 가능<br/>
-        후보 a) #94a3b8 락 / b) <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">var(--text-secondary)</code> 매핑 / c) 카테고리 색 자체 재선정
+        <strong>OQ #1 ▶ LOCKED a)</strong> — 라이트 모드 event dot 색 = <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#94a3b8</code> (slate-400). 다크 <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#e2e8f0</code> verbatim 유지.
       </li>
       <li class="mb-2">
-        <strong>OQ #2 — 멀티데이 일정 범위 표시 방식</strong><br/>
-        현재 시안: 일자 셀당 동일 카테고리 dot 만 4개 연속 표시 (matchesDate 룰 mirror, 소스 verbatim)<br/>
-        대안: 범위 띠 (band) 를 셀 하단에 가로로 깔기 → 시각적 연속성 강조<br/>
-        결정 필요: <strong>dot 유지</strong> vs <strong>band 추가</strong>
+        <strong>OQ #2 ▶ LOCKED 유지</strong> — 멀티데이 표시는 source 그대로 일자 셀당 dot 만 (matchesDate 룰 mirror). band 추가 안 함.
       </li>
       <li>
-        <strong>OQ #3 — "오늘" 버튼 위치</strong><br/>
-        현재 시안: 중앙 라벨 "2026년 5월" 우측에 작은 pill 칩 (h-7 border-accent text-accent)<br/>
-        대안 a) 우측 끝 (› 버튼 안쪽) / b) 좌측 끝 (‹ 버튼 옆) / c) 캘린더 외부 floating action / d) 칩 자체 제거 (네비게이션만)<br/>
-        사용자 컨펌 후 락.
+        <strong>OQ #3 ▶ LOCKED 제거</strong> — "오늘" 칩 자체 제거. 월/연도 네비는 ‹ / 라벨 / › 만 (단순화).
       </li>
     </ol>
   </section>
