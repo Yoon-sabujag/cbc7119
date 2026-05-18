@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 연차 및 식사 — sketch W1 모바일 shell</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 (구 #8b949e는 5.0:1 빠듯) */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      /* 긴급/조치-대기 톤은 의도적 누락 — 이 페이지(StaffServicePage)는 §3.4.1 룰로 미사용 */
+
+      /* === Status — bar (좌측 색바) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 124~146 verbatim (테마 무관)
+     * ============================================================ */
+    :root {
+      /* Primitive scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* Component spacing — 모바일 기본 */
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 — tokens.css line 149~162 verbatim */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;   /* 표준 36px이지만 미숙 사용자 배려 */
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 167~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;   /* input, button, sub-card */
+      --radius-md:   12px;  /* 표준 카드 */
+      --radius-lg:   16px;  /* 모달, 큰 panel */
+      --radius-pill: 99px;  /* 캡슐 배지, 칩 */
+    }
+
+    /* ============================================================
+     * sketch 페이지 외곽 — raw hex 예외 영역 (page bg only)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;  /* raw hex 예외 — 페이지 외곽 만 */
+      color: var(--text-secondary);
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 18px;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+    p.lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 24px 0;
+      max-width: 860px;
+    }
+
+    /* ============================================================
+     * frame-row — 두 frame side-by-side
+     * ============================================================ */
+    .frame-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .vp-label {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    /* ============================================================
+     * frame-mobile — 393px 모바일 frame (raw hex 예외 #2a2f3a)
+     * ============================================================ */
+    .frame-mobile {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;  /* raw hex 예외 — frame border 만 */
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;  /* mock-bottomnav 가 absolute 동작 */
+    }
+
+    /* ============================================================
+     * mock-header — chrome-rules §1: 헤더 = page (NOT raised)
+     * ============================================================ */
+    .mock-header {
+      display: flex;
+      align-items: center;
+      height: 48px;
+      padding: 0 12px;
+      background: var(--surface-page);
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .mock-header .icon-btn {
+      width: 32px; height: 32px;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .mock-header .icon-btn svg {
+      width: 15px; height: 15px;
+      stroke: var(--text-secondary);
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .mock-header .title {
+      flex: 1;
+      margin: 0 8px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * page-stack — 본문 7 region 세로 stack
+     * ============================================================ */
+    .page-stack {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--section-gap);  /* 모바일 24px */
+      padding: var(--page-padding);  /* 모바일 16px — 상하좌우 */
+      background: var(--surface-page);
+      overflow-y: auto;
+      /* BottomNav 가림 회피 */
+      padding-bottom: calc(var(--page-padding) + 54px + 8px);
+    }
+
+    /* ============================================================
+     * region-placeholder — dashed border 빈 박스
+     * ============================================================ */
+    .region-placeholder {
+      border: 1.5px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: var(--card-padding);  /* 모바일 14px */
+      min-height: 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      background: transparent;
+    }
+    .region-placeholder.accent {
+      /* region 7 (bottomsheet-trigger) 만 accent 점선 보더로 강조 */
+      border: 1.5px dashed var(--accent);
+    }
+    .region-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.5;
+    }
+    .region-hint {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+    }
+
+    /* ============================================================
+     * mock-bottomnav — 5탭, frame 안 absolute
+     * ============================================================ */
+    .mock-bottomnav {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      box-sizing: border-box;
+    }
+    .bn-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 3px 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: var(--text-tertiary);
+    }
+    .bn-icon { width: 21px; height: 21px; display: inline-flex; align-items: center; justify-content: center; }
+    .bn-icon svg {
+      width: 21px; height: 21px;
+      stroke: var(--text-tertiary);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .bn-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+
+    /* QR 가운데 특수 탭 */
+    .bn-tab-qr {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 3px 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      margin-top: -14px;
+    }
+    .bn-tab-qr .qr-bubble {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      /* raw hex 예외 — BottomNav.tsx verbatim 그라디언트 */
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.55);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .bn-tab-qr .qr-bubble svg {
+      width: 22px;
+      height: 22px;
+      stroke: #ffffff;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .bn-tab-qr .bn-label-qr {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * Rule 박스
+     * ============================================================ */
+    .rules {
+      margin-top: 40px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 860px;
+    }
+    .rules h2 { font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules h3 { font-size: 14px; margin: 16px 0 6px 0; color: var(--text-primary); }
+    .rules p { font-size: 13px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul, .rules ol { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); }
+    .rules li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+  <h1>12 · 연차 및 식사 (StaffServicePage) — sketch W1 모바일 shell</h1>
+  <p class="lead">W1 검증 포인트 (UI-SPEC §12): layout 흐름 / surface 계층 / padding. region 7개 placeholder 세로 stack + App chrome (GlobalHeader + BottomNav) 자리 표시. 실제 컴포넌트는 W2~W5 에서 채움.</p>
+
+  <div class="frame-row">
+
+    <!-- ──────────────────────── VP1 다크 ──────────────────────── -->
+    <div>
+      <div class="vp-label">VP1 · 모바일 다크 · 393×844</div>
+      <div class="frame-mobile" data-theme="dark">
+        <header class="mock-header">
+          <button class="icon-btn" aria-label="메뉴 열기">
+            <svg viewBox="0 0 24 24" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="title">연차 및 식사</span>
+          <button class="icon-btn" aria-label="설정">
+            <svg viewBox="0 0 24 24" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </header>
+        <main class="page-stack">
+          <div class="region-placeholder">
+            <span class="region-label">region.summary-row</span>
+            <span class="region-hint">요약 카드 row (4종) — W3 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.calendar</span>
+            <span class="region-hint">7×6 달력 grid — W2 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.legend</span>
+            <span class="region-hint">범례 row — W3 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.menu-cards</span>
+            <span class="region-hint">식단 카드 3종 — W4 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.weekend-allowance</span>
+            <span class="region-hint">주말식대 stat card — W4 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.pdf-upload</span>
+            <span class="region-hint">식단 PDF 업로드 dropzone — W4 sketch</span>
+          </div>
+          <div class="region-placeholder accent">
+            <span class="region-label">region.bottomsheet-trigger</span>
+            <span class="region-hint">휴가 등록 FAB / trigger — W5 sketch (BottomSheet)</span>
+          </div>
+        </main>
+        <nav class="mock-bottomnav">
+          <!-- 1. 대시보드 -->
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            </div>
+            <span class="bn-label">대시보드</span>
+          </button>
+          <!-- 2. 점검 -->
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+            <span class="bn-label">점검</span>
+          </button>
+          <!-- 3. QR 가운데 -->
+          <button class="bn-tab-qr">
+            <div class="qr-bubble">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 18h2M18 14h3"/>
+              </svg>
+            </div>
+            <span class="bn-label-qr">QR 스캔</span>
+          </button>
+          <!-- 4. 조치 (렌치) -->
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <span class="bn-label">조치</span>
+          </button>
+          <!-- 5. 승강기 -->
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 9l3-3 3 3M9 15l3 3 3-3"/></svg>
+            </div>
+            <span class="bn-label">승강기</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ──────────────────────── VP2 라이트 ──────────────────────── -->
+    <div>
+      <div class="vp-label">VP2 · 모바일 라이트 · 393×844</div>
+      <div class="frame-mobile" data-theme="light">
+        <header class="mock-header">
+          <button class="icon-btn" aria-label="메뉴 열기">
+            <svg viewBox="0 0 24 24" stroke-width="2">
+              <path d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="title">연차 및 식사</span>
+          <button class="icon-btn" aria-label="설정">
+            <svg viewBox="0 0 24 24" stroke-width="1.8">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        </header>
+        <main class="page-stack">
+          <div class="region-placeholder">
+            <span class="region-label">region.summary-row</span>
+            <span class="region-hint">요약 카드 row (4종) — W3 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.calendar</span>
+            <span class="region-hint">7×6 달력 grid — W2 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.legend</span>
+            <span class="region-hint">범례 row — W3 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.menu-cards</span>
+            <span class="region-hint">식단 카드 3종 — W4 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.weekend-allowance</span>
+            <span class="region-hint">주말식대 stat card — W4 sketch</span>
+          </div>
+          <div class="region-placeholder">
+            <span class="region-label">region.pdf-upload</span>
+            <span class="region-hint">식단 PDF 업로드 dropzone — W4 sketch</span>
+          </div>
+          <div class="region-placeholder accent">
+            <span class="region-label">region.bottomsheet-trigger</span>
+            <span class="region-hint">휴가 등록 FAB / trigger — W5 sketch (BottomSheet)</span>
+          </div>
+        </main>
+        <nav class="mock-bottomnav">
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            </div>
+            <span class="bn-label">대시보드</span>
+          </button>
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+            <span class="bn-label">점검</span>
+          </button>
+          <button class="bn-tab-qr">
+            <div class="qr-bubble">
+              <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="7" height="7" rx="1"/>
+                <rect x="14" y="3" width="7" height="7" rx="1"/>
+                <rect x="3" y="14" width="7" height="7" rx="1"/>
+                <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 18h2M18 14h3"/>
+              </svg>
+            </div>
+            <span class="bn-label-qr">QR 스캔</span>
+          </button>
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <span class="bn-label">조치</span>
+          </button>
+          <button class="bn-tab">
+            <div class="bn-icon">
+              <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 9l3-3 3 3M9 15l3 3 3-3"/></svg>
+            </div>
+            <span class="bn-label">승강기</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rules">
+    <h2>적용 룰 — W1 모바일 shell</h2>
+    <p>UI-SPEC §3 surface 계층 + §4.2 모바일 region stack + chrome-rules §1 3-layer 규칙 단일 source.</p>
+
+    <h3>chrome 3-layer 룰 (헤더 = page, NOT raised)</h3>
+    <ul>
+      <li>헤더 배경: var(--surface-page) — 본 sketch 에서 변경. App GlobalHeader.tsx 의 raised 톤 기본값과 의도적으로 다름. chrome-rules §1 적용으로 헤더+본문 = page / wrapper만 = raised 3계층 정착.</li>
+      <li>본문 (page-stack): var(--surface-page) — 헤더와 동일 톤. region placeholder 안쪽이 raised 카드로 채워질 때 (W2+) 비로소 layer 분리 가시.</li>
+      <li>BottomNav: var(--surface-raised) — 본문 위 떠 있는 chrome 으로서 한 단계 raised.</li>
+    </ul>
+
+    <h3>spacing 룰</h3>
+    <ul>
+      <li>page-padding 16px (var(--page-padding)) — 헤더와 첫 region 사이 + region 좌우.</li>
+      <li>section-gap 24px (var(--section-gap)) — region 사이 세로 간격.</li>
+      <li>BottomNav 가림 회피: page-stack padding-bottom = page-padding + 54 + 8.</li>
+    </ul>
+
+    <h3>region stack 순서 (UI-SPEC §4.2)</h3>
+    <ol>
+      <li>region.summary-row</li>
+      <li>region.calendar</li>
+      <li>region.legend</li>
+      <li>region.menu-cards</li>
+      <li>region.weekend-allowance</li>
+      <li>region.pdf-upload</li>
+      <li>region.bottomsheet-trigger (accent 보더로 강조 — BottomSheet 진입점)</li>
+    </ol>
+
+    <h3>BottomNav 활성 탭 처리</h3>
+    <ul>
+      <li>이 페이지 라우트(/staff-service)는 BottomNav.ITEMS 5탭(대시보드/점검/QR/조치/승강기) 어디에도 매칭되지 않는다. 따라서 활성 탭 없음 — 5탭 전부 비활성 회색(var(--text-tertiary)).</li>
+      <li>QR 가운데 그라디언트 bubble 은 BottomNav 컨벤션상 항상 강조 — 비활성 상태에서도 그라디언트 유지. 라벨 색은 var(--accent) (BottomNav.tsx line 81 verbatim).</li>
+    </ul>
+
+    <h3>금지 룰 (verify gate)</h3>
+    <ul>
+      <li>이모지 0건 — 모든 region 라벨/힌트/룰 박스 텍스트에서 일체 사용 금지</li>
+      <li>옛 alias 토큰 (옛 약식 surface · border · text · accent · status · duty 변수명, tokens.css 의 alias 블록 line 177~197 참조) 0건</li>
+      <li>긴급/조치-대기 status 토큰 0건 — 이 페이지 (StaffServicePage) 는 §3.4.1 룰로 해당 톤 미사용</li>
+      <li>9·10·11px 폰트 0건 — typography.css 노안 마지노선 12 룰</li>
+      <li>raw hex / rgba 0건 — :root 토큰 정의 + body 외곽 (#0f1218) + frame border (#2a2f3a) + QR 그라디언트 (#1d4ed8/#0ea5e9 + box-shadow rgba) + QR svg stroke (#ffffff) 만 예외</li>
+      <li>그라디언트 일체 — QR 가운데 버튼만 예외 (BottomNav.tsx verbatim)</li>
+      <li>그림자 / blur / backdrop-filter — QR 가운데 box-shadow 만 예외</li>
+      <li>lg:* / @media (max-width:…) 모바일 분기 — W1 은 모바일 frame 만 (393px 고정). 데스크톱 frame 은 W6 sketch.</li>
+    </ul>
+
+    <h3>다음 wave</h3>
+    <ul>
+      <li>W2 — 02-calendar-grid-sketch.html (달력 헤더 + 7×6 grid + 셀 모든 상태)</li>
+      <li>W3 — 03-legend-summary-sketch.html (범례 + 4종 요약 stat card)</li>
+      <li>W4 — 04-menu-cards-sketch.html (식단 3종 + PDF dropzone + 주말식대)</li>
+      <li>W5 — 05-bottomsheet-sketch.html (BottomSheet 전체 — 휴가 등록 trigger 의 실제 모습)</li>
+    </ul>
+  </div>
+</body>
+</html>

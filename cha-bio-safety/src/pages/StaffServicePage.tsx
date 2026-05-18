@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Check } from 'lucide-react'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -49,35 +50,35 @@ function prevYMD(date: Date): string {
 const SHIFT_LABEL: Record<RawShift, string> = { '당': '당', '비': '비', '주': '주', '휴': '휴' }
 const MONTH_NAMES = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']
 
-// 공가: 보라(#a855f7) — 주간(#f59e0b)과 구분
+// 카테고리 색 — 정규화 hex (W2 결정)
 const LEAVE_TYPES = [
-  { type: 'full', label: '연차', rgb: '34,197,94' },
-  { type: 'half_am', label: '오전반차', rgb: '34,197,94' },
-  { type: 'half_pm', label: '오후반차', rgb: '34,197,94' },
-  { type: 'official_full', label: '공가', rgb: '168,85,247' },
-  { type: 'official_half_am', label: '공가오전', rgb: '168,85,247' },
-  { type: 'official_half_pm', label: '공가오후', rgb: '168,85,247' },
+  { type: 'full', label: '연차', rgb: '66, 215, 120' },
+  { type: 'half_am', label: '오전반차', rgb: '66, 215, 120' },
+  { type: 'half_pm', label: '오후반차', rgb: '66, 215, 120' },
+  { type: 'official_full', label: '공가', rgb: '143, 66, 215' },
+  { type: 'official_half_am', label: '공가오전', rgb: '143, 66, 215' },
+  { type: 'official_half_pm', label: '공가오후', rgb: '143, 66, 215' },
 ] as const
 
-// 셀 배경색 — 앱 헤더 동그라미와 동일한 CSS 변수
+// 셀 배경색 — duty 토큰 (alias 0건)
 const SHIFT_BG: Record<RawShift, string> = {
-  '당': 'var(--c-night)',  // #ef4444
-  '비': 'var(--c-off)',    // #3b82f6
-  '주': 'var(--c-day)',    // #f59e0b
-  '휴': 'var(--c-leave)',  // #6b7280
+  '당': 'var(--duty-night)',
+  '비': 'var(--duty-off)',
+  '주': 'var(--duty-day)',
+  '휴': 'var(--duty-leave)',
 }
 const LEAVE_BG: Record<string, string> = {
-  full: '#22c55e',
-  half_am: '#22c55e',
-  half_pm: '#22c55e',
-  official_full: '#a855f7',
-  official_half_am: '#a855f7',
-  official_half_pm: '#a855f7',
-  condolence: '#f97316',
-  sick_work: '#ef4444',
-  sick_personal: '#ef4444',
-  health: '#ec4899',
-  other_special: '#6366f1',
+  full: '#42d778',
+  half_am: '#42d778',
+  half_pm: '#42d778',
+  official_full: '#8f42d7',
+  official_half_am: '#8f42d7',
+  official_half_pm: '#8f42d7',
+  condolence: '#d78042',
+  sick_work: '#d74242',
+  sick_personal: '#d74242',
+  health: '#d7428c',
+  other_special: '#4244d7',
 }
 
 // 중앙 패널 휴가종류 버튼 구성
@@ -677,38 +678,46 @@ export default function StaffServicePage() {
     return m
   }, [staffList, teamLeaves])
 
+  // 연차 잔여 임계치 색 — UI-SPEC §6.3 위험 임계치만 status 색
+  const remainingColor = remaining < 1 ? '#d74242' : remaining < 3 ? '#facc15' : '#42d778'
+
   // ── 공유 렌더 조각 ─────────────────────────────────────────
   const calendarGrid = (
-    <div style={{ padding: '0 8px' }}>
+    <div className="px-2">
       {/* 연도/월 선택 + 요일 헤더 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', alignItems: 'center', marginBottom: 2, padding: '8px 0 4px' }}>
-        <div style={{ gridColumn: '1 / 4', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <button onClick={() => setYear(y => y - 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&lsaquo;</button>
-          <span style={{ fontSize: isDesktop ? 18 : 15, fontWeight: 800, color: 'var(--t1)', minWidth: 50, textAlign: 'center' }}>{year}년</span>
-          <button onClick={() => setYear(y => y + 1)} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&rsaquo;</button>
+      <div className="grid grid-cols-7 items-center mb-0.5 pt-2 pb-1">
+        <div className="col-start-1 col-end-4 flex items-center justify-center gap-1">
+          <button onClick={() => setYear(y => y - 1)} className="bg-surface-sunken border-0 cursor-pointer rounded-sm px-2 py-0.5 text-text-secondary text-label font-bold leading-none">&lsaquo;</button>
+          <span className="text-title font-extrabold text-text-primary min-w-[50px] text-center leading-none">{year}년</span>
+          <button onClick={() => setYear(y => y + 1)} className="bg-surface-sunken border-0 cursor-pointer rounded-sm px-2 py-0.5 text-text-secondary text-label font-bold leading-none">&rsaquo;</button>
         </div>
         <div />
-        <div style={{ gridColumn: '5 / 8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-          <button onClick={prevMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&lsaquo;</button>
-          <span style={{ fontSize: isDesktop ? 18 : 15, fontWeight: 800, color: 'var(--t1)', minWidth: 28, textAlign: 'center' }}>{MONTH_NAMES[month]}</span>
-          <button onClick={nextMonth} style={{ background: 'var(--bg3)', border: 'none', cursor: 'pointer', borderRadius: 6, padding: '3px 7px', color: 'var(--t2)', fontSize: isDesktop ? 15 : 13, fontWeight: 700 }}>&rsaquo;</button>
+        <div className="col-start-5 col-end-8 flex items-center justify-center gap-1">
+          <button onClick={prevMonth} className="bg-surface-sunken border-0 cursor-pointer rounded-sm px-2 py-0.5 text-text-secondary text-label font-bold leading-none">&lsaquo;</button>
+          <span className="text-title font-extrabold text-text-primary min-w-[28px] text-center leading-none">{MONTH_NAMES[month]}</span>
+          <button onClick={nextMonth} className="bg-surface-sunken border-0 cursor-pointer rounded-sm px-2 py-0.5 text-text-secondary text-label font-bold leading-none">&rsaquo;</button>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 2 }}>
+      <div className="grid grid-cols-7 mb-0.5">
         {DOW_KO.map((d, i) => (
-          <div key={d} style={{ textAlign: 'center', fontSize: isDesktop ? 13 : 10, fontWeight: 700, color: i === 0 ? '#ef4444' : i === 6 ? '#3b82f6' : 'var(--t3)', padding: '4px 0' }}>{d}</div>
+          <div
+            key={d}
+            className={`text-center text-caption font-bold py-1 leading-none ${i === 0 ? 'text-danger' : i === 6 ? 'text-info' : 'text-text-tertiary'}`}
+          >
+            {d}
+          </div>
         ))}
       </div>
 
       {leaveLoading ? (
-        <div style={{ padding: '40px 0', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: 24, height: 24, border: '2px solid var(--bd)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+        <div className="py-10 flex justify-center">
+          <div className="w-6 h-6 border-2 border-border-default rounded-full" style={{ borderTopColor: 'var(--accent)', animation: 'spin .7s linear infinite' }} />
           <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: isDesktop ? 2 : 3 }}>
+        <div className={`grid grid-cols-7 ${isDesktop ? 'gap-[2px]' : 'gap-[3px]'}`}>
           {calendarDays.map((cell, idx) => {
-            if (!cell.date) return <div key={`e-${idx}`} style={{ aspectRatio: isDesktop ? '1.2' : '1' }} />
+            if (!cell.date) return <div key={`e-${idx}`} className={isDesktop ? 'aspect-[1.2]' : 'aspect-square'} />
 
             const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
             const isSel = cell.ymd === selDate
@@ -727,65 +736,59 @@ export default function StaffServicePage() {
             else if (isHalf) cellBg = isAm ? `linear-gradient(135deg, ${leaveBgColor} 50%, ${shiftBg} 50%)` : `linear-gradient(135deg, ${shiftBg} 50%, ${leaveBgColor} 50%)`
             else cellBg = shiftBg
 
-            const dateColor = (dow === 0 || isHoliday) ? '#7f1d1d' : dow === 6 ? '#1e3a5f' : 'var(--t1)'
+            const dateColor = (dow === 0 || isHoliday) ? '#7f1d1d' : dow === 6 ? '#1e3a5f' : 'var(--text-primary)'
             const infoText = getCellInfo(cell)
 
             return (
               <div
                 key={cell.ymd}
                 onClick={() => isClickable && handleDayClick(cell.ymd)}
+                className={`relative flex flex-col overflow-hidden select-none p-0.5 rounded-sm ${isDesktop ? 'aspect-[1.2]' : 'aspect-square'} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
-                  aspectRatio: isDesktop ? '1.2' : '1',
-                  borderRadius: 8,
                   background: cellBg,
                   border: isSel ? '2.5px solid #facc15' : isToday ? '2.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.04)',
                   boxShadow: isToday && !isSel ? '0 0 0 2px rgba(59,130,246,0.35)' : undefined,
-                  cursor: isClickable ? 'pointer' : 'default',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  userSelect: 'none',
                   WebkitTapHighlightColor: 'transparent',
-                  padding: 2,
                 }}
               >
                 {blocked && !myLeave && (
-                  <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.25)', borderRadius:8, pointerEvents:'none' }} />
+                  <div className="absolute inset-0 rounded-sm pointer-events-none" style={{ background: 'rgba(0,0,0,0.25)' }} />
                 )}
                 {isToday && (
-                  <div style={{
-                    position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)',
-                    background:'#3b82f6',
-                    color:'#fff',
-                    fontSize: isDesktop ? 11 : 7, fontWeight: 800,
-                    ...(isDesktop
-                      ? { padding: '3px 9px' }
-                      : { width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' as const }),
-                    borderRadius: 6,
-                    letterSpacing: '-.02em',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
-                    pointerEvents: 'none',
-                    zIndex: 1,
-                  }}>오늘</div>
+                  <div
+                    className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm pointer-events-none z-[1] text-caption font-extrabold text-text-on-accent leading-none flex items-center justify-center whitespace-nowrap ${isDesktop ? 'px-2.5 py-0.5' : 'w-5 h-5'}`}
+                    style={{
+                      background: 'var(--accent)',
+                      letterSpacing: '-.02em',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.35)',
+                    }}
+                  >
+                    오늘
+                  </div>
                 )}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                  <span style={{ fontSize: isDesktop ? 10 : 8, fontWeight:800, color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)', lineHeight:1 }}>
+                <div className="flex justify-between items-start">
+                  <span
+                    className="text-caption font-extrabold leading-none"
+                    style={{ color: isFullLeave ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.75)' }}
+                  >
                     {isFullLeave ? (LEAVE_LABEL[lt!] ?? '연차') : isHalf ? (isAm ? '전반' : '후반') : SHIFT_LABEL[rawShift]}
                   </span>
-                  <span style={{ fontSize: isDesktop ? 14 : 11, fontWeight:700, color: dateColor, lineHeight:1 }}>
+                  <span
+                    className="text-caption font-bold leading-none"
+                    style={{ color: dateColor }}
+                  >
                     {cell.day}
                   </span>
                 </div>
-                <div style={{ flex:1 }} />
+                <div className="flex-1" />
                 {(cell.holidayName || infoText) && (
-                  <div style={{ fontSize: isDesktop ? 8 : 6, fontWeight:700, color:'rgba(255,255,255,0.85)', lineHeight:1.2, textAlign:'right', wordBreak:'break-all' }}>
-                    {cell.holidayName && <div style={{ color:'#fca5a5' }}>{cell.holidayName}</div>}
+                  <div className="text-caption font-bold text-right break-all leading-tight" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                    {cell.holidayName && <div style={{ color: '#fca5a5' }}>{cell.holidayName}</div>}
                     {infoText}
                   </div>
                 )}
                 {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
-                  <div style={{ fontSize: isDesktop ? 9 : 7, color:'#fbbf24', fontWeight:800, lineHeight:1, textAlign:'right' }}>
+                  <div className="text-caption font-extrabold leading-none text-right" style={{ color: '#fbbf24' }}>
                     미{skipped}
                   </div>
                 )}
@@ -797,43 +800,63 @@ export default function StaffServicePage() {
     </div>
   )
 
+  const dotSize = isDesktop ? 'w-2.5 h-2.5' : 'w-3 h-3'
   const legendRow = (
-    <div style={{ display: 'flex', gap: isDesktop ? 6 : 8, flexWrap: 'wrap', padding: '6px 12px 0', alignItems: 'center' }}>
+    <div className={`flex flex-wrap items-center px-3 pt-1.5 ${isDesktop ? 'gap-1.5' : 'gap-2'}`}>
+      <div className="flex items-center gap-0.5">
+        <span className={`inline-block rounded-full bg-duty-night ${dotSize}`} />
+        <span className="text-caption text-text-tertiary leading-none">당직</span>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <span className={`inline-block rounded-full bg-duty-off ${dotSize}`} />
+        <span className="text-caption text-text-tertiary leading-none">비번</span>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <span className={`inline-block rounded-full bg-duty-day ${dotSize}`} />
+        <span className="text-caption text-text-tertiary leading-none">주간</span>
+      </div>
+      <div className="flex items-center gap-0.5">
+        <span className={`inline-block rounded-full bg-duty-leave ${dotSize}`} />
+        <span className="text-caption text-text-tertiary leading-none">휴무</span>
+      </div>
       {([
-        { label: '당직', bg: 'var(--c-night)' },
-        { label: '비번', bg: 'var(--c-off)' },
-        { label: '주간', bg: 'var(--c-day)' },
-        { label: '휴무', bg: 'var(--c-leave)' },
-        { label: '연차', bg: '#22c55e' },
-        { label: '공가', bg: '#a855f7' },
-        { label: '경조', bg: '#f97316' },
-        { label: '병가', bg: '#ef4444' },
-        { label: '보건', bg: '#ec4899' },
-        { label: '기타', bg: '#6366f1' },
+        { label: '연차', bg: '#42d778' },
+        { label: '공가', bg: '#8f42d7' },
+        { label: '경조', bg: '#d78042' },
+        { label: '병가', bg: '#d74242' },
+        { label: '보건', bg: '#d7428c' },
+        { label: '기타', bg: '#4244d7' },
       ]).map(l => (
-        <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{ display: 'inline-block', width: isDesktop ? 10 : 12, height: isDesktop ? 10 : 12, borderRadius: '50%', background: l.bg }} />
-          <span style={{ fontSize: isDesktop ? 10 : 10, color: 'var(--t3)' }}>{l.label}</span>
+        <div key={l.label} className="flex items-center gap-0.5">
+          <span className={`inline-block rounded-full ${dotSize}`} style={{ background: l.bg }} />
+          <span className="text-caption text-text-tertiary leading-none">{l.label}</span>
         </div>
       ))}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <span style={{ width: isDesktop ? 10 : 12, height: isDesktop ? 10 : 12, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e 50%, var(--c-day) 50%)', display: 'inline-block' }} />
-        <span style={{ fontSize: isDesktop ? 10 : 10, color: 'var(--t3)' }}>반차</span>
+      <div className="flex items-center gap-0.5">
+        <span
+          className={`inline-block rounded-full ${dotSize}`}
+          style={{ background: 'linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%)' }}
+        />
+        <span className="text-caption text-text-tertiary leading-none">반차</span>
       </div>
     </div>
   )
 
   const summaryCards = (
-    <div style={{ display: 'flex', gap: 8, padding: '14px 12px 0', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <div className="flex gap-2 px-3 pt-3.5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       {[
-        { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: '#22c55e', bg: 'rgba(34,197,94,0.1)', bd: 'rgba(34,197,94,0.25)' },
-        { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6,182,212,0.1)', bd: 'rgba(6,182,212,0.25)' },
-        { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#ec4899', bg: 'rgba(236,72,153,0.1)', bd: 'rgba(236,72,153,0.25)' },
-        { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#f97316', bg: 'rgba(249,115,22,0.1)', bd: 'rgba(249,115,22,0.25)' },
+        { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: remainingColor, bg: 'rgba(66, 215, 120, 0.1)', bd: 'rgba(66, 215, 120, 0.25)' },
+        { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', bd: 'rgba(6, 182, 212, 0.25)' },
+        { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#d7428c', bg: 'rgba(215, 66, 140, 0.1)', bd: 'rgba(215, 66, 140, 0.25)' },
+        { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#8f42d7', bg: 'rgba(143, 66, 215, 0.1)', bd: 'rgba(143, 66, 215, 0.25)' },
       ].map(c => (
-        <div key={c.label} style={{ flex: '1 0 0', minWidth: 72, background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-          <div style={{ fontSize: 9, color: 'var(--t3)', fontWeight: 600, marginBottom: 4 }}>{c.label}</div>
-          <div style={{ fontSize: 14, fontWeight: 800, color: c.color, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{c.value}</div>
+        <div
+          key={c.label}
+          className="flex-1 min-w-[72px] rounded-md p-card-sm text-center border"
+          style={{ background: c.bg, borderColor: c.bd }}
+        >
+          <div className="text-caption text-text-tertiary font-semibold leading-none mb-1">{c.label}</div>
+          <div className="text-title font-extrabold leading-none whitespace-nowrap" style={{ color: c.color }}>{c.value}</div>
         </div>
       ))}
     </div>
@@ -862,19 +885,25 @@ export default function StaffServicePage() {
     if (!isLunch && !isDinner) return null
 
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '8px 12px 0' }}>
+      <div className="grid grid-cols-2 gap-2 px-3 pt-2">
         {isLunch && menu.lunch_a && (
           <>
-            <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#06b6d4', marginBottom: 6 }}>중식 A코너</div>
-              <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+            <div
+              className="rounded-md p-3 border"
+              style={{ background: 'rgba(6, 182, 212, 0.08)', borderColor: 'rgba(6, 182, 212, 0.2)' }}
+            >
+              <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#06b6d4' }}>중식 A코너</div>
+              <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
                 {menu.lunch_a.split(' / ').join('\n')}
               </div>
             </div>
             {menu.lunch_b && (
-              <div style={{ background: 'rgba(236,72,153,0.08)', border: '1px solid rgba(236,72,153,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#ec4899', marginBottom: 6 }}>중식 B코너</div>
-                <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+              <div
+                className="rounded-md p-3 border"
+                style={{ background: 'rgba(215, 66, 140, 0.08)', borderColor: 'rgba(215, 66, 140, 0.2)' }}
+              >
+                <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#d7428c' }}>중식 B코너</div>
+                <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
                   {menu.lunch_b.split(' / ').join('\n')}
                 </div>
               </div>
@@ -882,9 +911,12 @@ export default function StaffServicePage() {
           </>
         )}
         {isDinner && menu.dinner && (
-          <div style={{ gridColumn: '1 / 3', background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: 12, padding: '10px 12px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', marginBottom: 6 }}>석식 메뉴</div>
-            <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+          <div
+            className="col-span-2 rounded-md p-3 border"
+            style={{ background: 'rgba(215, 128, 66, 0.08)', borderColor: 'rgba(215, 128, 66, 0.2)' }}
+          >
+            <div className="text-caption font-bold leading-none mb-1.5" style={{ color: '#d78042' }}>석식 메뉴</div>
+            <div className="text-body-sm text-text-secondary leading-relaxed whitespace-pre-line">
               {menu.dinner.split(' / ').join('\n')}
             </div>
           </div>
@@ -893,103 +925,15 @@ export default function StaffServicePage() {
     )
   })()
 
-  const detailPanel = selCell?.date ? (
-    <div style={{ padding: 16 }}>
-      {/* 날짜 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>
-          {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
-        </span>
-        <span style={{
-          fontSize: 12, fontWeight: 700, color: '#fff',
-          background: SHIFT_COLOR[selCell.rawShift],
-          borderRadius: 6, padding: '3px 10px',
-        }}>
-          {selCell.rawShift === '당' ? '당직근무' : selCell.rawShift === '비' ? '비번' : selCell.rawShift === '주' ? '주간근무' : '휴무'}
-        </span>
-        {selCell.isHoliday && (
-          <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
-        )}
-      </div>
-
-      {/* 식사 */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>
-          식사 (제공 {selCell.provided}끼)
-        </div>
-        {selCell.provided === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--t3)', padding: '10px 14px', background: 'var(--bg3)', borderRadius: 8 }}>
-            식사 미제공
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 13, color: 'var(--t2)' }}>미사용:</span>
-            <button
-              onClick={handleMealCycle}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '10px 20px', borderRadius: 10,
-                background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
-                border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
-                cursor: 'pointer', fontSize: 16, fontWeight: 700,
-                color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t2)',
-              }}
-            >
-              <span style={{ fontSize: 18 }}>{selCell.skipped}</span>
-              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--t3)' }}>끼</span>
-            </button>
-            <span style={{ fontSize: 11, color: 'var(--t3)' }}>클릭하여 변경</span>
-          </div>
-        )}
-      </div>
-
-      {/* 팀원 연차 */}
-      {selCell.teamLeaveList.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>팀원 연차</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {selCell.teamLeaveList.map(tl => (
-              <span key={tl.id} style={{
-                fontSize: 12, fontWeight: 600, color: 'var(--t1)',
-                background: 'var(--bg3)', borderRadius: 8, padding: '5px 12px',
-                border: '1px solid var(--bd)',
-              }}>
-                {teamNameMap[tl.staffId] ?? tl.staffId.slice(-4)}
-                <span style={{ marginLeft: 4, fontSize: 11, color: tl.type.startsWith('official') ? '#f97316' : '#22c55e', fontWeight: 700 }}>
-                  ({LEAVE_LABEL[tl.type] ?? tl.type})
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 주말 식대 */}
-      {(() => {
-        const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
-        if (allow > 0) return (
-          <div style={{ padding: '10px 14px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
-            <span style={{ fontSize: 12, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
-          </div>
-        )
-        return null
-      })()}
-    </div>
-  ) : (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--t3)', fontSize: 14 }}>
-      날짜를 선택하세요
-    </div>
-  )
-
   const uploadSection = (
-    <div style={{ padding: '14px 12px' }}>
+    <div className="px-3 py-3.5">
       <label
         ref={dropRef}
-        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--acl)' }}
-        onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--bd)' }}
+        onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)' }}
+        onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border-default)' }}
         onDrop={e => {
           e.preventDefault()
-          e.currentTarget.style.borderColor = 'var(--bd)'
+          e.currentTarget.style.borderColor = 'var(--border-default)'
           const file = e.dataTransfer.files[0]
           if (file && file.type === 'application/pdf') {
             const dt = new DataTransfer()
@@ -1000,19 +944,10 @@ export default function StaffServicePage() {
             toast.error('PDF 파일만 업로드 가능합니다')
           }
         }}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: isDesktop ? '48px 0' : '12px 0', borderRadius: 12,
-          background: 'var(--bg2)',
-          border: isDesktop ? '2px dashed var(--bd)' : '1px solid var(--bd)',
-          color: 'var(--t2)', fontSize: 12, fontWeight: 600,
-          textAlign: 'center', cursor: 'pointer',
-          transition: 'border-color 0.15s',
-        }}
+        className={`flex items-center justify-center cursor-pointer bg-surface-raised text-text-secondary text-caption font-semibold leading-none rounded-md text-center transition-colors ${isDesktop ? 'border-2 border-dashed border-border-default py-12' : 'border border-border-default py-3'}`}
       >
         {isDesktop ? '식단표 PDF 드래그앤드롭 또는 클릭하여 업로드' : '식단표 PDF 업로드'}
-        <input type="file" accept=".pdf" style={{ display: 'none' }}
-          onChange={handleMenuUpload} />
+        <input type="file" accept=".pdf" className="hidden" onChange={handleMenuUpload} />
       </label>
     </div>
   )
@@ -1020,34 +955,37 @@ export default function StaffServicePage() {
   // ── Desktop ──────────────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+      <div className="h-full flex flex-col overflow-hidden bg-surface-page">
         {/* 페이지 제목은 App.tsx 헤더에서 표시 */}
 
         {/* 3분할 본문 */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="flex-1 flex overflow-hidden">
           {/* 좌측: 달력 + 범례 + 요약 + 메뉴 + 업로드 */}
-          <div style={{ flex: 1, minWidth: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: '0 0 8px' }}>
+          <div className="flex-1 min-w-0 border-r border-border-default overflow-y-auto pb-2">
             {calendarGrid}
             {legendRow}
             {summaryCards}
-            <div style={{ borderTop: '1px solid var(--bd)', margin: '4px 12px 0' }} />
-            <div style={{ padding: '8px 4px 0' }}>
+            <div className="border-t border-border-default mt-1 mx-3" />
+            <div className="px-1 pt-2">
               {menuSection}
             </div>
             {uploadSection}
           </div>
 
           {/* 중앙: 휴가신청서 폼 */}
-          <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid var(--bd)', overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>휴가신청서</div>
+          <div className="w-[280px] flex-shrink-0 border-r border-border-default overflow-y-auto p-modal flex flex-col gap-3">
+            <div className="text-body font-bold text-text-primary leading-none mb-2">휴가신청서</div>
 
             {/* 선택된 날짜 표시 */}
             {selCell?.date && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', background: 'var(--bg3)', borderRadius: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-surface-sunken rounded-sm">
+                <span className="text-label font-bold text-text-primary leading-none">
                   {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: SHIFT_COLOR[selCell.rawShift], borderRadius: 4, padding: '1px 6px' }}>
+                <span
+                  className="text-caption font-bold text-text-on-accent rounded-sm px-1.5 py-0.5 leading-none"
+                  style={{ background: SHIFT_COLOR[selCell.rawShift] }}
+                >
                   {selCell.rawShift === '당' ? '당직' : selCell.rawShift === '비' ? '비번' : selCell.rawShift === '주' ? '주간' : '휴무'}
                 </span>
               </div>
@@ -1055,59 +993,55 @@ export default function StaffServicePage() {
 
             {/* 휴가기간 */}
             <div>
-              <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>휴가기간 <span style={{ fontSize: 10, color: 'var(--t3)' }}>(달력에서 클릭)</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div className="text-caption text-text-secondary leading-none mb-1">휴가기간 <span className="text-caption text-text-tertiary">(달력에서 클릭)</span></div>
+              <div className="flex items-center gap-1">
                 <input
                   type="date"
                   value={docStartDate}
                   onChange={e => setDocStartDate(e.target.value)}
-                  style={{
-                    flex: 1, padding: '5px 6px', borderRadius: 6,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 11,
-                  }}
+                  className="flex-1 bg-surface-page border border-border-default text-text-primary rounded-sm px-1.5 py-1 text-caption"
                 />
-                <span style={{ color: 'var(--t3)', fontSize: 11 }}>~</span>
+                <span className="text-text-tertiary text-caption leading-none">~</span>
                 <input
                   type="date"
                   value={docEndDate}
                   onChange={e => setDocEndDate(e.target.value)}
-                  style={{
-                    flex: 1, padding: '5px 6px', borderRadius: 6,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 11,
-                  }}
+                  className="flex-1 bg-surface-page border border-border-default text-text-primary rounded-sm px-1.5 py-1 text-caption"
                 />
               </div>
               {docDays > 0 && (
-                <div style={{ fontSize: 12, color: '#facc15', fontWeight: 700, marginTop: 3 }}>
+                <div className="text-caption font-bold leading-none mt-1" style={{ color: '#facc15' }}>
                   {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일간
                 </div>
               )}
             </div>
 
             {/* 휴가 종류 버튼 그리드 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div className="flex flex-col gap-1">
               {DOC_LEAVE_GRID.map((row, ri) => (
-                <div key={ri} style={{ display: 'grid', gridTemplateColumns: row.length === 1 ? '1fr' : 'repeat(3, 1fr)', gap: 4 }}>
+                <div
+                  key={ri}
+                  className={`grid gap-1 ${row.length === 1 ? 'grid-cols-1' : 'grid-cols-3'}`}
+                >
                   {row.map(lt => {
                     const active = docLeaveType === lt.type
                     const apiType = DOC_TO_API_TYPE[lt.type]
-                    const isRegistered = apiType && selMyLeave?.type === apiType
+                    const isRegistered = !!(apiType && selMyLeave?.type === apiType)
                     return (
                       <button
                         key={lt.type}
                         onClick={() => setDocLeaveType(lt.type)}
-                        style={{
-                          gridColumn: lt.cols ? `span ${lt.cols}` : undefined,
-                          padding: '7px 4px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                          cursor: 'pointer', textAlign: 'center',
-                          background: isRegistered ? 'rgba(34,197,94,0.25)' : active ? 'var(--acl)' : 'var(--bg3)',
-                          color: isRegistered ? '#22c55e' : active ? '#fff' : 'var(--t2)',
-                          border: isRegistered ? '2px solid #22c55e' : active ? '1px solid var(--acl)' : '1px solid var(--bd)',
-                        }}
+                        className={`rounded-sm px-1 py-1.5 text-caption font-semibold cursor-pointer text-center leading-none border ${
+                          isRegistered
+                            ? 'bg-safe-bg text-safe border-safe-bar border-2'
+                            : active
+                              ? 'bg-accent text-text-on-accent border-accent'
+                              : 'bg-surface-sunken text-text-secondary border-border-default'
+                        }`}
+                        style={lt.cols ? { gridColumn: `span ${lt.cols}` } : undefined}
                       >
-                        {lt.label}{isRegistered ? ' ✓' : ''}
+                        {lt.label}
+                        {isRegistered && <Check size={12} className="ml-1 inline align-middle" />}
                       </button>
                     )
                   })}
@@ -1118,16 +1052,12 @@ export default function StaffServicePage() {
             {/* 사유 입력 (연차 외 전부) */}
             {!ANNUAL_TYPES.has(docLeaveType) && (
               <div>
-                <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>사유</div>
+                <div className="text-caption text-text-secondary leading-none mb-1">사유</div>
                 <textarea
                   value={docReason}
                   onChange={e => setDocReason(e.target.value)}
                   placeholder="사유를 입력하세요"
-                  style={{
-                    width: '100%', minHeight: 48, padding: 8, borderRadius: 8,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 12, resize: 'vertical',
-                  }}
+                  className="w-full min-h-[48px] p-2 bg-surface-page border border-border-default text-text-primary rounded-sm text-caption leading-relaxed resize-y"
                 />
               </div>
             )}
@@ -1135,16 +1065,12 @@ export default function StaffServicePage() {
             {/* 기타특별휴가 추가 사유 (양식 괄호 안 텍스트) */}
             {docLeaveType === 'other_special' && (
               <div>
-                <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 3 }}>기타특별휴가 종류</div>
+                <div className="text-caption text-text-secondary leading-none mb-1">기타특별휴가 종류</div>
                 <input
                   value={docOtherReason}
                   onChange={e => setDocOtherReason(e.target.value)}
                   placeholder="예: 가족돌봄, 난임치료 등"
-                  style={{
-                    width: '100%', padding: '6px 8px', borderRadius: 8,
-                    border: '1px solid var(--bd)', background: 'var(--bg)',
-                    color: 'var(--t1)', fontSize: 12,
-                  }}
+                  className="w-full px-2 py-1.5 bg-surface-page border border-border-default text-text-primary rounded-sm text-caption"
                 />
               </div>
             )}
@@ -1186,49 +1112,40 @@ export default function StaffServicePage() {
                 await qc.invalidateQueries({ queryKey: ['leaves-year'] })
               }}
               disabled={!docStartDate || !docLeaveType}
-              style={{
-                width: '100%', padding: '10px 0', borderRadius: 8,
-                background: docStartDate && docLeaveType ? '#22c55e' : 'var(--bg3)',
-                color: docStartDate && docLeaveType ? '#fff' : 'var(--t3)',
-                border: 'none', fontSize: 13, fontWeight: 700,
-                cursor: docStartDate && docLeaveType ? 'pointer' : 'default',
-              }}
+              className={`w-full py-2.5 rounded-md text-label font-bold leading-none border-0 ${
+                docStartDate && docLeaveType
+                  ? 'bg-safe-bar text-text-on-accent cursor-pointer'
+                  : 'bg-surface-sunken text-text-tertiary cursor-default'
+              }`}
             >
               휴가 신청
             </button>
 
-            <div style={{ flex: 1 }} />
+            <div className="flex-1" />
 
             {/* 액션 버튼 */}
             <button
               onClick={handleLeaveDownload}
-              style={{
-                width: '100%', padding: '10px 0', borderRadius: 8,
-                background: 'var(--acl)', color: '#fff', border: 'none',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="w-full py-2.5 rounded-md bg-accent text-text-on-accent border-0 text-label font-bold leading-none cursor-pointer"
             >
               PDF 다운로드
             </button>
             <button
               onClick={handleLeavePrint}
-              style={{
-                width: '100%', padding: '10px 0', borderRadius: 8,
-                background: 'var(--bg3)', color: 'var(--t2)', border: '1px solid var(--bd)',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              }}
+              className="w-full py-2.5 rounded-md bg-surface-sunken text-text-secondary border border-border-default text-label font-bold leading-none cursor-pointer"
             >
               인쇄
             </button>
           </div>
 
           {/* 우측: A4 미리보기 + PDF 좌표 기반 값 오버레이 */}
-          <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', background: 'var(--bg2)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, position: 'relative' }}>
-            <div style={{ position: 'relative', width: '100%', maxWidth: 595 }}>
+          <div className="flex-1 min-w-0 overflow-y-auto bg-surface-raised flex items-start justify-center p-modal relative">
+            <div className="relative w-full max-w-[595px]">
               <img
                 src="/templates/leave_request_preview.png"
                 alt="휴가신청서 미리보기"
-                style={{ width: '100%', display: 'block', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                className="w-full block rounded-sm"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
               />
 
               {(() => {
@@ -1239,7 +1156,7 @@ export default function StaffServicePage() {
                   return `${y.slice(2)}.${String(parseInt(m)).padStart(2,'0')}.${String(parseInt(dd)).padStart(2,'0')}`
                 }
                 const ovAt = (p: { x: number; y: number } | undefined, text: string, extra?: React.CSSProperties) =>
-                  p ? <span key={`${p.x}-${p.y}-${text}`} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)', fontSize: 10, fontWeight: 700, color: '#111', whiteSpace: 'nowrap', fontFamily: "'Noto Sans KR', sans-serif", ...extra }}>{text}</span> : null
+                  p ? <span key={`${p.x}-${p.y}-${text}`} style={{ position: 'absolute', left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)', fontSize: 12, fontWeight: 700, color: '#111', whiteSpace: 'nowrap', fontFamily: "'Noto Sans KR', sans-serif", ...extra }}>{text}</span> : null
 
                 const checkMap: Record<string, { x: number; y: number } | undefined> = {
                   annual: lp[6], half_am: lp[6], half_pm: lp[6],
@@ -1278,10 +1195,10 @@ export default function StaffServicePage() {
 
   // ── Mobile ───────────────────────────────────────────────
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', position: 'relative' }}>
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden bg-surface-page relative">
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 20px' }}>
+      <div className="flex-1 overflow-y-auto pb-5">
         {calendarGrid}
         {legendRow}
         {summaryCards}
@@ -1294,89 +1211,93 @@ export default function StaffServicePage() {
         <>
           <div
             onClick={() => { setSheetOpen(false); setSelDate(null) }}
-            style={{
-              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 90,
-              animation: 'fadeIn .2s ease',
-            }}
+            className="absolute inset-0 z-[90]"
+            style={{ background: 'rgba(0,0,0,0.45)', animation: 'fadeIn .2s ease' }}
           />
           <style>{`
             @keyframes fadeIn{from{opacity:0}to{opacity:1}}
             @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
           `}</style>
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 100,
-            background: 'var(--bg2)', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-            padding: '16px 16px 24px', maxHeight: '65vh', overflowY: 'auto',
-            boxShadow: '0 -4px 24px rgba(0,0,0,0.2)',
-            animation: 'slideUp .25s ease',
-          }}>
+          <div
+            className="absolute bottom-0 left-0 right-0 z-[100] bg-surface-raised rounded-t-[20px] p-4 pb-6 max-h-[65vh] overflow-y-auto"
+            style={{ boxShadow: '0 -4px 24px rgba(0,0,0,0.2)', animation: 'slideUp .25s ease' }}
+          >
             {/* Handle bar */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--bd)' }} />
+            <div className="flex justify-center mb-3">
+              <div className="w-9 h-1 rounded-sm bg-border-default" />
             </div>
 
             {/* Sheet header + 식사 미사용 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-body font-bold text-text-primary leading-none">
                 {selCell.date.getMonth() + 1}/{selCell.day} ({DOW_KO[selCell.dow]})
               </span>
-              <span style={{
-                fontSize: 11, fontWeight: 700, color: '#fff',
-                background: SHIFT_COLOR[selCell.rawShift],
-                borderRadius: 6, padding: '2px 8px',
-              }}>
+              <span
+                className="text-caption font-bold text-text-on-accent rounded-sm px-2 py-0.5 leading-none"
+                style={{ background: SHIFT_COLOR[selCell.rawShift] }}
+              >
                 {selCell.rawShift === '당' ? '당직근무' : selCell.rawShift === '비' ? '비번' : selCell.rawShift === '주' ? '주간근무' : '휴무'}
               </span>
               {selCell.isHoliday && (
-                <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 600 }}>{selCell.holidayName}</span>
+                <span className="text-caption text-danger font-semibold leading-none">{selCell.holidayName}</span>
               )}
               {selCell.provided > 0 && (
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 9, color: 'var(--t3)', lineHeight: 1.2, textAlign: 'right' }}>식사 미사용<br/>눌러서 표기</span>
-                  <button onClick={handleMealCycle} style={{
-                    display: 'flex', alignItems: 'center', gap: 3,
-                    padding: '4px 10px', borderRadius: 8,
-                    background: selCell.skipped > 0 ? 'rgba(245,158,11,0.15)' : 'var(--bg3)',
-                    border: selCell.skipped > 0 ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--bd)',
-                    cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                    color: selCell.skipped > 0 ? '#f59e0b' : 'var(--t3)',
-                  }}>
-                    {selCell.skipped}<span style={{ fontSize: 10, fontWeight: 500 }}>끼</span>
+                <div className="ml-auto flex items-center gap-1">
+                  <span className="text-caption text-text-tertiary leading-tight text-right">식사 미사용<br/>눌러서 표기</span>
+                  <button
+                    onClick={handleMealCycle}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-sm cursor-pointer text-caption font-bold leading-none border ${
+                      selCell.skipped > 0
+                        ? 'bg-warning-bg text-warning border-warning-bar'
+                        : 'bg-surface-sunken text-text-tertiary border-border-default'
+                    }`}
+                  >
+                    {selCell.skipped}<span className="text-caption font-medium leading-none">끼</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* Leave section */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>휴가</div>
+            <div className="mb-4">
+              <div className="text-caption font-bold text-text-secondary leading-none mb-2">휴가</div>
               {(selCell.isWeekend || selCell.isHoliday) ? (
-                <div style={{ fontSize: 11, color: 'var(--t3)', padding: '8px 12px', background: 'var(--bg3)', borderRadius: 8 }}>
+                <div className="text-caption text-text-tertiary px-3 py-2 bg-surface-sunken rounded-sm leading-none">
                   {selCell.isHoliday ? `공휴일(${selCell.holidayName})` : '주말'}은 휴가 등록이 불가합니다
                 </div>
               ) : (
                 <>
                   {selCell.hasInspect && (
-                    <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 6, padding: '4px 8px', background: 'rgba(245,158,11,0.1)', borderRadius: 6 }}>
+                    <div className="text-caption font-semibold mb-1.5 px-2 py-1 bg-warning-bg text-warning rounded-sm leading-none">
                       소방 점검일 - 휴가 등록 주의
                     </div>
                   )}
 
                   {/* 기간 선택 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 4, alignItems: 'end', marginBottom: 8 }}>
+                  <div className="grid gap-1 items-end mb-2" style={{ gridTemplateColumns: '1fr auto 1fr auto' }}>
                     <div>
-                      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>시작일</div>
-                      <input type="date" value={docStartDate} readOnly
-                        style={{ display: 'block', width: '100%', padding: '6px 2px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'none' } as any} />
+                      <div className="text-caption text-text-tertiary leading-none mb-0.5">시작일</div>
+                      <input
+                        type="date"
+                        value={docStartDate}
+                        readOnly
+                        className="block w-full px-0.5 py-1.5 rounded-sm border border-border-default bg-surface-page text-text-primary text-caption box-border"
+                        style={{ WebkitAppearance: 'none', MozAppearance: 'none' } as any}
+                      />
                     </div>
-                    <span style={{ color: 'var(--t3)', fontSize: 11, paddingBottom: 8 }}>~</span>
+                    <span className="text-text-tertiary text-caption pb-2 leading-none">~</span>
                     <div>
-                      <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>종료일</div>
-                      <input type="date" value={docEndDate} onChange={e => { if (e.target.value >= docStartDate) setDocEndDate(e.target.value) }}
-                        style={{ display: 'block', width: '100%', padding: '6px 2px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 12, boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'none' } as any} />
+                      <div className="text-caption text-text-tertiary leading-none mb-0.5">종료일</div>
+                      <input
+                        type="date"
+                        value={docEndDate}
+                        onChange={e => { if (e.target.value >= docStartDate) setDocEndDate(e.target.value) }}
+                        className="block w-full px-0.5 py-1.5 rounded-sm border border-border-default bg-surface-page text-text-primary text-caption box-border"
+                        style={{ WebkitAppearance: 'none', MozAppearance: 'none' } as any}
+                      />
                     </div>
                     {docDays > 0 ? (
-                      <span style={{ fontSize: 13, color: '#facc15', fontWeight: 700, paddingBottom: 6, whiteSpace: 'nowrap' }}>
+                      <span className="text-label font-bold pb-1.5 whitespace-nowrap leading-none" style={{ color: '#facc15' }}>
                         {docDays % 1 === 0 ? docDays : docDays.toFixed(1)}일
                       </span>
                     ) : <span />}
@@ -1397,21 +1318,26 @@ export default function StaffServicePage() {
                       ],
                     ]
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+                      <div className="flex flex-col gap-1 mb-2">
                         {MOBILE_BTNS.map((row, ri) => (
-                          <div key={ri} style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                          <div key={ri} className="grid grid-cols-3 gap-1">
                             {row.map(b => {
                               const isReg = selMyLeave?.type === b.api
                               const isSel = docLeaveType === b.type
                               return (
-                                <button key={b.type} onClick={() => setDocLeaveType(b.type)}
-                                  style={{
-                                    padding: '8px 2px', borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer', textAlign: 'center',
-                                    background: isReg ? 'rgba(34,197,94,0.25)' : isSel ? 'var(--acl)' : 'var(--bg3)',
-                                    color: isReg ? '#22c55e' : isSel ? '#fff' : 'var(--t2)',
-                                    border: isReg ? '2px solid #22c55e' : isSel ? '1px solid var(--acl)' : '1px solid var(--bd)',
-                                  }}>
-                                  {b.label}{isReg ? ' ✓' : ''}
+                                <button
+                                  key={b.type}
+                                  onClick={() => setDocLeaveType(b.type)}
+                                  className={`px-0.5 py-2 rounded-sm text-caption font-bold cursor-pointer text-center leading-none border ${
+                                    isReg
+                                      ? 'bg-safe-bg text-safe border-safe-bar border-2'
+                                      : isSel
+                                        ? 'bg-accent text-text-on-accent border-accent'
+                                        : 'bg-surface-sunken text-text-secondary border-border-default'
+                                  }`}
+                                >
+                                  {b.label}
+                                  {isReg && <Check size={12} className="ml-1 inline align-middle" />}
                                 </button>
                               )
                             })}
@@ -1431,9 +1357,12 @@ export default function StaffServicePage() {
                       { type: 'other_special', label: '기타특별휴가', api: 'other_special' },
                     ]
                     return (
-                      <div style={{ marginBottom: 8 }}>
-                        <select value={mobileOtherType} onChange={e => { setMobileOtherType(e.target.value); if (e.target.value) setDocLeaveType(e.target.value) }}
-                          style={{ width: '100%', height: 34, borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, padding: '0 8px' }}>
+                      <div className="mb-2">
+                        <select
+                          value={mobileOtherType}
+                          onChange={e => { setMobileOtherType(e.target.value); if (e.target.value) setDocLeaveType(e.target.value) }}
+                          className="w-full h-[34px] rounded-sm border border-border-default bg-surface-page text-text-primary text-caption px-2"
+                        >
                           <option value="">기타 휴가 선택...</option>
                           {OTHER_TYPES.map(o => <option key={o.api} value={o.api}>{o.label}</option>)}
                         </select>
@@ -1443,8 +1372,12 @@ export default function StaffServicePage() {
 
                   {/* 사유 입력 */}
                   {docLeaveType && !ANNUAL_TYPES.has(docLeaveType) && (
-                    <input value={docReason} onChange={e => setDocReason(e.target.value)} placeholder="사유 입력"
-                      style={{ width: '100%', marginBottom: 8, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--bd)', background: 'var(--bg)', color: 'var(--t1)', fontSize: 11, boxSizing: 'border-box' }} />
+                    <input
+                      value={docReason}
+                      onChange={e => setDocReason(e.target.value)}
+                      placeholder="사유 입력"
+                      className="w-full mb-2 px-2 py-1.5 rounded-sm border border-border-default bg-surface-page text-text-primary text-caption box-border"
+                    />
                   )}
 
                   {/* 휴가 신청 버튼 */}
@@ -1479,20 +1412,20 @@ export default function StaffServicePage() {
                       await qc.invalidateQueries({ queryKey: ['leaves-year'] })
                     }}
                     disabled={!docStartDate || !docLeaveType}
-                    style={{
-                      width: '100%', padding: '10px 0', borderRadius: 8,
-                      background: docStartDate && docLeaveType ? '#22c55e' : 'var(--bg3)',
-                      color: docStartDate && docLeaveType ? '#fff' : 'var(--t3)',
-                      border: 'none', fontSize: 12, fontWeight: 700,
-                      cursor: docStartDate && docLeaveType ? 'pointer' : 'default',
-                      marginBottom: 4,
-                    }}>
+                    className={`w-full py-2.5 rounded-md text-caption font-bold leading-none border-0 mb-1 ${
+                      docStartDate && docLeaveType
+                        ? 'bg-safe-bar text-text-on-accent cursor-pointer'
+                        : 'bg-surface-sunken text-text-tertiary cursor-default'
+                    }`}
+                  >
                     휴가 신청
                   </button>
 
                   {/* PDF 다운로드 */}
-                  <button onClick={handleLeaveDownload}
-                    style={{ width: '100%', padding: '10px 0', borderRadius: 8, background: '#2563eb', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  <button
+                    onClick={handleLeaveDownload}
+                    className="w-full py-2.5 rounded-md bg-info-bar text-text-on-accent border-0 text-caption font-bold leading-none cursor-pointer"
+                  >
                     휴가신청서 다운로드
                   </button>
                 </>
@@ -1502,17 +1435,20 @@ export default function StaffServicePage() {
 
             {/* Team leave */}
             {selCell.teamLeaveList.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>팀원 연차</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div className="mb-4">
+                <div className="text-caption font-bold text-text-secondary leading-none mb-2">팀원 연차</div>
+                <div className="flex flex-wrap gap-1.5">
                   {selCell.teamLeaveList.map(tl => (
-                    <span key={tl.id} style={{
-                      fontSize: 11, fontWeight: 600, color: 'var(--t1)',
-                      background: 'var(--bg3)', borderRadius: 8, padding: '4px 10px',
-                      border: '1px solid var(--bd)',
-                    }}>
+                    <span
+                      key={tl.id}
+                      className="text-caption font-semibold text-text-primary bg-surface-sunken rounded-sm px-2.5 py-1 border border-border-default leading-none"
+                    >
                       {teamNameMap[tl.staffId] ?? tl.staffId.slice(-4)}
-                      <span style={{ marginLeft: 4, fontSize: 10, color: tl.type.startsWith('official') ? '#f97316' : '#22c55e', fontWeight: 700 }}>
+                      <span
+                        className={`ml-1 text-caption font-bold leading-none ${
+                          tl.type.startsWith('official') ? 'text-info' : 'text-safe'
+                        }`}
+                      >
                         ({LEAVE_LABEL[tl.type] ?? tl.type})
                       </span>
                     </span>
@@ -1525,8 +1461,11 @@ export default function StaffServicePage() {
             {(() => {
               const allow = calcWeekendAllowance(selCell.rawShift, selCell.dow, selCell.isHoliday, selCell.isPrevDayHoliday)
               if (allow > 0) return (
-                <div style={{ marginBottom: 16, padding: '8px 12px', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 8 }}>
-                  <span style={{ fontSize: 11, color: '#a855f7', fontWeight: 700 }}>주말 식대: ₩{allow.toLocaleString()}</span>
+                <div
+                  className="mb-4 px-3 py-2 rounded-sm border"
+                  style={{ background: 'rgba(143, 66, 215, 0.08)', borderColor: 'rgba(143, 66, 215, 0.2)' }}
+                >
+                  <span className="text-caption font-bold leading-none" style={{ color: '#8f42d7' }}>주말 식대: ₩{allow.toLocaleString()}</span>
                 </div>
               )
               return null
@@ -1535,12 +1474,7 @@ export default function StaffServicePage() {
             {/* Close button */}
             <button
               onClick={() => { setSheetOpen(false); setSelDate(null) }}
-              style={{
-                width: '100%', padding: '12px', borderRadius: 12,
-                background: 'var(--bg3)', border: '1px solid var(--bd)',
-                fontSize: 14, fontWeight: 700, color: 'var(--t2)',
-                cursor: 'pointer',
-              }}
+              className="w-full p-3 rounded-md bg-surface-sunken border border-border-default text-body-sm font-bold text-text-secondary cursor-pointer"
             >
               닫기
             </button>
