@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 연차 및 식사 — sketch W3 범례 + 요약 카드</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 (구 #8b949e는 5.0:1 빠듯) */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      /* 긴급/조치-대기 톤은 의도적 누락 — 이 페이지(StaffServicePage)는 §3.4.1 룰로 미사용 */
+
+      /* === Status — bar (좌측 색바) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 124~146 verbatim (테마 무관)
+     * ============================================================ */
+    :root {
+      /* Primitive scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* Component spacing — 모바일 기본 */
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 — tokens.css line 149~162 verbatim */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;   /* 표준 36px이지만 미숙 사용자 배려 */
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 167~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;   /* input, button, sub-card */
+      --radius-md:   12px;  /* 표준 카드 */
+      --radius-lg:   16px;  /* 모달, 큰 panel */
+      --radius-pill: 99px;  /* 캡슐 배지, 칩 */
+    }
+
+    /* ============================================================
+     * sketch 페이지 외곽 — raw hex 예외 영역 (page bg only)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;  /* raw hex 예외 — 페이지 외곽 만 */
+      color: var(--text-secondary);
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 18px;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+    p.lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 24px 0;
+      max-width: 860px;
+    }
+
+    /* ============================================================
+     * frame-row — 두 frame side-by-side
+     * ============================================================ */
+    .frame-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .vp-label {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    /* ============================================================
+     * frame-mobile — 393px 모바일 frame (raw hex 예외 #2a2f3a)
+     * W3 변형: chrome 없음, 안에 legend-summary-region 만
+     * ============================================================ */
+    .frame-mobile {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;  /* raw hex 예외 — frame border 만 */
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ============================================================
+     * legend-summary-region — frame 내부 컨테이너
+     * ============================================================ */
+    .legend-summary-region {
+      padding: 16px;
+      background: var(--surface-page);
+    }
+
+    /* ============================================================
+     * legend row (§5.4)
+     * ============================================================ */
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;       /* row-gap 8 / column-gap 12 */
+      align-items: center;
+      padding: 6px 0 0;    /* source 의 6px 12px 0 — frame padding 16 안에 들어가므로 좌우 0 */
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;            /* dot ↔ label */
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .legend-label {
+      font-size: 12px;
+      line-height: 1;      /* leading-none — 작은 컨테이너 안 caption 룰 */
+      font-weight: 400;
+      color: var(--text-tertiary);
+    }
+
+    /* dot 색 — duty 4종 + 카테고리 6종 + 반차 1종 */
+    .dot-duty-night   { background: var(--duty-night); }
+    .dot-duty-off     { background: var(--duty-off); }
+    .dot-duty-day     { background: var(--duty-day); }
+    .dot-duty-leave   { background: var(--duty-leave); }
+    .dot-cat-annual   { background: #42d778; }
+    .dot-cat-official { background: #8f42d7; }
+    .dot-cat-condol   { background: #d78042; }
+    .dot-cat-sick     { background: #d74242; }
+    .dot-cat-health   { background: #d7428c; }
+    .dot-cat-other    { background: #4244d7; }
+    .dot-half         { background: linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%); }
+
+    /* ============================================================
+     * summary cards (§5.5 + §6.3 stat card 룰)
+     * ============================================================ */
+    .summary-cards {
+      display: flex;
+      gap: var(--card-gap);    /* 8 모바일 */
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;     /* scroll bar / focus halo 여유 */
+      margin-top: 16px;        /* legend ↔ summary 분리 */
+    }
+    .stat-card {
+      flex: 1 0 0;
+      min-width: 84px;         /* 4개 컬럼 393-16*2=361 / 4 ≈ 90, gap 감안 84 */
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: var(--card-padding);  /* 14 모바일 */
+      position: relative;
+      overflow: hidden;
+      /* §6.3 좌측 3px 색바 — box-shadow inset 으로 구현 (padding 손상 없음) */
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+    .stat-card .stat-value {
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 800;
+      color: var(--text-primary);
+      white-space: nowrap;
+      letter-spacing: -0.01em;
+    }
+
+    /* 카드별 좌측 3px 색바 — box-shadow inset (W3 적용) */
+    .bar-cat-annual   { box-shadow: inset 3px 0 0 #42d778; }
+    .bar-meal-A       { box-shadow: inset 3px 0 0 #06b6d4; }
+    .bar-meal-B       { box-shadow: inset 3px 0 0 #d7428c; }
+    .bar-weekend      { box-shadow: inset 3px 0 0 #8f42d7; }
+
+    /* 임계치 분기 — 연차 잔여 카드 전용 */
+    .bar-warning        { box-shadow: inset 3px 0 0 var(--status-warning-bar); }
+    .bar-danger         { box-shadow: inset 3px 0 0 var(--status-danger-bar); }
+    .stat-value-warning { color: var(--status-warning); }
+    .stat-value-danger  { color: var(--status-danger); }
+
+    /* ============================================================
+     * threshold mini-strip — 연차 잔여 임계치 분기 데모
+     * ============================================================ */
+    .threshold-section {
+      margin-top: 40px;
+      max-width: 1100px;
+    }
+    .threshold-section h2 {
+      font-size: 16px;
+      color: var(--text-primary);
+      margin: 0 0 12px 0;
+      font-weight: 700;
+    }
+    .threshold-section p.threshold-lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 16px 0;
+    }
+    .threshold-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(140px, 1fr));
+      gap: 12px;
+      padding: 16px;
+      border-radius: 12px;
+    }
+    .threshold-grid.dark {
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      margin-bottom: 16px;
+    }
+    .threshold-grid.light {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+    }
+    .threshold-card-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .threshold-card-wrap .stat-card {
+      min-width: 0;
+    }
+    .threshold-card-wrap .annotation {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ============================================================
+     * rules 박스 — W1/W2 verbatim
+     * ============================================================ */
+    .rules {
+      margin-top: 40px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 860px;
+    }
+    .rules h2 { font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules h3 { font-size: 14px; margin: 16px 0 6px 0; color: var(--text-primary); }
+    .rules p  { font-size: 13px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul, .rules ol { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); }
+    .rules li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>12 · 연차 및 식사 — sketch W3 범례 + 요약 카드</h1>
+  <p class="lead">
+    W3 검증 포인트 (UI-SPEC §12): 범례 row (duty 4 + 카테고리 6 + 반차 1 = 11 dot) + 4종 요약 stat card
+    (연차 잔여 / 제공식수 / 미사용식수 / 주말식대) + §6.3 stat card 룰 (좌측 3px 색바 + 위험 임계치 색 분기).
+    다크 + 라이트 양쪽 + 연차 잔여 임계치 3 단계 mini-strip 으로 시각 검증.
+  </p>
+
+  <div class="frame-row">
+
+    <!-- ================================================
+         VP1 · 모바일 다크 · 393
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP1 · 모바일 다크 · 393</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="legend-summary-region">
+
+          <!-- legend row (11 dots) -->
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot dot-duty-night"></span><span class="legend-label">당직</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-off"></span><span class="legend-label">비번</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-day"></span><span class="legend-label">주간</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-leave"></span><span class="legend-label">휴무</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-annual"></span><span class="legend-label">연차</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-official"></span><span class="legend-label">공가</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-condol"></span><span class="legend-label">경조</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-sick"></span><span class="legend-label">병가</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-health"></span><span class="legend-label">보건</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-other"></span><span class="legend-label">기타</span></div>
+            <div class="legend-item"><span class="legend-dot dot-half"></span><span class="legend-label">반차</span></div>
+          </div>
+
+          <!-- summary cards (안전 set — 연차 잔여 8.5/15일) -->
+          <div class="summary-cards">
+            <div class="stat-card bar-cat-annual">
+              <div class="stat-label">연차 잔여</div>
+              <div class="stat-value">8.5/15일</div>
+            </div>
+            <div class="stat-card bar-meal-A">
+              <div class="stat-label">제공식수</div>
+              <div class="stat-value">42끼</div>
+            </div>
+            <div class="stat-card bar-meal-B">
+              <div class="stat-label">미사용식수</div>
+              <div class="stat-value">8끼</div>
+            </div>
+            <div class="stat-card bar-weekend">
+              <div class="stat-label">주말식대</div>
+              <div class="stat-value">₩48,500</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================
+         VP2 · 모바일 라이트 · 393
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP2 · 모바일 라이트 · 393</div>
+      <div class="frame-mobile" data-theme="light">
+        <div class="legend-summary-region">
+
+          <!-- legend row (11 dots) -->
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot dot-duty-night"></span><span class="legend-label">당직</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-off"></span><span class="legend-label">비번</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-day"></span><span class="legend-label">주간</span></div>
+            <div class="legend-item"><span class="legend-dot dot-duty-leave"></span><span class="legend-label">휴무</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-annual"></span><span class="legend-label">연차</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-official"></span><span class="legend-label">공가</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-condol"></span><span class="legend-label">경조</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-sick"></span><span class="legend-label">병가</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-health"></span><span class="legend-label">보건</span></div>
+            <div class="legend-item"><span class="legend-dot dot-cat-other"></span><span class="legend-label">기타</span></div>
+            <div class="legend-item"><span class="legend-dot dot-half"></span><span class="legend-label">반차</span></div>
+          </div>
+
+          <!-- summary cards (안전 set — 연차 잔여 8.5/15일) -->
+          <div class="summary-cards">
+            <div class="stat-card bar-cat-annual">
+              <div class="stat-label">연차 잔여</div>
+              <div class="stat-value">8.5/15일</div>
+            </div>
+            <div class="stat-card bar-meal-A">
+              <div class="stat-label">제공식수</div>
+              <div class="stat-value">42끼</div>
+            </div>
+            <div class="stat-card bar-meal-B">
+              <div class="stat-label">미사용식수</div>
+              <div class="stat-value">8끼</div>
+            </div>
+            <div class="stat-card bar-weekend">
+              <div class="stat-label">주말식대</div>
+              <div class="stat-value">₩48,500</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================================================
+       threshold mini-strip — 연차 잔여 임계치 분기 3 단계
+       ================================================ -->
+  <div class="threshold-section">
+    <h2>연차 잔여 카드 — 임계치 분기 3 단계 (§6.3)</h2>
+    <p class="threshold-lead">
+      안전 (≥ 3일) → 카테고리 hex (#42d778) 색바, 값 text-primary.
+      주의 (&lt; 3일) → status-warning-bar 색바 + status-warning 값.
+      위험 (&lt; 1일) → status-danger-bar 색바 + status-danger 값.
+      식수/식대 3 카드는 임계치 분기 없음 (단순 정보, source-of-truth 에 룰 정의 없음).
+    </p>
+
+    <!-- 다크 -->
+    <div class="threshold-grid dark" data-theme="dark">
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-cat-annual">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value">8.5/15일</div>
+        </div>
+        <div class="annotation">안전 — 8.5일 (≥ 3)</div>
+      </div>
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-warning">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value stat-value-warning">2/15일</div>
+        </div>
+        <div class="annotation">주의 — 2일 (&lt; 3)</div>
+      </div>
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-danger">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value stat-value-danger">0.5/15일</div>
+        </div>
+        <div class="annotation">위험 — 0.5일 (&lt; 1)</div>
+      </div>
+    </div>
+
+    <!-- 라이트 -->
+    <div class="threshold-grid light" data-theme="light">
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-cat-annual">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value">8.5/15일</div>
+        </div>
+        <div class="annotation">안전 — 8.5일 (≥ 3)</div>
+      </div>
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-warning">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value stat-value-warning">2/15일</div>
+        </div>
+        <div class="annotation">주의 — 2일 (&lt; 3)</div>
+      </div>
+      <div class="threshold-card-wrap">
+        <div class="stat-card bar-danger">
+          <div class="stat-label">연차 잔여</div>
+          <div class="stat-value stat-value-danger">0.5/15일</div>
+        </div>
+        <div class="annotation">위험 — 0.5일 (&lt; 1)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================
+       rules 박스
+       ================================================ -->
+  <div class="rules">
+    <h2>적용 룰 — W3 범례 + 요약 카드</h2>
+    <p>UI-SPEC §5.4 legend + §5.5 stat card + §6.3 stat card 룰 (좌측 3px 색바 + 임계치 분기) + §3.5 정규화 카테고리 hex + §3.6 식단 카테고리 hex 단일 source.</p>
+
+    <h3>legend row 룰 (§5.4)</h3>
+    <ul>
+      <li>11 dots = duty 4 (당직/비번/주간/휴무) + 카테고리 6 (연차/공가/경조/병가/보건/기타) + 반차 1 — 합계 11개</li>
+      <li>dot 12×12 (모바일) — source 의 isDesktop 분기는 본 sketch 에서 모바일 단일</li>
+      <li>반차 dot = linear-gradient(135deg, #42d778 50%, var(--duty-day) 50%) — W2 calendar 의 bg-half-am-annual 과 동일 패턴</li>
+      <li>라벨 = text-caption 12px font-normal leading-none color text-tertiary (source 의 10px → 12px 노안 룰 강제)</li>
+      <li>dot ↔ label gap 6px / dot ↔ dot gap 12px / row-gap 8px wrap</li>
+    </ul>
+
+    <h3>summary cards 룰 (§5.5 + §6.3)</h3>
+    <ul>
+      <li>카드 4종 — 연차 잔여 / 제공식수 / 미사용식수 / 주말식대</li>
+      <li>카드 surface = var(--surface-raised) 단일 — source 의 카테고리 색 rgba(.., 0.1) 전체 카드 색칠 폐기</li>
+      <li>좌측 3px 색바 = box-shadow inset 3px 0 0 {hex} — §6.3 룰. padding 손상 없음, radius 와 함께 깔끔하게 잘림</li>
+      <li>카드 1 (연차 잔여) 색바 = #42d778 (정규화 연차 hex) — 안전 set</li>
+      <li>카드 2 (제공식수) 색바 = #06b6d4 (식단 cyan, §3.6 중식 A 코너)</li>
+      <li>카드 3 (미사용식수) 색바 = #d7428c (정규화 보건 / 식단 B 코너 §3.6 — source 의 #ec4899 폐기)</li>
+      <li>카드 4 (주말식대) 색바 = #8f42d7 (정규화 공가 hex — UI-SPEC §5.5 결정. source 의 #f97316 폐기. §5.5 본문상 주말식대 카테고리 색은 보라 #a855f7 였으나 §3.5 정규화 set 적용으로 #8f42d7 로 매핑)</li>
+      <li>라벨 = text-caption 12px font-semibold leading-none color text-tertiary (source 9px → 12px 노안 룰)</li>
+      <li>값 = 18px font-extrabold leading-none color text-primary letter-spacing -0.01em white-space nowrap (source 14px → 18px 노안 룰. 본 sketch 는 18px 권장. text-display 28 은 4 카드 한 row 에서 폭 부족)</li>
+      <li>카드 padding = var(--card-padding) = 14px (모바일)</li>
+      <li>카드 radius = var(--radius-md) = 12px / border = 1px solid var(--border-default)</li>
+    </ul>
+
+    <h3>임계치 분기 — 연차 잔여 전용 (§6.3)</h3>
+    <ul>
+      <li>안전 (≥ 3일) → 색바 #42d778 / 값 text-primary</li>
+      <li>주의 (&lt; 3일) → 색바 var(--status-warning-bar) / 값 var(--status-warning)</li>
+      <li>위험 (&lt; 1일) → 색바 var(--status-danger-bar) / 값 var(--status-danger)</li>
+      <li>식수/식대 3 카드는 임계치 분기 없음 — 단순 정보. UI-SPEC §5.5 / §6.3 본문에 임계치 룰 정의 없음.</li>
+    </ul>
+
+    <h3>typography 룰 (UI-SPEC §7.1 + 노안 룰)</h3>
+    <ul>
+      <li>9 · 10 · 11 px 0건 — typography.css §1.1 노안 마지노선 강제</li>
+      <li>라벨 12px (legend / stat-label) — 작은 컨테이너 안 caption 룰로 leading-none</li>
+      <li>값 18px (stat-value) — text-title 18 letter-spacing -0.01em font-weight 800</li>
+      <li>source line 800~840 의 10px / 9px / 14px 모두 폐기</li>
+    </ul>
+
+    <h3>색 룰 (§3.4.1 / §3.5 / §3.6)</h3>
+    <ul>
+      <li>긴급/조치-대기 fire 변형 4종 (status / bar / bg / text) 0건 — §3.4.1 룰로 본 페이지 미사용. 토큰 블록에서도 의도적 누락 (W1/W2 와 동일).</li>
+      <li>duty 4 토큰 — legend dot 의 4개 (--duty-day/night/off/leave) 에만 사용</li>
+      <li>카테고리 6 hex (정규화) — legend dot + 연차 잔여 카드 색바 + 미사용식수 카드 색바 + 주말식대 카드 색바</li>
+      <li>식단 cyan #06b6d4 — 제공식수 카드 색바 1회 등장 (§3.6 중식 A 코너 hex)</li>
+      <li>status-warning / status-danger 토큰 — 연차 잔여 임계치 분기 2종만</li>
+    </ul>
+
+    <h3>source-of-truth 매핑 (TSX 변환 시)</h3>
+    <ul>
+      <li>StaffServicePage.tsx line 800~824 (legendRow): alias var(--c-night/off/day/leave) + 옛 hex (#22c55e / #a855f7 / #f97316 / #ef4444 / #ec4899 / #6366f1) → 본 sketch 의 정규화 set 으로 교체</li>
+      <li>StaffServicePage.tsx line 826~840 (summaryCards): 카테고리 hex 의 bg rgba(0.1) 전체 카드 색칠 + bd rgba(0.25) border + color hex 값 → 본 sketch §6.3 패턴 (surface-raised + box-shadow inset 3px 색바 + text-primary 값) 으로 전환</li>
+      <li>주말식대 색 = 정규화 공가 #8f42d7 (§5.5 본문상 보라 hex #a855f7 였던 것 → 정규화 후 #8f42d7. source 의 #f97316 (경조 hex 와 충돌) 폐기)</li>
+      <li>미사용식수 색 = 정규화 보건 #d7428c (식단 B 코너 §3.6 과 의도된 일치. source 의 #ec4899 (보건 옛 hex 와 충돌) 폐기)</li>
+      <li>연차 잔여 임계치 분기 룰 신규 추가 — source 는 분기 없이 단일 #22c55e 였음. §6.3 stat card 룰 적용으로 &lt; 3 / &lt; 1 분기 도입</li>
+    </ul>
+
+    <h3>negative gate (verify grep — 본 sketch 검증)</h3>
+    <ul>
+      <li>이모지 0건</li>
+      <li>9 · 10 · 11 px 0건 (font-size 9 / 10 / 11 px 패턴)</li>
+      <li>alias 토큰 (--bg / --bg2 / --bg3 / --bd / --bd2 / --t1 / --t2 / --t3 / --acl / --c-day / --c-night / --c-off / --c-leave) 0건</li>
+      <li>fire 변형 (status / text / bg 접두 결합) 0건 (§3.4.1)</li>
+      <li>옛 카테고리 hex (#22c55e / #a855f7 / #f97316 / #ef4444 / #ec4899 / #6366f1) — :root 토큰 정의 블록 (--status-safe-bar / --status-danger-bar / --duty-night) 안 예외. 그 외 0건.</li>
+      <li>정규화 hex 6종 (#42d778 / #8f42d7 / #d78042 / #d74242 / #d7428c / #4244d7) 각 ≥ 1회</li>
+      <li>다크 + 라이트 frame 양쪽 (data-theme="dark" 와 data-theme="light") 존재</li>
+      <li>11 legend dot (4 duty + 6 카테고리 + 1 반차) — class="legend-dot" 가 frame 당 11회</li>
+      <li>4 main summary card (각 frame) + 3 threshold variant card (각 grid) — 최소 합계 14 stat-card</li>
+    </ul>
+
+    <h3>다음 wave</h3>
+    <ul>
+      <li>W4 — 04-menu-cards-sketch.html (식단 3종 + PDF dropzone + 주말식대 자세히 — 본 W3 의 주말식대 카드는 요약 row 의 일부, W4 에서 region.weekend-allowance 자체를 다룸)</li>
+      <li>W5 — 05-bottomsheet-sketch.html (BottomSheet 전체)</li>
+    </ul>
+  </div>
+
+</body>
+</html>
