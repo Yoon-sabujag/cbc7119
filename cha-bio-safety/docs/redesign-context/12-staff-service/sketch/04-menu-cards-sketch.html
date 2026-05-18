@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 연차 및 식사 — sketch W4 식단 카드 + PDF 업로드 dropzone</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 (구 #8b949e는 5.0:1 빠듯) */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      /* 긴급/조치-대기 톤은 의도적 누락 — 이 페이지(StaffServicePage)는 §3.4.1 룰로 미사용 */
+
+      /* === Status — bar (좌측 색바) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 124~146 verbatim (테마 무관)
+     * ============================================================ */
+    :root {
+      /* Primitive scale */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      /* Component spacing — 모바일 기본 */
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 — tokens.css line 149~162 verbatim */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;   /* 표준 36px이지만 미숙 사용자 배려 */
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 167~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;   /* input, button, sub-card */
+      --radius-md:   12px;  /* 표준 카드 */
+      --radius-lg:   16px;  /* 모달, 큰 panel */
+      --radius-pill: 99px;  /* 캡슐 배지, 칩 */
+    }
+
+    /* ============================================================
+     * sketch 페이지 외곽 — raw hex 예외 영역 (page bg only)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;  /* raw hex 예외 — 페이지 외곽 만 */
+      color: var(--text-secondary);
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 18px;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+      font-weight: 700;
+    }
+    p.lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 24px 0;
+      max-width: 860px;
+    }
+
+    /* ============================================================
+     * frame-row — frame matrix
+     * ============================================================ */
+    .frame-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .vp-label {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin-bottom: 8px;
+    }
+
+    /* ============================================================
+     * frame-mobile — 393px 모바일 frame (raw hex 예외 #2a2f3a)
+     * ============================================================ */
+    .frame-mobile {
+      width: 393px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;  /* raw hex 예외 — frame border 만 */
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ============================================================
+     * frame-desktop — 1024px 데스크톱 frame (UI-SPEC §3 desktop ≥768)
+     * ============================================================ */
+    .frame-desktop {
+      width: 1024px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid #2a2f3a;  /* raw hex 예외 — frame border 만 */
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ============================================================
+     * menu-region — frame 내부 식단 grid 컨테이너
+     * source: StaffServicePage.tsx line 865 verbatim
+     *   gridTemplateColumns: 1fr 1fr; gap: 8; padding: 8px 12px 0
+     * ============================================================ */
+    .menu-region {
+      padding: 8px 12px 0;
+      background: var(--surface-page);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .menu-region-desktop {
+      padding: 16px 24px 0;
+      gap: 12px;
+    }
+
+    /* ============================================================
+     * 3 식단 카드 (NORMALIZED hex — locked decision A)
+     *   중식 A = #06b6d4 (식단 cyan, §3.6)
+     *   중식 B = #d7428c (= 정규화 보건 hex 재사용)
+     *   석식   = #d78042 (= 정규화 경조 hex 재사용)
+     * source line 868~890: padding 10px 12px, borderRadius 12, source font 10/11 → W4 12/14
+     * ============================================================ */
+    .menu-card {
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+    }
+    .menu-card .menu-label {
+      font-size: 12px;            /* source 10px → W4 12px 노안 격상 */
+      line-height: 1;             /* leading-none — 작은 컨테이너 안 caption 룰 */
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .menu-card .menu-body {
+      font-size: 14px;            /* source 11px → W4 14px 노안 격상 */
+      line-height: 1.625;         /* UI-SPEC §12 W4 leading-relaxed 강제 */
+      color: var(--text-secondary);
+      white-space: pre-line;
+    }
+
+    .menu-lunch-a {
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.20);
+    }
+    .menu-lunch-a .menu-label { color: #06b6d4; }
+
+    .menu-lunch-b {
+      background: rgba(215, 66, 140, 0.08);
+      border: 1px solid rgba(215, 66, 140, 0.20);
+    }
+    .menu-lunch-b .menu-label { color: #d7428c; }
+
+    .menu-dinner {
+      grid-column: 1 / 3;
+      background: rgba(215, 128, 66, 0.08);
+      border: 1px solid rgba(215, 128, 66, 0.20);
+    }
+    .menu-dinner .menu-label { color: #d78042; }
+
+    /* ============================================================
+     * menu-card skeleton (loading state)
+     * ============================================================ */
+    .menu-card-skeleton {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+    }
+    .menu-card-skeleton .skeleton-line {
+      background: var(--border-default);
+      border-radius: 4px;
+      height: 12px;
+      margin-bottom: 8px;
+    }
+    .menu-card-skeleton .skeleton-line:nth-child(1) { width: 40%; }
+    .menu-card-skeleton .skeleton-line:nth-child(2) { width: 80%; }
+    .menu-card-skeleton .skeleton-line:nth-child(3) { width: 60%; margin-bottom: 0; }
+
+    /* ============================================================
+     * menu-card empty state — "등록된 메뉴 없음"
+     * ============================================================ */
+    .menu-card-empty {
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+
+    /* ============================================================
+     * menu-region 미운영일 placeholder (mealCalc 룰 — 일요일/공휴일/공휴일직후토요일)
+     * ============================================================ */
+    .menu-region-closed {
+      padding: 16px;
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+    }
+
+    /* ============================================================
+     * dropzone variants — source line 984~1018
+     *   모바일: padding 12px 0, border 1px solid var(--border-default)
+     *   데스크톱: padding 48px 0, border 2px dashed var(--border-default)
+     * ============================================================ */
+    .dropzone-wrap {
+      padding: 14px 12px;
+    }
+    .dropzone-wrap-desktop {
+      padding: 16px 24px;
+    }
+    .dropzone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: var(--radius-md);
+      background: var(--surface-raised);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1;             /* leading-none — 작은 컨테이너 안 caption 룰 */
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .dropzone-mobile  { padding: 12px 0;  border: 1px solid var(--border-default); }
+    .dropzone-desktop {
+      padding: 48px 0;
+      border: 2px dashed var(--border-default);
+      flex-direction: column;
+      gap: 12px;
+    }
+    .dropzone-dragover { border-color: var(--accent); color: var(--accent); }
+    .dropzone-uploading { color: var(--text-tertiary); }
+    .dropzone-uploading .spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border-default);
+      border-top-color: var(--accent);
+      display: inline-block;
+    }
+    .dropzone-success { border-color: var(--status-safe-bar); color: var(--status-safe); }
+    .dropzone-error   { border-color: var(--status-danger-bar); color: var(--status-danger); }
+
+    .toast-callout {
+      margin-top: 8px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--status-danger-bg);
+      border: 1px solid var(--status-danger-bar);
+      color: var(--status-danger);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+     * state-strip section — mini-grid 8 variant
+     * ============================================================ */
+    .state-section {
+      margin-top: 40px;
+      max-width: 1100px;
+    }
+    .state-section h2 {
+      font-size: 16px;
+      color: var(--text-primary);
+      margin: 0 0 12px 0;
+      font-weight: 700;
+    }
+    .state-section p.state-lead {
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 16px 0;
+    }
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 16px;
+      border-radius: 12px;
+    }
+    .state-grid.dark {
+      background: var(--surface-page);
+      border: 1px solid #2a2f3a;
+      margin-bottom: 16px;
+    }
+    .state-grid.light {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+    }
+    .state-grid-label {
+      grid-column: 1 / -1;
+      font-size: 13px;
+      color: var(--text-tertiary);
+      margin: 0 0 4px 0;
+      font-weight: 600;
+    }
+    .state-card-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .state-card-wrap .annotation {
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    /* ============================================================
+     * rules 박스 — W3 verbatim
+     * ============================================================ */
+    .rules {
+      margin-top: 40px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      max-width: 860px;
+    }
+    .rules h2 { font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary); }
+    .rules h3 { font-size: 14px; margin: 16px 0 6px 0; color: var(--text-primary); }
+    .rules p  { font-size: 13px; color: var(--text-tertiary); margin: 0 0 10px 0; }
+    .rules ul, .rules ol { margin: 0; padding-left: 20px; font-size: 13px; color: var(--text-secondary); }
+    .rules li { margin-bottom: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>12 · 연차 및 식사 — sketch W4 식단 카드 + PDF 업로드</h1>
+  <p class="lead">
+    W4 검증 포인트 (UI-SPEC §12): 식단 3종 카드 (중식 A코너 / 중식 B코너 / 석식 메뉴, NORMALIZED 카테고리 hex)
+    + PDF 업로드 dropzone (모바일=컴팩트 1px solid / 데스크톱=2px dashed 48px padding)
+    + leading-relaxed 14px 본문 (source 11px → 14px 노안 격상). 다크 + 라이트 + 모바일 + 데스크톱 4-frame matrix
+    + 8 state variant (idle/dragover/uploading/success/error/skeleton/empty/미운영일) mini-strip.
+  </p>
+
+  <div class="frame-row">
+
+    <!-- ================================================
+         VP1 · 모바일 다크 · 393
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP1 · 모바일 다크 · 393</div>
+      <div class="frame-mobile" data-theme="dark">
+        <div class="menu-region">
+          <div class="menu-card menu-lunch-a">
+            <div class="menu-label">중식 A코너</div>
+            <div class="menu-body">잡곡밥&#10;콩나물국&#10;돼지불고기&#10;계란말이&#10;배추김치</div>
+          </div>
+          <div class="menu-card menu-lunch-b">
+            <div class="menu-label">중식 B코너</div>
+            <div class="menu-body">현미밥&#10;된장찌개&#10;고등어구이&#10;시금치나물&#10;깍두기</div>
+          </div>
+          <div class="menu-card menu-dinner">
+            <div class="menu-label">석식 메뉴</div>
+            <div class="menu-body">백미밥&#10;미역국&#10;제육볶음&#10;감자조림&#10;배추김치</div>
+          </div>
+        </div>
+        <div class="dropzone-wrap">
+          <div class="dropzone dropzone-mobile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            식단표 PDF 업로드
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================
+         VP2 · 모바일 라이트 · 393
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP2 · 모바일 라이트 · 393</div>
+      <div class="frame-mobile" data-theme="light">
+        <div class="menu-region">
+          <div class="menu-card menu-lunch-a">
+            <div class="menu-label">중식 A코너</div>
+            <div class="menu-body">잡곡밥&#10;콩나물국&#10;돼지불고기&#10;계란말이&#10;배추김치</div>
+          </div>
+          <div class="menu-card menu-lunch-b">
+            <div class="menu-label">중식 B코너</div>
+            <div class="menu-body">현미밥&#10;된장찌개&#10;고등어구이&#10;시금치나물&#10;깍두기</div>
+          </div>
+          <div class="menu-card menu-dinner">
+            <div class="menu-label">석식 메뉴</div>
+            <div class="menu-body">백미밥&#10;미역국&#10;제육볶음&#10;감자조림&#10;배추김치</div>
+          </div>
+        </div>
+        <div class="dropzone-wrap">
+          <div class="dropzone dropzone-mobile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            식단표 PDF 업로드
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="frame-row" style="margin-top: 32px;">
+
+    <!-- ================================================
+         VP3 · 데스크톱 다크 · 1024
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP3 · 데스크톱 다크 · 1024</div>
+      <div class="frame-desktop" data-theme="dark">
+        <div class="menu-region menu-region-desktop">
+          <div class="menu-card menu-lunch-a">
+            <div class="menu-label">중식 A코너</div>
+            <div class="menu-body">잡곡밥&#10;콩나물국&#10;돼지불고기&#10;계란말이&#10;배추김치</div>
+          </div>
+          <div class="menu-card menu-lunch-b">
+            <div class="menu-label">중식 B코너</div>
+            <div class="menu-body">현미밥&#10;된장찌개&#10;고등어구이&#10;시금치나물&#10;깍두기</div>
+          </div>
+          <div class="menu-card menu-dinner">
+            <div class="menu-label">석식 메뉴</div>
+            <div class="menu-body">백미밥&#10;미역국&#10;제육볶음&#10;감자조림&#10;배추김치</div>
+          </div>
+        </div>
+        <div class="dropzone-wrap dropzone-wrap-desktop">
+          <div class="dropzone dropzone-desktop">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            식단표 PDF 드래그앤드롭 또는 클릭하여 업로드
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================
+         VP4 · 데스크톱 라이트 · 1024
+         ================================================ -->
+    <div>
+      <div class="vp-label">VP4 · 데스크톱 라이트 · 1024</div>
+      <div class="frame-desktop" data-theme="light">
+        <div class="menu-region menu-region-desktop">
+          <div class="menu-card menu-lunch-a">
+            <div class="menu-label">중식 A코너</div>
+            <div class="menu-body">잡곡밥&#10;콩나물국&#10;돼지불고기&#10;계란말이&#10;배추김치</div>
+          </div>
+          <div class="menu-card menu-lunch-b">
+            <div class="menu-label">중식 B코너</div>
+            <div class="menu-body">현미밥&#10;된장찌개&#10;고등어구이&#10;시금치나물&#10;깍두기</div>
+          </div>
+          <div class="menu-card menu-dinner">
+            <div class="menu-label">석식 메뉴</div>
+            <div class="menu-body">백미밥&#10;미역국&#10;제육볶음&#10;감자조림&#10;배추김치</div>
+          </div>
+        </div>
+        <div class="dropzone-wrap dropzone-wrap-desktop">
+          <div class="dropzone dropzone-desktop">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            식단표 PDF 드래그앤드롭 또는 클릭하여 업로드
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================================================
+       state-strip — 8 state variant mini-grid (다크 + 라이트)
+       ================================================ -->
+  <section class="state-section">
+    <h2>8 state variant mini-strip — dropzone idle/dragover/uploading/success/error + menu skeleton/empty + 미운영일 placeholder</h2>
+    <p class="state-lead">
+      각 grid 안 8 cell + 미운영일 1 bonus (총 9 cell) 을 다크 / 라이트 동일 순서로 배치.
+      dropzone variant 5종 + menu-card variant 2종 + menu-region 미운영일 1종 = 총 8 + 1 = 9.
+    </p>
+
+    <!-- DARK grid -->
+    <div class="state-grid dark" data-theme="dark">
+      <p class="state-grid-label">다크 모드 — 9 cell (8 state + 1 미운영일 bonus)</p>
+
+      <!-- 1 idle 모바일 -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          식단표 PDF 업로드
+        </div>
+        <div class="annotation">idle — 기본 상태 (모바일 1px solid)</div>
+      </div>
+
+      <!-- 2 idle 데스크톱 -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-desktop">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          식단표 PDF 드래그앤드롭 또는 클릭하여 업로드
+        </div>
+        <div class="annotation">idle — 데스크톱 드롭존 (2px dashed 48px padding)</div>
+      </div>
+
+      <!-- 3 dragover -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-dragover">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          PDF 놓아주세요
+        </div>
+        <div class="annotation">dragover — border-color: var(--accent)</div>
+      </div>
+
+      <!-- 4 uploading -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-uploading">
+          <span class="spinner"></span>
+          업로드 중...
+        </div>
+        <div class="annotation">uploading — toast "식단표 분석 중..."</div>
+      </div>
+
+      <!-- 5 success -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          업로드 완료
+        </div>
+        <div class="annotation">success — border-color: status-safe-bar</div>
+      </div>
+
+      <!-- 6 error -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-error">
+          업로드 실패
+        </div>
+        <div class="toast-callout">PDF 파일만 업로드 가능합니다</div>
+        <div class="annotation">error — toast.error 발화 (PDF 외 파일)</div>
+      </div>
+
+      <!-- 7 menu-card skeleton -->
+      <div class="state-card-wrap">
+        <div class="menu-card-skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+        </div>
+        <div class="annotation">skeleton — menuQuery loading (변환 후보 시안)</div>
+      </div>
+
+      <!-- 8 menu-card empty -->
+      <div class="state-card-wrap">
+        <div class="menu-card-empty">등록된 메뉴 없음</div>
+        <div class="annotation">empty — menuData null (현재 source 는 미렌더)</div>
+      </div>
+
+      <!-- 9 bonus 미운영일 -->
+      <div class="state-card-wrap">
+        <div class="menu-region-closed">식당 미운영일 (일요일 / 공휴일 / 공휴일 직후 토요일)</div>
+        <div class="annotation">미운영일 placeholder — mealCalc 룰 (변환 후보 시안)</div>
+      </div>
+    </div>
+
+    <!-- LIGHT grid -->
+    <div class="state-grid light" data-theme="light">
+      <p class="state-grid-label">라이트 모드 — 9 cell (8 state + 1 미운영일 bonus)</p>
+
+      <!-- 1 idle 모바일 -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          식단표 PDF 업로드
+        </div>
+        <div class="annotation">idle — 기본 상태 (모바일 1px solid)</div>
+      </div>
+
+      <!-- 2 idle 데스크톱 -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-desktop">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          식단표 PDF 드래그앤드롭 또는 클릭하여 업로드
+        </div>
+        <div class="annotation">idle — 데스크톱 드롭존 (2px dashed 48px padding)</div>
+      </div>
+
+      <!-- 3 dragover -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-dragover">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          PDF 놓아주세요
+        </div>
+        <div class="annotation">dragover — border-color: var(--accent)</div>
+      </div>
+
+      <!-- 4 uploading -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-uploading">
+          <span class="spinner"></span>
+          업로드 중...
+        </div>
+        <div class="annotation">uploading — toast "식단표 분석 중..."</div>
+      </div>
+
+      <!-- 5 success -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-success">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          업로드 완료
+        </div>
+        <div class="annotation">success — border-color: status-safe-bar</div>
+      </div>
+
+      <!-- 6 error -->
+      <div class="state-card-wrap">
+        <div class="dropzone dropzone-mobile dropzone-error">
+          업로드 실패
+        </div>
+        <div class="toast-callout">PDF 파일만 업로드 가능합니다</div>
+        <div class="annotation">error — toast.error 발화 (PDF 외 파일)</div>
+      </div>
+
+      <!-- 7 menu-card skeleton -->
+      <div class="state-card-wrap">
+        <div class="menu-card-skeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+        </div>
+        <div class="annotation">skeleton — menuQuery loading (변환 후보 시안)</div>
+      </div>
+
+      <!-- 8 menu-card empty -->
+      <div class="state-card-wrap">
+        <div class="menu-card-empty">등록된 메뉴 없음</div>
+        <div class="annotation">empty — menuData null (현재 source 는 미렌더)</div>
+      </div>
+
+      <!-- 9 bonus 미운영일 -->
+      <div class="state-card-wrap">
+        <div class="menu-region-closed">식당 미운영일 (일요일 / 공휴일 / 공휴일 직후 토요일)</div>
+        <div class="annotation">미운영일 placeholder — mealCalc 룰 (변환 후보 시안)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================
+       rules 박스 — W3 verbatim 패턴 (7 섹션)
+       ================================================ -->
+  <div class="rules">
+    <h2>적용 룰 — W4 식단 카드 + PDF 업로드</h2>
+    <p>본 sketch 는 StaffServicePage.tsx line 842~1018 (menuSection + uploadSection) 의 W4 검증 포인트 (UI-SPEC §5.9 + §5.10 + §12) 를 NORMALIZED 룰 + 4-frame matrix 로 시각 고정한다.</p>
+
+    <h3>식단 카드 룰 (UI-SPEC §5.9)</h3>
+    <ul>
+      <li>3 카드 2-col grid, 석식 = grid-column 1 / 3 풀폭</li>
+      <li>bg = rgba(카테고리 RGB, 0.08), border = 1px solid rgba(카테고리 RGB, 0.20), radius = var(--radius-md), padding = 10px 12px</li>
+      <li>라벨: text-caption 12px font-bold leading-none + 카테고리 hex 색 (source 10px → 12px 노안 격상)</li>
+      <li>본문: text-body-sm 14px leading-relaxed (1.625) white-space pre-line text-secondary (source 11px → 14px + UI-SPEC §12 W4 leading-relaxed 강제)</li>
+      <li>카테고리 hex 3종 — 중식 A #06b6d4 (식단 cyan, §3.6) / 중식 B #d7428c (= 정규화 보건 §3.5) / 석식 #d78042 (= 정규화 경조 §3.5). source 의 OLD hex (중식 B 옛 핑크 / 석식 옛 오렌지) 폐기.</li>
+      <li>메뉴 항목 = source 의 " / " 구분 → 줄바꿈 (white-space: pre-line 패턴 유지)</li>
+      <li>시간대별 표시 (source line 860~862): isLunch (08:00~13:00) → 중식 A+B / isDinner (13:00~18:30) → 석식 / 그 외 → menuSection 미렌더. W4 sketch 는 시각 검증 위해 모든 3 카드 동시 표시.</li>
+    </ul>
+
+    <h3>PDF 업로드 dropzone 룰 (UI-SPEC §5.10)</h3>
+    <ul>
+      <li>모바일: padding 12px 0, border 1px solid var(--border-default), 작은 버튼 형태</li>
+      <li>데스크톱: padding 48px 0, border 2px dashed var(--border-default), 큰 드롭존</li>
+      <li>bg = var(--surface-raised), color = var(--text-secondary), font-size 12px font-semibold leading-none</li>
+      <li>hover/dragover: border-color var(--accent)</li>
+      <li>radius var(--radius-md) 12px</li>
+      <li>라벨: 모바일 "식단표 PDF 업로드" / 데스크톱 "식단표 PDF 드래그앤드롭 또는 클릭하여 업로드"</li>
+    </ul>
+
+    <h3>state variant 룰 (UI-SPEC §6 state matrix)</h3>
+    <ul>
+      <li>idle / dragover / uploading / success / error / skeleton / empty / 미운영일 = 8 variant + 1 bonus</li>
+      <li>dragover = border-color var(--accent) (source line 988)</li>
+      <li>uploading = toast "식단표 분석 중..." + spinner (source onChange = handleMenuUpload)</li>
+      <li>success = border-color var(--status-safe-bar), 체크 아이콘</li>
+      <li>error = border-color var(--status-danger-bar), toast "PDF 파일만 업로드 가능합니다"</li>
+      <li>skeleton = menuQuery loading (현재 source 는 return null, W4 시각 검증 위해 변환 후보 시안)</li>
+      <li>empty = menuData null (source 자체 미렌더)</li>
+      <li>미운영일 = mealCalc 룰 (일요일 / 공휴일 / 공휴일 직후 토요일) — 자체 placeholder (변환 후보 시안)</li>
+    </ul>
+
+    <h3>typography 룰 (UI-SPEC §7.1 + 노안 룰)</h3>
+    <ul>
+      <li>9 · 10 · 11px 0건</li>
+      <li>라벨 12px text-caption font-bold leading-none (작은 컨테이너 안 caption 룰)</li>
+      <li>본문 14px text-body-sm leading-relaxed 1.625 (UI-SPEC §12 W4 검증 포인트)</li>
+      <li>dropzone 라벨 12px text-caption font-semibold leading-none</li>
+    </ul>
+
+    <h3>색 룰 (UI-SPEC §3.4.1 / §3.5 / §3.6)</h3>
+    <ul>
+      <li>긴급/조치-대기 (status-fire) 변형 4종 0건 — §3.4.1 룰로 본 페이지 미사용</li>
+      <li>duty 4 토큰 — W4 미사용 (식단 / dropzone 카테고리만)</li>
+      <li>카테고리 hex 3종 (#06b6d4 / #d7428c / #d78042) — 식단 카드 bg / border / 라벨에만 사용</li>
+      <li>status-safe / status-danger — dropzone success / error variant 에만 사용</li>
+    </ul>
+
+    <h3>source-of-truth 매핑 (TSX 변환 시)</h3>
+    <ul>
+      <li>StaffServicePage.tsx line 864~893 menuSection: 옛 hex 두 곳 (중식 B 옛 핑크 / 석식 옛 오렌지) + fontSize 10/11 두 곳 + lineHeight 1.6 두 곳 → 본 sketch 의 NORMALIZED hex + 12/14px + leading 1.625 (relaxed) 로 교체</li>
+      <li>StaffServicePage.tsx line 984~1018 uploadSection: alias var(...) 네 곳 → var(--surface-raised) / var(--border-default) / var(--accent) / var(--text-secondary) 로 교체</li>
+      <li>dropRef onDragOver / onDragLeave 핸들러 안 alias 두 곳 (line 988~989) → var(--accent) / var(--border-default) 로 교체</li>
+    </ul>
+
+    <h3>negative gate (verify grep — 본 sketch 검증)</h3>
+    <ol>
+      <li>9 · 10 · 11px font-size 0건</li>
+      <li>이모지 0건 (모든 강조는 inline SVG lucide 패턴)</li>
+      <li>긴급 / 조치-대기 토큰 변형 4종 (foreground / -bar / -bg / utility class) 0건</li>
+      <li>v0.0.x alias 토큰 (배경 / 보더 / 텍스트 / accent / duty 단축 이름 — tokens.css line 177~197 의 옛 호환 alias 블록) 0건</li>
+      <li>OLD 카테고리 hex (옛 핑크 / 옛 오렌지 / 옛 보라 / 옛 빨강 / 옛 초록 / 옛 인디고) — :root 토큰 정의 (--status-* / --duty-*) 안 예외 외 0건</li>
+      <li>NORMALIZED 카테고리 hex 3종 (#06b6d4 / #d7428c / #d78042) 각 ≥ 1회</li>
+      <li>4-frame matrix — data-theme="dark" ≥ 2 / data-theme="light" ≥ 2 / .frame-mobile ≥ 2 / .frame-desktop ≥ 2</li>
+      <li>3 식단 카드 클래스 (.menu-lunch-a / .menu-lunch-b / .menu-dinner) 각 ≥ 2회 + 9 state variant 클래스 (.dropzone-mobile / .dropzone-desktop / .dropzone-dragover / .dropzone-uploading / .dropzone-success / .dropzone-error / .menu-card-skeleton / .menu-card-empty / .menu-region-closed) 각 ≥ 1회</li>
+    </ol>
+
+    <p style="margin-top: 16px;">다음 wave: W5 — 05-bottomsheet-sketch.html (BottomSheet 전체)</p>
+  </div>
+
+</body>
+</html>
