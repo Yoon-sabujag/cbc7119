@@ -865,11 +865,11 @@ export default function StaffServicePage() {
       ].map(c => (
         <div
           key={c.label}
-          className="flex-1 min-w-[100px] bg-surface-raised border border-border-default rounded-md p-card overflow-hidden"
+          className="flex-1 min-w-[84px] bg-surface-raised border border-border-default rounded-md p-card overflow-hidden"
           style={{ boxShadow: `inset 3px 0 0 ${c.barColor}` }}
         >
           <div className="text-caption text-text-tertiary font-semibold leading-none mb-1.5 whitespace-nowrap">{c.label}</div>
-          <div className={`text-title font-extrabold leading-none whitespace-nowrap ${c.valueClass}`} style={{ letterSpacing: '-0.01em' }}>{c.value}</div>
+          <div className={`text-body font-extrabold leading-none whitespace-nowrap ${c.valueClass}`} style={{ letterSpacing: '-0.01em' }}>{c.value}</div>
         </div>
       ))}
     </div>
