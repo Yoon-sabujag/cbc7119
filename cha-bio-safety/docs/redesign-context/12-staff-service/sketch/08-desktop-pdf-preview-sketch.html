@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>W8 — 12 staff-service desktop right panel PDF preview sketch</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim (scoped to .light-frame)
+     * ============================================================ */
+    .light-frame {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — 4의 배수 8pt 그리드 (테마 무관) — tokens.css verbatim
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 — tokens.css verbatim */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Page chrome (sketch 외곽 — W7 verbatim)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, sans-serif;
+      background: #0f1419;
+      color: #e6edf3;
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header h1 { margin: 0 0 8px 0; }
+    header p  { margin: 0 0 24px 0; }
+
+    .page-bg {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .vp-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      justify-content: flex-start;
+    }
+    .vp-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .vp-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      color: #7d8a9c;
+      max-width: 500px;
+    }
+
+    /* ============================================================
+     * Typography utilities (typography.css verbatim)
+     * ============================================================ */
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    /* W8 노안 룰: source lp text fontSize 10 → 12 격상 (PDF 정합) */
+    .text-marker   { font-size: 12px; line-height: 1; font-weight: 700; }
+
+    /* ============================================================
+     * Viewport frame — 500px right-panel simulation
+     * ============================================================ */
+    .vp-frame {
+      width: 500px;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      background: var(--surface-page);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .vp-frame[data-theme="dark"]  { border: 1px solid #2a2f3a; }
+    .vp-frame.light-frame { border: 1px solid #d0d7de; }
+
+    /* Right panel — mirrors source line 1226 (adapted per locked A/B) */
+    .right-panel {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      background: var(--surface-raised);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: var(--modal-padding);
+      position: relative;
+      min-height: 720px;
+    }
+
+    /* Inner A4 wrap — source line 1227 verbatim */
+    .a4-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 595px;
+    }
+
+    /* A4 placeholder box — replaces /templates/leave_request_preview.png */
+    .a4-box {
+      width: 100%;
+      aspect-ratio: 595 / 842;
+      background: #ffffff;              /* raw hex — A4 white, dark/light-invariant */
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Placeholder content (purely decorative) */
+    .a4-title {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: #555;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .a4-guide-zone {
+      position: absolute;
+      top: 64px;
+      left: 32px;
+      right: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .a4-guide-line {
+      height: 1px;
+      background: #e5e7eb;             /* raw hex — neutral guide */
+    }
+
+    /* ============================================================
+     * lp overlay markers — source line 1242 + 1264 verbatim styles
+     * (with W8 노안 룰: text marker fontSize 10 → 12)
+     * ============================================================ */
+    .lp-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    /* Inactive text marker (sketch-only — dashed yellow per UI-SPEC §14 OQ #4) */
+    .lp-text-inactive {
+      outline: 1.5px dashed #facc15;
+      background: rgba(250, 204, 21, 0.08);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 600;
+      color: #111;                     /* raw hex — source line 1242 verbatim */
+    }
+
+    /* Active text marker — source line 1242 verbatim (fontSize 10 → 12 W8 룰) */
+    .lp-text-active {
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      color: #111;                     /* raw hex — source line 1242 verbatim */
+    }
+
+    /* Inactive checkbox marker (sketch-only) */
+    .lp-check-inactive {
+      width: 12px;
+      height: 12px;
+      outline: 1.5px dashed var(--text-tertiary);
+      background: transparent;
+    }
+
+    /* Active checkbox marker — source line 1264 verbatim */
+    .lp-check-active {
+      width: 12px;
+      height: 12px;
+      background: #000;                /* raw hex — source line 1264 verbatim */
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 class="text-title" style="font-weight: 700">W8 — desktop right panel: PDF preview + lp[0..16] overlay</h1>
+    <p class="text-caption" style="color: #7d8a9c; max-width: 720px">
+      4 viewport stack. 우측 패널만 확대 (W6 좌측 / W7 중앙 sketch 참조).
+      lp[0..16] 좌표 17개는 StaffServicePage.tsx line 159~177 verbatim — UI-SPEC §10 NEGATIVE scope.
+      A4 흰 배경 (#ffffff) 은 다크 / 라이트 무관 유지 — UI-SPEC §12 W8 검증 포인트.
+    </p>
+  </header>
+
+  <div class="page-bg">
+
+    <!-- ============================================================
+         VP1 · 다크 · selCell 없음 — 17 lp 위치 인덱스 표시
+         ============================================================ -->
+    <section class="vp-row">
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="right-panel">
+            <div class="a4-wrap">
+              <div class="a4-box">
+                <div class="a4-title">휴가신청서 양식 (preview placeholder)</div>
+                <div class="a4-guide-zone">
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                </div>
+
+                <!-- VP1: All 17 inactive markers with lp[N] labels -->
+                <!-- lp[0..5] + lp[13..16]: dashed-outline text labels at verbatim coordinates -->
+                <span class="lp-marker lp-text-inactive" style="left: 80.34%; top: 27.79%">lp[0]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 80.34%; top: 32.07%">lp[1]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 43.70%; top: 31.81%">lp[2]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 38.99%; top: 37.66%">lp[3]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 57.82%; top: 37.66%">lp[4]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 69.75%; top: 37.66%">lp[5]</span>
+
+                <!-- lp[6..12]: dashed empty checkbox at verbatim coord + label slightly below -->
+                <div  class="lp-marker lp-check-inactive" style="left: 23.44%; top: 44.20%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 23.44%; top: 46.20%">lp[6]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 40.75%; top: 43.88%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 40.75%; top: 45.88%">lp[7]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 56.60%; top: 43.88%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 56.60%; top: 45.88%">lp[8]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 77.32%; top: 43.88%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 77.32%; top: 45.88%">lp[9]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 23.49%; top: 48.79%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 23.49%; top: 50.79%">lp[10]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 40.75%; top: 48.79%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 40.75%; top: 50.79%">lp[11]</span>
+
+                <div  class="lp-marker lp-check-inactive" style="left: 56.60%; top: 48.79%"></div>
+                <span class="lp-marker lp-text-inactive"  style="left: 56.60%; top: 50.79%">lp[12]</span>
+
+                <span class="lp-marker lp-text-inactive" style="left: 76.47%; top: 48.78%">lp[13]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 55.29%; top: 60.83%">lp[14]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 62.86%; top: 69.77%">lp[15]</span>
+                <span class="lp-marker lp-text-inactive" style="left: 55.38%; top: 74.79%">lp[16]</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="vp-caption">VP1 · 다크 · selCell 없음 — 17 lp 좌표 dashed outline + lp[N] 인덱스 라벨</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         VP2 · 다크 · 연차 시나리오 (윤종엽 26.05.18~26.05.20, 3일)
+         active markers: lp[0,1,2,3,4,5,14,15] text + lp[6] solid checkbox
+         ============================================================ -->
+    <section class="vp-row">
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="right-panel">
+            <div class="a4-wrap">
+              <div class="a4-box">
+                <div class="a4-title">휴가신청서 양식 (preview placeholder)</div>
+                <div class="a4-guide-zone">
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                </div>
+
+                <!-- VP2 active markers — source line 1258~1268 with locked annual sample data -->
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 27.79%">22.05.10</span>
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 32.07%">98.03.15</span>
+                <span class="lp-marker lp-text-active" style="left: 43.70%; top: 31.81%">윤종엽</span>
+                <span class="lp-marker lp-text-active" style="left: 38.99%; top: 37.66%">26.05.18</span>
+                <span class="lp-marker lp-text-active" style="left: 57.82%; top: 37.66%">26.05.20</span>
+                <span class="lp-marker lp-text-active" style="left: 69.75%; top: 37.66%">3</span>
+
+                <!-- lp[6] 연차 체크 — solid #000 12×12 -->
+                <div class="lp-marker lp-check-active" style="left: 23.44%; top: 44.20%"></div>
+
+                <!-- lp[7..13] NOT rendered (annual 시나리오) -->
+
+                <span class="lp-marker lp-text-active" style="left: 55.29%; top: 60.83%">010-1234-5678</span>
+                <span class="lp-marker lp-text-active" style="left: 62.86%; top: 69.77%">3</span>
+
+                <!-- lp[16] NOT rendered (ANNUAL_TYPES 사유 미사용) -->
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="vp-caption">VP2 · 다크 · 연차 시나리오 (윤종엽 26.05.18~26.05.20, 3일) — lp[6] solid 체크 1개</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         VP3 · 다크 · 기타특별 시나리오 (가족돌봄, 조부모 간병)
+         lp[0..5,14,15] text + lp[12] solid checkbox + lp[13] 기타특별 종류 + lp[16] 사유
+         ============================================================ -->
+    <section class="vp-row">
+      <div class="vp-wrap">
+        <div class="vp-frame" data-theme="dark">
+          <div class="right-panel">
+            <div class="a4-wrap">
+              <div class="a4-box">
+                <div class="a4-title">휴가신청서 양식 (preview placeholder)</div>
+                <div class="a4-guide-zone">
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                </div>
+
+                <!-- VP3 active markers — 기타특별 시나리오 -->
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 27.79%">22.05.10</span>
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 32.07%">98.03.15</span>
+                <span class="lp-marker lp-text-active" style="left: 43.70%; top: 31.81%">윤종엽</span>
+                <span class="lp-marker lp-text-active" style="left: 38.99%; top: 37.66%">26.05.18</span>
+                <span class="lp-marker lp-text-active" style="left: 57.82%; top: 37.66%">26.05.20</span>
+                <span class="lp-marker lp-text-active" style="left: 69.75%; top: 37.66%">3</span>
+
+                <!-- lp[6..11] NOT rendered -->
+
+                <!-- lp[12] 기타특별 체크 — solid #000 12×12 -->
+                <div class="lp-marker lp-check-active" style="left: 56.60%; top: 48.79%"></div>
+
+                <!-- lp[13] 기타특별 종류 -->
+                <span class="lp-marker lp-text-active" style="left: 76.47%; top: 48.78%">가족돌봄</span>
+
+                <span class="lp-marker lp-text-active" style="left: 55.29%; top: 60.83%">010-1234-5678</span>
+                <span class="lp-marker lp-text-active" style="left: 62.86%; top: 69.77%">3</span>
+
+                <!-- lp[16] 사유 -->
+                <span class="lp-marker lp-text-active" style="left: 55.38%; top: 74.79%">조부모 간병 필요</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="vp-caption">VP3 · 다크 · 기타특별 시나리오 (가족돌봄, 조부모 간병) — lp[12] solid 체크 1개 + lp[13]/lp[16] 사유 채움</p>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         VP4 · 라이트 · VP2 동일 데이터 — A4 박스는 흰색 유지 (UI-SPEC §12 W8 검증)
+         ============================================================ -->
+    <section class="vp-row">
+      <div class="vp-wrap">
+        <div class="vp-frame light-frame">
+          <div class="right-panel">
+            <div class="a4-wrap">
+              <div class="a4-box">
+                <div class="a4-title">휴가신청서 양식 (preview placeholder)</div>
+                <div class="a4-guide-zone">
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                  <div class="a4-guide-line"></div>
+                </div>
+
+                <!-- VP4 mirrors VP2 data — light mode: panel changes, A4 box stays #ffffff -->
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 27.79%">22.05.10</span>
+                <span class="lp-marker lp-text-active" style="left: 80.34%; top: 32.07%">98.03.15</span>
+                <span class="lp-marker lp-text-active" style="left: 43.70%; top: 31.81%">윤종엽</span>
+                <span class="lp-marker lp-text-active" style="left: 38.99%; top: 37.66%">26.05.18</span>
+                <span class="lp-marker lp-text-active" style="left: 57.82%; top: 37.66%">26.05.20</span>
+                <span class="lp-marker lp-text-active" style="left: 69.75%; top: 37.66%">3</span>
+
+                <div class="lp-marker lp-check-active" style="left: 23.44%; top: 44.20%"></div>
+
+                <span class="lp-marker lp-text-active" style="left: 55.29%; top: 60.83%">010-1234-5678</span>
+                <span class="lp-marker lp-text-active" style="left: 62.86%; top: 69.77%">3</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="vp-caption">VP4 · 라이트 · VP2 동일 데이터 — 패널은 라이트 surface (#f6f8fa), A4 박스는 #ffffff 유지 + 텍스트 #111 유지 (UI-SPEC §12 W8 검증)</p>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
