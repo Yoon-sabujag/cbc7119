@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-1.html — redesign/13-schedule W1
+  작성: 2026-05-19 / quick 260519-4iu
+  범위: 자체 헤더 + 월/연도 네비 + 캘린더 grid (요일 헤더 + 일자 셀 + 카테고리 dot + 공휴일 + 선택/오늘)
+  out of scope: 일정 카드 / 미리보기 / AddModal / 데스크톱 우측 컬럼
+  참조: design-system.md v0.1.1 §1~§7, SchedulePage.tsx line 81~302 verbatim
+
+  open questions:
+    OQ #1 (라이트 모드 event dot 색): 다크는 #e2e8f0 verbatim, 라이트 frame 에서는 임시 #94a3b8 (slate-400)
+            로 darken. 사용자 컨펌 후 1) #94a3b8 락 / 2) var(--text-secondary) 매핑 / 3) 카테고리 색 재선정 중 선택.
+    OQ #2 (멀티데이 범위 표시 방식): 시안에서는 source 그대로 일자 셀당 dot 만 표시 (matchesDate 룰 mirror).
+            범위 띠 (band) 시각화는 다음 wave 에서 검토. 사용자 컨펌 항목.
+    OQ #3 ("오늘" 버튼 위치): 현재 시안은 중앙 라벨 우측에 작은 칩 (h-7 pill border-accent). 다른 후보:
+            a) 우측 끝 (› 버튼 안쪽), b) 좌측 끝 (‹ 버튼 옆), c) 별도 floating action. 사용자 컨펌 후 락.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W1 헤더+월네비+캘린더 grid</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar (좌측 색바) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (모바일 기본)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 (tokens.css line 149~162 verbatim) */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* ============================================================
+     * Sketch 헬퍼
+     * ============================================================ */
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+  </style>
+  <script>
+    // tailwind config: 12-staff sketch 패턴 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       다크/라이트 토글 (페이지 root + 데스크톱 frame 분기용)
+       ============================================================ -->
+  <div class="fixed top-4 right-4 z-50 flex gap-2">
+    <button onclick="setTheme('dark')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-strong text-text-primary"
+      style="line-height:1;">
+      다크
+    </button>
+    <button onclick="setTheme('light')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-default text-text-secondary"
+      style="line-height:1;">
+      라이트
+    </button>
+  </div>
+
+  <script>
+    function setTheme(t) {
+      document.documentElement.dataset.theme = t;
+      // 페이지 body 배경 분기 (데스크톱 frame 가독성)
+      document.body.classList.toggle('page-bg-dark',  t === 'dark');
+      document.body.classList.toggle('page-bg-light', t === 'light');
+    }
+  </script>
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">13-schedule sketch W1 — 헤더 + 월 네비 + 캘린더 grid</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크 + 라이트 side-by-side) + 데스크톱 1280px placeholder. 우상단 토글로 데스크톱 frame 만 분기됨.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트 side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ───── 다크 모바일 frame ───── -->
+    <div data-theme="dark" class="frame-shell" style="width:393px;">
+
+      <!-- ① 자체 헤더 (h-12, 통일 룰) -->
+      <header class="bg-surface-page border-b border-border-default flex items-center justify-between gap-2"
+        style="height:48px; padding:0 12px;">
+        <!-- 백 버튼 placeholder (w-8 h-8 sketch CDN 기본 = 32px) -->
+        <button class="bg-surface-raised rounded-[7px] flex items-center justify-center"
+          style="width:32px; height:32px;">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+            class="text-text-secondary">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <!-- 페이지 제목 -->
+        <span class="text-title text-text-primary font-medium" style="flex:1; text-align:center;">월간 점검 계획</span>
+        <!-- 우측 액션 placeholder (다음 wave: 자동 생성 버튼) -->
+        <span class="bg-surface-sunken rounded-[7px] border border-dashed border-border-default flex items-center justify-center text-text-disabled"
+          style="width:32px; height:32px; font-size:13px;" title="다음 wave: 엑셀 다운로드 등 액션">
+          ·
+        </span>
+      </header>
+
+      <!-- ② 월/연도 네비게이션 -->
+      <div class="flex items-center justify-between"
+        style="padding:12px 16px;">
+        <!-- 이전 달 -->
+        <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+          style="width:36px; height:36px; font-size:20px; line-height:1;">
+          ‹
+        </button>
+        <!-- 중앙: 라벨 + "오늘" 칩 -->
+        <div class="flex items-center gap-2">
+          <span class="text-title text-text-primary font-semibold">2026년 5월</span>
+          <!-- "오늘" 칩 — OQ #3 위치 컨펌 대기 -->
+          <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
+            style="height:28px; line-height:1; display:inline-flex; align-items:center;">
+            오늘
+          </button>
+        </div>
+        <!-- 다음 달 -->
+        <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+          style="width:36px; height:36px; font-size:20px; line-height:1;">
+          ›
+        </button>
+      </div>
+
+      <!-- ③ 캘린더 본체 -->
+      <div style="padding:0 16px 12px;">
+        <div class="bg-surface-raised border border-border-default overflow-hidden rounded-md-token">
+
+          <!-- 요일 헤더 (h-9, grid 7) -->
+          <div class="grid grid-cols-7 border-b border-border-default">
+            <!-- 일 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--status-danger); line-height:1;">일</div>
+            <!-- 월 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">월</div>
+            <!-- 화 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">화</div>
+            <!-- 수 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">수</div>
+            <!-- 목 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">목</div>
+            <!-- 금 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">금</div>
+            <!-- 토 -->
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--accent); line-height:1;">토</div>
+          </div>
+
+          <!-- 일자 그리드 (7×6 = 42 cell, aspect-square)
+               2026-05-01 = 금요일 (dow=5). 앞 5 cell empty, 5/1~5/31 = 31 cell, 뒤 6 cell empty. -->
+          <div class="grid grid-cols-7">
+
+            <!-- 1주차: ・ ・ ・ ・ ・ 1(금) 2(토) -->
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <!-- 5/1 금 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">1</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/2 토 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">2</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 2주차: 3(일) 4(월) 5(화) 6(수) 7(목) 8(금) 9(토) -->
+            <!-- 5/3 일 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">3</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/4 월 — dots: inspect + task -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">4</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <!-- 5/5 화 — 어린이날(공휴일) + 선택 셀 + dot: event(#e2e8f0) -->
+            <div class="aspect-square flex flex-col items-center justify-start relative"
+              style="padding:6px 0 7px; border-radius:8px; background:rgba(59,130,246,0.15); border:2px solid #3b82f6; box-sizing:border-box;">
+              <span class="text-caption font-semibold" style="color:var(--accent); line-height:1;">5</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span>
+              </div>
+            </div>
+            <!-- 5/6 수 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">6</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/7 목 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">7</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/8 금 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">8</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/9 토 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">9</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 3주차: 10(일) 11(월) 12(화)~15(금) 멀티데이 fire / 16(토) -->
+            <!-- 5/10 일 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">10</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/11 월 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">11</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/12 화 — 멀티데이 fire (소방 종합정밀점검 5/12~5/15 시작일) -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">12</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <!-- 5/13 수 — 멀티데이 fire 2일째 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">13</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <!-- 5/14 목 — 멀티데이 fire 3일째 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">14</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <!-- 5/15 금 — 멀티데이 fire 4일째 (종료일) -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">15</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <!-- 5/16 토 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">16</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 4주차: 17(일) 18(월) 19(화)=오늘 20(수) 21(목) 22(금) 23(토) -->
+            <!-- 5/17 일 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">17</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/18 월 — elevator dot -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">18</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#f97316;"></span>
+              </div>
+            </div>
+            <!-- 5/19 화 — 오늘 (sel 아님, accent 원형) + dots: inspect/fire/task 3개 (max) -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption font-semibold flex items-center justify-center rounded-full"
+                style="width:24px;height:24px;background:var(--accent);color:#fff;line-height:1;">
+                19
+              </span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <!-- 5/20 수 — 4 카테고리 dot 중 slice(0,3) 시각 검증 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">20</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span>
+                <!-- 4번째 elevator(#f97316) 는 slice(0,3) 으로 잘림 (DOM 에서 미렌더) -->
+              </div>
+            </div>
+            <!-- 5/21 목 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">21</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/22 금 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">22</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/23 토 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">23</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 5주차: 24(일) 25(월=공휴일) 26(화) 27(수) 28(목) 29(금) 30(토) -->
+            <!-- 5/24 일 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">24</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/25 월 — 부처님 오신 날 (공휴일) + event dot (단일 일자는 표시되는 룰 검증) -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">25</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span>
+              </div>
+            </div>
+            <!-- 5/26 화 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">26</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/27 수 — task dot -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">27</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <!-- 5/28 목 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">28</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/29 금 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">29</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/30 토 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">30</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 6주차: 31(일) ・ ・ ・ ・ ・ ・ -->
+            <!-- 5/31 일 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">31</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+          </div>
+        </div>
+
+        <!-- ④ 공휴일 라벨 (선택 셀 5/5 = 어린이날) -->
+        <div class="text-caption font-semibold" style="margin-top:8px; padding-left:2px; color:var(--status-danger); line-height:1.5;">
+          어린이날
+        </div>
+
+        <!-- ⑤ 다음 wave placeholder -->
+        <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary"
+          style="margin-top:12px; padding:16px; line-height:1.5;">
+          ↓ 다음 wave: 일자별 일정 카드 + 미리보기 + 범례 + CTA
+        </div>
+      </div>
+    </div><!-- /다크 모바일 frame -->
+
+    <!-- ───── 라이트 모바일 frame ───── -->
+    <div data-theme="light" class="frame-shell" style="width:393px;">
+
+      <!-- ① 자체 헤더 -->
+      <header class="bg-surface-page border-b border-border-default flex items-center justify-between gap-2"
+        style="height:48px; padding:0 12px;">
+        <button class="bg-surface-raised rounded-[7px] flex items-center justify-center"
+          style="width:32px; height:32px;">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+            class="text-text-secondary">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <span class="text-title text-text-primary font-medium" style="flex:1; text-align:center;">월간 점검 계획</span>
+        <span class="bg-surface-sunken rounded-[7px] border border-dashed border-border-default flex items-center justify-center text-text-disabled"
+          style="width:32px; height:32px; font-size:13px;">
+          ·
+        </span>
+      </header>
+
+      <!-- ② 월/연도 네비게이션 -->
+      <div class="flex items-center justify-between" style="padding:12px 16px;">
+        <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+          style="width:36px; height:36px; font-size:20px; line-height:1;">
+          ‹
+        </button>
+        <div class="flex items-center gap-2">
+          <span class="text-title text-text-primary font-semibold">2026년 5월</span>
+          <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
+            style="height:28px; line-height:1; display:inline-flex; align-items:center;">
+            오늘
+          </button>
+        </div>
+        <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+          style="width:36px; height:36px; font-size:20px; line-height:1;">
+          ›
+        </button>
+      </div>
+
+      <!-- ③ 캘린더 본체 -->
+      <div style="padding:0 16px 12px;">
+        <div class="bg-surface-raised border border-border-default overflow-hidden rounded-md-token">
+
+          <!-- 요일 헤더 -->
+          <div class="grid grid-cols-7 border-b border-border-default">
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--status-danger); line-height:1;">일</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">월</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">화</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">수</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">목</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">금</div>
+            <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--accent); line-height:1;">토</div>
+          </div>
+
+          <!-- 일자 그리드 (라이트 mirror — event dot 만 #94a3b8 darken, 나머지 verbatim) -->
+          <div class="grid grid-cols-7">
+
+            <!-- 1주차 -->
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">1</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">2</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 2주차 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">3</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">4</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <!-- 5/5 어린이날 + 선택 셀 + event dot (라이트 darken 후보) -->
+            <div class="aspect-square flex flex-col items-center justify-start relative"
+              style="padding:6px 0 7px; border-radius:8px; background:rgba(31,111,235,0.15); border:2px solid var(--accent); box-sizing:border-box;">
+              <span class="text-caption font-semibold" style="color:var(--accent); line-height:1;">5</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <!-- OQ #1: 라이트 임시 #94a3b8 (slate-400). 다크는 #e2e8f0 verbatim -->
+                <span style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">6</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">7</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">8</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">9</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 3주차 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">10</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">11</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/12~5/15 멀티데이 fire -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">12</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">13</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">14</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">15</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">16</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 4주차 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">17</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">18</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#f97316;"></span>
+              </div>
+            </div>
+            <!-- 5/19 화 — 오늘 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption font-semibold flex items-center justify-center rounded-full"
+                style="width:24px;height:24px;background:var(--accent);color:#fff;line-height:1;">
+                19
+              </span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <!-- 5/20 — slice(0,3) — 4번째 elevator dot 잘림 (다크와 동일) -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">20</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span>
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+                <!-- event dot 라이트 darken 적용 (#94a3b8) — OQ #1 -->
+                <span style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">21</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">22</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">23</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 5주차 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">24</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <!-- 5/25 부처님 오신 날 + event 단일 일자 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">25</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">26</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">27</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;">
+                <span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span>
+              </div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">28</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption text-text-primary" style="line-height:1;">29</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--accent); line-height:1;">30</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+
+            <!-- 6주차 -->
+            <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;">
+              <span class="text-caption" style="color:var(--status-danger); line-height:1;">31</span>
+              <div class="flex items-center" style="gap:2px; height:6px; margin-top:auto;"></div>
+            </div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+            <div class="aspect-square"></div>
+          </div>
+        </div>
+
+        <!-- ④ 공휴일 라벨 -->
+        <div class="text-caption font-semibold" style="margin-top:8px; padding-left:2px; color:var(--status-danger); line-height:1.5;">
+          어린이날
+        </div>
+
+        <!-- ⑤ 다음 wave placeholder -->
+        <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary"
+          style="margin-top:12px; padding:16px; line-height:1.5;">
+          ↓ 다음 wave: 일자별 일정 카드 + 미리보기 + 범례 + CTA
+        </div>
+      </div>
+    </div><!-- /라이트 모바일 frame -->
+
+  </section>
+
+  <!-- ============================================================
+       카테고리 5종 라벨 (검증 — 다음 wave 범례 미리 영문/한글 둘 다 노출)
+       sketch verify gate M: '점검' '업무' '행사' '승강기' '소방' 노출
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-12 p-4 rounded-md-token"
+    style="background:rgba(255,255,255,0.04); border:1px dashed rgba(255,255,255,0.14);">
+    <p class="text-label text-zinc-300 mb-3">카테고리 5종 (시안 검증 — 다음 wave 에서 범례로 출력. SCHED_CATEGORIES verbatim)</p>
+    <div class="flex flex-wrap gap-3 text-caption text-zinc-200" style="line-height:1.5;">
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-zinc-800">
+        <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;"></span> 점검 (inspect) #3b82f6
+      </span>
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-zinc-800">
+        <span style="width:8px;height:8px;border-radius:50%;background:#eab308;"></span> 업무 (task) #eab308
+      </span>
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-zinc-800">
+        <span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;"></span> 행사 (event) #e2e8f0
+      </span>
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-zinc-800">
+        <span style="width:8px;height:8px;border-radius:50%;background:#f97316;"></span> 승강기 (elevator) #f97316
+      </span>
+      <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-pill bg-zinc-800">
+        <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span> 소방 (fire) #ef4444
+      </span>
+    </div>
+    <p class="text-caption text-zinc-400 mt-3" style="line-height:1.5;">
+      멀티데이 mock: <strong class="text-zinc-200">소방 종합정밀점검 5/12~5/15</strong> (fire 카테고리, 4일 연속, matchesDate 룰 시각 mirror).
+      5/20 셀은 4개 카테고리 dot 중 slice(0,3) 으로 처음 3개만 표시 (4번째 elevator dot 잘림).
+      5/25 (부처님 오신 날, 공휴일) 의 event dot 은 단일 일자라 공휴일에도 표시되는 룰 검증.
+    </p>
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame (≥1024px 화면에서만 노출) — page-padding 16→24 분기 시각 확인용
+       ============================================================ -->
+  <section class="hidden lg:block max-w-[1400px] mx-auto mb-12">
+    <h2 class="text-title text-white mb-3 font-medium">데스크톱 frame (≥768px page-padding 24px 자동 분기 확인)</h2>
+
+    <div data-theme="dark" class="frame-shell" style="width:1280px; max-width:100%;">
+
+      <!-- ① 자체 헤더 (데스크톱은 h-12 동일 — App.tsx 패턴) -->
+      <header class="bg-surface-page border-b border-border-default flex items-center justify-between"
+        style="height:48px; padding:0 24px;">
+        <div class="flex items-center gap-3">
+          <button class="bg-surface-raised rounded-[7px] flex items-center justify-center"
+            style="width:32px; height:32px;">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+              class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+          <span class="text-title text-text-primary font-medium">월간 점검 계획</span>
+        </div>
+        <span class="text-caption text-text-tertiary" style="line-height:1;">
+          데스크톱 우측 컬럼 (월간 미리보기 + 액션) → 다음 wave
+        </span>
+      </header>
+
+      <!-- ② 본문 — 좌측 캘린더 컬럼 + 우측 placeholder -->
+      <div class="flex" style="min-height:560px;">
+
+        <!-- 좌측 캘린더 컬럼 (380px 고정, SchedulePage.tsx line 452 verbatim 패턴) -->
+        <div class="border-r border-border-default" style="width:380px; flex-shrink:0; padding:16px 20px;">
+
+          <!-- 월 네비게이션 -->
+          <div class="flex items-center justify-between" style="margin-bottom:12px;">
+            <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+              style="width:32px; height:32px; font-size:20px; line-height:1;">
+              ‹
+            </button>
+            <div class="flex items-center gap-2">
+              <span class="text-title text-text-primary font-semibold">2026년 5월</span>
+              <button class="text-caption font-medium border border-accent text-accent rounded-pill px-2.5"
+                style="height:28px; line-height:1; display:inline-flex; align-items:center;">
+                오늘
+              </button>
+            </div>
+            <button class="border border-border-default bg-surface-raised text-text-primary flex items-center justify-center rounded-sm-token"
+              style="width:32px; height:32px; font-size:20px; line-height:1;">
+              ›
+            </button>
+          </div>
+
+          <!-- 캘린더 카드 (간소화 — 데스크톱은 모바일 캘린더 컴포넌트를 reuse 함을 확인용으로 동일 캘린더 미리보기) -->
+          <div class="bg-surface-raised border border-border-default overflow-hidden rounded-md-token">
+            <!-- 요일 헤더 -->
+            <div class="grid grid-cols-7 border-b border-border-default">
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--status-danger); line-height:1;">일</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">월</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">화</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">수</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">목</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--text-tertiary); line-height:1;">금</div>
+              <div class="text-caption font-semibold text-center" style="padding:8px 0; color:var(--accent); line-height:1;">토</div>
+            </div>
+            <!-- 일자 grid (전체 5월 — 모바일과 1:1 동일) -->
+            <div class="grid grid-cols-7">
+              <!-- 1주차: empty × 5, 1, 2 -->
+              <div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">1</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--accent);line-height:1;">2</span><div style="height:6px;margin-top:auto;"></div></div>
+              <!-- 2주차 -->
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">3</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">4</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span><span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px; border-radius:8px; background:rgba(59,130,246,0.15); border:2px solid #3b82f6; box-sizing:border-box;"><span class="text-caption font-semibold" style="color:var(--accent);line-height:1;">5</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">6</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">7</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">8</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--accent);line-height:1;">9</span><div style="height:6px;margin-top:auto;"></div></div>
+              <!-- 3주차 -->
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">10</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">11</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">12</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">13</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">14</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">15</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--accent);line-height:1;">16</span><div style="height:6px;margin-top:auto;"></div></div>
+              <!-- 4주차 -->
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">17</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">18</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#f97316;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption font-semibold flex items-center justify-center rounded-full" style="width:24px;height:24px;background:var(--accent);color:#fff;line-height:1;">19</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span><span style="width:4px;height:4px;border-radius:50%;background:#ef4444;"></span><span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">20</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#3b82f6;"></span><span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span><span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">21</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">22</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--accent);line-height:1;">23</span><div style="height:6px;margin-top:auto;"></div></div>
+              <!-- 5주차 -->
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">24</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">25</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#e2e8f0;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">26</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">27</span><div class="flex items-center" style="gap:2px;height:6px;margin-top:auto;"><span style="width:4px;height:4px;border-radius:50%;background:#eab308;"></span></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">28</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption text-text-primary" style="line-height:1;">29</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--accent);line-height:1;">30</span><div style="height:6px;margin-top:auto;"></div></div>
+              <!-- 6주차 -->
+              <div class="aspect-square flex flex-col items-center justify-start" style="padding:6px 0 7px;"><span class="text-caption" style="color:var(--status-danger);line-height:1;">31</span><div style="height:6px;margin-top:auto;"></div></div>
+              <div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div><div class="aspect-square"></div>
+            </div>
+          </div>
+
+          <!-- 공휴일 라벨 -->
+          <div class="text-caption font-semibold" style="margin-top:8px; padding-left:2px; color:var(--status-danger); line-height:1.5;">
+            어린이날
+          </div>
+        </div>
+
+        <!-- 우측 placeholder (다음 wave) -->
+        <div class="flex-1 flex items-center justify-center" style="padding:24px;">
+          <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary w-full"
+            style="padding:48px 24px; line-height:1.5;">
+            ↓ 다음 wave: 일자별 일정 카드 (카테고리별 컬럼 grid) + 월간 점검 계획 테이블 미리보기 + CTA 영역
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       OQ (Open Question) 카드 — 사용자 컨펌 항목 3건 (가독성 강화)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-12 p-5 rounded-md-token"
+    style="background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.3);">
+    <h3 class="text-title text-yellow-300 mb-3 font-medium">OQ · 사용자 컨펌 항목 3건</h3>
+    <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
+      <li class="mb-2">
+        <strong>OQ #1 — 라이트 모드 event 카테고리 dot 색</strong><br/>
+        다크: <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#e2e8f0</code> verbatim (소스)<br/>
+        라이트 frame 임시 표시: <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">#94a3b8</code> (slate-400) → 흰 배경에서 식별 가능<br/>
+        후보 a) #94a3b8 락 / b) <code class="bg-zinc-800 px-1.5 rounded" style="font-size:12px;">var(--text-secondary)</code> 매핑 / c) 카테고리 색 자체 재선정
+      </li>
+      <li class="mb-2">
+        <strong>OQ #2 — 멀티데이 일정 범위 표시 방식</strong><br/>
+        현재 시안: 일자 셀당 동일 카테고리 dot 만 4개 연속 표시 (matchesDate 룰 mirror, 소스 verbatim)<br/>
+        대안: 범위 띠 (band) 를 셀 하단에 가로로 깔기 → 시각적 연속성 강조<br/>
+        결정 필요: <strong>dot 유지</strong> vs <strong>band 추가</strong>
+      </li>
+      <li>
+        <strong>OQ #3 — "오늘" 버튼 위치</strong><br/>
+        현재 시안: 중앙 라벨 "2026년 5월" 우측에 작은 pill 칩 (h-7 border-accent text-accent)<br/>
+        대안 a) 우측 끝 (› 버튼 안쪽) / b) 좌측 끝 (‹ 버튼 옆) / c) 캘린더 외부 floating action / d) 칩 자체 제거 (네비게이션만)<br/>
+        사용자 컨펌 후 락.
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============================================================
+       Footer — 메모리 룰 체크리스트
+       ============================================================ -->
+  <footer class="max-w-[1400px] mx-auto p-5 rounded-md-token text-caption text-zinc-500"
+    style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); line-height:1.6;">
+    <p class="mb-2"><strong class="text-zinc-300">메모리 룰 체크리스트 (작성 시 강제)</strong></p>
+    <ul class="list-disc pl-5">
+      <li>이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)</li>
+      <li>9·10·11px font-size 0 (text-caption 12 마지노선, feedback_text_caption_leading_none.md)</li>
+      <li>status- prefix className 0 (text-fire-bar O, text-status-fire-bar X — feedback_tailwind_token_class_pattern.md)</li>
+      <li>SCHED_CATEGORIES hex 5종 verbatim — #3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444</li>
+      <li>WEEK_DAYS 7개 한글 모두 노출 — 일 월 화 수 목 금 토</li>
+      <li>일자 셀 leading-none + aspect-square 일관</li>
+      <li>tokens.css line 16~197 verbatim + typography.css line 28~95 verbatim 임베드</li>
+      <li>data-theme 토글 동작 (다크/라이트)</li>
+      <li>비즈니스 로직 0 변경 (SchedulePage.tsx 1줄도 수정 X)</li>
+    </ul>
+  </footer>
+
+</body>
+</html>
