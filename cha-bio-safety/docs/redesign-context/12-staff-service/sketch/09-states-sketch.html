@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>W9 — All region states</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      /* 긴급/조치-대기 톤 (--status-fire 계열) 은 의도적 누락 — 12-staff-service 미사용 (UI-SPEC §3.4.1) */
+
+      /* === Status — bar === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+
+      /* === Status — bg === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+
+      /* === Duty === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"],
+    .light-frame {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 124~146 verbatim (테마 무관)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 167~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 13~96 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .font-medium   { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .leading-none  { line-height: 1; }
+
+    /* ============================================================
+     * Spinner + shimmer keyframes — 단일 정의
+     * ============================================================ */
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes shimmer{ 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-default);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .spinner.sm { width: 16px; height: 16px; border-width: 2px; }
+    .spinner.md { width: 20px; height: 20px; border-width: 2px; }
+
+    /* ============================================================
+     * 페이지 외곽 — raw hex 예외 영역 (sketch 컨텍스트 한정)
+     * ============================================================ */
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 24px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      line-height: 1.55;
+    }
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .page-header {
+      margin-bottom: var(--space-8);
+    }
+    .page-header h1 {
+      margin: 0 0 var(--space-2) 0;
+      color: var(--text-primary);
+    }
+    .page-header p {
+      margin: 0;
+      color: var(--text-tertiary);
+      max-width: 720px;
+    }
+
+    /* ============================================================
+     * Section / row 골격
+     * ============================================================ */
+    .section {
+      padding-top: var(--space-7);
+      margin-top: var(--space-7);
+      border-top: 1px solid var(--border-default);
+    }
+    .section.first {
+      padding-top: 0;
+      margin-top: 0;
+      border-top: 0;
+    }
+    .section-title {
+      margin: 0 0 var(--space-1) 0;
+      color: var(--text-primary);
+    }
+    .section-meta {
+      margin: 0 0 var(--space-4) 0;
+      color: var(--text-tertiary);
+    }
+    .section-sub-title {
+      margin: var(--space-5) 0 var(--space-3) 0;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .state-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-4);
+      align-items: stretch;
+    }
+    .state-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      min-height: 200px;
+    }
+    .state-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .state-meta {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+    }
+    .state-mini {
+      flex: 1 1 auto;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 140px;
+    }
+
+    /* ============================================================
+     * Toast 시각화 (react-hot-toast v0.1.1 토큰화)
+     * ============================================================ */
+    .toast {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-4);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+      max-width: 100%;
+    }
+    .toast-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .toast-icon.success { color: var(--status-safe); }
+    .toast-icon.error   { color: var(--status-danger); }
+
+    /* mini-toast floats above state mini area */
+    .toast-floating {
+      position: absolute;
+      top: var(--space-2);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 12px;
+      padding: var(--space-1) var(--space-3);
+    }
+    .toast-floating .toast-icon { width: 14px; height: 14px; font-size: 12px; }
+    .toast-floating .spinner.sm { width: 12px; height: 12px; border-width: 2px; }
+
+    /* ============================================================
+     * 비활성 버튼 패턴 (UI-SPEC §6.4)
+     * ============================================================ */
+    .btn-disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 var(--button-padding-x);
+      height: var(--button-height);
+      cursor: default;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .btn-base {
+      border-radius: var(--radius-sm);
+      padding: 0 var(--button-padding-x);
+      height: var(--button-height);
+      cursor: default;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+    .btn-outline-accent {
+      background: transparent;
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-loading-safe {
+      background: var(--status-safe);
+      color: #ffffff;
+      border-color: var(--status-safe);
+    }
+    .btn-loading-accent {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+
+    /* ============================================================
+     * Row 1 — 달력 미니 grid
+     * ============================================================ */
+    .cal-mini {
+      width: 100%;
+      max-width: 196px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      padding: var(--space-2);
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+    }
+    .cal-cell {
+      aspect-ratio: 1 / 1;
+      background: var(--surface-sunken);
+      border-radius: 4px;
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 2px 3px;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+    .cal-cell .dot {
+      position: absolute;
+      bottom: 3px;
+      right: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+    }
+    .dot-day   { background: var(--duty-day); }
+    .dot-night { background: var(--duty-night); }
+    .dot-off   { background: var(--duty-off); }
+    .dot-leave { background: var(--duty-leave); }
+    .cal-loading-mask {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-loading-mask + .cal-mini { opacity: 0.4; }
+    .cal-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-error {
+      width: 100%;
+      max-width: 196px;
+      aspect-ratio: 7 / 5;
+      border: 1px solid var(--status-danger-bar);
+      background: var(--status-danger-bg);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-1);
+      color: var(--status-danger);
+    }
+    .cal-error .toast-icon.error { width: 20px; height: 20px; font-size: 18px; }
+    .cal-empty-note {
+      margin-top: var(--space-2);
+      color: var(--text-tertiary);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    /* ============================================================
+     * Row 2 — 식단 카드 미니
+     * ============================================================ */
+    .menu-mini-stack {
+      width: 100%;
+      max-width: 196px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .menu-card-mini {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+    }
+    .menu-card-mini .menu-mini-label {
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-1);
+    }
+    .menu-card-mini .menu-mini-body {
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--text-tertiary);
+    }
+    .menu-card-mini.shimmer {
+      background: linear-gradient(90deg,
+        var(--surface-sunken),
+        var(--surface-active),
+        var(--surface-sunken));
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      min-height: 36px;
+    }
+    .menu-card-empty {
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+    }
+    .menu-closed {
+      background: var(--surface-raised);
+      border: 1px dashed var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3);
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+    }
+
+    /* ============================================================
+     * Row 3 — PDF 업로드 dropzone 미니
+     * ============================================================ */
+    .dz-mini {
+      width: 100%;
+      max-width: 196px;
+      min-height: 88px;
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      text-align: center;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .dz-mini.dragover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.08);
+      color: var(--text-secondary);
+    }
+    .dz-mini.uploading {
+      color: var(--text-secondary);
+    }
+    .dz-mini.success {
+      border-color: var(--status-safe-bar);
+      background: var(--status-safe-bg);
+      color: var(--status-safe);
+    }
+    .dz-mini.error {
+      border-color: var(--status-danger-bar);
+      background: var(--status-danger-bg);
+      color: var(--status-danger);
+    }
+
+    /* ============================================================
+     * Row 4 — BottomSheet 휴가 폼 미니
+     * ============================================================ */
+    .sheet-mini {
+      width: 100%;
+      max-width: 220px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .sheet-handle {
+      width: 40px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: var(--radius-pill);
+      margin: 0 auto var(--space-1);
+    }
+    .sheet-mini.blocked .sheet-form {
+      opacity: 0.4;
+    }
+    .sheet-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+    .input-mini {
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      height: 28px;
+      padding: 0 var(--space-2);
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+    }
+    .leave-type-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-1);
+    }
+    .leave-type-btn {
+      height: 26px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 600;
+      border: 1px solid var(--border-default);
+      background: transparent;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .leave-type-btn.selected {
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border-color: var(--accent);
+    }
+    .leave-type-btn.registered {
+      background: var(--status-safe-bg);
+      color: var(--status-safe);
+      border-color: var(--status-safe-bar);
+    }
+    .leave-type-btn.disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      border-color: var(--border-default);
+    }
+    .cta-mini {
+      height: 30px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-1);
+      border: 1px solid transparent;
+    }
+    .cta-accent  { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
+    .cta-outline { background: transparent; color: var(--text-primary); border-color: var(--border-default); }
+    .cta-outline-accent { background: transparent; color: var(--accent); border-color: var(--accent); }
+    .cta-loading-safe   { background: var(--status-safe); color: #ffffff; border-color: var(--status-safe); }
+    .cta-loading-accent { background: var(--accent); color: var(--text-on-accent); border-color: var(--accent); }
+    .cta-disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      border-color: var(--border-default);
+    }
+
+    .leave-block-banner {
+      background: var(--status-warning-bg);
+      border: 1px solid var(--status-warning-bar);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2);
+      color: var(--status-warning);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .leave-block-banner.danger {
+      background: var(--status-danger-bg);
+      border-color: var(--status-danger-bar);
+      color: var(--status-danger);
+    }
+    .inspect-warn-banner {
+      background: var(--status-warning-bg);
+      border: 1px solid var(--status-warning-bar);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2);
+      color: var(--status-warning);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+     * Row 5/6 desktop form / pdf preview 미니
+     * ============================================================ */
+    .desktop-mini {
+      width: 100%;
+      max-width: 220px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      position: relative;
+    }
+    .desktop-mini .input-mini { height: 24px; }
+    .a4-mini {
+      width: 100%;
+      max-width: 160px;
+      aspect-ratio: 595 / 842;
+      background: #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px;
+    }
+    .a4-mini-title {
+      color: #555;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+      text-align: center;
+    }
+    .a4-mini-guide {
+      width: 80%;
+      height: 1px;
+      background: #e5e7eb;
+    }
+    .a4-mini.outline-danger {
+      box-shadow: 0 0 0 1.5px var(--status-danger-bar), 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+    .a4-spin-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--space-2);
+      color: #555;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 4px;
+    }
+    .a4-err-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--status-danger-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--space-1);
+      color: var(--status-danger);
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 4px;
+    }
+    .a4-err-overlay .toast-icon.error { width: 18px; height: 18px; font-size: 16px; }
+
+    /* ============================================================
+     * Row 7 — 식사 미사용 끼수 버튼
+     * ============================================================ */
+    .meal-skip-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      width: 100%;
+      max-width: 196px;
+      position: relative;
+    }
+    .meal-skip-btn {
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--space-3);
+      font-size: 13px;
+      line-height: 1;
+      font-weight: 600;
+    }
+    .meal-skip-btn.idle {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      border: 1px solid var(--border-default);
+    }
+    .meal-skip-btn.active {
+      background: var(--status-warning-bg);
+      color: var(--status-warning);
+      border: 1px solid var(--status-warning-bar);
+    }
+
+    /* ============================================================
+     * Row 8 — 휴가 종류 버튼 (4-up grid)
+     * ============================================================ */
+    .leave-type-grid-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-1);
+      width: 100%;
+      max-width: 196px;
+    }
+    .leave-type-grid-card .leave-type-btn {
+      height: 32px;
+      font-size: 12px;
+    }
+
+    /* ============================================================
+     * Row 9 — CTA 트리오
+     * ============================================================ */
+    .cta-trio {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      width: 100%;
+      max-width: 200px;
+    }
+
+    /* ============================================================
+     * Toast 카탈로그
+     * ============================================================ */
+    .toast-catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: var(--space-3);
+      align-items: start;
+    }
+    .toast-catalog .toast {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    /* ============================================================
+     * Light-frame cross-check
+     * ============================================================ */
+    .light-frame {
+      background: var(--surface-page);
+      border: 1px solid #d0d7de;
+      border-radius: var(--radius-md);
+      padding: var(--space-6);
+      color: var(--text-primary);
+    }
+    .light-frame .section-title { color: var(--text-primary); }
+    .light-frame .section-meta  { color: var(--text-tertiary); }
+
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- =========================================================
+         Page header
+         ========================================================= -->
+    <header class="page-header">
+      <h1 class="text-heading">W9 — All region states</h1>
+      <p class="text-caption">
+        9 region × loading / empty / error / optimistic / disabled / blocked.
+        TSX 변환 wave (W10) source of truth.
+      </p>
+    </header>
+
+    <!-- =========================================================
+         Row 1 — 달력 (region.calendar)
+         ========================================================= -->
+    <section class="section first">
+      <h2 class="text-title section-title">Row 1 — 달력</h2>
+      <p class="text-caption section-meta">region.calendar — 정상 / loading / empty / error</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">정상</div>
+          <div class="state-meta">duty dot 적용 5×7 grid</div>
+          <div class="state-mini">
+            <div class="cal-wrap">
+              <div class="cal-mini" aria-label="5×7 캘린더 그리드 정상">
+                <div class="cal-cell">12<span class="dot dot-day"></span></div>
+                <div class="cal-cell">13<span class="dot dot-day"></span></div>
+                <div class="cal-cell">14<span class="dot dot-night"></span></div>
+                <div class="cal-cell">15<span class="dot dot-night"></span></div>
+                <div class="cal-cell">16<span class="dot dot-off"></span></div>
+                <div class="cal-cell">17<span class="dot dot-off"></span></div>
+                <div class="cal-cell">18<span class="dot dot-off"></span></div>
+                <div class="cal-cell">19<span class="dot dot-day"></span></div>
+                <div class="cal-cell">20<span class="dot dot-day"></span></div>
+                <div class="cal-cell">21<span class="dot dot-night"></span></div>
+                <div class="cal-cell">22<span class="dot dot-leave"></span></div>
+                <div class="cal-cell">23<span class="dot dot-off"></span></div>
+                <div class="cal-cell">24<span class="dot dot-off"></span></div>
+                <div class="cal-cell">25</div>
+                <div class="cal-cell">26<span class="dot dot-day"></span></div>
+                <div class="cal-cell">27<span class="dot dot-day"></span></div>
+                <div class="cal-cell">28<span class="dot dot-night"></span></div>
+                <div class="cal-cell">29<span class="dot dot-night"></span></div>
+                <div class="cal-cell">30<span class="dot dot-off"></span></div>
+                <div class="cal-cell">31<span class="dot dot-off"></span></div>
+                <div class="cal-cell">1</div>
+                <div class="cal-cell">2<span class="dot dot-day"></span></div>
+                <div class="cal-cell">3<span class="dot dot-night"></span></div>
+                <div class="cal-cell">4<span class="dot dot-night"></span></div>
+                <div class="cal-cell">5<span class="dot dot-off"></span></div>
+                <div class="cal-cell">6<span class="dot dot-off"></span></div>
+                <div class="cal-cell">7<span class="dot dot-off"></span></div>
+                <div class="cal-cell">8<span class="dot dot-day"></span></div>
+                <div class="cal-cell">9<span class="dot dot-day"></span></div>
+                <div class="cal-cell">10<span class="dot dot-night"></span></div>
+                <div class="cal-cell">11<span class="dot dot-leave"></span></div>
+                <div class="cal-cell">12<span class="dot dot-off"></span></div>
+                <div class="cal-cell">13<span class="dot dot-off"></span></div>
+                <div class="cal-cell">14</div>
+                <div class="cal-cell">15</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">loading</div>
+          <div class="state-meta">grid opacity 0.4 + 24×24 spinner</div>
+          <div class="state-mini">
+            <div class="cal-wrap" style="position: relative;">
+              <div class="cal-mini" style="opacity: 0.4;">
+                <div class="cal-cell">12</div><div class="cal-cell">13</div><div class="cal-cell">14</div>
+                <div class="cal-cell">15</div><div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div>
+                <div class="cal-cell">19</div><div class="cal-cell">20</div><div class="cal-cell">21</div>
+                <div class="cal-cell">22</div><div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div>
+                <div class="cal-cell">26</div><div class="cal-cell">27</div><div class="cal-cell">28</div>
+                <div class="cal-cell">29</div><div class="cal-cell">30</div><div class="cal-cell">31</div><div class="cal-cell">1</div>
+                <div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div>
+                <div class="cal-cell">5</div><div class="cal-cell">6</div><div class="cal-cell">7</div><div class="cal-cell">8</div>
+                <div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div>
+                <div class="cal-cell">12</div><div class="cal-cell">13</div><div class="cal-cell">14</div><div class="cal-cell">15</div>
+              </div>
+              <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+                <span class="spinner"></span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">empty</div>
+          <div class="state-meta">데이터 0건 — caption fallback</div>
+          <div class="state-mini" style="flex-direction: column;">
+            <div class="cal-mini">
+              <div class="cal-cell">12</div><div class="cal-cell">13</div><div class="cal-cell">14</div>
+              <div class="cal-cell">15</div><div class="cal-cell">16</div><div class="cal-cell">17</div><div class="cal-cell">18</div>
+              <div class="cal-cell">19</div><div class="cal-cell">20</div><div class="cal-cell">21</div>
+              <div class="cal-cell">22</div><div class="cal-cell">23</div><div class="cal-cell">24</div><div class="cal-cell">25</div>
+              <div class="cal-cell">26</div><div class="cal-cell">27</div><div class="cal-cell">28</div>
+              <div class="cal-cell">29</div><div class="cal-cell">30</div><div class="cal-cell">31</div><div class="cal-cell">1</div>
+              <div class="cal-cell">2</div><div class="cal-cell">3</div><div class="cal-cell">4</div>
+              <div class="cal-cell">5</div><div class="cal-cell">6</div><div class="cal-cell">7</div><div class="cal-cell">8</div>
+              <div class="cal-cell">9</div><div class="cal-cell">10</div><div class="cal-cell">11</div>
+              <div class="cal-cell">12</div><div class="cal-cell">13</div><div class="cal-cell">14</div><div class="cal-cell">15</div>
+            </div>
+            <div class="cal-empty-note text-caption">표시할 데이터가 없습니다</div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">error</div>
+          <div class="state-meta">danger outline + ! 아이콘</div>
+          <div class="state-mini">
+            <div class="cal-error">
+              <span class="toast-icon error">!</span>
+              <span class="text-body-sm" style="font-weight: 600;">데이터 불러오기 실패</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 2 — 식단 카드 (region.menu-cards)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 2 — 식단 카드</h2>
+      <p class="text-caption section-meta">region.menu-cards — 정상 / skeleton / empty / 식당 미운영</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">정상</div>
+          <div class="state-meta">조식 / 중식 / 석식 stack</div>
+          <div class="state-mini">
+            <div class="menu-mini-stack">
+              <div class="menu-card-mini">
+                <div class="menu-mini-label">조식</div>
+                <div class="menu-mini-body">현미밥 · 황태해장국</div>
+              </div>
+              <div class="menu-card-mini">
+                <div class="menu-mini-label">중식</div>
+                <div class="menu-mini-body">잡곡밥 · 김치찌개 · 불고기</div>
+              </div>
+              <div class="menu-card-mini">
+                <div class="menu-mini-label">석식</div>
+                <div class="menu-mini-body">백미밥 · 미역국 · 생선구이</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">skeleton</div>
+          <div class="state-meta">shimmer 1.4s ease-in-out</div>
+          <div class="state-mini">
+            <div class="menu-mini-stack">
+              <div class="menu-card-mini shimmer"></div>
+              <div class="menu-card-mini shimmer"></div>
+              <div class="menu-card-mini shimmer"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">empty</div>
+          <div class="state-meta">메뉴 미등록 caption</div>
+          <div class="state-mini">
+            <div class="menu-mini-stack">
+              <div class="menu-card-empty">등록된 메뉴가 없습니다</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">식당 미운영</div>
+          <div class="state-meta">일요일 / 공휴일 / 공휴일직후토요일</div>
+          <div class="state-mini">
+            <div class="menu-closed">오늘은 식당 미운영일입니다</div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 3 — PDF 업로드 dropzone (region.pdf-upload)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 3 — PDF 업로드 dropzone</h2>
+      <p class="text-caption section-meta">region.pdf-upload — idle / dragover / uploading / success / error</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">idle</div>
+          <div class="state-meta">dashed border-default</div>
+          <div class="state-mini">
+            <div class="dz-mini">
+              <span>식단표 PDF 를 드래그하거나 클릭</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">dragover</div>
+          <div class="state-meta">accent border + 8% accent bg</div>
+          <div class="state-mini">
+            <div class="dz-mini dragover">
+              <span>식단표 PDF 를 드래그하거나 클릭</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">uploading</div>
+          <div class="state-meta">20×20 spinner inline</div>
+          <div class="state-mini">
+            <div class="dz-mini uploading">
+              <span class="spinner md"></span>
+              <span>업로드 중...</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">success</div>
+          <div class="state-meta">status-safe-bar outline + ✓</div>
+          <div class="state-mini">
+            <div class="dz-mini success">
+              <span class="toast-icon success">✓</span>
+              <span>업로드 완료, 14일분 메뉴 등록</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">error</div>
+          <div class="state-meta">status-danger-bar outline + !</div>
+          <div class="state-mini">
+            <div class="dz-mini error">
+              <span class="toast-icon error">!</span>
+              <span>PDF 파일만 업로드 가능합니다</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 4 — BottomSheet 휴가 폼 (region.bottomsheet-leave-form, 모바일)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 4 — BottomSheet 휴가 폼 (모바일)</h2>
+      <p class="text-caption section-meta">region.bottomsheet-leave-form — 정상 / 주말 차단 / 공휴일 차단 / 점검일 경고 / 신청 중 / 성공 / 실패</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">정상</div>
+          <div class="state-meta">폼 활성</div>
+          <div class="state-mini">
+            <div class="sheet-mini">
+              <div class="sheet-handle"></div>
+              <div class="sheet-form">
+                <div class="input-mini">2026-05-20 ~ 2026-05-20</div>
+                <div class="input-mini">사유 (선택)</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn">연차</div>
+                  <div class="leave-type-btn">오전</div>
+                  <div class="leave-type-btn">오후</div>
+                  <div class="leave-type-btn">병가</div>
+                </div>
+                <div class="cta-mini cta-accent">휴가 신청</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">차단 — 주말</div>
+          <div class="state-meta">warning banner + grayed form</div>
+          <div class="state-mini">
+            <div class="sheet-mini blocked">
+              <div class="sheet-handle"></div>
+              <div class="leave-block-banner">주말은 휴가 등록이 불가합니다</div>
+              <div class="sheet-form">
+                <div class="input-mini">2026-05-23 (토)</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn disabled">연차</div>
+                  <div class="leave-type-btn disabled">오전</div>
+                  <div class="leave-type-btn disabled">오후</div>
+                  <div class="leave-type-btn disabled">병가</div>
+                </div>
+                <div class="cta-mini cta-disabled">휴가 신청</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">차단 — 공휴일</div>
+          <div class="state-meta">warning banner + grayed form</div>
+          <div class="state-mini">
+            <div class="sheet-mini blocked">
+              <div class="sheet-handle"></div>
+              <div class="leave-block-banner">공휴일(어린이날)은 휴가 등록이 불가합니다</div>
+              <div class="sheet-form">
+                <div class="input-mini">2026-05-05 (월)</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn disabled">연차</div>
+                  <div class="leave-type-btn disabled">오전</div>
+                  <div class="leave-type-btn disabled">오후</div>
+                  <div class="leave-type-btn disabled">병가</div>
+                </div>
+                <div class="cta-mini cta-disabled">휴가 신청</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">경고 — 점검일</div>
+          <div class="state-meta">warning banner + 폼 활성</div>
+          <div class="state-mini">
+            <div class="sheet-mini">
+              <div class="sheet-handle"></div>
+              <div class="inspect-warn-banner">소방 점검일 - 휴가 등록 주의</div>
+              <div class="sheet-form">
+                <div class="input-mini">2026-05-20 (수)</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn">연차</div>
+                  <div class="leave-type-btn">오전</div>
+                  <div class="leave-type-btn">오후</div>
+                  <div class="leave-type-btn">병가</div>
+                </div>
+                <div class="cta-mini cta-accent">휴가 신청</div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">신청 중</div>
+          <div class="state-meta">CTA spinner + loading toast</div>
+          <div class="state-mini">
+            <div class="sheet-mini">
+              <div class="sheet-handle"></div>
+              <div class="sheet-form">
+                <div class="input-mini">2026-05-20 ~ 2026-05-21</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn selected">연차</div>
+                  <div class="leave-type-btn">오전</div>
+                  <div class="leave-type-btn">오후</div>
+                  <div class="leave-type-btn">병가</div>
+                </div>
+                <div class="cta-mini cta-loading-accent">
+                  <span class="spinner sm"></span>
+                  <span>등록 중...</span>
+                </div>
+              </div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="spinner sm"></span>
+              <span>등록 중...</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">신청 성공</div>
+          <div class="state-meta">success toast — "N일 등록"</div>
+          <div class="state-mini">
+            <div class="sheet-mini">
+              <div class="sheet-handle"></div>
+              <div class="sheet-form">
+                <div class="input-mini">날짜 선택</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn">연차</div>
+                  <div class="leave-type-btn">오전</div>
+                  <div class="leave-type-btn">오후</div>
+                  <div class="leave-type-btn">병가</div>
+                </div>
+                <div class="cta-mini cta-accent">휴가 신청</div>
+              </div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon success">✓</span>
+              <span>2일 등록</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">신청 실패</div>
+          <div class="state-meta">error toast — "기간과 휴가 종류를 선택하세요"</div>
+          <div class="state-mini">
+            <div class="sheet-mini">
+              <div class="sheet-handle"></div>
+              <div class="sheet-form">
+                <div class="input-mini">날짜 미선택</div>
+                <div class="leave-type-row">
+                  <div class="leave-type-btn">연차</div>
+                  <div class="leave-type-btn">오전</div>
+                  <div class="leave-type-btn">오후</div>
+                  <div class="leave-type-btn">병가</div>
+                </div>
+                <div class="cta-mini cta-accent">휴가 신청</div>
+              </div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon error">!</span>
+              <span>기간과 휴가 종류를 선택하세요</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 5 — 데스크톱 중앙 폼 (region.desktop-form)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 5 — 데스크톱 중앙 폼</h2>
+      <p class="text-caption section-meta">region.desktop-form — 신청 중 / 신청 성공 / 취소</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">신청 중</div>
+          <div class="state-meta">loading toast "등록 중..."</div>
+          <div class="state-mini">
+            <div class="desktop-mini">
+              <div class="state-label" style="margin-bottom: 2px;">휴가 신청 (데스크톱)</div>
+              <div class="input-mini">2026-05-20 ~ 2026-05-21</div>
+              <div class="input-mini">사유 (선택)</div>
+              <div class="leave-type-row">
+                <div class="leave-type-btn selected">연차</div>
+                <div class="leave-type-btn">오전</div>
+                <div class="leave-type-btn">오후</div>
+                <div class="leave-type-btn">병가</div>
+              </div>
+              <div class="cta-mini cta-loading-accent">
+                <span class="spinner sm"></span>
+                <span>등록 중...</span>
+              </div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="spinner sm"></span>
+              <span>등록 중...</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">신청 성공</div>
+          <div class="state-meta">success toast — "연차 등록"</div>
+          <div class="state-mini">
+            <div class="desktop-mini">
+              <div class="state-label" style="margin-bottom: 2px;">휴가 신청 (데스크톱)</div>
+              <div class="input-mini">2026-05-20</div>
+              <div class="input-mini">사유</div>
+              <div class="leave-type-row">
+                <div class="leave-type-btn registered">
+                  <span class="toast-icon success" style="width: 12px; height: 12px; font-size: 12px;">✓</span>
+                  연차
+                </div>
+                <div class="leave-type-btn">오전</div>
+                <div class="leave-type-btn">오후</div>
+                <div class="leave-type-btn">병가</div>
+              </div>
+              <div class="cta-mini cta-accent">휴가 신청</div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon success">✓</span>
+              <span>연차 등록</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">취소</div>
+          <div class="state-meta">success toast — "취소되었습니다"</div>
+          <div class="state-mini">
+            <div class="desktop-mini">
+              <div class="state-label" style="margin-bottom: 2px;">휴가 신청 (데스크톱)</div>
+              <div class="input-mini">2026-05-20</div>
+              <div class="input-mini">사유</div>
+              <div class="leave-type-row">
+                <div class="leave-type-btn">연차</div>
+                <div class="leave-type-btn">오전</div>
+                <div class="leave-type-btn">오후</div>
+                <div class="leave-type-btn">병가</div>
+              </div>
+              <div class="cta-mini cta-accent">휴가 신청</div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon success">✓</span>
+              <span>취소되었습니다</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 6 — 데스크톱 우측 PDF 미리보기 (region.pdf-preview)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 6 — 데스크톱 우측 PDF 미리보기</h2>
+      <p class="text-caption section-meta">region.pdf-preview — 정상 / 생성 중 / 생성 에러 / 인쇄 준비 중 / 인쇄 성공</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">정상</div>
+          <div class="state-meta">A4 box + 양식 outline</div>
+          <div class="state-mini">
+            <div class="a4-mini">
+              <div class="a4-mini-title">휴가신청서 양식</div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">생성 중</div>
+          <div class="state-meta">24×24 spinner + caption</div>
+          <div class="state-mini">
+            <div class="a4-mini">
+              <div class="a4-mini-title">휴가신청서 양식</div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-spin-overlay">
+                <span class="spinner"></span>
+                <span>휴가신청서 생성 중...</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">생성 에러</div>
+          <div class="state-meta">danger outline + ! + "생성 실패"</div>
+          <div class="state-mini">
+            <div class="a4-mini outline-danger">
+              <div class="a4-mini-title">휴가신청서 양식</div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-err-overlay">
+                <span class="toast-icon error">!</span>
+                <span>생성 실패</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">인쇄 준비 중</div>
+          <div class="state-meta">24×24 spinner + caption</div>
+          <div class="state-mini">
+            <div class="a4-mini">
+              <div class="a4-mini-title">휴가신청서 양식</div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-spin-overlay">
+                <span class="spinner"></span>
+                <span>인쇄 준비 중...</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">인쇄 성공</div>
+          <div class="state-meta">success toast — "새 탭에서 인쇄 다이얼로그가 열립니다"</div>
+          <div class="state-mini">
+            <div class="a4-mini">
+              <div class="a4-mini-title">휴가신청서 양식</div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+              <div class="a4-mini-guide"></div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon success">✓</span>
+              <span>새 탭에서 인쇄 다이얼로그가 열립니다</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 7 — 식사 미사용 끼수 버튼 (region.meal-skip)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 7 — 식사 미사용 끼수 버튼</h2>
+      <p class="text-caption section-meta">region.meal-skip — 비활성 / 활성 / 클릭 후 토스트</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">비활성 (0끼)</div>
+          <div class="state-meta">모든 끼수 sunken bg + tertiary text</div>
+          <div class="state-mini">
+            <div class="meal-skip-row">
+              <div class="meal-skip-btn idle"><span>조식</span><span>0</span></div>
+              <div class="meal-skip-btn idle"><span>중식</span><span>0</span></div>
+              <div class="meal-skip-btn idle"><span>석식</span><span>0</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">활성 (1끼+)</div>
+          <div class="state-meta">중식만 warning bg</div>
+          <div class="state-mini">
+            <div class="meal-skip-row">
+              <div class="meal-skip-btn idle"><span>조식</span><span>0</span></div>
+              <div class="meal-skip-btn active"><span>중식</span><span>1</span></div>
+              <div class="meal-skip-btn idle"><span>석식</span><span>0</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">클릭 후 토스트</div>
+          <div class="state-meta">success toast — "식사 1끼 미사용 등록"</div>
+          <div class="state-mini">
+            <div class="meal-skip-row">
+              <div class="meal-skip-btn idle"><span>조식</span><span>0</span></div>
+              <div class="meal-skip-btn active"><span>중식</span><span>1</span></div>
+              <div class="meal-skip-btn idle"><span>석식</span><span>0</span></div>
+            </div>
+            <div class="toast toast-floating">
+              <span class="toast-icon success">✓</span>
+              <span>식사 1끼 미사용 등록</span>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 8 — 휴가 종류 버튼 (region.leave-type-buttons)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 8 — 휴가 종류 버튼</h2>
+      <p class="text-caption section-meta">region.leave-type-buttons — normal / selected / registered / disabled</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">normal (idle)</div>
+          <div class="state-meta">outline border-default</div>
+          <div class="state-mini">
+            <div class="leave-type-grid-card">
+              <div class="leave-type-btn">연차</div>
+              <div class="leave-type-btn">오전반차</div>
+              <div class="leave-type-btn">오후반차</div>
+              <div class="leave-type-btn">병가</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">selected</div>
+          <div class="state-meta">accent bg</div>
+          <div class="state-mini">
+            <div class="leave-type-grid-card">
+              <div class="leave-type-btn selected">연차</div>
+              <div class="leave-type-btn">오전반차</div>
+              <div class="leave-type-btn">오후반차</div>
+              <div class="leave-type-btn">병가</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">registered</div>
+          <div class="state-meta">status-safe-bg + ✓ leading icon</div>
+          <div class="state-mini">
+            <div class="leave-type-grid-card">
+              <div class="leave-type-btn registered">
+                <span class="toast-icon success" style="width: 12px; height: 12px; font-size: 12px;">✓</span>
+                연차
+              </div>
+              <div class="leave-type-btn">오전반차</div>
+              <div class="leave-type-btn">오후반차</div>
+              <div class="leave-type-btn">병가</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">차단된 날짜의 disabled</div>
+          <div class="state-meta">모두 sunken bg + tertiary text</div>
+          <div class="state-mini">
+            <div class="leave-type-grid-card">
+              <div class="leave-type-btn disabled">연차</div>
+              <div class="leave-type-btn disabled">오전반차</div>
+              <div class="leave-type-btn disabled">오후반차</div>
+              <div class="leave-type-btn disabled">병가</div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Row 9 — CTA 트리오 (region.cta-trio)
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Row 9 — CTA 트리오</h2>
+      <p class="text-caption section-meta">region.cta-trio — 휴가 신청 / PDF 다운로드 / 인쇄 — 모두 활성 / 모두 비활성 / 신청 로딩 / 다운로드 로딩 / 인쇄 로딩</p>
+      <div class="state-grid">
+
+        <article class="state-card">
+          <div class="state-label">모두 활성</div>
+          <div class="state-meta">accent / outline-accent / outline</div>
+          <div class="state-mini">
+            <div class="cta-trio">
+              <div class="cta-mini cta-accent">휴가 신청</div>
+              <div class="cta-mini cta-outline-accent">PDF 다운로드</div>
+              <div class="cta-mini cta-outline">인쇄</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">모두 비활성</div>
+          <div class="state-meta">surface-sunken + tertiary text</div>
+          <div class="state-mini">
+            <div class="cta-trio">
+              <div class="cta-mini cta-disabled">휴가 신청</div>
+              <div class="cta-mini cta-disabled">PDF 다운로드</div>
+              <div class="cta-mini cta-disabled">인쇄</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">신청 로딩</div>
+          <div class="state-meta">신청 = safe + spinner / 나머지 disabled</div>
+          <div class="state-mini">
+            <div class="cta-trio">
+              <div class="cta-mini cta-loading-safe">
+                <span class="spinner sm"></span>
+                <span>등록 중...</span>
+              </div>
+              <div class="cta-mini cta-disabled">PDF 다운로드</div>
+              <div class="cta-mini cta-disabled">인쇄</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">다운로드 로딩</div>
+          <div class="state-meta">다운로드 = accent + spinner</div>
+          <div class="state-mini">
+            <div class="cta-trio">
+              <div class="cta-mini cta-disabled">휴가 신청</div>
+              <div class="cta-mini cta-loading-accent">
+                <span class="spinner sm"></span>
+                <span>생성 중...</span>
+              </div>
+              <div class="cta-mini cta-disabled">인쇄</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="state-card">
+          <div class="state-label">인쇄 로딩</div>
+          <div class="state-meta">인쇄 = accent + spinner</div>
+          <div class="state-mini">
+            <div class="cta-trio">
+              <div class="cta-mini cta-disabled">휴가 신청</div>
+              <div class="cta-mini cta-disabled">PDF 다운로드</div>
+              <div class="cta-mini cta-loading-accent">
+                <span class="spinner sm"></span>
+                <span>준비 중...</span>
+              </div>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Toast 카탈로그 — 18종 verbatim
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">Toast 카탈로그 — 18종 verbatim</h2>
+      <p class="text-caption section-meta">react-hot-toast v0.1.1 토큰화 — success 6 / error 8 / loading 4</p>
+
+      <h3 class="text-label section-sub-title">success (6) — ✓ 아이콘, color status-safe</h3>
+      <div class="toast-catalog">
+        <div class="toast"><span class="toast-icon success">✓</span><span>휴가신청서 다운로드 완료</span></div>
+        <div class="toast"><span class="toast-icon success">✓</span><span>새 탭에서 인쇄 다이얼로그가 열립니다</span></div>
+        <div class="toast"><span class="toast-icon success">✓</span><span>14일분 메뉴 등록 완료</span></div>
+        <div class="toast"><span class="toast-icon success">✓</span><span>취소되었습니다</span></div>
+        <div class="toast"><span class="toast-icon success">✓</span><span>연차 등록</span></div>
+        <div class="toast"><span class="toast-icon success">✓</span><span>2일 등록</span></div>
+      </div>
+
+      <h3 class="text-label section-sub-title">error (8) — ! 아이콘, color status-danger</h3>
+      <div class="toast-catalog">
+        <div class="toast"><span class="toast-icon error">!</span><span>생성 실패</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>인쇄 실패</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>식단표 분석 실패</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>해당 날짜에는 연차 신청이 불가합니다</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>오류가 발생했습니다</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>PDF 파일만 업로드 가능합니다</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>기간과 휴가 종류를 선택하세요</span></div>
+        <div class="toast"><span class="toast-icon error">!</span><span>오류 발생</span></div>
+      </div>
+
+      <h3 class="text-label section-sub-title">loading (4) — 16×16 spinner, border-top accent</h3>
+      <div class="toast-catalog">
+        <div class="toast"><span class="spinner sm"></span><span>휴가신청서 생성 중...</span></div>
+        <div class="toast"><span class="spinner sm"></span><span>인쇄 준비 중...</span></div>
+        <div class="toast"><span class="spinner sm"></span><span>식단표 분석 중...</span></div>
+        <div class="toast"><span class="spinner sm"></span><span>등록 중...</span></div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         라이트 모드 cross-check 패널
+         ========================================================= -->
+    <section class="section">
+      <h2 class="text-title section-title">라이트 모드 cross-check</h2>
+      <p class="text-caption section-meta">.light-frame scoping — 핵심 3개 row 의 정상 + 1개 state 재현</p>
+
+      <div class="light-frame">
+        <h3 class="text-title section-title" style="margin-bottom: var(--space-2);">라이트 — Row 1 (달력) · Row 3 (dropzone) · Row 9 (CTA)</h3>
+        <p class="text-caption section-meta">라이트 토큰 자동 적용 — verbatim 재정의</p>
+
+        <div class="state-grid">
+
+          <article class="state-card">
+            <div class="state-label">달력 — 정상</div>
+            <div class="state-mini">
+              <div class="cal-mini">
+                <div class="cal-cell">12<span class="dot dot-day"></span></div>
+                <div class="cal-cell">13<span class="dot dot-day"></span></div>
+                <div class="cal-cell">14<span class="dot dot-night"></span></div>
+                <div class="cal-cell">15<span class="dot dot-night"></span></div>
+                <div class="cal-cell">16<span class="dot dot-off"></span></div>
+                <div class="cal-cell">17<span class="dot dot-off"></span></div>
+                <div class="cal-cell">18<span class="dot dot-off"></span></div>
+                <div class="cal-cell">19<span class="dot dot-day"></span></div>
+                <div class="cal-cell">20<span class="dot dot-day"></span></div>
+                <div class="cal-cell">21<span class="dot dot-night"></span></div>
+                <div class="cal-cell">22<span class="dot dot-leave"></span></div>
+                <div class="cal-cell">23<span class="dot dot-off"></span></div>
+                <div class="cal-cell">24<span class="dot dot-off"></span></div>
+                <div class="cal-cell">25</div>
+                <div class="cal-cell">26<span class="dot dot-day"></span></div>
+                <div class="cal-cell">27<span class="dot dot-day"></span></div>
+                <div class="cal-cell">28<span class="dot dot-night"></span></div>
+                <div class="cal-cell">29<span class="dot dot-night"></span></div>
+                <div class="cal-cell">30<span class="dot dot-off"></span></div>
+                <div class="cal-cell">31<span class="dot dot-off"></span></div>
+                <div class="cal-cell">1</div>
+                <div class="cal-cell">2<span class="dot dot-day"></span></div>
+                <div class="cal-cell">3<span class="dot dot-night"></span></div>
+                <div class="cal-cell">4<span class="dot dot-night"></span></div>
+                <div class="cal-cell">5<span class="dot dot-off"></span></div>
+                <div class="cal-cell">6<span class="dot dot-off"></span></div>
+                <div class="cal-cell">7<span class="dot dot-off"></span></div>
+                <div class="cal-cell">8<span class="dot dot-day"></span></div>
+                <div class="cal-cell">9<span class="dot dot-day"></span></div>
+                <div class="cal-cell">10<span class="dot dot-night"></span></div>
+                <div class="cal-cell">11<span class="dot dot-leave"></span></div>
+                <div class="cal-cell">12<span class="dot dot-off"></span></div>
+                <div class="cal-cell">13<span class="dot dot-off"></span></div>
+                <div class="cal-cell">14</div>
+                <div class="cal-cell">15</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="state-card">
+            <div class="state-label">달력 — error</div>
+            <div class="state-mini">
+              <div class="cal-error">
+                <span class="toast-icon error">!</span>
+                <span class="text-body-sm" style="font-weight: 600;">데이터 불러오기 실패</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="state-card">
+            <div class="state-label">dropzone — idle</div>
+            <div class="state-mini">
+              <div class="dz-mini">
+                <span>식단표 PDF 를 드래그하거나 클릭</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="state-card">
+            <div class="state-label">dropzone — error</div>
+            <div class="state-mini">
+              <div class="dz-mini error">
+                <span class="toast-icon error">!</span>
+                <span>PDF 파일만 업로드 가능합니다</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="state-card">
+            <div class="state-label">CTA — 모두 활성</div>
+            <div class="state-mini">
+              <div class="cta-trio">
+                <div class="cta-mini cta-accent">휴가 신청</div>
+                <div class="cta-mini cta-outline-accent">PDF 다운로드</div>
+                <div class="cta-mini cta-outline">인쇄</div>
+              </div>
+            </div>
+          </article>
+
+          <article class="state-card">
+            <div class="state-label">CTA — 모두 비활성</div>
+            <div class="state-mini">
+              <div class="cta-trio">
+                <div class="cta-mini cta-disabled">휴가 신청</div>
+                <div class="cta-mini cta-disabled">PDF 다운로드</div>
+                <div class="cta-mini cta-disabled">인쇄</div>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
