@@ -678,8 +678,15 @@ export default function StaffServicePage() {
     return m
   }, [staffList, teamLeaves])
 
-  // 연차 잔여 임계치 색 — UI-SPEC §6.3 위험 임계치만 status 색
-  const remainingColor = remaining < 1 ? '#d74242' : remaining < 3 ? '#facc15' : '#42d778'
+  // 연차 잔여 임계치 분기 — W3 §6.3: 색바만 status 토큰, value 색은 임계치 시에만 status (그 외 text-primary)
+  const remainingThreshold = remaining < 1 ? 'danger' : remaining < 3 ? 'warning' : 'normal'
+
+  // 달력 셀 안 holidayName 단축 — 4자 초과 시 단축 (대체공휴일 prefix → "대체일")
+  const shortHoliday = (name?: string | null): string => {
+    if (!name) return ''
+    if (name.startsWith('대체공휴일')) return '대체일'
+    return name.length > 4 ? name.slice(0, 3) + '…' : name
+  }
 
   // ── 공유 렌더 조각 ─────────────────────────────────────────
   const calendarGrid = (
@@ -717,7 +724,7 @@ export default function StaffServicePage() {
       ) : (
         <div className={`grid grid-cols-7 ${isDesktop ? 'gap-[2px]' : 'gap-[3px]'}`}>
           {calendarDays.map((cell, idx) => {
-            if (!cell.date) return <div key={`e-${idx}`} className={isDesktop ? 'aspect-[1.2]' : 'aspect-square'} />
+            if (!cell.date) return <div key={`e-${idx}`} className={isDesktop ? 'aspect-[1.2]' : 'aspect-[5/6]'} />
 
             const { dow, isToday, isHoliday, rawShift, myLeave, skipped, provided } = cell
             const isSel = cell.ymd === selDate
@@ -743,7 +750,7 @@ export default function StaffServicePage() {
               <div
                 key={cell.ymd}
                 onClick={() => isClickable && handleDayClick(cell.ymd)}
-                className={`relative flex flex-col overflow-hidden select-none p-0.5 rounded-sm ${isDesktop ? 'aspect-[1.2]' : 'aspect-square'} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`relative flex flex-col overflow-hidden select-none p-0.5 rounded-sm ${isDesktop ? 'aspect-[1.2]' : 'aspect-[5/6]'} ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
                   background: cellBg,
                   border: isSel ? '2.5px solid #facc15' : isToday ? '2.5px solid #3b82f6' : '1px solid rgba(255,255,255,0.04)',
@@ -782,9 +789,9 @@ export default function StaffServicePage() {
                 </div>
                 <div className="flex-1" />
                 {(cell.holidayName || infoText) && (
-                  <div className="text-caption font-bold text-right break-all leading-tight" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                    {cell.holidayName && <div style={{ color: '#fca5a5' }}>{cell.holidayName}</div>}
-                    {infoText}
+                  <div className="text-caption font-bold text-right leading-tight overflow-hidden" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                    {cell.holidayName && <div className="truncate" style={{ color: '#fca5a5' }}>{shortHoliday(cell.holidayName)}</div>}
+                    {infoText && <div className="truncate">{infoText}</div>}
                   </div>
                 )}
                 {provided > 0 && skipped > 0 && !infoText && !cell.holidayName && (
@@ -845,18 +852,24 @@ export default function StaffServicePage() {
   const summaryCards = (
     <div className="flex gap-2 px-3 pt-3.5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       {[
-        { label: '연차', value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`, color: remainingColor, bg: 'rgba(66, 215, 120, 0.1)', bd: 'rgba(66, 215, 120, 0.25)' },
-        { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)', bd: 'rgba(6, 182, 212, 0.25)' },
-        { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, color: '#d7428c', bg: 'rgba(215, 66, 140, 0.1)', bd: 'rgba(215, 66, 140, 0.25)' },
-        { label: '주말식대', value: `₩${monthlySummary.totalAllowance.toLocaleString()}`, color: '#8f42d7', bg: 'rgba(143, 66, 215, 0.1)', bd: 'rgba(143, 66, 215, 0.25)' },
+        // W3 §6.3 Stat Card: 좌측 3px 색바 + bg-surface-raised 통일 + 값은 text-primary (위험 임계치 시 status)
+        {
+          label: '연차',
+          value: `${remaining % 1 === 0 ? remaining : remaining.toFixed(1)}/${quota}일`,
+          barColor: remainingThreshold === 'danger' ? 'var(--status-danger-bar)' : remainingThreshold === 'warning' ? 'var(--status-warning-bar)' : '#42d778',
+          valueClass: remainingThreshold === 'danger' ? 'text-danger' : remainingThreshold === 'warning' ? 'text-warning' : 'text-text-primary',
+        },
+        { label: '제공식수', value: `${monthlySummary.actualMeals}끼`, barColor: '#06b6d4', valueClass: 'text-text-primary' },
+        { label: '미사용식수', value: `${monthlySummary.totalSkipped}끼`, barColor: '#d7428c', valueClass: 'text-text-primary' },
+        { label: '주말식대', value: `${monthlySummary.totalAllowance.toLocaleString()}원`, barColor: '#8f42d7', valueClass: 'text-text-primary' },
       ].map(c => (
         <div
           key={c.label}
-          className="flex-1 min-w-[72px] rounded-md p-card-sm text-center border"
-          style={{ background: c.bg, borderColor: c.bd }}
+          className="flex-1 min-w-[84px] bg-surface-raised border border-border-default rounded-md p-card overflow-hidden"
+          style={{ boxShadow: `inset 3px 0 0 ${c.barColor}` }}
         >
-          <div className="text-caption text-text-tertiary font-semibold leading-none mb-1">{c.label}</div>
-          <div className="text-title font-extrabold leading-none whitespace-nowrap" style={{ color: c.color }}>{c.value}</div>
+          <div className="text-caption text-text-tertiary font-semibold leading-none mb-1.5 whitespace-nowrap">{c.label}</div>
+          <div className={`text-title font-extrabold leading-none whitespace-nowrap ${c.valueClass}`} style={{ letterSpacing: '-0.01em' }}>{c.value}</div>
         </div>
       ))}
     </div>
