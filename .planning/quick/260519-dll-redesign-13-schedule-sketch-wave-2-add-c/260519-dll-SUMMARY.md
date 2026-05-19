@@ -94,13 +94,13 @@ PLAN 의 verify gate 16개 전부 PASS. atomic commit 1개 (445ab2e).
 - **카테고리 hex 정규화 set 강제.** `#3b82f6 (점검) / #eab308 (업무) / #e2e8f0 (행사 다크) / #f97316 (승강기) / #ef4444 (소방) / #94a3b8 (행사 라이트만)` — 카드 배지 background 는 동일 hex 의 `rgba(...,0.13)` (다크) / `rgba(...,0.18)` (라이트) 로 채움. 임의 hex 0.
 - **노안 폰트 룰.** SchedulePage.tsx 원본의 `fontSize:9/10/11px` 는 sketch 에서 모두 `text-caption (12px)` 또는 `text-body (16px, 카드 제목)` 으로 상향. `font-size: (9|10|11)px` 직접 지정 0회 (verify gate 3 PASS).
 
-## OQ — Open Questions (사용자 답변 필요 3건)
+## OQ — LOCKED (2026-05-19 사용자 답변)
 
-1. **OQ #1 상태 칩 색 매핑** — a/b/c 중 선택. 현재 sketch 는 옵션 a 시연.
-2. **OQ #2 add CTA 형태** — a/b/c 중 선택. 3종 모두 sketch 안에 시연됨.
-3. **OQ #3 멀티데이 범위 표시 자리** — a/b/c 중 선택. 3종 모두 다크 frame sub-strip 에 나란히 시연됨.
+1. **OQ #1 ▶ LOCKED a)** — 상태 칩 색 = SchedulePage.tsx line 89~94 verbatim. 예정=text-tertiary / 진행중=accent / 완료=safe / 지연=danger.
+2. **OQ #2 ▶ LOCKED c)** — add CTA = FAB (우하단 fixed 56px 원형 accent bg). 헤더 inline + 리스트 위 풀폭 버튼 제거.
+3. **OQ #3 ▶ LOCKED b)** — 멀티데이 범위 표시 = 시간 자리 텍스트 "5/12 ~ 5/15 (4일)". 제목 옆 칩 / 메타 row 칩 제거.
 
-각 답변 후 → 다음 wave 또는 fix commit 에서 sketch 정리 → TSX 변환 wave 또는 W3 진행.
+Patch 결과: sketch-wave-2.html 1012줄 → 896줄 (-116). 옵션 a/c 시연 카드 + 풀폭 버튼 + 헤더 inline 추가 모두 제거.
 
 ## Verification
 
