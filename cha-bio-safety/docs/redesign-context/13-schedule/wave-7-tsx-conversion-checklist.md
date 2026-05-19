@@ -503,14 +503,14 @@ Tailwind 으로 표현 안 되거나 안 하는 게 나은 case (style 잔존 OK
 
 ---
 
-## §12. Open questions (TSX 변환 wave 시작 전 결정 필요)
+## §12. Open questions — LOCKED (2026-05-19 사용자 답변)
 
-체크박스 형식. 변환 wave (Wave 8) executor 가 시작 전 사용자에게 컨펌.
+모든 OQ default 채택 확정. Sub-wave 1 부터 TSX 변환 wave 진입 가능.
 
-- [ ] **OQ #1**: 단일 atomic commit vs 6 sub-wave 분할 commit — 1062 lines 크기 고려. **default: b) 6 sub-wave 분할** (sub-task 별 grep checkpoint § 8 mirror, 사용자 검수 단순). 단일 atomic 도 가능 (executor 판단).
-- [ ] **OQ #2**: lucide 도입 범위 — a) 모두 lucide (Download / Plus / ChevronLeft / X / CheckCircle2 / AlertCircle 6개 모두) vs b) SVG 잔존 + lucide 일부 (close X 만 lucide). **default: a) 모두 lucide** (verify gate § 4.2 #17 — lucide import + ≥6 사용).
-- [ ] **OQ #3**: 미리보기 desktop-only 분기 implementation — a) source `isDesktop && <MonthlyPlanPreview ... />` verbatim 유지 vs b) MonthlyPlanPreview 컴포넌트 안 `if (!isDesktop) return null` 추가. **default: a) source verbatim** (W3 OQ #1 LOCKED 모바일 미구현 mirror).
-- [ ] **OQ #4**: INSP_CATEGORIES native `<select>` vs grid 칩 재확인 — W4 OQ #3 LOCKED a 에서 이미 native `<select>` 결정. **default: W4 LOCKED a 유지** (재확인 불필요, iOS PWA 키보드 자동 popup 활용).
+- [x] **OQ #1 ▶ LOCKED b)** — 6 sub-wave 분할 commit. §6 Sub-task 분할 (page-shell+chrome → 캘린더 → 일자 카드 → 미리보기 → AddModal → EditModal+토스트) 별 atomic commit. 각 sub-wave 단위로 revert 가능.
+- [x] **OQ #2 ▶ LOCKED a)** — 모두 lucide 도입 (Download / Plus / ChevronLeft / X / CheckCircle2 / AlertCircle 6종 모두). verify gate §4.2 #17 (lucide import ≥6 사용) 강제.
+- [x] **OQ #3 ▶ LOCKED a)** — 미리보기 desktop-only 분기 = source `isDesktop && <MonthlyPlanPreview ... />` verbatim 유지. 컴포넌트 안 early return 추가 안 함 (W3 OQ #1 LOCKED 모바일 미구현 mirror).
+- [x] **OQ #4 ▶ LOCKED 유지** — INSP_CATEGORIES 19종 = W4 OQ #3 LOCKED a 그대로 native `<select>` (iOS PWA 키보드 자동 popup 활용). 변경 없음.
 
 ---
 
