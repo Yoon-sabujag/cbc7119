@@ -8,7 +8,7 @@
         - thead 2-row (날짜 행 + 요일 행) + tbody 21행 (PLAN_PREVIEW_ROWS verbatim)
         - 31일 × 21행 cell 분기 (daily / row.cats / dayCatMap 매칭 / 주말 / 공휴일 / 오늘)
         - 노안 격상: source 9·10·11px → 12px / 헤더 버튼 12 → 14px
-        - 데스크톱 1280px (메인 시연) + 모바일 393px 다크 + 모바일 393px 라이트
+        - 데스크톱 1280px 다크 + 라이트 (메인 시연, 모바일은 OQ #1 LOCKED 미구현)
         - 변형 시연: planLoading "생성 중..." / Empty month (mock items 비움)
 
   out of scope:
@@ -24,10 +24,10 @@
     - tokens.css line 16~197 verbatim 임베드
     - typography.css line 28~95 verbatim 임베드
 
-  open questions — 사용자 답변 필요 (3건):
-    OQ #1 — 모바일 393px frame 좌측 NO+내용 컬럼 sticky 여부 (시안 기본: a) sticky 적용)
-    OQ #2 — 미리보기 페이지에서 W2 LOCKED c) FAB 표시 여부 (시안 기본: b) FAB 숨김)
-    OQ #3 — 데스크톱 1280px frame 의 셀 폭/폰트 처리 (시안 기본: a) 1280 cramped 그대로)
+  open questions — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED 모바일 미구현 — 미리보기 테이블은 데스크톱 전용 (SchedulePage.tsx 466~496 모바일 render 와 일치). 모바일 frame 2개 + sticky 룰 제거됨.
+    OQ #2 ▶ LOCKED b) — 미리보기 페이지에서 FAB 표시 안 함. 헤더 "+ 추가" 버튼은 유지.
+    OQ #3 ▶ LOCKED a) — 데스크톱 1280px 셀 폭/폰트 = cramped 그대로 (실제 운영 환경 일치).
 
   메모리 룰 강제 (작성 시 확인):
     - 이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)
@@ -409,40 +409,7 @@
       overflow: hidden;
       color: var(--text-primary);
     }
-    .frame-mobile {
-      width: 393px;
-      max-width: 393px;
-      margin: 0 auto;
-      background: var(--surface-page);
-      border: 1px solid var(--border-default);
-      border-radius: 22px;
-      overflow: hidden;
-      color: var(--text-primary);
-    }
-
-    /* 모바일 frame 안의 미리보기 테이블 — overflow-x:auto + min-width */
-    .mobile-table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .mobile-table-wrap .preview-table { min-width: 900px; }
-
-    /* sticky 좌측 컬럼 (OQ #1 시안 기본 a) — 모바일 다크 frame 에 적용 */
-    .sticky-left .preview-table th.col-no,
-    .sticky-left .preview-table th.col-lbl,
-    .sticky-left .preview-table td.cell-no,
-    .sticky-left .preview-table td.cell-lbl {
-      position: sticky;
-      left: 0;
-      background: var(--surface-raised);
-      z-index: 2;
-      box-shadow: 2px 0 4px rgba(0,0,0,0.2);
-    }
-    .sticky-left .preview-table th.col-no,
-    .sticky-left .preview-table td.cell-no  { left: 0; min-width: 36px; }
-    .sticky-left .preview-table th.col-lbl,
-    .sticky-left .preview-table td.cell-lbl { left: 36px; min-width: 160px; }
+    /* OQ #1 LOCKED 모바일 미구현 — .frame-mobile / .sticky-left / .mobile-table-wrap 룰 제거됨 (미리보기는 데스크톱 전용) */
 
   </style>
   <script>
@@ -1517,156 +1484,6 @@
   </section>
 
   <!-- ============================================================
-       SECTION 3 — 모바일 393px (다크) + sticky 좌측 (OQ #1 시안 기본 a)
-       ============================================================ -->
-  <section class="max-w-[1400px] mx-auto mb-10">
-    <h2 class="text-title text-zinc-300 mb-3">3. 모바일 393px frame (다크) — overflow-x:auto + sticky 좌측 NO/내용 (OQ #1 a)</h2>
-
-    <div class="frame-mobile sticky-left" data-theme="dark">
-      <header class="page-header">
-        <button class="icon-btn" aria-label="뒤로">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <span class="title">월간 점검 계획</span>
-        <button class="btn-excel">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
-          엑셀 다운로드
-        </button>
-        <button class="btn-add">+ 추가</button>
-      </header>
-
-      <div style="width:100%; padding:12px 20px 8px; background:var(--surface-raised);">
-        <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">
-          5월 중요업무추진계획(방재)
-        </div>
-
-        <!-- 모바일 wrapper: overflow-x:auto, min-width 900 -->
-        <div class="mobile-table-wrap">
-          <table class="preview-table">
-            <thead>
-              <tr class="row-date">
-                <th class="col-no"></th>
-                <th class="col-lbl">시행일자</th>
-                <th>1</th><th class="sat bg-sat">2</th><th class="sun bg-sun">3</th><th>4</th><th class="hol bg-hol">5</th><th>6</th><th>7</th><th>8</th><th class="sat bg-sat">9</th><th class="sun bg-sun">10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th class="sat bg-sat">16</th><th class="sun bg-sun">17</th><th>18</th><th class="bg-today brd-today">19</th><th>20</th><th>21</th><th>22</th><th class="sat bg-sat">23</th><th class="sun bg-sun">24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th class="sat bg-sat">30</th><th class="sun bg-sun">31</th>
-                <th class="col-note">비고</th>
-              </tr>
-              <tr class="row-weekday">
-                <th class="col-no">NO.</th>
-                <th class="col-lbl">내 &nbsp; 용</th>
-                <th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="hol">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="brd-today-side">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="cell-no">1</td><td class="cell-lbl">소화설비 점검(소화기, 소화전)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-bg-safe">기</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-bg-safe">전</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note"></td>
-              </tr>
-              <tr>
-                <td class="cell-no">2</td><td class="cell-lbl">경보설비 점검(자탐설비, 비상방송설비)</td>
-                <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
-                <td class="cell-note">일상점검</td>
-              </tr>
-              <tr>
-                <td class="cell-no">4</td><td class="cell-lbl">더블인터록밸브 점검(콤프레셔포함)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note">격주</td>
-              </tr>
-              <tr>
-                <td class="cell-no">5</td><td class="cell-lbl">소화 활동설비(전실제연댐퍼,연결송수관)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-bg-safe">점검</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note"></td>
-              </tr>
-              <tr>
-                <td class="cell-no">21</td><td class="cell-lbl">전관방송 시스템 점검</td>
-                <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today-last">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
-                <td class="cell-note">일상점검</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
-      ▸ 모바일 393px frame: 테이블 min-width 900px 로 가로 스크롤 발생. 좌측 NO + 내용 컬럼 sticky 적용 (OQ #1 시안 기본 a).
-      대표 5행만 (1/2/4/5/21) — 전체 21행은 desktop 다크 frame 에 노출.
-    </p>
-  </section>
-
-  <!-- ============================================================
-       SECTION 4 — 모바일 393px (라이트) — sticky 없는 자연 스크롤 시연
-       ============================================================ -->
-  <section class="max-w-[1400px] mx-auto mb-10">
-    <h2 class="text-title text-zinc-300 mb-3">4. 모바일 393px frame (라이트) — sticky 없음 (OQ #1 b 대비)</h2>
-
-    <div class="frame-mobile" data-theme="light" style="background:#ffffff;">
-      <header class="page-header">
-        <button class="icon-btn" aria-label="뒤로">
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <span class="title">월간 점검 계획</span>
-        <button class="btn-excel">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
-          엑셀 다운로드
-        </button>
-        <button class="btn-add">+ 추가</button>
-      </header>
-
-      <div style="width:100%; padding:12px 20px 8px; background:var(--surface-raised);">
-        <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">
-          5월 중요업무추진계획(방재)
-        </div>
-
-        <div class="mobile-table-wrap">
-          <table class="preview-table">
-            <thead>
-              <tr class="row-date">
-                <th class="col-no"></th>
-                <th class="col-lbl">시행일자</th>
-                <th>1</th><th class="sat bg-sat">2</th><th class="sun bg-sun">3</th><th>4</th><th class="hol bg-hol">5</th><th>6</th><th>7</th><th>8</th><th class="sat bg-sat">9</th><th class="sun bg-sun">10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th class="sat bg-sat">16</th><th class="sun bg-sun">17</th><th>18</th><th class="bg-today brd-today">19</th><th>20</th><th>21</th><th>22</th><th class="sat bg-sat">23</th><th class="sun bg-sun">24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th class="sat bg-sat">30</th><th class="sun bg-sun">31</th>
-                <th class="col-note">비고</th>
-              </tr>
-              <tr class="row-weekday">
-                <th class="col-no">NO.</th>
-                <th class="col-lbl">내 &nbsp; 용</th>
-                <th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="hol">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="brd-today-side">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="cell-no">1</td><td class="cell-lbl">소화설비 점검(소화기, 소화전)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-bg-safe">기</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-bg-safe">전</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note"></td>
-              </tr>
-              <tr>
-                <td class="cell-no">4</td><td class="cell-lbl">더블인터록밸브 점검(콤프레셔포함)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note">격주</td>
-              </tr>
-              <tr>
-                <td class="cell-no">5</td><td class="cell-lbl">소화 활동설비(전실제연댐퍼,연결송수관)</td>
-                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-bg-safe">점검</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
-                <td class="cell-note"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
-      ▸ 라이트 모드 + sticky 없음 — 가로 스크롤 시 좌측 NO/내용 칼럼이 가려져 행 식별이 어려움 (OQ #1 b 시연).
-    </p>
-  </section>
-
-  <!-- ============================================================
        SECTION 5 — Variant 시연 (planLoading + Empty month)
        ============================================================ -->
   <section class="max-w-[1400px] mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1739,37 +1556,20 @@
   </section>
 
   <!-- ============================================================
-       SECTION 6 — Open Question 카드 (사용자 답변 필요 3건)
+       SECTION 6 — OQ LOCKED 카드 (사용자 답변 완료 3건)
        ============================================================ -->
   <section class="max-w-[1400px] mx-auto mb-8 p-5 rounded-md-token"
-    style="background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.3);">
-    <h3 class="text-title text-amber-300 mb-3 font-medium">Open Question · 사용자 답변 필요 (3건)</h3>
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">OQ LOCKED · 사용자 답변 완료 (3건)</h3>
     <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
-      <li class="mb-3">
-        <strong>OQ #1</strong> — 모바일 393px frame 좌측 NO+내용 컬럼 sticky 여부:
-        <ul class="list-disc pl-5 mt-1" style="line-height:1.6;">
-          <li><strong>a) sticky 적용</strong> — 가로 스크롤 시에도 행 식별 가능, 우측 본문 영역 손실 ~22%. (SECTION 3 시연)</li>
-          <li>b) sticky 없음 — 자연 스크롤, 좌측 가려져서 행 식별 어려움. (SECTION 4 시연)</li>
-        </ul>
-        <span class="text-amber-300">→ 시안 기본: a) sticky 적용</span>
+      <li class="mb-2">
+        <strong>OQ #1 ▶ LOCKED 모바일 미구현</strong> — 미리보기 테이블은 데스크톱 전용. SchedulePage.tsx 466~496 모바일 render 와 일치 (mobile 은 calendarEl + scheduleListEl 만). 모바일 frame 2개 (sticky / 자연 스크롤) + 관련 CSS 룰 제거됨.
       </li>
-      <li class="mb-3">
-        <strong>OQ #2</strong> — 미리보기 페이지에서 W2 LOCKED c) FAB 표시 여부:
-        <ul class="list-disc pl-5 mt-1" style="line-height:1.6;">
-          <li>a) FAB 유지 — 페이지 일관성 (다른 schedule 페이지와 동일)</li>
-          <li><strong>b) FAB 숨김</strong> — 미리보기 페이지에서 일정 추가는 부자연스러움. 다운로드 기능에 집중. (헤더 + 추가 버튼만 유지)</li>
-          <li>c) "+ 추가" 헤더 버튼만 유지, FAB 숨김 (b 와 동일 효과)</li>
-        </ul>
-        <span class="text-amber-300">→ 시안 기본: b) FAB 숨김 (이 wave 는 미리보기 시연이 본질)</span>
+      <li class="mb-2">
+        <strong>OQ #2 ▶ LOCKED b)</strong> — 미리보기 페이지에서 FAB 표시 안 함. 헤더 "+ 추가" 버튼은 유지 (source line 482~485 verbatim).
       </li>
       <li>
-        <strong>OQ #3</strong> — 데스크톱 1280px frame 의 셀 폭/폰트 처리:
-        <ul class="list-disc pl-5 mt-1" style="line-height:1.6;">
-          <li><strong>a) 1280 그대로</strong> — 31일 cramped, 폰트 12px 1~2글자만 노출. 실제 운영 환경 그대로 시연. (SECTION 1+2 시연)</li>
-          <li>b) min-width:1800 강제 → 데스크톱도 가로 스크롤 발생</li>
-          <li>c) 셀 폰트 12 → 11 축소 (노안 격상 후퇴 — 권장 안 함)</li>
-        </ul>
-        <span class="text-amber-300">→ 시안 기본: a) 1280 cramped 그대로 (사용자가 실제 보고 판단)</span>
+        <strong>OQ #3 ▶ LOCKED a)</strong> — 데스크톱 1280px 셀 폭/폰트 = cramped 그대로 (31일 폰트 12px, 1~2글자 노출). 실제 운영 환경 일치.
       </li>
     </ol>
   </section>
@@ -1786,7 +1586,7 @@
       <li>멀티데이 = "점검" 텍스트 다일 / dot only (W1 OQ #2 LOCKED) — 미리보기 셀에 dot/별표 별도 표시 없음. 5/12~15 (4일 멀티데이) 는 각 셀에 "점검" 텍스트만 표시. safe 배경 0.10.</li>
       <li>"오늘" 칩 본문 0회 (W1 OQ #3 LOCKED) — 오늘 셀(5/19)은 <code class="text-zinc-300">2px solid var(--accent)</code> border 로만 표식. "오늘"이라는 텍스트 0회.</li>
       <li>상태 칩 색 verbatim (W2 OQ #1 LOCKED a) — 본 wave 는 상태 칩 자체가 없음 (개별 일정 표시 X, 미리보기 테이블만). 단, 룰은 mirror 됨.</li>
-      <li>FAB CTA 우하단 (W2 OQ #2 LOCKED c) — 본 wave 는 OQ #2 b) FAB 숨김 시안 기본. 미리보기 페이지 특성상 일정 추가 부자연스러움.</li>
+      <li>FAB CTA 우하단 (W2 OQ #2 LOCKED c) — 본 wave 는 OQ #2 LOCKED b) 적용 = FAB 표시 안 함. 헤더 "+ 추가" 버튼만 유지. 미리보기 페이지 특성상 일정 추가 부자연스러움.</li>
       <li>멀티데이 = 시간 자리 텍스트 (W2 OQ #3 LOCKED b) — 본 wave 는 시간 표시 자체 없음. 미리보기 테이블에는 적용 무관.</li>
     </ul>
   </section>
