@@ -671,15 +671,15 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
   }, [items, curMonth, holidays])
 
   const cellStyle: React.CSSProperties = {
-    border: '1px solid var(--bd)', padding: '3px 1px', textAlign: 'center',
-    fontSize: 11, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--t1)',
+    border: '1px solid var(--border-default)', padding: '3px 1px', textAlign: 'center',
+    fontSize: 12, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-primary)',
   }
-  const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--bg3)', color: 'var(--t1)' }
+  const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--surface-sunken)', color: 'var(--text-primary)' }
 
   return (
-    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--bg2)' }}>
+    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--surface-raised)' }}>
       {/* 타이틀 */}
-      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--t1)' }}>
+      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
         {mo}월 중요업무추진계획(방재)
       </div>
 
@@ -697,11 +697,11 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
               return (
                 <th key={i} style={{
                   ...headCell,
-                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
-                  background: isTdy ? 'rgba(59,130,246,0.18)' : dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--bg3)',
-                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderTop: isTdy ? '2px solid var(--acl)' : undefined,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--text-primary)',
+                  background: isTdy ? 'rgba(59,130,246,0.18)' : dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--surface-sunken)',
+                  borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderTop: isTdy ? '2px solid var(--accent)' : undefined,
                 }}>
                   {i + 1}
                 </th>
@@ -721,9 +721,9 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
               return (
                 <th key={i} style={{
                   ...headCell, fontWeight: 600,
-                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
-                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--text-primary)',
+                  borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--accent)' : undefined,
                 }}>
                   {DOW[dow]}
                 </th>
@@ -736,7 +736,7 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
           {PLAN_PREVIEW_ROWS.map((row, ri) => (
             <tr key={ri}>
               <td style={{ ...cellStyle, fontWeight: 600 }}>{ri + 1}</td>
-              <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 6, fontSize: 10 }}>{row.label}</td>
+              <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 6, fontSize: 12 }}>{row.label}</td>
               {Array.from({ length: daysInMonth }, (_, i) => {
                 const d = i + 1
                 const dow = (firstDow + i) % 7
@@ -764,19 +764,19 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
 
                 return (
                   <td key={i} style={{
-                    ...cellStyle, fontSize: 10,
-                    color: text ? 'var(--t1)' : 'transparent',
+                    ...cellStyle, fontSize: 12,
+                    color: text ? 'var(--text-primary)' : 'transparent',
                     background: isWeekend ? (dow === 0 || isHol ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)')
                       : text && !row.daily ? 'rgba(34,197,94,0.1)' : 'transparent',
-                    borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                    borderRight: isTdy ? '2px solid var(--acl)' : undefined,
-                    borderBottom: isTdy && isLastRow ? '2px solid var(--acl)' : undefined,
+                    borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                    borderRight: isTdy ? '2px solid var(--accent)' : undefined,
+                    borderBottom: isTdy && isLastRow ? '2px solid var(--accent)' : undefined,
                   }}>
                     {text || '.'}
                   </td>
                 )
               })}
-              <td style={{ ...cellStyle, fontSize: 9, color: 'var(--t3)', whiteSpace: 'normal', lineHeight: 1.2 }}>
+              <td style={{ ...cellStyle, fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'normal', lineHeight: 1.2 }}>
                 {row.note ?? ''}
               </td>
             </tr>
