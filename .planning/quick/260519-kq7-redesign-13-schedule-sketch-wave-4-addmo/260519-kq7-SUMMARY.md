@@ -100,12 +100,13 @@ AddModal (SchedulePage.tsx line 647~963) 정적 HTML 시안 1장으로 5 cat var
 | 헤더 close X 크기 (노안 격상) | 28→32 + svg 14→16 | width:32 height:32 + svg 16×16 |
 | 헤더 타이틀 (노안 격상) | 15 → 18 (text-title font-semibold) | `<span class="text-title font-semibold">` |
 
-## Open Questions (사용자 답변 요청)
+## OQ — LOCKED (2026-05-19 사용자 답변)
 
-푸터 박스로 시각 노출:
-- **OQ #1** — 모바일 BottomSheet maxHeight: a) 90dvh verbatim / b) 80vh 축소
-- **OQ #2** — 저장 버튼 색: a) source linear-gradient(135deg, #1d4ed8, #2563eb) / b) accent solid token
-- **OQ #3** — INSP_CATEGORIES 19종 입력: a) `<select>` native / b) grid 3-4열 칩
+| OQ | 답변 | 적용 |
+|----|------|------|
+| #1 | **LOCKED a)** — BottomSheet maxHeight = 90dvh source verbatim | 변경 없음 (source 그대로) |
+| #2 | **LOCKED b)** — 저장 버튼 색 = accent solid `var(--accent)` (디자인 시스템 토큰 일관) | `linear-gradient(135deg,#1d4ed8,#2563eb)` → `var(--accent)` 19곳 sed 치환 |
+| #3 | **LOCKED a)** — INSP_CATEGORIES 19종 입력 = `<select>` native source verbatim | 변경 없음 (source 그대로) |
 
 ## LOCKED 사전 결정 (사용자 답변 불필요 — 시안 안에 명시)
 
