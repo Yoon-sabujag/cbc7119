@@ -129,13 +129,13 @@ metrics:
 
 ---
 
-## OQ 3건 (사용자 답변 대기)
+## OQ — LOCKED (2026-05-19 사용자 답변)
 
-| OQ | 질문 | 시안 기본 | 시연 위치 |
-|----|------|-----------|-----------|
-| #1 | 모바일 393px 좌측 NO+내용 컬럼 sticky 여부 | **a) sticky 적용** | SECTION 3 (a) + SECTION 4 (b 대비) |
-| #2 | 미리보기 페이지에서 FAB 표시 여부 | **b) FAB 숨김** | 4 frame 모두 FAB 없음 |
-| #3 | 데스크톱 1280px frame 셀 폭/폰트 | **a) 1280 cramped 그대로** | SECTION 1+2 시연 |
+| OQ | 답변 | 적용 |
+|----|------|------|
+| #1 | **LOCKED 모바일 미구현** — 미리보기는 데스크톱 전용 (SchedulePage.tsx 466~496 모바일 render 와 일치) | SECTION 3+4 모바일 frame 2개 + `.frame-mobile`/`.sticky-left`/`.mobile-table-wrap` CSS 룰 제거. 1857 → 1657줄 (-200) |
+| #2 | **LOCKED b)** — 미리보기 페이지에서 FAB 표시 안 함. 헤더 "+ 추가" 버튼은 유지 | 4 frame 모두 FAB 없음 유지 |
+| #3 | **LOCKED a)** — 데스크톱 1280px 셀 폭/폰트 = cramped 그대로 | SECTION 1+2 그대로 유지 |
 
 ---
 
