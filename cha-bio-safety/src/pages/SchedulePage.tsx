@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Plus, X } from 'lucide-react'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
@@ -900,25 +900,30 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
-      onClick={onClose}>
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[300] flex flex-col"
+      style={{
+        background:'rgba(0,0,0,0.55)',
+        justifyContent: isDesktop ? 'center' : 'flex-end',
+        alignItems:    isDesktop ? 'center' : undefined,
+      }}>
       <div onClick={e => e.stopPropagation()}
+        className="bg-surface-raised overflow-y-auto"
         style={{
-          background:'var(--bg2)',
           borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:'90dvh', overflowY:'auto',
+          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:    '90dvh',
           ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
         }}>
 
         {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 추가</span>
+        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+          <span className="text-title font-semibold text-text-primary">일정 추가</span>
           <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+            aria-label="닫기"
+            className="w-7 h-7 rounded-sm border border-border-default bg-surface-sunken cursor-pointer flex items-center justify-center">
+            <X size={16} className="text-text-secondary" strokeWidth={2} />
           </button>
         </div>
 
@@ -930,11 +935,11 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
             <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5 }}>
               {SCHED_CATEGORIES.map(c => (
                 <button key={c.value} onClick={() => handleCat(c.value)}
-                  style={{ padding:'8px 0', borderRadius:8,
-                    border:`1px solid ${cat===c.value?c.color:'var(--bd)'}`,
-                    background: cat===c.value?`${c.color}22`:'var(--bg3)',
-                    color: cat===c.value?c.color:'var(--t2)',
-                    fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  style={{ padding:'10px 0', borderRadius:8,
+                    border:`1px solid ${cat===c.value?c.color:'var(--border-default)'}`,
+                    background: cat===c.value?`${c.color}22`:'var(--surface-sunken)',
+                    color: cat===c.value?c.color:'var(--text-secondary)',
+                    fontSize:12, fontWeight:700, lineHeight:1, cursor:'pointer' }}>
                   {c.label}
                 </button>
               ))}
@@ -975,7 +980,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="일정 제목" style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -992,9 +997,9 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                   {ELEV_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleElevSub(v)}
                       style={{ padding:'9px 0', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer',
-                        border:`1px solid ${elevSub===v?'#f97316':'var(--bd)'}`,
-                        background: elevSub===v?'rgba(249,115,22,0.15)':'var(--bg3)',
-                        color: elevSub===v?'#f97316':'var(--t2)' }}>
+                        border:`1px solid ${elevSub===v?'#f97316':'var(--border-default)'}`,
+                        background: elevSub===v?'rgba(249,115,22,0.15)':'var(--surface-sunken)',
+                        color: elevSub===v?'#f97316':'var(--text-secondary)' }}>
                       {v}
                     </button>
                   ))}
@@ -1005,7 +1010,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={elevAgency} onChange={e=>setElevAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -1021,10 +1026,10 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
                   {FIRE_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleFireSub(v)}
-                      style={{ padding:'8px 4px', borderRadius:9, fontSize:10, fontWeight:700, cursor:'pointer', lineHeight:1.4,
-                        border:`1px solid ${fireSub===v?'#ef4444':'var(--bd)'}`,
-                        background: fireSub===v?'rgba(239,68,68,0.13)':'var(--bg3)',
-                        color: fireSub===v?'#ef4444':'var(--t2)' }}>
+                      style={{ padding:'8px 4px', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer', lineHeight:1.4,
+                        border:`1px solid ${fireSub===v?'#ef4444':'var(--border-default)'}`,
+                        background: fireSub===v?'rgba(239,68,68,0.13)':'var(--surface-sunken)',
+                        color: fireSub===v?'#ef4444':'var(--text-secondary)' }}>
                       {v}
                     </button>
                   ))}
@@ -1035,7 +1040,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={fireAgency} onChange={e=>setFireAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -1051,7 +1056,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={time} onChange={e=>setTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
@@ -1060,12 +1065,12 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
           {/* 종료일 / 종료시간 */}
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
@@ -1073,7 +1078,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           {/* N일 미리보기 — 항상 단일 항목 + end_date 로 저장, 주말·공휴일은 표시에서만 제외 */}
           {rangeDays > 1 && (
-            <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+            <div style={{ fontSize:12, color:'var(--accent)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
               {skippedCount > 0
                 ? `${rangeDays}일 범위로 1건 추가됩니다 (주말·공휴일 ${skippedCount}일은 표시에서 제외)`
                 : `${rangeDays}일 범위로 1건 추가됩니다`}
@@ -1082,21 +1087,21 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
             <button onClick={() => shiftDate(-1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--bd2)',
-                background:'var(--bg3)', color:'var(--t2)', fontSize:18, lineHeight:1,
+              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
+                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               ‹
             </button>
             <button onClick={handleSave} disabled={saving}
               style={{ padding:'14px', borderRadius:12, border:'none',
-                background:'linear-gradient(135deg,#1d4ed8,#2563eb)',
-                color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
+                background:'var(--accent)',
+                color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer',
                 opacity:saving?0.6:1 }}>
               {saving ? '저장 중...' : '저장'}
             </button>
             <button onClick={() => shiftDate(1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--bd2)',
-                background:'var(--bg3)', color:'var(--t2)', fontSize:18, lineHeight:1,
+              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
+                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               ›
             </button>
@@ -1189,10 +1194,11 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
 // iconBtn 삭제 — 사용처 모바일 헤더 백 버튼 className 인라인화 완료 (SW1)
 // arrowBtn 삭제 — 사용처 캘린더 월 네비 lucide ChevronLeft/ChevronRight inline className 으로 치환 (SW2)
 const lbl: React.CSSProperties = {
-  fontSize:11, fontWeight:700, color:'var(--t3)', display:'block', marginBottom:6,
+  fontSize:12, fontWeight:700, color:'var(--text-tertiary)',
+  display:'block', marginBottom:6, lineHeight:1,
 }
 const inp: React.CSSProperties = {
   width:'100%', padding:'11px 12px', borderRadius:10, boxSizing:'border-box',
-  background:'var(--bg3)', border:'1px solid var(--bd2)',
-  color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit',
+  background:'var(--surface-sunken)', border:'1px solid var(--border-strong)',
+  color:'var(--text-primary)', fontSize:13, outline:'none', fontFamily:'inherit',
 }
