@@ -38,9 +38,9 @@
     - typography.css line 28~95 verbatim 임베드
 
   open questions (사용자 답변 요청 — 푸터 박스 참조):
-    OQ #1 ▶ 모바일 BottomSheet maxHeight: a) source 90dvh verbatim / b) 80vh 축소 (검수 편의)
-    OQ #2 ▶ 저장 버튼 색: a) source linear-gradient(135deg, #1d4ed8, #2563eb) / b) accent solid (디자인 토큰 일관)
-    OQ #3 ▶ INSP_CATEGORIES 19종 입력: a) source <select> native / b) grid 3-4열 칩 (검수 편의)
+    OQ #1 ▶ LOCKED a) — BottomSheet maxHeight = 90dvh source verbatim 유지.
+    OQ #2 ▶ LOCKED b) — 저장 버튼 색 = accent solid var(--accent) (디자인 시스템 토큰 일관, 라이트/다크 자동 분기). source linear-gradient 폐기.
+    OQ #3 ▶ LOCKED a) — INSP_CATEGORIES 19종 입력 = <select> native source verbatim 유지.
 
   LOCKED 사전 결정 (사용자 답변 불필요):
     - ELEV_SUBCATS / FIRE_SUBCATS 라벨 = SchedulePage.tsx line 63~64 verbatim 원본
@@ -500,7 +500,7 @@
           <!-- CTA grid -->
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -577,7 +577,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -645,7 +645,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -712,7 +712,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -807,7 +807,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -895,7 +895,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -962,7 +962,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1022,7 +1022,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1097,7 +1097,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1165,7 +1165,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1241,7 +1241,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1310,7 +1310,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1372,7 +1372,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1427,7 +1427,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1483,7 +1483,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1538,7 +1538,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1593,7 +1593,7 @@
           </div>
           <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
-            <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
             <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
           </div>
         </div>
@@ -1643,7 +1643,7 @@
         </div>
         <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:20px;">
           <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>‹</button>
-          <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
           <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>›</button>
         </div>
       </div>
@@ -1690,7 +1690,7 @@
         </div>
         <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:20px;">
           <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>‹</button>
-          <button style="padding:14px; border-radius:12px; border:none; background:linear-gradient(135deg,#1d4ed8,#2563eb); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
           <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>›</button>
         </div>
       </div>
@@ -1700,28 +1700,16 @@
 </div>
 
 <!-- ============================================================
-     Footer — Open Questions + LOCKED 사전 결정
+     Footer — OQ LOCKED + 사전 결정 (2026-05-19 사용자 답변 완료)
      ============================================================ -->
 <div class="oq-footer">
-  <h3>Open Questions (사용자 답변 요청)</h3>
+  <h3>OQ LOCKED · 사용자 답변 완료 (3건)</h3>
 
-  <p><strong>OQ #1</strong> — 모바일 BottomSheet maxHeight</p>
-  <ul>
-    <li>a) source 90dvh verbatim 유지 (SchedulePage.tsx line 758 원본)</li>
-    <li>b) 80vh 축소 (검수 편의 + 키보드 가림 방지)</li>
-  </ul>
+  <p><strong>OQ #1 ▶ LOCKED a)</strong> — 모바일 BottomSheet maxHeight = 90dvh source verbatim (SchedulePage.tsx line 758 원본 유지).</p>
 
-  <p><strong>OQ #2</strong> — 저장 버튼 색</p>
-  <ul>
-    <li>a) source linear-gradient(135deg, #1d4ed8, #2563eb) verbatim 유지 (현재 시안)</li>
-    <li>b) accent solid (디자인 시스템 토큰 var(--accent) 일관 — 라이트/다크 자동 분기)</li>
-  </ul>
+  <p><strong>OQ #2 ▶ LOCKED b)</strong> — 저장 버튼 색 = accent solid <code>var(--accent)</code> (디자인 시스템 토큰 일관, 라이트/다크 자동 분기). source linear-gradient 폐기 — 17 frame 저장 버튼 19곳 모두 적용.</p>
 
-  <p><strong>OQ #3</strong> — INSP_CATEGORIES 19종 입력 형식</p>
-  <ul>
-    <li>a) source &lt;select&gt; native 그대로 (현재 시안 — iOS PWA 키보드 자동 popup)</li>
-    <li>b) grid 3-4열 칩 (검수 편의 + 시각 정합 + 5 cat 칩과 시각 통일성 향상)</li>
-  </ul>
+  <p><strong>OQ #3 ▶ LOCKED a)</strong> — INSP_CATEGORIES 19종 입력 = <code>&lt;select&gt;</code> native source verbatim (iOS PWA 키보드 자동 popup 활용).</p>
 
   <p><strong>LOCKED 사전 결정 (사용자 답변 불필요)</strong></p>
   <ul>
