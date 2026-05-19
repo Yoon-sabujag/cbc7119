@@ -1121,9 +1121,10 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
   const [time,   setTime]   = useState(item.time ?? '')
   const [memo,   setMemo]   = useState(item.memo ?? '')
   const [saving, setSaving] = useState(false)
+  const [titleError, setTitleError] = useState(false)
 
   const handleSave = async () => {
-    if (!title.trim()) { toast.error('제목을 입력하세요'); return }
+    if (!title.trim()) { setTitleError(true); toast.error('제목을 입력하세요'); return }
     setSaving(true)
     try {
       await scheduleApi.update(item.id, { title: title.trim(), date, time: time || undefined, memo: memo || undefined })
@@ -1136,29 +1137,52 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
-      onClick={onClose}>
+    <div
+      onClick={onClose}
+      className={`fixed inset-0 z-[300] flex flex-col ${isDesktop ? 'justify-center items-center' : 'justify-end'}`}
+      style={{ background:'rgba(0,0,0,0.55)' }}>
       <div onClick={e => e.stopPropagation()}
+        className="bg-surface-raised overflow-y-auto"
         style={{
-          background:'var(--bg2)',
           borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:'90dvh', overflowY:'auto',
+          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:    '90dvh',
           ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
         }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 수정</span>
+
+        {/* 헤더 */}
+        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+          <span className="text-title font-semibold text-text-primary">일정 수정</span>
           <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+            aria-label="닫기"
+            className="w-7 h-7 rounded-sm border border-border-default bg-surface-sunken cursor-pointer flex items-center justify-center">
+            <X size={16} className="text-text-secondary" strokeWidth={2} />
           </button>
         </div>
+
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* 카테고리 lock row (W5 OQ #1 LOCKED b verbatim) */}
+          {(() => {
+            const cat = SCHED_CATEGORIES.find(c => c.value === item.category)
+            return (
+              <div className="flex items-center gap-2 p-3 bg-surface-sunken rounded-sm">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat?.color }} />
+                <span className="text-label font-bold text-text-primary leading-snug">{cat?.label}</span>
+                <span className="text-caption text-text-tertiary leading-snug">· 카테고리는 변경할 수 없습니다</span>
+              </div>
+            )
+          })()}
+
           <div>
             <label style={lbl}>제목</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} style={inp} />
+            <input
+              value={title}
+              onChange={e => { setTitle(e.target.value); setTitleError(false) }}
+              style={{ ...inp, ...(titleError ? { borderColor: 'var(--status-danger-bar)' } : {}) }} />
+            {titleError && (
+              <div className="text-caption text-danger-bar mt-1.5 leading-none font-semibold">제목을 입력하세요</div>
+            )}
           </div>
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:1 }}>
@@ -1167,21 +1191,19 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:1 }}>
-              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={time} onChange={e => setTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
           </div>
           <div>
-            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)}
               rows={4} style={{ ...inp, resize:'none', lineHeight:1.6 }} />
           </div>
           <button onClick={handleSave} disabled={saving}
-            style={{ padding:'14px', borderRadius:12, border:'none',
-              background:'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
-              opacity:saving?0.6:1 }}>
+            className="bg-accent text-text-on-accent text-body font-bold rounded-md border-0 cursor-pointer"
+            style={{ padding:'14px', opacity: saving ? 0.6 : 1 }}>
             {saving ? '저장 중...' : '수정 저장'}
           </button>
         </div>
