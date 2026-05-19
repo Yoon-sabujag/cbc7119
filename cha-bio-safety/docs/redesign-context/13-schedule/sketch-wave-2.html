@@ -7,19 +7,10 @@
   out of scope: 월간 점검 계획 미리보기 테이블 (별도 wave) / AddModal 내부 / EditModal 내부 / 자동 생성 패널
   참조: design-system.md v0.1.1 §1~§7, SchedulePage.tsx line 81~94 + 304~405 verbatim, sketch-wave-1.html LOCKED 결정 mirror
 
-  open questions — W2 에서 사용자 답변 필요 (3건):
-    OQ #1 — 상태 칩 색 매핑
-      a) 예정=text-tertiary 회색 / 진행중=accent / 완료=safe / 지연=danger (SchedulePage.tsx line 89~94 verbatim mirror)
-      b) 예정=info-bg / 진행중=warning-bg / 완료=safe-bg / 지연=danger-bg (status-bg 채움 방식, 더 시각 강조)
-      c) 예정=outline 회색 / 진행중=fire (조치 대기 아님 + accent 중복 회피) / 완료=safe / 지연=danger
-    OQ #2 — add CTA 형태
-      a) 헤더 우측 inline 추가 (모바일 — SchedulePage.tsx line 482 verbatim 위치 유지)
-      b) 일정 리스트 위 inline 일정 추가 풀폭 버튼 (Empty state 의 추가 버튼 항상 노출)
-      c) FAB (우하단 fixed 56px 원형, accent bg)
-    OQ #3 — 멀티데이 카드 범위 표시 자리
-      a) 제목 옆 칩 (소방 종합점검 + 5/12~5/15 범위 칩)
-      b) 시간 자리 (시간 라벨이 비어 있으니): "5/12 ~ 5/15 (4일)" 텍스트만
-      c) 별도 라인 (상단 메타 row 마지막에 inline-flex 칩): 범위 5/12 ~ 5/15
+  open questions — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED a) — 상태 칩 색 = SchedulePage.tsx line 89~94 verbatim (예정=text-tertiary / 진행중=accent / 완료=safe / 지연=danger)
+    OQ #2 ▶ LOCKED c) — add CTA = FAB (우하단 fixed 56px 원형 accent bg). 헤더 inline + 풀폭 버튼 제거.
+    OQ #3 ▶ LOCKED b) — 멀티데이 범위 표시 = 시간 자리 텍스트 "5/12 ~ 5/15 (4일)". 제목 옆 칩 / 메타 row 칩 제거.
 -->
 <head>
   <meta charset="UTF-8" />
@@ -353,20 +344,11 @@
         어린이날
       </div>
 
-      <!-- 섹션 C — 선택된 일자 헤더 (W2 신규) -->
+      <!-- 섹션 C — 선택된 일자 헤더 (W2 신규, OQ #2 LOCKED c → 헤더 inline 추가 제거) -->
       <!-- SchedulePage.tsx line 349~360 verbatim: selDate=2026-05-05, today=2026-05-19 → "5/5 일정" + "3건" -->
-      <!-- OQ #2 옵션 a (헤더 우측 inline 추가 버튼) 시연 -->
       <div class="flex items-center" style="margin:0 16px 8px; gap:8px;">
         <span class="text-caption font-semibold text-text-secondary" style="line-height:1;">5/5 일정</span>
         <span class="text-caption text-text-tertiary" style="line-height:1;">3건</span>
-        <span class="text-caption rounded-pill bg-surface-sunken text-text-tertiary"
-          style="margin-left:auto; padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-          옵션 a
-        </span>
-        <button class="text-caption font-semibold rounded-sm-token text-white"
-          style="background:var(--accent); padding:6px 12px; line-height:1;">
-          + 추가
-        </button>
       </div>
 
       <!-- 섹션 D — 일정 카드 리스트 (시나리오 A, 3장) -->
@@ -444,14 +426,13 @@
         </div>
       </div>
 
-      <!-- 섹션 E — 멀티데이 카드 sub-strip (시나리오 B, OQ #3 a/b/c 3장) -->
+      <!-- 섹션 E — 멀티데이 카드 (시나리오 B, OQ #3 LOCKED b = 시간 자리 텍스트) -->
       <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
-        멀티데이 / 범위 일정 — OQ #3 후보 비교
+        멀티데이 / 범위 일정
       </div>
 
       <div class="flex flex-col" style="gap:8px; padding:0 16px;">
-
-        <!-- 옵션 a: 제목 옆 칩 -->
+        <!-- OQ #3 LOCKED b: 시간 자리 텍스트 "5/12 ~ 5/15 (4일)" -->
         <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
           <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
             <span class="text-caption font-semibold rounded-sm-token"
@@ -462,76 +443,10 @@
               style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
               동양소방
             </span>
-            <span class="text-caption rounded-pill bg-surface-sunken text-text-tertiary"
-              style="margin-left:auto; padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              옵션 a
-            </span>
-            <span class="text-caption font-medium" style="color:var(--text-tertiary); line-height:1;">예정</span>
-          </div>
-          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:4px;">
-            <span class="text-body font-semibold text-text-primary">소방 상반기 종합정밀점검</span>
-            <span class="text-caption rounded-pill text-text-secondary"
-              style="background:var(--surface-sunken); padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              5/12~5/15 · 4일
-            </span>
-          </div>
-          <div class="flex" style="gap:6px; margin-top:8px;">
-            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
-              style="padding:4px 10px; line-height:1.4;">수정</button>
-            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
-              style="padding:4px 10px; line-height:1.4;">삭제</button>
-          </div>
-        </div>
-
-        <!-- 옵션 b: 시간 자리 텍스트 -->
-        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
-          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
-            <span class="text-caption font-semibold rounded-sm-token"
-              style="color:#ef4444; background:rgba(239,68,68,0.13); padding:2px 8px; line-height:1.4;">
-              소방
-            </span>
-            <span class="text-caption font-medium rounded-sm-token"
-              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
-              동양소방
-            </span>
-            <span class="text-caption rounded-pill bg-surface-sunken text-text-tertiary"
-              style="margin-left:auto; padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              옵션 b
-            </span>
-            <span class="text-caption font-medium" style="color:var(--text-tertiary); line-height:1;">예정</span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
           </div>
           <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">소방 상반기 종합정밀점검</div>
           <div class="text-caption text-text-tertiary" style="line-height:1.4;">5/12 ~ 5/15 (4일)</div>
-          <div class="flex" style="gap:6px; margin-top:8px;">
-            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
-              style="padding:4px 10px; line-height:1.4;">수정</button>
-            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
-              style="padding:4px 10px; line-height:1.4;">삭제</button>
-          </div>
-        </div>
-
-        <!-- 옵션 c: 상단 메타 row 별도 칩 -->
-        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
-          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
-            <span class="text-caption font-semibold rounded-sm-token"
-              style="color:#ef4444; background:rgba(239,68,68,0.13); padding:2px 8px; line-height:1.4;">
-              소방
-            </span>
-            <span class="text-caption font-medium rounded-sm-token"
-              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
-              동양소방
-            </span>
-            <span class="text-caption rounded-pill text-text-secondary"
-              style="background:var(--surface-sunken); padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              범위 5/12 ~ 5/15 · 4일
-            </span>
-            <span class="text-caption rounded-pill bg-surface-sunken text-text-tertiary"
-              style="margin-left:auto; padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              옵션 c
-            </span>
-            <span class="text-caption font-medium" style="color:var(--text-tertiary); line-height:1;">예정</span>
-          </div>
-          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">소방 상반기 종합정밀점검</div>
           <div class="flex" style="gap:6px; margin-top:8px;">
             <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
               style="padding:4px 10px; line-height:1.4;">수정</button>
@@ -650,20 +565,9 @@
         불러오는 중...
       </div>
 
-      <!-- 섹션 J — add CTA 옵션 b (리스트 위 풀폭) -->
+      <!-- 섹션 J — add CTA (OQ #2 LOCKED c = FAB 우하단 fixed) -->
       <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
-        옵션 b — 리스트 위 풀폭
-      </div>
-      <div style="margin:0 16px;">
-        <button class="text-label font-semibold rounded-sm-token text-white"
-          style="background:var(--accent); padding:10px 16px; line-height:1.2; width:100%; border:none;">
-          + 일정 추가
-        </button>
-      </div>
-
-      <!-- 섹션 J — add CTA 옵션 c (FAB 우하단 fixed within frame) -->
-      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
-        옵션 c — FAB (우하단)
+        add CTA — FAB (우하단)
       </div>
       <div style="margin:0 16px 32px; height:80px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; position:relative;">
         <span class="text-caption text-text-tertiary" style="position:absolute; left:12px; top:12px; line-height:1.5;">스크롤 영역 placeholder</span>
@@ -690,18 +594,10 @@
         어린이날
       </div>
 
-      <!-- 선택 일자 헤더 + 옵션 a inline 추가 -->
+      <!-- 선택 일자 헤더 (OQ #2 LOCKED c → 헤더 inline 추가 제거) -->
       <div class="flex items-center" style="margin:0 16px 8px; gap:8px;">
         <span class="text-caption font-semibold text-text-secondary" style="line-height:1;">5/5 일정</span>
         <span class="text-caption text-text-tertiary" style="line-height:1;">3건</span>
-        <span class="text-caption rounded-pill bg-surface-sunken text-text-tertiary"
-          style="margin-left:auto; padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-          옵션 a
-        </span>
-        <button class="text-caption font-semibold rounded-sm-token text-white"
-          style="background:var(--accent); padding:6px 12px; line-height:1;">
-          + 추가
-        </button>
       </div>
 
       <div class="flex flex-col" style="gap:8px; padding:0 16px;">
@@ -775,9 +671,9 @@
         </div>
       </div>
 
-      <!-- 라이트 frame — 멀티데이 옵션 c 만 mirror -->
+      <!-- 라이트 frame — 멀티데이 (OQ #3 LOCKED b 라이트 mirror) -->
       <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
-        멀티데이 (라이트 mirror — 옵션 c 만)
+        멀티데이 (라이트 mirror)
       </div>
       <div style="padding:0 16px;">
         <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
@@ -790,13 +686,10 @@
               style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
               동양소방
             </span>
-            <span class="text-caption rounded-pill text-text-secondary"
-              style="background:var(--surface-sunken); padding:2px 8px; line-height:1.4; border:1px solid var(--border-default);">
-              범위 5/12 ~ 5/15 · 4일
-            </span>
             <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
           </div>
-          <div class="text-body font-semibold text-text-primary">소방 상반기 종합정밀점검</div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">소방 상반기 종합정밀점검</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4;">5/12 ~ 5/15 (4일)</div>
         </div>
       </div>
 
@@ -959,29 +852,20 @@
   </section>
 
   <!-- ============================================================
-       OQ 카드 (사용자 답변 영역) — OPEN
+       OQ LOCKED 카드 — 사용자 답변 완료 (2026-05-19)
        ============================================================ -->
   <section class="max-w-[1400px] mx-auto mb-12 p-5 rounded-md-token"
-    style="background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.3);">
-    <h3 class="text-title font-medium" style="color:var(--accent); margin-bottom:12px;">OQ OPEN · 사용자 답변 필요 (3건)</h3>
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">OQ LOCKED · 사용자 답변 완료 (3건)</h3>
     <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
       <li class="mb-2">
-        <strong>OQ #1 — 상태 칩 색 매핑</strong><br/>
-        a) source verbatim: 예정=tertiary 회색 / 진행중=accent / 완료=safe / 지연=danger (현재 sketch 의 카드들 = 옵션 a 시연 중)<br/>
-        b) status-bg 채움: 예정=info-bg / 진행중=warning-bg / 완료=safe-bg / 지연=danger-bg<br/>
-        c) outline 회색: 예정=outline / 진행중=fire (조치 대기 아님 + accent 중복 회피) / 완료=safe / 지연=danger
+        <strong>OQ #1 ▶ LOCKED a)</strong> — 상태 칩 색 = SchedulePage.tsx line 89~94 verbatim. 예정=text-tertiary / 진행중=accent / 완료=safe / 지연=danger.
       </li>
       <li class="mb-2">
-        <strong>OQ #2 — add CTA 형태</strong><br/>
-        a) 헤더 우측 inline 추가 (모바일 source verbatim 위치 — 각 frame 의 선택 일자 헤더 우측에 시연)<br/>
-        b) 리스트 위 풀폭 일정 추가 버튼 (다크 frame 섹션 J 에 시연)<br/>
-        c) FAB (우하단 56px 원형 fixed — 다크 frame 마지막 placeholder 안에 시연)
+        <strong>OQ #2 ▶ LOCKED c)</strong> — add CTA = FAB (우하단 fixed 56px 원형 accent bg). 헤더 inline + 리스트 위 풀폭 버튼 제거.
       </li>
       <li>
-        <strong>OQ #3 — 멀티데이 범위 표시 자리</strong><br/>
-        a) 제목 옆 칩: 소방 상반기 종합정밀점검 + 5/12~5/15 · 4일 (다크 frame 멀티데이 첫 카드)<br/>
-        b) 시간 자리 텍스트: 5/12 ~ 5/15 (4일) (다크 frame 멀티데이 두 번째 카드)<br/>
-        c) 상단 메타 row 별도 칩: 범위 5/12 ~ 5/15 · 4일 (다크 frame 멀티데이 세 번째 카드 + 라이트 frame mirror)
+        <strong>OQ #3 ▶ LOCKED b)</strong> — 멀티데이 범위 표시 = 시간 자리 텍스트 "5/12 ~ 5/15 (4일)". 제목 옆 칩 / 메타 row 칩 제거.
       </li>
     </ol>
   </section>
