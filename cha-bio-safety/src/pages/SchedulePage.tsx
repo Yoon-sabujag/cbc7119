@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { ChevronLeft, Download, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
@@ -239,23 +239,39 @@ export default function SchedulePage() {
   const calendarEl = (
     <>
       {/* 월 이동 */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-        <button onClick={() => shiftMonth(-1)} style={arrowBtn}>‹</button>
-        <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => shiftMonth(-1)}
+          className="w-7 h-7 rounded-sm border border-border-default bg-surface-raised text-text-primary flex items-center justify-center cursor-pointer"
+          aria-label="이전 달"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-title font-bold text-text-primary">
           {curMonth.split('-')[0]}년 {parseInt(curMonth.split('-')[1])}월
         </span>
-        <button onClick={() => shiftMonth(1)} style={arrowBtn}>›</button>
+        <button
+          onClick={() => shiftMonth(1)}
+          className="w-7 h-7 rounded-sm border border-border-default bg-surface-raised text-text-primary flex items-center justify-center cursor-pointer"
+          aria-label="다음 달"
+        >
+          <ChevronRight size={20} />
+        </button>
       </div>
 
       {/* 캘린더 */}
-      <div style={{ background:'var(--bg2)', borderRadius:14, border:'1px solid var(--bd)', overflow:'hidden', marginBottom:16 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--bd)' }}>
+      <div className="bg-surface-raised rounded-lg border border-border-default overflow-hidden mb-4">
+        <div className="grid grid-cols-7 border-b border-border-default">
           {WEEK_DAYS.map((d,i) => (
-            <div key={d} style={{ textAlign:'center', padding:'7px 0', fontSize:10, fontWeight:600,
-              color: i===0 ? '#ef4444' : i===6 ? 'var(--acl)' : 'var(--t3)' }}>{d}</div>
+            <div
+              key={d}
+              className={`text-center py-1.5 text-caption font-semibold leading-none ${i===0 ? 'text-danger' : i===6 ? 'text-accent' : 'text-text-tertiary'}`}
+            >
+              {d}
+            </div>
           ))}
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+        <div className="grid grid-cols-7">
           {calDays.map((date, idx) => {
             if (!date) return <div key={idx} />
             const isToday   = date === today
@@ -266,24 +282,37 @@ export default function SchedulePage() {
             const isRed     = dow === 0 || isHoliday
 
             return (
-              <button key={idx} onClick={() => setSelDate(date)}
-                style={{ padding:'5px 0 7px', cursor:'pointer',
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+              <button
+                key={idx}
+                onClick={() => setSelDate(date)}
+                className="flex flex-col items-center cursor-pointer box-border py-1.5 gap-0.5"
+                style={{
                   borderRadius: isSel ? 8 : 0,
                   background: isSel ? 'rgba(59,130,246,0.15)' : 'transparent',
                   border: isSel ? '2px solid #3b82f6' : '2px solid transparent',
-                  boxSizing: 'border-box' }}>
-                <span style={{
-                  fontSize:12, fontWeight: isToday||isSel ? 700:400,
-                  color: isSel ? 'var(--acl)' : isToday ? '#fff' : isRed ? '#ef4444' : dow===6 ? 'var(--acl)' : 'var(--t1)',
-                  width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
-                  borderRadius:'50%', background: isToday&&!isSel ? 'var(--acl)':'transparent',
-                }}>
+                }}
+              >
+                <span
+                  className={`text-caption flex items-center justify-center rounded-full leading-none ${
+                    isToday || isSel ? 'font-bold' : 'font-normal'
+                  } ${
+                    isSel ? 'text-accent' : isToday ? 'text-white' : isRed ? 'text-danger' : dow === 6 ? 'text-accent' : 'text-text-primary'
+                  }`}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: isToday && !isSel ? 'var(--accent)' : 'transparent',
+                  }}
+                >
                   {parseInt(date.slice(8))}
                 </span>
-                <div style={{ display:'flex', gap:2, height:4 }}>
+                <div className="flex gap-0.5 h-1">
                   {dots.slice(0,3).map((cat,ci) => (
-                    <span key={ci} style={{ width:4, height:4, borderRadius:'50%', background: catInfo(cat)?.color??'var(--t3)' }} />
+                    <span
+                      key={ci}
+                      className="w-1 h-1 rounded-full"
+                      style={{ background: catInfo(cat)?.color ?? 'var(--text-tertiary)' }}
+                    />
                   ))}
                 </div>
               </button>
@@ -294,7 +323,7 @@ export default function SchedulePage() {
 
       {/* 공휴일 표시 */}
       {holidays[selDate] && (
-        <div style={{ marginBottom:8, fontSize:11, color:'#ef4444', fontWeight:600, paddingLeft:2 }}>
+        <div className="mb-2 text-caption font-semibold text-danger pl-0.5 leading-none">
           {holidays[selDate]}
         </div>
       )}
@@ -1063,11 +1092,7 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
 
 // ── 스타일 ───────────────────────────────────────────────────
 // iconBtn 삭제 — 사용처 모바일 헤더 백 버튼 className 인라인화 완료 (SW1)
-const arrowBtn: React.CSSProperties = {
-  width:32, height:32, borderRadius:8, border:'1px solid var(--bd)',
-  background:'var(--bg2)', color:'var(--t1)', fontSize:20, lineHeight:'1',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-}
+// arrowBtn 삭제 — 사용처 캘린더 월 네비 lucide ChevronLeft/ChevronRight inline className 으로 치환 (SW2)
 const lbl: React.CSSProperties = {
   fontSize:11, fontWeight:700, color:'var(--t3)', display:'block', marginBottom:6,
 }
