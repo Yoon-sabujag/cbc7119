@@ -94,6 +94,16 @@ const STATUS_LABEL: Record<string,{label:string;color:string}> = {
   overdue:     { label:'지연',   color:'var(--danger)' },
 }
 
+// W2 OQ #1 LOCKED a — 상태 칩 Tailwind class 매핑 (v0.1.1 토큰)
+// 주의: tailwind.config.js 의 colors 별칭은 `safe-bar` / `danger-bar` (status- prefix 없음).
+//       feedback_tailwind_token_class_pattern.md 룰 따라 text-safe-bar / text-danger-bar 사용.
+const STATUS_TW: Record<string, string> = {
+  pending:     'text-text-tertiary',
+  in_progress: 'text-accent',
+  done:        'text-safe-bar',
+  overdue:     'text-danger-bar',
+}
+
 const WEEK_DAYS = ['일','월','화','수','목','금','토']
 
 // ── 미리보기 행 정의 ──────────────────────────────────────────
@@ -332,41 +342,108 @@ export default function SchedulePage() {
 
   // ── 일정 카드 1개 렌더 ────────────────────────────────────
   const renderCard = (item: ScheduleItem, grouped?: boolean) => {
-    const cat = catInfo(item.category)
-    const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+    const cat  = catInfo(item.category)
+    const st   = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+    const stTw = STATUS_TW[item.status]    ?? STATUS_TW.pending
+
+    // W2 OQ #3 LOCKED b — 멀티데이는 시간 자리 텍스트로 표시 (제목 옆/메타 row 칩 X)
+    const isMultiDay = !!item.endDate && item.endDate !== item.date
+    let multiDayText: string | null = null
+    if (isMultiDay) {
+      const startMD = item.date.slice(5).replace('-', '/')
+      const endMD   = item.endDate!.slice(5).replace('-', '/')
+      const sd = new Date(item.date + 'T00:00:00')
+      const ed = new Date(item.endDate! + 'T00:00:00')
+      const diffDays = Math.round((ed.getTime() - sd.getTime()) / 86400000) + 1
+      multiDayText = `${startMD} ~ ${endMD} (${diffDays}일)`
+    }
+
     return (
-      <div key={item.id} style={{ background:'var(--bg2)', borderRadius:10, border:'1px solid var(--bd)', padding:'10px 12px', ...(grouped ? { height: 130, display:'flex', flexDirection:'column' as const } : {}) }}>
-        <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4, flexWrap:'wrap' }}>
+      <div
+        key={item.id}
+        className="bg-surface-raised border border-border-default rounded-md"
+        style={{
+          padding: '12px 14px',
+          ...(grouped ? { height: 130, display: 'flex', flexDirection: 'column' as const } : {}),
+        }}
+      >
+        {/* row1 — chip row */}
+        <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
           {!grouped && (
-            <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
+            <span
+              className="text-caption font-semibold rounded-sm"
+              style={{ color: cat?.color, background: `${cat?.color}22`, padding: '2px 8px', lineHeight: 1.4 }}
+            >
               {cat?.label}
             </span>
           )}
           {item.inspectionCategory && (
-            <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 6px' }}>
+            <span
+              className="text-caption font-medium rounded-sm text-info bg-info-bg"
+              style={{ padding: '2px 8px', lineHeight: 1.4 }}
+            >
               {item.inspectionCategory}
             </span>
           )}
-          <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
+          <span className={`text-caption font-medium ml-auto leading-none ${stTw}`}>{st.label}</span>
         </div>
-        <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time) ? 3 : 0 }}>{item.title}</div>
-        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow:'hidden' }}>
-          {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time ? 3 : 0, display:'-webkit-box', WebkitLineClamp: grouped ? 2 : 3, WebkitBoxOrient:'vertical' as any, overflow:'hidden' }}>{item.memo}</div>}
-          {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
+
+        {/* 제목 */}
+        <div
+          className="text-body font-semibold text-text-primary"
+          style={{ marginBottom: (item.memo || item.time || multiDayText) ? 4 : 0 }}
+        >
+          {item.title}
         </div>
-        <div style={{ display:'flex', gap:4, marginTop: grouped ? 'auto' : 5, paddingTop: grouped ? 4 : 0 }}>
+
+        {/* 메모 + 시간/멀티데이 */}
+        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow: 'hidden' }}>
+          {item.memo && (
+            <div
+              className="text-caption text-text-secondary"
+              style={{
+                whiteSpace: 'pre-line',
+                lineHeight: 1.5,
+                display: '-webkit-box',
+                WebkitLineClamp: grouped ? 2 : 3,
+                WebkitBoxOrient: 'vertical' as any,
+                overflow: 'hidden',
+                marginBottom: (item.time || multiDayText) ? 4 : 0,
+              }}
+            >
+              {item.memo}
+            </div>
+          )}
+          {multiDayText ? (
+            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{multiDayText}</div>
+          ) : item.time ? (
+            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{item.time}</div>
+          ) : null}
+        </div>
+
+        {/* 액션 row */}
+        <div className="flex gap-1.5" style={{ marginTop: grouped ? 'auto' : 8, paddingTop: grouped ? 4 : 0 }}>
           {item.status !== 'done' && (
-            <button onClick={() => handleStatus(item,'done')}
-              style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
+            <button
+              onClick={() => handleStatus(item, 'done')}
+              className="text-caption font-semibold rounded-sm border border-safe bg-safe-bg text-safe cursor-pointer"
+              style={{ padding: '4px 10px', lineHeight: 1.4 }}
+            >
               완료
             </button>
           )}
-          <button onClick={() => setEditItem(item)}
-            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
+          <button
+            onClick={() => setEditItem(item)}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer"
+            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+          >
             수정
           </button>
-          <button onClick={() => handleDelete(item)}
-            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
+          <button
+            onClick={() => handleDelete(item)}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-tertiary cursor-pointer"
+            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+          >
             삭제
           </button>
         </div>
@@ -376,33 +453,41 @@ export default function SchedulePage() {
 
   const scheduleListEl = (
     <>
-      <div style={{ display:'flex', alignItems:'center', marginBottom:8, gap:6 }}>
-        <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>
-          {selDate === today ? '오늘' : `${selDate.slice(5).replace('-','/')}`} 일정
+      {/* 섹션 C — 선택 일자 헤더 */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-caption font-semibold text-text-secondary leading-none">
+          {selDate === today ? '오늘' : `${selDate.slice(5).replace('-', '/')}`} 일정
         </span>
-        <span style={{ fontSize:11, color:'var(--t3)' }}>{dayItems.length}건</span>
-        <span style={{ flex:1 }}/>
+        <span className="text-caption text-text-tertiary leading-none">{dayItems.length}건</span>
+        <span className="flex-1" />
         {isDesktop && (
-          <button onClick={() => setShowAdd(true)}
-            style={{ padding:'5px 12px', borderRadius:7, border:'none', background:'var(--acl)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="px-3 py-1 rounded-sm bg-accent text-text-on-accent text-caption font-bold cursor-pointer leading-none"
+          >
             + 추가
           </button>
         )}
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign:'center', padding:32, color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
+        <div className="text-center text-caption text-text-tertiary px-4 py-8 bg-surface-raised border border-border-default rounded-md">
+          불러오는 중...
+        </div>
       ) : dayItems.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'28px 0', color:'var(--t3)', fontSize:12 }}>
-          등록된 일정이 없습니다<br/>
-          <button onClick={() => setShowAdd(true)}
-            style={{ marginTop:12, padding:'8px 16px', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg2)', color:'var(--t2)', fontSize:12, cursor:'pointer' }}>
+        <div className="border border-border-default bg-surface-raised rounded-md text-center px-4 py-8">
+          <div className="text-body text-text-tertiary mb-3">등록된 일정이 없습니다</div>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-label font-semibold rounded-sm border border-border-strong bg-surface-sunken text-text-secondary cursor-pointer"
+            style={{ padding: '10px 20px' }}
+          >
             + 일정 추가
           </button>
         </div>
       ) : isDesktop ? (
         /* 데스크톱: 카테고리별 컬럼 */
-        <div style={{ display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap' }}>
+        <div className="flex flex-wrap gap-3 items-start">
           {(() => {
             // 카테고리별 그룹핑
             const groups: Record<string, ScheduleItem[]> = {}
@@ -414,11 +499,18 @@ export default function SchedulePage() {
             return Object.entries(groups).map(([catKey, items]) => {
               const cat = catInfo(catKey)
               return (
-                <div key={catKey} style={{ flex:'0 0 auto', width: 300, minWidth: 0 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color: cat?.color, marginBottom:5, padding:'3px 0', borderBottom:`2px solid ${cat?.color}44` }}>
+                <div key={catKey} style={{ flex: '0 0 auto', width: 300, minWidth: 0 }}>
+                  <div
+                    className="text-caption font-bold mb-1.5"
+                    style={{
+                      color: cat?.color,
+                      padding: '3px 0',
+                      borderBottom: `2px solid ${cat?.color}44`,
+                    }}
+                  >
                     {cat?.label} ({items.length})
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <div className="flex flex-col gap-1.5">
                     {items.map(item => renderCard(item, true))}
                   </div>
                 </div>
@@ -427,7 +519,7 @@ export default function SchedulePage() {
           })()}
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        <div className="flex flex-col gap-2">
           {dayItems.map(item => renderCard(item))}
         </div>
       )}
@@ -524,20 +616,23 @@ export default function SchedulePage() {
           <Download size={13} />
           {planLoading ? '생성 중...' : '엑셀 다운로드'}
         </button>
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1 px-3.5 py-1.5 rounded-sm bg-accent text-text-on-accent text-body-sm font-bold cursor-pointer"
-        >
-          <Plus size={14} />
-          추가
-        </button>
       </header>
 
-      {/* 본문 — 내부 인라인은 SW2/SW3 에서 변환 */}
+      {/* 본문 */}
       <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
         {calendarEl}
         {scheduleListEl}
       </div>
+
+      {/* FAB — W2 OQ #2 LOCKED c, mobile only (우하단 56px 원형 accent) */}
+      <button
+        onClick={() => setShowAdd(true)}
+        aria-label="일정 추가"
+        className="fixed right-4 bottom-4 w-14 h-14 rounded-pill flex items-center justify-center bg-accent text-text-on-accent cursor-pointer z-20"
+        style={{ boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
 
       {modalsEl}
     </div>
