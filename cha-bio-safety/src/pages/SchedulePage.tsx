@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft, Download, Plus } from 'lucide-react'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
@@ -431,29 +432,36 @@ export default function SchedulePage() {
   // ── 렌더 — 데스크톱 ────────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)' }}>
+      <div className="flex flex-col h-full overflow-hidden bg-surface-page">
         {/* 액션 바 — App.tsx 가 이미 페이지 제목 표시. 여기는 액션 버튼만 */}
-        <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:8, flexShrink:0, background:'var(--bg2)' }}>
-          <button onClick={handlePlanDownload} disabled={planLoading}
-            style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
-            <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        <div className="flex flex-shrink-0 items-center justify-end gap-2 px-6 py-2.5 border-b border-border-default bg-surface-raised">
+          <button
+            onClick={handlePlanDownload}
+            disabled={planLoading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+              planLoading
+                ? 'bg-surface-sunken text-text-tertiary cursor-default'
+                : 'bg-safe-bar text-text-on-accent cursor-pointer'
+            }`}
+          >
+            <Download size={13} />
             {planLoading ? '생성 중...' : '엑셀 다운로드'}
           </button>
         </div>
 
         {/* 상단: 월간 점검 계획 테이블 */}
-        <div style={{ flexShrink:0, overflow:'hidden', borderBottom:'1px solid var(--bd)' }}>
+        <div className="flex-shrink-0 overflow-hidden border-b border-border-default">
           <MonthlyPlanPreview curMonth={curMonth} items={monthItems} holidays={holidays} todayStr={today} />
         </div>
 
         {/* 하단: 좌=달력, 우=일정 */}
-        <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
-          {/* 달력 */}
-          <div style={{ width:380, flexShrink:0, overflowY:'auto', padding:'16px 20px', borderRight:'1px solid var(--bd)' }}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* 달력 — 내부 인라인은 SW2 에서 변환 */}
+          <div className="w-[380px] flex-shrink-0 overflow-y-auto px-5 py-4 border-r border-border-default">
             {calendarEl}
           </div>
-          {/* 일정 리스트 */}
-          <div style={{ flex:1, overflowY:'auto', padding:'16px 24px' }}>
+          {/* 일정 리스트 — 내부 인라인은 SW3 에서 변환 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {scheduleListEl}
           </div>
         </div>
@@ -465,27 +473,39 @@ export default function SchedulePage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────────
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 9px', display:'flex', alignItems:'center', gap:8 }}>
-        <button onClick={() => navigate(-1)} style={iconBtn}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+      <header className="flex flex-shrink-0 items-center gap-2 px-3 pt-2 pb-[9px] bg-surface-raised border-b border-border-default">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-sm bg-surface-sunken border border-border-default cursor-pointer"
+        >
+          <ChevronLeft size={15} strokeWidth={2} className="text-text-secondary" />
         </button>
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월간 점검 계획</span>
-        <button onClick={handlePlanDownload} disabled={planLoading}
-          style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
-          <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        <span className="flex-1 text-title font-bold text-text-primary">월간 점검 계획</span>
+        <button
+          onClick={handlePlanDownload}
+          disabled={planLoading}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+            planLoading
+              ? 'bg-surface-sunken text-text-tertiary cursor-default'
+              : 'bg-safe-bar text-text-on-accent cursor-pointer'
+          }`}
+        >
+          <Download size={13} />
           {planLoading ? '생성 중...' : '엑셀 다운로드'}
         </button>
-        <button onClick={() => setShowAdd(true)}
-          style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
-          + 추가
+        <button
+          onClick={() => setShowAdd(true)}
+          className="flex items-center gap-1 px-3.5 py-1.5 rounded-sm bg-accent text-text-on-accent text-body-sm font-bold cursor-pointer"
+        >
+          <Plus size={14} />
+          추가
         </button>
       </header>
 
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 24px' }}>
+      {/* 본문 — 내부 인라인은 SW2/SW3 에서 변환 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
         {calendarEl}
         {scheduleListEl}
       </div>
@@ -1042,11 +1062,7 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
 }
 
 // ── 스타일 ───────────────────────────────────────────────────
-const iconBtn: React.CSSProperties = {
-  width:34, height:34, borderRadius:8, flexShrink:0,
-  background:'var(--bg3)', border:'1px solid var(--bd)',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-}
+// iconBtn 삭제 — 사용처 모바일 헤더 백 버튼 className 인라인화 완료 (SW1)
 const arrowBtn: React.CSSProperties = {
   width:32, height:32, borderRadius:8, border:'1px solid var(--bd)',
   background:'var(--bg2)', color:'var(--t1)', fontSize:20, lineHeight:'1',
