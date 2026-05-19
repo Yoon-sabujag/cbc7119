@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3.html — redesign/13-schedule W3
+  작성: 2026-05-19 / quick 260519-jbj
+  범위: 월간 점검 계획 미리보기 테이블 (MonthlyPlanPreview, SchedulePage.tsx line 498~643 verbatim)
+        - 헤더 영역 (백 버튼 + 타이틀 + 엑셀 다운로드 + 추가) line 470~486 verbatim 구조
+        - thead 2-row (날짜 행 + 요일 행) + tbody 21행 (PLAN_PREVIEW_ROWS verbatim)
+        - 31일 × 21행 cell 분기 (daily / row.cats / dayCatMap 매칭 / 주말 / 공휴일 / 오늘)
+        - 노안 격상: source 9·10·11px → 12px / 헤더 버튼 12 → 14px
+        - 데스크톱 1280px 다크 + 라이트 (메인 시연, 모바일은 OQ #1 LOCKED 미구현)
+        - 변형 시연: planLoading "생성 중..." / Empty month (mock items 비움)
+
+  out of scope:
+    - W1 (캘린더 + 카테고리 hex) / W2 (일자 카드 + 범례 + FAB) — 별도 wave 완결
+    - AddModal / EditModal / 자동 생성 패널 — 별도 wave 예정
+    - TSX 변환 (SchedulePage.tsx 수정 절대 금지)
+
+  참조:
+    - design-system.md v0.1.1 §1~§7
+    - SchedulePage.tsx line 98~121 (PLAN_PREVIEW_ROWS) + line 470~486 (헤더) + line 498~643 (MonthlyPlanPreview)
+    - sketch-wave-1.html LOCKED 결정 (event #94a3b8 / 멀티데이 dot only / "오늘" 칩 본문 0)
+    - sketch-wave-2.html LOCKED 결정 (상태 칩 색 verbatim / FAB CTA / 시간 자리 멀티데이)
+    - tokens.css line 16~197 verbatim 임베드
+    - typography.css line 28~95 verbatim 임베드
+
+  open questions — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED 모바일 미구현 — 미리보기 테이블은 데스크톱 전용 (SchedulePage.tsx 466~496 모바일 render 와 일치). 모바일 frame 2개 + sticky 룰 제거됨.
+    OQ #2 ▶ LOCKED b) — 미리보기 페이지에서 FAB 표시 안 함. 헤더 "+ 추가" 버튼은 유지.
+    OQ #3 ▶ LOCKED a) — 데스크톱 1280px 셀 폭/폰트 = cramped 그대로 (실제 운영 환경 일치).
+
+  메모리 룰 강제 (작성 시 확인):
+    - 이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)
+    - 9·10·11px font-size 0 (text-caption 12 마지노선)
+    - status- prefix className 0 (text-fire-bar O / text-{status}-fire-bar X)
+    - SCHED_CATEGORIES 5 hex verbatim — #3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444
+    - 라이트 event #94a3b8 hardcode override (W1 OQ #1 LOCKED a)
+    - tokens.css line 16~197 verbatim + typography.css line 28~95 verbatim 임베드
+    - W1+W2 LOCKED 결정 mirror
+    - 비즈니스 로직 0 변경 (SchedulePage.tsx 1줄도 수정 X — 시안 디자인만)
+    - inline style 예외 허용 (31×21 dynamic 셀 색상 — Tailwind utility 로 표현 어려운 패턴)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W3 미리보기 테이블</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (모바일 기본)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 (tokens.css line 149~162 verbatim) */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* ============================================================
+     * Sketch 헬퍼
+     * ============================================================ */
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    /* 라이트 모드에서만 event dot 을 #94a3b8 로 (W1 OQ #1 LOCKED a) */
+    [data-theme="light"] .event-dot-themed {
+      background: #94a3b8 !important;
+    }
+
+    /* ============================================================
+     * Preview Table — base (line 529~533 verbatim, 노안 격상 11→12)
+     * ============================================================ */
+    .preview-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .preview-table th,
+    .preview-table td {
+      border: 1px solid var(--border-default);
+      padding: 3px 1px;
+      text-align: center;
+      font-size: 12px; /* 노안 격상: source 11 → 12 */
+      line-height: 1.3;
+      overflow: hidden;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+    .preview-table th {
+      font-weight: 700;
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+    }
+    .preview-table .row-weekday th { font-weight: 600; }
+    .preview-table .col-no  { width: 2%; }
+    .preview-table .col-lbl { width: 20%; text-align: left; padding-left: 6px; }
+    .preview-table .col-note { width: 6%; }
+    .preview-table td.cell-no  { font-weight: 600; }
+    .preview-table td.cell-lbl { text-align: left; padding-left: 6px; font-size: 12px; /* 노안 격상: source 10 → 12 */ }
+    .preview-table td.cell-note {
+      font-size: 12px; /* 노안 격상: source 9 → 12 */
+      color: var(--text-tertiary);
+      white-space: normal;
+      line-height: 1.2;
+    }
+    .preview-table td.cell-day { font-size: 12px; /* 노안 격상: source 10 → 12 */ }
+
+    /* 요일 색상 (날짜·요일 행 + day 셀 텍스트 색) */
+    .preview-table th.sun, .preview-table th.hol { color: #ef4444; }
+    .preview-table th.sat                        { color: #3b82f6; }
+    .preview-table th.bg-sun, .preview-table th.bg-hol { background: rgba(239,68,68,0.08); }
+    .preview-table th.bg-sat                            { background: rgba(59,130,246,0.08); }
+    .preview-table th.bg-today                          { background: rgba(59,130,246,0.18); }
+    .preview-table th.brd-today {
+      border-left: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+      border-top: 2px solid var(--accent);
+    }
+    .preview-table th.brd-today-side {
+      border-left: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+    }
+    /* tbody 셀 분기 */
+    .preview-table td.cell-bg-sun, .preview-table td.cell-bg-hol { background: rgba(239,68,68,0.06); }
+    .preview-table td.cell-bg-sat                                { background: rgba(59,130,246,0.06); }
+    .preview-table td.cell-bg-safe                               { background: rgba(34,197,94,0.10); }
+    .preview-table td.cell-today {
+      border-left: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+    }
+    .preview-table td.cell-today-last {
+      border-left: 2px solid var(--accent);
+      border-right: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+    .preview-table td.cell-empty { color: transparent; }
+
+    /* ============================================================
+     * Page Header (line 470~486 verbatim, 노안 격상 12 → 14)
+     * ============================================================ */
+    .page-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 8px 12px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-header .icon-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .page-header .title {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .btn-excel {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg,#15803d,#22c55e);
+      color: #fff;
+      font-size: 14px; /* 노안 격상: source 12 → 14 */
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-excel.loading {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+    .btn-add {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px; /* 노안 격상: source 12 → 14 */
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ============================================================
+     * Frame containers
+     * ============================================================ */
+    .frame-desktop {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      color: var(--text-primary);
+    }
+    /* OQ #1 LOCKED 모바일 미구현 — .frame-mobile / .sticky-left / .mobile-table-wrap 룰 제거됨 (미리보기는 데스크톱 전용) */
+
+  </style>
+  <script>
+    // tailwind config (W2 sketch 패턴 verbatim)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       다크/라이트 토글 (페이지 root)
+       ============================================================ -->
+  <div class="fixed top-4 right-4 z-50 flex gap-2">
+    <button onclick="setTheme('dark')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-strong text-text-primary"
+      style="line-height:1;">
+      다크
+    </button>
+    <button onclick="setTheme('light')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-default text-text-secondary"
+      style="line-height:1;">
+      라이트
+    </button>
+  </div>
+
+  <script>
+    function setTheme(t) {
+      document.documentElement.dataset.theme = t;
+      document.body.classList.toggle('page-bg-dark',  t === 'dark');
+      document.body.classList.toggle('page-bg-light', t === 'light');
+    }
+  </script>
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">13-schedule sketch W3 — 월간 점검 계획 미리보기 테이블</h1>
+    <p class="text-label text-zinc-400">
+      범위: <span class="text-zinc-300">MonthlyPlanPreview (SchedulePage.tsx line 498~643)</span> 의 시각 디자인 컨펌용 정적 HTML.
+      노안 격상 (9·10·11 → 12px) 적용 후 31일 × 21행 그리드가 어떻게 펼쳐지는지 시연.
+      Mock: <code class="text-zinc-300">curMonth=2026-05</code>, <code class="text-zinc-300">todayStr=2026-05-19</code> (화),
+      <code class="text-zinc-300">firstDow=5</code> (5/1 금), <code class="text-zinc-300">daysInMonth=31</code>,
+      <code class="text-zinc-300">holidays={'2026-05-05':'어린이날'}</code>.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       SECTION 1 — 데스크톱 1280px frame (메인 시연, 다크)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-10">
+    <h2 class="text-title text-zinc-300 mb-3">1. 데스크톱 1280px frame (다크) — 31일 cramped 시연</h2>
+
+    <div class="frame-desktop" data-theme="dark">
+      <!-- 헤더 (line 470~486 verbatim 구조) -->
+      <header class="page-header">
+        <button class="icon-btn" aria-label="뒤로">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span class="title">월간 점검 계획</span>
+        <button class="btn-excel">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+          엑셀 다운로드
+        </button>
+        <button class="btn-add">+ 추가</button>
+      </header>
+
+      <!-- MonthlyPlanPreview 컨테이너 (line 536 verbatim) -->
+      <div style="width:100%; padding:12px 20px 8px; background:var(--surface-raised);">
+        <!-- 타이틀 (line 538~540 verbatim) -->
+        <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">
+          5월 중요업무추진계획(방재)
+        </div>
+
+        <!-- 본 테이블 (line 542~641 verbatim 구조, 노안 격상 적용) -->
+        <table class="preview-table">
+          <thead>
+            <!-- 날짜 행 (line 545~567) -->
+            <tr class="row-date">
+              <th class="col-no"></th>
+              <th class="col-lbl">시행일자</th>
+              <!-- 5/1 금 -->  <th>1</th>
+              <!-- 5/2 토 -->  <th class="sat bg-sat">2</th>
+              <!-- 5/3 일 -->  <th class="sun bg-sun">3</th>
+              <!-- 5/4 월 -->  <th>4</th>
+              <!-- 5/5 화 공휴일 어린이날 --> <th class="hol bg-hol">5</th>
+              <!-- 5/6 수 -->  <th>6</th>
+              <!-- 5/7 목 -->  <th>7</th>
+              <!-- 5/8 금 -->  <th>8</th>
+              <!-- 5/9 토 -->  <th class="sat bg-sat">9</th>
+              <!-- 5/10 일 --> <th class="sun bg-sun">10</th>
+              <!-- 5/11 월 --> <th>11</th>
+              <!-- 5/12 화 --> <th>12</th>
+              <!-- 5/13 수 --> <th>13</th>
+              <!-- 5/14 목 --> <th>14</th>
+              <!-- 5/15 금 --> <th>15</th>
+              <!-- 5/16 토 --> <th class="sat bg-sat">16</th>
+              <!-- 5/17 일 --> <th class="sun bg-sun">17</th>
+              <!-- 5/18 월 --> <th>18</th>
+              <!-- 5/19 화 오늘 --> <th class="bg-today brd-today">19</th>
+              <!-- 5/20 수 --> <th>20</th>
+              <!-- 5/21 목 --> <th>21</th>
+              <!-- 5/22 금 --> <th>22</th>
+              <!-- 5/23 토 --> <th class="sat bg-sat">23</th>
+              <!-- 5/24 일 --> <th class="sun bg-sun">24</th>
+              <!-- 5/25 월 --> <th>25</th>
+              <!-- 5/26 화 --> <th>26</th>
+              <!-- 5/27 수 --> <th>27</th>
+              <!-- 5/28 목 --> <th>28</th>
+              <!-- 5/29 금 --> <th>29</th>
+              <!-- 5/30 토 --> <th class="sat bg-sat">30</th>
+              <!-- 5/31 일 --> <th class="sun bg-sun">31</th>
+              <th class="col-note">비고</th>
+            </tr>
+            <!-- 요일 행 (line 569~589) -->
+            <tr class="row-weekday">
+              <th class="col-no">NO.</th>
+              <th class="col-lbl">내 &nbsp; 용</th>
+              <th>금</th>
+              <th class="sat">토</th>
+              <th class="sun">일</th>
+              <th>월</th>
+              <th class="hol">화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th class="sat">토</th>
+              <th class="sun">일</th>
+              <th>월</th>
+              <th>화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th class="sat">토</th>
+              <th class="sun">일</th>
+              <th>월</th>
+              <th class="brd-today-side">화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th class="sat">토</th>
+              <th class="sun">일</th>
+              <th>월</th>
+              <th>화</th>
+              <th>수</th>
+              <th>목</th>
+              <th>금</th>
+              <th class="sat">토</th>
+              <th class="sun">일</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- ───── 행 1: 소화설비 점검(소화기, 소화전) — cats ['소화기','소화전'] cl {'소화기':'기','소화전':'전'} -->
+            <tr>
+              <td class="cell-no">1</td>
+              <td class="cell-lbl">소화설비 점검(소화기, 소화전)</td>
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/1 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>                              <!-- 5/2 -->
+              <td class="cell-day cell-bg-sun cell-empty">.</td>                              <!-- 5/3 -->
+              <td class="cell-day cell-bg-safe">기</td>                                       <!-- 5/4 소화기 -->
+              <td class="cell-day cell-bg-hol cell-empty">.</td>                              <!-- 5/5 -->
+              <td class="cell-day cell-bg-safe">전</td>                                       <!-- 5/6 소화전 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/7 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/8 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>                              <!-- 5/9 -->
+              <td class="cell-day cell-bg-sun cell-empty">.</td>                              <!-- 5/10 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/11 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/12 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/13 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/14 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/15 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>                              <!-- 5/16 -->
+              <td class="cell-day cell-bg-sun cell-empty">.</td>                              <!-- 5/17 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/18 -->
+              <td class="cell-day cell-today cell-empty">.</td>                               <!-- 5/19 오늘 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/20 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/21 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/22 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>                              <!-- 5/23 -->
+              <td class="cell-day cell-bg-sun cell-empty">.</td>                              <!-- 5/24 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/25 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/26 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/27 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/28 -->
+              <td class="cell-day cell-empty">.</td>                                          <!-- 5/29 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>                              <!-- 5/30 -->
+              <td class="cell-day cell-bg-sun cell-empty">.</td>                              <!-- 5/31 -->
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 2: 경보설비 점검(자탐설비, 비상방송설비) — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">2</td>
+              <td class="cell-lbl">경보설비 점검(자탐설비, 비상방송설비)</td>
+              <td class="cell-day">점검</td>                                                  <!-- 5/1 금 -->
+              <td class="cell-day cell-bg-sat">점검</td>                                      <!-- 5/2 -->
+              <td class="cell-day cell-bg-sun">점검</td>                                      <!-- 5/3 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/4 -->
+              <td class="cell-day cell-bg-hol">점검</td>                                      <!-- 5/5 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/6 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/7 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/8 -->
+              <td class="cell-day cell-bg-sat">점검</td>                                      <!-- 5/9 -->
+              <td class="cell-day cell-bg-sun">점검</td>                                      <!-- 5/10 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/11 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/12 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/13 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/14 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/15 -->
+              <td class="cell-day cell-bg-sat">점검</td>                                      <!-- 5/16 -->
+              <td class="cell-day cell-bg-sun">점검</td>                                      <!-- 5/17 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/18 -->
+              <td class="cell-day cell-today">점검</td>                                       <!-- 5/19 오늘 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/20 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/21 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/22 -->
+              <td class="cell-day cell-bg-sat">점검</td>                                      <!-- 5/23 -->
+              <td class="cell-day cell-bg-sun">점검</td>                                      <!-- 5/24 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/25 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/26 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/27 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/28 -->
+              <td class="cell-day">점검</td>                                                  <!-- 5/29 -->
+              <td class="cell-day cell-bg-sat">점검</td>                                      <!-- 5/30 -->
+              <td class="cell-day cell-bg-sun">점검</td>                                      <!-- 5/31 -->
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 3: 피난설비(유도등 및 완강기) 점검 — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">3</td>
+              <td class="cell-lbl">피난설비(유도등 및 완강기) 점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 4: 더블인터록밸브 점검(콤프레셔포함) — cats ['DIV','컴프레셔','유도등','배연창','완강기'] cl {유도등:유도등, 배연창:배연창, 완강기:완강기} note '격주' -->
+            <!-- mock: 5/12~5/15 멀티데이 DIV+컴프레셔 → '점검' -->
+            <tr>
+              <td class="cell-no">4</td>
+              <td class="cell-lbl">더블인터록밸브 점검(콤프레셔포함)</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/12 멀티데이 시작 -->
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/13 -->
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/14 -->
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/15 멀티데이 끝 -->
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note">격주</td>
+            </tr>
+            <!-- ───── 행 5: 소화 활동설비(전실제연댐퍼,연결송수관) — cats ['전실제연댐퍼','연결송수관'] -->
+            <!-- mock: 5/19 전실제연댐퍼 → '점검' (오늘) -->
+            <tr>
+              <td class="cell-no">5</td>
+              <td class="cell-lbl">소화 활동설비(전실제연댐퍼,연결송수관)</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-bg-safe">점검</td>                          <!-- 5/19 오늘 전실제연댐퍼 -->
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 6: 특별피난계단 점검 — cats ['특별피난계단'] mock 없음 -->
+            <tr>
+              <td class="cell-no">6</td>
+              <td class="cell-lbl">특별피난계단 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 7: 소방펌프 주변 점검(MCC, 지하수조) — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">7</td>
+              <td class="cell-lbl">소방펌프 주변 점검(MCC, 지하수조)</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 8: 청정소화약제 점검 — cats ['청정소화약제','소방펌프'] cl {소방펌프:펌프} note '펌프' -->
+            <!-- mock: 5/21 청정소화약제 → '점검' -->
+            <tr>
+              <td class="cell-no">8</td>
+              <td class="cell-lbl">청정소화약제 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/21 청정소화약제 -->
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note">펌프</td>
+            </tr>
+            <!-- ───── 행 9: 배연창 관리상태 점검 — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">9</td>
+              <td class="cell-lbl">배연창 관리상태 점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 10: 화재수신반 점검 — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">10</td>
+              <td class="cell-lbl">화재수신반 점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 11: 방화셔터 연동제어기 점검 — cats ['방화셔터'] -->
+            <!-- mock: 5/12 방화셔터 → '점검' -->
+            <tr>
+              <td class="cell-no">11</td>
+              <td class="cell-lbl">방화셔터 연동제어기 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/12 방화셔터 -->
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 12: 피난,방화시설 집중점검(비파라치) — cats ['방화문'] -->
+            <!-- mock: 5/26 방화문 → '점검' -->
+            <tr>
+              <td class="cell-no">12</td>
+              <td class="cell-lbl">피난,방화시설 집중점검(비파라치)</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/26 방화문 -->
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 13: 옥상 및 취약지구 순찰점검 — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">13</td>
+              <td class="cell-lbl">옥상 및 취약지구 순찰점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 14: 전층 방화문 점검 — cats ['방화문'] note '방화문' -->
+            <!-- mock: 5/26 방화문 → '점검' (행 12 와 동일 cat) -->
+            <tr>
+              <td class="cell-no">14</td>
+              <td class="cell-lbl">전층 방화문 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-safe">점검</td>                                     <!-- 5/26 방화문 -->
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note">방화문</td>
+            </tr>
+            <!-- ───── 행 15: 비상콘센트 설비 점검 — cats ['비상콘센트'] note '소화전' -->
+            <tr>
+              <td class="cell-no">15</td>
+              <td class="cell-lbl">비상콘센트 설비 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note">소화전</td>
+            </tr>
+            <!-- ───── 행 16: 소방용 전원공급반 점검 — cats ['소방용전원공급반'] -->
+            <tr>
+              <td class="cell-no">16</td>
+              <td class="cell-lbl">소방용 전원공급반 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 17: 승강기 점검(운행상태, AS신청) — daily true note '일상점검' -->
+            <tr>
+              <td class="cell-no">17</td>
+              <td class="cell-lbl">승강기 점검(운행상태, AS신청)</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <!-- ───── 행 18: 출입통제 시스템 및 CCTV 점검 — daily true note '상황발생시 현장점검' -->
+            <tr>
+              <td class="cell-no">18</td>
+              <td class="cell-lbl">출입통제 시스템 및 CCTV 점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">상황발생시 현장점검</td>
+            </tr>
+            <!-- ───── 행 19: 주차장비 시스템 — cats ['주차장비','CCTV'] cl {CCTV:cctv} -->
+            <tr>
+              <td class="cell-no">19</td>
+              <td class="cell-lbl">주차장비 시스템</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 20: 회전문 점검 — cats ['회전문'] -->
+            <tr>
+              <td class="cell-no">20</td>
+              <td class="cell-lbl">회전문 점검</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-hol cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-today cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-empty">.</td>
+              <td class="cell-day cell-bg-sat cell-empty">.</td>
+              <td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <!-- ───── 행 21 (마지막): 전관방송 시스템 점검 — daily true note '일상점검' / isLastRow → borderBottom 추가 -->
+            <tr>
+              <td class="cell-no">21</td>
+              <td class="cell-lbl">전관방송 시스템 점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-hol">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-today-last">점검</td>                                  <!-- 5/19 오늘 + isLastRow → borderBottom -->
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day">점검</td>
+              <td class="cell-day cell-bg-sat">점검</td>
+              <td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
+      ▸ 31일 셀 폭 ≈ (1280 - NO 2% - 내용 20% - 비고 6%) / 31 ≈ 30px → 폰트 12px 1~2글자 (예: "기", "전", "점검") 노출.
+      OQ #3 시안 기본 a) — 1280 cramped 그대로 시연 (사용자 판단 필요).
+    </p>
+  </section>
+
+  <!-- ============================================================
+       SECTION 2 — 데스크톱 1280px frame (라이트)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-10">
+    <h2 class="text-title text-zinc-300 mb-3">2. 데스크톱 1280px frame (라이트) — 동일 mock, 라이트 모드</h2>
+
+    <div class="frame-desktop" data-theme="light" style="background:#ffffff;">
+      <header class="page-header">
+        <button class="icon-btn" aria-label="뒤로">
+          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <span class="title">월간 점검 계획</span>
+        <button class="btn-excel">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+          엑셀 다운로드
+        </button>
+        <button class="btn-add">+ 추가</button>
+      </header>
+
+      <div style="width:100%; padding:12px 20px 8px; background:var(--surface-raised);">
+        <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">
+          5월 중요업무추진계획(방재)
+        </div>
+
+        <table class="preview-table">
+          <thead>
+            <tr class="row-date">
+              <th class="col-no"></th>
+              <th class="col-lbl">시행일자</th>
+              <th>1</th><th class="sat bg-sat">2</th><th class="sun bg-sun">3</th><th>4</th><th class="hol bg-hol">5</th><th>6</th><th>7</th><th>8</th><th class="sat bg-sat">9</th><th class="sun bg-sun">10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th class="sat bg-sat">16</th><th class="sun bg-sun">17</th><th>18</th><th class="bg-today brd-today">19</th><th>20</th><th>21</th><th>22</th><th class="sat bg-sat">23</th><th class="sun bg-sun">24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th class="sat bg-sat">30</th><th class="sun bg-sun">31</th>
+              <th class="col-note">비고</th>
+            </tr>
+            <tr class="row-weekday">
+              <th class="col-no">NO.</th>
+              <th class="col-lbl">내 &nbsp; 용</th>
+              <th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="hol">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th class="brd-today-side">화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="sat">토</th><th class="sun">일</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- 행 1~21 는 동일 mock — 간결성을 위해 라이트 frame 도 동일 마크업이지만,
+                 readability 측면에서 representative 3행만 깊이 시연 (대표: 행 1 / 행 4 멀티데이 / 행 5 오늘) -->
+            <tr>
+              <td class="cell-no">1</td><td class="cell-lbl">소화설비 점검(소화기, 소화전)</td>
+              <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-bg-safe">기</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-bg-safe">전</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <tr>
+              <td class="cell-no">2</td><td class="cell-lbl">경보설비 점검(자탐설비, 비상방송설비)</td>
+              <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <tr>
+              <td class="cell-no">3</td><td class="cell-lbl">피난설비(유도등 및 완강기) 점검</td>
+              <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+            <tr>
+              <td class="cell-no">4</td><td class="cell-lbl">더블인터록밸브 점검(콤프레셔포함)</td>
+              <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-safe">점검</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note">격주</td>
+            </tr>
+            <tr>
+              <td class="cell-no">5</td><td class="cell-lbl">소화 활동설비(전실제연댐퍼,연결송수관)</td>
+              <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-bg-safe">점검</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
+              <td class="cell-note"></td>
+            </tr>
+            <tr>
+              <td class="cell-no">21</td><td class="cell-lbl">전관방송 시스템 점검</td>
+              <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today-last">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
+              <td class="cell-note">일상점검</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
+      ▸ 라이트 모드: 텍스트 #1f2328 / 배경 #ffffff / 주말·공휴일 색 동일 (#ef4444, #3b82f6) — 다크/라이트 무관 hardcode (source 룰 verbatim).
+      간결성을 위해 6행만 시연 (전체 21행은 SECTION 1 다크 frame 에 완전 노출).
+    </p>
+  </section>
+
+  <!-- ============================================================
+       SECTION 5 — Variant 시연 (planLoading + Empty month)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- 5-1. planLoading="생성 중..." 헤더만 -->
+    <div>
+      <h3 class="text-title text-zinc-300 mb-2 font-medium">5-1. 헤더 variant — planLoading=true ("생성 중...")</h3>
+      <div class="frame-shell" data-theme="dark">
+        <header class="page-header">
+          <button class="icon-btn" aria-label="뒤로">
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span class="title">월간 점검 계획</span>
+          <button class="btn-excel loading" disabled>
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+            생성 중...
+          </button>
+          <button class="btn-add">+ 추가</button>
+        </header>
+        <div style="padding:24px 20px; text-align:center; color:var(--text-tertiary); font-size:14px; background:var(--surface-raised);">
+          엑셀 생성 진행 중 — 사용자 입력 불가
+        </div>
+      </div>
+      <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
+        ▸ planLoading=true → 배경 var(--surface-sunken), 텍스트 var(--text-tertiary), cursor default, disabled (line 477~481 verbatim).
+      </p>
+    </div>
+
+    <!-- 5-2. Empty month — items=[] -->
+    <div>
+      <h3 class="text-title text-zinc-300 mb-2 font-medium">5-2. Empty month variant — items=[] dayCatMap 매칭 0</h3>
+      <div class="frame-shell" data-theme="dark">
+        <div style="padding:12px 20px 8px; background:var(--surface-raised);">
+          <div style="text-align:center; font-size:14px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">
+            5월 중요업무추진계획(방재)
+          </div>
+          <table class="preview-table">
+            <thead>
+              <tr class="row-date">
+                <th class="col-no"></th>
+                <th class="col-lbl">시행일자</th>
+                <th>1</th><th class="sat bg-sat">2</th><th class="sun bg-sun">3</th><th>4</th><th class="hol bg-hol">5</th><th>6</th><th>7</th><th>8</th><th class="sat bg-sat">9</th><th class="sun bg-sun">10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th class="sat bg-sat">16</th><th class="sun bg-sun">17</th><th>18</th><th class="bg-today brd-today">19</th><th>20</th><th>21</th><th>22</th><th class="sat bg-sat">23</th><th class="sun bg-sun">24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th class="sat bg-sat">30</th><th class="sun bg-sun">31</th>
+                <th class="col-note">비고</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- 행 1 (소화설비) — 모든 셀 빈 '.' (items=[] 이므로 dayCatMap=∅) -->
+              <tr>
+                <td class="cell-no">1</td><td class="cell-lbl">소화설비 점검(소화기, 소화전)</td>
+                <td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-hol cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-today cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-empty">.</td><td class="cell-day cell-bg-sat cell-empty">.</td><td class="cell-day cell-bg-sun cell-empty">.</td>
+                <td class="cell-note"></td>
+              </tr>
+              <!-- 행 2 (경보설비) — daily true → 모든 셀 '점검' (items 무관) -->
+              <tr>
+                <td class="cell-no">2</td><td class="cell-lbl">경보설비 점검(자탐설비, 비상방송설비)</td>
+                <td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-hol">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day cell-today">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day">점검</td><td class="cell-day cell-bg-sat">점검</td><td class="cell-day cell-bg-sun">점검</td>
+                <td class="cell-note">일상점검</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="text-caption text-zinc-500 mt-2" style="line-height:1.5;">
+        ▸ items=[] (등록된 일정 0건) 인 경우: daily 행은 여전히 모든 평일 "점검" / cats 행은 모두 빈 '.' (safe 배경 0건).
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       SECTION 6 — OQ LOCKED 카드 (사용자 답변 완료 3건)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-8 p-5 rounded-md-token"
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">OQ LOCKED · 사용자 답변 완료 (3건)</h3>
+    <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
+      <li class="mb-2">
+        <strong>OQ #1 ▶ LOCKED 모바일 미구현</strong> — 미리보기 테이블은 데스크톱 전용. SchedulePage.tsx 466~496 모바일 render 와 일치 (mobile 은 calendarEl + scheduleListEl 만). 모바일 frame 2개 (sticky / 자연 스크롤) + 관련 CSS 룰 제거됨.
+      </li>
+      <li class="mb-2">
+        <strong>OQ #2 ▶ LOCKED b)</strong> — 미리보기 페이지에서 FAB 표시 안 함. 헤더 "+ 추가" 버튼은 유지 (source line 482~485 verbatim).
+      </li>
+      <li>
+        <strong>OQ #3 ▶ LOCKED a)</strong> — 데스크톱 1280px 셀 폭/폰트 = cramped 그대로 (31일 폰트 12px, 1~2글자 노출). 실제 운영 환경 일치.
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============================================================
+       SECTION 7 — LOCKED 일관성 카드 (W1+W2 LOCKED 결정 mirror)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-8 p-5 rounded-md-token"
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">LOCKED 일관성 (W1+W2 결정 mirror)</h3>
+    <ul class="text-label text-zinc-200 list-disc pl-5" style="line-height:1.7;">
+      <li>카테고리 5 hex 세트 verbatim: <code class="text-zinc-300">#3b82f6 (점검) / #eab308 (업무) / #e2e8f0 (행사 다크) / #f97316 (승강기) / #ef4444 (소방)</code> — dayCatMap mock 분기에 사용 (W3 미리보기에는 dot 별도 표시 X — 칠해진 셀의 safe 배경 + 텍스트 색만 사용)</li>
+      <li>라이트 모드 event dot override <code class="text-zinc-300">#94a3b8</code> — chrome consistency 위해 CSS 변수 + override 블록 유지 (W3 본문에는 dot 없지만 W1/W2 와 동일 chrome)</li>
+      <li>멀티데이 = "점검" 텍스트 다일 / dot only (W1 OQ #2 LOCKED) — 미리보기 셀에 dot/별표 별도 표시 없음. 5/12~15 (4일 멀티데이) 는 각 셀에 "점검" 텍스트만 표시. safe 배경 0.10.</li>
+      <li>"오늘" 칩 본문 0회 (W1 OQ #3 LOCKED) — 오늘 셀(5/19)은 <code class="text-zinc-300">2px solid var(--accent)</code> border 로만 표식. "오늘"이라는 텍스트 0회.</li>
+      <li>상태 칩 색 verbatim (W2 OQ #1 LOCKED a) — 본 wave 는 상태 칩 자체가 없음 (개별 일정 표시 X, 미리보기 테이블만). 단, 룰은 mirror 됨.</li>
+      <li>FAB CTA 우하단 (W2 OQ #2 LOCKED c) — 본 wave 는 OQ #2 LOCKED b) 적용 = FAB 표시 안 함. 헤더 "+ 추가" 버튼만 유지. 미리보기 페이지 특성상 일정 추가 부자연스러움.</li>
+      <li>멀티데이 = 시간 자리 텍스트 (W2 OQ #3 LOCKED b) — 본 wave 는 시간 표시 자체 없음. 미리보기 테이블에는 적용 무관.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================
+       SECTION 8 — 검수 체크리스트 카드 (16 grep gate)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-8 p-5 rounded-md-token"
+    style="background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.3);">
+    <h3 class="text-title text-sky-300 mb-3 font-medium">검수 체크리스트 (16 grep gate)</h3>
+    <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
+      <li><code class="text-zinc-300">wc -l sketch-wave-3.html</code> ≥ 600</li>
+      <li>이모지 0 — <code class="text-zinc-300">python3 ... [\U0001F300-\U0001FAFF\U00002600-\U000027BF]</code> == 0</li>
+      <li><code class="text-zinc-300">font-size: 9px/10px/11px</code> 0 (verbatim/source/line 주석 제외)</li>
+      <li><code class="text-zinc-300">text-{status}-</code> prefix 0 (className 사용 금지)</li>
+      <li>카테고리 5 hex 모두 등장 — #3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444</li>
+      <li>라이트 event #94a3b8 등장 ≥ 1</li>
+      <li>PLAN_PREVIEW_ROWS 21 label 모두 등장 (truncate 0)</li>
+      <li>1~31 일자 모두 등장</li>
+      <li>요일 7개 (일·월·화·수·목·금·토) 모두 등장</li>
+      <li>tokens.css line ... verbatim 임베드 표시 ≥ 1</li>
+      <li>typography.css line ... verbatim 임베드 표시 ≥ 1</li>
+      <li>data-theme attr/토글 ≥ 3 (html + 다크 + 라이트 + frame 강제)</li>
+      <li>"엑셀 다운로드" 라벨 ≥ 1</li>
+      <li>5/12 멀티데이 + 5/15 멀티데이 표시</li>
+      <li>5/19 오늘 셀 2px accent border ≥ 3 (날짜 행 top/side + 요일 행 side + tbody 셀 side)</li>
+      <li>타이틀 "5월 중요업무추진계획(방재)" verbatim ≥ 1</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================
+       SECTION 9 — Inline style 예외 사유
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-8 p-5 rounded-md-token"
+    style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.10);">
+    <h3 class="text-title text-zinc-300 mb-2 font-medium">Inline style 예외 사유</h3>
+    <p class="text-label text-zinc-400" style="line-height:1.6;">
+      ▸ 31×21 dynamic 셀 색상 (주말 / 공휴일 / safe filled / 오늘 border) 은 Tailwind utility 로 표현 어려운 패턴 —
+      소스 (line 622~630) 의 inline style 분기 룰 verbatim 재현이 우선이며,
+      본 시안에서는 cell-bg-sun / cell-bg-sat / cell-bg-hol / cell-bg-safe / cell-today / cell-today-last 6종 CSS 클래스로 환원.
+      대규모 reuse 가 필요한 색 토큰만 inline 으로 두지 않고, 페이지 헤더의 linear-gradient 와 일부 컨테이너 padding 만 inline 유지 (line 470~486 + 536~540 verbatim 재현 우선).
+    </p>
+  </section>
+
+  <!-- ============================================================
+       Footer — 메모리 룰 체크리스트
+       ============================================================ -->
+  <footer class="max-w-[1400px] mx-auto p-5 rounded-md-token text-caption text-zinc-500"
+    style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); line-height:1.6;">
+    <p class="mb-2"><strong class="text-zinc-300">메모리 룰 체크리스트 (작성 시 강제)</strong></p>
+    <ul class="list-disc pl-5">
+      <li>이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)</li>
+      <li>9·10·11px font-size 0 (text-caption 12 마지노선, feedback_text_caption_leading_none.md)</li>
+      <li>status- prefix className 0 (text-fire-bar O, text-{status}-fire-bar X — feedback_tailwind_token_class_pattern.md)</li>
+      <li>SCHED_CATEGORIES 5 hex verbatim — #3b82f6 / #eab308 / #e2e8f0 (다크) · #94a3b8 (라이트) / #f97316 / #ef4444</li>
+      <li>PLAN_PREVIEW_ROWS 21 label verbatim (line 99~121 source)</li>
+      <li>tokens.css line 16~197 verbatim + typography.css line 28~95 verbatim 임베드</li>
+      <li>data-theme 토글 동작 (다크/라이트)</li>
+      <li>W1+W2 LOCKED 결정 일관 mirror (라이트 event #94a3b8 / 멀티데이 dot only / "오늘" 칩 본문 0회 / 상태 색 verbatim)</li>
+      <li>작은 컨테이너 안 text-caption → leading-none 또는 line-height:1 명시 (feedback_text_caption_leading_none.md)</li>
+      <li>w-8/h-8 = 48px 함정 회피 — 명시적 px 또는 aspect-square (feedback_tailwind_w8_h8_is_48px.md)</li>
+      <li>비즈니스 로직 0 변경 (SchedulePage.tsx 1줄도 수정 X — 시안 디자인만)</li>
+      <li>inline style 사용 시 토큰 var(--*) 또는 hex set 만 — 임의 hex 금지 (linear-gradient #15803d→#22c55e 는 source line 478 verbatim)</li>
+    </ul>
+  </footer>
+
+</body>
+</html>

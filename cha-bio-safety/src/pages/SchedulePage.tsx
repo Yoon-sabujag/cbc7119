@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft, ChevronRight, Download, Plus, X } from 'lucide-react'
 import { scheduleApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { generateMonthlyPlan } from '../utils/generateMonthlyPlan'
@@ -91,6 +92,16 @@ const STATUS_LABEL: Record<string,{label:string;color:string}> = {
   in_progress: { label:'진행중', color:'var(--acl)'    },
   done:        { label:'완료',   color:'var(--safe)'   },
   overdue:     { label:'지연',   color:'var(--danger)' },
+}
+
+// W2 OQ #1 LOCKED a — 상태 칩 Tailwind class 매핑 (v0.1.1 토큰)
+// 주의: tailwind.config.js 의 colors 별칭은 `safe-bar` / `danger-bar` (status- prefix 없음).
+//       feedback_tailwind_token_class_pattern.md 룰 따라 text-safe-bar / text-danger-bar 사용.
+const STATUS_TW: Record<string, string> = {
+  pending:     'text-text-tertiary',
+  in_progress: 'text-accent',
+  done:        'text-safe-bar',
+  overdue:     'text-danger-bar',
 }
 
 const WEEK_DAYS = ['일','월','화','수','목','금','토']
@@ -238,23 +249,39 @@ export default function SchedulePage() {
   const calendarEl = (
     <>
       {/* 월 이동 */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
-        <button onClick={() => shiftMonth(-1)} style={arrowBtn}>‹</button>
-        <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => shiftMonth(-1)}
+          className="w-7 h-7 rounded-sm border border-border-default bg-surface-raised text-text-primary flex items-center justify-center cursor-pointer"
+          aria-label="이전 달"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <span className="text-title font-bold text-text-primary">
           {curMonth.split('-')[0]}년 {parseInt(curMonth.split('-')[1])}월
         </span>
-        <button onClick={() => shiftMonth(1)} style={arrowBtn}>›</button>
+        <button
+          onClick={() => shiftMonth(1)}
+          className="w-7 h-7 rounded-sm border border-border-default bg-surface-raised text-text-primary flex items-center justify-center cursor-pointer"
+          aria-label="다음 달"
+        >
+          <ChevronRight size={20} />
+        </button>
       </div>
 
       {/* 캘린더 */}
-      <div style={{ background:'var(--bg2)', borderRadius:14, border:'1px solid var(--bd)', overflow:'hidden', marginBottom:16 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', borderBottom:'1px solid var(--bd)' }}>
+      <div className="bg-surface-raised rounded-lg border border-border-default overflow-hidden mb-4">
+        <div className="grid grid-cols-7 border-b border-border-default">
           {WEEK_DAYS.map((d,i) => (
-            <div key={d} style={{ textAlign:'center', padding:'7px 0', fontSize:10, fontWeight:600,
-              color: i===0 ? '#ef4444' : i===6 ? 'var(--acl)' : 'var(--t3)' }}>{d}</div>
+            <div
+              key={d}
+              className={`text-center py-1.5 text-caption font-semibold leading-none ${i===0 ? 'text-danger' : i===6 ? 'text-accent' : 'text-text-tertiary'}`}
+            >
+              {d}
+            </div>
           ))}
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)' }}>
+        <div className="grid grid-cols-7">
           {calDays.map((date, idx) => {
             if (!date) return <div key={idx} />
             const isToday   = date === today
@@ -265,24 +292,37 @@ export default function SchedulePage() {
             const isRed     = dow === 0 || isHoliday
 
             return (
-              <button key={idx} onClick={() => setSelDate(date)}
-                style={{ padding:'5px 0 7px', cursor:'pointer',
-                  display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+              <button
+                key={idx}
+                onClick={() => setSelDate(date)}
+                className="flex flex-col items-center cursor-pointer box-border py-1.5 gap-0.5"
+                style={{
                   borderRadius: isSel ? 8 : 0,
                   background: isSel ? 'rgba(59,130,246,0.15)' : 'transparent',
                   border: isSel ? '2px solid #3b82f6' : '2px solid transparent',
-                  boxSizing: 'border-box' }}>
-                <span style={{
-                  fontSize:12, fontWeight: isToday||isSel ? 700:400,
-                  color: isSel ? 'var(--acl)' : isToday ? '#fff' : isRed ? '#ef4444' : dow===6 ? 'var(--acl)' : 'var(--t1)',
-                  width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center',
-                  borderRadius:'50%', background: isToday&&!isSel ? 'var(--acl)':'transparent',
-                }}>
+                }}
+              >
+                <span
+                  className={`text-caption flex items-center justify-center rounded-full leading-none ${
+                    isToday || isSel ? 'font-bold' : 'font-normal'
+                  } ${
+                    isSel ? 'text-accent' : isToday ? 'text-white' : isRed ? 'text-danger' : dow === 6 ? 'text-accent' : 'text-text-primary'
+                  }`}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    background: isToday && !isSel ? 'var(--accent)' : 'transparent',
+                  }}
+                >
                   {parseInt(date.slice(8))}
                 </span>
-                <div style={{ display:'flex', gap:2, height:4 }}>
+                <div className="flex gap-0.5 h-1">
                   {dots.slice(0,3).map((cat,ci) => (
-                    <span key={ci} style={{ width:4, height:4, borderRadius:'50%', background: catInfo(cat)?.color??'var(--t3)' }} />
+                    <span
+                      key={ci}
+                      className="w-1 h-1 rounded-full"
+                      style={{ background: catInfo(cat)?.color ?? 'var(--text-tertiary)' }}
+                    />
                   ))}
                 </div>
               </button>
@@ -293,7 +333,7 @@ export default function SchedulePage() {
 
       {/* 공휴일 표시 */}
       {holidays[selDate] && (
-        <div style={{ marginBottom:8, fontSize:11, color:'#ef4444', fontWeight:600, paddingLeft:2 }}>
+        <div className="mb-2 text-caption font-semibold text-danger pl-0.5 leading-none">
           {holidays[selDate]}
         </div>
       )}
@@ -302,41 +342,108 @@ export default function SchedulePage() {
 
   // ── 일정 카드 1개 렌더 ────────────────────────────────────
   const renderCard = (item: ScheduleItem, grouped?: boolean) => {
-    const cat = catInfo(item.category)
-    const st  = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+    const cat  = catInfo(item.category)
+    const st   = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending
+    const stTw = STATUS_TW[item.status]    ?? STATUS_TW.pending
+
+    // W2 OQ #3 LOCKED b — 멀티데이는 시간 자리 텍스트로 표시 (제목 옆/메타 row 칩 X)
+    const isMultiDay = !!item.endDate && item.endDate !== item.date
+    let multiDayText: string | null = null
+    if (isMultiDay) {
+      const startMD = item.date.slice(5).replace('-', '/')
+      const endMD   = item.endDate!.slice(5).replace('-', '/')
+      const sd = new Date(item.date + 'T00:00:00')
+      const ed = new Date(item.endDate! + 'T00:00:00')
+      const diffDays = Math.round((ed.getTime() - sd.getTime()) / 86400000) + 1
+      multiDayText = `${startMD} ~ ${endMD} (${diffDays}일)`
+    }
+
     return (
-      <div key={item.id} style={{ background:'var(--bg2)', borderRadius:10, border:'1px solid var(--bd)', padding:'10px 12px', ...(grouped ? { height: 130, display:'flex', flexDirection:'column' as const } : {}) }}>
-        <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:4, flexWrap:'wrap' }}>
+      <div
+        key={item.id}
+        className="bg-surface-raised border border-border-default rounded-md"
+        style={{
+          padding: '12px 14px',
+          ...(grouped ? { height: 130, display: 'flex', flexDirection: 'column' as const } : {}),
+        }}
+      >
+        {/* row1 — chip row */}
+        <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
           {!grouped && (
-            <span style={{ fontSize:10, fontWeight:700, color:cat?.color, background:`${cat?.color}22`, borderRadius:5, padding:'2px 7px' }}>
+            <span
+              className="text-caption font-semibold rounded-sm"
+              style={{ color: cat?.color, background: `${cat?.color}22`, padding: '2px 8px', lineHeight: 1.4 }}
+            >
               {cat?.label}
             </span>
           )}
           {item.inspectionCategory && (
-            <span style={{ fontSize:10, color:'var(--info)', background:'rgba(14,165,233,0.12)', borderRadius:5, padding:'2px 6px' }}>
+            <span
+              className="text-caption font-medium rounded-sm text-info bg-info-bg"
+              style={{ padding: '2px 8px', lineHeight: 1.4 }}
+            >
               {item.inspectionCategory}
             </span>
           )}
-          <span style={{ fontSize:10, color:st.color, marginLeft:'auto' }}>{st.label}</span>
+          <span className={`text-caption font-medium ml-auto leading-none ${stTw}`}>{st.label}</span>
         </div>
-        <div style={{ fontSize:12, fontWeight:600, color:'var(--t1)', marginBottom: (item.memo || item.time) ? 3 : 0 }}>{item.title}</div>
-        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow:'hidden' }}>
-          {item.memo && <div style={{ fontSize:10, color:'var(--t2)', lineHeight:1.4, whiteSpace:'pre-line', marginBottom: item.time ? 3 : 0, display:'-webkit-box', WebkitLineClamp: grouped ? 2 : 3, WebkitBoxOrient:'vertical' as any, overflow:'hidden' }}>{item.memo}</div>}
-          {item.time && <div style={{ fontSize:10, color:'var(--t3)' }}>🕐 {item.time}</div>}
+
+        {/* 제목 */}
+        <div
+          className="text-body font-semibold text-text-primary"
+          style={{ marginBottom: (item.memo || item.time || multiDayText) ? 4 : 0 }}
+        >
+          {item.title}
         </div>
-        <div style={{ display:'flex', gap:4, marginTop: grouped ? 'auto' : 5, paddingTop: grouped ? 4 : 0 }}>
+
+        {/* 메모 + 시간/멀티데이 */}
+        <div style={{ flex: grouped ? 1 : undefined, minHeight: 0, overflow: 'hidden' }}>
+          {item.memo && (
+            <div
+              className="text-caption text-text-secondary"
+              style={{
+                whiteSpace: 'pre-line',
+                lineHeight: 1.5,
+                display: '-webkit-box',
+                WebkitLineClamp: grouped ? 2 : 3,
+                WebkitBoxOrient: 'vertical' as any,
+                overflow: 'hidden',
+                marginBottom: (item.time || multiDayText) ? 4 : 0,
+              }}
+            >
+              {item.memo}
+            </div>
+          )}
+          {multiDayText ? (
+            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{multiDayText}</div>
+          ) : item.time ? (
+            <div className="text-caption text-text-tertiary" style={{ lineHeight: 1.4 }}>{item.time}</div>
+          ) : null}
+        </div>
+
+        {/* 액션 row */}
+        <div className="flex gap-1.5" style={{ marginTop: grouped ? 'auto' : 8, paddingTop: grouped ? 4 : 0 }}>
           {item.status !== 'done' && (
-            <button onClick={() => handleStatus(item,'done')}
-              style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--safe)', background:'rgba(34,197,94,0.1)', color:'var(--safe)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
+            <button
+              onClick={() => handleStatus(item, 'done')}
+              className="text-caption font-semibold rounded-sm border border-safe bg-safe-bg text-safe cursor-pointer"
+              style={{ padding: '4px 10px', lineHeight: 1.4 }}
+            >
               완료
             </button>
           )}
-          <button onClick={() => setEditItem(item)}
-            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd2)', background:'var(--bg3)', color:'var(--t2)', fontSize:10, cursor:'pointer' }}>
+          <button
+            onClick={() => setEditItem(item)}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-secondary cursor-pointer"
+            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+          >
             수정
           </button>
-          <button onClick={() => handleDelete(item)}
-            style={{ padding:'3px 7px', borderRadius:6, border:'1px solid var(--bd)', background:'var(--bg3)', color:'var(--t3)', fontSize:10, cursor:'pointer' }}>
+          <button
+            onClick={() => handleDelete(item)}
+            className="text-caption font-medium rounded-sm border border-border-default bg-surface-sunken text-text-tertiary cursor-pointer"
+            style={{ padding: '4px 10px', lineHeight: 1.4 }}
+          >
             삭제
           </button>
         </div>
@@ -346,33 +453,41 @@ export default function SchedulePage() {
 
   const scheduleListEl = (
     <>
-      <div style={{ display:'flex', alignItems:'center', marginBottom:8, gap:6 }}>
-        <span style={{ fontSize:12, fontWeight:700, color:'var(--t2)' }}>
-          {selDate === today ? '오늘' : `${selDate.slice(5).replace('-','/')}`} 일정
+      {/* 섹션 C — 선택 일자 헤더 */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-caption font-semibold text-text-secondary leading-none">
+          {selDate === today ? '오늘' : `${selDate.slice(5).replace('-', '/')}`} 일정
         </span>
-        <span style={{ fontSize:11, color:'var(--t3)' }}>{dayItems.length}건</span>
-        <span style={{ flex:1 }}/>
+        <span className="text-caption text-text-tertiary leading-none">{dayItems.length}건</span>
+        <span className="flex-1" />
         {isDesktop && (
-          <button onClick={() => setShowAdd(true)}
-            style={{ padding:'5px 12px', borderRadius:7, border:'none', background:'var(--acl)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="px-3 py-1 rounded-sm bg-accent text-text-on-accent text-caption font-bold cursor-pointer leading-none"
+          >
             + 추가
           </button>
         )}
       </div>
 
       {isLoading ? (
-        <div style={{ textAlign:'center', padding:32, color:'var(--t3)', fontSize:12 }}>불러오는 중...</div>
+        <div className="text-center text-caption text-text-tertiary px-4 py-8 bg-surface-raised border border-border-default rounded-md">
+          불러오는 중...
+        </div>
       ) : dayItems.length === 0 ? (
-        <div style={{ textAlign:'center', padding:'28px 0', color:'var(--t3)', fontSize:12 }}>
-          등록된 일정이 없습니다<br/>
-          <button onClick={() => setShowAdd(true)}
-            style={{ marginTop:12, padding:'8px 16px', borderRadius:8, border:'1px solid var(--bd2)', background:'var(--bg2)', color:'var(--t2)', fontSize:12, cursor:'pointer' }}>
+        <div className="border border-border-default bg-surface-raised rounded-md text-center px-4 py-8">
+          <div className="text-body text-text-tertiary mb-3">등록된 일정이 없습니다</div>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-label font-semibold rounded-sm border border-border-strong bg-surface-sunken text-text-secondary cursor-pointer"
+            style={{ padding: '10px 20px' }}
+          >
             + 일정 추가
           </button>
         </div>
       ) : isDesktop ? (
         /* 데스크톱: 카테고리별 컬럼 */
-        <div style={{ display:'flex', gap:12, alignItems:'flex-start', flexWrap:'wrap' }}>
+        <div className="flex flex-wrap gap-3 items-start">
           {(() => {
             // 카테고리별 그룹핑
             const groups: Record<string, ScheduleItem[]> = {}
@@ -384,11 +499,18 @@ export default function SchedulePage() {
             return Object.entries(groups).map(([catKey, items]) => {
               const cat = catInfo(catKey)
               return (
-                <div key={catKey} style={{ flex:'0 0 auto', width: 300, minWidth: 0 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color: cat?.color, marginBottom:5, padding:'3px 0', borderBottom:`2px solid ${cat?.color}44` }}>
+                <div key={catKey} style={{ flex: '0 0 auto', width: 300, minWidth: 0 }}>
+                  <div
+                    className="text-caption font-bold mb-1.5"
+                    style={{
+                      color: cat?.color,
+                      padding: '3px 0',
+                      borderBottom: `2px solid ${cat?.color}44`,
+                    }}
+                  >
                     {cat?.label} ({items.length})
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  <div className="flex flex-col gap-1.5">
                     {items.map(item => renderCard(item, true))}
                   </div>
                 </div>
@@ -397,7 +519,7 @@ export default function SchedulePage() {
           })()}
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        <div className="flex flex-col gap-2">
           {dayItems.map(item => renderCard(item))}
         </div>
       )}
@@ -431,29 +553,36 @@ export default function SchedulePage() {
   // ── 렌더 — 데스크톱 ────────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'var(--bg)' }}>
+      <div className="flex flex-col h-full overflow-hidden bg-surface-page">
         {/* 액션 바 — App.tsx 가 이미 페이지 제목 표시. 여기는 액션 버튼만 */}
-        <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--bd)', display:'flex', alignItems:'center', justifyContent:'flex-end', gap:8, flexShrink:0, background:'var(--bg2)' }}>
-          <button onClick={handlePlanDownload} disabled={planLoading}
-            style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
-            <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        <div className="flex flex-shrink-0 items-center justify-end gap-2 px-6 py-2.5 border-b border-border-default bg-surface-raised">
+          <button
+            onClick={handlePlanDownload}
+            disabled={planLoading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+              planLoading
+                ? 'bg-surface-sunken text-text-tertiary cursor-default'
+                : 'bg-safe-bar text-text-on-accent cursor-pointer'
+            }`}
+          >
+            <Download size={13} />
             {planLoading ? '생성 중...' : '엑셀 다운로드'}
           </button>
         </div>
 
         {/* 상단: 월간 점검 계획 테이블 */}
-        <div style={{ flexShrink:0, overflow:'hidden', borderBottom:'1px solid var(--bd)' }}>
+        <div className="flex-shrink-0 overflow-hidden border-b border-border-default">
           <MonthlyPlanPreview curMonth={curMonth} items={monthItems} holidays={holidays} todayStr={today} />
         </div>
 
         {/* 하단: 좌=달력, 우=일정 */}
-        <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
-          {/* 달력 */}
-          <div style={{ width:380, flexShrink:0, overflowY:'auto', padding:'16px 20px', borderRight:'1px solid var(--bd)' }}>
+        <div className="flex flex-1 overflow-hidden">
+          {/* 달력 — 내부 인라인은 SW2 에서 변환 */}
+          <div className="w-[380px] flex-shrink-0 overflow-y-auto px-5 py-4 border-r border-border-default">
             {calendarEl}
           </div>
-          {/* 일정 리스트 */}
-          <div style={{ flex:1, overflowY:'auto', padding:'16px 24px' }}>
+          {/* 일정 리스트 — 내부 인라인은 SW3 에서 변환 */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {scheduleListEl}
           </div>
         </div>
@@ -465,30 +594,45 @@ export default function SchedulePage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────────
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
+    <div className="w-full h-full flex flex-col overflow-hidden bg-surface-page">
 
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 9px', display:'flex', alignItems:'center', gap:8 }}>
-        <button onClick={() => navigate(-1)} style={iconBtn}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+      <header className="flex flex-shrink-0 items-center gap-2 px-3 pt-2 pb-[9px] bg-surface-raised border-b border-border-default">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-sm bg-surface-sunken border border-border-default cursor-pointer"
+        >
+          <ChevronLeft size={15} strokeWidth={2} className="text-text-secondary" />
         </button>
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>월간 점검 계획</span>
-        <button onClick={handlePlanDownload} disabled={planLoading}
-          style={{ padding:'6px 12px', borderRadius:8, border:'none', background: planLoading ? 'var(--bg3)' : 'linear-gradient(135deg,#15803d,#22c55e)', color: planLoading ? 'var(--t3)' : '#fff', fontSize:12, fontWeight:700, cursor: planLoading ? 'default' : 'pointer', display:'flex', alignItems:'center', gap:5 }}>
-          <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+        <span className="flex-1 text-title font-bold text-text-primary">월간 점검 계획</span>
+        <button
+          onClick={handlePlanDownload}
+          disabled={planLoading}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+            planLoading
+              ? 'bg-surface-sunken text-text-tertiary cursor-default'
+              : 'bg-safe-bar text-text-on-accent cursor-pointer'
+          }`}
+        >
+          <Download size={13} />
           {planLoading ? '생성 중...' : '엑셀 다운로드'}
-        </button>
-        <button onClick={() => setShowAdd(true)}
-          style={{ padding:'6px 14px', borderRadius:8, border:'none', background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer' }}>
-          + 추가
         </button>
       </header>
 
-      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 24px' }}>
+      {/* 본문 */}
+      <div className="flex-1 overflow-y-auto px-4 pt-3 pb-6">
         {calendarEl}
         {scheduleListEl}
       </div>
+
+      {/* FAB — W2 OQ #2 LOCKED c, mobile only (우하단 56px 원형 accent) */}
+      <button
+        onClick={() => setShowAdd(true)}
+        aria-label="일정 추가"
+        className="fixed right-4 bottom-4 w-14 h-14 rounded-pill flex items-center justify-center bg-accent text-text-on-accent cursor-pointer z-20"
+        style={{ boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
 
       {modalsEl}
     </div>
@@ -527,15 +671,15 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
   }, [items, curMonth, holidays])
 
   const cellStyle: React.CSSProperties = {
-    border: '1px solid var(--bd)', padding: '3px 1px', textAlign: 'center',
-    fontSize: 11, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--t1)',
+    border: '1px solid var(--border-default)', padding: '3px 1px', textAlign: 'center',
+    fontSize: 12, lineHeight: 1.3, overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text-primary)',
   }
-  const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--bg3)', color: 'var(--t1)' }
+  const headCell: React.CSSProperties = { ...cellStyle, fontWeight: 700, background: 'var(--surface-sunken)', color: 'var(--text-primary)' }
 
   return (
-    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--bg2)' }}>
+    <div style={{ width: '100%', padding: '12px 20px 8px', background: 'var(--surface-raised)' }}>
       {/* 타이틀 */}
-      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--t1)' }}>
+      <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary)' }}>
         {mo}월 중요업무추진계획(방재)
       </div>
 
@@ -553,11 +697,11 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
               return (
                 <th key={i} style={{
                   ...headCell,
-                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
-                  background: isTdy ? 'rgba(59,130,246,0.18)' : dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--bg3)',
-                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderTop: isTdy ? '2px solid var(--acl)' : undefined,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--text-primary)',
+                  background: isTdy ? 'rgba(59,130,246,0.18)' : dow === 0 || isHol ? 'rgba(239,68,68,0.08)' : dow === 6 ? 'rgba(59,130,246,0.08)' : 'var(--surface-sunken)',
+                  borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderTop: isTdy ? '2px solid var(--accent)' : undefined,
                 }}>
                   {i + 1}
                 </th>
@@ -577,9 +721,9 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
               return (
                 <th key={i} style={{
                   ...headCell, fontWeight: 600,
-                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--t1)',
-                  borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                  borderRight: isTdy ? '2px solid var(--acl)' : undefined,
+                  color: dow === 0 || isHol ? '#ef4444' : dow === 6 ? '#3b82f6' : 'var(--text-primary)',
+                  borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                  borderRight: isTdy ? '2px solid var(--accent)' : undefined,
                 }}>
                   {DOW[dow]}
                 </th>
@@ -592,7 +736,7 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
           {PLAN_PREVIEW_ROWS.map((row, ri) => (
             <tr key={ri}>
               <td style={{ ...cellStyle, fontWeight: 600 }}>{ri + 1}</td>
-              <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 6, fontSize: 10 }}>{row.label}</td>
+              <td style={{ ...cellStyle, textAlign: 'left', paddingLeft: 6, fontSize: 12 }}>{row.label}</td>
               {Array.from({ length: daysInMonth }, (_, i) => {
                 const d = i + 1
                 const dow = (firstDow + i) % 7
@@ -620,19 +764,19 @@ function MonthlyPlanPreview({ curMonth, items, holidays, todayStr }: {
 
                 return (
                   <td key={i} style={{
-                    ...cellStyle, fontSize: 10,
-                    color: text ? 'var(--t1)' : 'transparent',
+                    ...cellStyle, fontSize: 12,
+                    color: text ? 'var(--text-primary)' : 'transparent',
                     background: isWeekend ? (dow === 0 || isHol ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.06)')
                       : text && !row.daily ? 'rgba(34,197,94,0.1)' : 'transparent',
-                    borderLeft: isTdy ? '2px solid var(--acl)' : undefined,
-                    borderRight: isTdy ? '2px solid var(--acl)' : undefined,
-                    borderBottom: isTdy && isLastRow ? '2px solid var(--acl)' : undefined,
+                    borderLeft: isTdy ? '2px solid var(--accent)' : undefined,
+                    borderRight: isTdy ? '2px solid var(--accent)' : undefined,
+                    borderBottom: isTdy && isLastRow ? '2px solid var(--accent)' : undefined,
                   }}>
                     {text || '.'}
                   </td>
                 )
               })}
-              <td style={{ ...cellStyle, fontSize: 9, color: 'var(--t3)', whiteSpace: 'normal', lineHeight: 1.2 }}>
+              <td style={{ ...cellStyle, fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'normal', lineHeight: 1.2 }}>
                 {row.note ?? ''}
               </td>
             </tr>
@@ -756,25 +900,30 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
-      onClick={onClose}>
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-[300] flex flex-col"
+      style={{
+        background:'rgba(0,0,0,0.55)',
+        justifyContent: isDesktop ? 'center' : 'flex-end',
+        alignItems:    isDesktop ? 'center' : undefined,
+      }}>
       <div onClick={e => e.stopPropagation()}
+        className="bg-surface-raised overflow-y-auto"
         style={{
-          background:'var(--bg2)',
           borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:'90dvh', overflowY:'auto',
+          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:    '90dvh',
           ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
         }}>
 
         {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 추가</span>
+        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+          <span className="text-title font-semibold text-text-primary">일정 추가</span>
           <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+            aria-label="닫기"
+            className="w-7 h-7 rounded-sm border border-border-default bg-surface-sunken cursor-pointer flex items-center justify-center">
+            <X size={16} className="text-text-secondary" strokeWidth={2} />
           </button>
         </div>
 
@@ -786,11 +935,11 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
             <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:5 }}>
               {SCHED_CATEGORIES.map(c => (
                 <button key={c.value} onClick={() => handleCat(c.value)}
-                  style={{ padding:'8px 0', borderRadius:8,
-                    border:`1px solid ${cat===c.value?c.color:'var(--bd)'}`,
-                    background: cat===c.value?`${c.color}22`:'var(--bg3)',
-                    color: cat===c.value?c.color:'var(--t2)',
-                    fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  style={{ padding:'10px 0', borderRadius:8,
+                    border:`1px solid ${cat===c.value?c.color:'var(--border-default)'}`,
+                    background: cat===c.value?`${c.color}22`:'var(--surface-sunken)',
+                    color: cat===c.value?c.color:'var(--text-secondary)',
+                    fontSize:12, fontWeight:700, lineHeight:1, cursor:'pointer' }}>
                   {c.label}
                 </button>
               ))}
@@ -831,7 +980,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="일정 제목" style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -848,9 +997,9 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                   {ELEV_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleElevSub(v)}
                       style={{ padding:'9px 0', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer',
-                        border:`1px solid ${elevSub===v?'#f97316':'var(--bd)'}`,
-                        background: elevSub===v?'rgba(249,115,22,0.15)':'var(--bg3)',
-                        color: elevSub===v?'#f97316':'var(--t2)' }}>
+                        border:`1px solid ${elevSub===v?'#f97316':'var(--border-default)'}`,
+                        background: elevSub===v?'rgba(249,115,22,0.15)':'var(--surface-sunken)',
+                        color: elevSub===v?'#f97316':'var(--text-secondary)' }}>
                       {v}
                     </button>
                   ))}
@@ -861,7 +1010,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={elevAgency} onChange={e=>setElevAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -877,10 +1026,10 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:6 }}>
                   {FIRE_SUBCATS.map(v => (
                     <button key={v} onClick={() => handleFireSub(v)}
-                      style={{ padding:'8px 4px', borderRadius:9, fontSize:10, fontWeight:700, cursor:'pointer', lineHeight:1.4,
-                        border:`1px solid ${fireSub===v?'#ef4444':'var(--bd)'}`,
-                        background: fireSub===v?'rgba(239,68,68,0.13)':'var(--bg3)',
-                        color: fireSub===v?'#ef4444':'var(--t2)' }}>
+                      style={{ padding:'8px 4px', borderRadius:9, fontSize:12, fontWeight:700, cursor:'pointer', lineHeight:1.4,
+                        border:`1px solid ${fireSub===v?'#ef4444':'var(--border-default)'}`,
+                        background: fireSub===v?'rgba(239,68,68,0.13)':'var(--surface-sunken)',
+                        color: fireSub===v?'#ef4444':'var(--text-secondary)' }}>
                       {v}
                     </button>
                   ))}
@@ -891,7 +1040,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 <input value={fireAgency} onChange={e=>setFireAgency(e.target.value)} style={inp} />
               </div>
               <div>
-                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+                <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
                 <textarea value={memo} onChange={e=>setMemo(e.target.value)}
                   placeholder="상세 내용을 입력하세요" rows={3}
                   style={{ ...inp, resize:'none', lineHeight:1.5 }} />
@@ -907,7 +1056,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>시작시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={time} onChange={e=>setTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
@@ -916,12 +1065,12 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
           {/* 종료일 / 종료시간 */}
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>종료일 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="date" value={endDate} onChange={e=>setEndDate(e.target.value)} min={date}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:'0 0 calc(50% - 5px)', minWidth:0, overflow:'hidden' }}>
-              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>종료시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
@@ -929,7 +1078,7 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           {/* N일 미리보기 — 항상 단일 항목 + end_date 로 저장, 주말·공휴일은 표시에서만 제외 */}
           {rangeDays > 1 && (
-            <div style={{ fontSize:12, color:'var(--acl)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
+            <div style={{ fontSize:12, color:'var(--accent)', fontWeight:600, textAlign:'center', marginTop:-8 }}>
               {skippedCount > 0
                 ? `${rangeDays}일 범위로 1건 추가됩니다 (주말·공휴일 ${skippedCount}일은 표시에서 제외)`
                 : `${rangeDays}일 범위로 1건 추가됩니다`}
@@ -938,21 +1087,21 @@ function AddModal({ defaultDate, staffId, onClose, onSaved, onDateChange, isDesk
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 3fr 1fr', gap:6, marginTop:4 }}>
             <button onClick={() => shiftDate(-1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--bd2)',
-                background:'var(--bg3)', color:'var(--t2)', fontSize:18, lineHeight:1,
+              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
+                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               ‹
             </button>
             <button onClick={handleSave} disabled={saving}
               style={{ padding:'14px', borderRadius:12, border:'none',
-                background:'linear-gradient(135deg,#1d4ed8,#2563eb)',
-                color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
+                background:'var(--accent)',
+                color:'#fff', fontSize:16, fontWeight:700, cursor:'pointer',
                 opacity:saving?0.6:1 }}>
               {saving ? '저장 중...' : '저장'}
             </button>
             <button onClick={() => shiftDate(1)} disabled={saving}
-              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--bd2)',
-                background:'var(--bg3)', color:'var(--t2)', fontSize:18, lineHeight:1,
+              style={{ padding:'14px 0', borderRadius:12, border:'1px solid var(--border-strong)',
+                background:'var(--surface-sunken)', color:'var(--text-secondary)', fontSize:18, lineHeight:1,
                 cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
               ›
             </button>
@@ -972,9 +1121,10 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
   const [time,   setTime]   = useState(item.time ?? '')
   const [memo,   setMemo]   = useState(item.memo ?? '')
   const [saving, setSaving] = useState(false)
+  const [titleError, setTitleError] = useState(false)
 
   const handleSave = async () => {
-    if (!title.trim()) { toast.error('제목을 입력하세요'); return }
+    if (!title.trim()) { setTitleError(true); toast.error('제목을 입력하세요'); return }
     setSaving(true)
     try {
       await scheduleApi.update(item.id, { title: title.trim(), date, time: time || undefined, memo: memo || undefined })
@@ -987,29 +1137,52 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', zIndex:300, display:'flex', flexDirection:'column', justifyContent: isDesktop ? 'center' : 'flex-end', alignItems: isDesktop ? 'center' : undefined }}
-      onClick={onClose}>
+    <div
+      onClick={onClose}
+      className={`fixed inset-0 z-[300] flex flex-col ${isDesktop ? 'justify-center items-center' : 'justify-end'}`}
+      style={{ background:'rgba(0,0,0,0.55)' }}>
       <div onClick={e => e.stopPropagation()}
+        className="bg-surface-raised overflow-y-auto"
         style={{
-          background:'var(--bg2)',
           borderRadius: isDesktop ? 16 : '20px 20px 0 0',
-          padding: isDesktop ? '24px 28px 28px' : '20px 16px 40px',
-          maxHeight:'90dvh', overflowY:'auto',
+          padding:      isDesktop ? '24px 28px 28px' : '20px 16px 40px',
+          maxHeight:    '90dvh',
           ...(isDesktop ? { width: 480, maxWidth: '90vw' } : {}),
         }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-          <span style={{ fontSize:15, fontWeight:700, color:'var(--t1)' }}>일정 수정</span>
+
+        {/* 헤더 */}
+        <div className="flex items-center justify-between" style={{ marginBottom:18 }}>
+          <span className="text-title font-semibold text-text-primary">일정 수정</span>
           <button onClick={onClose}
-            style={{ width:28, height:28, borderRadius:7, border:'1px solid var(--bd)', background:'var(--bg3)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+            aria-label="닫기"
+            className="w-7 h-7 rounded-sm border border-border-default bg-surface-sunken cursor-pointer flex items-center justify-center">
+            <X size={16} className="text-text-secondary" strokeWidth={2} />
           </button>
         </div>
+
         <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+          {/* 카테고리 lock row (W5 OQ #1 LOCKED b verbatim) */}
+          {(() => {
+            const cat = SCHED_CATEGORIES.find(c => c.value === item.category)
+            return (
+              <div className="flex items-center gap-2 p-3 bg-surface-sunken rounded-sm">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: cat?.color }} />
+                <span className="text-label font-bold text-text-primary leading-snug">{cat?.label}</span>
+                <span className="text-caption text-text-tertiary leading-snug">· 카테고리는 변경할 수 없습니다</span>
+              </div>
+            )
+          })()}
+
           <div>
             <label style={lbl}>제목</label>
-            <input value={title} onChange={e => setTitle(e.target.value)} style={inp} />
+            <input
+              value={title}
+              onChange={e => { setTitle(e.target.value); setTitleError(false) }}
+              style={{ ...inp, ...(titleError ? { borderColor: 'var(--status-danger-bar)' } : {}) }} />
+            {titleError && (
+              <div className="text-caption text-danger-bar mt-1.5 leading-none font-semibold">제목을 입력하세요</div>
+            )}
           </div>
           <div style={{ display:'flex', gap:10 }}>
             <div style={{ flex:1 }}>
@@ -1018,21 +1191,19 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
             <div style={{ flex:1 }}>
-              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+              <label style={lbl}>시간 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
               <input type="time" value={time} onChange={e => setTime(e.target.value)}
                 style={{ ...inp, display:'block', WebkitAppearance:'none', height:44 }} />
             </div>
           </div>
           <div>
-            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--t3)' }}>(선택)</span></label>
+            <label style={lbl}>내용 <span style={{ fontWeight:400, color:'var(--text-tertiary)' }}>(선택)</span></label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)}
               rows={4} style={{ ...inp, resize:'none', lineHeight:1.6 }} />
           </div>
           <button onClick={handleSave} disabled={saving}
-            style={{ padding:'14px', borderRadius:12, border:'none',
-              background:'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
-              opacity:saving?0.6:1 }}>
+            className="bg-accent text-text-on-accent text-body font-bold rounded-md border-0 cursor-pointer"
+            style={{ padding:'14px', opacity: saving ? 0.6 : 1 }}>
             {saving ? '저장 중...' : '수정 저장'}
           </button>
         </div>
@@ -1042,21 +1213,14 @@ function EditModal({ item, onClose, onSaved, isDesktop }: {
 }
 
 // ── 스타일 ───────────────────────────────────────────────────
-const iconBtn: React.CSSProperties = {
-  width:34, height:34, borderRadius:8, flexShrink:0,
-  background:'var(--bg3)', border:'1px solid var(--bd)',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-}
-const arrowBtn: React.CSSProperties = {
-  width:32, height:32, borderRadius:8, border:'1px solid var(--bd)',
-  background:'var(--bg2)', color:'var(--t1)', fontSize:20, lineHeight:'1',
-  cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-}
+// iconBtn 삭제 — 사용처 모바일 헤더 백 버튼 className 인라인화 완료 (SW1)
+// arrowBtn 삭제 — 사용처 캘린더 월 네비 lucide ChevronLeft/ChevronRight inline className 으로 치환 (SW2)
 const lbl: React.CSSProperties = {
-  fontSize:11, fontWeight:700, color:'var(--t3)', display:'block', marginBottom:6,
+  fontSize:12, fontWeight:700, color:'var(--text-tertiary)',
+  display:'block', marginBottom:6, lineHeight:1,
 }
 const inp: React.CSSProperties = {
   width:'100%', padding:'11px 12px', borderRadius:10, boxSizing:'border-box',
-  background:'var(--bg3)', border:'1px solid var(--bd2)',
-  color:'var(--t1)', fontSize:13, outline:'none', fontFamily:'inherit',
+  background:'var(--surface-sunken)', border:'1px solid var(--border-strong)',
+  color:'var(--text-primary)', fontSize:13, outline:'none', fontFamily:'inherit',
 }

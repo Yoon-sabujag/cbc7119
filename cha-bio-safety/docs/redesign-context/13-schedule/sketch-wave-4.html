@@ -1,0 +1,1727 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4.html — redesign/13-schedule W4
+  작성: 2026-05-19 / quick 260519-kq7
+  범위: AddModal (SchedulePage.tsx line 647~963 verbatim)
+        - 모달 chrome (overlay + sheet desktop/mobile 분기)
+        - 헤더 ("일정 추가" + close X)
+        - 5 cat variant matrix (inspect / task / event / elevator / fire)
+        - 카테고리 grid (5종) + cat 별 본문 (select / sub grid / 업체 input / 제목 input / 내용 textarea)
+        - 시작일/시간 + 종료일/시간 grid
+        - N일 미리보기 문구 (rangeDays + skippedCount 2 변형)
+        - CTA grid (1fr 3fr 1fr — ‹ / 저장 / › + saving 변형)
+        - 7 state frame (빈폼 / inspect-sub 소화기 / task / elev-sub / fire-sub / N일 a+b / saving)
+        - 라이트 mirror (frame #1 + frame #6a — chrome consistency + event #94a3b8)
+        - 노안 격상: source 9·10·11px → 12px / 헤더 15 → 18 / CTA 14 → 16
+
+  out of scope:
+    - W1 (캘린더 + 카테고리 hex) / W2 (일자 카드) / W3 (미리보기 테이블) — LOCKED 완결
+    - EditModal / MonthlyPlanPreview / 자동 생성 패널 — 별도 wave
+    - TSX 변환 (SchedulePage.tsx 0줄 수정 — 시안 only)
+
+  참조:
+    - design-system.md v0.1.1 §1~§7
+    - SchedulePage.tsx
+        - line 35~39 INSP_CATEGORIES (19종 verbatim)
+        - line 63 ELEV_SUBCATS (3종 verbatim — 승강기 정기 점검 / 승강기 수리 / 승강기 법정 검사)
+        - line 64 FIRE_SUBCATS (4종 verbatim — 소방 상반기 종합정밀점검 / 소방 하반기 작동기능점검 / 소방 시설물 공사 / 소방 관공서 불시 점검)
+        - line 69~73 ELEV_AGENCY / line 74~79 FIRE_AGENCY (매핑 verbatim)
+        - line 81~87 SCHED_CATEGORIES (5 hex verbatim)
+        - line 647~963 AddModal 본체
+        - line 1055~1062 lbl / inp 토큰
+    - sketch-wave-1.html LOCKED (event #94a3b8 / 카테고리 5 hex / 이모지 0)
+    - sketch-wave-2.html LOCKED (FAB CTA / status chip 색 / 멀티데이 시간 자리)
+    - sketch-wave-3.html LOCKED (모바일 미구현 + 헤더 + 셀 cramped — desktop 1280px)
+    - inspection-modal-chrome-rules.md §1~§6 (overlay rgba(0,0,0,0.55) z-300 + sheet bg-surface-raised + radius-lg 16 desktop / 20 0 0 0 mobile)
+    - tokens.css line 16~197 verbatim 임베드
+    - typography.css line 28~95 verbatim 임베드
+
+  open questions (사용자 답변 요청 — 푸터 박스 참조):
+    OQ #1 ▶ LOCKED a) — BottomSheet maxHeight = 90dvh source verbatim 유지.
+    OQ #2 ▶ LOCKED b) — 저장 버튼 색 = accent solid var(--accent) (디자인 시스템 토큰 일관, 라이트/다크 자동 분기). source linear-gradient 폐기.
+    OQ #3 ▶ LOCKED a) — INSP_CATEGORIES 19종 입력 = <select> native source verbatim 유지.
+
+  LOCKED 사전 결정 (사용자 답변 불필요):
+    - ELEV_SUBCATS / FIRE_SUBCATS 라벨 = SchedulePage.tsx line 63~64 verbatim 원본
+      (task_scope 본문의 "자체 점검 / 안전관리자 교육 / 보수교육" 등은 source 와 다름 — 별도 wave 에서 SchedulePage.tsx 자체 패치 후 sketch 재작성)
+    - SCHED_CATEGORIES 5 hex (#3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444) — W1+W2+W3 LOCKED mirror
+    - 라이트 event #94a3b8 hardcode override — W1+W2+W3 LOCKED mirror
+    - 이모지 0 — feedback_tsx_wave_emoji_dot_gap.md
+    - 노안 격상: source 9·10·11px → 12 이상 / 헤더 15 → 18 / CTA 14 → 16
+
+  메모리 룰 강제 (작성 시 확인):
+    - 이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)
+    - 9·10·11px font-size 0 (text-caption 12 마지노선)
+    - status- prefix className 0 (text-fire-bar O / text-{status}-fire-bar X)
+    - SCHED_CATEGORIES 5 hex verbatim
+    - 라이트 event #94a3b8 hardcode override
+    - tokens.css line 16~197 verbatim + typography.css line 28~95 verbatim 임베드
+    - inspection-modal-chrome-rules.md §1~§6 mirror (overlay + sheet 룰)
+    - W1+W2+W3 LOCKED 결정 mirror
+    - 비즈니스 로직 0 변경 (SchedulePage.tsx 1줄도 수정 X — 시안 디자인만)
+    - inline style 예외 허용 (5 cat × 7 frame dynamic 색상 — Tailwind 표현 어려움)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W4 AddModal</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * tokens.css line 16~197 verbatim 임베드
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * typography.css line 28~95 verbatim 임베드
+     * ============================================================ */
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* ============================================================
+     * 시안 페이지 chrome
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      background: #050609;
+      color: #e6edf3;
+      margin: 0;
+      padding: 32px 24px 64px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: #e6edf3;
+    }
+    .page-sub {
+      font-size: 14px;
+      color: #adb6c0;
+      margin: 0 0 32px;
+      line-height: 1.6;
+    }
+
+    .frame-shell {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--surface-page);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+      position: relative;
+    }
+    .frame-shell[data-theme="light"] {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    }
+
+    /* 모바일 프레임 (BottomSheet 시연 — sheet 가 하단에 붙음) */
+    .frame-mobile {
+      width: 393px;
+      min-height: 720px;
+      position: relative;
+    }
+    /* 데스크톱 프레임 (중앙 모달 시연) */
+    .frame-desktop {
+      width: 1280px;
+      min-height: 720px;
+      position: relative;
+    }
+
+    .frame-label {
+      position: absolute;
+      top: -28px;
+      left: 0;
+      font-size: 12px;
+      color: #8b949e;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .frame-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 72px;
+      padding-top: 28px;
+    }
+
+    /* 모달 chrome — inspection-modal-chrome-rules.md §1~§6 mirror */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 300;
+    }
+    .modal-overlay-mobile {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 300;
+    }
+    .modal-sheet-desktop {
+      width: 480px;
+      max-width: 90vw;
+      background: var(--surface-raised);
+      border-radius: 16px;
+      padding: 24px 28px 28px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+      box-sizing: border-box;
+    }
+    .modal-sheet-mobile {
+      width: 100%;
+      background: var(--surface-raised);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px 40px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.48);
+      box-sizing: border-box;
+    }
+
+    /* 라이트 mirror — event dot override (W1+W2+W3 LOCKED chrome consistency) */
+    [data-theme="light"] .event-dot-themed {
+      background: #94a3b8 !important;
+    }
+    .event-dot-themed {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 99px;
+      background: #e2e8f0;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* OQ 푸터 */
+    .oq-footer {
+      margin-top: 48px;
+      padding: 24px 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: #11151b;
+    }
+    .oq-footer h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .oq-footer p {
+      margin: 16px 0 4px;
+      font-size: 14px;
+      color: #adb6c0;
+    }
+    .oq-footer ul {
+      margin: 0 0 12px;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #adb6c0;
+      line-height: 1.7;
+    }
+    .oq-footer strong { color: #e6edf3; }
+  </style>
+</head>
+<body>
+
+<h1 class="page-title">13 월간 점검 계획 — sketch W4 AddModal</h1>
+<p class="page-sub">
+  AddModal (SchedulePage.tsx line 647~963 verbatim) 정적 시안 / 7 state frame × 모바일 393 + 데스크톱 480 / frame #1 + #6a 라이트 mirror /
+  W1+W2+W3 LOCKED 결정 mirror (event #94a3b8 / 카테고리 5 hex / 이모지 0) / 노안 격상 (9·10·11→12+, 헤더 15→18, CTA 14→16)
+</p>
+
+<!-- ============================================================
+     Frame Row #1 — 빈폼 / inspect 기본 (다크 모바일 + 다크 데스크톱 + 라이트 mirror 2)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 1A. 다크 모바일 393 — 빈폼 inspect -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 1 — 빈폼 / inspect 기본 (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <!-- 헤더 -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <!-- 본문 -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 grid (inspect selected) -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <!-- inspect 분류 select (insCat='') -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <!-- 시작일/시간 -->
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <!-- 종료일/시간 -->
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <!-- CTA grid -->
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1B. 다크 데스크톱 1280 — 빈폼 inspect -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 1 — 빈폼 / inspect 기본 (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1C. 라이트 모바일 mirror — 빈폼 inspect + event dot themed -->
+  <div class="frame-mobile frame-shell" data-theme="light">
+    <span class="frame-label" style="color:#656d76;">Frame 1 — 빈폼 / inspect (mobile light mirror + event #94a3b8)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사<span class="event-dot-themed"></span></button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+            <div style="margin-top:8px; font-size:12px; color:var(--text-tertiary); line-height:1.4;">라이트 모드 event dot override (W1+W2+W3 LOCKED mirror — #94a3b8 hardcode)</div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1D. 라이트 데스크톱 mirror — 빈폼 inspect -->
+  <div class="frame-desktop frame-shell" data-theme="light">
+    <span class="frame-label" style="color:#656d76;">Frame 1 — 빈폼 / inspect (desktop light mirror)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사<span class="event-dot-themed"></span></button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #2 — inspect sub 선택 / 소화기 (다크 모바일 + 다크 데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 2A. 다크 모바일 — inspect 소화기 -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 2 — inspect sub 선택 (소화기) (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option selected>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="전층 소화기 점검" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용</label>
+            <textarea rows="5" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.6; font-family:inherit;">   - 소화기 압력상태 점검
+   - 안전핀 체결상태 확인
+   - 위치표시 스티커 부착상태 점검
+   - 받침대 파손여부 점검</textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2B. 다크 데스크톱 — inspect 소화기 -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 2 — inspect sub 선택 (소화기) (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;">
+              <option value="">-- 선택하세요 --</option>
+              <option selected>소화기</option>
+              <option>소화전</option>
+              <option>방화문</option>
+              <option>특별피난계단</option>
+              <option>유도등</option>
+              <option>방화셔터</option>
+              <option>DIV</option>
+              <option>컴프레셔</option>
+              <option>비상콘센트</option>
+              <option>배연창</option>
+              <option>주차장비</option>
+              <option>완강기</option>
+              <option>전실제연댐퍼</option>
+              <option>청정소화약제</option>
+              <option>연결송수관</option>
+              <option>소방용전원공급반</option>
+              <option>회전문</option>
+              <option>소방펌프</option>
+              <option>CCTV</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="전층 소화기 점검" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용</label>
+            <textarea rows="5" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.6; font-family:inherit;">   - 소화기 압력상태 점검
+   - 안전핀 체결상태 확인
+   - 위치표시 스티커 부착상태 점검
+   - 받침대 파손여부 점검</textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #3 — task 업무 입력 (다크 모바일 + 다크 데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 3A. 다크 모바일 — task -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 3 — task 업무 입력 (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #eab308; background:#eab30822; color:#eab308; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="당직 인계 정리" placeholder="일정 제목" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;">야간 당직 인계 사항 정리</textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3B. 다크 데스크톱 — task -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 3 — task 업무 입력 (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #eab308; background:#eab30822; color:#eab308; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="당직 인계 정리" placeholder="일정 제목" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;">야간 당직 인계 사항 정리</textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #4 — elevator sub 선택 (다크 모바일 + 다크 데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 4A. 다크 모바일 — elevator 정기 점검 -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 4 — elevator sub 선택 (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #f97316; background:#f9731622; color:#f97316; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid #f97316; background:rgba(249,115,22,0.15); color:#f97316;">승강기 정기 점검</button>
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">승강기 수리</button>
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">승강기 법정 검사</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">업체 및 기관</label>
+            <input value="TKE" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4B. 다크 데스크톱 — elevator 정기 점검 -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 4 — elevator sub 선택 (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #f97316; background:#f9731622; color:#f97316; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid #f97316; background:rgba(249,115,22,0.15); color:#f97316;">승강기 정기 점검</button>
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">승강기 수리</button>
+              <button style="padding:9px 0; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.4; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">승강기 법정 검사</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">업체 및 기관</label>
+            <input value="TKE" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #5 — fire sub 선택 (다크 모바일 + 다크 데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 5A. 다크 모바일 — fire 상반기 종합정밀점검 -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 5 — fire sub 선택 (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #ef4444; background:#ef444422; color:#ef4444; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid #ef4444; background:rgba(239,68,68,0.13); color:#ef4444;">소방 상반기 종합정밀점검</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 하반기 작동기능점검</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 시설물 공사</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 관공서 불시 점검</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">업체 및 기관</label>
+            <input value="동양소방" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5B. 다크 데스크톱 — fire 상반기 종합정밀점검 -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 5 — fire sub 선택 (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #ef4444; background:#ef444422; color:#ef4444; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px;">
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid #ef4444; background:rgba(239,68,68,0.13); color:#ef4444;">소방 상반기 종합정밀점검</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 하반기 작동기능점검</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 시설물 공사</button>
+              <button style="padding:8px 4px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer; line-height:1.3; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary);">소방 관공서 불시 점검</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">업체 및 기관</label>
+            <input value="동양소방" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="3" placeholder="상세 내용을 입력하세요" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.5; font-family:inherit;"></textarea>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-12" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #6 — N일 미리보기 (a: skipped=0 다크 모바일+데스크톱+라이트 / b: skipped=2 다크 모바일+데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 6Aa. 다크 모바일 — N일 미리보기 (4일, skipped=0) -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 6a — N일 미리보기 (4일, skipped=0) (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-15" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--accent); font-weight:600; text-align:center; margin-top:-8px; line-height:1.5;">
+            4일 범위로 1건 추가됩니다
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6Ab. 다크 데스크톱 — N일 미리보기 (4일, skipped=0) -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 6a — N일 미리보기 (4일, skipped=0) (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-15" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--accent); font-weight:600; text-align:center; margin-top:-8px; line-height:1.5;">
+            4일 범위로 1건 추가됩니다
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6Ac. 라이트 모바일 mirror — N일 미리보기 (4일, skipped=0) -->
+  <div class="frame-mobile frame-shell" data-theme="light">
+    <span class="frame-label" style="color:#656d76;">Frame 6a — N일 미리보기 (4일, skipped=0) (mobile light mirror)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사<span class="event-dot-themed"></span></button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+            <div style="margin-top:8px; font-size:12px; color:var(--text-tertiary); line-height:1.4;">라이트 event dot #94a3b8 hardcode override (W1+W2+W3 LOCKED mirror)</div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-15" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--accent); font-weight:600; text-align:center; margin-top:-8px; line-height:1.5;">
+            4일 범위로 1건 추가됩니다
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6Ba. 다크 모바일 — N일 미리보기 (8일, skipped=2) -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 6b — N일 미리보기 (8일, skipped=2) (mobile dark)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-19" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--accent); font-weight:600; text-align:center; margin-top:-8px; line-height:1.5;">
+            8일 범위로 1건 추가됩니다 (주말·공휴일 2일은 표시에서 제외)
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6Bb. 다크 데스크톱 — N일 미리보기 (8일, skipped=2) -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 6b — N일 미리보기 (8일, skipped=2) (desktop dark, 1280px)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:pointer;">점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:pointer;">소방</button>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작일</label>
+              <input type="date" value="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시작시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료일 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="date" value="2026-05-19" min="2026-05-12" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+            <div style="flex:0 0 calc(50% - 5px); min-width:0; overflow:hidden;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">종료시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; display:block; height:44px;" />
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--accent); font-weight:600; text-align:center; margin-top:-8px; line-height:1.5;">
+            8일 범위로 1건 추가됩니다 (주말·공휴일 2일은 표시에서 제외)
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:4px;">
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+            <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer;">저장</button>
+            <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame Row #7 — saving 저장 중 (다크 모바일 + 다크 데스크톱)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- 7A. 다크 모바일 — saving=true -->
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 7 — saving 저장 중 (mobile dark, opacity 0.6 disabled)</span>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0.6;" aria-label="닫기" disabled>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px; opacity:0.8;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;" disabled>
+              <option selected>소화기</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="전층 소화기 점검" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" disabled />
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:20px;">
+          <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>‹</button>
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
+          <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7B. 다크 데스크톱 — saving=true -->
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame 7 — saving 저장 중 (desktop dark, 1280px, opacity 0.6 disabled)</span>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 추가</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0.6;" aria-label="닫기" disabled>
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px; opacity:0.8;">
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">구분</label>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;">
+              <button style="padding:10px 0; border-radius:8px; border:1px solid #3b82f6; background:#3b82f622; color:#3b82f6; font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>점검</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>업무</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>행사</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>승강기</button>
+              <button style="padding:10px 0; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); color:var(--text-secondary); font-size:12px; font-weight:700; line-height:1; cursor:default;" disabled>소방</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">점검 분류</label>
+            <select style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; font-family:inherit;" disabled>
+              <option selected>소화기</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="전층 소화기 점검" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none;" disabled />
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용</label>
+            <textarea rows="3" style="width:100%; padding:11px 12px; border-radius:10px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-strong); color:var(--text-primary); font-size:13px; outline:none; resize:none; line-height:1.6; font-family:inherit;" disabled>   - 소화기 압력상태 점검
+   - 안전핀 체결상태 확인</textarea>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 3fr 1fr; gap:6px; margin-top:20px;">
+          <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>‹</button>
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:default; opacity:0.6;" disabled>저장 중...</button>
+          <button style="padding:14px 0; border-radius:12px; border:1px solid var(--border-strong); background:var(--surface-sunken); color:var(--text-secondary); font-size:18px; line-height:1; cursor:default; display:flex; align-items:center; justify-content:center; opacity:0.6;" disabled>›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Footer — OQ LOCKED + 사전 결정 (2026-05-19 사용자 답변 완료)
+     ============================================================ -->
+<div class="oq-footer">
+  <h3>OQ LOCKED · 사용자 답변 완료 (3건)</h3>
+
+  <p><strong>OQ #1 ▶ LOCKED a)</strong> — 모바일 BottomSheet maxHeight = 90dvh source verbatim (SchedulePage.tsx line 758 원본 유지).</p>
+
+  <p><strong>OQ #2 ▶ LOCKED b)</strong> — 저장 버튼 색 = accent solid <code>var(--accent)</code> (디자인 시스템 토큰 일관, 라이트/다크 자동 분기). source linear-gradient 폐기 — 17 frame 저장 버튼 19곳 모두 적용.</p>
+
+  <p><strong>OQ #3 ▶ LOCKED a)</strong> — INSP_CATEGORIES 19종 입력 = <code>&lt;select&gt;</code> native source verbatim (iOS PWA 키보드 자동 popup 활용).</p>
+
+  <p><strong>LOCKED 사전 결정 (사용자 답변 불필요)</strong></p>
+  <ul>
+    <li><strong>ELEV_SUBCATS / FIRE_SUBCATS 라벨</strong> = SchedulePage.tsx line 63~64 verbatim 원본 (승강기 정기 점검 / 승강기 수리 / 승강기 법정 검사 / 소방 상반기 종합정밀점검 / 소방 하반기 작동기능점검 / 소방 시설물 공사 / 소방 관공서 불시 점검). task_scope 본문의 다른 라벨 (자체 점검 / 안전관리자 교육 / 보수교육 등) 은 별도 wave 에서 SchedulePage.tsx 자체 패치 후 sketch 재작성 필요.</li>
+    <li>SCHED_CATEGORIES 5 hex (#3b82f6 점검 / #eab308 업무 / #e2e8f0 행사 / #f97316 승강기 / #ef4444 소방) — W1+W2+W3 LOCKED mirror</li>
+    <li>라이트 event #94a3b8 hardcode override — W1+W2+W3 LOCKED mirror (chrome consistency)</li>
+    <li>이모지 0 — feedback_tsx_wave_emoji_dot_gap.md</li>
+    <li>노안 격상: source 9·10·11px → 12 이상 / 헤더 15 → 18 / CTA 14 → 16 / fire grid 10 → 12</li>
+    <li>inspection-modal-chrome-rules.md §1~§6 mirror (overlay rgba(0,0,0,0.55) z-300 + sheet bg-surface-raised + radius-lg 16 desktop / 20 0 0 0 mobile)</li>
+    <li>SchedulePage.tsx 0 변경 — 시안 only (비즈니스 로직 변경 금지)</li>
+  </ul>
+</div>
+
+</body>
+</html>

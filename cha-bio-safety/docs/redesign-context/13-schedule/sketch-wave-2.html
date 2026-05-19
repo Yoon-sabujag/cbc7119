@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2.html — redesign/13-schedule W2
+  작성: 2026-05-19 / quick 260519-dll
+  범위: 선택된 일자 헤더 + 일자별 일정 카드 리스트 + 카테고리 범례 + add CTA + 상태 variant + 빈/로딩 상태
+  out of scope: 월간 점검 계획 미리보기 테이블 (별도 wave) / AddModal 내부 / EditModal 내부 / 자동 생성 패널
+  참조: design-system.md v0.1.1 §1~§7, SchedulePage.tsx line 81~94 + 304~405 verbatim, sketch-wave-1.html LOCKED 결정 mirror
+
+  open questions — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED a) — 상태 칩 색 = SchedulePage.tsx line 89~94 verbatim (예정=text-tertiary / 진행중=accent / 완료=safe / 지연=danger)
+    OQ #2 ▶ LOCKED c) — add CTA = FAB (우하단 fixed 56px 원형 accent bg). 헤더 inline + 풀폭 버튼 제거.
+    OQ #3 ▶ LOCKED b) — 멀티데이 범위 표시 = 시간 자리 텍스트 "5/12 ~ 5/15 (4일)". 제목 옆 칩 / 메타 row 칩 제거.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W2 일자 헤더 + 일정 카드 + 범례 + CTA</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (모바일 기본)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 (tokens.css line 149~162 verbatim) */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* ============================================================
+     * Sketch 헬퍼
+     * ============================================================ */
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      position: relative;
+    }
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    /* 라이트 모드에서만 event dot 을 #94a3b8 로 (W1 OQ #1 LOCKED a) */
+    [data-theme="light"] .event-dot-themed {
+      background: #94a3b8 !important;
+    }
+  </style>
+  <script>
+    // tailwind config: 12-staff sketch 패턴 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       다크/라이트 토글 (페이지 root + frame 분기용)
+       ============================================================ -->
+  <div class="fixed top-4 right-4 z-50 flex gap-2">
+    <button onclick="setTheme('dark')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-strong text-text-primary"
+      style="line-height:1;">
+      다크
+    </button>
+    <button onclick="setTheme('light')"
+      class="text-caption font-medium px-3 py-1 rounded-pill bg-surface-raised border border-border-default text-text-secondary"
+      style="line-height:1;">
+      라이트
+    </button>
+  </div>
+
+  <script>
+    function setTheme(t) {
+      document.documentElement.dataset.theme = t;
+      document.body.classList.toggle('page-bg-dark',  t === 'dark');
+      document.body.classList.toggle('page-bg-light', t === 'light');
+    }
+  </script>
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">13-schedule sketch W2 — 일자 헤더 + 일정 카드 리스트 + 범례 + CTA + 상태 variant</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크 + 라이트 side-by-side) + 데스크톱 1280px placeholder. 우상단 토글로 frame 분기됨.
+      W1 의 LOCKED 결정 (카테고리 hex 5종, "오늘" 칩 제거, 멀티데이 = dot only) 일관 mirror.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 (다크 + 라이트 side-by-side)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    <!-- ▼▼▼ 다크 frame ▼▼▼ -->
+    <div class="frame-shell" style="width:393px; min-height:1400px; margin:0 auto;" data-frame="mobile-dark">
+      <div class="text-caption text-text-tertiary" style="padding:8px 16px 0; line-height:1;">모바일 393px · 다크</div>
+
+      <!-- 섹션 A — W1 본문 placeholder (이전 wave 축약) -->
+      <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary"
+        style="margin:12px 16px; padding:24px 16px; line-height:1.5;">
+        ↑ 이전 wave (W1): 자체 헤더 + 월/연도 네비 + 캘린더 grid<br/>
+        현재 선택 셀 = 2026-05-05 (어린이날)
+      </div>
+
+      <!-- 섹션 B — 공휴일 라벨 (W1 ④ 그대로 유지) -->
+      <div class="text-caption font-semibold" style="margin:0 16px 8px; padding-left:2px; color:var(--status-danger); line-height:1.5;">
+        어린이날
+      </div>
+
+      <!-- 섹션 C — 선택된 일자 헤더 (W2 신규, OQ #2 LOCKED c → 헤더 inline 추가 제거) -->
+      <!-- SchedulePage.tsx line 349~360 verbatim: selDate=2026-05-05, today=2026-05-19 → "5/5 일정" + "3건" -->
+      <div class="flex items-center" style="margin:0 16px 8px; gap:8px;">
+        <span class="text-caption font-semibold text-text-secondary" style="line-height:1;">5/5 일정</span>
+        <span class="text-caption text-text-tertiary" style="line-height:1;">3건</span>
+      </div>
+
+      <!-- 섹션 D — 일정 카드 리스트 (시나리오 A, 3장) -->
+      <div class="flex flex-col" style="gap:8px; padding:0 16px;">
+
+        <!-- 카드 1 — 행사 + 예정 -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token"
+          style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token event-dot-themed"
+              style="color:#e2e8f0; background:rgba(226,232,240,0.13); padding:2px 8px; line-height:1.4;">
+              행사
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">어린이날 휴무</div>
+          <div class="text-caption text-text-secondary" style="white-space:pre-line; line-height:1.5;">공휴일, 점검 일정 없음</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+
+        <!-- 카드 2 — 업무 + 완료 (09:00) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token"
+          style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#eab308; background:rgba(234,179,8,0.13); padding:2px 8px; line-height:1.4;">
+              업무
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--status-safe); line-height:1;">완료</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">당직 인계 정리</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4;">09:00</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+
+        <!-- 카드 3 — 점검 + 진행중 + sub-category (소화기) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token"
+          style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.13); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium rounded-sm-token"
+              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
+              소화기
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--accent); line-height:1;">진행중</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">전층 소화기 점검</div>
+          <div class="text-caption text-text-secondary" style="white-space:pre-line; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">   - 소화기 압력상태 점검
+   - 안전핀 체결상태 확인
+   - 위치표시 스티커 부착상태 점검</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4; margin-top:4px;">14:00</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-semibold rounded-sm-token"
+              style="border:1px solid var(--status-safe); background:var(--status-safe-bg); color:var(--status-safe); padding:4px 10px; line-height:1.4;">
+              완료
+            </button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 섹션 E — 멀티데이 카드 (시나리오 B, OQ #3 LOCKED b = 시간 자리 텍스트) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        멀티데이 / 범위 일정
+      </div>
+
+      <div class="flex flex-col" style="gap:8px; padding:0 16px;">
+        <!-- OQ #3 LOCKED b: 시간 자리 텍스트 "5/12 ~ 5/15 (4일)" -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#ef4444; background:rgba(239,68,68,0.13); padding:2px 8px; line-height:1.4;">
+              소방
+            </span>
+            <span class="text-caption font-medium rounded-sm-token"
+              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
+              동양소방
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">소방 상반기 종합정밀점검</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4;">5/12 ~ 5/15 (4일)</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 섹션 F — 상태 variant sub-strip (4장 P/Q/R/S) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        상태 variant 4종 (카테고리=점검 고정)
+      </div>
+
+      <div class="flex flex-col" style="gap:8px; padding:0 16px;">
+
+        <!-- 카드 P — 예정 (text-tertiary 회색) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.13); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary">P · 유도등 점검 (예정)</div>
+        </div>
+
+        <!-- 카드 Q — 진행중 (text-accent) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.13); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--accent); line-height:1;">진행중</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary">Q · 유도등 점검 (진행중)</div>
+        </div>
+
+        <!-- 카드 R — 완료 (text-safe, opacity 0.7) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px; opacity:0.7;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.13); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--status-safe); line-height:1;">완료</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary">R · 유도등 점검 (완료)</div>
+        </div>
+
+        <!-- 카드 S — 지연 (text-danger + 좌측 4px bar) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token"
+          style="padding:12px 14px 12px 16px; position:relative;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--status-danger-bar); border-radius:8px 0 0 8px;"></div>
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.13); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--status-danger); line-height:1;">지연</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary">S · 유도등 점검 (지연)</div>
+        </div>
+      </div>
+
+      <!-- 섹션 G — 카테고리 범례 (5종 dot + 라벨) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        카테고리 범례 (12-staff W3 mirror)
+      </div>
+      <div class="flex flex-wrap items-center"
+        style="margin:0 16px; gap:12px; padding:12px 14px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px;">
+        <span class="text-caption text-text-secondary font-semibold" style="line-height:1;">카테고리</span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">점검</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#eab308;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">업무</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span class="event-dot-themed" style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">행사</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">승강기</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">소방</span>
+        </span>
+      </div>
+
+      <!-- 섹션 H — Empty state -->
+      <div class="text-caption font-semibold text-text-tertiary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        Empty state (선택 셀 = 5/26 시연)
+      </div>
+      <div class="border border-border-default bg-surface-raised rounded-md-token text-center"
+        style="margin:0 16px; padding:32px 16px;">
+        <div class="text-body text-text-tertiary" style="margin-bottom:12px;">등록된 일정이 없습니다</div>
+        <button class="text-label font-semibold rounded-sm-token border border-border-strong bg-surface-sunken text-text-secondary"
+          style="padding:10px 20px;">
+          + 일정 추가
+        </button>
+      </div>
+
+      <!-- 섹션 I — Loading state -->
+      <div class="text-caption font-semibold text-text-tertiary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        Loading state
+      </div>
+      <div class="text-center text-caption text-text-tertiary"
+        style="margin:0 16px; padding:32px 16px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px;">
+        불러오는 중...
+      </div>
+
+      <!-- 섹션 J — add CTA (OQ #2 LOCKED c = FAB 우하단 fixed) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        add CTA — FAB (우하단)
+      </div>
+      <div style="margin:0 16px 32px; height:80px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px; position:relative;">
+        <span class="text-caption text-text-tertiary" style="position:absolute; left:12px; top:12px; line-height:1.5;">스크롤 영역 placeholder</span>
+        <span style="position:absolute; right:16px; bottom:16px; width:56px; height:56px; border-radius:50%; background:var(--accent); color:#fff; font-size:24px; font-weight:600; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(59,130,246,0.4);">
+          +
+        </span>
+      </div>
+
+    </div>
+    <!-- ▲▲▲ 다크 frame end ▲▲▲ -->
+
+
+    <!-- ▼▼▼ 라이트 frame ▼▼▼ -->
+    <div class="frame-shell" style="width:393px; min-height:1400px; margin:0 auto;" data-frame="mobile-light" data-force-light="true">
+      <div class="text-caption text-text-tertiary" style="padding:8px 16px 0; line-height:1;">모바일 393px · 라이트 (우상단 토글로 활성)</div>
+
+      <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary"
+        style="margin:12px 16px; padding:24px 16px; line-height:1.5;">
+        ↑ 이전 wave (W1): 자체 헤더 + 월/연도 네비 + 캘린더 grid<br/>
+        현재 선택 셀 = 2026-05-05 (어린이날) — 라이트 모드에서 event dot 은 #94a3b8 로 변경
+      </div>
+
+      <div class="text-caption font-semibold" style="margin:0 16px 8px; padding-left:2px; color:var(--status-danger); line-height:1.5;">
+        어린이날
+      </div>
+
+      <!-- 선택 일자 헤더 (OQ #2 LOCKED c → 헤더 inline 추가 제거) -->
+      <div class="flex items-center" style="margin:0 16px 8px; gap:8px;">
+        <span class="text-caption font-semibold text-text-secondary" style="line-height:1;">5/5 일정</span>
+        <span class="text-caption text-text-tertiary" style="line-height:1;">3건</span>
+      </div>
+
+      <div class="flex flex-col" style="gap:8px; padding:0 16px;">
+
+        <!-- 카드 1 — 행사 (라이트는 #94a3b8) -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token event-dot-themed"
+              style="color:#94a3b8; background:rgba(148,163,184,0.18); padding:2px 8px; line-height:1.4;">
+              행사
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">어린이날 휴무</div>
+          <div class="text-caption text-text-secondary" style="white-space:pre-line; line-height:1.5;">공휴일, 점검 일정 없음</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+
+        <!-- 카드 2 — 업무 + 완료 -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#eab308; background:rgba(234,179,8,0.18); padding:2px 8px; line-height:1.4;">
+              업무
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--status-safe); line-height:1;">완료</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">당직 인계 정리</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4;">09:00</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+
+        <!-- 카드 3 — 점검 + 진행중 + 소화기 -->
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#3b82f6; background:rgba(59,130,246,0.18); padding:2px 8px; line-height:1.4;">
+              점검
+            </span>
+            <span class="text-caption font-medium rounded-sm-token"
+              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
+              소화기
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--accent); line-height:1;">진행중</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">전층 소화기 점검</div>
+          <div class="text-caption text-text-secondary" style="white-space:pre-line; line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">   - 소화기 압력상태 점검
+   - 안전핀 체결상태 확인
+   - 위치표시 스티커 부착상태 점검</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4; margin-top:4px;">14:00</div>
+          <div class="flex" style="gap:6px; margin-top:8px;">
+            <button class="text-caption font-semibold rounded-sm-token"
+              style="border:1px solid var(--status-safe); background:var(--status-safe-bg); color:var(--status-safe); padding:4px 10px; line-height:1.4;">
+              완료
+            </button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-secondary"
+              style="padding:4px 10px; line-height:1.4;">수정</button>
+            <button class="text-caption font-medium rounded-sm-token border border-border-default bg-surface-sunken text-text-tertiary"
+              style="padding:4px 10px; line-height:1.4;">삭제</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 라이트 frame — 멀티데이 (OQ #3 LOCKED b 라이트 mirror) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        멀티데이 (라이트 mirror)
+      </div>
+      <div style="padding:0 16px;">
+        <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:12px 14px;">
+          <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+            <span class="text-caption font-semibold rounded-sm-token"
+              style="color:#ef4444; background:rgba(239,68,68,0.18); padding:2px 8px; line-height:1.4;">
+              소방
+            </span>
+            <span class="text-caption font-medium rounded-sm-token"
+              style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
+              동양소방
+            </span>
+            <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+          </div>
+          <div class="text-body font-semibold text-text-primary" style="margin-bottom:4px;">소방 상반기 종합정밀점검</div>
+          <div class="text-caption text-text-tertiary" style="line-height:1.4;">5/12 ~ 5/15 (4일)</div>
+        </div>
+      </div>
+
+      <!-- 라이트 frame — 카테고리 범례 (행사 dot #94a3b8) -->
+      <div class="text-caption font-semibold text-text-secondary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        카테고리 범례 (라이트 — 행사 #94a3b8)
+      </div>
+      <div class="flex flex-wrap items-center"
+        style="margin:0 16px; gap:12px; padding:12px 14px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px;">
+        <span class="text-caption text-text-secondary font-semibold" style="line-height:1;">카테고리</span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">점검</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#eab308;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">업무</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#94a3b8;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">행사</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">승강기</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">소방</span>
+        </span>
+      </div>
+
+      <!-- 라이트 frame — Empty + Loading mirror -->
+      <div class="text-caption font-semibold text-text-tertiary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        Empty state
+      </div>
+      <div class="border border-border-default bg-surface-raised rounded-md-token text-center"
+        style="margin:0 16px; padding:32px 16px;">
+        <div class="text-body text-text-tertiary" style="margin-bottom:12px;">등록된 일정이 없습니다</div>
+        <button class="text-label font-semibold rounded-sm-token border border-border-strong bg-surface-sunken text-text-secondary"
+          style="padding:10px 20px;">
+          + 일정 추가
+        </button>
+      </div>
+
+      <div class="text-caption font-semibold text-text-tertiary" style="margin:20px 16px 8px; padding-left:2px; line-height:1.5;">
+        Loading state
+      </div>
+      <div class="text-center text-caption text-text-tertiary"
+        style="margin:0 16px 32px; padding:32px 16px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px;">
+        불러오는 중...
+      </div>
+
+    </div>
+    <!-- ▲▲▲ 라이트 frame end ▲▲▲ -->
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 1개 (1280px placeholder)
+       SchedulePage.tsx line 374~398 verbatim — 카테고리별 컬럼 grid (width:300px + 카테고리 컬러 헤더 + count)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-12">
+    <div class="text-caption text-text-tertiary mb-2" style="margin-left:8px; line-height:1.5;">데스크톱 1280px · 카테고리 컬럼 grid</div>
+    <div class="frame-shell" style="width:1280px; max-width:100%; min-height:600px; margin:0 auto; padding:24px;">
+
+      <div class="flex" style="gap:24px;">
+
+        <!-- 좌측: 달력 placeholder -->
+        <div class="border-2 border-dashed border-border-default rounded-md-token text-center text-caption text-text-tertiary"
+          style="flex:1; padding:60px 24px; line-height:1.5;">
+          ↑ 이전 wave (W1): 자체 헤더 + 월/연도 네비 + 캘린더 grid<br/>
+          (데스크톱은 좌측 컬럼 캘린더)
+        </div>
+
+        <!-- 우측: 카테고리별 컬럼 grid -->
+        <div style="flex:2; display:flex; gap:12px; flex-wrap:wrap;">
+
+          <!-- 컬럼 1: 행사 (1) -->
+          <div style="width:300px;">
+            <div class="text-caption font-semibold"
+              style="color:#e2e8f0; border-bottom:2px solid rgba(226,232,240,0.27); padding:3px 0; margin-bottom:6px; line-height:1.4;">
+              <span class="event-dot-themed" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#e2e8f0; margin-right:6px;"></span>
+              행사 (1)
+            </div>
+            <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:10px 12px;">
+              <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+                <span class="text-caption font-medium" style="margin-left:auto; color:var(--text-tertiary); line-height:1;">예정</span>
+              </div>
+              <div class="text-body font-semibold text-text-primary">어린이날 휴무</div>
+              <div class="text-caption text-text-secondary" style="line-height:1.5;">공휴일, 점검 일정 없음</div>
+            </div>
+          </div>
+
+          <!-- 컬럼 2: 업무 (1) -->
+          <div style="width:300px;">
+            <div class="text-caption font-semibold"
+              style="color:#eab308; border-bottom:2px solid rgba(234,179,8,0.27); padding:3px 0; margin-bottom:6px; line-height:1.4;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#eab308; margin-right:6px;"></span>
+              업무 (1)
+            </div>
+            <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:10px 12px;">
+              <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+                <span class="text-caption font-medium" style="margin-left:auto; color:var(--status-safe); line-height:1;">완료</span>
+              </div>
+              <div class="text-body font-semibold text-text-primary">당직 인계 정리</div>
+              <div class="text-caption text-text-tertiary" style="line-height:1.4;">09:00</div>
+            </div>
+          </div>
+
+          <!-- 컬럼 3: 점검 (1) -->
+          <div style="width:300px;">
+            <div class="text-caption font-semibold"
+              style="color:#3b82f6; border-bottom:2px solid rgba(59,130,246,0.27); padding:3px 0; margin-bottom:6px; line-height:1.4;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#3b82f6; margin-right:6px;"></span>
+              점검 (1)
+            </div>
+            <div class="bg-surface-raised border border-border-default rounded-md-token" style="padding:10px 12px;">
+              <div class="flex items-center flex-wrap" style="gap:6px; margin-bottom:6px;">
+                <span class="text-caption font-medium rounded-sm-token"
+                  style="color:var(--status-info); background:var(--status-info-bg); padding:2px 8px; line-height:1.4;">
+                  소화기
+                </span>
+                <span class="text-caption font-medium" style="margin-left:auto; color:var(--accent); line-height:1;">진행중</span>
+              </div>
+              <div class="text-body font-semibold text-text-primary">전층 소화기 점검</div>
+              <div class="text-caption text-text-tertiary" style="line-height:1.4; margin-top:4px;">14:00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 데스크톱 frame 내 범례 (1280px wide) -->
+      <div class="flex flex-wrap items-center"
+        style="margin-top:24px; gap:12px; padding:12px 14px; background:var(--surface-raised); border:1px solid var(--border-default); border-radius:12px;">
+        <span class="text-caption text-text-secondary font-semibold" style="line-height:1;">카테고리</span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">점검</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#eab308;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">업무</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span class="event-dot-themed" style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">행사</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#f97316;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">승강기</span>
+        </span>
+        <span class="flex items-center" style="gap:4px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+          <span class="text-caption text-text-primary" style="line-height:1;">소방</span>
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       OQ LOCKED 카드 — 사용자 답변 완료 (2026-05-19)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mb-12 p-5 rounded-md-token"
+    style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.3);">
+    <h3 class="text-title text-green-300 mb-3 font-medium">OQ LOCKED · 사용자 답변 완료 (3건)</h3>
+    <ol class="text-label text-zinc-200 list-decimal pl-5" style="line-height:1.7;">
+      <li class="mb-2">
+        <strong>OQ #1 ▶ LOCKED a)</strong> — 상태 칩 색 = SchedulePage.tsx line 89~94 verbatim. 예정=text-tertiary / 진행중=accent / 완료=safe / 지연=danger.
+      </li>
+      <li class="mb-2">
+        <strong>OQ #2 ▶ LOCKED c)</strong> — add CTA = FAB (우하단 fixed 56px 원형 accent bg). 헤더 inline + 리스트 위 풀폭 버튼 제거.
+      </li>
+      <li>
+        <strong>OQ #3 ▶ LOCKED b)</strong> — 멀티데이 범위 표시 = 시간 자리 텍스트 "5/12 ~ 5/15 (4일)". 제목 옆 칩 / 메타 row 칩 제거.
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============================================================
+       Footer — 메모리 룰 체크리스트
+       ============================================================ -->
+  <footer class="max-w-[1400px] mx-auto p-5 rounded-md-token text-caption text-zinc-500"
+    style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); line-height:1.6;">
+    <p class="mb-2"><strong class="text-zinc-300">메모리 룰 체크리스트 (작성 시 강제)</strong></p>
+    <ul class="list-disc pl-5">
+      <li>이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)</li>
+      <li>9·10·11px font-size 0 (text-caption 12 마지노선, feedback_text_caption_leading_none.md)</li>
+      <li>status- prefix className 0 (text-fire-bar O, text-status-fire-bar X — feedback_tailwind_token_class_pattern.md)</li>
+      <li>SCHED_CATEGORIES hex 5종 verbatim — #3b82f6 / #eab308 / #e2e8f0 (다크) · #94a3b8 (라이트) / #f97316 / #ef4444</li>
+      <li>STATUS_LABEL 한글 4종 verbatim — 예정 / 진행중 / 완료 / 지연</li>
+      <li>tokens.css line 16~197 verbatim + typography.css line 28~95 verbatim 임베드</li>
+      <li>data-theme 토글 동작 (다크/라이트)</li>
+      <li>W1 LOCKED 결정 일관: 라이트 event #94a3b8 / 멀티데이 = dot only / "오늘" 칩 제거</li>
+      <li>작은 컨테이너 안 text-caption → leading-none 또는 line-height:1 명시 (feedback_text_caption_leading_none.md)</li>
+      <li>w-8/h-8 = 48px 함정 회피 — 명시적 px 또는 aspect-square (feedback_tailwind_w8_h8_is_48px.md)</li>
+      <li>비즈니스 로직 0 변경 (SchedulePage.tsx 1줄도 수정 X — 시안 디자인만)</li>
+      <li>inline style 사용 시 토큰 var(--*) 또는 hex set 만 — 임의 hex 금지</li>
+    </ul>
+  </footer>
+
+</body>
+</html>

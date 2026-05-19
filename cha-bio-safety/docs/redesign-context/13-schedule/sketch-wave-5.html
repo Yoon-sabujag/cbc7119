@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-5.html — redesign/13-schedule W5
+  작성: 2026-05-19 / quick 260519-lof
+  범위: EditModal (SchedulePage.tsx line 966~1042 verbatim)
+        - 모달 chrome (overlay + sheet desktop/mobile 분기) — sketch-wave-4.html (AddModal) chrome 100% mirror
+        - 헤더 ("일정 수정" + close X) — 노안 격상 15 → 18 (text-title)
+        - 본문 4 필드 (제목 / 날짜+시간 / 내용 / 카테고리 lock 메타 row)
+        - 저장 단일 버튼 ("수정 저장" / "저장 중...") — source linear-gradient 폐기, var(--accent) solid
+        - 6 frame matrix:
+            A. 모바일 default (다크)
+            B. 모바일 empty title error (다크, inline 에러)
+            C. 모바일 saving (다크)
+            D. 카테고리 5 종 mini-strip (다크) — inspect / task / event / elevator / fire dot
+            E. 데스크톱 480 center (다크)
+            F. 라이트 mirror — default + 카테고리 5 strip (event dot #94a3b8 hardcode)
+
+  out of scope:
+    - W1~W4 LOCKED (캘린더 / 일자 카드 / 미리보기 / AddModal) — 별도 wave 완결
+    - DeleteConfirm / MonthlyPlanPreview / 자동 생성 패널 — 별도 wave
+    - TSX 변환 (SchedulePage.tsx 0줄 수정 — 시안 only, 비즈 로직 변경 0)
+
+  참조:
+    - design-system.md v0.1.1 §1~§7
+    - SchedulePage.tsx
+        - line 81~87 SCHED_CATEGORIES (5 hex verbatim — #3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444)
+        - line 966~1042 EditModal 본체 (verbatim mapping target)
+        - line 1055~1062 lbl / inp 토큰
+    - sketch-wave-1.html LOCKED (event #94a3b8 / 카테고리 5 hex / 이모지 0)
+    - sketch-wave-2.html LOCKED (FAB CTA / status chip 색)
+    - sketch-wave-3.html LOCKED (모바일 미구현 + 데스크톱 1280px)
+    - sketch-wave-4.html LOCKED (AddModal chrome / 90dvh / var(--accent) solid / 17 frame)
+    - inspection-modal-chrome-rules.md §1~§6 (overlay rgba(0,0,0,0.55) z-300 + sheet bg-surface-raised + radius-lg 16 desktop / 20 0 0 0 mobile)
+    - tokens.css line 16~197 verbatim 임베드
+    - typography.css line 28~95 verbatim 임베드
+
+  W1+W2+W3+W4 LOCKED 결정 일관 mirror:
+    - SCHED_CATEGORIES 5 hex (#3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444)
+    - 라이트 event #94a3b8 hardcode override
+    - BottomSheet maxHeight 90dvh source verbatim (W4 OQ #1 LOCKED a)
+    - 저장 버튼 var(--accent) solid — source linear-gradient (1d4ed8 → 2563eb) 0회 (W4 OQ #2 LOCKED b)
+    - 이모지 0 (feedback_tsx_wave_emoji_dot_gap.md)
+    - 9·10·11px font-size 0 (text-caption 12 마지노선)
+    - status- prefix className 0
+    - 노안 격상: 헤더 15 → 18 / 저장 버튼 14 → 16
+
+  W5 신규 reasonable call (W4 LOCKED OQ 동일 mirror, 사용자 클래리피케이션 회피):
+    - OQ #1 (b 채택): 카테고리는 source 에서 수정 불가 — 본문 메타 row 텍스트 형태로 lock 표시.
+      "카테고리: 점검 (수정 후에도 변경할 수 없습니다)" 형태. UI 추가 없음 (source 동작 그대로).
+    - OQ #2 (b 채택): empty title 처리 = inline 에러 (input border var(--danger) + 아래 작은 라벨).
+      toast.error('제목을 입력하세요') verbatim. modal 안에서 즉시 시각 피드백.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W5 EditModal</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * tokens.css line 16~197 verbatim 임베드
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* status-danger token (W5 추가 — inline error border 용) */
+    :root, [data-theme="dark"] { --danger: #f87171; }
+    [data-theme="light"] { --danger: #991b1b; }
+
+    /* ============================================================
+     * typography.css line 28~95 verbatim 임베드
+     * ============================================================ */
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* ============================================================
+     * 시안 페이지 chrome (sketch-wave-4.html mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      background: #050609;
+      color: #e6edf3;
+      margin: 0;
+      padding: 32px 24px 64px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: #e6edf3;
+    }
+    .page-sub {
+      font-size: 14px;
+      color: #adb6c0;
+      margin: 0 0 32px;
+      line-height: 1.6;
+    }
+
+    .frame-shell {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--surface-page);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+      position: relative;
+    }
+    .frame-shell[data-theme="light"] {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    }
+
+    /* 모바일 프레임 (BottomSheet 시연 — sheet 가 하단에 붙음) */
+    .frame-mobile {
+      width: 393px;
+      min-height: 720px;
+      position: relative;
+    }
+    /* 데스크톱 프레임 (중앙 모달 시연) */
+    .frame-desktop {
+      width: 1280px;
+      min-height: 720px;
+      position: relative;
+    }
+
+    .frame-label {
+      position: absolute;
+      top: -28px;
+      left: 0;
+      font-size: 12px;
+      color: #8b949e;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .frame-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 72px;
+      padding-top: 28px;
+    }
+
+    /* 모달 chrome — inspection-modal-chrome-rules.md §1~§6 mirror */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 300;
+    }
+    .modal-overlay-mobile {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      z-index: 300;
+    }
+    .modal-sheet-desktop {
+      width: 480px;
+      max-width: 90vw;
+      background: var(--surface-raised);
+      border-radius: 16px;
+      padding: 24px 28px 28px;
+      max-height: 90dvh;
+      overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48);
+      box-sizing: border-box;
+    }
+    .modal-sheet-mobile {
+      width: 100%;
+      background: var(--surface-raised);
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px 40px;
+      max-height: 90dvh;
+      overflow-y: auto;
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.48);
+      box-sizing: border-box;
+    }
+
+    /* 라이트 mirror — event dot override (W1+W2+W3+W4 LOCKED chrome consistency) */
+    [data-theme="light"] .event-dot-themed {
+      background: #94a3b8 !important;
+    }
+    .event-dot-themed {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    /* 가짜 캘린더 placeholder (모바일 BottomSheet 뒤 배경) */
+    .calendar-placeholder {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-page);
+      padding: 16px;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .calendar-placeholder .ph-row {
+      height: 14px;
+      background: var(--surface-sunken);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .calendar-placeholder .ph-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 16px;
+    }
+    .calendar-placeholder .ph-cell {
+      aspect-ratio: 1;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+    }
+
+    /* OQ 푸터 */
+    .oq-footer {
+      margin-top: 48px;
+      padding: 24px 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: #11151b;
+    }
+    .oq-footer h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .oq-footer p {
+      margin: 16px 0 4px;
+      font-size: 14px;
+      color: #adb6c0;
+    }
+    .oq-footer ul {
+      margin: 0 0 12px;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #adb6c0;
+      line-height: 1.7;
+    }
+    .oq-footer strong { color: #e6edf3; }
+    .oq-footer code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #e6edf3;
+    }
+
+    /* 카테고리 strip 카드 (Frame D / F 우측) */
+    .cat-card {
+      width: 200px;
+      padding: 16px;
+      background: var(--surface-raised);
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      box-sizing: border-box;
+    }
+    .cat-card .cat-lock-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .cat-card .cat-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .cat-card .cat-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .cat-card .cat-mini-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .cat-card .cat-mini-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      box-sizing: border-box;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-size: 13px;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+<h1 class="page-title">13 월간 점검 계획 — sketch W5 EditModal</h1>
+<p class="page-sub">
+  EditModal (SchedulePage.tsx line 966~1042 verbatim) 정적 시안 / 6 frame (default / empty-title-error / saving / 카테고리 5 strip / 데스크톱 480 / 라이트 mirror) /
+  W1+W2+W3+W4 LOCKED 결정 일관 mirror (event #94a3b8 / 카테고리 5 hex / 이모지 0 / 90dvh / var(--accent) solid) /
+  노안 격상 (헤더 15→18 text-title / 저장 버튼 14→16) / OQ #1+#2 reasonable call (lock 메타 row + inline 에러)
+</p>
+
+<!-- ============================================================
+     Frame A — 모바일 default (다크)
+     배경: 흐릿한 캘린더 placeholder + overlay rgba(0,0,0,0.55)
+     EditModal BottomSheet (radius 20 20 0 0, padding 20 16 40, maxHeight 90dvh)
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame A — 모바일 default (dark, BottomSheet 90dvh)</span>
+    <!-- 가짜 캘린더 placeholder -->
+    <div class="calendar-placeholder">
+      <div class="ph-row" style="width:60%;"></div>
+      <div class="ph-row" style="width:30%; margin-bottom:16px;"></div>
+      <div class="ph-grid">
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+      </div>
+    </div>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <!-- 헤더: 일정 수정 (text-title 18 격상) + close X (32x32 격상) -->
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 수정</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <!-- 본문: 카테고리 lock 메타 + 4 필드 + 저장 -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 lock 메타 row (OQ #1 b — source 카테고리 수정 불가) -->
+          <div style="display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface-sunken); border-radius:8px;">
+            <span style="width:10px; height:10px; border-radius:99px; background:#3b82f6; flex-shrink:0;"></span>
+            <span style="font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.4;">점검</span>
+            <span class="text-caption" style="color:var(--text-tertiary); line-height:1.4;">· 카테고리는 변경할 수 없습니다</span>
+          </div>
+          <!-- 1. 제목 input (required, height 44, font-size 16 노안) -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="유도등 점검" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:16px; outline:none; font-family:inherit;" />
+          </div>
+          <!-- 2. 날짜 + 시간(선택) row -->
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">날짜</label>
+              <input type="date" value="2026-05-19" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="14:00" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+          </div>
+          <!-- 3. 내용 textarea (rows=4, 선택) -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="4" style="width:100%; padding:12px 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; resize:none; line-height:1.6; font-family:inherit;">유도등 분기점검
+ - 점등 상태 확인
+ - 충전 상태 확인</textarea>
+          </div>
+          <!-- 4. 저장 단일 버튼 — var(--accent) solid (W4 OQ #2 LOCKED b), font-size 16 노안 격상 -->
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;">수정 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame B — 모바일 empty title error (다크, inline 에러)
+     OQ #2 b: input border var(--danger) + 아래 작은 라벨 "제목을 입력하세요" (toast.error verbatim)
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame B — 모바일 empty title error (dark, inline 에러)</span>
+    <div class="calendar-placeholder">
+      <div class="ph-row" style="width:60%;"></div>
+      <div class="ph-row" style="width:30%; margin-bottom:16px;"></div>
+      <div class="ph-grid">
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+      </div>
+    </div>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 수정</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 lock 메타 row (업무 카테고리 시연) -->
+          <div style="display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface-sunken); border-radius:8px;">
+            <span style="width:10px; height:10px; border-radius:99px; background:#eab308; flex-shrink:0;"></span>
+            <span style="font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.4;">업무</span>
+            <span class="text-caption" style="color:var(--text-tertiary); line-height:1.4;">· 카테고리는 변경할 수 없습니다</span>
+          </div>
+          <!-- 1. 제목 input (empty, border var(--danger), inline error) -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="" placeholder="제목을 입력하세요" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--danger); color:var(--text-primary); font-size:16px; outline:none; font-family:inherit;" />
+            <!-- inline 에러 메시지 (toast.error verbatim, leading-none 명시 — 작은 컨테이너 룰) -->
+            <div class="text-caption" style="margin-top:6px; color:var(--danger); line-height:1; font-weight:600;">제목을 입력하세요</div>
+          </div>
+          <!-- 2. 날짜 + 시간 row (값 있음) -->
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">날짜</label>
+              <input type="date" value="2026-05-22" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+          </div>
+          <!-- 3. 내용 textarea -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="4" style="width:100%; padding:12px 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; resize:none; line-height:1.6; font-family:inherit;">출입증 회수
+방재팀 인원 변동 반영</textarea>
+          </div>
+          <!-- 4. 저장 버튼 (normal, saving false) -->
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;">수정 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame C — 모바일 saving (다크, opacity 0.6 + disabled)
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame C — 모바일 saving 상태 (dark, opacity 0.6)</span>
+    <div class="calendar-placeholder">
+      <div class="ph-row" style="width:60%;"></div>
+      <div class="ph-row" style="width:30%; margin-bottom:16px;"></div>
+      <div class="ph-grid">
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+      </div>
+    </div>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 수정</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 lock 메타 row (소방 카테고리 시연) -->
+          <div style="display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface-sunken); border-radius:8px;">
+            <span style="width:10px; height:10px; border-radius:99px; background:#ef4444; flex-shrink:0;"></span>
+            <span style="font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.4;">소방</span>
+            <span class="text-caption" style="color:var(--text-tertiary); line-height:1.4;">· 카테고리는 변경할 수 없습니다</span>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="상반기 종합정밀점검" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:16px; outline:none; font-family:inherit;" />
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">날짜</label>
+              <input type="date" value="2026-06-10" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="09:00" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="4" style="width:100%; padding:12px 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; resize:none; line-height:1.6; font-family:inherit;">소방시설 종합정밀점검 (반기 1회 법정)
+- 자탐 / SP / 옥내소화전 / 제연 / 유도등 전수
+- 점검보고서 작성 및 제출</textarea>
+          </div>
+          <!-- 저장 버튼 saving — text "저장 중...", opacity 0.6, cursor not-allowed -->
+          <button disabled style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:not-allowed; opacity:0.6; font-family:inherit;">저장 중...</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame D — 카테고리 5종 mini-strip (다크)
+     5 카드 가로 grid (gap 12). 각 카드: lock row (dot + 라벨) + 미니 헤더 "일정 수정 — {카테고리}" + 더미 input
+     5 hex 모두 등장 (#3b82f6 / #eab308 / #e2e8f0 / #f97316 / #ef4444)
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-shell" data-theme="dark" style="width:100%; padding:32px 24px; box-sizing:border-box;">
+    <span class="frame-label">Frame D — 카테고리 5종 mini-strip (dark, 5 hex 한눈에)</span>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-start;">
+
+      <!-- 1. 점검 #3b82f6 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#3b82f6;"></span>
+          <span class="cat-label">점검</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 점검</div>
+        <input class="cat-mini-input" value="유도등 점검" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 2. 업무 #eab308 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#eab308;"></span>
+          <span class="cat-label">업무</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 업무</div>
+        <input class="cat-mini-input" value="출입증 회수" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 3. 행사 #e2e8f0 (다크) -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#e2e8f0;"></span>
+          <span class="cat-label">행사</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 행사</div>
+        <input class="cat-mini-input" value="안전교육" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 4. 승강기 #f97316 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#f97316;"></span>
+          <span class="cat-label">승강기</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 승강기</div>
+        <input class="cat-mini-input" value="법정 검사" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 5. 소방 #ef4444 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#ef4444;"></span>
+          <span class="cat-label">소방</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 소방</div>
+        <input class="cat-mini-input" value="종합정밀점검" placeholder="제목을 입력하세요" />
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame E — 데스크톱 480 center (다크)
+     overlay rgba(0,0,0,0.55) z-300 + 중앙 modal (width 480, radius 16, padding 24 28 28)
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame E — 데스크톱 480 center (dark, isDesktop true)</span>
+    <!-- 가짜 캘린더 그리드 (데스크톱 배경 placeholder) -->
+    <div class="calendar-placeholder" style="padding:32px;">
+      <div class="ph-row" style="width:30%; height:18px;"></div>
+      <div class="ph-row" style="width:15%; height:14px; margin-bottom:24px;"></div>
+      <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px;">
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+        <div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div><div class="ph-cell" style="aspect-ratio:1.5;"></div>
+      </div>
+    </div>
+    <div class="modal-overlay">
+      <div class="modal-sheet-desktop">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 수정</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 lock 메타 (승강기) -->
+          <div style="display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface-sunken); border-radius:8px;">
+            <span style="width:10px; height:10px; border-radius:99px; background:#f97316; flex-shrink:0;"></span>
+            <span style="font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.4;">승강기</span>
+            <span class="text-caption" style="color:var(--text-tertiary); line-height:1.4;">· 카테고리는 변경할 수 없습니다</span>
+          </div>
+          <!-- 제목 -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="승강기 법정 검사" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:16px; outline:none; font-family:inherit;" />
+          </div>
+          <!-- 날짜 + 시간 -->
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">날짜</label>
+              <input type="date" value="2026-05-26" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="10:30" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+          </div>
+          <!-- 내용 -->
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="4" style="width:100%; padding:12px 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; resize:none; line-height:1.6; font-family:inherit;">한국승강기안전공단 법정 검사
+- A동 1~5호기 / B동 1~3호기
+- 검사관 입회 필요</textarea>
+          </div>
+          <!-- 저장 버튼 -->
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;">수정 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Frame F — 라이트 mirror (default + 카테고리 5 strip)
+     wrapper data-theme="light" — tokens.css 라이트 분기 자동
+     행사 dot 라이트는 #94a3b8 hardcode (chrome consistency — #e2e8f0 흰 배경 안 보임)
+     ============================================================ -->
+<div class="frame-row">
+
+  <!-- F-1. 라이트 모바일 default -->
+  <div class="frame-mobile frame-shell" data-theme="light">
+    <span class="frame-label" style="color:#656d76;">Frame F-1 — 모바일 default (light mirror)</span>
+    <div class="calendar-placeholder">
+      <div class="ph-row" style="width:60%;"></div>
+      <div class="ph-row" style="width:30%; margin-bottom:16px;"></div>
+      <div class="ph-grid">
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+        <div class="ph-cell"></div><div class="ph-cell"></div><div class="ph-cell"></div>
+      </div>
+    </div>
+    <div class="modal-overlay-mobile">
+      <div class="modal-sheet-mobile">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+          <span class="text-title font-semibold" style="color:var(--text-primary);">일정 수정</span>
+          <button style="width:32px; height:32px; border-radius:8px; border:1px solid var(--border-default); background:var(--surface-sunken); cursor:pointer; display:flex; align-items:center; justify-content:center;" aria-label="닫기">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="var(--text-secondary)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 카테고리 lock 메타 row (점검 #3b82f6 — 라이트도 동일 hex) -->
+          <div style="display:flex; align-items:center; gap:8px; padding:12px; background:var(--surface-sunken); border-radius:8px;">
+            <span style="width:10px; height:10px; border-radius:99px; background:#3b82f6; flex-shrink:0;"></span>
+            <span style="font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.4;">점검</span>
+            <span class="text-caption" style="color:var(--text-tertiary); line-height:1.4;">· 카테고리는 변경할 수 없습니다</span>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">제목</label>
+            <input value="유도등 점검" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:16px; outline:none; font-family:inherit;" />
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">날짜</label>
+              <input type="date" value="2026-05-19" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">시간 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+              <input type="time" value="14:00" style="width:100%; height:44px; padding:0 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; display:block; font-family:inherit;" />
+            </div>
+          </div>
+          <div>
+            <label class="text-caption" style="font-weight:700; color:var(--text-tertiary); display:block; margin-bottom:6px; line-height:1;">내용 <span style="font-weight:400; color:var(--text-tertiary);">(선택)</span></label>
+            <textarea rows="4" style="width:100%; padding:12px 14px; border-radius:8px; box-sizing:border-box; background:var(--surface-sunken); border:1px solid var(--border-default); color:var(--text-primary); font-size:14px; outline:none; resize:none; line-height:1.6; font-family:inherit;">유도등 분기점검
+ - 점등 상태 확인
+ - 충전 상태 확인</textarea>
+          </div>
+          <button style="padding:14px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit;">수정 저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- F-2. 라이트 카테고리 5 strip mirror -->
+  <div class="frame-shell" data-theme="light" style="flex:1; min-width:840px; padding:32px 24px; box-sizing:border-box;">
+    <span class="frame-label" style="color:#656d76;">Frame F-2 — 카테고리 5 strip (light mirror, 행사 dot #94a3b8 hardcode)</span>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:flex-start;">
+
+      <!-- 1. 점검 #3b82f6 (라이트 hex 동일) -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#3b82f6;"></span>
+          <span class="cat-label">점검</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 점검</div>
+        <input class="cat-mini-input" value="유도등 점검" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 2. 업무 #eab308 (라이트 hex 동일) -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#eab308;"></span>
+          <span class="cat-label">업무</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 업무</div>
+        <input class="cat-mini-input" value="출입증 회수" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 3. 행사 #94a3b8 hardcode (라이트 override — chrome consistency) -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#94a3b8;"></span>
+          <span class="cat-label">행사</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 행사</div>
+        <input class="cat-mini-input" value="안전교육" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 4. 승강기 #f97316 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#f97316;"></span>
+          <span class="cat-label">승강기</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 승강기</div>
+        <input class="cat-mini-input" value="법정 검사" placeholder="제목을 입력하세요" />
+      </div>
+
+      <!-- 5. 소방 #ef4444 -->
+      <div class="cat-card">
+        <div class="cat-lock-row">
+          <span class="cat-dot" style="background:#ef4444;"></span>
+          <span class="cat-label">소방</span>
+        </div>
+        <div class="cat-mini-title">일정 수정 — 소방</div>
+        <input class="cat-mini-input" value="종합정밀점검" placeholder="제목을 입력하세요" />
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     Footer — OQ LOCKED + 사전 결정 (W4 mirror + W5 추가 2건)
+     ============================================================ -->
+<div class="oq-footer">
+  <h3>OQ LOCKED · W1+W2+W3+W4 일관 mirror + W5 reasonable call 2건</h3>
+
+  <p><strong>W4 OQ #1 ▶ LOCKED a)</strong> — 모바일 BottomSheet maxHeight = <code>90dvh</code> source verbatim (SchedulePage.tsx line 997 원본 유지).</p>
+
+  <p><strong>W4 OQ #2 ▶ LOCKED b)</strong> — 저장 버튼 색 = accent solid <code>var(--accent)</code> (디자인 시스템 토큰 일관, 라이트/다크 자동 분기). source <code>linear-gradient(135deg, 1d4ed8 → 2563eb)</code> 폐기 — 6 frame 저장 버튼 6곳 모두 적용.</p>
+
+  <p><strong>W5 reasonable call #1 (b 채택)</strong> — 카테고리 lock 표시 = 본문 메타 row 텍스트. source 에서는 EditModal 안 카테고리 변경 UI 가 없음. UI 추가 없이 lock 사실만 시각화 ("점검 · 카테고리는 변경할 수 없습니다"). 비즈 로직 0 변경.</p>
+
+  <p><strong>W5 reasonable call #2 (b 채택)</strong> — empty title 처리 = inline 에러 (input border <code>var(--danger)</code> + 아래 작은 라벨 "제목을 입력하세요"). source <code>toast.error('제목을 입력하세요')</code> 메시지 verbatim. modal 안 즉시 시각 피드백 — TSX 변환 wave 에서 toast 그대로 둘지 / inline 으로 바꿀지 사용자 판단 가능하게 시안 노출.</p>
+
+  <p><strong>LOCKED 사전 결정 (사용자 답변 불필요)</strong></p>
+  <ul>
+    <li>SCHED_CATEGORIES 5 hex (<code>#3b82f6</code> 점검 / <code>#eab308</code> 업무 / <code>#e2e8f0</code> 행사 / <code>#f97316</code> 승강기 / <code>#ef4444</code> 소방) — W1+W2+W3+W4 LOCKED mirror</li>
+    <li>라이트 event <code>#94a3b8</code> hardcode override — W1+W2+W3+W4 LOCKED mirror (chrome consistency)</li>
+    <li>이모지 0 — feedback_tsx_wave_emoji_dot_gap.md</li>
+    <li>9·10·11px font-size 0 — text-caption 12 마지노선 (작은 컨테이너 leading-none 명시: feedback_text_caption_leading_none.md)</li>
+    <li>status- prefix className 0 — feedback_tailwind_token_class_pattern.md</li>
+    <li>"수정 저장" / "저장 중..." / "제목을 입력하세요" / "일정 수정" 라벨 SchedulePage.tsx verbatim</li>
+    <li>노안 격상: 헤더 15 → 18 (text-title) / 저장 버튼 14 → 16 / close X 28×28 → 32×32 (icon 14 → 18)</li>
+    <li>inspection-modal-chrome-rules.md §1~§6 mirror (overlay rgba(0,0,0,0.55) z-300 + sheet bg-surface-raised + radius-lg 16 desktop / 20 0 0 0 mobile)</li>
+    <li>SchedulePage.tsx 0 변경 — 시안 only (비즈니스 로직 변경 금지). 라벨/필드 순서/필수성 source 1:1.</li>
+    <li>"today (한글)" 본문 0회 — chrome consistency 룰</li>
+  </ul>
+</div>
+
+</body>
+</html>
