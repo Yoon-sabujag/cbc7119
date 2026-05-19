@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-6.html — redesign/13-schedule W6
+  작성: 2026-05-19 / quick 260519-m1i
+  범위: 엑셀 다운로드 트리거 + 토스트 카탈로그 13종
+        - 헤더(모바일) / 액션바(데스크톱) 의 엑셀 다운로드 버튼 상태 시연
+            · default        — linear-gradient(135deg,#15803d,#22c55e) verbatim (source line 437~441, 477~485)
+            · planLoading    — background var(--bg3) + color var(--t3) + "생성 중..." + disabled
+        - 토스트 13종 카탈로그 (success 6 + error 7) — 12-staff W9 mirror
+            · container: surface-raised + border-default + radius-md + box-shadow + 16px lucide
+            · success: CheckCircle2 SVG, color status-safe
+            · error  : AlertCircle  SVG, color status-danger
+            · 카피 source verbatim (L209/L209/L216/L229/L414/L424/L218/L231/L713/L719/L729/L977/L752/L983)
+        - generateMonthlyPlan 의미 안내 카드 — "월간 엑셀 단발 export, 1년치 아님"
+        - 5 frame matrix:
+            A. 모바일 다크 — 엑셀 버튼 default + 토스트 strip + 의미 카드 + OQ patch zone
+            B. 모바일 다크 — 엑셀 버튼 planLoading + success/error floating toast 시연
+            C. 모바일 라이트 — Frame A mirror
+            D. 데스크톱 1280 다크 — 액션바 엑셀 버튼 + 토스트 카탈로그 2-column
+            E. 데스크톱 1280 라이트 — Frame D mirror
+
+  out of scope:
+    - 신규 UI 추가 0 (source markup 그대로 시연만)
+    - 비즈 로직 변경 0 (handlePlanDownload 의미 그대로 = 월간 단발 export)
+    - TSX 변환 (SchedulePage.tsx 0줄 수정)
+    - W1~W5 LOCKED 결정 변경 0 — chrome consistency 만 mirror
+
+  참조:
+    - design-system.md v0.1.1 §1~§7
+    - SchedulePage.tsx
+        · line 209           handleStatus toast (완료 처리됐습니다 / 상태 변경됐습니다)
+        · line 216, 218      handleDelete toast (삭제됐습니다 / 삭제 중 오류가 발생했습니다)
+        · line 224~235       handlePlanDownload — 월간 단발 export trigger
+        · line 229, 231      handlePlanDownload toast (엑셀이 다운로드됐습니다 / 생성 중 오류)
+        · line 414, 424      AddModal onSaved / EditModal onSaved (일정 추가됨 / 수정됐습니다)
+        · line 437~441       데스크톱 액션바 엑셀 버튼 markup verbatim
+        · line 477~485       모바일 헤더 엑셀 버튼 markup verbatim
+        · line 713/719/729   AddModal validation toast (날짜/점검 분류/제목)
+        · line 752           AddModal catch toast (저장 실패)
+        · line 977/983       EditModal validation/catch toast (제목/수정 실패)
+    - sketch-wave-1.html LOCKED (event #94a3b8 / 카테고리 5 hex / 이모지 0)
+    - sketch-wave-4.html LOCKED (AddModal chrome / 90dvh / var(--accent) solid)
+    - sketch-wave-5.html LOCKED (EditModal mirror) — chrome inheritance source
+    - inspection-modal-chrome-rules.md §1~§6
+    - tokens.css line 16~197 verbatim 임베드
+    - typography.css line 28~95 verbatim 임베드
+
+  W1+W2+W3+W4+W5 LOCKED 결정 일관 mirror:
+    - SCHED_CATEGORIES 5 hex 정의 (#a78bfa, #facc15, #22c55e, #06b6d4, #94a3b8 — 본 wave 본문 표시 없음, chrome 상수만 유지)
+    - 라이트 event #94a3b8 hardcode override (event-dot-themed rule 유지)
+    - BottomSheet 90dvh (W4 OQ #1 LOCKED a) — wave 6 는 모달 없음, 상수만 유지
+    - 저장 버튼 = var(--accent) solid (W4 OQ #2 LOCKED b) — wave 6 본문에 저장 버튼 없음, chrome 일관
+    - 이모지 0 (feedback_tsx_wave_emoji_dot_gap.md) — check/alert glyph 직접 사용 금지, lucide SVG inline 16×16 만
+    - 9·10·11px font-size 0 (text-caption 12 마지노선)
+    - status- prefix className 0 (text-status-safe 금지 — var(--status-safe) inline 만)
+    - "오늘" 본문 0회
+
+  W6 Open Question (1건):
+    OQ #1: 엑셀 버튼 색 — 운영 동작 유지 vs 토큰 일관
+      a) source linear-gradient(135deg,#15803d,#22c55e) verbatim 유지 (현재 운영 동작, 사용자 인식 동일)
+      b) var(--status-safe) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror)
+    → 시안 main = (a) verbatim 렌더. Frame A 내부 "OQ patch zone" 에 (a) vs (b) 작은 비교 미리보기.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 월간 점검 계획 — sketch W6 엑셀 다운로드 + 토스트 카탈로그</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <style>
+    /* ============================================================
+     * tokens.css line 16~197 verbatim 임베드
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* 기존 코드 alias (tokens.css 174~197) */
+    :root {
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+    }
+
+    /* ============================================================
+     * typography.css line 28~95 verbatim 임베드
+     * ============================================================ */
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium  { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+    .font-bold    { font-weight: 700; }
+
+    /* ============================================================
+     * 시안 페이지 chrome (sketch-wave-5.html mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      background: #050609;
+      color: #e6edf3;
+      margin: 0;
+      padding: 32px 24px 64px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: #e6edf3;
+    }
+    .page-sub {
+      font-size: 14px;
+      color: #adb6c0;
+      margin: 0 0 32px;
+      line-height: 1.6;
+    }
+
+    .frame-shell {
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--surface-page);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+      position: relative;
+    }
+    .frame-shell[data-theme="light"] {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.10);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    }
+
+    .frame-mobile {
+      width: 393px;
+      min-height: 720px;
+      position: relative;
+    }
+    .frame-desktop {
+      width: 1280px;
+      min-height: 720px;
+      position: relative;
+    }
+
+    .frame-label {
+      position: absolute;
+      top: -28px;
+      left: 0;
+      font-size: 12px;
+      color: #8b949e;
+      letter-spacing: 0.02em;
+      line-height: 1;
+    }
+
+    .frame-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 72px;
+      padding-top: 28px;
+    }
+
+    /* 라이트 mirror — event dot hardcode (W1+W2+W3+W4+W5 LOCKED chrome consistency) */
+    [data-theme="light"] .event-dot-themed {
+      background: #94a3b8 !important;
+    }
+    .event-dot-themed {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      background: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+     * W6 컴포넌트 — 엑셀 버튼 (source line 437~441 / 477~485 verbatim)
+     * ============================================================ */
+    .excel-btn-default {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #15803d, #22c55e);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: inherit;
+      line-height: 1;
+    }
+    .excel-btn-loading {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg3);
+      color: var(--t3);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: inherit;
+      line-height: 1;
+    }
+    /* OQ #1 (b) preview 변형 — var(--status-safe) solid */
+    .excel-btn-tokenized {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      background: var(--status-safe-bar);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    .add-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * W6 컴포넌트 — 토스트 카탈로그 (12-staff W9 mirror)
+     * ============================================================ */
+    .toast-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      background: var(--surface-raised);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    }
+    .toast-cat-row.toast-floating {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .toast-icon-success {
+      color: var(--status-safe);
+      flex-shrink: 0;
+    }
+    .toast-icon-error {
+      color: var(--status-danger);
+      flex-shrink: 0;
+    }
+    .toast-copy-success {
+      color: var(--status-safe);
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.4;
+      flex: 1;
+      min-width: 0;
+    }
+    .toast-copy-error {
+      color: var(--status-danger);
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.4;
+      flex: 1;
+      min-width: 0;
+    }
+    .toast-src-tag {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      flex-shrink: 0;
+    }
+    .toast-section-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-top: 12px;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    .toast-section-label:first-child {
+      margin-top: 0;
+    }
+
+    /* ============================================================
+     * W6 컴포넌트 — 의미 안내 카드 + OQ patch zone
+     * ============================================================ */
+    .meaning-card {
+      padding: 14px 16px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+    }
+    .meaning-card .meaning-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .meaning-card .meaning-body {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.625;
+    }
+    .meaning-card .meaning-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--surface-sunken);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--text-primary);
+    }
+    .meaning-card .meaning-warn {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--status-warning);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .oq-patch {
+      padding: 12px;
+      background: var(--surface-sunken);
+      border: 1px dashed var(--border-default);
+      border-radius: 12px;
+    }
+    .oq-patch .oq-patch-title {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+      line-height: 1;
+    }
+    .oq-patch .oq-patch-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .oq-patch .oq-patch-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* OQ 푸터 */
+    .oq-footer {
+      margin-top: 48px;
+      padding: 24px 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: #11151b;
+    }
+    .oq-footer h3 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .oq-footer h4 {
+      margin: 18px 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #e6edf3;
+    }
+    .oq-footer p {
+      margin: 8px 0 4px;
+      font-size: 14px;
+      color: #adb6c0;
+    }
+    .oq-footer ul {
+      margin: 0 0 12px;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #adb6c0;
+      line-height: 1.7;
+    }
+    .oq-footer ol {
+      margin: 0 0 12px;
+      padding-left: 20px;
+      font-size: 13px;
+      color: #adb6c0;
+      line-height: 1.7;
+    }
+    .oq-footer strong { color: #e6edf3; }
+    .oq-footer code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #e6edf3;
+    }
+
+    /* 데스크톱 2-column 토스트 카탈로그 */
+    .toast-grid-desktop {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      padding: 20px 24px 24px;
+    }
+    .toast-grid-desktop .col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 카테고리 5 hex 정의 reference (chrome consistency, 본 wave 본문 표시 없음) */
+    .cat-ref-hidden {
+      display: none;
+      /* W5 SCHED_CATEGORIES inheritance: #a78bfa(점검) #facc15(유지) #22c55e(점검완료) #06b6d4(이벤트) #94a3b8(문서) */
+    }
+  </style>
+</head>
+<body>
+
+<h1 class="page-title">13 월간 점검 계획 — sketch W6 엑셀 다운로드 + 토스트 카탈로그</h1>
+<p class="page-sub">
+  엑셀 다운로드 트리거 (헤더 = 모바일 / 액션바 = 데스크톱) 상태 시연 + 토스트 13종 (success 6 + error 7) 카탈로그 +
+  generateMonthlyPlan 의미 안내 (월간 단발 export — 1년치 자동 생성 아님) /
+  5 frame matrix (모바일 다크 default+strip / 모바일 다크 loading+floating / 모바일 라이트 / 데스크톱 다크 / 데스크톱 라이트) /
+  신규 UI 추가 0 · 비즈 로직 변경 0 / W1~W5 LOCKED 결정 일관 mirror
+</p>
+
+<!-- 카테고리 5 hex chrome reference (변수 정의만 유지) -->
+<div class="cat-ref-hidden" data-cats="#a78bfa #facc15 #22c55e #06b6d4 #94a3b8">
+  <!-- SCHED_CATEGORIES 5 hex: 점검 #a78bfa, 유지 #facc15, 점검완료 #22c55e, 이벤트 #06b6d4, 문서 #94a3b8 -->
+</div>
+
+<!-- ============================================================
+     Frame A — 모바일 다크 / 엑셀 버튼 default + 토스트 카탈로그 13종 + 의미 카드 + OQ patch zone
+     ============================================================ -->
+<div class="frame-row">
+
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame A — 모바일 다크 / 엑셀 버튼 default + 토스트 strip 13 + 의미 카드 + OQ patch</span>
+
+    <!-- 헤더 — 모바일 (source line 477~485 verbatim mapping) -->
+    <header style="padding:8px 12px 9px; display:flex; align-items:center; gap:8px; background:var(--bg2); border-bottom:1px solid var(--bd);">
+      <button aria-label="뒤로"
+        style="width:30px; height:30px; border-radius:8px; border:1px solid var(--bd); background:var(--bg3); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--t2)" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <span style="flex:1; font-size:14px; font-weight:700; color:var(--t1); line-height:1.4;">월간 점검 계획</span>
+
+      <!-- 엑셀 다운로드 default (source line 478 verbatim) -->
+      <button class="excel-btn-default" aria-label="엑셀 다운로드">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+        </svg>
+        엑셀 다운로드
+      </button>
+
+      <button class="add-btn">+ 추가</button>
+    </header>
+
+    <!-- 본문: 의미 카드 + OQ patch + 토스트 카탈로그 13종 -->
+    <div style="padding:14px 12px 20px; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- 의미 안내 카드 -->
+      <div class="meaning-card">
+        <div class="meaning-title">자동 생성 = 월간 엑셀 단발 export</div>
+        <div class="meaning-body">
+          헤더의 "엑셀 다운로드" 버튼을 누르면 <code>generateMonthlyPlan(year, month, holidays)</code> 가
+          현재 보고 있는 달(<code>curMonth</code>) 점검 계획표를 엑셀 파일 1개로 생성/다운로드합니다 (source line 224~235).
+        </div>
+        <div class="meaning-warn">
+          주의 — 1년치 일괄 자동 생성이 아닙니다. 매월 단위 호출.
+        </div>
+      </div>
+
+      <!-- OQ #1 patch zone — 엑셀 버튼 색 (a) gradient vs (b) status-safe solid -->
+      <div class="oq-patch">
+        <div class="oq-patch-title">OQ #1 patch zone — 엑셀 버튼 색</div>
+        <div class="oq-patch-row">
+          <button class="excel-btn-default" aria-label="엑셀 다운로드 (a)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+            </svg>
+            엑셀 다운로드 (a)
+          </button>
+          <button class="excel-btn-tokenized" aria-label="엑셀 다운로드 (b)">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+            </svg>
+            엑셀 다운로드 (b)
+          </button>
+        </div>
+        <div class="oq-patch-desc">
+          (a) source linear-gradient(135deg,#15803d,#22c55e) verbatim 유지<br/>
+          (b) var(--status-safe-bar) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror)
+        </div>
+      </div>
+
+      <!-- 토스트 카탈로그: Success (6) -->
+      <span class="toast-section-label">SUCCESS (6)</span>
+
+      <!-- 1. 완료 처리됐습니다 — L209 (handleStatus done) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">완료 처리됐습니다</span>
+        <span class="toast-src-tag">L209</span>
+      </div>
+
+      <!-- 2. 상태 변경됐습니다 — L209 (handleStatus !done) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">상태 변경됐습니다</span>
+        <span class="toast-src-tag">L209</span>
+      </div>
+
+      <!-- 3. 삭제됐습니다 — L216 (handleDelete success) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">삭제됐습니다</span>
+        <span class="toast-src-tag">L216</span>
+      </div>
+
+      <!-- 4. 엑셀이 다운로드됐습니다 — L229 (handlePlanDownload success) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">엑셀이 다운로드됐습니다</span>
+        <span class="toast-src-tag">L229</span>
+      </div>
+
+      <!-- 5. 일정 추가됨 — L414 (AddModal onSaved) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">일정 추가됨</span>
+        <span class="toast-src-tag">L414</span>
+      </div>
+
+      <!-- 6. 수정됐습니다 — L424 (EditModal onSaved) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">수정됐습니다</span>
+        <span class="toast-src-tag">L424</span>
+      </div>
+
+      <!-- 토스트 카탈로그: Error (7) -->
+      <span class="toast-section-label">ERROR (7)</span>
+
+      <!-- 1. 삭제 중 오류가 발생했습니다 — L218 (handleDelete catch fallback) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">삭제 중 오류가 발생했습니다</span>
+        <span class="toast-src-tag">L218</span>
+      </div>
+
+      <!-- 2. 생성 중 오류 — L231 (handlePlanDownload catch fallback) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">생성 중 오류</span>
+        <span class="toast-src-tag">L231</span>
+      </div>
+
+      <!-- 3. 날짜를 입력하세요 — L713 (AddModal validation) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">날짜를 입력하세요</span>
+        <span class="toast-src-tag">L713</span>
+      </div>
+
+      <!-- 4. 점검 분류를 선택하세요 — L719 (AddModal inspect cat validation) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">점검 분류를 선택하세요</span>
+        <span class="toast-src-tag">L719</span>
+      </div>
+
+      <!-- 5. 제목을 입력하세요 — L729 (AddModal) + L977 (EditModal, 카피 동일) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">제목을 입력하세요</span>
+        <span class="toast-src-tag">L729·L977</span>
+      </div>
+
+      <!-- 6. 저장 실패 — L752 (AddModal catch) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">저장 실패</span>
+        <span class="toast-src-tag">L752</span>
+      </div>
+
+      <!-- 7. 수정 실패 — L983 (EditModal catch) -->
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">수정 실패</span>
+        <span class="toast-src-tag">L983</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Frame B — 모바일 다크 / 엑셀 버튼 planLoading + success/error floating toast 시연
+     ============================================================ -->
+<div class="frame-row">
+  <div class="frame-mobile frame-shell" data-theme="dark">
+    <span class="frame-label">Frame B — 모바일 다크 / planLoading + 토스트 floating (success/error 동시 시연)</span>
+
+    <!-- 헤더 — planLoading=true 상태 -->
+    <header style="padding:8px 12px 9px; display:flex; align-items:center; gap:8px; background:var(--bg2); border-bottom:1px solid var(--bd);">
+      <button aria-label="뒤로"
+        style="width:30px; height:30px; border-radius:8px; border:1px solid var(--bd); background:var(--bg3); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--t2)" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <span style="flex:1; font-size:14px; font-weight:700; color:var(--t1); line-height:1.4;">월간 점검 계획</span>
+
+      <!-- 엑셀 다운로드 planLoading=true (source line 478 disabled branch verbatim) -->
+      <button class="excel-btn-loading" disabled aria-label="엑셀 생성 중">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+        </svg>
+        생성 중...
+      </button>
+
+      <button class="add-btn">+ 추가</button>
+    </header>
+
+    <!-- 본문 placeholder (lock view) + floating toast strip -->
+    <div style="padding:14px 12px; display:flex; flex-direction:column; gap:12px;">
+      <!-- placeholder skeleton — lock 상태 시각 표현 -->
+      <div style="height:120px; background:var(--bg2); border:1px solid var(--bd); border-radius:12px; display:flex; align-items:center; justify-content:center; opacity:0.55;">
+        <span class="text-caption" style="color:var(--t3);">엑셀 생성 중 (UI 비활성)</span>
+      </div>
+      <div style="height:60px; background:var(--bg2); border:1px solid var(--bd); border-radius:12px; opacity:0.45;"></div>
+      <div style="height:60px; background:var(--bg2); border:1px solid var(--bd); border-radius:12px; opacity:0.35;"></div>
+    </div>
+
+    <!-- floating toast strip (success ↔ error 동시 시연, 실제 UI 는 하나만 표시되지만 비교용) -->
+    <div style="position:absolute; top:72px; left:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:50;">
+      <div class="toast-cat-row toast-floating">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">엑셀이 다운로드됐습니다</span>
+        <span class="toast-src-tag">L229</span>
+      </div>
+      <div class="toast-cat-row toast-floating">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">생성 중 오류</span>
+        <span class="toast-src-tag">L231</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Frame C — 모바일 라이트 / 엑셀 버튼 default + 토스트 strip mirror
+     ============================================================ -->
+<div class="frame-row">
+  <div class="frame-mobile frame-shell" data-theme="light">
+    <span class="frame-label">Frame C — 모바일 라이트 mirror (Frame A 동일 markup, 토큰 자동 분기)</span>
+
+    <header style="padding:8px 12px 9px; display:flex; align-items:center; gap:8px; background:var(--bg2); border-bottom:1px solid var(--bd);">
+      <button aria-label="뒤로"
+        style="width:30px; height:30px; border-radius:8px; border:1px solid var(--bd); background:var(--bg3); display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--t2)" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <span style="flex:1; font-size:14px; font-weight:700; color:var(--t1); line-height:1.4;">월간 점검 계획</span>
+
+      <button class="excel-btn-default" aria-label="엑셀 다운로드">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+        </svg>
+        엑셀 다운로드
+      </button>
+
+      <button class="add-btn">+ 추가</button>
+    </header>
+
+    <div style="padding:14px 12px 20px; display:flex; flex-direction:column; gap:14px;">
+
+      <!-- 의미 카드 (라이트 mirror) -->
+      <div class="meaning-card">
+        <div class="meaning-title">자동 생성 = 월간 엑셀 단발 export</div>
+        <div class="meaning-body">
+          현재 보고 있는 달의 점검 계획표를 엑셀 파일 1개로 생성/다운로드합니다 (source line 224~235).
+        </div>
+        <div class="meaning-warn">주의 — 1년치 일괄 자동 생성이 아닙니다.</div>
+      </div>
+
+      <!-- 토스트 strip 라이트 mirror (대표 4개만 — 다크에서 13개 풀 리스트 검증) -->
+      <span class="toast-section-label">SUCCESS sample</span>
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">엑셀이 다운로드됐습니다</span>
+        <span class="toast-src-tag">L229</span>
+      </div>
+      <div class="toast-cat-row">
+        <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span class="toast-copy-success">일정 추가됨</span>
+        <span class="toast-src-tag">L414</span>
+      </div>
+
+      <span class="toast-section-label">ERROR sample</span>
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">생성 중 오류</span>
+        <span class="toast-src-tag">L231</span>
+      </div>
+      <div class="toast-cat-row">
+        <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+          <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span class="toast-copy-error">제목을 입력하세요</span>
+        <span class="toast-src-tag">L729·L977</span>
+      </div>
+
+      <!-- chrome consistency check — event-dot-themed 라이트 #94a3b8 hardcode 시연 (W1~W5 LOCKED) -->
+      <div style="display:flex; align-items:center; gap:8px; padding:10px 12px; background:var(--bg2); border:1px solid var(--bd); border-radius:8px;">
+        <span class="event-dot-themed"></span>
+        <span class="text-caption" style="color:var(--t2); line-height:1.4;">event-dot (라이트 #94a3b8 hardcode — W1~W5 LOCKED chrome inheritance)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Frame D — 데스크톱 1280 다크 / 액션바 엑셀 버튼 + 토스트 카탈로그 2-column
+     ============================================================ -->
+<div class="frame-row">
+  <div class="frame-desktop frame-shell" data-theme="dark">
+    <span class="frame-label">Frame D — 데스크톱 1280 다크 / 액션바 엑셀 버튼 + 토스트 2-column 카탈로그</span>
+
+    <!-- 액션바 — 데스크톱 (source line 436~442 verbatim mapping) -->
+    <div style="padding:10px 24px; border-bottom:1px solid var(--bd); display:flex; align-items:center; justify-content:flex-end; gap:8px; background:var(--bg2); flex-shrink:0;">
+      <button class="excel-btn-default" aria-label="엑셀 다운로드">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+        </svg>
+        엑셀 다운로드
+      </button>
+    </div>
+
+    <!-- 의미 카드 (데스크톱 — 액션바 직하단 안내) -->
+    <div style="padding:20px 24px 0;">
+      <div class="meaning-card">
+        <div class="meaning-title">자동 생성 = 월간 엑셀 단발 export (1년치 일괄 X)</div>
+        <div class="meaning-body">
+          데스크톱 액션바의 "엑셀 다운로드" 버튼은 모바일 헤더 버튼과 동일한 <code>handlePlanDownload()</code> 핸들러를 트리거합니다.
+          현재 보고 있는 달 (<code>curMonth</code>) 의 점검 계획표를 엑셀 1개로 export — source line 224~235 / line 437~441 verbatim.
+        </div>
+        <div class="meaning-warn">주의 — 1년치 일괄 자동 생성이 아닙니다. 매월 단위 호출.</div>
+      </div>
+    </div>
+
+    <!-- 토스트 카탈로그 2-column -->
+    <div class="toast-grid-desktop">
+      <!-- Success 컬럼 -->
+      <div class="col">
+        <span class="toast-section-label">SUCCESS (6)</span>
+
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">완료 처리됐습니다</span>
+          <span class="toast-src-tag">L209</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">상태 변경됐습니다</span>
+          <span class="toast-src-tag">L209</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">삭제됐습니다</span>
+          <span class="toast-src-tag">L216</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">엑셀이 다운로드됐습니다</span>
+          <span class="toast-src-tag">L229</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">일정 추가됨</span>
+          <span class="toast-src-tag">L414</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">수정됐습니다</span>
+          <span class="toast-src-tag">L424</span>
+        </div>
+      </div>
+
+      <!-- Error 컬럼 -->
+      <div class="col">
+        <span class="toast-section-label">ERROR (7)</span>
+
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">삭제 중 오류가 발생했습니다</span>
+          <span class="toast-src-tag">L218</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">생성 중 오류</span>
+          <span class="toast-src-tag">L231</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">날짜를 입력하세요</span>
+          <span class="toast-src-tag">L713</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">점검 분류를 선택하세요</span>
+          <span class="toast-src-tag">L719</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">제목을 입력하세요</span>
+          <span class="toast-src-tag">L729·L977</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">저장 실패</span>
+          <span class="toast-src-tag">L752</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">수정 실패</span>
+          <span class="toast-src-tag">L983</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 데스크톱 planLoading 상태 시연 row -->
+    <div style="padding:0 24px 24px;">
+      <div style="padding:14px 16px; background:var(--bg2); border:1px solid var(--bd); border-radius:12px; display:flex; align-items:center; gap:14px;">
+        <span class="text-caption" style="color:var(--t2); font-weight:700; line-height:1.4;">planLoading=true 상태:</span>
+        <button class="excel-btn-loading" disabled aria-label="엑셀 생성 중">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+          </svg>
+          생성 중...
+        </button>
+        <span class="text-caption" style="color:var(--t3); line-height:1.4;">→ background var(--bg3) + color var(--t3) + disabled (source line 478 verbatim)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Frame E — 데스크톱 1280 라이트 / 액션바 엑셀 버튼 + 토스트 카탈로그 mirror
+     ============================================================ -->
+<div class="frame-row">
+  <div class="frame-desktop frame-shell" data-theme="light">
+    <span class="frame-label">Frame E — 데스크톱 1280 라이트 mirror (Frame D 동일 markup)</span>
+
+    <div style="padding:10px 24px; border-bottom:1px solid var(--bd); display:flex; align-items:center; justify-content:flex-end; gap:8px; background:var(--bg2); flex-shrink:0;">
+      <button class="excel-btn-default" aria-label="엑셀 다운로드">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
+        </svg>
+        엑셀 다운로드
+      </button>
+    </div>
+
+    <div style="padding:20px 24px 0;">
+      <div class="meaning-card">
+        <div class="meaning-title">자동 생성 = 월간 엑셀 단발 export (1년치 일괄 X)</div>
+        <div class="meaning-body">
+          현재 보고 있는 달의 점검 계획표를 엑셀 1개로 export — source line 224~235 / 437~441 verbatim.
+        </div>
+        <div class="meaning-warn">주의 — 1년치 일괄 자동 생성이 아닙니다.</div>
+      </div>
+    </div>
+
+    <div class="toast-grid-desktop">
+      <div class="col">
+        <span class="toast-section-label">SUCCESS sample (라이트)</span>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">완료 처리됐습니다</span>
+          <span class="toast-src-tag">L209</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">엑셀이 다운로드됐습니다</span>
+          <span class="toast-src-tag">L229</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-success" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline stroke-linecap="round" stroke-linejoin="round" points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <span class="toast-copy-success">일정 추가됨</span>
+          <span class="toast-src-tag">L414</span>
+        </div>
+      </div>
+      <div class="col">
+        <span class="toast-section-label">ERROR sample (라이트)</span>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">생성 중 오류</span>
+          <span class="toast-src-tag">L231</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">날짜를 입력하세요</span>
+          <span class="toast-src-tag">L713</span>
+        </div>
+        <div class="toast-cat-row">
+          <svg class="toast-icon-error" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line stroke-linecap="round" x1="12" y1="8" x2="12" y2="12"/>
+            <line stroke-linecap="round" x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span class="toast-copy-error">수정 실패</span>
+          <span class="toast-src-tag">L983</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:0 24px 24px;">
+      <div style="padding:14px 16px; background:var(--bg2); border:1px solid var(--bd); border-radius:12px; display:flex; align-items:center; gap:14px;">
+        <span class="event-dot-themed"></span>
+        <span class="text-caption" style="color:var(--t2); line-height:1.4;">event-dot 라이트 #94a3b8 hardcode mirror (W1~W5 LOCKED chrome inheritance)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     OQ 푸터 — W6 결정 요청 + LOCKED 일관 mirror + Verify gate 12개
+     ============================================================ -->
+<div class="oq-footer">
+  <h3>W6 Open Question (1건) — 답변 대기</h3>
+
+  <h4>OQ #1 · 엑셀 다운로드 버튼 색</h4>
+  <p>source 의 <code>linear-gradient(135deg,#15803d,#22c55e)</code> verbatim 유지 vs 디자인 토큰 일관(b).</p>
+  <ul>
+    <li><strong>(a)</strong> source linear-gradient verbatim 유지 — 현재 운영 동작 그대로, 사용자 인식 변경 없음</li>
+    <li><strong>(b)</strong> <code>var(--status-safe-bar)</code> solid — 디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror, 다크/라이트 자동 분기</li>
+  </ul>
+  <p>시안 main = (a) verbatim. Frame A 의 OQ patch zone 에 (b) 변형 미리보기 동시 표시.</p>
+
+  <h4>W1~W5 LOCKED 결정 일관 mirror (chrome consistency)</h4>
+  <ul>
+    <li>SCHED_CATEGORIES 5 hex 정의 유지 — <code>#a78bfa</code>(점검) <code>#facc15</code>(유지) <code>#22c55e</code>(점검완료) <code>#06b6d4</code>(이벤트) <code>#94a3b8</code>(문서)</li>
+    <li>라이트 event #94a3b8 hardcode override — event-dot-themed rule + Frame C/E 시연</li>
+    <li>이모지 0 (check/alert glyph 직접 사용 0) — lucide CheckCircle2 + AlertCircle SVG 16×16 inline 만</li>
+    <li>저장 버튼 = <code>var(--accent)</code> solid (W4 OQ #2 LOCKED b) — 본 wave 본문 저장 버튼 없음, "+ 추가" 버튼이 accent solid 로 일관</li>
+    <li>BottomSheet 90dvh (W4 OQ #1 LOCKED a) — 본 wave 모달 없음, 상수만 유지</li>
+    <li>"오늘" 본문 0회 — 검증됨</li>
+    <li>status- prefix className 0 — <code>var(--status-safe)</code> / <code>var(--status-danger)</code> inline 만</li>
+    <li>9·10·11px font-size 0 — text-caption 12 마지노선 준수</li>
+  </ul>
+
+  <h4>Verify gate (12)</h4>
+  <ol>
+    <li>파일 ≥ 400 라인</li>
+    <li>이모지 0 (check/alert glyph 포함, Python regex 0 매치)</li>
+    <li>9·10·11px font-size 0 (text-caption 12 마지노선)</li>
+    <li>status- prefix className 0</li>
+    <li>SCHED_CATEGORIES 5 hex 모두 (#a78bfa / #facc15 / #22c55e / #06b6d4 / #94a3b8)</li>
+    <li>#94a3b8 라이트 event hardcode (event-dot-themed rule)</li>
+    <li>tokens.css 임베드 (--surface-raised / --border-default)</li>
+    <li>typography.css 임베드 (text-body-sm / text-caption)</li>
+    <li>data-theme 다크/라이트 분기 모두 존재</li>
+    <li>토스트 13종 verbatim 카피 모두 grep PASS</li>
+    <li>엑셀 버튼 라벨 verbatim ("엑셀 다운로드" + "생성 중...")</li>
+    <li>lucide CheckCircle2 + AlertCircle SVG path 검출 (check/alert emoji 0)</li>
+  </ol>
+
+  <h4>다음 단계</h4>
+  <p>
+    1) OQ #1 사용자 답변 → wave 6 LOCK<br/>
+    2) wave 1~6 main 머지<br/>
+    3) TSX 변환 wave 시작 (SchedulePage.tsx 0줄 수정에서 → Tailwind 토큰 클래스 + 12-staff W9 mirror toast 컴포넌트화)
+  </p>
+</div>
+
+</body>
+</html>
