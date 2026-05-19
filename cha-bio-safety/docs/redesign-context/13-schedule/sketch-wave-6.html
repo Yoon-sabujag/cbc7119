@@ -56,11 +56,9 @@
     - status- prefix className 0 (text-status-safe 금지 — var(--status-safe) inline 만)
     - "오늘" 본문 0회
 
-  W6 Open Question (1건):
-    OQ #1: 엑셀 버튼 색 — 운영 동작 유지 vs 토큰 일관
-      a) source linear-gradient(135deg,#15803d,#22c55e) verbatim 유지 (현재 운영 동작, 사용자 인식 동일)
-      b) var(--status-safe) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror)
-    → 시안 main = (a) verbatim 렌더. Frame A 내부 "OQ patch zone" 에 (a) vs (b) 작은 비교 미리보기.
+  W6 OQ — 2026-05-19 LOCKED (사용자 답변):
+    OQ #1 ▶ LOCKED b) — 엑셀 버튼 색 = var(--status-safe-bar) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror).
+      source linear-gradient(135deg,#15803d,#22c55e) 폐기. 4 frame 엑셀 버튼 4곳 + .excel-btn-default CSS 룰 일괄 적용. patch zone 제거.
 -->
 <head>
   <meta charset="UTF-8" />
@@ -355,11 +353,12 @@
     /* ============================================================
      * W6 컴포넌트 — 엑셀 버튼 (source line 437~441 / 477~485 verbatim)
      * ============================================================ */
+    /* OQ #1 LOCKED b) — 엑셀 버튼 색 = var(--status-safe-bar) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror) */
     .excel-btn-default {
       padding: 6px 12px;
       border-radius: 8px;
       border: none;
-      background: linear-gradient(135deg, #15803d, #22c55e);
+      background: var(--status-safe-bar);
       color: #ffffff;
       font-size: 12px;
       font-weight: 700;
@@ -379,22 +378,6 @@
       font-size: 12px;
       font-weight: 700;
       cursor: default;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-family: inherit;
-      line-height: 1;
-    }
-    /* OQ #1 (b) preview 변형 — var(--status-safe) solid */
-    .excel-btn-tokenized {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      background: var(--status-safe-bar);
-      color: #ffffff;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 5px;
@@ -666,28 +649,7 @@
         </div>
       </div>
 
-      <!-- OQ #1 patch zone — 엑셀 버튼 색 (a) gradient vs (b) status-safe solid -->
-      <div class="oq-patch">
-        <div class="oq-patch-title">OQ #1 patch zone — 엑셀 버튼 색</div>
-        <div class="oq-patch-row">
-          <button class="excel-btn-default" aria-label="엑셀 다운로드 (a)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
-            </svg>
-            엑셀 다운로드 (a)
-          </button>
-          <button class="excel-btn-tokenized" aria-label="엑셀 다운로드 (b)">
-            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
-            </svg>
-            엑셀 다운로드 (b)
-          </button>
-        </div>
-        <div class="oq-patch-desc">
-          (a) source linear-gradient(135deg,#15803d,#22c55e) verbatim 유지<br/>
-          (b) var(--status-safe-bar) solid (디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror)
-        </div>
-      </div>
+      <!-- OQ #1 LOCKED b) — 엑셀 버튼 색 = var(--status-safe-bar) solid. patch zone 제거됨. -->
 
       <!-- 토스트 카탈로그: Success (6) -->
       <span class="toast-section-label">SUCCESS (6)</span>
@@ -1249,18 +1211,13 @@
 </div>
 
 <!-- ============================================================
-     OQ 푸터 — W6 결정 요청 + LOCKED 일관 mirror + Verify gate 12개
+     OQ LOCKED 푸터 — W6 결정 완료 + LOCKED 일관 mirror + Verify gate 12개
      ============================================================ -->
 <div class="oq-footer">
-  <h3>W6 Open Question (1건) — 답변 대기</h3>
+  <h3>W6 OQ LOCKED · 사용자 답변 완료 (1건)</h3>
 
-  <h4>OQ #1 · 엑셀 다운로드 버튼 색</h4>
-  <p>source 의 <code>linear-gradient(135deg,#15803d,#22c55e)</code> verbatim 유지 vs 디자인 토큰 일관(b).</p>
-  <ul>
-    <li><strong>(a)</strong> source linear-gradient verbatim 유지 — 현재 운영 동작 그대로, 사용자 인식 변경 없음</li>
-    <li><strong>(b)</strong> <code>var(--status-safe-bar)</code> solid — 디자인 토큰 일관, W4 OQ #2 LOCKED b 패턴 mirror, 다크/라이트 자동 분기</li>
-  </ul>
-  <p>시안 main = (a) verbatim. Frame A 의 OQ patch zone 에 (b) 변형 미리보기 동시 표시.</p>
+  <h4>OQ #1 ▶ LOCKED b) · 엑셀 다운로드 버튼 색 = <code>var(--status-safe-bar)</code> solid</h4>
+  <p>디자인 시스템 토큰 일관 (W4 OQ #2 LOCKED b 패턴 mirror). source <code>linear-gradient(135deg,#15803d,#22c55e)</code> 폐기. 다크/라이트 자동 분기 (다크 #22c55e / 라이트 #15803d). 4 frame 엑셀 버튼 4곳 + .excel-btn-default CSS 룰 적용. OQ patch zone 제거.</p>
 
   <h4>W1~W5 LOCKED 결정 일관 mirror (chrome consistency)</h4>
   <ul>
