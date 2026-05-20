@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-6-desktop-preview-wrapper.html — redesign/14-reports W6
+  작성: 2026-05-20 / quick 260520-i7u
+  범위: 데스크톱 1280px 우측 ExcelPreview 래퍼 영역 (.preview-wrapper + .a4-preview)
+        다크/라이트 × div-early/자탐 = 4 frame matrix.
+        A4 흰배경 고정 (다크/라이트 무관) — W5 OQ #2 LOCKED 의 시각 박제 wave.
+  out of scope:
+    - ExcelPreview.tsx 본체 (내부 12개월 grid overlay 는 본 wave 미해당, W7+ 책임)
+    - 상단 toolbar 본격 (W4 책임 — 본 wave 는 dashed bar placeholder)
+    - 좌측 sidelist 본격 (W5 책임 — 본 wave 는 dashed sidelist placeholder + selected row hint)
+    - 모바일 frame (W2/W3 책임)
+    - ReportsPage.tsx / ExcelPreview.tsx / App.tsx / 다른 페이지 / src 코드 수정
+    - wrangler / npm run deploy (CLAUDE.local.md 룰)
+  참조:
+    - wave-1-index.md §3 + §7 OQ LOCKED 5건 verbatim
+    - sketch-wave-5-desktop-sidelist.html (W5 frame 셋업 mirror — variant-label / frame-desktop / global-header-placeholder / placeholder-toolbar / below-toolbar / frame-stack / tokens.css 색)
+    - sketch-wave-4-desktop-toolbar.html (W4 frame 셋업 mirror)
+    - tokens.css line 16~119 (다크/라이트 tokens)
+    - ReportsPage.tsx line 297~300 (`<div style={{ flex: 1, overflow: 'hidden', background: 'var(--bg)' }}><ExcelPreview ... /></div>` wrapper verbatim source)
+    - ExcelPreview.tsx line 6~14 (props 시그니처 reportType | year | month)
+
+  ============================================================
+  W1 LOCKED 5건 적용 매트릭스 (W6 관점)
+  ============================================================
+    OQ #1 LOCKED — 모바일 그라데이션 폐기 (W2 적용, W6 미해당 — 본 wave 는 데스크톱 scope)
+    OQ #2 LOCKED — 좌측 패널 260px 유지 → 본 wave 의 below-toolbar layout 에서 mirror 유지
+                   (.placeholder-sidelist width: 260px). sidelist 본격 구현은 W5 책임.
+    OQ #3 LOCKED — 데스크톱 일괄 그라데이션 폐기 (W4 적용, W6 미해당)
+    OQ #4 LOCKED — 모바일 footer 유지 (W3 적용, W6 미해당)
+    OQ #5 LOCKED — sub 라인 dot span 패턴 → 본 wave 에는 sub 텍스트 자체가 없어 미해당.
+                   (sidelist row sub 은 W5 책임. 본 wave 의 placeholder 라벨/A4 안 placeholder
+                   row 모두 단일 라인 — dot span 0건.)
+
+  ============================================================
+  W5 → W6 진입 시 LOCKED OQ 3건 verbatim (사용자 컨펌 받음)
+  ============================================================
+    OQ #1 LOCKED — ExcelPreview 영역 = 단순 미리보기 자리. 내부 그리드 오버레이는
+                   ExcelPreview.tsx 본체 책임. W6 wrapper 는 layout + A4 placeholder 만.
+    OQ #2 LOCKED — A4 흰배경 고정 (다크/라이트 자동 전환 X). 본 wave 의 핵심 룰.
+                   .a4-preview { background: #ffffff } 다크 모드에서도 흰배경 유지.
+                   근거: reference_floorplan_png_algorithm + 12-staff-service W8 결정 inherit.
+    OQ #3 LOCKED — 빈 상태 UI 불필요. sidelist 항상 default selected
+                   (useState<ReportType>('div-early') 초기값). 본 wave 의 4 frame 모두
+                   div-early/자탐 selected 상태로만 시연. 빈 상태 라벨 텍스트 0건.
+
+  ============================================================
+  메모리 룰 박제 (W5 의 10건 mirror — feedback_* 10건 unique)
+  ============================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 W6 가 W7 진입 전 마지막 ExcelPreview wrapper 컨펌 시안.
+         A4 비율 (210/297) / max-width 595px / padding 32px 모두 본 시안 컨펌 후 W7 박제.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → A4 안 placeholder title 2종 verbatim:
+         '월초 유수검지 장치 점검표' (REPORT_CARDS[0].title) / '자동화재탐지설비 점검일지' (REPORT_CARDS[8].title).
+         meta 라인 ('2026년도') / 본문 row 라벨 (DIV-1~DIV-6 / 자탐 6 카테고리) 은 시각 시연용
+         dashed grid placeholder 일 뿐 실제 ExcelPreview.tsx render 데이터 흉내 X.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 wave 신규 CSS class 7건 (.preview-wrapper / .a4-preview / .a4-preview-title /
+         .a4-preview-meta / .a4-preview-table-placeholder / .a4-preview-cell /
+         .a4-preview-cell--header) 모두 task_scope §source verbatim 정의.
+         W7 checklist 에 verbatim 인용 예정 — 토큰 추측 0건.
+
+    4. feedback_tailwind_token_class_pattern.md
+       bg-surface-raised / bg-surface-sunken / text-tertiary 패턴 사용.
+       status- prefix 0건 (Tailwind class).
+       → 본 sketch CSS 정의는 var(--surface-page) / var(--border-default) / var(--text-tertiary)
+         토큰 직접 참조. utility w-8/h-8 0건 (인라인 px 값만: 260px / 595px / 32px / 28px / 16px).
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       메모리 룰: tailwind w-N (큰 토큰) = 48px (기본 32 아님). w-7 = 32px.
+       → 본 sketch utility class w-8/h-8 사용 0건. .a4-preview max-width 595px /
+         .preview-wrapper padding 32px / .placeholder-sidelist width 260px / .a4-preview-title
+         margin-bottom 8px / .a4-preview-meta margin-bottom 24px 모두 인라인 명시.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 h-8(32px) 컨테이너 안에서도 시각적 패딩.
+       → 본 wave 의 .a4-preview-meta (12px) / variant-label (12px monospace) /
+         .placeholder-toolbar / .placeholder-sidelist 라벨 (12px monospace)
+         모두 작은 컨테이너 — line-height 1.6 또는 1 명시. caption class 사용 0건.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 이모지 0건 (다운로드 아이콘류 / 체크류 / 경고류 / 페이지류 / 타겟류 모두 0건).
+         본 wave 에는 sub 텍스트 / 가운뎃점 본문 자체가 없으므로 dot span 0건.
+         (sidelist row sub 의 dot span 은 W5 책임 — 본 wave 의 placeholder-sidelist 는
+         단일 라인 placeholder 1줄만 표시.)
+
+    8. feedback_avoid_premature_confirmation.md
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       → sketch 작성 완료 후 자체 PASS 판단 0건. 사용자 컨펌 명시 받은 뒤 W7 진입.
+         특히 A4 비율/A4 흰배경 룰은 사용자 시각 컨펌 필수.
+
+    9. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave 중 wrangler --project-name=cbc7119 절대 X.
+       → 본 wave 산출은 docs/redesign-context/14-reports/sketch-wave-6-*.html 1건.
+         wrangler 명령 0건 / npm run deploy 0건. main push 자동 cbc7119-preview 만
+         (직원 도메인 cbc7119 미접근).
+
+   10. feedback_tsx_wave_stat_card_drift.md
+       Stat Card §6.3 룰 누락 사고 — 14-reports 페이지에는 Stat Card 미적용.
+       → 본 sketch 의 .a4-preview 는 카드 아님. A4 종이를 시각 흉내내는 흰배경 박스.
+         outline 패턴 / value 16px / aspect-square 룰 모두 본 wave 미해당.
+         단, aspect-ratio: 210 / 297 (= A4 비율) 명시는 본 wave 의 핵심 룰.
+
+  ============================================================
+  W7 진입 전 OQ 2건 (default 답 채택 시 별 의견 없는 것으로 진행)
+  ============================================================
+    OQ #1 — .preview-wrapper + .a4-preview CSS class 박제 위치?
+            default: (a) @layer components 안에 정의 — src/styles/components.css 에 박제,
+                     ReportsPage.tsx 는 className 사용 (인라인 style 제거).
+            근거: feedback_planner_prompt_sketch_verbatim — sketch CSS 그대로 박제 룰.
+
+    OQ #2 — W7 변환 wave sub-wave 분할?
+            default: 3 sub-wave —
+                     (1) CSS layer 정의 (src/styles/components.css 신규 7 class)
+                     (2) 모바일 컴포넌트 (W2/W3 sketch → ReportsPage.tsx 모바일 분기)
+                     (3) 데스크톱 컴포넌트 (W4/W5/W6 sketch → ReportsPage.tsx 데스크톱 분기)
+            근거: 단일 PR 폭 제한 + 각 sub-wave 별도 검수 / 머지.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 점검 일지 출력 — sketch W6 데스크톱 우측 ExcelPreview 래퍼 (1280px × A4 흰배경)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W5 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim (W5 mirror)
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (W5 mirror)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim (W5 mirror)
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim (W5 mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper (메모리 룰 6: feedback_text_caption_leading_none) */
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome 헬퍼 (W5 mirror)
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    /* 데스크톱 frame outer — W5 line 313~324 verbatim */
+    .frame-desktop {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      color: var(--text-primary);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12, 모드 무관 다크 톤) */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ============================================================
+     * W4 책임 placeholder (W5 line 424~436 verbatim mirror)
+     * ============================================================ */
+    .placeholder-toolbar {
+      height: 48px;
+      border-bottom: 1px dashed var(--border-default);
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      line-height: 1;
+    }
+
+    /* below-toolbar = sidelist + preview 양분할 (W5 line 440~443 verbatim) */
+    .below-toolbar {
+      display: flex;
+      height: 520px;
+    }
+
+    /* ============================================================
+     * W5 책임 placeholder — 본 wave 에서는 단순화된 dashed sidelist (260px 유지)
+     * + selected row hint 1줄. W5 본격 sidelist 구현은 별도 wave 책임.
+     * ============================================================ */
+    .placeholder-sidelist {
+      flex-shrink: 0;
+      width: 260px;
+      border-right: 1px solid var(--border-default);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--surface-raised);
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      line-height: 1.6;
+    }
+
+    /* selected row hint — 1줄, accent border-left 강조 */
+    .placeholder-sidelist-row {
+      padding: 8px 12px;
+      border-left: 3px solid var(--accent);
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+      border-radius: 4px;
+    }
+
+    /* placeholder-sidelist 안 라벨 (W5 책임 명시용) */
+    .placeholder-sidelist-label {
+      color: var(--text-tertiary);
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+     * W6 신규 — .preview-wrapper + .a4-preview CSS class 정의
+     * (task_scope §source verbatim — W7 변환 wave 가 인용할 인덱스)
+     * ============================================================ */
+
+    /* 우측 ExcelPreview wrapper outer — ReportsPage.tsx line 297~300 verbatim 매핑.
+       source 인라인 style: { flex: 1, overflow: 'hidden', background: 'var(--bg)' }
+       → token 격상: var(--bg) → var(--surface-page) */
+    .preview-wrapper {
+      flex: 1;
+      overflow: hidden;
+      background: var(--surface-page);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px;
+    }
+
+    /* A4 미리보기 박스 — 다크/라이트 무관 흰배경 고정 (W5 OQ #2 LOCKED).
+       비율 210/297 (= A4 mm 비율). max-width 595px (= A4 width 72dpi 환산). */
+    .a4-preview {
+      width: 100%;
+      max-width: 595px;
+      aspect-ratio: 210 / 297;
+      background: #ffffff;                /* 다크/라이트 무관 고정 */
+      border: 1px solid var(--border-default);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 28px;
+    }
+
+    /* A4 안 제목 — 흰배경 위 검정 텍스트 고정 (다크 모드에서도 #1f2328) */
+    .a4-preview-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1f2328;                    /* A4 흰배경 위 검정 텍스트 고정 */
+      text-align: center;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    /* A4 안 meta (연도 / 부제) — 흰배경 위 회색 */
+    .a4-preview-meta {
+      font-size: 12px;
+      color: #656d76;
+      text-align: center;
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    /* A4 안 12개월 grid placeholder — dashed border 만, 실제 데이터 채움 X */
+    .a4-preview-table-placeholder {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.4fr repeat(12, 1fr);
+      gap: 0;
+      border: 1px dashed #d0d7de;
+      border-radius: 2px;
+      font-size: 12px;
+      color: #656d76;
+      align-items: center;
+      justify-items: center;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* A4 안 placeholder cell — 헤더/본문 공통 base */
+    .a4-preview-cell {
+      padding: 8px 4px;
+      border: 1px dashed #d0d7de;
+      font-size: 12px;
+      color: #656d76;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* A4 안 placeholder cell — header variant (1행: 항목 / 1월 ~ 12월) */
+    .a4-preview-cell--header {
+      background: #f6f8fa;
+      font-weight: 700;
+      color: #1f2328;
+    }
+
+    /* ============================================================
+     * Variant 라벨 (sketch 외부 chrome — 12px 마지노선) — W5 line 479~486 verbatim
+     * ============================================================ */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* frame 간격 32px — W5 line 489~496 verbatim */
+    .frame-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: stretch;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+  </style>
+  <script>
+    /* tailwind config: W5 verbatim 패턴 */
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-8 max-w-[1280px] mx-auto">
+    <h1 class="text-heading text-white mb-2">14-reports sketch W6 — 데스크톱 우측 ExcelPreview 래퍼 (1280px × A4 흰배경)</h1>
+    <p class="text-label text-zinc-400">
+      데스크톱 1280px × (다크/라이트) × (div-early selected / 자탐 selected) 4 frame matrix.
+      W5 → W6 LOCKED OQ 3건 적용: 단순 미리보기 자리 / A4 흰배경 고정 / 빈 상태 UI 불필요.
+      ReportsPage.tsx line 297~300 wrapper verbatim 매핑.
+      상단 toolbar = dashed bar placeholder (W4 책임) / 좌측 sidelist 260px = dashed placeholder + selected row hint (W5 책임) /
+      우측 .preview-wrapper + .a4-preview = 본 W6 본격.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame matrix — 다크 div-early / 다크 자탐 / 라이트 div-early / 라이트 자탐
+       ============================================================ -->
+  <section class="frame-stack mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1: 다크 div-early selected + A4 흰배경 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 div-early selected + A4 흰배경 (1280px 데스크톱)</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <!-- App.tsx GlobalHeader placeholder -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <!-- 상단 toolbar — W4 책임 dashed placeholder -->
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <!-- below-toolbar: 좌측 sidelist 260px + 우측 ExcelPreview wrapper -->
+        <div class="below-toolbar">
+
+          <!-- 좌측 sidelist — W5 책임 단순화 placeholder (260px + selected row hint) -->
+          <div class="placeholder-sidelist">
+            <div class="placeholder-sidelist-label">W5 책임 — 좌측 sidelist 260px</div>
+            <div class="placeholder-sidelist-row">월초 유수검지 장치 점검표 (selected)</div>
+            <div class="placeholder-sidelist-label">(섹션 A~D 10 row 본격 마크업은 W5 책임)</div>
+          </div>
+
+          <!-- 우측 ExcelPreview wrapper — W6 본격 -->
+          <div class="preview-wrapper">
+            <!-- A4 흰배경 고정: background: #ffffff (다크/라이트 무관) -->
+            <div class="a4-preview">
+              <div class="a4-preview-title">월초 유수검지 장치 점검표</div>
+              <div class="a4-preview-meta">2026년도 / 월별 점검 결과</div>
+              <div class="a4-preview-table-placeholder">
+                <!-- 헤더 row: 항목 / 1월 ~ 12월 = 13 cell -->
+                <div class="a4-preview-cell a4-preview-cell--header">항목</div>
+                <div class="a4-preview-cell a4-preview-cell--header">1월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">2월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">3월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">4월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">5월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">6월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">7월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">8월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">9월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">10월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">11월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">12월</div>
+                <!-- 본문 row × 6 (DIV-1 ~ DIV-6) — 항목 라벨만, 12 cell 비움 -->
+                <div class="a4-preview-cell">DIV-1</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-2</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-3</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-4</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-5</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-6</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2: 다크 자탐 selected + A4 흰배경 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 자탐 selected + A4 흰배경 (1280px 데스크톱)</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="placeholder-sidelist">
+            <div class="placeholder-sidelist-label">W5 책임 — 좌측 sidelist 260px</div>
+            <div class="placeholder-sidelist-row">자동화재탐지설비 점검일지 (selected)</div>
+            <div class="placeholder-sidelist-label">(섹션 C 자탐 row active 시연은 W5 책임)</div>
+          </div>
+
+          <div class="preview-wrapper">
+            <!-- A4 흰배경 고정: background: #ffffff (다크/라이트 무관) -->
+            <div class="a4-preview">
+              <div class="a4-preview-title">자동화재탐지설비 점검일지</div>
+              <div class="a4-preview-meta">2026년도 / 자탐 카테고리 점검</div>
+              <div class="a4-preview-table-placeholder">
+                <div class="a4-preview-cell a4-preview-cell--header">항목</div>
+                <div class="a4-preview-cell a4-preview-cell--header">1월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">2월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">3월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">4월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">5월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">6월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">7월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">8월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">9월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">10월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">11월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">12월</div>
+                <div class="a4-preview-cell">소방용전원공급반</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">연기감지기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">열감지기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">발신기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">수신기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">경종</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3: 라이트 div-early selected + A4 흰배경 (F1 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 div-early selected + A4 흰배경 (1280px 데스크톱)</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="placeholder-sidelist">
+            <div class="placeholder-sidelist-label">W5 책임 — 좌측 sidelist 260px</div>
+            <div class="placeholder-sidelist-row">월초 유수검지 장치 점검표 (selected)</div>
+            <div class="placeholder-sidelist-label">(섹션 A~D 10 row 본격 마크업은 W5 책임)</div>
+          </div>
+
+          <div class="preview-wrapper">
+            <!-- A4 흰배경 고정: background: #ffffff (다크/라이트 무관) -->
+            <div class="a4-preview">
+              <div class="a4-preview-title">월초 유수검지 장치 점검표</div>
+              <div class="a4-preview-meta">2026년도 / 월별 점검 결과</div>
+              <div class="a4-preview-table-placeholder">
+                <div class="a4-preview-cell a4-preview-cell--header">항목</div>
+                <div class="a4-preview-cell a4-preview-cell--header">1월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">2월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">3월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">4월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">5월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">6월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">7월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">8월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">9월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">10월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">11월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">12월</div>
+                <div class="a4-preview-cell">DIV-1</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-2</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-3</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-4</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-5</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">DIV-6</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4: 라이트 자탐 selected + A4 흰배경 (F2 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 자탐 selected + A4 흰배경 (1280px 데스크톱)</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="placeholder-sidelist">
+            <div class="placeholder-sidelist-label">W5 책임 — 좌측 sidelist 260px</div>
+            <div class="placeholder-sidelist-row">자동화재탐지설비 점검일지 (selected)</div>
+            <div class="placeholder-sidelist-label">(섹션 C 자탐 row active 시연은 W5 책임)</div>
+          </div>
+
+          <div class="preview-wrapper">
+            <!-- A4 흰배경 고정: background: #ffffff (다크/라이트 무관) -->
+            <div class="a4-preview">
+              <div class="a4-preview-title">자동화재탐지설비 점검일지</div>
+              <div class="a4-preview-meta">2026년도 / 자탐 카테고리 점검</div>
+              <div class="a4-preview-table-placeholder">
+                <div class="a4-preview-cell a4-preview-cell--header">항목</div>
+                <div class="a4-preview-cell a4-preview-cell--header">1월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">2월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">3월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">4월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">5월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">6월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">7월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">8월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">9월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">10월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">11월</div>
+                <div class="a4-preview-cell a4-preview-cell--header">12월</div>
+                <div class="a4-preview-cell">소방용전원공급반</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">연기감지기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">열감지기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">발신기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">수신기</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell">경종</div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+                <div class="a4-preview-cell"></div><div class="a4-preview-cell"></div><div class="a4-preview-cell"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1280px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W6 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>우측 wrapper = <code class="text-zinc-200">.preview-wrapper</code> flex: 1 + overflow hidden + bg surface-page + padding 32px. ReportsPage.tsx line 297~300 inline source 의 토큰 격상 버전 (var(--bg) → var(--surface-page)).</li>
+      <li>A4 박스 = <code class="text-zinc-200">.a4-preview</code> max-width 595px + <code class="text-zinc-200">aspect-ratio: 210 / 297</code> + <strong class="text-zinc-200">background: #ffffff</strong> 고정 (W5 OQ #2 LOCKED).</li>
+      <li>다크 모드 (F1/F2) 에서도 A4 영역만 흰배경 유지 — 페이지 surface-page (#0a0d12) 와 명확히 대비됨.</li>
+      <li>라이트 모드 (F3/F4) 에서도 A4 영역은 같은 #ffffff — 페이지 surface-page (#ffffff) 와 거의 동일하지만 border-default + box-shadow 로 종이 경계 시연.</li>
+      <li>A4 안 텍스트 (title #1f2328 / meta #656d76 / placeholder #656d76) 모두 흰배경 위 검정 톤 고정 — 다크/라이트 무관 동일.</li>
+      <li>좌측 sidelist 260px 은 W5 책임 — 본 wave 는 단순화된 dashed placeholder + selected row hint 1줄로 책임 분리 시연.</li>
+      <li>상단 toolbar = W4 책임 — 본 wave 는 dashed bar 1줄 placeholder.</li>
+      <li>ExcelPreview.tsx 본체 (12개월 grid overlay / image-bg) 는 손대지 않음. 본 wave 는 wrapper layout + A4 placeholder 시각만.</li>
+      <li>이모지 0건 / 그라데이션 0건 / w-8 h-8 utility 0건 / status- prefix Tailwind 0건 / 9·10·11px 본문 0건 / 본문 가운뎃점 (mid-dot) 0건.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W7 진입 전 OQ 2건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — .preview-wrapper + .a4-preview CSS class 박제 위치? <strong class="text-zinc-200">default: (a) @layer components 안에 정의</strong> — src/styles/components.css 에 박제, ReportsPage.tsx 는 className 사용 (인라인 style 제거). 근거: feedback_planner_prompt_sketch_verbatim 룰.</li>
+      <li>OQ #2 — W7 변환 wave sub-wave 분할? <strong class="text-zinc-200">default: 3 sub-wave</strong> — (1) CSS layer 정의 (src/styles/components.css 신규 7 class) / (2) 모바일 컴포넌트 (W2/W3 sketch → ReportsPage.tsx 모바일 분기) / (3) 데스크톱 컴포넌트 (W4/W5/W6 sketch → ReportsPage.tsx 데스크톱 분기). 근거: 단일 PR 폭 제한 + 각 sub-wave 별도 검수 / 머지.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W7 변환 wave 가 인용할 CSS class verbatim 인덱스 (W6 신규 7건)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><code class="text-zinc-200">.preview-wrapper</code> — flex 1, overflow hidden, bg surface-page, display flex, align-items flex-start, justify-content center, padding 32px</li>
+      <li><code class="text-zinc-200">.a4-preview</code> — width 100%, max-width 595px, <strong class="text-zinc-200">aspect-ratio 210 / 297</strong>, <strong class="text-zinc-200">background #ffffff (고정)</strong>, border 1px solid border-default, box-shadow 0 4px 20px rgba(0,0,0,0.08), border-radius 4px, overflow hidden, display flex, flex-direction column, padding 32px 28px</li>
+      <li><code class="text-zinc-200">.a4-preview-title</code> — fontSize 18, fontWeight 700, color #1f2328 (흰배경 위 고정 검정), text-align center, margin-bottom 8, letter-spacing -0.02em</li>
+      <li><code class="text-zinc-200">.a4-preview-meta</code> — fontSize 12, color #656d76, text-align center, margin-bottom 24, letter-spacing 0.05em</li>
+      <li><code class="text-zinc-200">.a4-preview-table-placeholder</code> — flex 1, display grid, grid-template-columns 1.4fr repeat(12, 1fr), gap 0, border 1px dashed #d0d7de, border-radius 2, fontSize 12, color #656d76, align-items center, justify-items center, text-align center, overflow hidden</li>
+      <li><code class="text-zinc-200">.a4-preview-cell</code> — padding 8/4, border 1px dashed #d0d7de, fontSize 12, color #656d76, height 100%, display flex, align-items center, justify-content center</li>
+      <li><code class="text-zinc-200">.a4-preview-cell--header</code> — background #f6f8fa, fontWeight 700, color #1f2328</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">Frame matrix 4건 정리</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">Frame 1</strong>: 다크 / div-early selected / A4 title '월초 유수검지 장치 점검표' / meta '2026년도 / 월별 점검 결과' / 본문 row DIV-1 ~ DIV-6</li>
+      <li><strong class="text-zinc-200">Frame 2</strong>: 다크 / 자탐 selected / A4 title '자동화재탐지설비 점검일지' / meta '2026년도 / 자탐 카테고리 점검' / 본문 row 소방용전원공급반 / 연기감지기 / 열감지기 / 발신기 / 수신기 / 경종</li>
+      <li><strong class="text-zinc-200">Frame 3</strong>: 라이트 / div-early selected / A4 title '월초 유수검지 장치 점검표' / meta '2026년도 / 월별 점검 결과' / 본문 row DIV-1 ~ DIV-6 (F1 mirror)</li>
+      <li><strong class="text-zinc-200">Frame 4</strong>: 라이트 / 자탐 selected / A4 title '자동화재탐지설비 점검일지' / meta '2026년도 / 자탐 카테고리 점검' / 본문 row 자탐 6 카테고리 (F2 mirror)</li>
+    </ul>
+  </section>
+
+  <!--
+    ============================================================
+    Negative gate 자체 검증 결과 박제 (작성자 grep 결과 — sketch 검토자 신뢰 인덱스)
+    ============================================================
+
+    Negative gate (모두 0 — 자체 grep PASS):
+      이모지 (다운로드/체크/X/경고/페이지/타겟 류) 본문         = 0  PASS
+      배경 그라데이션 (CSS gradient 함수)                       = 0  PASS
+      Tailwind (text|bg)-status- prefix                          = 0  PASS
+      Tailwind w-8 / h-8 utility class                            = 0  PASS
+      본문 font-size 9/10/11px                                    = 0  PASS
+      빈 상태 라벨 텍스트 (W5 OQ #3 LOCKED 의 부정 시나리오)       = 0  PASS
+      본문 가운뎃점 mid-dot 문자 (본 wave sub 텍스트 자체 없음)   = 0  PASS
+
+    Positive gate (모두 PASS):
+      .preview-wrapper CSS 정의                                    ≥ 1  PASS  (W6 신규)
+      .a4-preview CSS 정의                                         ≥ 1  PASS  (W6 신규)
+      aspect-ratio 210 명시                                        ≥ 1  PASS  (A4 비율)
+      A4 흰배경 #ffffff (CSS 정의 + 4 frame 마크업 주석 annotation) ≥ 4  PASS  (다크/라이트 무관 고정)
+      A4 title '월초 유수검지 장치 점검표' verbatim                 ≥ 2  PASS  (F1 + F3)
+      A4 title '자동화재탐지설비 점검일지' verbatim                 ≥ 2  PASS  (F2 + F4)
+      unique feedback_*.md 메모리 룰                               ≥ 7  PASS  (10건)
+  -->
+
+</body>
+</html>
