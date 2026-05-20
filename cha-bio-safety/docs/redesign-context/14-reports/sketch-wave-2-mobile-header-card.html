@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-mobile-header-card.html — redesign/14-reports W2
+  작성: 2026-05-20 / quick 260520-fk0
+  범위: 모바일 자체 헤더 + DIV early 카드 1종 (enabled + loading variant 2개)
+  out of scope: 카드 그리드 10종 / footer / 데스크톱 (W3~W6 책임)
+  참조: wave-1-index.md §3 verbatim, ReportsPage.tsx line 316~398 verbatim,
+        13-schedule/sketch-wave-1.html frame layout 1:1 mirror
+
+  W1 LOCKED 5건 적용 매트릭스:
+    OQ #1 ▶ LOCKED — 모바일 다운로드 버튼 그라데이션 폐기 → bg-safe-bar solid (본 wave 적용 = O)
+    OQ #2 ▶ LOCKED — 데스크톱 좌측 260px 유지 (W5 scope, W2 미해당)
+    OQ #3 ▶ LOCKED — 데스크톱 일괄 다운로드 그라데이션 폐기 (W4 scope, W2 미해당)
+    OQ #4 ▶ LOCKED — 모바일 footer 안내 유지 (W3 scope, W2 미해당 — 본 wave 는 카드만)
+    OQ #5 ▶ LOCKED — sub 라인 dot span 패턴 (본 wave 적용 = O)
+
+  W2 OQ 3건 (W3 진입 전 사용자 컨펌):
+    OQ #1 ▶ default: 데스크톱 1280px frame placeholder 미표시 (모바일 검증 집중)
+    OQ #2 ▶ default: 카드 진행률/완료 status 칩 미배치 (ReportsPage 는 점검 페이지 아님)
+    OQ #3 ▶ default: 모바일 카드 hover/press 별도 시각화 미배치 (모바일 hover 없음)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 sketch 가 W3 진입 전 단일 카드 패턴 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → REPORT_CARDS[0].title '월초 유수검지 장치 점검표' / sub 'DIV[dot]34개소' verbatim.
+         'DIV[dot]30개소' 등 임의 변경 0건.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 sketch 의 모든 CSS class 명을 W7 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 사용 (메모리 룰 prefix 없는 짧은 토큰 alias 우선).
+       → 다운로드 버튼 = bg-safe-bar (메모리 룰 prefix 0건). 다크/라이트 모드 토큰 자동 매핑.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (메모리 룰: tailwind spacing override 함정)
+       메모리 룰: 메모리 룰 w-N 표기 = 48px (기본 32 아님). 메모리 룰 w-7 = 32px.
+       → 본 sketch 는 source iconBtn 34x34 / navBtn 28x28 / dot 4x4 모두 var() inline 명시.
+         메모리 룰 spacing alias 사용 0건.
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 다운로드 글리프 (U+2B07) 이모지 0건 / lucide Download SVG 인라인 /
+         sub 라인 가운뎃점 텍스트 0건 / dot span 2건.
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩. leading-none 명시.
+       → sub 라인 + year-label + year-nav-btn 모두 line-height: 1 명시.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 점검 일지 출력 — sketch W2 모바일 헤더 + DIV early 카드</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar (좌측 색바, CTA bg) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (모바일 기본)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 (W2 는 모바일 frame 393px 만이라 적용 X, 일관 유지용) */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper (메모리 룰 feedback_text_caption_leading_none) */
+    .leading-none { line-height: 1; }
+
+    /* dot span helper — sub 라인 가운뎃점 폐기 후 (W1 OQ #5 LOCKED) */
+    .dot-meta {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+     * Sketch 헬퍼 — 13-schedule/sketch-wave-1 frame 구조 mirror
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12, 회색 톤, 다크/라이트 무관) */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ============================================================
+     * 자체 헤더 — ReportsPage.tsx line 331~353 verbatim 매핑
+     * (노안 격상: 타이틀 14 -> 18 / year-label 13 -> 14)
+     * ============================================================ */
+    .page-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);                         /* line 331: 'var(--bg2)' = surface-raised */
+      border-bottom: 1px solid var(--border-default);            /* line 331: 'var(--bd)' */
+      padding: 8px 12px 9px;                                     /* line 331 verbatim */
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* iconBtn — line 387~391 verbatim 34x34 (메모리 룰 5: 32 != 34, source verbatim 보존) */
+    .back-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;                                        /* radius-sm */
+      flex-shrink: 0;
+      background: var(--surface-sunken);                         /* line 389: 'var(--bg3)' */
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);                              /* line 333 stroke: 'var(--t2)' */
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-title {
+      flex: 1;
+      font-size: 18px;                                           /* 노안 격상 14 -> 18 (text-title, W1 §2.1 W2 행) */
+      font-weight: 700;
+      color: var(--text-primary);                                /* line 337 'var(--t1)' */
+      line-height: 1.4;
+    }
+
+    .year-pager {
+      display: flex;
+      align-items: center;
+      gap: 2px;                                                  /* line 340 verbatim */
+    }
+
+    .year-pager-slot {
+      width: 24px;                                               /* line 341/347 verbatim */
+      display: flex;
+      justify-content: center;
+    }
+
+    /* navBtn — line 393~398 verbatim 28x28 (메모리 룰 5+7: leading-none 명시) */
+    .year-nav-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;                                        /* line 394 verbatim */
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);                         /* line 395: 'var(--bg3)' */
+      color: var(--text-primary);                                /* line 395: 'var(--t1)' */
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;                                            /* line 397 verbatim + 메모리 룰 7 */
+    }
+
+    .year-label {
+      width: 44px;                                               /* line 346 verbatim */
+      text-align: center;
+      font-size: 14px;                                           /* 노안 격상 13 -> 14 (text-body-sm) */
+      font-weight: 700;
+      color: var(--text-primary);                                /* line 346: 'var(--t1)' */
+      line-height: 1;                                            /* 메모리 룰 7: 작은 컨테이너 leading-none */
+    }
+
+    /* ============================================================
+     * 본문 영역 (overflowY: 'auto', padding 12px 16px) — line 355
+     * ============================================================ */
+    .page-body {
+      padding: 12px 16px;
+      background: var(--surface-page);
+    }
+
+    /* ============================================================
+     * 카드 outer — line 357 verbatim 매핑
+     * (노안 격상: 제목 13 -> 16 / sub 11 -> 12)
+     * radius 14 -> 12 토큰 매핑 (mig 룰 §4.3)
+     * ============================================================ */
+    .report-card {
+      background: var(--surface-raised);                         /* line 357: 'var(--bg2)' */
+      border-radius: 12px;                                       /* radius-md (source 14 -> 12 토큰) */
+      border: 1px solid var(--border-default);
+      padding: 14px;                                             /* card-padding 모바일 verbatim */
+      margin-bottom: 10px;
+    }
+
+    .report-card-head {
+      margin-bottom: 10px;                                       /* line 358 verbatim */
+    }
+
+    .report-card-title {
+      font-size: 16px;                                           /* 노안 격상 13 -> 16 (text-body, W1 §2.1 마지노선) */
+      font-weight: 700;
+      color: var(--text-primary);                                /* line 359: 'var(--t1)' */
+      line-height: 1.4;
+    }
+
+    .report-card-sub {
+      margin-top: 4px;                                           /* 노안 룰 2 -> 4 (space-1) */
+      font-size: 12px;                                           /* 노안 격상 11 -> 12 (text-caption) */
+      color: var(--text-tertiary);                               /* line 360: 'var(--t3)' */
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1;                                            /* 메모리 룰 7 */
+    }
+
+    /* 다운로드 버튼 (W1 OQ #1 LOCKED — bg-safe-bar solid, 그라데이션 0건) */
+    .report-card-btn {
+      width: 100%;
+      padding: 12px;                                             /* 노안 격상 11 -> 12, btn min height 44 근접 */
+      border-radius: 8px;                                        /* radius-sm (source 9 -> 8 토큰) */
+      border: 0;
+      background: var(--status-safe-bar);                        /* W1 OQ #1 LOCKED: bg-safe-bar solid */
+      color: var(--text-on-accent);                              /* #ffffff */
+      font-size: 16px;                                           /* 노안 격상 12 -> 16 (text-body) */
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* loading variant — line 370~372 분기 */
+    .report-card--loading .report-card-btn {
+      background: var(--surface-sunken);                         /* line 370: 'var(--bg3)' */
+      color: var(--text-tertiary);                               /* line 371: 'var(--t3)' */
+      cursor: default;
+    }
+
+    /* ============================================================
+     * Variant 라벨 (sketch 만의 보조 — 시안에서 시각 구분용)
+     * ============================================================ */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+    /* 위 12px 는 sketch 외부 chrome 만 적용 (frame 안 본문 아님) */
+  </style>
+  <script>
+    // tailwind config: 13-schedule sketch-wave-1 패턴 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[900px] mx-auto">
+    <h1 class="text-heading text-white mb-2">14-reports sketch W2 — 모바일 헤더 + DIV early 카드 1종</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × 다크/라이트 dual frame. W1 LOCKED 5건 중 #1 (그라데이션 폐기 → bg-safe-bar solid) + #5 (sub dot span) 시각 적용.
+      ReportsPage.tsx line 316~398 verbatim 매핑.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트 side-by-side
+       (13-schedule/sketch-wave-1 line 332 mirror)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 모바일 frame ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">다크 모드 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder (모바일 무노출이지만 chrome 룰 mirror 차원 표기) -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지)</div>
+
+        <!-- ① 자체 헤더 — ReportsPage line 331~353 verbatim -->
+        <header class="page-header">
+          <!-- 백 버튼 (line 332~336) — iconBtn 34x34 + lucide ChevronLeft size=15 -->
+          <button class="back-btn" aria-label="뒤로">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- 페이지 타이틀 (line 337) — "점검 일지 출력" verbatim + 노안 격상 14 -> 18 -->
+          <span class="page-title">점검 일지 출력</span>
+
+          <!-- 연도 선택 (line 340~352) — year > MIN_YEAR(2023) && year < CURRENT_YEAR(2026) 분기 -->
+          <div class="year-pager">
+            <!-- 좌측 slot: year > MIN_YEAR (line 342) — 2026 frame 이라 노출 -->
+            <div class="year-pager-slot">
+              <button class="year-nav-btn" aria-label="이전 연도">‹</button>
+            </div>
+            <!-- 중앙: year 라벨 (line 346) -->
+            <span class="year-label">2026년</span>
+            <!-- 우측 slot: year < CURRENT_YEAR (line 348) — 2026 = CURRENT 라 빈 wrapper 유지 -->
+            <div class="year-pager-slot">
+              <!-- (없음 — width 24px 빈 컨테이너 유지로 헤더 균형) -->
+            </div>
+          </div>
+        </header>
+
+        <!-- ② 본문 영역 (line 355) -->
+        <div class="page-body">
+
+          <!-- ───── Variant 1: enabled (평상시) ───── -->
+          <div class="variant-label">Variant 1 / enabled (loading === null)</div>
+
+          <article class="report-card">
+            <div class="report-card-head">
+              <!-- 카드 제목 — REPORT_CARDS[0].title verbatim (line 13) + 노안 격상 13 -> 16 -->
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <!-- sub 라인 — W1 OQ #5 LOCKED dot span 패턴 -->
+              <!-- source line 360~362: '{card.sub} · {year}년도' = 'DIV · 34개소 · 2026년도' -->
+              <!-- sketch 변환: 가운뎃점 텍스트 2건 -> dot span 2건 -->
+              <div class="report-card-sub">
+                DIV<span class="dot-meta"></span>34개소<span class="dot-meta"></span>2026년도
+              </div>
+            </div>
+
+            <!-- 다운로드 버튼 — W1 OQ #1 LOCKED: 그라디언트 폐기 -> bg-safe-bar solid -->
+            <!-- 다운로드 글리프 폐기 (메모리 룰 6: feedback_tsx_wave_emoji_dot_gap) -> lucide Download size=14 -->
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ───── Variant 2: loading (생성 중...) ───── -->
+          <div class="variant-label">Variant 2 / loading (loading === 'div-early')</div>
+
+          <article class="report-card report-card--loading">
+            <div class="report-card-head">
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV<span class="dot-meta"></span>34개소<span class="dot-meta"></span>2026년도
+              </div>
+            </div>
+
+            <!-- loading variant: lucide Download 0건 (단일 텍스트 라벨, 13-schedule W6 mirror 단순화) -->
+            <button class="report-card-btn" disabled aria-label="엑셀 생성 중">
+              생성 중...
+            </button>
+          </article>
+
+        </div>
+
+        <!-- BottomNav 영역 — /reports 는 MOBILE_NO_NAV_PATHS 등재됨 (App.tsx line 71 실측)
+             → BottomNav 노출 안 됨. footer 도 W3 scope 라 본 wave 미포함. -->
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 모바일 frame ─────
+         (다크 frame 의 markup 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">라이트 모드 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder — 모드 무관 다크 톤 유지 (13-schedule W1 mirror) -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지)</div>
+
+        <!-- ① 자체 헤더 — ReportsPage line 331~353 verbatim (라이트 토큰 자동 매핑) -->
+        <header class="page-header">
+          <!-- 백 버튼 (line 332~336) — iconBtn 34x34 + lucide ChevronLeft size=15 -->
+          <button class="back-btn" aria-label="뒤로">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- 페이지 타이틀 (line 337) — "점검 일지 출력" verbatim + 노안 격상 14 -> 18 -->
+          <span class="page-title">점검 일지 출력</span>
+
+          <!-- 연도 선택 (line 340~352) — year > MIN_YEAR(2023) && year < CURRENT_YEAR(2026) 분기 -->
+          <div class="year-pager">
+            <div class="year-pager-slot">
+              <button class="year-nav-btn" aria-label="이전 연도">‹</button>
+            </div>
+            <span class="year-label">2026년</span>
+            <div class="year-pager-slot">
+              <!-- (없음 — 2026 = CURRENT_YEAR 라 ›는 미노출) -->
+            </div>
+          </div>
+        </header>
+
+        <!-- ② 본문 영역 (line 355) -->
+        <div class="page-body">
+
+          <!-- ───── Variant 1: enabled (평상시) ───── -->
+          <div class="variant-label">Variant 1 / enabled (loading === null)</div>
+
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV<span class="dot-meta"></span>34개소<span class="dot-meta"></span>2026년도
+              </div>
+            </div>
+
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ───── Variant 2: loading (생성 중...) ───── -->
+          <div class="variant-label">Variant 2 / loading (loading === 'div-early')</div>
+
+          <article class="report-card report-card--loading">
+            <div class="report-card-head">
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV<span class="dot-meta"></span>34개소<span class="dot-meta"></span>2026년도
+              </div>
+            </div>
+
+            <button class="report-card-btn" disabled aria-label="엑셀 생성 중">
+              생성 중...
+            </button>
+          </article>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[900px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W2 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>다운로드 버튼 = <code class="text-zinc-200">var(--status-safe-bar)</code> solid (다크 #22c55e / 라이트 #15803d). W1 OQ #1 LOCKED 적용.</li>
+      <li>sub 라인 = <code class="text-zinc-200">DIV[dot]34개소[dot]2026년도</code>. 가운뎃점 텍스트 0건 / dot span 2건 (W1 OQ #5 LOCKED).</li>
+      <li>헤더 타이틀 = 18px (text-title). 노안 격상 14 -&gt; 18 (W1 §2.1 W2 행).</li>
+      <li>카드 제목 = 16px (text-body). 노안 격상 13 -&gt; 16 (W1 §2.1 마지노선).</li>
+      <li>sub = 12px (text-caption) + leading-none. 노안 격상 11 -&gt; 12 (mig 룰 §4.2).</li>
+      <li>버튼 라벨 = 16px (text-body). 노안 격상 12 -&gt; 16.</li>
+      <li>iconBtn 34x34 / navBtn 28x28 = source verbatim 보존 (메모리 룰 5 + sketch_realistic_data).</li>
+      <li>loading variant 의 lucide Download 0건은 의도 — source line 374 의 텍스트 라벨 단일 패턴 mirror.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W3 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — W2 안에 데스크톱 1280px placeholder 둘지? <strong class="text-zinc-200">default: 미배치</strong> (W4~W6 책임).</li>
+      <li>OQ #2 — 카드에 진행률/완료 status 칩 둘지? <strong class="text-zinc-200">default: 미배치</strong> (ReportsPage 는 점검 페이지 아님).</li>
+      <li>OQ #3 — 모바일 카드 hover/press state 시각화? <strong class="text-zinc-200">default: 미배치</strong> (모바일 hover 없음).</li>
+    </ul>
+  </section>
+
+</body>
+</html>
