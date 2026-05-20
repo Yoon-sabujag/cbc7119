@@ -135,6 +135,7 @@ function Layout() {
   const isQrScan    = location.pathname === '/inspection/qr'
   const isExtinguishers = location.pathname === '/extinguishers'
   const isCctv          = location.pathname === '/cctv'
+  const isSchedule      = location.pathname === '/schedule'
 
   // 모바일 전용: 대시보드 헤더 우측 슬롯
   const dashboardRightSlot = (
@@ -243,6 +244,9 @@ function Layout() {
             </span>
             {isExtinguishers && (
               <div id="extinguishers-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
+            )}
+            {isSchedule && (
+              <div id="schedule-header-portal-slot" style={{ display: 'flex', alignItems: 'center' }} />
             )}
           </header>
         )}
