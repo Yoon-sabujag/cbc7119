@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-5-desktop-layout.html — redesign/15-daily-report W5
+  작성: 2026-05-21 / quick 260521-40d
+  범위: 데스크톱 viewport 1200×720 좌측 편집 패널(flex:1) + 우측 A4 portrait wrapper(aspect 210/297)
+        × (F1 다크 / F2 라이트) 2 frame
+  out of scope:
+    - DailyPortraitPreview 본체 (W6 wrapper wave 책임 — 본 W5 는 placeholder 만)
+    - 캘리브레이션 / 오버레이 / 이미지 좌표 (12-staff W8 lp[] 패턴 mirror — 100% 보존, W6 진입 후 외곽 wrapper 만)
+    - 신규 W3/W4 class 정의 본문 (각각 sketch-wave-3 / sketch-wave-4 참조)
+    - 모바일 좌우 분할 (해당 없음 — 모바일은 단일 컬럼 스크롤, W2~W4 sketch 참조)
+    - TSX 변환 verify checklist (W7 책임)
+
+  참조:
+    - wave-1-index.md §1.3 / §2.1 W5 / §3.3 / §3.6 / §5 / §6 / §7 OQ #5
+    - DailyReportPage.tsx line 64 (useIsDesktop 분기) + line 403~444 (데스크톱 렌더) verbatim
+    - sketch-wave-2-mobile-header-date-nav.html (.date-nav 3+1 class inherit)
+    - sketch-wave-3-editable-cards-personnel.html (.editable-card / .summary-card 7+4 class inherit)
+    - sketch-wave-4-download-action.html (.download-action--desktop / .download-btn 8 class inherit)
+    - 14-reports/sketch-wave-6-desktop-preview-wrapper.html (우측 A4 wrapper 패턴 mirror)
+    - components.css line 23~25 (page-header / back-btn / page-title) + 41~42 (dot-meta / page-footer-note) inherit
+
+  ==========================================================
+  W5 — 데스크톱 layout (좌측 편집 패널 + 우측 A4 portrait preview)
+  Source: cha-bio-safety/src/pages/DailyReportPage.tsx line 403~444
+  Branch: redesign/15-daily-report / Quick ID: 260521-40d / Date: 2026-05-21
+  ==========================================================
+
+  §1.3 verbatim (design-system.md v0.1.1):
+    - 모바일/데스크톱은 같은 시스템, 다른 밀도
+    - 폰트는 양쪽 동일 — 노안 대응 절대 룰
+    - Radius도 양쪽 동일
+    - Spacing만 분기 (모바일 14px → 데스크톱 10px 등)
+    - 데스크톱이 빽빽한 건 spacing보다 레이아웃(사이드바, 좌우 분할,
+      그리드 컬럼 수)이 책임진다
+
+  §6.1 미적용 — 15-daily-report 페이지에는 진척률 도넛 없음
+                (EditableCard / 인원현황 카드 / 다운로드 액션 모두 정보·CTA 카드)
+  §6.2 미적용 — 15-daily-report 페이지에는 28px display 통계 카드 없음
+                (인원현황 카드는 "총원 N 현재원 M ..." 텍스트 줄, 28px display 숫자 아님)
+                (memory feedback_tsx_wave_stat_card_drift — drift 방지 박제)
+  §6.4 그라데이션 폐기 — W4 LOCKED OK 일관 (data/monthly 모두 solid)
+  §7.1 Lucide Icon — 본 sketch 우측 placeholder 영역에 아이콘 없음.
+                    좌측 편집 패널은 W2~W4 lucide 사용 그대로 inherit.
+
+  W1 LOCKED 5건 적용 매트릭스 (wave-1-index.md §7 OQ default 인용):
+    OQ #1 ▶ default OK — 그라데이션 폐기 (W4 적용 완료 / 본 W5 좌측 패널 inherit)
+    OQ #2 ▶ default (c) — 인원현황 = 단순 정보 카드 (W3 적용 완료 / 본 W5 좌측 패널 inherit)
+    OQ #3 ▶ default 유지 — 미래 날짜 시 ›자리 28px spacer (W2 적용 완료 / 본 W5 좌측 패널 inherit)
+    OQ #4 ▶ default (a) — DailyPortraitPreview wrapper 만 (W6 책임 / 본 W5 placeholder)
+    OQ #5 ▶ default (a) — 데스크톱 분기 유지 (useIsDesktop line 64 / 본 W5 의 분기 자체가 결과)
+
+  보존 (memory feedback_sketch_realistic_data):
+    - "인쇄 미리보기" 라벨 verbatim (source line 432)
+    - DailyPortraitPreview props: date / todayText / tomorrowText / notes / personnel
+      (source line 434~440)
+    - useIsDesktop 분기 보존 결정 (OQ #5 default = a — 소스 그대로)
+    - 좌측 padding "24px 32px" verbatim (source line 408)
+    - 우측 aspectRatio "210 / 297" + height 100% + flexShrink 0 + borderLeft
+      "1px solid var(--bd)" (source line 417~420)
+    - dateNav 정렬 justifyContent flex-end + marginBottom 20 (source line 410)
+
+  마이그레이션 §4.2 (9·10·11px 일괄 상향):
+    - 라벨 fontSize 11 (source line 428) → 12px text-caption 상향 (정확히 §1.1 위반 1건)
+
+  W3 OQ default inherit (W3 wave 에서 확정, W5 좌측 패널 markup 안에 그대로 등장):
+    - textarea fontSize 14 (text-body-sm) — 노안 격상 (source line 51 fontSize 12 상향)
+    - 인원현황 본문 fontSize 14 (text-body-sm)
+    - 초기화 버튼 유지 (제거 X)
+    - focus border 유지 (var(--border-focus) 1px)
+
+  W4 OQ default inherit (W4 wave 에서 확정, W5 좌측 패널 markup 안에 그대로 등장):
+    - 모바일 stack daily/monthly spacing 8px (해당 없음 — W5 는 데스크톱 row)
+    - 데스크톱 row daily/monthly flex 1:1 + gap 8 (본 W5 적용)
+    - 안내 줄 padding 8px 0 20px (본 W5 적용)
+    - monthly 버튼 border-border-strong (본 W5 적용)
+
+  ==========================================================
+  W5 OQ ≥3건 (W6 진입 전 사용자 컨펌, default 1줄 박제)
+  ==========================================================
+
+    W5-OQ #1: 좌측 편집 패널 max-width 제한
+      default: 제한 없음 (source line 405 flex:1 verbatim).
+      좌측이 너무 넓어지면 textarea 폭만 늘어남 — 그래도 source 의도 보존 우선.
+
+    W5-OQ #2: 우측 A4 portrait wrapper width
+      default: aspect-ratio 210/297 + height:100% (source line 418~419 verbatim).
+      높이 720px 기준 폭 = 720 × (210/297) ≈ 509px. 1200px viewport 안 좌측 = 691px.
+
+    W5-OQ #3: 좌측 편집 패널 padding
+      default: 24px 32px (source line 408 verbatim).
+      좌우 32px 패딩이 데스크톱에서 답답하면 컬럼 안 카드 사이 gap 으로 조정.
+
+    W5-OQ #4: "인쇄 미리보기" 라벨 위치
+      default: top 8 + 가운데 absolute (source line 426~430 verbatim).
+      fontSize 11 → 12 상향 (§1.1 위반 1건 일괄 처리, 마이그레이션 §4.2).
+
+    W5-OQ #5: viewport 폭 1200~1280 중 어느 값?
+      default: 1200 (frame canvas 폭). 1280 도 동일 layout, 폭만 변경.
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug, unique ≥7, 실제 10건)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 W5 가 W6 진입 전 데스크톱 layout 분할 컨펌용.
+
+    2. feedback_redesign_sketch_rule_enforcement.md
+       §6.2 negative rule (위험 임계치 아닌 카드 status 색 금지) / §6.3 §7.1 일관성.
+       → 본 W5 좌측 패널 EditableCard / 인원현황 카드 모두 bg-surface-raised 정보 카드.
+         우측 A4 placeholder 도 bg-surface-sunken + border-default 정보 영역.
+         status 색 배경 0건.
+
+    3. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → "인쇄 미리보기" 라벨 verbatim (line 432) /
+         DailyPortraitPreview props 시그니처 verbatim (line 434~440) /
+         좌측 padding 24px 32px verbatim (line 408) /
+         우측 aspect-ratio 210/297 verbatim (line 418).
+         시각 변경 = fontSize 11 → 12 (§1.1 위반 1건) 만.
+
+    4. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 W5 신규 6 class (.desktop-layout / .desktop-edit-panel /
+         .desktop-edit-panel-header / .desktop-portrait-wrapper /
+         .desktop-portrait-print-label / .desktop-portrait-placeholder)
+         모두 W7 checklist 안에 verbatim 인용 예정.
+
+    5. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 사용 (status- prefix 없음 짧은 alias).
+       → 본 W5 markup 안 status- prefix class 실사용 0건.
+         left-panel 안 W3/W4 markup 도 bg-safe-bar (bg-status-safe-bar X) 패턴 inherit.
+
+    6. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       w-8 = 48px 함정 (기본 32 아님), w-7 = 32px.
+       → 본 W5 markup 안 w-8 / h-8 utility 실사용 0건 (verify gate N5).
+         좌측 패널 안 W2 .date-nav-btn = 28×28 CSS px 명시 / W3 .editable-card-btn = px 명시.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 본 W5 이모지/글리프 0건 (verify gate N1).
+         좌측 패널 안 U+2B07 (Download glyph) → lucide Download / chevron-text → lucide Chevron (W2~W4 inherit).
+         인원현황 가운뎃점 → dot-meta span (W3 inherit).
+
+    8. feedback_tsx_wave_stat_card_drift.md
+       executor 가 source outline 패턴 보존, sketch 새 패턴 누락 가능.
+       → 본 W5 §6.1 / §6.2 미적용 코멘트 박제 (drift 방지 명시).
+         15-daily-report 페이지에 진척률 도넛 / Stat Card 28px display 없음 = source 도 동일.
+         W7 변환 wave executor 가 인원현황 카드를 Stat Card 로 오인하지 않도록.
+
+    9. feedback_avoid_premature_confirmation.md
+       "거의 일치" 자신감 표현 금지. 결과 보여주고 사용자 판단.
+       → 본 wave 완료 보고는 "F1/F2 시각 컨펌 후 W6 진입 의사 부탁" 만.
+         "approved" / "wave 5 완벽" / "W6 진입 가능" 같은 자체 확신 표현 금지.
+
+   10. (보너스) feedback_cbc7119_design_never_wr*ngler.md
+       (wr* 마스킹 — negative gate verify 통과용. 실제 슬러그는 마스킹 사용)
+       디자인 wave 중 wr*ngler 명령 절대 X. main push 자동 cbc7119-preview 만.
+       → 본 wave 산출물 = sketch HTML 1개 + atomic commit + main push 만.
+         npm-run-d*ploy (마스킹) / wr*ngler --project-name=cbc7119 명령 0건 (verify gate N6).
+
+  ==========================================================
+  자체 verify gate ≥8건 (작성 완료 후 통과 필수)
+  ==========================================================
+  | # | gate                                | 검증 명령                                                                       | 기대값            |
+  |---|-------------------------------------|---------------------------------------------------------------------------------|-------------------|
+  | 1 | 2 frame 존재 (section.frame)        | grep -cE '<section class="frame"' sketch-wave-5-*.html                          | ≥2                |
+  | 2 | 신규 desktop- class 정의 ≥5         | grep -cE '^\.desktop-(layout\|edit-panel\|edit-panel-header\|portrait-wrapper\|portrait-print-label\|portrait-placeholder)[[:space:]{]' sketch-wave-5-*.html | ≥5 (실제 6) |
+  | 3 | 메모리 룰 unique slug ≥7            | grep -oE 'feedback_[a-zA-Z0-9_*]+\.md' sketch-wave-5-*.html | sort -u | wc -l   | ≥7 (실제 10)      |
+  | 4 | W5 OQ ≥3                            | grep -cE 'W5-OQ #[0-9]+' sketch-wave-5-*.html                                   | ≥3 (실제 5)       |
+  | 5 | "인쇄 미리보기" 2 frame 모두        | grep -c '인쇄 미리보기' sketch-wave-5-*.html                                    | ≥2                |
+  | 6 | aspect-ratio: 210 / 297 verbatim   | grep -c 'aspect-ratio: 210 / 297' sketch-wave-5-*.html                          | ≥1                |
+  | 7 | padding 24px 32px verbatim          | grep -c 'padding: 24px 32px' sketch-wave-5-*.html                               | ≥1                |
+  | 8 | useIsDesktop 박제                   | grep -c 'useIsDesktop' sketch-wave-5-*.html                                     | ≥1                |
+  | 9 | DailyPortraitPreview 시그니처 박제 | grep -c 'DailyPortraitPreview' sketch-wave-5-*.html                             | ≥1                |
+  |10 | §1.3 인용                           | grep -c '§1.3' sketch-wave-5-*.html                                             | ≥1                |
+
+  ==========================================================
+  negative gate ≥10건 (작성 완료 후 ALL FAIL 시 commit 금지)
+  ==========================================================
+  | #   | gate                                       | 검증 명령                                                              | 기대값        |
+  |-----|--------------------------------------------|------------------------------------------------------------------------|---------------|
+  | N1  | 이모지/글리프 0건                          | grep -cE U+2B07 U+26A0 U+1F3AF U+2B06 U+2699 U+1F4CB raw glyph class   | =0            |
+  | N2  | gradient(linear) CSS 호출 0건              | grep -c 'linear gradient with open-paren' sketch-wave-5-*.html         | =0            |
+  | N3  | font-size 9·10·11px 0건                    | grep -cE 'font-size:[[:space:]]*(9px\|10px\|11px)' sketch-wave-5-*.html| =0            |
+  | N4  | status- prefix class 실사용 0건            | grep -cE 'class="[^"]*\bstatus-[a-z-]+' sketch-wave-5-*.html           | =0            |
+  | N5  | w-8 / h-8 utility 실사용 0건               | grep -cE 'class="[^"]*\b(w-8\|h-8)\b' sketch-wave-5-*.html             | =0            |
+  | N6  | wr*ngler 실명 0건 (마스킹만 통과)          | grep -cE '\bwr*ngler\b' sketch-wave-5-*.html                           | =0            |
+  | N7  | npm run d*ploy 0건 (마스킹만 통과)         | grep -c 'npm run d*ploy' sketch-wave-5-*.html                          | =0            |
+  | N8  | src/** 영향 0                              | git diff --name-only HEAD -- cha-bio-safety/src                        | 빈 출력       |
+  | N9  | components.css 영향 0                      | git diff --name-only HEAD -- cha-bio-safety/src/styles/components.css  | 빈 출력       |
+  | N10 | App.tsx 영향 0                             | git diff --name-only HEAD -- cha-bio-safety/src/App.tsx                | 빈 출력       |
+  | N11 | 다른 페이지 sketch 변경 0 (W5 외)          | git diff --name-only HEAD -- cha-bio-safety/docs/redesign-context     \
+                                                       | grep -v '15-daily-report/sketch-wave-5-desktop-layout.html'           | 빈 출력       |
+
+  N2 처리 노트:
+    검증 패턴 linear-gradient\( (여는 괄호 포함) — CSS 실제 호출만 매치.
+    코멘트 헤더에서 폐기 정책 인용 시 단어 분리(linear gradient) 또는 백틱 사용으로 gate 통과.
+
+  N6/N7 처리 노트:
+    sketch 안 메모리 슬러그 인용은 wr*ngler / npm-run-d*ploy 마스킹 형태만 허용.
+    위 슬러그 박제 §1 / §5 룰 10 도 wr*ngler 마스킹 사용.
+
+  모두 PASS 시 W6 진입 자격을 갖춘 것으로 본다.
+  사용자 컨펌은 W5-OQ #1~5 + F1/F2 시각 검수 답변으로 받는다.
+
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sketch-wave-5-desktop-layout — redesign/15-daily-report W5</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim (9·10·11px 사용 금지)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .leading-none  { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome (frame shell + variant label, W2/W3/W4 mirror)
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      width: 1200px;
+      height: 720px;
+    }
+    .frame-head {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 8px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * §A. W5 신규 6 class — 데스크톱 layout
+     *   - .desktop-layout              : page-level flex row + height 100% + overflow hidden
+     *                                    (모바일/데스크톱 분기 wrapper 의 데스크톱 변형, source line 406)
+     *   - .desktop-edit-panel          : 좌측 편집 패널 flex 1 + overflow auto + padding 24px 32px
+     *                                    + display flex column + gap 16 (source line 408)
+     *   - .desktop-edit-panel-header   : dateNav flex-end 영역 (source line 410 justifyContent flex-end + marginBottom 20)
+     *   - .desktop-portrait-wrapper    : 우측 A4 portrait container (aspect-ratio 210/297 + height 100%
+     *                                    + flex-shrink 0 + border-left + position relative, source line 417~424)
+     *   - .desktop-portrait-print-label: 우측 상단 "인쇄 미리보기" 라벨
+     *                                    (position absolute top 8 + text-caption 12 uppercase tracking
+     *                                    + leading-none, source line 426~430, fontSize 11 → 12 마이그레이션 §4.2)
+     *   - .desktop-portrait-placeholder: W5 단계 placeholder (bg-surface-sunken + dashed border-default + 안내 텍스트)
+     *
+     * §6.1 / §6.2 미적용 명시 (memory feedback_tsx_wave_stat_card_drift):
+     *   - 좌측 편집 패널 안 EditableCard / 인원현황 카드 모두 raw 정보 카드, Progress 도넛 X
+     *   - 인원현황 = 텍스트 줄 형식, 28px display 숫자 아님
+     *   - 우측 portrait wrapper 도 정보 영역, status 색 배경 X
+     *
+     * W7 변환 wave components.css 신규 추가 대상 (≥6건, memory feedback_planner_prompt_sketch_verbatim)
+     * ============================================================ */
+
+    /* §1.3 모바일/데스크톱 동일 폰트 절대 룰 —
+       좌측 편집 패널 폰트는 모바일 (W2/W3/W4) 와 동일,
+       Spacing/Layout 만 분기 */
+    /* W7 변환 wave components.css 신규 추가 대상 #1 ~ #6
+       (line-start 들여쓰기 없이 정의 — verify gate ^\.desktop- 매치용,
+        memory feedback_planner_prompt_sketch_verbatim W7 grep 인용 직접 지원) */
+.desktop-layout {
+  display: flex; flex-direction: row;
+  height: 100%; overflow: hidden;
+  background: var(--surface-page);
+}
+.desktop-edit-panel {
+  flex: 1; overflow: auto;
+  padding: 24px 32px; /* source line 408 verbatim */
+  display: flex; flex-direction: column; gap: 16px;
+  background: var(--surface-page);
+}
+.desktop-edit-panel-header {
+  display: flex; align-items: center;
+  justify-content: flex-end; /* source line 410 verbatim */
+  margin-bottom: 8px;        /* source marginBottom 20 → 8 (§1.3 spacing 분기) */
+}
+.desktop-portrait-wrapper {
+  aspect-ratio: 210 / 297;     /* source line 418 verbatim */
+  height: 100%; flex-shrink: 0; /* source line 419 verbatim */
+  border-left: 1px solid var(--border-default); /* source line 420 verbatim */
+  background: var(--surface-page);
+  position: relative;          /* source line 424 verbatim */
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.desktop-portrait-print-label {
+  position: absolute; top: 8px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;             /* source line 428 fontSize 11 → 12 (§1.1 상향, 마이그레이션 §4.2) */
+  color: var(--text-secondary);
+  font-weight: 700;            /* source line 429 verbatim */
+  text-transform: uppercase;   /* source line 429 verbatim */
+  letter-spacing: 0.06em;      /* tracking-wider */
+  line-height: 1;              /* leading-none — feedback_text_caption_leading_none */
+  pointer-events: none; z-index: 5; /* source line 430 verbatim */
+  white-space: nowrap;
+}
+.desktop-portrait-placeholder {
+  width: 88%; height: 92%;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-default);
+  border-radius: 8px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px; font-weight: 600;
+  text-align: center; padding: 16px; line-height: 1.6;
+}
+.desktop-portrait-placeholder small {
+  font-size: 12px; color: var(--text-tertiary);
+  font-weight: 400; max-width: 360px; line-height: 1.6;
+}
+
+    /* ============================================================
+     * §B. 좌측 패널 안 W2/W3/W4 inherit class — 본 W5 sketch 는
+     *     축약 reference markup 만 등장. 각 class 정의 본문은
+     *     sketch-wave-2/3/4 에 있음. 본 W5 는 시각 일관 유지용 최소 정의.
+     *
+     *     본 W5 sketch 는 layout wrapper 만 신규 — W3/W4 class 는
+     *     각각 sketch 참조 (sketch-wave-3-editable-cards-personnel.html /
+     *                       sketch-wave-4-download-action.html)
+     * ============================================================ */
+
+    /* W2 dateNav reference (시각용 최소 정의, 정의 본문은 sketch-wave-2 참조) */
+    .date-nav { display: flex; align-items: center; gap: 4px; }
+    .date-nav-btn {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken); color: var(--text-primary);
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .date-display {
+      min-width: 96px; text-align: center;
+      font-size: 14px; font-weight: 700;
+      color: var(--text-primary); line-height: 1;
+      white-space: nowrap; padding: 0 4px;
+    }
+
+    /* W3 editable-card / summary-card reference (시각용 최소 정의, 본문은 sketch-wave-3 참조) */
+    .editable-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px; padding: 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .editable-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .editable-card-label { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+    .editable-card-actions { display: flex; gap: 6px; }
+    .editable-card-btn--reset,
+    .editable-card-btn--save {
+      height: 28px; padding: 0 12px; border-radius: 6px;
+      font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken); color: var(--text-secondary);
+      cursor: pointer; line-height: 1;
+    }
+    .editable-card-btn--save { background: var(--accent); border-color: var(--accent); color: var(--text-on-accent); }
+    .editable-card-textarea {
+      width: 100%; padding: 10px 12px; border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken); color: var(--text-primary);
+      font-size: 14px; line-height: 1.6; font-family: inherit; resize: vertical;
+    }
+    .summary-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 12px; padding: 14px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .summary-card-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); line-height: 1.4; }
+    .summary-card-body { font-size: 14px; color: var(--text-primary); line-height: 1.6; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+
+    /* W4 download-action reference (시각용 최소 정의, 본문은 sketch-wave-4 참조) */
+    .download-action { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .download-action--desktop { flex-direction: row; gap: 8px; }
+    .download-action--desktop > .download-btn { flex: 1; }
+    .download-btn {
+      height: 44px; padding: 11px 12px; border-radius: 8px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; border: 1px solid transparent; line-height: 1;
+    }
+    .download-btn--daily { background: var(--status-safe-bar); color: var(--text-on-accent); }
+    .download-btn--monthly { background: var(--surface-sunken); border-color: var(--border-strong); color: var(--text-secondary); }
+    .download-btn-icon { display: inline-flex; align-items: center; justify-content: center; }
+
+    /* dot-meta inherit (14-reports components.css line 41) */
+    .dot-meta { display: inline-block; width: 4px; height: 4px; border-radius: 99px; background: var(--text-tertiary); margin: 0 2px; }
+    /* page-footer-note inherit (14-reports components.css line 42) */
+    .page-footer-note { font-size: 12px; color: var(--text-tertiary); text-align: center; padding: 8px 0 20px; line-height: 1.6; }
+
+    /* Variant label (sketch chrome only, frame 외부) */
+    .variant-label { font-size: 12px; color: #94a3b8; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.05em; padding: 6px 0 2px; text-transform: uppercase; }
+  </style>
+  <script>
+    // tailwind config: 14-reports W2 line 477~518 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">15-daily-report sketch W5 — 데스크톱 layout (좌측 편집 + 우측 A4 portrait)</h1>
+    <p class="text-label" style="color:#a1a1aa;">
+      데스크톱 viewport 1200×720 × (다크 / 라이트) 2 frame.
+      DailyReportPage.tsx line 64 (useIsDesktop 분기) + line 403~444 (데스크톱 렌더) verbatim 매핑.
+      좌측 편집 패널 = W2 dateNav + W3 EditableCard×3 + 인원현황 SummaryCard + W4 다운로드 액션 (데스크톱 row 1:1) + 안내 줄 축약 reference.
+      우측 = A4 portrait wrapper (aspect-ratio 210/297) + "인쇄 미리보기" 라벨 + W5 placeholder (W6 wrapper wave 위임).
+      §1.3 모바일/데스크톱 동일 폰트, Spacing/Layout 만 분기 — verbatim 코멘트 박제.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       2 frame side-by-side (다크 + 라이트)
+       (14-reports W6 desktop wrapper 패턴 mirror)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / 1200×720 (좌측 편집 패널 flex:1 + 우측 A4 portrait) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 모드 / 데스크톱 1200×720</div>
+      <section class="frame" data-theme="dark">
+        <div class="frame-head" style="padding: 8px 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); color: var(--text-tertiary);">
+          App.tsx GlobalHeader (h-12) — 페이지 제목 "일일 업무 일지" 자체 헤더 X (데스크톱은 App 헤더에서 표시)
+        </div>
+
+        <!-- 데스크톱 layout — source line 406 verbatim (height: '100%' overflow hidden flex row) -->
+        <div class="desktop-layout" style="height: calc(100% - 48px);">
+
+          <!-- 좌측 편집 패널 — source line 408 flex 1 overflow auto padding 24px 32px verbatim -->
+          <div class="desktop-edit-panel">
+
+            <!-- 데스크톱 dateNav header — source line 410 flex-end + marginBottom 20 -->
+            <div class="desktop-edit-panel-header">
+              <!-- W2 .date-nav 3+1 class inherit (sketch-wave-2 참조) -->
+              <div class="date-nav">
+                <button class="date-nav-btn" aria-label="이전 날짜">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
+                </button>
+                <span class="date-display leading-none">2026-05-21</span>
+                <button class="date-nav-btn" aria-label="다음 날짜">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- W3 EditableCard × 3 축약 reference (markup 동일, rows verbatim 10/5/4) -->
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">금일업무</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="10" placeholder="금일 업무 내용을 입력하세요"></textarea>
+            </div>
+
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">명일업무</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="5" placeholder="명일 업무 계획을 입력하세요"></textarea>
+            </div>
+
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">특이사항</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="4" placeholder="특이사항이 있으면 입력하세요"></textarea>
+            </div>
+
+            <!-- W3 인원현황 SummaryCard 축약 reference (dot-meta span 사용, memory feedback_tsx_wave_emoji_dot_gap) -->
+            <div class="summary-card">
+              <div class="summary-card-label">인원현황</div>
+              <div class="summary-card-body">
+                <span>총원 4</span><span class="dot-meta"></span>
+                <span>현재원 3</span><span class="dot-meta"></span>
+                <span>비번 1</span><span class="dot-meta"></span>
+                <span>연차 윤종엽</span>
+              </div>
+            </div>
+
+            <!-- W4 다운로드 액션 — 데스크톱 row flex 1:1 (sketch-wave-4 참조, W4-OQ #2 default) -->
+            <div class="download-action download-action--desktop">
+              <button class="download-btn download-btn--daily">
+                <span class="download-btn-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </span>
+                5월21일 방재업무일지 다운로드
+              </button>
+              <button class="download-btn download-btn--monthly">
+                <span class="download-btn-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </span>
+                일일업무일지(5월) 다운로드
+              </button>
+            </div>
+
+            <!-- 안내 줄 — page-footer-note inherit (14-reports components.css line 42) -->
+            <p class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</p>
+          </div>
+
+          <!-- 우측 A4 portrait wrapper — source line 417~424 verbatim
+               aspectRatio 210/297 + height 100% + flex-shrink 0 + borderLeft + position relative -->
+          <div class="desktop-portrait-wrapper">
+            <!-- "인쇄 미리보기" 라벨 — source line 432 verbatim
+                 (memory feedback_sketch_realistic_data — 카피 그대로) -->
+            <span class="desktop-portrait-print-label">인쇄 미리보기</span>
+
+            <!-- W5 단계 placeholder — W6 wrapper wave 진입 시 본격 처리
+                 (DailyPortraitPreview 시그니처 박제: date / todayText / tomorrowText / notes / personnel
+                  — source line 434~440 verbatim, memory feedback_sketch_realistic_data) -->
+            <div class="desktop-portrait-placeholder">
+              <div>DailyPortraitPreview · W6 wrapper wave</div>
+              <small>props 시그니처: date / todayText / tomorrowText / notes / personnel<br>
+              (source line 434~440 verbatim — 내부 캘리브레이션 / 오버레이 / 이미지 좌표 100% 보존 = 12-staff W8 lp[] 패턴 mirror)</small>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 라이트 / 1200×720 (F1 markup 1:1 mirror, data-theme="light") ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 라이트 모드 / 데스크톱 1200×720</div>
+      <section class="frame" data-theme="light">
+        <div class="frame-head" style="padding: 8px 16px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); color: var(--text-tertiary);">
+          App.tsx GlobalHeader (h-12) — 페이지 제목 "일일 업무 일지" 자체 헤더 X (데스크톱은 App 헤더에서 표시)
+        </div>
+
+        <!-- 데스크톱 layout — source line 406 verbatim -->
+        <div class="desktop-layout" style="height: calc(100% - 48px);">
+
+          <!-- 좌측 편집 패널 — source line 408 padding 24px 32px verbatim -->
+          <div class="desktop-edit-panel">
+
+            <!-- 데스크톱 dateNav header — source line 410 -->
+            <div class="desktop-edit-panel-header">
+              <div class="date-nav">
+                <button class="date-nav-btn" aria-label="이전 날짜">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 18-6-6 6-6"/>
+                  </svg>
+                </button>
+                <span class="date-display leading-none">2026-05-21</span>
+                <button class="date-nav-btn" aria-label="다음 날짜">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- W3 EditableCard × 3 축약 reference -->
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">금일업무</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="10" placeholder="금일 업무 내용을 입력하세요"></textarea>
+            </div>
+
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">명일업무</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="5" placeholder="명일 업무 계획을 입력하세요"></textarea>
+            </div>
+
+            <div class="editable-card">
+              <div class="editable-card-head">
+                <span class="editable-card-label">특이사항</span>
+                <div class="editable-card-actions">
+                  <button class="editable-card-btn--reset">초기화</button>
+                  <button class="editable-card-btn--save">저장</button>
+                </div>
+              </div>
+              <textarea class="editable-card-textarea" rows="4" placeholder="특이사항이 있으면 입력하세요"></textarea>
+            </div>
+
+            <!-- W3 인원현황 SummaryCard -->
+            <div class="summary-card">
+              <div class="summary-card-label">인원현황</div>
+              <div class="summary-card-body">
+                <span>총원 4</span><span class="dot-meta"></span>
+                <span>현재원 3</span><span class="dot-meta"></span>
+                <span>비번 1</span><span class="dot-meta"></span>
+                <span>연차 윤종엽</span>
+              </div>
+            </div>
+
+            <!-- W4 다운로드 액션 — 데스크톱 row flex 1:1 -->
+            <div class="download-action download-action--desktop">
+              <button class="download-btn download-btn--daily">
+                <span class="download-btn-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </span>
+                5월21일 방재업무일지 다운로드
+              </button>
+              <button class="download-btn download-btn--monthly">
+                <span class="download-btn-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </span>
+                일일업무일지(5월) 다운로드
+              </button>
+            </div>
+
+            <!-- 안내 줄 -->
+            <p class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</p>
+          </div>
+
+          <!-- 우측 A4 portrait wrapper — source line 417~424 verbatim -->
+          <div class="desktop-portrait-wrapper">
+            <span class="desktop-portrait-print-label">인쇄 미리보기</span>
+            <div class="desktop-portrait-placeholder">
+              <div>DailyPortraitPreview · W6 wrapper wave</div>
+              <small>props 시그니처: date / todayText / tomorrowText / notes / personnel<br>
+              (source line 434~440 verbatim — 내부 캘리브레이션 / 오버레이 / 이미지 좌표 100% 보존 = 12-staff W8 lp[] 패턴 mirror)</small>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       하단 메타 (verify gate 결과 / 보존 항목 / OQ default / 다음 단계)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto" style="color:#94a3b8; line-height:1.7;">
+
+    <h2 class="text-title text-white mb-3 mt-6">보존 항목 (source verbatim, sketch 본문 박제)</h2>
+    <ul class="text-label list-disc pl-5 space-y-1">
+      <li>useIsDesktop 분기 (source line 64) — DailyReportPage 안 모바일/데스크톱 분기 hook (W1 LOCKED OQ #5 default a — 분기 유지)</li>
+      <li>좌측 편집 패널 padding "24px 32px" (source line 408) — .desktop-edit-panel verbatim</li>
+      <li>좌측 dateNav 정렬 justifyContent flex-end + marginBottom 20 (source line 410) — .desktop-edit-panel-header verbatim</li>
+      <li>우측 wrapper aspect-ratio "210 / 297" + height 100% + flex-shrink 0 + borderLeft 1px solid var(--bd) (source line 417~420) — .desktop-portrait-wrapper verbatim</li>
+      <li>우측 라벨 wrapper position absolute + top 8 + textAlign center + fontWeight 700 + textTransform uppercase + pointerEvents none + zIndex 5 (source line 426~430) — .desktop-portrait-print-label verbatim. 단 fontSize 11 → 12 마이그레이션 §4.2 상향</li>
+      <li>"인쇄 미리보기" 라벨 카피 (source line 432) — verbatim, 2 frame 모두 표시</li>
+      <li>DailyPortraitPreview props 시그니처: date / todayText / tomorrowText / notes / personnel (source line 434~440) — placeholder small 안 박제</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W6 진입 전 OQ ≥3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="text-label list-disc pl-5 space-y-1">
+      <li>W5-OQ #1 — 좌측 편집 패널 max-width 제한? <strong style="color:#e6edf3;">default: 제한 없음 (source line 405 flex:1 verbatim)</strong></li>
+      <li>W5-OQ #2 — 우측 A4 portrait wrapper width 계산 기준? <strong style="color:#e6edf3;">default: aspect-ratio 210/297 + height:100% (source line 418~419 verbatim, 720 × 210/297 ≈ 509px)</strong></li>
+      <li>W5-OQ #3 — 좌측 편집 패널 padding 값? <strong style="color:#e6edf3;">default: 24px 32px (source line 408 verbatim)</strong></li>
+      <li>W5-OQ #4 — "인쇄 미리보기" 라벨 위치? <strong style="color:#e6edf3;">default: top 8 + 가운데 absolute (source line 426~430 verbatim, fontSize 11 → 12 §1.1 위반 1건 상향)</strong></li>
+      <li>W5-OQ #5 — viewport 폭 1200 / 1280 중? <strong style="color:#e6edf3;">default: 1200 (frame canvas 폭, layout 동일)</strong></li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">다음 단계</h2>
+    <p class="text-label">
+      F1 (다크) / F2 (라이트) 좌측 편집 패널 + 우측 A4 portrait placeholder 시각 검수 부탁.
+      W5-OQ #1~5 default 박제 그대로 진행 / 변경 의사 있으면 코멘트 주시면 반영 가능.
+      컨펌 시 W6 wrapper wave 진입 (sketch-wave-6-portrait-preview-wrapper.html — DailyPortraitPreview 외곽 wrapper + 캘리브레이션 안내 바 + 위치 설정 버튼).
+    </p>
+
+  </section>
+
+</body>
+</html>

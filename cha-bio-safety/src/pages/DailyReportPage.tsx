@@ -8,6 +8,7 @@ import { buildDailyReportData } from '../utils/dailyReportCalc'
 import { generateDailyExcel } from '../utils/generateExcel'
 import { useStaffList } from '../hooks/useStaffList'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { ChevronLeft, ChevronRight, Download, AlertTriangle } from 'lucide-react'
 
 // ── 날짜 유틸 ──────────────────────────────────────────────
 function todayKST(): string {
@@ -24,37 +25,6 @@ function addDays(dateStr: string, n: number): string {
 function nowKSTHour(): number {
   const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
   return d.getHours()
-}
-
-// ── 스타일 상수 ────────────────────────────────────────────
-const iconBtn: React.CSSProperties = {
-  width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-  background: 'var(--bg3)', border: '1px solid var(--bd)',
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-}
-
-const navBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 7, border: '1px solid var(--bd)',
-  background: 'var(--bg3)', color: 'var(--t1)', fontSize: 16, fontWeight: 700,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  lineHeight: '1',
-}
-
-const card: React.CSSProperties = {
-  background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--bd)',
-  padding: 14, marginBottom: 10,
-}
-
-const textareaStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box',
-  background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 9,
-  color: 'var(--t1)', fontSize: 12, fontFamily: 'inherit', fontWeight: 400,
-  padding: '10px 12px', resize: 'vertical', outline: 'none', lineHeight: 1.6,
-}
-
-const smallBtn: React.CSSProperties = {
-  fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
-  border: '1px solid var(--bd)', cursor: 'pointer',
 }
 
 // ── 컴포넌트 ──────────────────────────────────────────────
@@ -296,141 +266,117 @@ export default function DailyReportPage() {
       />
 
       {/* 인원현황 요약 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 6 }}>인원현황</div>
+      <div className="summary-card">
+        <div className="summary-card-label">인원현황</div>
         {queryData.isLoading ? (
-          <div style={{ background: 'var(--bg4)', borderRadius: 4, height: 12, width: '70%', animation: 'blink 2s ease-in-out infinite' }}/>
+          <div className="summary-card-skeleton" />
         ) : queryData.isError ? (
-          <div style={{ fontSize: 11, color: 'var(--danger)' }}>데이터 불러오기 실패 — 다시 시도해 주세요</div>
+          <div className="summary-card-error">데이터 불러오기 실패 — 다시 시도해 주세요</div>
         ) : preview ? (
-          <div style={{ fontSize: 11, color: 'var(--t2)', lineHeight: 1.6 }}>
-            총원 {preview.personnel.total} · 현재원 {preview.personnel.present}
-            {preview.personnel.offDuty ? ` · 비번 ${preview.personnel.offDuty}` : ''}
-            {preview.personnel.onLeave.length > 0 ? ` · 연차 ${preview.personnel.onLeave.join(', ')}` : ''}
-            {preview.personnel.halfLeave.length > 0 ? ` · 반차 ${preview.personnel.halfLeave.join(', ')}` : ''}
-            {preview.personnel.training.length > 0 ? ` · 교육/훈련 ${preview.personnel.training.join(', ')}` : ''}
-            {preview.personnel.dayShift.length > 0 ? ` · 주간근무자 ${preview.personnel.dayShift.join(', ')}` : ''}
-            {preview.personnel.onDuty ? ` · 당직근무자 ${preview.personnel.onDuty}` : ''}
+          <div className="summary-card-body">
+            <span>총원 {preview.personnel.total}</span>
+            <span className="dot-meta" />
+            <span>현재원 {preview.personnel.present}</span>
+            {preview.personnel.offDuty && (<>
+              <span className="dot-meta" />
+              <span>비번 {preview.personnel.offDuty}</span>
+            </>)}
+            {preview.personnel.onLeave.length > 0 && (<>
+              <span className="dot-meta" />
+              <span>연차 {preview.personnel.onLeave.join(', ')}</span>
+            </>)}
+            {preview.personnel.halfLeave.length > 0 && (<>
+              <span className="dot-meta" />
+              <span>반차 {preview.personnel.halfLeave.join(', ')}</span>
+            </>)}
+            {preview.personnel.training.length > 0 && (<>
+              <span className="dot-meta" />
+              <span>교육/훈련 {preview.personnel.training.join(', ')}</span>
+            </>)}
+            {preview.personnel.dayShift.length > 0 && (<>
+              <span className="dot-meta" />
+              <span>주간근무자 {preview.personnel.dayShift.join(', ')}</span>
+            </>)}
+            {preview.personnel.onDuty && (<>
+              <span className="dot-meta" />
+              <span>당직근무자 {preview.personnel.onDuty}</span>
+            </>)}
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: 'var(--t3)' }}>해당 날짜 데이터 없음</div>
+          <div className="summary-card-empty">해당 날짜 데이터 없음</div>
         )}
       </div>
 
       {/* 다운로드 버튼 */}
-      {isDesktop ? (
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button
-            onClick={handleDailyDownload}
-            disabled={generating || queryData.isLoading}
-            style={{
-              flex: 1, padding: 11, borderRadius: 9, border: 'none',
-              background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
-              fontSize: 13, fontWeight: 700,
-              cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
-            }}
-          >
-            {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
-          </button>
-          <button
-            onClick={handleMonthlyDownload}
-            disabled={genMonthly}
-            style={{
-              flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
-              background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
-              color: genMonthly ? 'var(--t3)' : 'var(--t1)',
-              fontSize: 13, fontWeight: 700,
-              cursor: genMonthly ? 'default' : 'pointer',
-            }}
-          >
-            {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
-          </button>
-        </div>
-      ) : (
-        <>
-          <button
-            onClick={handleDailyDownload}
-            disabled={generating || queryData.isLoading}
-            style={{
-              width: '100%', padding: 11, borderRadius: 9, border: 'none',
-              background: (generating || queryData.isLoading) ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              color: (generating || queryData.isLoading) ? 'var(--t3)' : '#fff',
-              fontSize: 13, fontWeight: 700, marginBottom: 8,
-              cursor: (generating || queryData.isLoading) ? 'default' : 'pointer',
-            }}
-          >
-            {generating ? '생성 중...' : `⬇ ${Number(mm)}월${dd}일 방재업무일지 다운로드`}
-          </button>
-          <button
-            onClick={handleMonthlyDownload}
-            disabled={genMonthly}
-            style={{
-              width: '100%', padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
-              background: genMonthly ? 'var(--bg3)' : 'var(--bg2)',
-              color: genMonthly ? 'var(--t3)' : 'var(--t1)',
-              fontSize: 13, fontWeight: 700,
-              cursor: genMonthly ? 'default' : 'pointer',
-            }}
-          >
-            {genMonthly ? '월별 생성 중...' : `⬇ 일일업무일지(${mm}월) 다운로드`}
-          </button>
-        </>
-      )}
+      <div className={isDesktop ? 'download-action download-action--desktop' : 'download-action'}>
+        <button
+          type="button"
+          onClick={handleDailyDownload}
+          disabled={generating || queryData.isLoading}
+          className={`download-btn download-btn--daily${(generating || queryData.isLoading) ? ' download-btn--disabled' : ''}`}
+        >
+          {generating ? '생성 중...' : (
+            <>
+              <Download size={16} className="download-btn-icon" />
+              {`${Number(mm)}월${dd}일 방재업무일지 다운로드`}
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={handleMonthlyDownload}
+          disabled={genMonthly}
+          className={`download-btn download-btn--monthly${genMonthly ? ' download-btn--disabled' : ''}`}
+        >
+          {genMonthly ? '월별 생성 중...' : (
+            <>
+              <Download size={16} className="download-btn-icon" />
+              {`일일업무일지(${mm}월) 다운로드`}
+            </>
+          )}
+        </button>
+      </div>
 
-      <div style={{ fontSize: 10, color: 'var(--t3)', textAlign: 'center', padding: '8px 0 20px' }}>
-        수정 내용은 자동 저장됩니다 · 월별은 저장된 모든 날짜를 포함합니다
+      <div className="page-footer-note">
+        수정 내용은 자동 저장됩니다 <span className="dot-meta" /> 월별은 저장된 모든 날짜를 포함합니다
       </div>
     </>
   )
 
   // ── 날짜 네비게이터 (공통) ─────────────────────────────
   const dateNav = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-      <button onClick={goBack} style={navBtn}>‹</button>
-      <span style={{ width: 90, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
-        {date}
-      </span>
-      <div style={{ width: 28, display: 'flex', justifyContent: 'center' }}>
-        {canForward
-          ? <button onClick={goForward} style={navBtn}>›</button>
-          : <span style={{ width: 28 }}/>
-        }
-      </div>
+    <div className="date-nav">
+      <button type="button" onClick={goBack} className="date-nav-btn" aria-label="이전 날짜">
+        <ChevronLeft size={16} />
+      </button>
+      <span className="date-display">{date}</span>
+      {canForward
+        ? (
+          <button type="button" onClick={goForward} className="date-nav-btn" aria-label="다음 날짜">
+            <ChevronRight size={16} />
+          </button>
+        )
+        : <span className="date-nav-spacer" />
+      }
     </div>
   )
 
   // ── 렌더 — 데스크톱 ────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+      <div className="desktop-layout">
         {/* 좌측 편집 패널 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
+        <div className="desktop-edit-panel">
           {/* 데스크톱 날짜 네비게이터 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
+          <div className="desktop-edit-panel-header">
             {dateNav}
           </div>
           {formContent}
         </div>
 
         {/* 우측 A4 세로 미리보기 패널 — 높이 기준으로 A4 비율 폭 계산 */}
-        <div style={{
-          aspectRatio: '210 / 297',
-          height: '100%', flexShrink: 0,
-          borderLeft: '1px solid var(--bd)',
-          overflow: 'hidden',
-          background: 'var(--bg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute', top: 8, left: 0, right: 0,
-            textAlign: 'center', fontSize: 11, color: 'var(--t2)',
-            fontWeight: 700, textTransform: 'uppercase',
-            pointerEvents: 'none', zIndex: 5,
-          }}>
-            인쇄 미리보기
-          </div>
+        <div className="desktop-portrait-wrapper">
+          <div className="desktop-portrait-print-label">인쇄 미리보기</div>
           <DailyPortraitPreview
             date={date}
             todayText={todayText}
@@ -445,20 +391,18 @@ export default function DailyReportPage() {
 
   // ── 렌더 — 모바일 ──────────────────────────────────────
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
       {/* 헤더 */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px 9px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={iconBtn} aria-label="뒤로 가기">
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+      <header className="page-header">
+        <button type="button" onClick={() => navigate(-1)} className="back-btn" aria-label="뒤로 가기">
+          <ChevronLeft size={15} />
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>일일 업무 일지</span>
+        <span className="page-title">일일 업무 일지</span>
         {dateNav}
       </header>
 
       {/* 스크롤 본문 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
         {formContent}
       </div>
     </div>
@@ -650,40 +594,27 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%', height: '100%',
-        overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg)', position: 'relative',
-      }}
+      className="daily-portrait-wrapper"
     >
       <img
         ref={imgRef}
         src="/templates/preview/daily-1.png"
         alt=""
         onLoad={measure}
-        style={{
-          maxWidth: '100%', maxHeight: '100%',
-          objectFit: 'contain',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          borderRadius: 4, background: '#fff',
-        }}
+        className="daily-portrait-image"
       />
 
       {/* 오버레이 + 캘리브레이션 영역 */}
       {imgRect && imgRect.width > 0 && (
         <div
+          className={`daily-portrait-overlay-area ${calibMode ? 'daily-portrait-overlay-area--calib' : ''}`}
           onClick={calibMode ? onCalibClick : undefined}
           onTouchStart={calibMode ? onCalibTouchStart : undefined}
           onTouchMove={calibMode ? onCalibTouchMove : undefined}
           onTouchEnd={calibMode ? onCalibTouchEnd : undefined}
           style={{
-            position: 'absolute',
             left: imgRect.left, top: imgRect.top,
             width: imgRect.width, height: imgRect.height,
-            pointerEvents: calibMode ? 'auto' : 'none',
-            cursor: calibMode ? 'crosshair' : 'default',
-            touchAction: calibMode ? 'none' : 'auto',
           }}
         >
           {/* 데이터 오버레이 (캘리브레이션 완료 후) */}
@@ -730,51 +661,34 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
 
       {/* 캘리브레이션 안내 바 */}
       {calibMode && (
-        <div style={{
-          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.9)', color: '#fff',
-          padding: '10px 20px', borderRadius: 10,
-          fontSize: 14, fontWeight: 700,
-          display: 'flex', alignItems: 'center', gap: 16, zIndex: 10,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          whiteSpace: 'nowrap',
-        }}>
-          <span style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: DAILY_CALIB_STEPS[calibStep].color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, flexShrink: 0,
-          }}>{calibStep + 1}</span>
-          <span>{DAILY_CALIB_STEPS[calibStep].label}</span>
-          <span style={{ fontSize: 11, color: '#aaa' }}>
+        <div className="daily-portrait-calib-bar">
+          <span
+            className="daily-portrait-calib-bar-step"
+            style={{ background: DAILY_CALIB_STEPS[calibStep].color }}
+          >{calibStep + 1}</span>
+          <span className="daily-portrait-calib-bar-label">{DAILY_CALIB_STEPS[calibStep].label}</span>
+          <span className="daily-portrait-calib-bar-coord">
             {activePoint ? `(${activePoint.x.toFixed(1)}, ${activePoint.y.toFixed(1)})` : '터치/클릭'}
           </span>
           {activePoint && (
-            <button onClick={confirmPoint} style={{
-              background: '#22c55e', border: 'none', color: '#fff',
-              padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700,
-            }}>확인</button>
+            <button type="button" onClick={confirmPoint} className="daily-portrait-calib-confirm">확인</button>
           )}
-          <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-            padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-          }}>취소</button>
+          <button
+            type="button"
+            onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
+            className="daily-portrait-calib-cancel"
+          >취소</button>
         </div>
       )}
 
       {/* 위치 설정 버튼 */}
       {!calibMode && (
         <button
+          type="button"
           onClick={() => { setCalibMode(true); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
-          style={{
-            position: 'absolute', bottom: 12, right: 12,
-            background: hasCalib ? 'rgba(0,0,0,0.6)' : 'rgba(239,68,68,0.9)',
-            color: '#fff', border: 'none',
-            padding: '8px 16px', borderRadius: 8,
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', zIndex: 10,
-          }}
+          className={`daily-portrait-setup-btn ${hasCalib ? 'daily-portrait-setup-btn--ready' : 'daily-portrait-setup-btn--missing'}`}
         >
-          {hasCalib ? '위치 재설정' : '⚠ 위치 설정'}
+          {hasCalib ? '위치 재설정' : (<><AlertTriangle size={14} /> 위치 설정</>)}
         </button>
       )}
     </div>
@@ -784,23 +698,13 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
 // ── 캘리브레이션 마커 ───────────────────────────────────────
 function DailyCalibMarker({ x, y, color, label, active }: { x: number; y: number; color: string; label: string; active?: boolean }) {
   return (
-    <div style={{
-      position: 'absolute',
-      left: `${x}%`, top: `${y}%`,
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ position: 'absolute', left: -20, top: 0, width: 40, height: 2, background: color, opacity: 0.8 }} />
-      <div style={{ position: 'absolute', top: -20, left: 0, width: 2, height: 40, background: color, opacity: 0.8 }} />
-      <div style={{
-        width: active ? 20 : 16, height: active ? 20 : 16,
-        borderRadius: '50%', background: color,
-        border: '2px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 10, fontWeight: 900, color: '#fff',
-        transform: 'translate(-50%, -50%)',
-        position: 'absolute', left: 0, top: 0,
-      }}>
+    <div className="daily-portrait-calib-marker" style={{ left: `${x}%`, top: `${y}%` }}>
+      <div className="daily-portrait-calib-marker-crosshair-h" style={{ background: color }} />
+      <div className="daily-portrait-calib-marker-crosshair-v" style={{ background: color }} />
+      <div
+        className={`daily-portrait-calib-marker-dot ${active ? 'daily-portrait-calib-marker-dot--active' : ''}`}
+        style={{ background: color }}
+      >
         {label}
       </div>
     </div>
@@ -814,26 +718,24 @@ function EditableCard({ label, field, value, onChange, onSave, onReset, saving, 
   saving?: boolean; rows: number; placeholder?: string
 }) {
   return (
-    <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', flex: 1 }}>{label}</div>
-        <button onClick={() => onReset(field)}
-          style={{ ...smallBtn, background: 'var(--bg3)', color: 'var(--t3)', marginRight: 6 }}>
-          초기화
-        </button>
-        <button onClick={() => onSave(field)} disabled={saving}
-          style={{ ...smallBtn, background: 'var(--bg4)', color: saving ? 'var(--t3)' : 'var(--t2)' }}>
-          {saving ? '저장 중...' : '저장'}
-        </button>
+    <div className="editable-card">
+      <div className="editable-card-head">
+        <div className="editable-card-label">{label}</div>
+        <div className="editable-card-actions">
+          <button type="button" onClick={() => onReset(field)} className="editable-card-btn--reset">
+            초기화
+          </button>
+          <button type="button" onClick={() => onSave(field)} disabled={saving} className="editable-card-btn--save">
+            {saving ? '저장 중...' : '저장'}
+          </button>
+        </div>
       </div>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder ?? `${label} 내용이 자동 생성됩니다`}
-        style={textareaStyle}
+        className="editable-card-textarea"
         rows={rows}
-        onFocus={e => { e.target.style.borderColor = 'var(--bd2)' }}
-        onBlur={e => { e.target.style.borderColor = 'var(--bd)' }}
       />
     </div>
   )
