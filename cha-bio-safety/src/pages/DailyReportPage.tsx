@@ -8,7 +8,7 @@ import { buildDailyReportData } from '../utils/dailyReportCalc'
 import { generateDailyExcel } from '../utils/generateExcel'
 import { useStaffList } from '../hooks/useStaffList'
 import { useIsDesktop } from '../hooks/useIsDesktop'
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, AlertTriangle } from 'lucide-react'
 
 // ── 날짜 유틸 ──────────────────────────────────────────────
 function todayKST(): string {
@@ -364,34 +364,19 @@ export default function DailyReportPage() {
   // ── 렌더 — 데스크톱 ────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+      <div className="desktop-layout">
         {/* 좌측 편집 패널 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
+        <div className="desktop-edit-panel">
           {/* 데스크톱 날짜 네비게이터 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
+          <div className="desktop-edit-panel-header">
             {dateNav}
           </div>
           {formContent}
         </div>
 
         {/* 우측 A4 세로 미리보기 패널 — 높이 기준으로 A4 비율 폭 계산 */}
-        <div style={{
-          aspectRatio: '210 / 297',
-          height: '100%', flexShrink: 0,
-          borderLeft: '1px solid var(--bd)',
-          overflow: 'hidden',
-          background: 'var(--bg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute', top: 8, left: 0, right: 0,
-            textAlign: 'center', fontSize: 11, color: 'var(--t2)',
-            fontWeight: 700, textTransform: 'uppercase',
-            pointerEvents: 'none', zIndex: 5,
-          }}>
-            인쇄 미리보기
-          </div>
+        <div className="desktop-portrait-wrapper">
+          <div className="desktop-portrait-print-label">인쇄 미리보기</div>
           <DailyPortraitPreview
             date={date}
             todayText={todayText}
@@ -609,40 +594,27 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%', height: '100%',
-        overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg)', position: 'relative',
-      }}
+      className="daily-portrait-wrapper"
     >
       <img
         ref={imgRef}
         src="/templates/preview/daily-1.png"
         alt=""
         onLoad={measure}
-        style={{
-          maxWidth: '100%', maxHeight: '100%',
-          objectFit: 'contain',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          borderRadius: 4, background: '#fff',
-        }}
+        className="daily-portrait-image"
       />
 
       {/* 오버레이 + 캘리브레이션 영역 */}
       {imgRect && imgRect.width > 0 && (
         <div
+          className={`daily-portrait-overlay-area ${calibMode ? 'daily-portrait-overlay-area--calib' : ''}`}
           onClick={calibMode ? onCalibClick : undefined}
           onTouchStart={calibMode ? onCalibTouchStart : undefined}
           onTouchMove={calibMode ? onCalibTouchMove : undefined}
           onTouchEnd={calibMode ? onCalibTouchEnd : undefined}
           style={{
-            position: 'absolute',
             left: imgRect.left, top: imgRect.top,
             width: imgRect.width, height: imgRect.height,
-            pointerEvents: calibMode ? 'auto' : 'none',
-            cursor: calibMode ? 'crosshair' : 'default',
-            touchAction: calibMode ? 'none' : 'auto',
           }}
         >
           {/* 데이터 오버레이 (캘리브레이션 완료 후) */}
@@ -689,51 +661,34 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
 
       {/* 캘리브레이션 안내 바 */}
       {calibMode && (
-        <div style={{
-          position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.9)', color: '#fff',
-          padding: '10px 20px', borderRadius: 10,
-          fontSize: 14, fontWeight: 700,
-          display: 'flex', alignItems: 'center', gap: 16, zIndex: 10,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          whiteSpace: 'nowrap',
-        }}>
-          <span style={{
-            width: 24, height: 24, borderRadius: '50%',
-            background: DAILY_CALIB_STEPS[calibStep].color,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 12, flexShrink: 0,
-          }}>{calibStep + 1}</span>
-          <span>{DAILY_CALIB_STEPS[calibStep].label}</span>
-          <span style={{ fontSize: 11, color: '#aaa' }}>
+        <div className="daily-portrait-calib-bar">
+          <span
+            className="daily-portrait-calib-bar-step"
+            style={{ background: DAILY_CALIB_STEPS[calibStep].color }}
+          >{calibStep + 1}</span>
+          <span className="daily-portrait-calib-bar-label">{DAILY_CALIB_STEPS[calibStep].label}</span>
+          <span className="daily-portrait-calib-bar-coord">
             {activePoint ? `(${activePoint.x.toFixed(1)}, ${activePoint.y.toFixed(1)})` : '터치/클릭'}
           </span>
           {activePoint && (
-            <button onClick={confirmPoint} style={{
-              background: '#22c55e', border: 'none', color: '#fff',
-              padding: '6px 16px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700,
-            }}>확인</button>
+            <button type="button" onClick={confirmPoint} className="daily-portrait-calib-confirm">확인</button>
           )}
-          <button onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }} style={{
-            background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
-            padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-          }}>취소</button>
+          <button
+            type="button"
+            onClick={() => { setCalibMode(false); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
+            className="daily-portrait-calib-cancel"
+          >취소</button>
         </div>
       )}
 
       {/* 위치 설정 버튼 */}
       {!calibMode && (
         <button
+          type="button"
           onClick={() => { setCalibMode(true); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
-          style={{
-            position: 'absolute', bottom: 12, right: 12,
-            background: hasCalib ? 'rgba(0,0,0,0.6)' : 'rgba(239,68,68,0.9)',
-            color: '#fff', border: 'none',
-            padding: '8px 16px', borderRadius: 8,
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', zIndex: 10,
-          }}
+          className={`daily-portrait-setup-btn ${hasCalib ? 'daily-portrait-setup-btn--ready' : 'daily-portrait-setup-btn--missing'}`}
         >
-          {hasCalib ? '위치 재설정' : '⚠ 위치 설정'}
+          {hasCalib ? '위치 재설정' : (<><AlertTriangle size={14} /> 위치 설정</>)}
         </button>
       )}
     </div>
@@ -743,23 +698,13 @@ function DailyPortraitPreview({ date, todayText, tomorrowText, notes, personnel 
 // ── 캘리브레이션 마커 ───────────────────────────────────────
 function DailyCalibMarker({ x, y, color, label, active }: { x: number; y: number; color: string; label: string; active?: boolean }) {
   return (
-    <div style={{
-      position: 'absolute',
-      left: `${x}%`, top: `${y}%`,
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none',
-    }}>
-      <div style={{ position: 'absolute', left: -20, top: 0, width: 40, height: 2, background: color, opacity: 0.8 }} />
-      <div style={{ position: 'absolute', top: -20, left: 0, width: 2, height: 40, background: color, opacity: 0.8 }} />
-      <div style={{
-        width: active ? 20 : 16, height: active ? 20 : 16,
-        borderRadius: '50%', background: color,
-        border: '2px solid #fff', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 10, fontWeight: 900, color: '#fff',
-        transform: 'translate(-50%, -50%)',
-        position: 'absolute', left: 0, top: 0,
-      }}>
+    <div className="daily-portrait-calib-marker" style={{ left: `${x}%`, top: `${y}%` }}>
+      <div className="daily-portrait-calib-marker-crosshair-h" style={{ background: color }} />
+      <div className="daily-portrait-calib-marker-crosshair-v" style={{ background: color }} />
+      <div
+        className={`daily-portrait-calib-marker-dot ${active ? 'daily-portrait-calib-marker-dot--active' : ''}`}
+        style={{ background: color }}
+      >
         {label}
       </div>
     </div>
