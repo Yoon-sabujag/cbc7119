@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Download } from 'lucide-react'
+import { Download, ChevronLeft } from 'lucide-react'
 import { api } from '../utils/api'
 import { generateDivExcel, generateCheckExcel, generateMatrixExcel, generatePumpExcel } from '../utils/generateExcel'
 import { ExcelPreview } from '../components/ExcelPreview'
@@ -327,74 +327,73 @@ function MobileReportsPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px 9px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={iconBtn}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
+      <header className="page-header">
+        <button className="back-btn" onClick={() => navigate(-1)} aria-label="뒤로 가기">
+          <ChevronLeft size={15} />
         </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>점검 일지 출력</span>
+        <span className="page-title">점검 일지 출력</span>
 
         {/* 연도 선택 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
+        <div className="year-pager">
+          <div className="year-pager-slot">
             {year > MIN_YEAR && (
-              <button onClick={() => setYear(y => y - 1)} style={navBtn}>‹</button>
+              <button className="year-nav-btn" onClick={() => setYear(y => y - 1)} aria-label="이전 연도">‹</button>
             )}
           </div>
-          <span style={{ width: 44, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{year}년</span>
-          <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
+          <span className="year-label">{year}년</span>
+          <div className="year-pager-slot">
             {year < CURRENT_YEAR && (
-              <button onClick={() => setYear(y => y + 1)} style={navBtn}>›</button>
+              <button className="year-nav-btn" onClick={() => setYear(y => y + 1)} aria-label="다음 연도">›</button>
             )}
           </div>
         </div>
       </header>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
-        {REPORT_CARDS.map(card => (
-          <div key={card.type} style={{ background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--bd)', padding: '14px', marginBottom: 10 }}>
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>{card.title}</div>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>
-                {card.sub} · {year}년도
+      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
+        {REPORT_CARDS.map(card => {
+          const isLoading = loading === card.type
+          const [subLeft, subRight] = card.sub.split(' · ')
+          return (
+            <div
+              key={card.type}
+              className={isLoading ? 'report-card report-card--loading' : 'report-card'}
+            >
+              <div className="report-card-head">
+                <div className="report-card-title">{card.title}</div>
+                <div className="report-card-sub">
+                  <span>{subLeft}</span>
+                  <span className="dot-meta"></span>
+                  <span>{subRight}</span>
+                  <span className="dot-meta"></span>
+                  <span>{year}년도</span>
+                </div>
               </div>
+
+              <button
+                className="report-card-btn"
+                onClick={() => handleDownload(card.type)}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  '생성 중...'
+                ) : (
+                  <>
+                    <Download size={14} />
+                    <span>엑셀 다운로드</span>
+                  </>
+                )}
+              </button>
             </div>
+          )
+        })}
 
-            <button
-              onClick={() => handleDownload(card.type)}
-              disabled={loading === card.type}
-              style={{
-                width: '100%', padding: '11px', borderRadius: 9, border: 'none',
-                background: loading === card.type ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-                color: loading === card.type ? 'var(--t3)' : '#fff',
-                fontSize: 12, fontWeight: 700, cursor: loading === card.type ? 'default' : 'pointer',
-              }}>
-              {loading === card.type ? '생성 중...' : '⬇ 엑셀 다운로드'}
-            </button>
-          </div>
-        ))}
-
-        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--t3)', padding: '8px 0 20px' }}>
+        <div className="page-footer-note">
           다운로드 후 엑셀에서 인쇄 (A4 용지 자동 맞춤 설정됨)
         </div>
       </div>
     </div>
   )
-}
-
-const iconBtn: React.CSSProperties = {
-  width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-  background: 'var(--bg3)', border: '1px solid var(--bd)',
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-}
-
-const navBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 7, border: '1px solid var(--bd)',
-  background: 'var(--bg3)', color: 'var(--t1)', fontSize: 16, fontWeight: 700,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  lineHeight: 1,
 }
 
 // ── 기본 export: 데스크톱/모바일 분기 ─────────────────────────
