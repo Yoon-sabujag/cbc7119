@@ -8,6 +8,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
+import { FindingEditModal } from '../components/FindingEditModal'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalRound, LegalInspectionResult, LegalFinding } from '../types'
 
@@ -89,6 +90,7 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
   const [selectedResult, setSelectedResult] = useState('')
   const [savingResult, setSavingResult] = useState(false)
   const [uploadingReport, setUploadingReport] = useState(false)
+  const [editingFinding, setEditingFinding] = useState<LegalFinding | null>(null)
   const reportInputRef = useRef<HTMLInputElement>(null)
 
   const { data: round } = useQuery({
@@ -200,11 +202,22 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
             <div style={{ fontSize: 11, color: 'var(--t2)' }}>{f.location ?? '위치 미지정'}</div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDate(f.createdAt)}</span>
-              <button onClick={e => { e.stopPropagation(); handleDelete(f) }} style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={e => { e.stopPropagation(); setEditingFinding(f) }} style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>수정</button>
+                <button onClick={e => { e.stopPropagation(); handleDelete(f) }} style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '1px 3px' }}>삭제</button>
+              </div>
             </div>
           </div>
         ))}
       </div>
+
+      {editingFinding && (
+        <FindingEditModal
+          scheduleItemId={roundId}
+          finding={editingFinding}
+          onClose={() => setEditingFinding(null)}
+        />
+      )}
     </div>
   )
 }
