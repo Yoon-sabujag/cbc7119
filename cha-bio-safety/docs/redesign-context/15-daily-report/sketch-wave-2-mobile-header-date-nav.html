@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-mobile-header-date-nav.html — redesign/15-daily-report W2
+  작성: 2026-05-21 / quick 260521-25s
+  범위: 모바일 자체 헤더 + dateNav (다크/라이트 × 오늘/미래 = 4 frame 393px)
+  out of scope: EditableCard × 3 (W3) / 인원현황 카드 (W3) / 다운로드 액션 (W4) /
+                데스크톱 좌우 분할 (W5) / DailyPortraitPreview wrapper (W6) / TSX checklist (W7)
+  참조: wave-1-index.md §1.2 / §1.5 / §2.1 W2 행 / §4.1 inherit / §5 메모리 룰 verbatim,
+        DailyReportPage.tsx line 30~41 (iconBtn / navBtn) +
+                              line 387~401 (dateNav 공통) +
+                              line 449~458 (모바일 자체 헤더) verbatim,
+        14-reports/sketch-wave-2-mobile-header-card.html frame 셋업 (line 1~518) 1:1 mirror,
+        components.css line 23~25 (page-header / back-btn / page-title) inherit + 41~42 (dot-meta / page-footer-note)
+
+  W1 LOCKED 5건 적용 매트릭스 (wave-1-index.md §7 OQ default 인용):
+    OQ #1 ▶ default OK — 다운로드 버튼 그라데이션 → bg-safe-bar solid (W4 scope, W2 미해당)
+    OQ #2 ▶ default (c) — 인원현황 = 단순 정보 카드 (W3 scope, W2 미해당)
+    OQ #3 ▶ default 유지 — 미래 날짜 시 › 버튼 spacer 28px 로 자리 유지 (본 W2 적용 = O)
+    OQ #4 ▶ default (a) — DailyPortraitPreview wrapper 만 (W6 scope, W2 미해당)
+    OQ #5 ▶ default (a) — 모바일/데스크톱 분기 유지 (W5 scope, W2 미해당)
+
+  W2 OQ ≥3건 (W3 진입 전 사용자 컨펌):
+    OQ #1 ▶ default: dateNav 안 calendar 진입점(날짜 picker) 미추가 (소스에 없음, memory feedback_sketch_realistic_data)
+    OQ #2 ▶ default: 오늘 날짜 시각 강조(bg highlight / accent text / "오늘" 배지) 미적용 (소스 그대로, 단순한 게 더 인지 좋음)
+    OQ #3 ▶ default: 날짜 포맷 YYYY-MM-DD 유지 (소스 line 391 verbatim, 다른 페이지와 일관)
+    OQ #4 (선택) ▶ default: dateNav 위치 — 헤더 안 (line 457) 유지 (모바일 1줄 컴팩트)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug, unique ≥7)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 sketch W2 가 W3 진입 전 모바일 헤더 + dateNav 패턴 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → 헤더 타이틀 = "일일 업무 일지" verbatim (line 456) /
+         dateNav 안 날짜 = {date} state YYYY-MM-DD verbatim (line 391) /
+         미래 날짜 분기 = canForward false 시 28px spacer verbatim (line 397).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 sketch 의 .date-nav / .date-nav-btn / .date-display / .date-nav-spacer 4 class 정의 +
+         .page-header / .back-btn / .page-title 3 inherit comment 모두 W7 checklist 안에
+         verbatim 인용 예정 (memory feedback_planner_prompt_sketch_verbatim).
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 사용 (메모리 룰 prefix 없는 짧은 토큰 alias 우선).
+       → 다크/라이트 토큰 분기는 var(--text-primary) / var(--surface-sunken) 등 semantic 토큰만 사용.
+         tailwind status prefix class 본문 0건 (verify gate #3).
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       메모리 룰 spacing alias 가 기본값과 다르게 override 되어 있어 함정.
+       → 본 sketch 는 source iconBtn 34x34 (line 30) / navBtn 28x28 (line 36) 모두
+         CSS 명시 px (width: 34px / 28px) 또는 var() 인라인 사용. Tailwind spacing utility 본문 0건.
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 본 sketch 안 ‹/› 글리프 텍스트 0건 / lucide ChevronLeft size=15 (back-btn) +
+         ChevronLeft size=16 (dateNav prev) + ChevronRight size=16 (dateNav next) inline SVG 사용.
+         이모지 글리프 본문 0건 (negative gate verify).
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩. leading-none 명시.
+       → .date-display + .date-nav-btn 모두 line-height: 1 명시 (.date-nav-btn = source line 40
+         navBtn lineHeight: '1' verbatim 보존).
+
+    8. (보너스) feedback_cbc7119_design_never_wrangler.md
+       디자인 wave 중 wrangler 명령 금지 (직원 도메인 보호).
+       → 본 wave 산출물은 sketch HTML 1개 + atomic commit 만. wrangler 0건 / npm run deploy 0건.
+         main push 시 GitHub Actions 가 cbc7119-preview 자동 배포.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15 일일 업무 일지 — sketch W2 모바일 헤더 + dateNav</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar (좌측 색바, CTA bg) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      /* 라이트 status는 채도 진한 톤 (배지 가독성) */
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (모바일 기본)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    /* 데스크톱 — 768px 이상 (W2 는 모바일 frame 393px 만이라 적용 X, 일관 유지용) */
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper (메모리 룰 feedback_text_caption_leading_none) */
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — 14-reports/sketch-wave-2-mobile-header-card.html
+     *               line 292~320 / 466~474 mirror
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12, 회색 톤, 다크/라이트 무관) */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome 만, frame 안 본문 아님) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * 자체 헤더 chrome — 14-reports SW1 inherit (재정의 X, 정의 박제만)
+     * (components.css line 23~25 verbatim — sketch 안 시각 렌더링 가능)
+     * ============================================================ */
+    /* 14-reports SW1 inherit (components.css line 23 verbatim) — 재정의 X */
+    .page-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 8px 12px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* 14-reports SW1 inherit (components.css line 24 verbatim) — 재정의 X */
+    .back-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* 14-reports SW1 inherit (components.css line 25 verbatim) — 18px font-size,
+       노안 격상 (DailyReportPage line 456 fontSize:14 → 18) */
+    .page-title {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+     * §1.5 dateNav (W2 신규 정의 — DailyReportPage line 387~401 매핑)
+     *   - .date-nav         (line 388~389 wrapper, gap 2 → 4 노안 격상)
+     *   - .date-nav-btn     (line 36~41 navBtn 28x28 → border-radius 7 → 6 sm-token 일관)
+     *   - .date-display     (line 391~393 width 90 → min-width 96, fontSize 13 → 14, leading-none)
+     *   - .date-nav-spacer  (line 397 width 28 → 28x28, canForward=false 분기 시 자리 유지)
+     * W7 TSX wave 가 components.css 추가 (memory feedback_planner_prompt_sketch_verbatim)
+     * ============================================================ */
+    .date-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px;  /* source navBtn gap 2 → 4 (노안 격상, space-1) */
+    }
+    .date-nav-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;  /* source navBtn 7 → 6 (sm-token 일관) */
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;  /* source line 40 lineHeight:'1' verbatim + memory feedback_text_caption_leading_none */
+    }
+    .date-display {
+      min-width: 96px;  /* source width 90 → 96 (4자리 연도 + 한글 안전 폭, 14-reports fix1 일관) */
+      text-align: center;
+      font-size: 14px;  /* source 13 → 14 (text-body-sm, 노안 격상) */
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;  /* memory feedback_text_caption_leading_none */
+      white-space: nowrap;
+      padding: 0 4px;
+    }
+    .date-nav-spacer {
+      width: 28px;  /* source line 397 width:28 verbatim */
+      height: 28px;
+      flex-shrink: 0;
+    }
+  </style>
+  <script>
+    // tailwind config: 14-reports W2 line 477~518 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[900px] mx-auto">
+    <h1 class="text-heading text-white mb-2">15-daily-report sketch W2 — 모바일 헤더 + dateNav</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × 다크/라이트 × 오늘(2026-05-21) / 미래(2026-05-25) 4 frame.
+      14-reports W2 chrome 패턴 inherit (.page-header / .back-btn / .page-title) + 신규 dateNav 3+1 class 정의.
+      DailyReportPage.tsx line 387~401 (dateNav) + line 449~458 (모바일 헤더) verbatim 매핑.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side (다크 × 오늘/미래 + 라이트 × 오늘/미래)
+       (14-reports W2 line 537~711 dual-frame 패턴 → quad-frame 확장)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / 오늘 (2026-05-21, canForward=true → › 노출) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 모드 / 오늘 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder (모바일 무노출, chrome 룰 mirror) -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /daily-report 자체 헤더 페이지)</div>
+
+        <!-- ① 자체 헤더 — DailyReportPage.tsx line 449~458 verbatim -->
+        <header class="page-header">
+          <!-- 백 버튼 (line 451~455) — iconBtn 34x34 + lucide ChevronLeft size=15
+               (raw svg 폐기, design-system §7.1 / memory feedback_tsx_wave_emoji_dot_gap) -->
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- 페이지 타이틀 (line 456) — "일일 업무 일지" verbatim + 노안 격상 14 → 18 -->
+          <span class="page-title">일일 업무 일지</span>
+
+          <!-- ② dateNav (line 387~401 verbatim 매핑) -->
+          <div class="date-nav">
+            <!-- ‹ navBtn (line 390 onClick=goBack) → lucide ChevronLeft size=16 -->
+            <button class="date-nav-btn" aria-label="이전 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <!-- 날짜 라벨 (line 391~393) — width 90 → min-width 96 + fontSize 13 → 14 -->
+            <span class="date-display leading-none">2026-05-21</span>
+            <!-- canForward 분기 (line 394~399) — F1 (오늘): canForward=true → › 노출 -->
+            <button class="date-nav-btn" aria-label="다음 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- ③ 본문 placeholder (W3~W4 책임) — dashed bar 1줄 -->
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            W3~W4 책임 영역 — EditableCard × 3 + 인원현황 카드 + 다운로드 버튼 (본 W2 시안 범위 외)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 미래 (2026-05-25, canForward=false → 28px spacer) ─────
+         (F1 markup 1:1 mirror, dateNav 만 변경)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 모드 / 미래 시도 후 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /daily-report 자체 헤더 페이지)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">일일 업무 일지</span>
+
+          <!-- dateNav — canForward=false 분기 (F2 미래 frame) -->
+          <div class="date-nav">
+            <!-- ‹ 항상 노출 -->
+            <button class="date-nav-btn" aria-label="이전 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <!-- 미래 날짜 표시 — 2026-05-25 -->
+            <span class="date-display leading-none">2026-05-25</span>
+            <!-- canForward=false (line 397) → › 버튼 자리에 28px spacer (chevron 자체 숨김) -->
+            <span class="date-nav-spacer" aria-hidden="true"></span>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            미래 날짜 표시 — canForward=false 시 › 자리에 28px spacer (chevron 자체 숨김 / source line 397 verbatim)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 라이트 / 오늘 (F1 mirror, data-theme="light") ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 라이트 모드 / 오늘 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder — 모드 무관 다크 톤 유지 (14-reports W2 mirror) -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /daily-report 자체 헤더 페이지)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">일일 업무 일지</span>
+
+          <div class="date-nav">
+            <button class="date-nav-btn" aria-label="이전 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <span class="date-display leading-none">2026-05-21</span>
+            <!-- canForward=true → › 노출 (라이트 토큰 자동 매핑) -->
+            <button class="date-nav-btn" aria-label="다음 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            W3~W4 책임 영역 — EditableCard × 3 + 인원현황 카드 + 다운로드 버튼 (본 W2 시안 범위 외)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 미래 (F2 mirror, data-theme="light") ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 모드 / 미래 시도 후 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /daily-report 자체 헤더 페이지)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">일일 업무 일지</span>
+
+          <div class="date-nav">
+            <button class="date-nav-btn" aria-label="이전 날짜">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <span class="date-display leading-none">2026-05-25</span>
+            <!-- canForward=false (line 397) → 28px spacer (라이트 토큰 자동 매핑) -->
+            <span class="date-nav-spacer" aria-hidden="true"></span>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            미래 날짜 표시 — canForward=false 시 › 자리에 28px spacer (chevron 자체 숨김 / source line 397 verbatim)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부, 14-reports W2 line 716~734 mirror)
+       ============================================================ -->
+  <section class="max-w-[900px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W2 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>헤더 chrome = 14-reports SW1 inherit (.page-header / .back-btn / .page-title) — 재정의 0건. components.css line 23~25 verbatim 박제.</li>
+      <li>dateNav 신규 3+1 class — <code class="text-zinc-200">.date-nav</code> / <code class="text-zinc-200">.date-nav-btn</code> / <code class="text-zinc-200">.date-display</code> / <code class="text-zinc-200">.date-nav-spacer</code>. W7 TSX wave 가 components.css 추가.</li>
+      <li>헤더 타이틀 = 18px (text-title). 노안 격상 14 → 18 (DailyReportPage line 456 fontSize:14, 14-reports .page-title inherit).</li>
+      <li>날짜 라벨 = 14px (text-body-sm) + leading-none + min-width 96px. 노안 격상 13 → 14 + width 90 → 96 (4자리 연도 + 한글 안전 폭, 14-reports fix1 일관).</li>
+      <li>‹/› 버튼 = 28x28 + border-radius 6 (source 7 → 6, sm-token 일관). lucide ChevronLeft/Right size=16 (글리프 ‹·› 텍스트 0건 / raw svg 폐기).</li>
+      <li>back-btn = 34x34 source verbatim 보존 (line 30 iconBtn). lucide ChevronLeft size=15 (raw svg 폐기 / design-system §7.1).</li>
+      <li>오늘 frame (F1/F3) = › 노출 / 미래 frame (F2/F4) = 28px spacer. canForward 분기 시연 (source line 394~399 verbatim).</li>
+      <li>날짜 포맷 = YYYY-MM-DD verbatim (todayKST 리턴값 그대로). 다른 페이지와 일관, 향후 통일 결정 시 별도 wave.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W3 진입 전 OQ ≥3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — dateNav 의 calendar 진입점 (날짜 picker) 추가 검토? <strong class="text-zinc-200">default: 미추가</strong> (소스에 없음, memory feedback_sketch_realistic_data 룰).</li>
+      <li>OQ #2 — 오늘 날짜 시각 강조 (bg highlight, accent text, "오늘" 배지) 적용? <strong class="text-zinc-200">default: 평범 유지</strong> (소스 그대로, 단순한 게 더 인지 좋음).</li>
+      <li>OQ #3 — 날짜 포맷 — YYYY-MM-DD (소스) vs 2026.05.21 vs 5/21(수) vs 5월 21일 (수)? <strong class="text-zinc-200">default: YYYY-MM-DD 유지</strong> (소스 line 391 verbatim, 다른 페이지와 일관).</li>
+      <li>OQ #4 (선택) — dateNav 위치 — 헤더 안 (모바일 line 457) vs 본문 위 별도 row (데스크톱 line 410)? <strong class="text-zinc-200">default: 헤더 안 유지</strong> (모바일 — 1줄 컴팩트).</li>
+    </ul>
+  </section>
+
+</body>
+</html>
