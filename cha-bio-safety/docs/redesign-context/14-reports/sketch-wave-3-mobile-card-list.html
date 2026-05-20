@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-mobile-card-list.html — redesign/14-reports W3
+  작성: 2026-05-20 / quick 260520-fzl
+  범위: 모바일 카드 그리드 10종 + footer 안내 (다크/라이트 393px dual frame)
+  out of scope: 데스크톱 1280px frame (W4~W6 책임) / loading variant 카드 (W2 에서 시연 완료) /
+                ReportsPage.tsx 코드 수정 / ExcelPreview.tsx / 다른 페이지
+  참조: wave-1-index.md §3 verbatim, sketch-wave-2-mobile-header-card.html W2 markup mirror,
+        ReportsPage.tsx line 12~23 (REPORT_CARDS) + line 379~381 (footer) verbatim
+
+  W1 LOCKED 5건 적용 매트릭스:
+    OQ #1 LOCKED — 모바일 다운로드 버튼 그라데이션 폐기 -> bg-safe-bar solid (적용 = O, 10 카드 × 2 frame)
+    OQ #2 LOCKED — 데스크톱 좌측 260px 유지 (W5 scope, W3 미해당)
+    OQ #3 LOCKED — 데스크톱 일괄 다운로드 그라데이션 폐기 (W4 scope, W3 미해당)
+    OQ #4 LOCKED — 모바일 footer 안내 유지 (적용 = O, frame 당 1건)
+    OQ #5 LOCKED — sub 라인 dot span 패턴 (적용 = O, 10 카드 × 2 dot × 2 frame = 40건)
+
+  W3 OQ 3건 default (모두 미배치 시안):
+    OQ #1 LOCKED-default: 데스크톱 1280px placeholder 미배치 (W4~W6 책임)
+    OQ #2 LOCKED-default: 카드 진행률/완료 status 칩 미배치 (ReportsPage 는 점검 페이지 아님)
+    OQ #3 LOCKED-default: 모바일 hover/press state 미배치 (모바일 hover 없음)
+
+  W4 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행):
+    OQ #1 default: 카드 그리드 sticky header 미적용 (헤더도 함께 스크롤 — source line 355 'overflowY: auto' 본문만 스크롤, 헤더 line 331 'flexShrink: 0' 은 layout 유지 보장이지 sticky 아님)
+    OQ #2 default: footer 안내 inline (마지막 카드 다음, source verbatim — fixed 미적용)
+    OQ #3 default: 모바일 카드 단일 컬럼 유지 (393px 폭에서 2열 압축 시 버튼 라벨 wrap 위험)
+
+  ==========================================================
+  메모리 룰 박제 (W2 7건 + W3 추가 1건 = 8건)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 W3 가 W4 진입 전 카드 그리드 10종 + footer 의 마지막 컨펌 시안.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> REPORT_CARDS 10 entry title/sub verbatim, footer 카피 verbatim.
+         '월초 유수검지 장치 점검표' 등 임의 변경 0건.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       -> 본 sketch 의 모든 CSS class 명을 W7 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 사용 (메모리 룰 status- prefix 없음).
+       -> 다운로드 버튼 = bg-safe-bar (prefix 0건). 모드 자동 매핑.
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       메모리 룰: tailwind w-N (큰 토큰) = 48px (기본 32 아님). w-7 = 32px.
+       -> 본 sketch 는 W2 verbatim 패턴 — iconBtn 34x34 / navBtn 28x28 / dot 4x4 모두 inline 명시.
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       -> 다운로드 글리프 (U+2B07) 0건 / lucide Download SVG 인라인 / dot span 40건 (10 카드 × 2 dot × 2 frame).
+
+    7. feedback_text_caption_leading_none.md
+       작은 컨테이너 안 text-caption 의 lh:1.5 는 시각 패딩.
+       -> sub 라인 = leading-none 명시. footer 안내는 leading 1.6 명시 (2줄 wrap 시 가독 의도).
+
+    8. feedback_avoid_premature_confirmation.md (W3 추가)
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       -> sketch 작성 완료 후 사용자 컨펌 받은 뒤 W4 진입. 자체 PASS 판단 0건.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 점검 일지 출력 — sketch W3 모바일 카드 그리드 10종 + footer</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W2 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text (노안 대응 — secondary 명도 ↑) === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;  /* AAA 7.4:1 */
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim (W2 mirror)
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (W2 mirror)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim (W2 mirror)
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim (W2 mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper */
+    .leading-none { line-height: 1; }
+
+    /* dot span helper — sub 라인 가운뎃점 폐기 (W1 OQ #5 LOCKED) */
+    .dot-meta {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+     * Sketch 헬퍼 — 13-schedule/sketch-wave-1 frame 구조 mirror
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ============================================================
+     * 자체 헤더 — ReportsPage.tsx line 331~353 verbatim (W2 mirror)
+     * ============================================================ */
+    .page-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 8px 12px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .back-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .page-title {
+      flex: 1;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .year-pager {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .year-pager-slot {
+      width: 24px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .year-nav-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .year-label {
+      width: 44px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * 본문 영역 — line 355 (W2 mirror)
+     * ============================================================ */
+    .page-body {
+      padding: 12px 16px;
+      background: var(--surface-page);
+    }
+
+    /* ============================================================
+     * 카드 outer — line 357 verbatim (W2 mirror)
+     * ============================================================ */
+    .report-card {
+      background: var(--surface-raised);
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    .report-card-head {
+      margin-bottom: 10px;
+    }
+
+    .report-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    .report-card-sub {
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1;
+    }
+
+    /* 다운로드 버튼 — W1 OQ #1 LOCKED: bg-safe-bar solid */
+    .report-card-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 0;
+      background: var(--status-safe-bar);
+      color: var(--text-on-accent);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* ============================================================
+     * Footer 안내 — ReportsPage.tsx line 379~381 verbatim 카피
+     * (노안 격상: fontSize 11 -> 12, mig 룰 §4.2)
+     * ============================================================ */
+    .page-footer-note {
+      text-align: center;
+      padding: 8px 16px 20px;            /* source 8/0/20 + px-4 가독 보강 */
+      font-size: 12px;                   /* text-caption */
+      line-height: 1.6;                  /* 2줄 wrap 시 가독, sub 의 leading-none 과 의도적 차별화 */
+      color: var(--text-tertiary);       /* line 379: 'var(--t3)' */
+    }
+
+    /* ============================================================
+     * Variant 라벨 (sketch 만의 보조 — 시각 구분용)
+     * ============================================================ */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[900px] mx-auto">
+    <h1 class="text-heading text-white mb-2">14-reports sketch W3 — 모바일 카드 그리드 10종 + footer 안내</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × 다크/라이트 dual frame. W2 단일 카드 패턴을 REPORT_CARDS 10종으로 확장 + footer 통합.
+      ReportsPage.tsx line 12~23 (REPORT_CARDS 정의) + line 355~381 (모바일 본문 + footer) verbatim 매핑.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트 side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 모바일 frame ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">다크 모드 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지)</div>
+
+        <!-- ① 자체 헤더 — ReportsPage line 331~353 verbatim (W2 mirror) -->
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+          <span class="page-title">점검 일지 출력</span>
+          <div class="year-pager">
+            <div class="year-pager-slot">
+              <button class="year-nav-btn" aria-label="이전 연도">‹</button>
+            </div>
+            <span class="year-label">2026년</span>
+            <div class="year-pager-slot">
+              <!-- (없음 — 2026 = CURRENT_YEAR 라 ›는 미노출) -->
+            </div>
+          </div>
+        </header>
+
+        <!-- ② 본문 영역 (line 355) -->
+        <div class="page-body">
+
+          <!-- ① 카드 1: div-early -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV
+                <span class="dot-meta"></span>
+                34개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ② 카드 2: div-late -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월말 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV
+                <span class="dot-meta"></span>
+                34개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ③ 카드 3: 소화전 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 옥내소화전 점검일지</div>
+              <div class="report-card-sub">
+                소화전
+                <span class="dot-meta"></span>
+                각 층
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ④ 카드 4: 청정소화약제 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">청정소화약제설비 점검일지</div>
+              <div class="report-card-sub">
+                가스소화
+                <span class="dot-meta"></span>
+                3개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑤ 카드 5: 비상콘센트 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 비상콘센트 점검일지</div>
+              <div class="report-card-sub">
+                비상콘센트
+                <span class="dot-meta"></span>
+                8개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑥ 카드 6: 피난방화 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 피난방화시설 점검일지</div>
+              <div class="report-card-sub">
+                피난방화
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑦ 카드 7: 방화셔터 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 방화셔터 점검일지</div>
+              <div class="report-card-sub">
+                방화셔터
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑧ 카드 8: 제연 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 제연설비 점검일지</div>
+              <div class="report-card-sub">
+                제연설비
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑨ 카드 9: 자탐 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">자동화재탐지설비 점검일지</div>
+              <div class="report-card-sub">
+                자탐설비
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑩ 카드 10: 소방펌프 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 소방펌프 점검일지</div>
+              <div class="report-card-sub">
+                소방펌프
+                <span class="dot-meta"></span>
+                월간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑪ footer 안내 — ReportsPage line 379~381 verbatim 카피 + 노안 격상 11 -> 12 -->
+          <div class="page-footer-note">
+            다운로드 후 엑셀에서 인쇄 (A4 용지 자동 맞춤 설정됨)
+          </div>
+
+        </div>
+
+        <!-- BottomNav 영역 — /reports 는 MOBILE_NO_NAV_PATHS 등재됨 -> 노출 안 됨 -->
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 모바일 frame ─────
+         (다크 frame 의 markup 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">라이트 모드 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder — 모드 무관 다크 톤 유지 -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지)</div>
+
+        <!-- ① 자체 헤더 — ReportsPage line 331~353 verbatim (라이트 토큰 자동 매핑) -->
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+          <span class="page-title">점검 일지 출력</span>
+          <div class="year-pager">
+            <div class="year-pager-slot">
+              <button class="year-nav-btn" aria-label="이전 연도">‹</button>
+            </div>
+            <span class="year-label">2026년</span>
+            <div class="year-pager-slot">
+              <!-- (없음 — 2026 = CURRENT_YEAR 라 ›는 미노출) -->
+            </div>
+          </div>
+        </header>
+
+        <!-- ② 본문 영역 (line 355) -->
+        <div class="page-body">
+
+          <!-- ① 카드 1: div-early -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월초 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV
+                <span class="dot-meta"></span>
+                34개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ② 카드 2: div-late -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월말 유수검지 장치 점검표</div>
+              <div class="report-card-sub">
+                DIV
+                <span class="dot-meta"></span>
+                34개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ③ 카드 3: 소화전 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 옥내소화전 점검일지</div>
+              <div class="report-card-sub">
+                소화전
+                <span class="dot-meta"></span>
+                각 층
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ④ 카드 4: 청정소화약제 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">청정소화약제설비 점검일지</div>
+              <div class="report-card-sub">
+                가스소화
+                <span class="dot-meta"></span>
+                3개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑤ 카드 5: 비상콘센트 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 비상콘센트 점검일지</div>
+              <div class="report-card-sub">
+                비상콘센트
+                <span class="dot-meta"></span>
+                8개소
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑥ 카드 6: 피난방화 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 피난방화시설 점검일지</div>
+              <div class="report-card-sub">
+                피난방화
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑦ 카드 7: 방화셔터 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 방화셔터 점검일지</div>
+              <div class="report-card-sub">
+                방화셔터
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑧ 카드 8: 제연 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 제연설비 점검일지</div>
+              <div class="report-card-sub">
+                제연설비
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑨ 카드 9: 자탐 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">자동화재탐지설비 점검일지</div>
+              <div class="report-card-sub">
+                자탐설비
+                <span class="dot-meta"></span>
+                연간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑩ 카드 10: 소방펌프 -->
+          <article class="report-card">
+            <div class="report-card-head">
+              <div class="report-card-title">월간 소방펌프 점검일지</div>
+              <div class="report-card-sub">
+                소방펌프
+                <span class="dot-meta"></span>
+                월간
+                <span class="dot-meta"></span>
+                2026년도
+              </div>
+            </div>
+            <button class="report-card-btn" aria-label="엑셀 다운로드">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </article>
+
+          <!-- ⑪ footer 안내 — ReportsPage line 379~381 verbatim 카피 + 노안 격상 11 -> 12 -->
+          <div class="page-footer-note">
+            다운로드 후 엑셀에서 인쇄 (A4 용지 자동 맞춤 설정됨)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[900px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W3 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>REPORT_CARDS 10 entry verbatim (ReportsPage.tsx line 12~23). title/sub 임의 변경 0건.</li>
+      <li>각 카드 sub = <code class="text-zinc-200">{SEG1}[dot]{SEG2}[dot]2026년도</code> 패턴. 가운뎃점 텍스트 0건 / dot span 2건 per card.</li>
+      <li>다운로드 버튼 = <code class="text-zinc-200">var(--status-safe-bar)</code> solid (W1 OQ #1 LOCKED).</li>
+      <li>이모지 (U+2B07 등 다운로드 글리프) 0건 / lucide Download size=14 인라인 SVG.</li>
+      <li>footer = <code class="text-zinc-200">다운로드 후 엑셀에서 인쇄 (A4 용지 자동 맞춤 설정됨)</code> verbatim, frame 당 1건.</li>
+      <li>footer 폰트 = 12px (text-caption) leading 1.6. sub 의 leading-none 과 의도적 차별화.</li>
+      <li>loading variant 0건은 의도 — W2 에서 시연 완료, W3 는 그리드 검증 집중.</li>
+      <li>모든 카드 markup 은 W2 카드 1종 패턴의 1:1 mirror.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W4 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — 카드 그리드 sticky header 적용 여부. <strong class="text-zinc-200">default: 미적용</strong> (헤더도 함께 스크롤, source verbatim).</li>
+      <li>OQ #2 — footer 안내 위치 (inline vs viewport bottom fixed). <strong class="text-zinc-200">default: inline</strong> (source verbatim, fixed 0건).</li>
+      <li>OQ #3 — 모바일 카드 2열 그리드 가능 여부. <strong class="text-zinc-200">default: 단일 컬럼 유지</strong> (393px 폭 + 다운로드 버튼 라벨 wrap 위험).</li>
+    </ul>
+  </section>
+
+</body>
+</html>
