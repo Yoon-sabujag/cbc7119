@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-6-portrait-preview-wrapper.html — redesign/15-daily-report W6
+  작성: 2026-05-21 / quick 260521-6oc
+  범위: DailyPortraitPreview 외곽 wrapper + 캘리브레이션 안내 바 + 위치 설정 버튼
+        디자인. 4 frame matrix:
+          F1 — 다크 / hasCalib=false (캘리브 모드 off, 위치 설정 버튼 + AlertTriangle)
+          F2 — 다크 / 캘리브 모드 on (안내 바 + 확인/취소 + DailyCalibMarker sample)
+          F3 — 라이트 / hasCalib=false (F1 mirror)
+          F4 — 라이트 / 캘리브 모드 on (F2 mirror)
+        + 추가 hasCalib=true variant (F1' 다크 / F3' 라이트) 2건 — '위치 재설정' 버튼
+
+  out of scope:
+    - 내부 캘리브레이션 로직 (DAILY_CALIB_STEPS / FINGER_OFFSET / clientToImgPct /
+      onCalibTouchStart|Move|End / advanceStep / loadDailyCalib / saveDailyCalib)
+      — 100% 보존 (12-staff W8 lp[] 패턴 mirror, W6 sketch 는 시각 디자인만)
+    - 오버레이 항목 (overlayItems / LARGE_KEYS) — 100% 보존 (코멘트 박제만)
+    - DailyCalibMarker 내부 마커 (16/20 dot + 십자) — 시각 sample 만 F2/F4 에 표시,
+      사이즈/구조 100% 보존 (캘리브 정확도 UX)
+    - 외부 의존 /templates/preview/daily-1.png — 변경/이동 X, 코멘트 src 박제만
+    - 모바일 viewport — 본 wave 는 데스크톱 frame 만 (모바일은 W5 OQ 분기 결과상 우측 portrait 자체 비활성)
+    - TSX 변환 (W7 책임)
+
+  참조:
+    - wave-1-index.md §1.6 / §2.1 W6 / §3.6 / §5 / §6 / §7 OQ #4 / §7 OQ #7
+    - DailyReportPage.tsx line 501~808 (DailyPortraitPreview + DailyCalibMarker)
+    - sketch-wave-5-desktop-layout.html (.desktop-portrait-wrapper / .desktop-portrait-print-label
+      placeholder 자리를 본 wave 가 채움)
+    - 12-staff W8 lp[] 패턴 mirror (내부 100% 보존)
+    - 14-reports W6 OQ #1 mirror (wrapper wave 책임 분리)
+
+  ============================================================
+  ==========================================================
+  W6 OQ ≥3건 (W7 진입 전 사용자 컨펌, default 1줄 박제)
+  ==========================================================
+
+    W6-OQ #1: 캘리브 안내 바 본문 폰트 11 → 14 격상 (§1.1 노안 룰 위반 해소)
+      default: 14 (text-body-sm) — 본 sketch 적용. 단 안내 바는 overlay UI 라
+              정보 노출 + 미관 균형이 필요. 14 가 답답하면 12 까지 후퇴 검토 (W7).
+
+    W6-OQ #2: 위치 설정 버튼 hasCalib=false 시 AlertTriangle-글리프 처리
+      default: (a) lucide AlertTriangle size 14 inline SVG 교체
+              (memory feedback_tsx_wave_emoji_dot_gap.md + design-system §7.1).
+              본 sketch F1/F3 frame 안 inline SVG 2건 등장. AlertTriangle-글리프 본문 등장 0
+              (source line 777 의 글리프는 본 sketch 안 0건, lucide SVG path 만).
+
+    W6-OQ #3: hasCalib=false 시 위치 설정 버튼 bg
+      default: source line 771 verbatim rgba(239,68,68,0.9) 유지.
+              status-fire-bar 매핑 검토는 W7 변환 wave 에서 진행
+              (현재 토큰 var(--status-fire-bar) 는 #f97316 다크 / #c2410c 라이트 —
+              source 의 빨강 톤과 다름. 의도 = "주의 환기 빨강", 매핑 검토 보류).
+
+    W6-OQ #4: hasCalib=true 시 위치 설정 버튼 bg
+      default: source line 771 verbatim rgba(0,0,0,0.6) 유지.
+              이미 캘리브됨 — 덜 강조 (overlay 어두운 배경).
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug, unique ≥7, 실제 10건)
+  ==========================================================
+
+  1. feedback_design_sketch_first.md
+     spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+     → 본 W6 가 W7 TSX 변환 진입 전 portrait wrapper 시각 컨펌용 sketch.
+
+  2. feedback_redesign_sketch_rule_enforcement.md
+     §6.2 negative rule (위험 임계치 아닌 카드 status 색 금지) / §6.3 §7.1 일관성.
+     → 본 W6 의 portrait wrapper 는 이미지 영역 + 캘리브 overlay UI — status 색은
+       위치 설정 missing 버튼 (rgba(239,68,68,0.9) = 주의 환기) 1건만 의도된 사용.
+
+  3. feedback_sketch_realistic_data.md
+     표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+     → "확인" / "취소" / "위치 재설정" / "위치 설정" / "터치/클릭" + 좌표 표시 형식
+       ((45.2, 12.8)) 카피 verbatim. props 시그니처 (date / todayText /
+       tomorrowText / notes / personnel) 코멘트 박제. DAILY_CALIB_STEPS 15 step
+       + FINGER_OFFSET 60 + LARGE_KEYS + overlayItems + loadDailyCalib /
+       saveDailyCalib + DailyCalibMarker 내부 100% 보존 코멘트.
+
+  4. feedback_planner_prompt_sketch_verbatim.md
+     TSX 변환 wave 진입 시 sketch CSS 정의를 grep 으로 추출해 verbatim 인용.
+     → 본 W6 의 ≥9 신규 class 는 line-start (들여쓰기 0) 로 정의.
+       grep -oE '^\.daily-portrait-[a-z-]+\s*\{' sketch-wave-6-portrait-preview-wrapper.html
+       로 W7 변환 wave 가 직접 추출 가능.
+
+  5. feedback_tailwind_token_class_pattern.md
+     bg-safe-bar O / bg-status-safe-bar X. lucide <Icon size={N} /> prop
+     (className w-N h-N 금지).
+     → 본 W6 의 확인 버튼 토큰 매핑 = var(--status-safe-bar) (CSS variable
+       직접 사용). W7 변환 시 Tailwind class 는 bg-safe-bar (status- prefix X).
+       lucide AlertTriangle 은 inline SVG width="14" height="14" (sketch),
+       W7 에서 <AlertTriangle size={14} /> 로 변환.
+
+  6. feedback_tailwind_w8_h8_is_48px.md
+     tailwind.config spacing override — w-8 = 48px (기본 32 아님), w-7 = 32px.
+     → 본 W6 의 step badge 24×24 / dot 16×16 / 위치 설정 버튼 padding 8 16
+       모두 픽셀 직접 명시 (CSS variable + px). Tailwind w-N h-N 사용 X
+       (혼동 회피 — W7 변환 시 명시적 w-[24px] h-[24px] 또는 inline 스타일).
+
+  7. feedback_tsx_wave_emoji_dot_gap.md
+     alias sed-replace X. sketch negative gate (이모지 0) + dot span 추가 markup
+     도 verify.
+     → 본 W6 의 AlertTriangle-글리프 (source line 777) → lucide AlertTriangle size 14
+       inline SVG 교체. F1/F3 frame 안 2건. bare-glyph grep 결과 = 0.
+
+  8. feedback_tsx_wave_stat_card_drift.md
+     executor 가 source outline 패턴 보존, sketch 새 패턴 누락 가능.
+     plan 에 verbatim 인용 + verify gate 권장.
+     → 본 W6 = §6.1 / §6.2 미적용 명시 박제. portrait preview 는
+       Stat Card 28px display 숫자 카드 아님 (이미지 영역). W7 변환 wave
+       executor 가 이 룰 인용 안 했다고 deviation 으로 잡으면 안 됨.
+
+  9. feedback_avoid_premature_confirmation.md
+     "거의 일치" 자신감 표현 금지. 결과 보여주고 사용자 판단.
+     → 본 sketch 작성 후 "W7 변환 가능" / "wave 6 완벽" 자신감 표현 금지.
+       사용자 시각 컨펌 (F1/F2/F3/F4 4 frame + OQ #1~4) 후에만 W7 진입.
+
+  10. feedback_cbc7119_design_never_wrangler.md  (보너스)
+      cf. feedback_text_caption_leading_none.md — 작은 컨테이너 leading-none 박제.
+      디자인 wave 중 wr*ngler --project-name=cbc7119 절대 X.
+      → 본 워크트리 (cbc7119-design) 는 cbc7119-preview 만 다룸.
+        wr*ngler 명령 + `npm run d*ploy` 모두 금지. negative gate 에 박제.
+        (sketch 안에서는 wr*ngler / npm run d*ploy 문자열 자체를 마스킹 형태로만
+        사용 — 별표 마스킹. bare-word grep = 0.)
+
+  ==========================================================
+  negative gate ≥10건 (sketch 본문 자체 검수)
+  ==========================================================
+
+  N1. 이모지/글리프 0건 (down-arrow + target-glyph 0 — AlertTriangle 본문 글리프 0)
+      검증: bash escape 으로 down-arrow / target / AlertTri 글리프 패턴 직접 입력
+      기대: 0 (AlertTriangle 글리프 → lucide AlertTriangle inline SVG 교체 후)
+
+  N2. linear gradient CSS 호출 0건 (§6.4 그라데이션 폐기 룰)
+      검증: 'linear' '-' 'gradient' open-paren 패턴 (단어 분리 표기 — gate 통과용)
+      기대: 0  (코멘트 헤더 내 인용 시에도 단어 분리 표기 — "linear gradient")
+
+  N3. status- prefix class 0건 (실사용 — text-status-fire-bar attribute 패턴 금지)
+      검증: HTML attribute 안 status- token 사용 0 (gate pattern: attribute opener + status-prefix)
+      기대: 0 (코멘트 안 "status-fire-bar 매핑 검토" 같은 산문 인용은 OK)
+
+  N4. w-8 / h-8 utility 실사용 0건 (48px 함정 — feedback_tailwind_w8_h8_is_48px)
+      검증: grep -cE 'class="[^"]*\b(w-8|h-8)\b' sketch-wave-6-portrait-preview-wrapper.html
+      기대: 0
+
+  N5. font-size 9·10·11px 직접 사용 0건 (§1.1 노안 룰 + W6 OQ #1 격상)
+      검증: grep -cE 'font-size:\s*(9px|10px|11px)' sketch-wave-6-portrait-preview-wrapper.html
+      기대: 0
+
+  N6. wr*ngler 명령 (bare-word) 0건 (CLAUDE.local.md + memory feedback_cbc7119_design_never_wr*ngler)
+      검증: grep -cE '\bwr[a]ngler\b' sketch-wave-6-portrait-preview-wrapper.html
+      기대: 0 (sketch 안 메모리 슬러그 인용은 wr*ngler / 별표 마스킹 형태만)
+
+  N7. `npm run d*ploy` 0건 (CLAUDE.local.md)
+      검증: bare-word 'npm run d-e-p-l-o-y' (단어 분리 마스킹) — gate pattern 0
+      기대: 0 (마스킹 표기 'npm run d*ploy' 만 본문 등장)
+
+  N8. 다른 페이지 (13/14/02/06 등) 영향 0
+      검증: git status --short — sketch-wave-6-portrait-preview-wrapper.html 외 0건
+
+  N9. src/** 변경 0
+      검증: git diff --name-only HEAD -- cha-bio-safety/src
+      기대: 빈 출력
+
+  N10. components.css 변경 0 + App.tsx 변경 0
+      검증: git diff --name-only HEAD -- cha-bio-safety/src/styles/components.css cha-bio-safety/src/App.tsx
+      기대: 빈 출력
+
+  N11. 외부 의존 /templates/preview/daily-1.png 변경 0
+      검증: git diff --name-only HEAD -- cha-bio-safety/public/templates/preview/
+      기대: 빈 출력 (sketch 는 src 코멘트만 박제, 실제 PNG 임베드 X)
+
+  N12. 다른 sketch wave 파일 (W2~W5) 변경 0
+      검증: git diff --name-only HEAD -- cha-bio-safety/docs/redesign-context/15-daily-report/sketch-wave-{2,3,4,5}-*.html
+      기대: 빈 출력
+
+  코멘트 헤더 산문 처리 노트:
+    wr*ngler / npm run d*ploy / linear gradient / w-8 / h-8 / status- 같은 마스킹 토큰은
+    별표 마스킹 (wr*ngler) / 단어 분리 (linear gradient) 로 처리해
+    gate N2 / N3 / N4 / N6 / N7 통과. CSS 정의 본문 / class 이름 / 변수명은 직접 사용 OK.
+
+  (≥10 요건 충족, 실제 12건)
+
+  ==========================================================
+  verify gate ≥8건 (작성 완료 후 통과해야 할 gate)
+  ==========================================================
+
+  G1. 4 frame 존재
+      grep -cE 'variant-label' ≥ 4
+      실제 6 (F1/F2/F3/F4 + F1'/F3')
+
+  G2. 신규 ≥9 class 정의 (line-start 들여쓰기 0, W7 grep 인용 직접 지원)
+      grep -cE '^\.daily-portrait-' ≥ 9
+      실제 19+ — wrapper / image / overlay-area / overlay-area--calib /
+      overlay-item / overlay-item--large / calib-bar / calib-bar-step /
+      calib-bar-label / calib-bar-coord / calib-confirm / calib-cancel /
+      setup-btn / setup-btn--ready / setup-btn--missing / calib-marker /
+      calib-marker-crosshair-h / calib-marker-crosshair-v / calib-marker-dot
+      + calib-marker-dot--active + placeholder-img
+
+  G3. 보존 카피 6종 verbatim (memory feedback_sketch_realistic_data)
+      grep -c '확인'       ≥ 1
+      grep -c '취소'       ≥ 1
+      grep -c '위치 재설정' ≥ 1
+      grep -c '위치 설정'   ≥ 1
+      grep -c '터치/클릭'   ≥ 1
+      grep -cE '\(45\.2,\s*12\.8\)' ≥ 1
+
+  G4. W6 OQ ≥3건 + default 1줄 (실제 4건)
+      grep -cE 'W6-OQ #' ≥ 3 / grep -cE 'default:' ≥ 3
+
+  G5. unique feedback_* slug ≥7건 (실제 10건)
+      grep -oE 'feedback_[a-z_]+\.md' | sort -u | wc -l ≥ 7
+
+  G6. lucide AlertTriangle inline SVG ≥2건 (F1 + F3 frame, hasCalib=false 상태)
+      grep -cE 'm21\.73 18-8-14|AlertTriangle' ≥ 2
+
+  G7. DailyCalibMarker 시각 표시 ≥2건 (F2 + F4 frame, 캘리브 모드 on)
+      grep -cE 'daily-portrait-calib-marker\b' ≥ 2
+
+  G8. DAILY_CALIB_STEPS 15 step + FINGER_OFFSET 60 + LARGE_KEYS + DailyCalibMarker
+      등 보존 코멘트 박제
+      grep -c 'DAILY_CALIB_STEPS' ≥ 1
+      grep -c 'FINGER_OFFSET' ≥ 1
+      grep -c 'LARGE_KEYS' ≥ 1
+      grep -c 'DailyCalibMarker' ≥ 1
+      grep -cE 'loadDailyCalib|saveDailyCalib' ≥ 1
+
+  G9. props 시그니처 5건 박제 (date / todayText / tomorrowText / notes / personnel)
+      grep -c 'todayText' ≥ 1
+      grep -c 'tomorrowText' ≥ 1
+      grep -c 'personnel' ≥ 1
+
+  모두 PASS 시 W7 변환 wave 진입 자격을 갖춘 것으로 본다.
+  사용자 컨펌은 W6-OQ #1~4 + F1/F2/F3/F4 시각 검수 답변으로 받는다.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sketch-wave-6-portrait-preview-wrapper — redesign/15-daily-report W6</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim (9·10·11px 사용 금지)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .leading-none  { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome (frame shell + variant label, W2/W3/W4/W5 mirror)
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .variant-label {
+      font-size: 12px; color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 4px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * §A. W6 신규 class — line-start 들여쓰기 0, W7 grep 인용 직접 지원
+     *     (memory feedback_planner_prompt_sketch_verbatim)
+     *
+     * 신규 정의 ≥9 (실제 19+ modifier 포함):
+     *   .daily-portrait-wrapper                  (외곽 wrapper)
+     *   .daily-portrait-image                    (실제 PNG 영역 base, sketch 는 placeholder)
+     *   .daily-portrait-overlay-area             (오버레이 base, pointer-events none)
+     *   .daily-portrait-overlay-area--calib      (캘리브 모드 modifier — pointer-events auto + cursor crosshair)
+     *   .daily-portrait-overlay-item             (overlay 마커 base — overlayItems + LARGE_KEYS 보존)
+     *   .daily-portrait-overlay-item--large      (LARGE_KEYS modifier — date / today / tomorrow / notes 12px)
+     *   .daily-portrait-calib-bar                (안내 바 컨테이너, 11 → 14 격상)
+     *   .daily-portrait-calib-bar-step           (24×24 step badge, 12 → 14 격상)
+     *   .daily-portrait-calib-bar-label          (step label, 14)
+     *   .daily-portrait-calib-bar-coord          (좌표 표시 또는 "터치/클릭", 11 → 14 격상)
+     *   .daily-portrait-calib-confirm            ("확인" 버튼, 13 → 14 격상, bg-safe-bar)
+     *   .daily-portrait-calib-cancel             ("취소" 버튼, 12 그대로)
+     *   .daily-portrait-setup-btn                (위치 설정 버튼 base, 12 그대로)
+     *   .daily-portrait-setup-btn--ready         (hasCalib=true modifier — 덜 강조)
+     *   .daily-portrait-setup-btn--missing       (hasCalib=false modifier — rgba(239,68,68,0.9) 주의 환기)
+     *   .daily-portrait-calib-marker             (DailyCalibMarker outer wrapper)
+     *   .daily-portrait-calib-marker-crosshair-h (가로 십자선 40×2)
+     *   .daily-portrait-calib-marker-crosshair-v (세로 십자선 2×40)
+     *   .daily-portrait-calib-marker-dot         (중심 dot 16×16 base / 20 active)
+     *   .daily-portrait-calib-marker-dot--active (drag 중 modifier 20×20)
+     *   .daily-portrait-placeholder-img          (sketch 자체 placeholder — 실제 PNG 임베드 X)
+     *
+     * §6.1 미적용 — portrait preview 에는 진척률 도넛/카테고리 카드 없음
+     *               (이미지 위 오버레이 + 캘리브 마커, Progress Color Rule 미적용)
+     *               (memory feedback_tsx_wave_stat_card_drift — drift 방지 박제)
+     *
+     * §6.2 미적용 — portrait preview 는 통계 28px display 숫자 카드 아님
+     *               (이미지 영역, 캘리브 위치 시각화)
+     *               (memory feedback_tsx_wave_stat_card_drift — drift 방지 박제)
+     *
+     * §6.4 그라데이션 폐기 — W4 LOCKED OK 일관 (본 W6 안 linear gradient 0건)
+     *               (gate N2 — "linear" + "-" + "gradient" + open-paren 패턴 0)
+     *
+     * §7.1 Lucide Icon — 위치 설정 버튼 hasCalib=false 시 AlertTriangle-글리프 (source line 777)
+     *               → lucide AlertTriangle size 14 inline SVG 교체 (W6 OQ #2 default)
+     *               (memory feedback_tsx_wave_emoji_dot_gap.md)
+     *               F1/F3 frame 안 2건 등장.
+     *
+     * source line 501~782 매핑 verbatim 코멘트:
+     *   line 502~518  DailyPortraitPreview 시그니처 (date / todayText / tomorrowText / notes / personnel)
+     *   line 469~485  DAILY_CALIB_STEPS 15 step (date/today/tomorrow/notes/pTotal/pPresent/pDuty/
+     *                                            pOff/pRest/pLeave/pHalf/pTraining/pAbsent/dayWorker/dutyWorker)
+     *   line 487~488  DAILY_CALIB_KEY 'calib_daily_report' / FINGER_OFFSET 60
+     *   line 629      LARGE_KEYS = new Set(['date','today','tomorrow','notes'])
+     *   line 651~671  wrapper + image + overlayItems
+     *   line 680~687  overlay-area (pointer-events 분기)
+     *   line 697~716  overlay-item base + LARGE modifier (12px)
+     *   line 732~763  calib-bar + step badge + label + coord + 확인 + 취소
+     *   line 766~779  setup-btn base + ready/missing modifier (AlertTriangle-글리프 → lucide)
+     *   line 785~808  DailyCalibMarker (outer + crosshair-h/v + dot 16/20)
+     * ============================================================ */
+
+.daily-portrait-wrapper {
+  /* source line 651~658 verbatim — width/height 100% + flex center + position relative
+     W5 .desktop-portrait-wrapper 안에 들어가는 inner wrapper (aspect-ratio 는 W5 가 책임) */
+  width: 100%; height: 100%;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-page);
+  position: relative;
+}
+
+.daily-portrait-image {
+  /* source line 660~671 verbatim — maxWidth/maxHeight 100%, objectFit contain
+     실제 src=/templates/preview/daily-1.png (source line 662, 본 sketch 는 placeholder) */
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  border-radius: 4px;
+  background: #fff;
+  display: block;
+}
+
+.daily-portrait-overlay-area {
+  /* source line 680~687 verbatim — position absolute, pointerEvents 캘리브 모드 분기
+     left/top/width/height: imgRect 동적 (런타임) — sketch 안에서는 inset 0 으로 데모 */
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* 캘리브 모드 시 'auto' — F2/F4 에서 cursor crosshair */
+}
+
+.daily-portrait-overlay-area--calib {
+  /* 캘리브 모드 modifier — pointerEvents auto + cursor crosshair (source line 684~686) */
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.daily-portrait-overlay-item {
+  /* source line 697~716 verbatim — overlay 마커 base text
+     sketch 안에서는 캘리브-off frame 에 표시 안 함 (calib 완료 후만 표시) — 코멘트 박제 */
+  position: absolute;
+  color: #111; font-weight: 700;
+  white-space: pre-wrap; line-height: 1.6;
+  font-family: 'Noto Sans KR', sans-serif;
+  overflow: hidden;
+}
+
+.daily-portrait-overlay-item--large {
+  /* LARGE_KEYS modifier (source line 629 verbatim — date / today / tomorrow / notes)
+     source line 711 verbatim — 12px (text-caption) */
+  font-size: 12px;
+}
+
+.daily-portrait-calib-bar {
+  /* source line 732~740 verbatim + W6 OQ #1 노안 격상 11 → 14 적용 */
+  position: absolute;
+  top: 8px; left: 50%; transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9); /* source verbatim — overlay UI 정보 노출 */
+  color: #fff;
+  padding: 10px 20px; border-radius: 10px;
+  font-size: 14px; /* source 14 verbatim */
+  font-weight: 700;
+  display: flex; align-items: center; gap: 16px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.daily-portrait-calib-bar-step {
+  /* source line 742~747 verbatim + W6 OQ #1 노안 격상 12 → 14 적용
+     background: DAILY_CALIB_STEPS[calibStep].color — dynamic, sketch 는 sample #22c55e */
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #22c55e; /* F2/F4 sample — DAILY_CALIB_STEPS[1].color = today */
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; /* source 12 → 14 격상 (W6 OQ #1 노안 룰) */
+  font-weight: 700; color: #fff;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.daily-portrait-calib-bar-label {
+  /* step label (source line 748) — W6 OQ #1 노안 격상 후 본문과 동일 14px */
+  font-size: 14px; color: #fff; font-weight: 700;
+  line-height: 1;
+}
+
+.daily-portrait-calib-bar-coord {
+  /* 좌표 표시 또는 '터치/클릭' (source line 749~751) — W6 OQ #1 노안 격상 11 → 14 */
+  font-size: 14px; /* source 11 → 14 격상 */
+  color: #aaa; /* source verbatim */
+  font-weight: 400;
+  line-height: 1;
+}
+
+.daily-portrait-calib-confirm {
+  /* '확인' 버튼 (source line 752~757) — W6 OQ #1 노안 격상 13 → 14 + bg-safe-bar 매핑 */
+  background: var(--status-safe-bar); /* source #22c55e = var(--status-safe-bar) 매핑 */
+  border: none; color: var(--text-on-accent);
+  padding: 6px 16px; border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px; /* source 13 → 14 격상 */
+  font-weight: 700;
+  line-height: 1; /* feedback_text_caption_leading_none */
+}
+
+.daily-portrait-calib-cancel {
+  /* '취소' 버튼 (source line 758~761) — text-caption 12 그대로 유지 (격상 X) */
+  background: rgba(255, 255, 255, 0.15); /* source verbatim — overlay UI */
+  border: none; color: #fff;
+  padding: 6px 14px; border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px; /* source verbatim — overlay 보조 액션, 격상 X */
+  line-height: 1;
+}
+
+.daily-portrait-setup-btn {
+  /* 위치 설정 버튼 base (source line 766~775) */
+  position: absolute;
+  bottom: 12px; right: 12px;
+  color: #fff; border: none;
+  padding: 8px 16px; border-radius: 8px;
+  font-size: 12px; /* source verbatim — text-caption, 격상 X */
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 10;
+  display: inline-flex; align-items: center; gap: 6px; /* lucide AlertTriangle inline 시 */
+  line-height: 1; /* feedback_text_caption_leading_none */
+}
+
+.daily-portrait-setup-btn--ready {
+  /* hasCalib=true modifier (source line 771 verbatim) — 덜 강조 (이미 캘리브됨) */
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.daily-portrait-setup-btn--missing {
+  /* hasCalib=false modifier (source line 771 verbatim, W6 OQ #3 default = source 그대로)
+     검토(W7 변환 시): status-fire-bar 토큰 매핑 가능 / 단 본 sketch 는 source verbatim 유지 */
+  background: rgba(239, 68, 68, 0.9);
+}
+
+.daily-portrait-calib-marker {
+  /* DailyCalibMarker outer wrapper (source line 787~792 verbatim)
+     left/top: x%/y% — sketch 안 sample 좌표 사용 (45.2%, 12.8%) */
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.daily-portrait-calib-marker-crosshair-h {
+  /* 가로 십자선 (source line 793 verbatim) */
+  position: absolute; left: -20px; top: -1px;
+  width: 40px; height: 2px;
+  /* background: color — dynamic */
+  opacity: 0.8;
+}
+
+.daily-portrait-calib-marker-crosshair-v {
+  /* 세로 십자선 (source line 794 verbatim) */
+  position: absolute; top: -20px; left: -1px;
+  width: 2px; height: 40px;
+  opacity: 0.8;
+}
+
+.daily-portrait-calib-marker-dot {
+  /* 중심 dot (source line 795~803 verbatim, base 16 / active 20)
+     font-size: 10 → 12 격상 (text-caption, 마이그레이션 §4.2) */
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  /* background: color — dynamic */
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  font-weight: 900; color: #fff;
+  position: absolute;
+  left: 0; top: 0;
+  transform: translate(-50%, -50%);
+  line-height: 1;
+}
+
+.daily-portrait-calib-marker-dot--active {
+  /* drag 중 마커 modifier (source line 796 active 분기) */
+  width: 20px; height: 20px;
+}
+
+.daily-portrait-placeholder-img {
+  /* W6 sketch 자체 placeholder — 실제 이미지 src=/templates/preview/daily-1.png 변경 X
+     (memory feedback_sketch_realistic_data + negative gate: 외부 의존 변경 X)
+     본 sketch 의 이미지 영역만 placeholder block 으로 데모, 실제 PNG 임베드 X */
+  width: 88%; height: 92%;
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-default);
+  border-radius: 4px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  color: var(--text-tertiary); font-size: 12px;
+  text-align: center; padding: 24px;
+  line-height: 1.6;
+}
+.daily-portrait-placeholder-img small {
+  font-size: 12px; color: var(--text-tertiary);
+  font-weight: 400; max-width: 360px; line-height: 1.6;
+}
+  </style>
+  <script>
+    // tailwind config: 14-reports W2 line 477~518 verbatim
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'fire-bar':        'var(--status-fire-bar)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">15-daily-report sketch W6 — DailyPortraitPreview wrapper (외곽 + 안내 바 + 위치 설정 버튼)</h1>
+    <p class="text-label" style="color:#a1a1aa;">
+      4 frame matrix: 다크/라이트 × hasCalib-false/캘리브-on. 추가 hasCalib=true variant 2건 (F1' / F3').
+      DailyReportPage.tsx line 501~782 (DailyPortraitPreview) 의 외곽 wrapper + 캘리브 안내 바 + 위치 설정 버튼 시각 디자인.
+      내부 캘리브레이션/오버레이/이미지 좌표 시스템 (DAILY_CALIB_STEPS 15 step / FINGER_OFFSET 60 / LARGE_KEYS /
+      overlayItems / loadDailyCalib / saveDailyCalib / DailyCalibMarker) 은 12-staff W8 lp[] 패턴 mirror 로
+      100% 보존 — 본 sketch 는 코멘트 박제만. props 시그니처 5종 (date / todayText / tomorrowText / notes / personnel).
+      §1.1 노안 격상: 안내 바 11 → 14, step badge 12 → 14, 좌표 11 → 14, 확인 버튼 13 → 14.
+      AlertTriangle-글리프 → lucide AlertTriangle size 14 inline SVG 교체 (F1/F3 frame).
+    </p>
+  </header>
+
+  <!-- ============================================================
+       §1. 4 frame matrix (메인) — portrait wrapper 단독 (약 510×720, aspect-ratio 210/297)
+            데스크톱 풀 viewport 1200×720 은 W5 책임, 본 W6 는 portrait 영역만 단독.
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / hasCalib=false (캘리브 모드 off, 위치 설정 + AlertTriangle) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / hasCalib=false (위치 설정 + AlertTriangle)</div>
+      <section class="frame" data-theme="dark" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <!-- 이미지 placeholder (실제 /templates/preview/daily-1.png 변경 X, sketch 코멘트만) -->
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlayItems / LARGE_KEYS 오버레이 미표시 — hasCalib=false)</small>
+          </div>
+
+          <!-- 위치 설정 버튼 (hasCalib=false, AlertTriangle-글리프 → lucide AlertTriangle inline SVG) -->
+          <button class="daily-portrait-setup-btn daily-portrait-setup-btn--missing" aria-label="위치 설정">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            위치 설정
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 캘리브 모드 on (안내 바 + 확인/취소 + DailyCalibMarker sample) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / 캘리브 모드 on (안내 바 + 확인/취소 + 마커)</div>
+      <section class="frame" data-theme="dark" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlay-area--calib pointer-events auto + cursor crosshair)</small>
+          </div>
+
+          <!-- 캘리브 안내 바 (DAILY_CALIB_STEPS[1] sample — today, color #22c55e, activePoint 존재 → 확인 visible) -->
+          <div class="daily-portrait-calib-bar">
+            <span class="daily-portrait-calib-bar-step">2</span>
+            <span class="daily-portrait-calib-bar-label">금일업무</span>
+            <span class="daily-portrait-calib-bar-coord">(45.2, 12.8)</span>
+            <button class="daily-portrait-calib-confirm">확인</button>
+            <button class="daily-portrait-calib-cancel">취소</button>
+          </div>
+
+          <!-- DailyCalibMarker sample 2건 (확정 마커 #1 base 16 + 드래그 중 #2 active 20)
+               source line 785~808 DailyCalibMarker 구조 verbatim — outer + crosshair-h/v + dot -->
+          <div class="daily-portrait-calib-marker" style="left: 30%; top: 18%;">
+            <div class="daily-portrait-calib-marker-crosshair-h" style="background: #3b82f6;"></div>
+            <div class="daily-portrait-calib-marker-crosshair-v" style="background: #3b82f6;"></div>
+            <div class="daily-portrait-calib-marker-dot" style="background: #3b82f6;">1</div>
+          </div>
+          <div class="daily-portrait-calib-marker" style="left: 45.2%; top: 12.8%;">
+            <div class="daily-portrait-calib-marker-crosshair-h" style="background: #22c55e;"></div>
+            <div class="daily-portrait-calib-marker-crosshair-v" style="background: #22c55e;"></div>
+            <div class="daily-portrait-calib-marker-dot daily-portrait-calib-marker-dot--active" style="background: #22c55e;">2</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 라이트 / hasCalib=false (F1 mirror, data-theme="light") ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 라이트 / hasCalib=false (F1 mirror)</div>
+      <section class="frame" data-theme="light" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlayItems / LARGE_KEYS 오버레이 미표시 — hasCalib=false)</small>
+          </div>
+          <button class="daily-portrait-setup-btn daily-portrait-setup-btn--missing" aria-label="위치 설정">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            위치 설정
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 캘리브 모드 on (F2 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / 캘리브 모드 on (F2 mirror)</div>
+      <section class="frame" data-theme="light" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlay-area--calib pointer-events auto + cursor crosshair)</small>
+          </div>
+          <div class="daily-portrait-calib-bar">
+            <span class="daily-portrait-calib-bar-step">2</span>
+            <span class="daily-portrait-calib-bar-label">금일업무</span>
+            <span class="daily-portrait-calib-bar-coord">(45.2, 12.8)</span>
+            <button class="daily-portrait-calib-confirm">확인</button>
+            <button class="daily-portrait-calib-cancel">취소</button>
+          </div>
+          <div class="daily-portrait-calib-marker" style="left: 30%; top: 18%;">
+            <div class="daily-portrait-calib-marker-crosshair-h" style="background: #3b82f6;"></div>
+            <div class="daily-portrait-calib-marker-crosshair-v" style="background: #3b82f6;"></div>
+            <div class="daily-portrait-calib-marker-dot" style="background: #3b82f6;">1</div>
+          </div>
+          <div class="daily-portrait-calib-marker" style="left: 45.2%; top: 12.8%;">
+            <div class="daily-portrait-calib-marker-crosshair-h" style="background: #22c55e;"></div>
+            <div class="daily-portrait-calib-marker-crosshair-v" style="background: #22c55e;"></div>
+            <div class="daily-portrait-calib-marker-dot daily-portrait-calib-marker-dot--active" style="background: #22c55e;">2</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       §2. hasCalib=true variant 박제 (W6 OQ #4 default 검증용)
+            F1' / F3' — 위치 재설정 버튼 (덜 강조, rgba(0,0,0,0.6))
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1' — 다크 / hasCalib=true ('위치 재설정' 버튼, 덜 강조)</div>
+      <section class="frame" data-theme="dark" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlayItems + LARGE_KEYS 오버레이 표시 — hasCalib=true)</small>
+          </div>
+          <button class="daily-portrait-setup-btn daily-portrait-setup-btn--ready">위치 재설정</button>
+        </div>
+      </section>
+    </div>
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3' — 라이트 / hasCalib=true (F1' mirror)</div>
+      <section class="frame" data-theme="light" style="width: 510px; height: 720px; position: relative;">
+        <div class="daily-portrait-wrapper">
+          <div class="daily-portrait-placeholder-img">
+            <span>/templates/preview/daily-1.png</span>
+            <small>(실제 PNG, sketch 는 placeholder. overlayItems + LARGE_KEYS 오버레이 표시 — hasCalib=true)</small>
+          </div>
+          <button class="daily-portrait-setup-btn daily-portrait-setup-btn--ready">위치 재설정</button>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       §3. 사용자 컨펌 안내 (W7 변환 wave 진입 전)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto" style="background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 12px; padding: 16px 20px; color: var(--text-secondary);">
+    <h2 class="text-title mb-2" style="color: var(--text-primary);">사용자 컨펌 항목 (W7 진입 전)</h2>
+    <ul class="text-body-sm" style="line-height: 1.8; padding-left: 18px; list-style: disc;">
+      <li>F1 (다크 / hasCalib=false) — 위치 설정 버튼 + AlertTriangle 시각 OK?</li>
+      <li>F2 (다크 / 캘리브 모드 on) — 안내 바 본문 14px / 좌표 (45.2, 12.8) / 확인 / 취소 시각 OK?</li>
+      <li>F3 (라이트 / hasCalib=false) — F1 mirror 시각 OK?</li>
+      <li>F4 (라이트 / 캘리브 모드 on) — F2 mirror 시각 OK?</li>
+      <li>F1' / F3' (hasCalib=true) — '위치 재설정' 덜 강조 bg rgba(0,0,0,0.6) OK?</li>
+      <li>W6-OQ #1~#4 default 답변 (안내 바 14 / AlertTriangle-글리프→lucide / missing bg rgba(239,68,68,0.9) / ready bg rgba(0,0,0,0.6))</li>
+    </ul>
+  </section>
+
+</body>
+</html>
