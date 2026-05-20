@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-desktop-toolbar.html — redesign/14-reports W4
+  작성: 2026-05-20 / quick 260520-gq7
+  범위: 데스크톱 1280px 상단 바 (연도 라벨 + select + 일괄 다운로드 + spacer + 선택 타이틀 + 개별 다운로드)
+  out of scope: 좌측 sidelist 4 섹션 실제 cards (W5 책임) / 우측 ExcelPreview 본체 (W6 책임) /
+                모바일 frame (W2/W3 책임) / ReportsPage.tsx 코드 수정 / App.tsx / 다른 페이지
+  참조: wave-1-index.md §3 + §7 OQ LOCKED 5건 verbatim,
+        sketch-wave-2-mobile-header-card.html / sketch-wave-3-mobile-card-list.html (CSS class 패턴 inherit),
+        ReportsPage.tsx line 181~243 verbatim (상단 바) / line 13 REPORT_CARDS[0] verbatim (선택 타이틀)
+
+  W1 LOCKED 5건 적용 매트릭스 (W4 관점):
+    OQ #1 LOCKED — 모바일 다운로드 버튼 그라데이션 폐기 → bg-safe-bar solid (W2 적용, W4 미해당)
+    OQ #2 LOCKED — 데스크톱 좌측 패널 260px 유지 (본 wave placeholder 에 260px 명시 — W5 책임으로 본격 구현)
+    OQ #3 LOCKED — 데스크톱 일괄 다운로드 그라데이션 폐기 → bg-safe-bar solid (본 wave 적용 = O, 4 frame)
+    OQ #4 LOCKED — 모바일 footer 안내 유지 (W3 적용, W4 미해당)
+    OQ #5 LOCKED — sub 라인 dot span 패턴 (W2/W3 적용, W4 미해당 — 상단 바에 sub 라인 없음)
+
+  W4 OQ 3건 (본 wave 시안에 default 시연):
+    OQ #1 ▶ default: 일괄 다운로드 = var(--status-safe-bar) solid (W1 OQ #3 LOCKED 그대로 시연)
+    OQ #2 ▶ default: 개별 다운로드 = var(--surface-sunken) + border var(--border-strong) (보조 액션 위계)
+    OQ #3 ▶ default: spacer + selected-title verbatim 'flex: 1' 가운데 분리. selected-title 위치 = 우측
+
+  W5 진입 전 OQ 3건 default (Notes block 안 시연):
+    OQ #1 default: 일괄 다운로드 클릭 시 confirm 모달 미배치 (source handleDownloadAll 즉시 시작, 로딩 라벨이 진행 알림)
+    OQ #2 default: 개별 다운로드 색 = 회색 (surface-sunken) 유지. 일괄과 위계 구분, safe-bar 동일 색은 평준화 위험
+    OQ #3 default: 일괄 다운로드 후 zip 완료 toast 미배치. source verbatim (browser native a.click() 만)
+
+  ==========================================================
+  메모리 룰 박제 (W2 7건 + W3 추가 1건 + W4 추가 2건 = 10건 unique)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 W4 가 W5 진입 전 데스크톱 상단 바 마지막 컨펌 시안.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → selected-title '월초 유수검지 장치 점검표' verbatim (REPORT_CARDS[0].title line 13).
+         '일괄 다운로드' / '엑셀 다운로드' / '생성 중...' 라벨 모두 source verbatim.
+         '생성 중... (3/10)' 은 source downloadAllAsZip 의 setZipLoading 갱신 패턴 시연용.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 sketch 의 모든 CSS class 명 (toolbar-*) 을 W7 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar / bg-safe-bar 패턴 사용 (메모리 룰 status- prefix 없음).
+       → 일괄 = bg-safe-bar (또는 var(--status-safe-bar)). prefix 0건. 모드 자동 매핑.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (메모리 룰: tailwind spacing override 함정)
+       메모리 룰: w-N (큰 토큰) = 48px (기본 32 아님). w-7 = 32px.
+       → 본 sketch 는 source toolbar 버튼 height 32 / select height 자연 / icon 13 모두 inline 명시.
+         메모리 룰 spacing alias 사용 0건. 단, height: 32px 인라인 verbatim 은 source 보존.
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 다운로드 글리프 (U+2B07) 이모지 0건 / lucide Download SVG 인라인 8건 (4 frame × 2 button) /
+         상단 바 영역 가운뎃점 텍스트 0건 (sub 라인 없음).
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩. leading-none 명시.
+       → toolbar-year-label / toolbar-select / toolbar-batch-btn / toolbar-individual-btn 모두 height 32 컨테이너 안 → line-height: 1 명시.
+
+    8. feedback_avoid_premature_confirmation.md (W3 추가)
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       → sketch 작성 완료 후 사용자 컨펌 받은 뒤 W5 진입. 자체 PASS 판단 0건.
+
+    9. feedback_cbc7119_design_never_wrangler.md (W4 추가)
+       디자인 wave 중 wrangler --project-name=cbc7119 절대 X.
+       → 본 wave 산출은 docs/redesign-context/14-reports/*.html 1건. wrangler 명령 0건 / npm run deploy 0건.
+         main push 자동 cbc7119-preview 만 (직원 도메인 cbc7119 미접근).
+
+   10. feedback_tsx_wave_stat_card_drift.md (W4 추가)
+       Stat Card §6.3 룰 누락 사고 — 14-reports 페이지에는 Stat Card 미적용 (점검 페이지 아님, W1 §6 참고).
+       → 본 sketch toolbar 영역에 Stat Card outline 패턴 0건. selected-title 은 단순 텍스트 (카드 아님).
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 점검 일지 출력 — sketch W4 데스크톱 상단 바 (1280px)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W2/W3 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground (텍스트, 아이콘) === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar (좌측 색바, CTA bg) === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg (배지 채움) === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty (근무) === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim (W2/W3 mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper (메모리 룰 feedback_text_caption_leading_none) */
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome 헬퍼 (W2/W3 mirror)
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    /* 데스크톱 frame outer — 13-schedule sketch-wave-3 line 402~411 mirror */
+    .frame-desktop {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      color: var(--text-primary);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12, 모드 무관 다크 톤) */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ============================================================
+     * Toolbar — ReportsPage.tsx line 181~243 verbatim 매핑 (W4 핵심)
+     * ============================================================ */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-default);   /* source 'var(--bd)' = border-default */
+      background: var(--surface-raised);                /* source 'var(--bg2)' = surface-raised */
+      flex-shrink: 0;
+    }
+
+    /* 연도 라벨 — line 190 verbatim (fontSize 12, color var(--t2)) */
+    .toolbar-year-label {
+      font-size: 12px;
+      color: var(--text-secondary);                      /* source 'var(--t2)' */
+      line-height: 1;                                    /* 메모리 룰 7: 작은 컨테이너 leading-none */
+    }
+
+    /* select — SELECT_STYLE (line 306~313) verbatim */
+    .toolbar-select {
+      background: var(--surface-sunken);                 /* SELECT_STYLE 'var(--bg3)' */
+      color: var(--text-primary);                        /* SELECT_STYLE 'var(--t1)' */
+      border: 1px solid var(--border-strong);            /* SELECT_STYLE 'var(--bd2)' = border-strong (source verbatim 보존) */
+      border-radius: 4px;                                /* SELECT_STYLE verbatim */
+      padding: 4px 8px;                                  /* SELECT_STYLE verbatim */
+      font-size: 12px;                                   /* SELECT_STYLE verbatim */
+      line-height: 1;                                    /* 메모리 룰 7 */
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* 일괄 다운로드 — W1 OQ #3 LOCKED: 그라데이션 폐기 → bg-safe-bar solid */
+    /* source line 196~216 매핑 (height 32 / padding 0 14px / border-radius 6 / fontSize 12 / fontWeight 700) */
+    .toolbar-batch-btn {
+      height: 32px;                                      /* source line 200 verbatim */
+      padding: 0 14px;                                   /* source line 201 verbatim */
+      background: var(--status-safe-bar);                /* W1 OQ #3 LOCKED 적용 (source line 202 그라데이션 폐기) */
+      border: 0;                                         /* source line 203: 'border: none' */
+      border-radius: 6px;                                /* source line 204 verbatim */
+      color: var(--text-on-accent);                      /* source line 205: '#fff' = text-on-accent */
+      font-size: 12px;                                   /* source line 206 verbatim */
+      font-weight: 700;                                  /* source line 207 verbatim */
+      cursor: pointer;                                   /* source line 208 enabled 분기 */
+      display: flex;                                     /* source line 209 verbatim */
+      align-items: center;                               /* source line 210 verbatim */
+      gap: 6px;                                          /* source line 211 verbatim */
+      line-height: 1;                                    /* 메모리 룰 7 */
+      font-family: inherit;
+    }
+
+    /* loading variant — source line 202/205/208 분기 매핑 */
+    .toolbar-batch-btn--loading {
+      background: var(--surface-sunken);                 /* source 'var(--bg3)' */
+      color: var(--text-tertiary);                       /* source 'var(--t3)' */
+      cursor: default;
+    }
+
+    /* spacer — source line 218 verbatim 'flex: 1' */
+    .toolbar-spacer { flex: 1; }
+
+    /* 선택 타이틀 — source line 220 verbatim (fontSize 14 / fontWeight 700 / color var(--t1)) */
+    .toolbar-selected-title {
+      font-size: 14px;                                   /* source line 220 verbatim */
+      font-weight: 700;                                  /* source line 220 verbatim */
+      color: var(--text-primary);                        /* source 'var(--t1)' */
+      line-height: 1;                                    /* 메모리 룰 7 (height 32 인접 컨테이너) */
+    }
+
+    /* 개별 다운로드 — W4 OQ #2 default: 보조 액션 위계 = surface-sunken + border-strong */
+    /* source line 221~243 매핑 (line 224~238 style) */
+    .toolbar-individual-btn {
+      height: 32px;                                      /* source line 225 verbatim */
+      padding: 0 14px;                                   /* source line 226 verbatim */
+      background: var(--surface-sunken);                 /* source line 227: 'var(--bg3)' */
+      border: 1px solid var(--border-strong);            /* source line 228: 'var(--bd2)' = border-strong */
+      border-radius: 6px;                                /* source line 229 verbatim */
+      color: var(--text-primary);                        /* source line 230: 'var(--t1)' */
+      font-size: 12px;                                   /* source line 231 verbatim */
+      font-weight: 700;                                  /* source line 232 verbatim */
+      cursor: pointer;                                   /* source line 233 enabled 분기 */
+      display: flex;                                     /* source line 234 verbatim */
+      align-items: center;                               /* source line 235 verbatim */
+      gap: 6px;                                          /* source line 236 verbatim */
+      line-height: 1;                                    /* 메모리 룰 7 */
+      font-family: inherit;
+    }
+
+    .toolbar-individual-btn--loading {
+      opacity: 0.5;                                      /* source line 237: 'loading === selectedType ? 0.5 : 1' */
+      cursor: default;
+    }
+
+    /* ============================================================
+     * below-toolbar placeholder — W5/W6 책임 영역
+     * ============================================================ */
+    .below-toolbar {
+      display: flex;
+      height: 480px;                                     /* 시연용 고정 — 데스크톱 frame 비율 시각화 */
+    }
+
+    /* 좌측 sidelist placeholder — W1 OQ #2 LOCKED 260px 유지 */
+    .placeholder-sidelist {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px dashed var(--border-default);
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-align: center;
+      padding: 16px;
+      line-height: 1.6;
+    }
+
+    /* 우측 ExcelPreview wrapper placeholder — W6 책임 */
+    .placeholder-preview {
+      flex: 1;
+      background: var(--surface-page);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      border: 1px dashed var(--border-default);
+      margin: 16px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+     * Variant 라벨 (sketch 외부 chrome — 12px 마지노선)
+     * ============================================================ */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* frame 간격 32px (W2 mirror — section-gap) */
+    .frame-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: stretch;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+  </style>
+  <script>
+    /* tailwind config: W2/W3 verbatim 패턴 */
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-8 max-w-[1280px] mx-auto">
+    <h1 class="text-heading text-white mb-2">14-reports sketch W4 — 데스크톱 상단 바 (1280px)</h1>
+    <p class="text-label text-zinc-400">
+      데스크톱 1280px × (다크/라이트) × (평상시/일괄 loading) 4 frame matrix.
+      W1 LOCKED 5건 중 #3 (일괄 다운로드 그라데이션 폐기 → bg-safe-bar solid) 본 wave 적용.
+      ReportsPage.tsx line 181~243 verbatim 매핑. 좌측 sidelist 260px / 우측 ExcelPreview = dashed placeholder.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame matrix — 다크 평상시 / 다크 일괄 loading / 라이트 평상시 / 라이트 일괄 loading
+       ============================================================ -->
+  <section class="frame-stack mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1: 다크 평상시 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 평상시 (1280px 데스크톱, loading === null && zipLoading === null)</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <!-- App.tsx GlobalHeader placeholder -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지 — 데스크톱 chrome)</div>
+
+        <!-- 상단 바 — ReportsPage.tsx line 181~243 verbatim -->
+        <div class="toolbar">
+          <label class="toolbar-year-label">연도</label>
+          <select class="toolbar-select">
+            <option>2026년</option>
+            <option>2025년</option>
+            <option>2024년</option>
+            <option>2023년</option>
+          </select>
+          <button class="toolbar-batch-btn" aria-label="일괄 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            일괄 다운로드
+          </button>
+          <div class="toolbar-spacer"></div>
+          <span class="toolbar-selected-title">월초 유수검지 장치 점검표</span>
+          <button class="toolbar-individual-btn" aria-label="엑셀 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+
+        <!-- 하단 placeholder — W5 책임 (좌측 sidelist 260px) + W6 책임 (우측 ExcelPreview wrapper) -->
+        <div class="below-toolbar">
+          <div class="placeholder-sidelist">
+            W5 책임<br/>
+            좌측 sidelist 260px<br/>
+            (4 섹션 × DESKTOP_SECTIONS<br/>
+            10 카드 list)
+          </div>
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2: 다크 일괄 loading ─────
+         (Frame 1 markup 1:1 mirror, 일괄 버튼만 --loading variant)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 일괄 loading (1280px, zipLoading === '생성 중... (3/10)')</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지 — 데스크톱 chrome)</div>
+
+        <div class="toolbar">
+          <label class="toolbar-year-label">연도</label>
+          <select class="toolbar-select">
+            <option>2026년</option>
+            <option>2025년</option>
+            <option>2024년</option>
+            <option>2023년</option>
+          </select>
+          <!-- 일괄 다운로드 — loading variant: surface-sunken + text-tertiary, SVG 유지 (source line 214: lucide Download 항상 표시) -->
+          <button class="toolbar-batch-btn toolbar-batch-btn--loading" disabled aria-label="일괄 다운로드 진행 중">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            생성 중... (3/10)
+          </button>
+          <div class="toolbar-spacer"></div>
+          <span class="toolbar-selected-title">월초 유수검지 장치 점검표</span>
+          <!-- 개별 다운로드 = 평상시 (개별과 일괄은 독립 state, source line 222 'loading === selectedType' 별도 분기) -->
+          <button class="toolbar-individual-btn" aria-label="엑셀 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+
+        <div class="below-toolbar">
+          <div class="placeholder-sidelist">
+            W5 책임<br/>
+            좌측 sidelist 260px<br/>
+            (4 섹션 × DESKTOP_SECTIONS<br/>
+            10 카드 list)
+          </div>
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3: 라이트 평상시 ─────
+         (Frame 1 markup 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 평상시 (1280px 데스크톱, loading === null && zipLoading === null)</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지 — 데스크톱 chrome)</div>
+
+        <div class="toolbar">
+          <label class="toolbar-year-label">연도</label>
+          <select class="toolbar-select">
+            <option>2026년</option>
+            <option>2025년</option>
+            <option>2024년</option>
+            <option>2023년</option>
+          </select>
+          <button class="toolbar-batch-btn" aria-label="일괄 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            일괄 다운로드
+          </button>
+          <div class="toolbar-spacer"></div>
+          <span class="toolbar-selected-title">월초 유수검지 장치 점검표</span>
+          <button class="toolbar-individual-btn" aria-label="엑셀 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+
+        <div class="below-toolbar">
+          <div class="placeholder-sidelist">
+            W5 책임<br/>
+            좌측 sidelist 260px<br/>
+            (4 섹션 × DESKTOP_SECTIONS<br/>
+            10 카드 list)
+          </div>
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4: 라이트 일괄 loading ─────
+         (Frame 2 markup 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 일괄 loading (1280px, zipLoading === '생성 중... (3/10)')</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 는 자체 헤더 페이지 — 데스크톱 chrome)</div>
+
+        <div class="toolbar">
+          <label class="toolbar-year-label">연도</label>
+          <select class="toolbar-select">
+            <option>2026년</option>
+            <option>2025년</option>
+            <option>2024년</option>
+            <option>2023년</option>
+          </select>
+          <button class="toolbar-batch-btn toolbar-batch-btn--loading" disabled aria-label="일괄 다운로드 진행 중">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            생성 중... (3/10)
+          </button>
+          <div class="toolbar-spacer"></div>
+          <span class="toolbar-selected-title">월초 유수검지 장치 점검표</span>
+          <button class="toolbar-individual-btn" aria-label="엑셀 다운로드">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+
+        <div class="below-toolbar">
+          <div class="placeholder-sidelist">
+            W5 책임<br/>
+            좌측 sidelist 260px<br/>
+            (4 섹션 × DESKTOP_SECTIONS<br/>
+            10 카드 list)
+          </div>
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1280px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W4 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>일괄 다운로드 = <code class="text-zinc-200">var(--status-safe-bar)</code> solid (다크 #22c55e / 라이트 #15803d). W1 OQ #3 LOCKED 적용 — 그라데이션 0건.</li>
+      <li>개별 다운로드 = <code class="text-zinc-200">var(--surface-sunken) + border var(--border-strong)</code> (보조 액션 위계). source line 227~228 verbatim.</li>
+      <li>일괄 loading variant = <code class="text-zinc-200">--loading</code> modifier 추가 → surface-sunken + text-tertiary + disabled. SVG 유지 (source line 214: lucide Download 항상 표시. 텍스트만 분기).</li>
+      <li>선택 타이틀 = <code class="text-zinc-200">REPORT_CARDS[0].title</code> verbatim '월초 유수검지 장치 점검표'. fontSize 14 / fontWeight 700 (source line 220).</li>
+      <li>spacer = <code class="text-zinc-200">flex: 1</code> 단일 div. 좌측 (연도+일괄) / 우측 (선택+개별) 자연 분리.</li>
+      <li>연도 select = SELECT_STYLE (line 306~313) verbatim — surface-sunken + border-strong + radius 4 + padding 4/8 + fontSize 12.</li>
+      <li>아이콘 = lucide Download size=13 (source verbatim, W2/W3 의 size=14 와 다름). W7 변환 wave 가 그대로 매핑.</li>
+      <li>toolbar 모든 버튼 height 32 컨테이너 — line-height: 1 명시 (메모리 룰 7 feedback_text_caption_leading_none).</li>
+      <li>좌측 sidelist 260px 명시 (W1 OQ #2 LOCKED — 본 wave 는 placeholder, W5 가 본격 구현).</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W5 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — 일괄 다운로드 클릭 시 confirm 모달 vs 즉시 시작? <strong class="text-zinc-200">default: 즉시 시작</strong> — source <code>handleDownloadAll</code> 는 confirm 없음, 로딩 라벨로 진행 알림. confirm 추가 = 비즈 로직 변경 위험.</li>
+      <li>OQ #2 — 개별 다운로드 버튼 색? <strong class="text-zinc-200">default: 회색 (bg-surface-sunken) 유지</strong> — 일괄과 위계 구분. safe-bar 동일색은 두 버튼 평준화 위험.</li>
+      <li>OQ #3 — 일괄 다운로드 후 zip 완료 시 toast 알림? <strong class="text-zinc-200">default: toast 0</strong> — source verbatim, browser native a.click() 만. 추후 UX 개선 검토.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W7 변환 wave 가 인용할 CSS class verbatim 인덱스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><code class="text-zinc-200">.toolbar</code> — outer flex container (padding 8/16, gap 12, surface-raised, border-bottom default)</li>
+      <li><code class="text-zinc-200">.toolbar-year-label</code> — fontSize 12, text-secondary, leading 1</li>
+      <li><code class="text-zinc-200">.toolbar-select</code> — surface-sunken, border-strong, radius 4, padding 4/8, fontSize 12, leading 1</li>
+      <li><code class="text-zinc-200">.toolbar-batch-btn</code> + <code class="text-zinc-200">.toolbar-batch-btn--loading</code> — height 32, padding 0/14, status-safe-bar solid (loading: surface-sunken + text-tertiary)</li>
+      <li><code class="text-zinc-200">.toolbar-spacer</code> — flex 1</li>
+      <li><code class="text-zinc-200">.toolbar-selected-title</code> — fontSize 14, fontWeight 700, text-primary, leading 1</li>
+      <li><code class="text-zinc-200">.toolbar-individual-btn</code> + <code class="text-zinc-200">.toolbar-individual-btn--loading</code> — height 32, padding 0/14, surface-sunken, border-strong, radius 6 (loading: opacity 0.5)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
