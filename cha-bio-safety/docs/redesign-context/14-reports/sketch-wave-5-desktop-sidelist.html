@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-5-desktop-sidelist.html — redesign/14-reports W5
+  작성: 2026-05-20 / quick 260520-h4z
+  범위: 데스크톱 1280px 좌측 sidelist 260px × 4 섹션 × 10 카드 (다크/라이트 4 frame matrix)
+  out of scope: 상단 toolbar 본격 (W4 책임 — 본 wave 는 dashed bar placeholder) /
+                ExcelPreview 본체 (W6 책임 — 본 wave 는 dashed placeholder) /
+                모바일 frame (W2/W3 책임) / ReportsPage.tsx 코드 수정 / App.tsx / 다른 페이지 /
+                wrangler / npm run deploy
+  참조: wave-1-index.md §3 + §7 OQ LOCKED 5건 verbatim,
+        sketch-wave-4-desktop-toolbar.html (W4 frame 셋업 mirror),
+        sketch-wave-3-mobile-card-list.html line 288~296 (.dot-meta CSS verbatim mirror),
+        ReportsPage.tsx line 142~147 (DESKTOP_SECTIONS) + line 249~295 (좌측 패널) verbatim
+
+  W1 LOCKED 5건 적용 매트릭스 (W5 관점):
+    OQ #1 LOCKED — 모바일 그라데이션 폐기 (W2 적용, W5 미해당 — 본 wave 는 sidelist scope)
+    OQ #2 LOCKED — 좌측 패널 260px 유지 → 본 wave 의 핵심. .sidelist width: 260px verbatim.
+    OQ #3 LOCKED — 데스크톱 일괄 그라데이션 폐기 (W4 적용, W5 미해당)
+    OQ #4 LOCKED — 모바일 footer 유지 (W3 적용, W5 미해당)
+    OQ #5 LOCKED — sub 라인 dot span 패턴 → 본 wave 적용 = O.
+                   섹션 B 라벨 '소화전[dot]가스[dot]비상콘센트' 의 가운뎃점 2건 + 10 row sub 라인의 가운뎃점 모두 dot span 변환.
+
+  W5 → W6 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행):
+    OQ #1 default: ExcelPreview 영역 = 단순 미리보기 PNG 자리 (내부 그리드 오버레이는 ExcelPreview.tsx 본체 책임. W6 wrapper 는 layout 만)
+    OQ #2 default: 미리보기 PDF/이미지 톤 = A4 흰배경 고정 (다크/라이트 자동 전환 X)
+                   — reference_floorplan_png_algorithm + 12-staff-service W8 결정 inherit
+    OQ #3 default: 빈 상태 UI 불필요 (sidelist 항상 default selected, useState<ReportType>('div-early') 초기값)
+
+  ==========================================================
+  메모리 룰 박제 (W4 의 10건 mirror + W5 특화 = 10건 unique)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 W5 가 W6 진입 전 마지막 sidelist 컨펌 시안.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → REPORT_CARDS 10 entry / DESKTOP_SECTIONS 4 entry 라벨 verbatim. 카피 변경 0.
+         '월초 유수검지 장치 점검표' / '월말 유수검지 장치 점검표' / '월간 옥내소화전 점검일지' /
+         '청정소화약제설비 점검일지' / '월간 비상콘센트 점검일지' / '월간 피난방화시설 점검일지' /
+         '월간 방화셔터 점검일지' / '월간 제연설비 점검일지' / '자동화재탐지설비 점검일지' /
+         '월간 소방펌프 점검일지' 모두 verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 wave 의 .sidelist-* CSS class 전체 (.sidelist / .sidelist-section-header /
+         .sidelist-row / .sidelist-row--selected / .sidelist-row--hover /
+         .sidelist-row-title / .sidelist-row-title--selected / .sidelist-row-sub) 를
+         W7 checklist 에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       bg-surface-raised / bg-surface-sunken / border-l-[3px] / text-accent 패턴 사용.
+       → status- prefix 0건. utility w-8/h-8 0건 (인라인 px 값만).
+         W7 변환 시 .sidelist-row--selected = `bg-surface-sunken border-l-[3px] border-accent`.
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       메모리 룰: tailwind w-N (큰 토큰) = 48px (기본 32 아님). w-7 = 32px.
+       → 본 sketch 는 utility class w-8/h-8 사용 0건. 260px / 32px / 4px / 8px / 16px 모두 인라인 명시.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 h-8(32px) 컨테이너 안에서도 시각적 패딩.
+       → .sidelist-section-header (작은 컨테이너) line-height: 1 명시 + leading-none class 부여.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 이모지 0건 / 섹션 B 라벨 dot span 변환 / 10 row sub 모두 dot span 변환.
+         본문 가운뎃점 텍스트 0건.
+
+    8. feedback_avoid_premature_confirmation.md
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       → sketch 작성 완료 후 자체 PASS 판단 0건. 사용자 컨펌 명시 받은 뒤 W6 진입.
+
+    9. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave 중 wrangler --project-name=cbc7119 절대 X.
+       → 본 wave 산출은 docs/redesign-context/14-reports/*.html 1건. wrangler 명령 0건 / npm run deploy 0건.
+         main push 자동 cbc7119-preview 만 (직원 도메인 cbc7119 미접근).
+
+   10. feedback_tsx_wave_stat_card_drift.md
+       Stat Card §6.3 룰 누락 사고 — 14-reports 페이지에는 Stat Card 미적용.
+       → 본 sketch sidelist row 는 카드 아닌 list 항목 (text + sub). Stat Card outline 패턴 0건.
+         row 의 좌측 3px accent 색바는 카테고리 카드의 progress 색바 아닌 isSelected 표시용.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 점검 일지 출력 — sketch W5 데스크톱 좌측 sidelist (1280px × 260px)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W4 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      /* === Surface === */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      /* === Text === */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      /* === Border === */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      /* === Accent === */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      /* === Status — foreground === */
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      /* === Status — bar === */
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      /* === Status — bg === */
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      /* === Duty === */
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim (W4 mirror)
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Spacing — tokens.css line 122~146 verbatim (W4 mirror)
+     * ============================================================ */
+    :root {
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-7: 32px;
+      --space-8: 48px;
+
+      --card-padding:     14px;
+      --card-padding-sm:  10px;
+      --card-gap:         8px;
+      --modal-padding:    20px;
+      --section-gap:      24px;
+      --page-padding:     16px;
+      --input-height:     44px;
+      --input-padding-x:  14px;
+      --button-height:    44px;
+      --button-padding-x: 16px;
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --card-padding:     10px;
+        --card-padding-sm:  8px;
+        --card-gap:         6px;
+        --modal-padding:    24px;
+        --section-gap:      32px;
+        --page-padding:     24px;
+        --input-height:     40px;
+        --input-padding-x:  14px;
+        --button-height:    40px;
+        --button-padding-x: 16px;
+      }
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim (W4 mirror)
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim (W4 mirror)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-display {
+      font-size: 28px;
+      line-height: 1.0;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-medium { font-weight: 500; }
+    .font-semibold { font-weight: 600; }
+
+    /* leading-none helper (메모리 룰 6: feedback_text_caption_leading_none) */
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome 헬퍼 (W4 mirror)
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    /* 데스크톱 frame outer — W4 line 308~318 verbatim */
+    .frame-desktop {
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      color: var(--text-primary);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12, 모드 무관 다크 톤) */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ============================================================
+     * W5 신규 — sidelist CSS class 정의 (W7 변환 wave 가 verbatim 인용할 인덱스)
+     * ============================================================ */
+
+    /* 좌측 패널 outer — ReportsPage.tsx line 249~255 verbatim 매핑.
+       토큰: bd → border-default, bg2 → surface-raised */
+    .sidelist {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border-default);
+      overflow-y: auto;
+      background: var(--surface-raised);
+    }
+
+    /* 섹션 헤더 — source line 258~265 매핑.
+       source fontSize 11 → 12 노안 격상 (마이그레이션 룰 §4.2). letter-spacing 0.05em 유지. */
+    .sidelist-section-header {
+      padding: 8px 16px 4px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: 0.05em;
+      line-height: 1;
+    }
+
+    /* row default — source line 278~283 매핑.
+       토큰: bg3 → surface-sunken (selected/hover 시), acl → accent (selected border) */
+    .sidelist-row {
+      padding: 8px 16px;
+      cursor: pointer;
+      background: transparent;
+      border-left: 3px solid transparent;
+    }
+
+    /* row selected — source line 281~282: isSelected ? var(--bg3) + 3px solid var(--acl) */
+    .sidelist-row--selected {
+      background: var(--surface-sunken);
+      border-left: 3px solid var(--accent);
+    }
+
+    /* row hover (selected 가 아닐 때) — source line 281: isHover ? var(--bg3) (border 는 transparent 유지) */
+    .sidelist-row--hover {
+      background: var(--surface-sunken);
+      border-left: 3px solid transparent;
+    }
+
+    /* row 제목 — source line 285 매핑.
+       source fontSize 13 → 14 (text-body-sm, 데스크톱 §1.3 정보 밀도 유지) */
+    .sidelist-row-title {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 400;
+    }
+
+    /* row 제목 selected variant — source line 285: isSelected ? var(--acl) + fontWeight 700 */
+    .sidelist-row-title--selected {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* row sub — source line 288 매핑.
+       source fontSize 11 → 12 노안 격상 (마이그레이션 룰 §4.2). marginTop 1 유지. */
+    .sidelist-row-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 1px;
+    }
+
+    /* dot span — W3 sketch-wave-3 line 288~296 verbatim mirror + margin/vertical-align 추가 */
+    .dot-meta {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background: var(--text-tertiary);
+      flex-shrink: 0;
+      vertical-align: middle;
+      margin: 0 6px;
+    }
+
+    /* ============================================================
+     * Placeholder 영역 — W4/W6 책임 명시 (본 wave 는 dashed bar/box 만)
+     * ============================================================ */
+
+    /* 상단 toolbar placeholder — W4 책임 (본 wave 는 dashed bar 1줄) */
+    .placeholder-toolbar {
+      height: 48px;
+      border-bottom: 1px dashed var(--border-default);
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      line-height: 1;
+    }
+
+    /* below-toolbar = sidelist + preview 양분할 */
+    .below-toolbar {
+      display: flex;
+      height: 520px;
+    }
+
+    /* 우측 ExcelPreview wrapper placeholder — W6 책임 */
+    .placeholder-preview {
+      flex: 1;
+      background: var(--surface-page);
+      border: 1px dashed var(--border-default);
+      margin: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    /* hover 시연 chip — F1/F3 에서 hover row 옆에 'HOVER' 라벨 표기 */
+    .hover-demo-chip {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+    }
+
+    /* ============================================================
+     * Variant 라벨 (sketch 외부 chrome — 12px 마지노선)
+     * ============================================================ */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* frame 간격 32px (W4 mirror — section-gap) */
+    .frame-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      align-items: stretch;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+  </style>
+  <script>
+    /* tailwind config: W4 verbatim 패턴 */
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+          borderRadius: {
+            'sm-token':  '8px',
+            'md-token':  '12px',
+            'lg-token':  '16px',
+            'pill':      '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-8 max-w-[1280px] mx-auto">
+    <h1 class="text-heading text-white mb-2">14-reports sketch W5 — 데스크톱 좌측 sidelist (1280px × 260px)</h1>
+    <p class="text-label text-zinc-400">
+      데스크톱 1280px × (다크/라이트) × (div-early selected / 자탐 selected) 4 frame matrix.
+      W1 LOCKED 5건 중 #2 (좌측 패널 260px 유지) + #5 (sub 라인 dot span) 본 wave 적용.
+      ReportsPage.tsx line 142~147 (DESKTOP_SECTIONS) + 249~295 (좌측 패널) verbatim 매핑.
+      상단 toolbar = dashed bar placeholder (W4 책임) / 우측 ExcelPreview = dashed placeholder (W6 책임).
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame matrix — 다크 div-early selected / 다크 자탐 selected / 라이트 div-early selected / 라이트 자탐 selected
+       ============================================================ -->
+  <section class="frame-stack mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1: 다크 div-early selected + div-late hover demo ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 div-early selected + div-late hover demo (1280px 데스크톱)</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <!-- App.tsx GlobalHeader placeholder -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <!-- 상단 toolbar — W4 책임 dashed placeholder -->
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <!-- below-toolbar: 좌측 sidelist 260px + 우측 ExcelPreview placeholder -->
+        <div class="below-toolbar">
+
+          <!-- 좌측 sidelist — W5 본격 구현 -->
+          <div class="sidelist">
+
+            <!-- 섹션 A: 유수검지 장치 (2 row, div-early selected / div-late hover demo) -->
+            <div>
+              <div class="sidelist-section-header leading-none">유수검지 장치</div>
+              <div class="sidelist-row sidelist-row--selected">
+                <div class="sidelist-row-title sidelist-row-title--selected">월초 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+              <div class="sidelist-row sidelist-row--hover">
+                <div class="sidelist-row-title">월말 유수검지 장치 점검표<span class="hover-demo-chip">HOVER</span></div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 B: 소화전 · 가스 · 비상콘센트 — 라벨 가운뎃점 dot span 변환 (3 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">
+                소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 옥내소화전 점검일지</div>
+                <div class="sidelist-row-sub">소화전<span class="dot-meta"></span>각 층</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">청정소화약제설비 점검일지</div>
+                <div class="sidelist-row-sub">가스소화<span class="dot-meta"></span>3개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 비상콘센트 점검일지</div>
+                <div class="sidelist-row-sub">비상콘센트<span class="dot-meta"></span>8개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 C: 연간 점검일지 (4 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">연간 점검일지</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 피난방화시설 점검일지</div>
+                <div class="sidelist-row-sub">피난방화<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 방화셔터 점검일지</div>
+                <div class="sidelist-row-sub">방화셔터<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 제연설비 점검일지</div>
+                <div class="sidelist-row-sub">제연설비<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">자동화재탐지설비 점검일지</div>
+                <div class="sidelist-row-sub">자탐설비<span class="dot-meta"></span>연간</div>
+              </div>
+            </div>
+
+            <!-- 섹션 D: 소방펌프 (1 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">소방펌프</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 소방펌프 점검일지</div>
+                <div class="sidelist-row-sub">소방펌프<span class="dot-meta"></span>월간</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 우측 ExcelPreview placeholder -->
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2: 다크 자탐 selected (다른 섹션 active 시연, hover demo 0) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 자탐 selected (1280px, 섹션 C 활성 시연)</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="sidelist">
+
+            <!-- 섹션 A: 유수검지 장치 (2 row, 모두 default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">유수검지 장치</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월초 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월말 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 B: 소화전 · 가스 · 비상콘센트 (3 row, 모두 default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">
+                소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 옥내소화전 점검일지</div>
+                <div class="sidelist-row-sub">소화전<span class="dot-meta"></span>각 층</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">청정소화약제설비 점검일지</div>
+                <div class="sidelist-row-sub">가스소화<span class="dot-meta"></span>3개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 비상콘센트 점검일지</div>
+                <div class="sidelist-row-sub">비상콘센트<span class="dot-meta"></span>8개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 C: 연간 점검일지 (4 row, 자탐 selected) -->
+            <div>
+              <div class="sidelist-section-header leading-none">연간 점검일지</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 피난방화시설 점검일지</div>
+                <div class="sidelist-row-sub">피난방화<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 방화셔터 점검일지</div>
+                <div class="sidelist-row-sub">방화셔터<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 제연설비 점검일지</div>
+                <div class="sidelist-row-sub">제연설비<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row sidelist-row--selected">
+                <div class="sidelist-row-title sidelist-row-title--selected">자동화재탐지설비 점검일지</div>
+                <div class="sidelist-row-sub">자탐설비<span class="dot-meta"></span>연간</div>
+              </div>
+            </div>
+
+            <!-- 섹션 D: 소방펌프 (1 row, default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">소방펌프</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 소방펌프 점검일지</div>
+                <div class="sidelist-row-sub">소방펌프<span class="dot-meta"></span>월간</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=자탐 year=2026 month=현재)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3: 라이트 div-early selected + div-late hover demo (F1 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 div-early selected + div-late hover demo (1280px 데스크톱)</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="sidelist">
+
+            <!-- 섹션 A: 유수검지 장치 (2 row, div-early selected / div-late hover demo) -->
+            <div>
+              <div class="sidelist-section-header leading-none">유수검지 장치</div>
+              <div class="sidelist-row sidelist-row--selected">
+                <div class="sidelist-row-title sidelist-row-title--selected">월초 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+              <div class="sidelist-row sidelist-row--hover">
+                <div class="sidelist-row-title">월말 유수검지 장치 점검표<span class="hover-demo-chip">HOVER</span></div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 B: 소화전 · 가스 · 비상콘센트 (3 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">
+                소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 옥내소화전 점검일지</div>
+                <div class="sidelist-row-sub">소화전<span class="dot-meta"></span>각 층</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">청정소화약제설비 점검일지</div>
+                <div class="sidelist-row-sub">가스소화<span class="dot-meta"></span>3개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 비상콘센트 점검일지</div>
+                <div class="sidelist-row-sub">비상콘센트<span class="dot-meta"></span>8개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 C: 연간 점검일지 (4 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">연간 점검일지</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 피난방화시설 점검일지</div>
+                <div class="sidelist-row-sub">피난방화<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 방화셔터 점검일지</div>
+                <div class="sidelist-row-sub">방화셔터<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 제연설비 점검일지</div>
+                <div class="sidelist-row-sub">제연설비<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">자동화재탐지설비 점검일지</div>
+                <div class="sidelist-row-sub">자탐설비<span class="dot-meta"></span>연간</div>
+              </div>
+            </div>
+
+            <!-- 섹션 D: 소방펌프 (1 row) -->
+            <div>
+              <div class="sidelist-section-header leading-none">소방펌프</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 소방펌프 점검일지</div>
+                <div class="sidelist-row-sub">소방펌프<span class="dot-meta"></span>월간</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=div-early year=2026 month=현재)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4: 라이트 자탐 selected (F2 mirror, hover demo 0) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 자탐 selected (1280px, 섹션 C 활성 시연)</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /reports 자체 헤더 페이지)</div>
+
+        <div class="placeholder-toolbar">W4 책임 — 상단 toolbar (연도 / 일괄 / spacer / 선택 타이틀 / 개별)</div>
+
+        <div class="below-toolbar">
+
+          <div class="sidelist">
+
+            <!-- 섹션 A: 유수검지 장치 (2 row, 모두 default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">유수검지 장치</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월초 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월말 유수검지 장치 점검표</div>
+                <div class="sidelist-row-sub">DIV<span class="dot-meta"></span>34개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 B: 소화전 · 가스 · 비상콘센트 (3 row, 모두 default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">
+                소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 옥내소화전 점검일지</div>
+                <div class="sidelist-row-sub">소화전<span class="dot-meta"></span>각 층</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">청정소화약제설비 점검일지</div>
+                <div class="sidelist-row-sub">가스소화<span class="dot-meta"></span>3개소</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 비상콘센트 점검일지</div>
+                <div class="sidelist-row-sub">비상콘센트<span class="dot-meta"></span>8개소</div>
+              </div>
+            </div>
+
+            <!-- 섹션 C: 연간 점검일지 (4 row, 자탐 selected) -->
+            <div>
+              <div class="sidelist-section-header leading-none">연간 점검일지</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 피난방화시설 점검일지</div>
+                <div class="sidelist-row-sub">피난방화<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 방화셔터 점검일지</div>
+                <div class="sidelist-row-sub">방화셔터<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 제연설비 점검일지</div>
+                <div class="sidelist-row-sub">제연설비<span class="dot-meta"></span>연간</div>
+              </div>
+              <div class="sidelist-row sidelist-row--selected">
+                <div class="sidelist-row-title sidelist-row-title--selected">자동화재탐지설비 점검일지</div>
+                <div class="sidelist-row-sub">자탐설비<span class="dot-meta"></span>연간</div>
+              </div>
+            </div>
+
+            <!-- 섹션 D: 소방펌프 (1 row, default) -->
+            <div>
+              <div class="sidelist-section-header leading-none">소방펌프</div>
+              <div class="sidelist-row">
+                <div class="sidelist-row-title">월간 소방펌프 점검일지</div>
+                <div class="sidelist-row-sub">소방펌프<span class="dot-meta"></span>월간</div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="placeholder-preview">
+            W6 책임<br/>
+            ExcelPreview wrapper<br/>
+            (reportType=자탐 year=2026 month=현재)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1280px] mx-auto text-zinc-400 text-label" style="line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W5 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>좌측 sidelist = <code class="text-zinc-200">.sidelist</code> width: 260px (W1 OQ #2 LOCKED). flex-shrink: 0 + border-right + overflow-y: auto + bg-surface-raised.</li>
+      <li>섹션 헤더 fontSize: 12 (source 11 → 12 노안 상향). letter-spacing 0.05em + leading-none.</li>
+      <li>row 제목 fontSize: 14 (source 13 → 14, text-body-sm). 데스크톱 §1.3 정보 밀도 — 14px 마지노선 채택.</li>
+      <li>row sub fontSize: 12 (source 11 → 12 노안 상향). 모든 가운뎃점 → dot-meta span 변환.</li>
+      <li>selected row: <code class="text-zinc-200">bg-surface-sunken</code> + <code class="text-zinc-200">border-left 3px var(--accent)</code> + title <code class="text-zinc-200">text-accent font-bold</code>.</li>
+      <li>hover row (selected 아닐 때): <code class="text-zinc-200">bg-surface-sunken</code> + <code class="text-zinc-200">border-left 3px transparent</code> (F1/F3 에서 div-late row 에 시연).</li>
+      <li>섹션 B 라벨 '소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트' 의 가운뎃점 2개 → dot-meta span 2개 변환 (W1 OQ #5 LOCKED).</li>
+      <li>이모지 0건 / 그라데이션 0건 / w-8 h-8 utility 0건 / status- prefix Tailwind 0건 / 9·10·11px 본문 0건.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W6 진입 전 OQ 3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #1 — ExcelPreview 영역 그리드 오버레이 vs 단순 PNG 자리? <strong class="text-zinc-200">default: 단순 미리보기 PNG 자리</strong> — 내부 그리드 오버레이는 ExcelPreview.tsx 본체 책임. W6 wrapper layout 만.</li>
+      <li>OQ #2 — 미리보기 톤 다크/라이트 자동 전환 vs A4 흰배경 고정? <strong class="text-zinc-200">default: A4 흰배경 고정</strong> — 메모리 룰 reference_floorplan_png_algorithm + 12-staff-service W8 결정 inherit.</li>
+      <li>OQ #3 — 빈 상태 UI (선택 안 됨)? <strong class="text-zinc-200">default: 빈 상태 표시 불필요</strong> — sidelist 항상 default selected (useState&lt;ReportType&gt;('div-early') 초기값).</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W7 변환 wave 가 인용할 CSS class verbatim 인덱스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><code class="text-zinc-200">.sidelist</code> — width 260, flex-shrink 0, border-right default, overflow-y auto, bg surface-raised</li>
+      <li><code class="text-zinc-200">.sidelist-section-header</code> — padding 8/16/4, fontSize 12, fontWeight 700, color text-tertiary, letter-spacing 0.05em, leading 1</li>
+      <li><code class="text-zinc-200">.sidelist-row</code> + <code class="text-zinc-200">.sidelist-row--selected</code> + <code class="text-zinc-200">.sidelist-row--hover</code> — padding 8/16, border-left 3px (selected: accent / default+hover: transparent), bg (selected/hover: surface-sunken / default: transparent)</li>
+      <li><code class="text-zinc-200">.sidelist-row-title</code> + <code class="text-zinc-200">.sidelist-row-title--selected</code> — fontSize 14, color (selected: accent + fontWeight 700 / default: text-primary fontWeight 400)</li>
+      <li><code class="text-zinc-200">.sidelist-row-sub</code> — fontSize 12, color text-tertiary, margin-top 1</li>
+      <li><code class="text-zinc-200">.dot-meta</code> — inline-block 4×4, border-radius 9999px, bg text-tertiary, margin 0/6</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">DESKTOP_SECTIONS 4 섹션 × 10 row mapping</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>섹션 A: <strong class="text-zinc-200">유수검지 장치</strong> (2 row) — div-early '월초 유수검지 장치 점검표' / div-late '월말 유수검지 장치 점검표'</li>
+      <li>섹션 B: <strong class="text-zinc-200">소화전<span class="dot-meta"></span>가스<span class="dot-meta"></span>비상콘센트</strong> (3 row, 라벨 가운뎃점 dot span × 2) — 소화전 '월간 옥내소화전 점검일지' / 청정소화약제 '청정소화약제설비 점검일지' / 비상콘센트 '월간 비상콘센트 점검일지'</li>
+      <li>섹션 C: <strong class="text-zinc-200">연간 점검일지</strong> (4 row) — 피난방화 '월간 피난방화시설 점검일지' / 방화셔터 '월간 방화셔터 점검일지' / 제연 '월간 제연설비 점검일지' / 자탐 '자동화재탐지설비 점검일지'</li>
+      <li>섹션 D: <strong class="text-zinc-200">소방펌프</strong> (1 row) — 소방펌프 '월간 소방펌프 점검일지'</li>
+    </ul>
+  </section>
+
+</body>
+</html>

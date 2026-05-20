@@ -1,5 +1,6 @@
 @import './styles/tokens.css';
 @import './styles/typography.css';
+@import './styles/components.css';
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&family=Noto+Color+Emoji&display=swap');
 
 @tailwind base;
