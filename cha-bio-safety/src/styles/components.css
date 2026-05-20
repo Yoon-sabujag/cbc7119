@@ -1,0 +1,77 @@
+/* ============================================================
+ * 14-reports redesign — component CSS classes
+ * Source: sketch-wave-2 ~ sketch-wave-6 (W7 §3 verbatim 박제)
+ * SW1 of TSX conversion (sub-wave-1)
+ *
+ * 메모리 룰:
+ * - feedback_planner_prompt_sketch_verbatim (sketch CSS verbatim 인용)
+ * - feedback_tailwind_token_class_pattern (status- prefix 포함)
+ * - feedback_tailwind_w8_h8_is_48px (back-btn 34x34 / year-nav-btn 28x28 verbatim)
+ * - feedback_text_caption_leading_none (font-size 12px 마지노선)
+ *
+ * raw hex 예외 (var(--*) 미사용 의도적 — A4 내부 라이트 컨텍스트 고정):
+ * - .a4-preview { background: #ffffff }       (흰배경 고정)
+ * - .a4-preview-title { color: #1f2328 }      (A4 검정 텍스트)
+ * - .a4-preview-meta { color: #656d76 }       (A4 회색)
+ * - .a4-preview-cell--header { background: #f6f8fa }  (A4 헤더 셀)
+ * - .a4-preview-table-placeholder / .a4-preview-cell border: #d0d7de  (A4 dashed)
+ * ============================================================ */
+
+@layer components {
+
+  /* ── §1. 자체 헤더 (W2/W3) ──────────────────────── */
+  .page-header { flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 12px 9px; display: flex; align-items: center; gap: 8px; }
+  .back-btn { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .page-title { flex: 1; font-size: 18px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+  .year-pager { display: flex; align-items: center; gap: 2px; }
+  .year-pager-slot { width: 24px; display: flex; justify-content: center; }
+  .year-nav-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border-default); background: var(--surface-sunken); color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .year-label { width: 44px; text-align: center; font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+
+  /* ── §2. 본문 + 카드 (W2/W3) ─────────────────────── */
+  .page-body { padding: 12px 16px; background: var(--surface-page); }
+  .report-card { background: var(--surface-raised); border-radius: 12px; border: 1px solid var(--border-default); padding: 14px; margin-bottom: 10px; }
+  .report-card-head { margin-bottom: 10px; }
+  .report-card-title { font-size: 16px; font-weight: 700; color: var(--text-primary); line-height: 1.4; }
+  .report-card-sub { margin-top: 4px; font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 6px; line-height: 1; }
+  .report-card-btn { width: 100%; padding: 12px; border-radius: 8px; border: 0; background: var(--status-safe-bar); color: var(--text-on-accent); font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .report-card--loading .report-card-btn { background: var(--surface-sunken); color: var(--text-tertiary); cursor: default; }
+
+  /* ── §3. dot-meta + footer (W2/W3) ──────────────── */
+  .dot-meta { display: inline-block; width: 4px; height: 4px; border-radius: 9999px; background: var(--text-tertiary); flex-shrink: 0; }
+  .page-footer-note { text-align: center; padding: 8px 16px 20px; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
+
+  /* ── §4. 데스크톱 toolbar (W4) ───────────────────── */
+  .toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--border-default); background: var(--surface-raised); flex-shrink: 0; }
+  .toolbar-year-label { font-size: 12px; color: var(--text-secondary); line-height: 1; }
+  .toolbar-select { background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 8px; font-size: 12px; line-height: 1; font-family: inherit; cursor: pointer; }
+  .toolbar-batch-btn { height: 32px; padding: 0 14px; background: var(--status-safe-bar); border: 0; border-radius: 6px; color: var(--text-on-accent); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; line-height: 1; font-family: inherit; }
+  .toolbar-batch-btn--loading { background: var(--surface-sunken); color: var(--text-tertiary); cursor: default; }
+  .toolbar-spacer { flex: 1; }
+  .toolbar-selected-title { font-size: 14px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .toolbar-individual-btn { height: 32px; padding: 0 14px; background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: 6px; color: var(--text-primary); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; line-height: 1; font-family: inherit; }
+  .toolbar-individual-btn--loading { opacity: 0.5; cursor: default; }
+
+  /* ── §5. 데스크톱 sidelist (W5, W1 #2 LOCKED 260px) ── */
+  .sidelist { width: 260px; flex-shrink: 0; border-right: 1px solid var(--border-default); overflow-y: auto; background: var(--surface-raised); }
+  .sidelist-section-header { padding: 8px 16px 4px; font-size: 12px; font-weight: 700; color: var(--text-tertiary); letter-spacing: 0.05em; line-height: 1; }
+  .sidelist-row { padding: 8px 16px; cursor: pointer; background: transparent; border-left: 3px solid transparent; }
+  .sidelist-row--selected { background: var(--surface-sunken); border-left: 3px solid var(--accent); }
+  .sidelist-row--hover { background: var(--surface-sunken); border-left: 3px solid transparent; }
+  .sidelist-row-title { font-size: 14px; color: var(--text-primary); font-weight: 400; }
+  .sidelist-row-title--selected { color: var(--accent); font-weight: 700; }
+  .sidelist-row-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
+
+  /* ── §6. ExcelPreview wrapper + A4 placeholder (W6, W6 #2 LOCKED) ── */
+  /* a4-preview-* 5종 (title/meta/table-placeholder/cell/cell--header) 은 sketch 안 placeholder
+   * 시각화용으로 정의 — 실제 TSX 에서 ExcelPreview 컴포넌트가 자체 렌더하므로 wrapper 외부
+   * placeholder 노출은 안 함 (W6 OQ #4 default c). 단, class 자체는 SW3 가 wrapper 만 사용. */
+  .preview-wrapper { flex: 1; overflow: hidden; background: var(--surface-page); display: flex; align-items: flex-start; justify-content: center; padding: 32px; }
+  .a4-preview { width: 100%; max-width: 595px; aspect-ratio: 210 / 297; background: #ffffff; border: 1px solid var(--border-default); box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; padding: 32px 28px; }
+  .a4-preview-title { font-size: 18px; font-weight: 700; color: #1f2328; text-align: center; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .a4-preview-meta { font-size: 12px; color: #656d76; text-align: center; margin-bottom: 24px; letter-spacing: 0.05em; }
+  .a4-preview-table-placeholder { flex: 1; display: grid; grid-template-columns: 1.4fr repeat(12, 1fr); gap: 0; border: 1px dashed #d0d7de; border-radius: 2px; font-size: 12px; color: #656d76; align-items: center; justify-items: center; text-align: center; overflow: hidden; }
+  .a4-preview-cell { padding: 8px 4px; border: 1px dashed #d0d7de; font-size: 12px; color: #656d76; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .a4-preview-cell--header { background: #f6f8fa; font-weight: 700; color: #1f2328; }
+
+}
