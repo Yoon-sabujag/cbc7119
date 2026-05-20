@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -144,6 +145,17 @@ export default function SchedulePage() {
   const [showAdd,  setShowAdd]  = useState(false)
   const [editItem, setEditItem] = useState<ScheduleItem | null>(null)
   const [planLoading, setPlanLoading] = useState(false)
+
+  // ── GlobalHeader 「엑셀 다운로드」 portal slot ──
+  const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    const find = () => document.getElementById('schedule-header-portal-slot')
+    setHeaderSlot(find())
+    if (!find()) {
+      const id = requestAnimationFrame(() => setHeaderSlot(find()))
+      return () => cancelAnimationFrame(id)
+    }
+  }, [])
 
   const { data: fetchedHolidays } = useQuery({
     queryKey: ['holidays'],
@@ -463,9 +475,10 @@ export default function SchedulePage() {
         {isDesktop && (
           <button
             onClick={() => setShowAdd(true)}
-            className="px-3 py-1 rounded-sm bg-accent text-text-on-accent text-caption font-bold cursor-pointer leading-none"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-sm bg-accent text-text-on-accent text-body-sm font-bold cursor-pointer"
           >
-            + 추가
+            <Plus size={14} />
+            일정 추가
           </button>
         )}
       </div>
@@ -554,8 +567,8 @@ export default function SchedulePage() {
   if (isDesktop) {
     return (
       <div className="flex flex-col h-full overflow-hidden bg-surface-page">
-        {/* 액션 바 — App.tsx 가 이미 페이지 제목 표시. 여기는 액션 버튼만 */}
-        <div className="flex flex-shrink-0 items-center justify-end gap-2 px-6 py-2.5 border-b border-border-default bg-surface-raised">
+        {/* App.tsx 데스크톱 헤더 우측에 「엑셀 다운로드」 버튼 portal 주입 */}
+        {headerSlot && createPortal(
           <button
             onClick={handlePlanDownload}
             disabled={planLoading}
@@ -567,8 +580,9 @@ export default function SchedulePage() {
           >
             <Download size={13} />
             {planLoading ? '생성 중...' : '엑셀 다운로드'}
-          </button>
-        </div>
+          </button>,
+          headerSlot,
+        )}
 
         {/* 상단: 월간 점검 계획 테이블 */}
         <div className="flex-shrink-0 overflow-hidden border-b border-border-default">
