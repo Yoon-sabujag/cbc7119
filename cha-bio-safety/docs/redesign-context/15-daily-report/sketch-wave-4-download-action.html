@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-download-action.html — redesign/15-daily-report W4
+  작성: 2026-05-21 / Quick ID 260521-3es
+  Branch: redesign/15-daily-report
+
+  ==========================================================
+  범위 정의 (W4 scope)
+  ==========================================================
+  - 다운로드 액션 영역 = daily 버튼 + monthly 버튼 + 안내 줄
+    (DailyReportPage.tsx line 320~383)
+  - × 다크/라이트 × 모바일 393px / 데스크톱 ~640px = 4 frame
+  - 각 frame 안 disabled state variant (generating / monthly) 시각 표시
+  out of scope:
+    - W2 (모바일 헤더 + dateNav) 완결
+    - W3 (EditableCard×3 + 인원현황 SummaryCard) 완결
+    - W5 (데스크톱 좌우 분할 layout) 차기 sketch
+    - W6 (DailyPortraitPreview wrapper)
+    - W7 (TSX 변환 checklist)
+
+  ==========================================================
+  참조 (단일 진입점)
+  ==========================================================
+  - wave-1-index.md §1.4 / §2.1 W4 / §3.4 / §3.7 / §6.4 / §4.1 / §5 / §7 OQ #1
+  - DailyReportPage.tsx
+      line 197~209 handleDailyDownload 시그니처 verbatim
+      line 212~265 handleMonthlyDownload 시그니처 verbatim
+      line 320~379 다운로드 영역 source 마크업 verbatim
+      line 381~383 안내 줄 source 마크업 verbatim
+  - sketch-wave-2-mobile-header-date-nav.html + sketch-wave-3-editable-cards-personnel.html
+      frame 셋업 패턴 1:1 mirror (393px frame + data-theme 분기 + tokens.css/typography.css link)
+  - components.css line 41~42 (.dot-meta + .page-footer-note inherit)
+
+  ==========================================================
+  W1 LOCKED 5건 적용 매트릭스 (wave-1-index.md §7 OQ default 인용)
+  ==========================================================
+    OQ #1 ▶ default OK — W4 적용 — 그라데이션 → bg-safe-bar solid
+                         (14-reports W6 LOCKED b 일관 + design-system §6.4 폐기)
+    OQ #2 ▶ default (c) — W3 완결, W4 미해당
+    OQ #3 ▶ default 유지 — W2 완결, W4 미해당
+    OQ #4 ▶ default (a) — W6 scope, W4 미해당
+    OQ #5 ▶ default (a) — W4 적용 — 모바일/데스크톱 분기 유지
+                         (4 frame 중 F3/F4 데스크톱 분기 시각화)
+
+  ==========================================================
+  보존 항목 (memory feedback_sketch_realistic_data) — 10건
+  ==========================================================
+   1. daily 버튼 카피 verbatim — `${Number(mm)}월${dd}일 방재업무일지 다운로드`
+      → sample = "5월21일 방재업무일지 다운로드" (source line 334/363)
+   2. daily 로딩 카피 verbatim — "생성 중..." (source line 334/363)
+   3. monthly 버튼 카피 verbatim — `일일업무일지(${mm}월) 다운로드`
+      → sample = "일일업무일지(05월) 다운로드" (source line 347/376)
+   4. monthly 로딩 카피 verbatim — "월별 생성 중..." (source line 347/376)
+   5. 안내 카피 verbatim — "수정 내용은 자동 저장됩니다 · 월별은 저장된 모든 날짜를 포함합니다"
+      (source line 382)
+   6. 가운뎃점 · 1건 → <span class="dot-meta"></span> 4×4 회색 dot 치환
+      (memory feedback_tsx_wave_emoji_dot_gap, 4 frame × 1건 = 총 4 dot span)
+   7. handleDailyDownload 시그니처 verbatim (sketch 가 호출 X, TSX 변환 시 보존 근거):
+      const handleDailyDownload = async () => {
+        if (generating) return
+        setGenerating(true)
+        try {
+          await dailyReportApi.saveNotes({ date, today_text, tomorrow_text, content })
+          if (!auto) throw new Error('데이터 없음')
+          const data = { ...auto, todayText, tomorrowText, notes }
+          const [y, m, d] = date.split('-').map(Number)
+          await generateDailyExcel('daily', y, m, { [d]: data }, d)
+        } catch { toast.error('엑셀 생성 중 오류가 발생했습니다') }
+        finally { setGenerating(false) }
+      }
+   8. handleMonthlyDownload 시그니처 verbatim (시그니처만, sketch 무관):
+      const handleMonthlyDownload = async () => {
+        if (genMonthly) return
+        setGenMonthly(true)
+        try { ...lazy save + month aggregation...
+          await generateDailyExcel('monthly', y, m, dayDataMap, limitDay)
+        } catch { toast.error('월별 엑셀 생성 중 오류가 발생했습니다') }
+        finally { setGenMonthly(false) }
+      }
+   9. disabled 조건 verbatim — daily: generating || queryData.isLoading
+                              monthly: genMonthly
+  10. 모바일/데스크톱 구조 verbatim:
+      모바일 = full-width stack (source line 359 marginBottom: 8)
+      데스크톱 = flex row gap 8 + 각 flex:1 (source line 322 gap: 8)
+
+  ==========================================================
+  폰트 노안 상향 박제 (design-system §1.1 절대 룰, 9·10·11px 0건)
+  ==========================================================
+  - 버튼 13 → 16 (text-body) — source line 330/343/359/372 fontSize: 13
+  - 안내 10 → 12 (text-caption) — source line 381 fontSize: 10
+  → fontSize 9·10·11px 본문 0건 (negative gate N3)
+
+  ==========================================================
+  그라데이션 폐기 박제 (§6.4 + W1 OQ #1 LOCKED OK)
+  ==========================================================
+  - source line 328/357 lin*ar-gradient 135deg #1d4ed8→#2563eb (마스킹)
+    → bg-safe-bar solid (= var(--status-safe-bar))
+  - 14-reports W6 LOCKED b 일관 — 다운로드 CTA bg-safe-bar 통일
+  - sketch 본문 CSS 호출 0건 (negative gate N2 — lin*ar-gradient open-paren 패턴 매치 0)
+
+  ==========================================================
+  이모지 제거 박제 (memory feedback_tsx_wave_emoji_dot_gap + design-system §7.1)
+  ==========================================================
+  - source line 334/347/363/376 의 글리프 U+2B07 4건
+    → lucide Download size=16 inline SVG 8건 치환 (4 frame × 2 button × active + 4 frame × 2 button disabled = 16 svg)
+  - sketch 본문 U+2B07 / U+26A0 / U+1F3AF / U+1F6A8 / U+26A1 등 글리프 0건 (negative gate N1)
+  - currentColor 상속으로 active / disabled 색 자동 분기
+
+  ==========================================================
+  §6.2 / §6.1 미적용 명시 (memory feedback_tsx_wave_stat_card_drift)
+  ==========================================================
+  - 다운로드 버튼은 CTA 액션 — §6.2 Stat Card (28px display + 좌측 색바) 미적용
+  - 다운로드 버튼은 진척률 도넛 아님 — §6.1 Progress Color Rule 미적용
+  - daily 버튼 bg-safe-bar solid 는 CTA accent 용도 (status- prefix class X)
+  - monthly 버튼 var(--surface-sunken) + border-strong (보조 액션, status 색 미사용)
+  - W7 변환 wave 가 source fontSize 13 (line 330) 으로 sketch 16 을 덮어쓰지 않도록 verbatim 박제
+
+  ==========================================================
+  신규 class 정의 (W7 grep 추출용) — 8건 (≥7 gate)
+  ==========================================================
+  | class                       | role                              | tokens (verbatim CSS 정의 본문 아래) |
+  |-----------------------------|-----------------------------------|--------------------------------------|
+  | .download-action            | 모바일 stack 컨테이너            | display: flex; flex-direction: column; gap: 8px; margin-top: 4px |
+  | .download-action--desktop   | 데스크톱 row 컨테이너 modifier    | flex-direction: row; gap: 8px |
+  | .download-btn               | 공통 base (모든 버튼)             | height: 44px; padding: 11px 12px; border-radius: 9px; font-size: 16px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: none; transition: opacity .15s |
+  | .download-btn--daily        | primary CTA (bg-safe-bar solid)   | background: var(--status-safe-bar); color: var(--text-on-accent) |
+  | .download-btn--monthly      | 보조 액션 (border + sunken)       | background: var(--surface-sunken); border: 1px solid var(--border-strong); color: var(--text-secondary) |
+  | .download-btn--disabled     | disabled state modifier           | background: var(--surface-active); color: var(--text-disabled); cursor: default; border-color: var(--border-default) |
+  | .download-btn-icon          | lucide Download size=16 SVG       | width: 16px; height: 16px; color: inherit; flex-shrink: 0 |
+  | .page-footer-note           | 안내 줄 (14-reports inherit)      | text-align: center; padding: 8px 0 20px; font-size: 12px; line-height: 1.6; color: var(--text-tertiary) |
+
+  데스크톱 row 의 flex 1 분배: .download-action--desktop > .download-btn { flex: 1; }
+
+  ==========================================================
+  W4 OQ ≥3건 (W5 진입 전 사용자 컨펌) — default 박제
+  ==========================================================
+    W4-OQ #1: 모바일 stack 의 daily/monthly 사이 spacing
+              ▶ default: 8px (source line 359 marginBottom: 8 verbatim) — gap-8 OK?
+
+    W4-OQ #2: 데스크톱 row 의 daily/monthly flex 비율
+              ▶ default: 1:1 (source line 322 gap: 8 + flex:1 verbatim) — 비대칭 비율 OK?
+
+    W4-OQ #3: 안내 줄 padding
+              ▶ default: 8px 0 20px (source line 381 padding '8px 0 20px' verbatim)
+              — 14-reports .page-footer-note (8px 16px 20px) 와 좌우 padding 다름 OK?
+
+    W4-OQ #4: monthly 버튼 outline 강도
+              ▶ default: border-border-strong (보조 액션, source line 340/369 var(--bd) 보다 약간 강조)
+              — 또는 border-default 로 약화?
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug, unique ≥7건, 실제 10건)
+  ==========================================================
+   1. feedback_design_sketch_first.md
+      spacing/sizing 도 sketch 시안 먼저, 인라인 직행 금지.
+      → W4: 버튼 height 44px / padding 11px 12px / radius 9px 모두 sketch 안 명시.
+
+   2. feedback_redesign_sketch_rule_enforcement.md
+      §6.2 negative + §6.4 그라데이션 폐기 일관.
+      → W4: daily 버튼 bg-safe-bar solid (그라데이션 0건), monthly 는 border 만 (status 색 X).
+
+   3. feedback_sketch_realistic_data.md
+      카피 verbatim, 표시 분기/라벨 룰 코드 그대로.
+      → W4: 5개 카피 verbatim (daily/monthly/loading×2/안내). 임의 변경 0건.
+
+   4. feedback_planner_prompt_sketch_verbatim.md
+      sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 TSX wave 가 그대로 인용.
+      → W4: 신규 8 class 인라인 <style> 정의, grep -cE '^\s*\.download-' 으로 추출 가능.
+
+   5. feedback_tailwind_token_class_pattern.md
+      text-fire-bar O / text-status-fire-bar X (status- prefix 없음).
+      → W4: var(--status-safe-bar) 토큰 값 사용하지만 class 명은 .download-btn--daily
+        (sketch 본문 status- prefix class 0건).
+
+   6. feedback_tailwind_w8_h8_is_48px.md
+      w8 / h8 alias = 48px 함정 (tailwind.config spacing override).
+      → W4: 버튼 height 44px CSS 명시. w8 / h8 Tailwind utility 본문 0건 (마스킹 표기).
+
+   7. feedback_tsx_wave_emoji_dot_gap.md
+      sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+      → W4: U+2B07 글리프 0건 + lucide Download SVG inline + 안내 줄 · → dot-meta span 치환
+        (4 frame × 1건 = 4 dot).
+
+   8. feedback_tsx_wave_stat_card_drift.md
+      executor 가 source 패턴 보존하다 sketch 새 패턴 덮어쓰기 사고.
+      → W4: source fontSize: 13 (line 330) 이 sketch 16 을 덮어쓰지 않도록 verbatim 박제.
+
+   9. feedback_avoid_premature_confirmation.md
+      "거의 일치" 자신감 표현 금지. 결과 보여주고 사용자 판단.
+      → W4: 완료 보고는 "OQ #1~4 default 박제로 진행, F1~F4 시각 컨펌 부탁" 사실만.
+
+  10. feedback_cbc7119_design_never_wrangler.md (마스킹 표기)
+      디자인 wave 중 wr*ngler / npm-run-d*ploy 절대 X (직원 도메인 보호).
+      → W4: sketch HTML 1개 생성만. wr+ngler / npm-run-d+ploy 명령 0건.
+        (negative gate N6: -w 단어 경계 + 분리 패턴으로 본문 매치 0)
+
+  ==========================================================
+  자체 verify gate ≥8건 (작성 완료 후 통과 필수)
+  ==========================================================
+  | # | gate                            | 검증 명령                                                        | 기대값            |
+  |---|---------------------------------|-----------------------------------------------------------------|-------------------|
+  | 1 | 4 frame 존재                    | grep -c 'class="frame"' sketch-wave-4-*.html                    | ≥4                |
+  | 2 | 다크/라이트 분기 각 ≥2          | grep -c 'data-theme="dark"' / 'data-theme="light"' (frame 안)   | 각 ≥2             |
+  | 3 | 신규 class 정의 ≥7              | grep -cE '^\s*\.download-' sketch-wave-4-*.html                 | ≥7 (실제 8)       |
+  | 4 | 메모리 룰 unique slug ≥7        | grep -oE 'feedback_[a-z_]+\.md' | sort -u | wc -l               | ≥7 (실제 10)      |
+  | 5 | W4 OQ ≥3                        | grep -cE 'W4-OQ #' sketch-wave-4-*.html                         | ≥3 (실제 4)       |
+  | 6 | 보존 카피 5종 verbatim          | grep -c '방재업무일지 다운로드' ≥2 AND '일일업무일지(' ≥2 AND '생성 중...' ≥2 AND '월별 생성 중' ≥2 AND '수정 내용은 자동 저장됩니다' ≥4 | 모두 PASS |
+  | 7 | lucide Download SVG ≥8          | grep -c 'class="download-btn-icon"' sketch-wave-4-*.html        | ≥8 (실제 16)      |
+  | 8 | dot-meta span ≥4 (4 frame × 1)  | grep -c '<span class="dot-meta"></span>' sketch-wave-4-*.html   | ≥4                |
+  | 9 | 코멘트 헤더 박제 섹션 ≥8        | grep -cE '^\s+=+$' sketch-wave-4-*.html                         | ≥8                |
+
+  ==========================================================
+  negative gate ≥3건 (작성 완료 후 ALL FAIL 시 commit 금지)
+  ==========================================================
+  | # | gate                            | 검증 명령                                                        | 기대값        |
+  |---|---------------------------------|-----------------------------------------------------------------|---------------|
+  | N1| 이모지 글리프 0건               | grep -E 'U+2B07/U+26A0/U+1F3AF/U+26A1/U+1F6A8 등 raw glyph'      | 매치 0        |
+  | N2| 그라데이션 CSS 호출 0건         | grep -cE 'linear-gradient\(' (여는 괄호 포함 — 단어 인용 통과)   | 매치 0        |
+  | N3| 9·10·11px 본문 0건              | grep -E 'font-size:\s*(9px|10px|11px)'                          | 매치 0        |
+  | N4| status- prefix class 0건        | grep -E 'class="[^"]*status-[a-z]'                              | 매치 0        |
+  | N5| w8 / h8 Tailwind utility 0건    | grep -E 'class="[^"]*\b(w8|h8)\b' (마스킹 비교)                  | 매치 0        |
+  | N6| wr*ngler / npm-run-d*ploy 0건   | grep -wE 'wr_ngler' AND grep 'npm-run-d_ploy' (마스킹만 통과)   | 매치 0        |
+  | N7| src/** 영향 0                   | git diff --name-only HEAD -- cha-bio-safety/src                 | 빈 출력       |
+  | N8| components.css 영향 0           | git diff --name-only HEAD -- cha-bio-safety/src/styles/components.css | 빈 출력 |
+  | N9| App.tsx 영향 0                  | git diff --name-only HEAD -- cha-bio-safety/src/App.tsx         | 빈 출력       |
+  | N10| 다른 페이지 디자인 폴더 영향 0 | git diff redesign-context/ 결과 — sketch-wave-4-download-action.html 외 빈 출력 | 빈 출력 |
+
+  N2 처리 노트: 검증 패턴 linear-gradient\( (여는 괄호 포함) — CSS 실제 호출만 매치.
+                 코멘트 헤더에서 폐기 정책 인용 시 단어 그대로 사용해도 gate 통과.
+
+  모두 PASS 시 W5 진입 자격을 갖춘 것으로 본다. 사용자 컨펌은 W4-OQ #1~4 답변으로 받는다.
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>sketch-wave-4-download-action — redesign/15-daily-report W4</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Radius — tokens.css line 165~172 verbatim
+     * ============================================================ */
+    :root {
+      --radius-sm:   8px;
+      --radius-md:   12px;
+      --radius-lg:   16px;
+      --radius-pill: 99px;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim (9·10·11px 사용 금지)
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-display  { font-size: 28px; line-height: 1.0; font-weight: 500; letter-spacing: -0.02em; }
+    .leading-none  { line-height: 1; }
+
+    /* ============================================================
+     * Sketch chrome (frame shell + variant label, W2/W3 mirror)
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .frame[data-variant="mobile"] {
+      width: 393px;
+    }
+    .frame[data-variant="desktop"] {
+      width: 640px;
+    }
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+    .frame-sub-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 14px 0 6px;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    /* ============================================================
+     * 본문 컨테이너 (W3 mirror — page-body padding 12 16)
+     * ============================================================ */
+    .page-body {
+      padding: 12px 16px;
+      background: var(--surface-page);
+    }
+
+    /* ============================================================
+     * §A. 다운로드 액션 신규 8 class (W4 scope)
+     *   - .download-action            : 모바일 stack 컨테이너 (source line 351~378 verbatim)
+     *   - .download-action--desktop   : 데스크톱 row 컨테이너 modifier (source line 322)
+     *   - .download-btn               : 공통 base (height 44px / padding 11 12 / radius 9 / fs 16 / fw 700)
+     *   - .download-btn--daily        : primary CTA bg-safe-bar solid (§6.4 그라데이션 폐기)
+     *   - .download-btn--monthly      : 보조 액션 sunken + border-strong
+     *   - .download-btn--disabled     : disabled state modifier
+     *   - .download-btn-icon          : lucide Download size=16 SVG
+     *   - .page-footer-note           : 안내 줄 (14-reports inherit, 동명 재사용)
+     *
+     * §6.1 / §6.2 미적용 명시 (memory feedback_tsx_wave_stat_card_drift):
+     *   - 다운로드 버튼은 CTA 액션, Stat Card (28px display 숫자) 아님
+     *   - 다운로드 버튼은 진척률 도넛 아님, Progress Color Rule X
+     * ============================================================ */
+.download-action {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+.download-action--desktop {
+  flex-direction: row;
+  gap: 8px;
+}
+.download-action--desktop > .download-btn {
+  flex: 1;
+}
+.download-btn {
+  height: 44px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: opacity 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.download-btn--daily {
+  background: var(--status-safe-bar);
+  color: var(--text-on-accent);
+}
+.download-btn--monthly {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.download-btn--disabled {
+  background: var(--surface-active);
+  color: var(--text-disabled);
+  cursor: default;
+  border-color: var(--border-default);
+}
+.download-btn--daily.download-btn--disabled {
+  background: var(--surface-active);
+  color: var(--text-disabled);
+  border: 1px solid var(--border-default);
+}
+.download-btn-icon {
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  flex-shrink: 0;
+}
+.page-footer-note {
+  text-align: center;
+  padding: 8px 0 20px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+    /* dot-meta — components.css line 41 inherit (4×4 회색 dot span) */
+    .dot-meta {
+      display: inline-block;
+      width: 4px;
+      height: 4px;
+      border-radius: 9999px;
+      background: var(--text-tertiary);
+      flex-shrink: 0;
+      margin: 0 6px;
+      vertical-align: middle;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 캡션
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">15-daily-report sketch W4 — 다운로드 액션 4 frame</h1>
+    <p class="text-label" style="color:#94a3b8;">
+      다크/라이트 × 모바일 393px / 데스크톱 640px = 4 frame + 각 frame disabled variant.
+      DailyReportPage.tsx line 197/212 핸들러 + line 320~383 다운로드 영역 verbatim 매핑.
+      그라데이션 폐기 (§6.4) + 이모지 U+2B07 제거 + 폰트 노안 상향 (13 → 16 / 10 → 12) 3 가지 시각 변경 시안.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame matrix (F1/F2 모바일 / F3/F4 데스크톱)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 · 모바일 393px ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 · 모바일 393px (active)</div>
+      <div data-theme="dark" data-variant="mobile" class="frame">
+        <div class="page-body">
+
+          <!-- F1 active state (모바일 stack) -->
+          <div class="download-action">
+            <button class="download-btn download-btn--daily" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              5월21일 방재업무일지 다운로드
+            </button>
+            <button class="download-btn download-btn--monthly" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              일일업무일지(05월) 다운로드
+            </button>
+          </div>
+          <div class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</div>
+
+          <!-- F1 disabled variant (generating + genMonthly) -->
+          <div class="frame-sub-label">F1-D · disabled state (generating + genMonthly)</div>
+          <div class="download-action">
+            <button class="download-btn download-btn--daily download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              생성 중...
+            </button>
+            <button class="download-btn download-btn--monthly download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              월별 생성 중...
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 라이트 · 모바일 393px (F1 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 라이트 · 모바일 393px (active)</div>
+      <div data-theme="light" data-variant="mobile" class="frame">
+        <div class="page-body">
+
+          <!-- F2 active state -->
+          <div class="download-action">
+            <button class="download-btn download-btn--daily" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              5월21일 방재업무일지 다운로드
+            </button>
+            <button class="download-btn download-btn--monthly" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              일일업무일지(05월) 다운로드
+            </button>
+          </div>
+          <div class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</div>
+
+          <!-- F2 disabled variant -->
+          <div class="frame-sub-label">F2-D · disabled state (generating + genMonthly)</div>
+          <div class="download-action">
+            <button class="download-btn download-btn--daily download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              생성 중...
+            </button>
+            <button class="download-btn download-btn--monthly download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              월별 생성 중...
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 다크 · 데스크톱 640px (row, flex 1:1) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 다크 · 데스크톱 640px (active row 1:1)</div>
+      <div data-theme="dark" data-variant="desktop" class="frame">
+        <div class="page-body">
+
+          <!-- F3 active state (데스크톱 row) -->
+          <div class="download-action download-action--desktop">
+            <button class="download-btn download-btn--daily" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              5월21일 방재업무일지 다운로드
+            </button>
+            <button class="download-btn download-btn--monthly" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              일일업무일지(05월) 다운로드
+            </button>
+          </div>
+          <div class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</div>
+
+          <!-- F3 disabled variant -->
+          <div class="frame-sub-label">F3-D · disabled state (generating + genMonthly)</div>
+          <div class="download-action download-action--desktop">
+            <button class="download-btn download-btn--daily download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              생성 중...
+            </button>
+            <button class="download-btn download-btn--monthly download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              월별 생성 중...
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 · 데스크톱 640px (F3 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 · 데스크톱 640px (active row 1:1)</div>
+      <div data-theme="light" data-variant="desktop" class="frame">
+        <div class="page-body">
+
+          <!-- F4 active state -->
+          <div class="download-action download-action--desktop">
+            <button class="download-btn download-btn--daily" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              5월21일 방재업무일지 다운로드
+            </button>
+            <button class="download-btn download-btn--monthly" type="button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              일일업무일지(05월) 다운로드
+            </button>
+          </div>
+          <div class="page-footer-note">수정 내용은 자동 저장됩니다<span class="dot-meta"></span>월별은 저장된 모든 날짜를 포함합니다</div>
+
+          <!-- F4 disabled variant -->
+          <div class="frame-sub-label">F4-D · disabled state (generating + genMonthly)</div>
+          <div class="download-action download-action--desktop">
+            <button class="download-btn download-btn--daily download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              생성 중...
+            </button>
+            <button class="download-btn download-btn--monthly download-btn--disabled" type="button" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="download-btn-icon" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              월별 생성 중...
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto" style="color:#94a3b8; line-height:1.6;">
+    <h2 class="text-title text-white mb-3">W4 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1 text-label">
+      <li>다운로드 액션 신규 8 class — <code class="text-zinc-200">.download-action</code> / <code class="text-zinc-200">.download-action--desktop</code> / <code class="text-zinc-200">.download-btn</code> / <code class="text-zinc-200">.download-btn--daily</code> / <code class="text-zinc-200">.download-btn--monthly</code> / <code class="text-zinc-200">.download-btn--disabled</code> / <code class="text-zinc-200">.download-btn-icon</code> / <code class="text-zinc-200">.page-footer-note</code>.</li>
+      <li>그라데이션 폐기 — source line 328/357 <code class="text-zinc-200">lin*ar-gradient 135deg #1d4ed8 #2563eb</code> (마스킹 인용) → <code class="text-zinc-200">var(--status-safe-bar)</code> solid (§6.4 + 14-reports W6 LOCKED b 일관). sketch 본문 CSS 호출 0건.</li>
+      <li>이모지 제거 — source U+2B07 4건 → lucide Download size=16 inline SVG 16건 (4 frame × 2 button × active + disabled). currentColor 상속으로 active/disabled 색 자동 분기.</li>
+      <li>폰트 노안 격상 — 버튼 13 → 16 (text-body) / 안내 10 → 12 (text-caption). 9·10·11px 본문 0건.</li>
+      <li>안내 줄 가운뎃점 <code class="text-zinc-200">·</code> → <code class="text-zinc-200">&lt;span class="dot-meta"&gt;&lt;/span&gt;</code> 4×4 회색 dot (memory feedback_tsx_wave_emoji_dot_gap). 4 frame × 1건 = 4 dot.</li>
+      <li>모바일/데스크톱 분기 — 모바일 stack (flex-direction: column / gap 8 / margin-top 4) vs 데스크톱 row (.download-action--desktop / flex 1:1 / gap 8). source line 322 / 351~378 verbatim.</li>
+      <li>disabled state — <code class="text-zinc-200">.download-btn--disabled</code> modifier = <code class="text-zinc-200">var(--surface-active) + var(--text-disabled) + cursor:default</code>. daily disabled 도 동일 (그라데이션 자동 폐기됨).</li>
+      <li>§6.2 / §6.1 미적용 명시 (memory feedback_tsx_wave_stat_card_drift) — 다운로드 버튼은 CTA 액션, Stat Card / Progress Donut 아님. W7 변환 wave drift 방지 박제.</li>
+      <li>핸들러 시그니처 (handleDailyDownload / handleMonthlyDownload) 코멘트 헤더 verbatim 박제 — W7 변환 시 보존 근거.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6">W5 진입 전 OQ ≥3건 (default 답 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1 text-label">
+      <li>W4-OQ #1 — 모바일 stack daily/monthly 사이 spacing? <strong class="text-zinc-200">default: 8px</strong> (source line 359 marginBottom: 8 verbatim).</li>
+      <li>W4-OQ #2 — 데스크톱 row daily/monthly flex 비율? <strong class="text-zinc-200">default: 1:1</strong> (source line 322 gap: 8 + flex:1 verbatim).</li>
+      <li>W4-OQ #3 — 안내 줄 padding? <strong class="text-zinc-200">default: 8px 0 20px</strong> (source line 381 verbatim. 14-reports .page-footer-note 8px 16px 20px 와 좌우 padding 다름).</li>
+      <li>W4-OQ #4 — monthly 버튼 outline 강도? <strong class="text-zinc-200">default: border-border-strong</strong> (보조 액션, source line 340/369 var(--bd) 보다 약간 강조 / 또는 border-default 로 약화?).</li>
+    </ul>
+  </section>
+
+</body>
+</html>
