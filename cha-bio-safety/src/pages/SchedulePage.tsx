@@ -475,7 +475,7 @@ export default function SchedulePage() {
         {isDesktop && (
           <button
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-sm bg-accent text-text-on-accent text-body-sm font-bold cursor-pointer"
+            className="flex items-center justify-center gap-1.5 min-w-[140px] px-3 py-1.5 rounded-sm bg-accent text-text-on-accent text-body-sm font-bold cursor-pointer"
           >
             <Plus size={14} />
             일정 추가
@@ -572,7 +572,7 @@ export default function SchedulePage() {
           <button
             onClick={handlePlanDownload}
             disabled={planLoading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-body-sm font-bold ${
+            className={`flex items-center justify-center gap-1.5 min-w-[140px] px-3 py-1.5 rounded-sm text-body-sm font-bold ${
               planLoading
                 ? 'bg-surface-sunken text-text-tertiary cursor-default'
                 : 'bg-safe-bar text-text-on-accent cursor-pointer'
