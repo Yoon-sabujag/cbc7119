@@ -19,18 +19,32 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
   const [existingKeys, setExistingKeys] = useState<string[]>(finding.photoKeys ?? [])
   const photos = useMultiPhotoUpload()
 
+  const isResolved = finding.status === 'resolved'
+  const [resolutionMemo, setResolutionMemo] = useState(finding.resolutionMemo ?? '')
+  const [existingResolutionKeys, setExistingResolutionKeys] = useState<string[]>(finding.resolutionPhotoKeys ?? [])
+  const resolutionPhotos = useMultiPhotoUpload()
+
   const totalCount = existingKeys.length + photos.slots.length
   const canAddMore = totalCount < 5
+  const resolutionTotalCount = existingResolutionKeys.length + resolutionPhotos.slots.length
+  const canAddMoreResolution = resolutionTotalCount < 5
 
   const mutation = useMutation({
     mutationFn: async () => {
       const newKeys = await photos.uploadAll()
       const merged = [...existingKeys, ...newKeys].slice(0, 5)
-      return legalApi.updateFinding(scheduleItemId, finding.id, {
+      const body: Record<string, any> = {
         description: description.trim(),
         location: location.trim() || null,
         photo_keys: merged,
-      })
+      }
+      if (isResolved) {
+        const newResolutionKeys = await resolutionPhotos.uploadAll()
+        const mergedResolution = [...existingResolutionKeys, ...newResolutionKeys].slice(0, 5)
+        body.resolution_memo = resolutionMemo.trim() || null
+        body.resolution_photo_keys = mergedResolution
+      }
+      return legalApi.updateFinding(scheduleItemId, finding.id, body)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['legal-findings', scheduleItemId] })
@@ -39,6 +53,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
       queryClient.invalidateQueries({ queryKey: ['legal-rounds'] })
       toast.success('지적사항이 수정되었습니다.')
       photos.reset()
+      resolutionPhotos.reset()
       onClose()
     },
     onError: (err: any) => {
@@ -46,7 +61,7 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
     },
   })
 
-  const isSubmitting = mutation.isPending || photos.isUploading
+  const isSubmitting = mutation.isPending || photos.isUploading || resolutionPhotos.isUploading
 
   const handleSubmit = () => {
     if (!description.trim()) {
@@ -58,6 +73,10 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
 
   const removeExisting = (key: string) => {
     setExistingKeys(prev => prev.filter(k => k !== key))
+  }
+
+  const removeExistingResolution = (key: string) => {
+    setExistingResolutionKeys(prev => prev.filter(k => k !== key))
   }
 
   const isDesktopSheet = typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
@@ -142,6 +161,58 @@ export function FindingEditModal({ scheduleItemId, finding, onClose }: Props) {
             )}
           </div>
         </div>
+
+        {isResolved && (
+          <>
+            <div style={{ height: 1, background: 'var(--bd)', margin: '4px 0' }} />
+
+            <div>
+              <div style={lblStyle}>조치 내용</div>
+              <textarea
+                value={resolutionMemo}
+                onChange={e => setResolutionMemo(e.target.value)}
+                placeholder="조치 내용을 입력하세요"
+                rows={3}
+                style={{ ...inputStyle, resize: 'vertical' }}
+              />
+            </div>
+
+            <div>
+              <div style={lblStyle}>조치 사진 (최대 5장 · 현재 {resolutionTotalCount}장)</div>
+              <input ref={resolutionPhotos.cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+              <input ref={resolutionPhotos.albumRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={resolutionPhotos.handleFiles} />
+              <PhotoSourceModal open={resolutionPhotos.showPicker} onClose={resolutionPhotos.closePicker} onCamera={resolutionPhotos.pickCamera} onAlbum={resolutionPhotos.pickAlbum} />
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {existingResolutionKeys.map((key) => (
+                  <div key={key} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img src={'/api/uploads/' + key} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                    <button
+                      aria-label="사진 제거"
+                      onClick={() => removeExistingResolution(key)}
+                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                    >✕</button>
+                  </div>
+                ))}
+                {resolutionPhotos.slots.map((slot, i) => (
+                  <div key={'newr-' + i} style={{ position: 'relative', flexShrink: 0 }}>
+                    <img src={slot.preview} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--bd)', display: 'block' }} />
+                    <button
+                      aria-label="사진 제거"
+                      onClick={() => resolutionPhotos.removeSlot(i)}
+                      style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--danger)', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                    >✕</button>
+                    {slot.uploading && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#fff' }}>업로드 중</div>}
+                  </div>
+                ))}
+                {canAddMoreResolution && (
+                  <button onClick={resolutionPhotos.openPicker} style={{ width: 72, height: 72, borderRadius: 10, background: 'var(--bg3)', border: '1px dashed var(--bd2)', color: 'var(--t3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}>
+                    <span style={{ fontSize: 22 }}>📷</span>사진 첨부
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div style={{ padding: isDesktopSheet ? '8px 24px 24px' : '4px 16px 32px', display: 'flex', flexDirection: 'column', gap: 8 }}>
