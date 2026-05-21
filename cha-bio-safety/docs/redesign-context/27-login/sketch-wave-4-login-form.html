@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-login-form.html — redesign/27-login W4
+  작성: 2026-05-21 / quick 260521-f01
+  범위: 로그인 폼 (영역 4, LoginPage.tsx line 117~165) + footer 안내문 (영역 5, line 167~170)
+        — 사번 input + 비밀번호 input + show/hide 토글 + 로그인 버튼 + footer 안내
+        — OQ #1 LOCKED: 로그인 버튼 bg-safe-bar solid (그라데이션 완전 폐기)
+        — OQ #3 LOCKED: label 11 -> 13 text-label / footer 11 -> 12 text-caption
+        — OQ #4 LOCKED: show/hide 텍스트 표시/숨김 + footer ☎ 유지
+  out of scope: 모바일/데스크톱 shell (W2 완료) / 직원 카드 그리드 (W3 완료) / TSX 변환 (W5 책임) /
+                LoginPage.tsx 코드 수정 / 다른 페이지
+  참조: wave-1-index.md §3 verbatim, LoginPage.tsx line 117~170 verbatim,
+        14-reports/sketch-wave-4-desktop-toolbar 패턴 mirror (단 본 wave 는 폼 전용)
+
+  W1 LOCKED 5건 적용 매트릭스:
+    OQ #1 LOCKED — 로그인 버튼 bg-safe-bar solid + text-text-on-accent (본 wave 적용 = O, 핵심)
+                  그라데이션 linear&#8209;gradient(135deg,#1d4ed8,#2563eb) 완전 폐기
+                  disabled 시 = bg-surface-sunken + text-text-tertiary
+    OQ #2 LOCKED — CARD_COLORS (W3 완료, W4 미해당)
+    OQ #3 LOCKED — 폰트 격상: 사번/비밀번호 label 11 -> 13 text-label font-bold leading-none / footer 11 -> 12 text-caption leading-relaxed (본 wave 적용 = O)
+    OQ #4 LOCKED — show/hide 텍스트 표시/숨김 유지 (Lucide Eye/EyeOff X) + footer ☎ U+260E 유지 (이모지 제거 룰 예외) (본 wave 적용 = O)
+    OQ #5 LOCKED — 인라인 px (로고/img/initial, W2/W3 완료, W4 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 W4 가 W5 진입 전 로그인 폼 + footer 컨펌 시안 (마지막 sketch wave).
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> placeholder "사번 10자리" / "비밀번호 입력" / footer "초기 비밀번호: 사번 뒤 4자리" /
+         "문의: 방재팀 내선 ☎ 031-881-7119" 카피 verbatim.
+         show/hide 토글 카피 "표시"/"숨김" 그대로 (OQ #4 LOCKED).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 로그인 버튼 className "bg-safe-bar text-text-on-accent" + disabled 시
+          "bg-surface-sunken text-text-tertiary" 패턴 W5 checklist 변환표 안에 verbatim.
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 사용 (status- prefix 없는 짧은 alias).
+       -> 로그인 버튼 = bg-safe-bar (prefix 0건). status- class 사용 0.
+
+    5. feedback_text_caption_leading_none.md
+       작은 컨테이너 안 text-caption 의 lh:1.5 시각 패딩.
+       -> 사번/비밀번호 label 영역 (marginBottom:6 작은 컨테이너) = text-label font-bold leading-none.
+         footer 안내문 (2줄 wrap 시 가독 의도) = text-caption leading-relaxed (lh:1.6 의도).
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> ☎ (U+260E) 는 OQ #4 LOCKED 예외 (콘텐츠 글리프, 전화 affordance) — 유지.
+          다른 모든 이모지 0건.
+
+    7. feedback_avoid_premature_confirmation.md
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       -> 본 W4 결과 사용자 검수 후 W5 checklist 진입. self-approval X.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/27-login — W4 로그인 폼 + footer 안내문 (bg-safe-bar solid + 표시/숨김 + ☎)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W2/W3 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* 라이트 모드 — tokens.css line 74~119 verbatim */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* Typography — typography.css verbatim */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.6; }
+
+    /* Sketch chrome */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop-card {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 520px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      padding: 32px 20px;
+    }
+
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * 폼 컨테이너 — LoginPage.tsx line 118 verbatim
+     * bg-surface-raised + border + rounded-lg + padding 16
+     * ============================================================ */
+    .form-container {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    /* form 자체 (line 119): display:flex; flex-direction:column; gap:12 */
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* input 인라인 매핑 (source line 74~79):
+       width:100% / padding:12px 14px / borderRadius:12 / border 1px var(--bd2) / bg var(--bg3) / color var(--t1) / fontSize:14 / outline:none / transition border-color .15s */
+    .login-input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+    }
+    .login-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* show/hide 토글 (line 143~149): position absolute right:12 top:50% transform translateY(-50%) fontSize 13 */
+    .pw-toggle-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 0;
+    }
+
+    /* 로그인 버튼 (OQ #1 LOCKED): bg-safe-bar solid + text-text-on-accent
+       그라데이션 폐기 — source line 157 의 linear&#8209;gradient(135deg,#1d4ed8,#2563eb) 폐지
+       disabled 시 = bg-surface-sunken + text-text-tertiary */
+    .login-btn {
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: var(--status-safe-bar);
+      color: var(--text-on-accent);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .13s;
+      margin-top: 4px;
+      font-family: inherit;
+    }
+    .login-btn--disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      cursor: not-allowed;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">27-login sketch W4 — 로그인 폼 + footer 안내문 (bg-safe-bar solid + 표시/숨김 + ☎)</h1>
+    <p class="text-label text-zinc-400">
+      LoginPage.tsx line 117~170 verbatim 매핑. 5 frame: 모바일 다크 default empty / 모바일 다크 입력 중 + show pw / 모바일 다크 loading / 모바일 라이트 default / 데스크톱 다크 카드 안.
+      W1 LOCKED 5건 중 OQ #1 (그라데이션 폐기 -> bg-safe-bar solid) + OQ #3 (label 13 / footer 12) + OQ #4 (표시/숨김 + ☎) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       5 frame side-by-side (모바일 + 데스크톱)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         Frame 1 / 다크 default empty
+         사번 empty + 비밀번호 empty + 토글 "표시" + 로그인 default
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 default empty (사번/비밀번호 empty, 토글 = 표시)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- 모바일 헤더 (W2 적용 완료, chrome 유지) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <!-- 카드 그리드 placeholder (W3 적용 완료, chrome 유지) -->
+          <div class="bg-surface-raised border border-border-default" style="border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.5;">
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba) placeholder
+          </div>
+
+          <!-- 폼 컨테이너 -->
+          <div class="bg-surface-raised border border-border-default form-container">
+            <form class="form-stack">
+
+              <!-- 사번 입력 -->
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">사번</label>
+                <input type="text" inputmode="numeric" placeholder="사번 10자리" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;" />
+              </div>
+
+              <!-- 비밀번호 입력 + show/hide 토글 -->
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">비밀번호</label>
+                <div style="position:relative;">
+                  <input type="password" placeholder="비밀번호 입력" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;padding-right:44px;" />
+                  <button type="button" class="pw-toggle-btn text-text-tertiary">표시</button>
+                </div>
+              </div>
+
+              <!-- 로그인 버튼 default (OQ #1 LOCKED: bg-safe-bar solid + text-text-on-accent) -->
+              <button type="submit" class="login-btn bg-safe-bar text-text-on-accent font-bold">
+                로그인
+              </button>
+
+            </form>
+          </div>
+
+          <!-- footer 안내문 (OQ #3 LOCKED: 11 -> 12 text-caption + leading-relaxed)
+               (OQ #4 LOCKED: ☎ U+260E 유지) -->
+          <p class="text-caption leading-relaxed text-text-tertiary" style="text-align:center;margin-top:20px;">
+            초기 비밀번호: 사번 뒤 4자리<br/>
+            문의: 방재팀 내선 ☎ 031-881-7119
+          </p>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 2 / 다크 입력 중 + show pw 활성
+         사번 "2022051052" + 비밀번호 "********" (type=text 보임) + 토글 "숨김"
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 입력 중 + show pw (사번/비밀번호 입력, 토글 = 숨김)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <div class="bg-surface-raised border border-border-default" style="border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.5;">
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba) placeholder
+          </div>
+
+          <div class="bg-surface-raised border border-border-default form-container">
+            <form class="form-stack">
+
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">사번</label>
+                <input type="text" inputmode="numeric" placeholder="사번 10자리" value="2022051052" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;" />
+              </div>
+
+              <!-- show pw 활성: type=text + 토글 "숨김" (OQ #4 LOCKED) -->
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">비밀번호</label>
+                <div style="position:relative;">
+                  <input type="text" placeholder="비밀번호 입력" value="passwd00" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;padding-right:44px;" />
+                  <button type="button" class="pw-toggle-btn text-text-tertiary">숨김</button>
+                </div>
+              </div>
+
+              <button type="submit" class="login-btn bg-safe-bar text-text-on-accent font-bold">
+                로그인
+              </button>
+
+            </form>
+          </div>
+
+          <p class="text-caption leading-relaxed text-text-tertiary" style="text-align:center;margin-top:20px;">
+            초기 비밀번호: 사번 뒤 4자리<br/>
+            문의: 방재팀 내선 ☎ 031-881-7119
+          </p>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 3 / 다크 loading (disabled, "로그인 중...")
+         사번/비밀번호 입력됨 + 로그인 버튼 disabled (bg-surface-sunken)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 loading (로그인 중..., disabled)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <div class="bg-surface-raised border border-border-default" style="border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.5;">
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba) placeholder
+          </div>
+
+          <div class="bg-surface-raised border border-border-default form-container">
+            <form class="form-stack">
+
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">사번</label>
+                <input type="text" inputmode="numeric" placeholder="사번 10자리" value="2022051052" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;" />
+              </div>
+
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">비밀번호</label>
+                <div style="position:relative;">
+                  <input type="password" placeholder="비밀번호 입력" value="********" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;padding-right:44px;" />
+                  <button type="button" class="pw-toggle-btn text-text-tertiary">표시</button>
+                </div>
+              </div>
+
+              <!-- 로그인 버튼 disabled: bg-surface-sunken + text-text-tertiary (OQ #1 LOCKED disabled) -->
+              <button type="submit" disabled class="login-btn login-btn--disabled bg-surface-sunken text-text-tertiary font-bold">
+                로그인 중...
+              </button>
+
+            </form>
+          </div>
+
+          <p class="text-caption leading-relaxed text-text-tertiary" style="text-align:center;margin-top:20px;">
+            초기 비밀번호: 사번 뒤 4자리<br/>
+            문의: 방재팀 내선 ☎ 031-881-7119
+          </p>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 4 / 라이트 default
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 default (default empty)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <div class="bg-surface-raised border border-border-default" style="border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.5;">
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba) placeholder
+          </div>
+
+          <div class="bg-surface-raised border border-border-default form-container">
+            <form class="form-stack">
+
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">사번</label>
+                <input type="text" inputmode="numeric" placeholder="사번 10자리" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;" />
+              </div>
+
+              <div>
+                <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">비밀번호</label>
+                <div style="position:relative;">
+                  <input type="password" placeholder="비밀번호 입력" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;padding-right:44px;" />
+                  <button type="button" class="pw-toggle-btn text-text-tertiary">표시</button>
+                </div>
+              </div>
+
+              <button type="submit" class="login-btn bg-safe-bar text-text-on-accent font-bold">
+                로그인
+              </button>
+
+            </form>
+          </div>
+
+          <p class="text-caption leading-relaxed text-text-tertiary" style="text-align:center;margin-top:20px;">
+            초기 비밀번호: 사번 뒤 4자리<br/>
+            문의: 방재팀 내선 ☎ 031-881-7119
+          </p>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 5 / 다크 데스크톱 (420px centered 카드 안)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 5 / 다크 데스크톱 (420px centered 카드 안, default)</div>
+      <div data-theme="dark" class="frame-shell-desktop-card">
+        <div class="bg-surface-raised border border-border-default" style="max-width:420px;width:100%;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;margin:0 auto;">
+          <!-- 카드 헤더 -->
+          <div class="bg-surface-raised border-b border-border-default" style="padding:24px 24px 20px;">
+            <div class="flex items-center" style="gap:12px;">
+              <div class="w-[38px] h-[38px] rounded-[11px]"
+                   style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+              </div>
+              <div>
+                <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+                <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="padding:16px 16px 24px;">
+
+            <!-- 직원 카드 그리드 placeholder (W3 적용 완료) -->
+            <div class="bg-surface-raised border border-border-default" style="border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;opacity:0.5;">
+              W3 직원 카드 그리드 (CARD_COLORS 6 rgba) placeholder
+            </div>
+
+            <!-- 폼 컨테이너 -->
+            <div class="bg-surface-raised border border-border-default form-container">
+              <form class="form-stack">
+
+                <div>
+                  <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">사번</label>
+                  <input type="text" inputmode="numeric" placeholder="사번 10자리" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;" />
+                </div>
+
+                <div>
+                  <label class="text-label font-bold leading-none text-text-secondary" style="display:block;margin-bottom:6px;">비밀번호</label>
+                  <div style="position:relative;">
+                    <input type="password" placeholder="비밀번호 입력" class="login-input bg-surface-sunken border border-border-strong text-text-primary" style="border-radius:12px;padding-right:44px;" />
+                    <button type="button" class="pw-toggle-btn text-text-tertiary">표시</button>
+                  </div>
+                </div>
+
+                <button type="submit" class="login-btn bg-safe-bar text-text-on-accent font-bold">
+                  로그인
+                </button>
+
+              </form>
+            </div>
+
+            <p class="text-caption leading-relaxed text-text-tertiary" style="text-align:center;margin-top:20px;">
+              초기 비밀번호: 사번 뒤 4자리<br/>
+              문의: 방재팀 내선 ☎ 031-881-7119
+            </p>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W4 검토 포인트 (마지막 sketch wave)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">로그인 버튼 (OQ #1 LOCKED, 본 wave 의 핵심)</strong>:
+        default = <code class="text-zinc-200">bg-safe-bar text-text-on-accent font-bold</code> (solid).
+        disabled (loading) = <code class="text-zinc-200">bg-surface-sunken text-text-tertiary</code>.
+        source line 157 의 그라데이션 (linear&#8209;gradient(135deg,#1d4ed8,#2563eb)) 완전 폐기.
+        Frame 1, 2, 4, 5 = default 4건. Frame 3 = disabled 1건.</li>
+      <li><strong class="text-zinc-200">사번/비밀번호 label (OQ #3 LOCKED)</strong>:
+        fontSize 11 -&gt; <code class="text-zinc-200">text-label font-bold leading-none text-text-secondary</code> (13px).
+        marginBottom:6 (작은 컨테이너) 안에서 leading-none 명시 — memory feedback_text_caption_leading_none.
+        5 frame x 2 label 각 = 10건.</li>
+      <li><strong class="text-zinc-200">show/hide 토글 카피 (OQ #4 LOCKED)</strong>:
+        "표시" (showPw=false) / "숨김" (showPw=true) 텍스트 그대로. Lucide Eye/EyeOff 도입 X.
+        Frame 2 = "숨김" 활성. 나머지 4 frame = "표시" default.</li>
+      <li><strong class="text-zinc-200">footer 안내문 (OQ #3 + OQ #4 LOCKED)</strong>:
+        fontSize 11 -&gt; <code class="text-zinc-200">text-caption leading-relaxed text-text-tertiary</code> (12px lh:1.6).
+        sub 의 leading-none 과 의도적 차별화 (footer 는 2줄 wrap 시 가독 의도).
+        "초기 비밀번호: 사번 뒤 4자리" + br + "문의: 방재팀 내선 ☎ 031-881-7119" verbatim.
+        ☎ (U+260E) 는 OQ #4 LOCKED 예외 — 콘텐츠 글리프, 이모지 제거 룰 적용 안 함.
+        5 frame x 1 footer = 5건.</li>
+      <li><strong class="text-zinc-200">input class 매핑 (line 74~79 verbatim)</strong>:
+        <code class="text-zinc-200">bg-surface-sunken border border-border-strong text-text-primary</code>
+        + 인라인 <code class="text-zinc-200">borderRadius:12px / padding:12px 14px / fontSize:14 / outline:none / transition:border-color .15s</code>.
+        비밀번호 input 은 <code class="text-zinc-200">paddingRight:44px</code> 추가 (토글 공간).</li>
+      <li>폼 컨테이너 (line 118 verbatim): <code class="text-zinc-200">bg-surface-raised border border-border-default</code> + 인라인 <code class="text-zinc-200">borderRadius:16 / padding:16</code> (radius:16 -&gt; rounded-lg 토큰화 가능, 인라인 명시도 OK).</li>
+      <li>form 자체 (line 119): <code class="text-zinc-200">display:flex; flex-direction:column; gap:12</code> 인라인.</li>
+      <li>비밀번호 wrapper (line 133): <code class="text-zinc-200">position:relative</code> — 토글 absolute 기준.</li>
+      <li>Frame 2 의 type=text 시각화 = showPw=true 상태. 토글 카피 "숨김" (현재 보이는 비밀번호를 숨기는 액션 표기).</li>
+      <li>Frame 3 의 disabled 카피 "로그인 중..." (source line 162 verbatim).</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">(text&#124;bg&#124;border)&#8209;status&#8209;*</code> class prefix 0 hit / fontSize 9&#8209;11px 0 hit. ☎ U+260E 는 OQ #4 LOCKED 예외 인정.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (로그인 버튼 그라데이션 폐기): 본 wave 적용 = O, 핵심. bg-safe-bar solid + disabled = bg-surface-sunken.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (CARD_COLORS 6 rgba): W3 완료, 본 wave 미해당 (카드 그리드 placeholder 만 표기).</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. label 11-&gt;13 text-label + footer 11-&gt;12 text-caption.</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (show/hide + ☎ 유지): 본 wave 적용 = O. "표시"/"숨김" 텍스트 + ☎ U+260E 글리프 유지.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (인라인 px): W2/W3 완료, 본 wave 미해당 (로고 헤더 placeholder 안 적용 chrome 유지).</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W5 진입 직전 점검 (TSX 변환 wave)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 W4 산출 sketch + W2 + W3 sketch 합쳐 W5 checklist 가 TSX 변환 매핑 표 작성.</li>
+      <li>비즈 로직 0 diff — handleSubmit / setShowPw / setStaffId / setPassword / setSelected / setLoading / fetch staff-list / authApi.login / navigate / pwRef.focus 80ms / Enter key submit 모두 그대로.</li>
+      <li>OQ 5건 LOCKED 결정 모두 W5 checklist §3 변환 매핑 표 + §4 OQ LOCKED 인용 + §5 negative gate + §6 positive gate 안 verbatim 박제.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
