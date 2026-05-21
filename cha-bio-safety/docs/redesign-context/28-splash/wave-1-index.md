@@ -505,20 +505,41 @@ line 265: <Route path="/" element={<SplashScreen />} />   // 인증 가드 (Auth
 
 본 wave 산출 후 W2 sketch 진입 전 사용자에게 컨펌 받아야 할 항목 5건. 각 OQ 아래 "default 답" 1줄 — 사용자가 별 의견 없으면 이 답으로 진행 (reasonable call). 단, "approved" 받기 전까지 W2 진입 금지 (memory `feedback_avoid_premature_confirmation`).
 
+> **사용자 컨펌 결과 (2026-05-22):** OQ 5개 전부 default 로 진행. W2~W5 sketch + TSX 변환은 아래 LOCKED 결정 그대로 반영.
+
 - **OQ #1**: InstallPrompt 설치 버튼 `linear-gradient(135deg, #2563eb, #0ea5e9)` (line 94) → `bg-safe-bar` solid 통일 OK?
   - **default 답: OK** — 27-login W1 OQ #1 + 14-reports W1 OQ #1/#3 + 16-workshift W1 OQ #1 + 17-annual-plan W1 OQ #1 default OK 일관 + design-system §6.4 CTA solid 룰 (그라데이션 시작 색 #2563eb 이 §6.4 의 "유일한 그라디언트 2종"의 #1d4ed8 와 다르므로 폐기 후보로 명확). color = `text-text-on-accent` (#fff 유지). InstallPrompt 카드 안에서 설치 버튼이 핵심 CTA — solid `bg-safe-bar` (녹색 "이 작업 실행" 정상 CTA 의미) 적합.
+  - **LOCKED (2026-05-22):** InstallPrompt 설치 버튼 = `bg-safe-bar text-text-on-accent` solid. 그라데이션 완전 폐기. W3 sketch + TSX 변환 양쪽 동일.
 
 - **OQ #2**: SplashScreen 진행 바 fill `linear-gradient(90deg,#3b82f6,#0ea5e9)` (line 66) → `bg-accent` solid 치환 vs 그라데이션 유지?
   - **default 답: solid `bg-accent` 치환 OK** — 진행 바는 시각적 진행 표현이 핵심 (width 변화로 진행 표시) → 색상 그라데이션 없어도 시각 메시지 손상 없음. solid 통일 시 design-system 일관성 + 토큰 정의 효율. 그라데이션 유지 시 인라인만 가능 (토큰 비용 vs 단일 사용처 trade-off, 16-workshift W1 OQ #4 SHIFT_COLOR hex+22 인라인 유지 패턴과 일관 — 다만 진행 바는 단일 element 라 토큰화 default 우세). 진행 바 트랙 `rgba(255,255,255,0.07)` (line 65) 는 인라인 유지 (alpha 정밀도 + 단일 사용처).
+  - **LOCKED (2026-05-22):** 진행 바 fill = `bg-accent` solid / 트랙 = 인라인 `bg-[rgba(255,255,255,0.07)]` 유지. W2 sketch + TSX 변환 양쪽 동일.
 
 - **OQ #3**: 폰트 격상 매핑 — 현재 fontSize:**10** (SplashScreen 하단 버전 line 73) / **11** (SplashScreen 진행 텍스트 line 68, InstallPrompt Step 서브 line 123/130/137/163/180/197 다수) / **12** (SplashScreen 부제 line 59, InstallPrompt 부제 line 84, 노란 경고 line 115, 나중에 버튼 line 106) / **13** (Step 타이틀 line 122/129/136/160/177/194, 숫자 원 line 120 등, 확인 버튼 line 143/209) / **15** (InstallPrompt 설치 버튼 line 96) / **16** (특수 글리프 ⋮ ⎋ inline span line 122/164) / **18** (InstallPrompt h2 line 81) / **22** (SplashScreen h1 line 58 "CBC 방재"). §1.1 9·10·11px 위반. 어디까지 격상?
   - **default 답: 부분 절충** — fontSize:10 (버전) → `text-caption leading-none` (12 격상, §1.1 위반 강도 최대 강제 상향) / fontSize:11 (진행 텍스트 + Step 서브 + 다른 위반) → `text-caption leading-none` (12 + leading-none, §1.1 위반 일괄 상향, 마이그레이션 §4.2) / fontSize:12 (부제 + 노란 경고 + 나중에 버튼) → `text-caption leading-none` 유지 (dense 영역 + lineHeight:1.5 명시는 leading-relaxed 유지 — InstallPrompt 부제만 `<br/>` 2줄 부제라 leading-relaxed 유지) / fontSize:13 (Step 타이틀 + 숫자 원 + 확인 버튼) → `text-label leading-none` 유지 / fontSize:15 (설치 버튼) → `text-body font-bold` (16 격상 CTA 강조 + 노안 친화 강화) / fontSize:16 (특수 글리프 ⋮ ⎋ inline) → 콘텐츠 글리프 유지 / fontSize:18 (h2) → `text-title font-extrabold` (fontWeight 800) / fontSize:22 (h1 splash) → `text-heading font-black tracking-tight` (fontWeight 900 + letterSpacing -.02em). 17-annual-plan W1 OQ #3 부분 절충 패턴 mirror.
+  - **LOCKED (2026-05-22):** 폰트 격상 매핑 verbatim (sketch + TSX):
+    - 10 (버전) → `text-caption leading-none`
+    - 11 (진행 텍스트 + Step 서브) → `text-caption leading-none`
+    - 12 (부제·노란 경고·나중에) → `text-caption` 유지 (InstallPrompt 부제 2줄은 `leading-relaxed`)
+    - 13 (Step 타이틀·숫자 원·확인 버튼) → `text-label leading-none`
+    - 15 (설치 버튼) → `text-body font-bold` (16 격상)
+    - 16 (특수 글리프) → 인라인 유지
+    - 18 (h2) → `text-title font-extrabold`
+    - 22 (h1 splash) → `text-heading font-black tracking-tight`
 
 - **OQ #4**: 외곽 hex 인라인 — SplashScreen `#161b22` (page bg, line 39) / InstallPrompt 카드 `#1c2128` (line 65) / 텍스트 hex `#e6edf3` (primary, line 58/81/122/129/136/160/177/194) + `#8b949e` (secondary, line 84/123/130/137/163/180/197) + `#6e7681` (tertiary, line 59/68/106) + `#3d444d` (disabled, line 73) — 디자인 토큰 (`bg-surface-page` / `bg-surface-raised` / `text-text-primary` / `-secondary` / `-tertiary` / `-disabled`) 치환 OK? 노란 경고 박스 3 색 (`#f59e0b` + `rgba(245,158,11,0.1)` + `rgba(245,158,11,0.25)`, line 115) 도 `text-warning + bg-warning-bg + border-warning/25` 알리아스 토큰화 OK?
   - **default 답: 토큰 치환 OK** — status- prefix 없음 룰 (memory `feedback_tailwind_token_class_pattern`). 인라인 hex/rgba 다수 (page bg 1, card bg 1, text 4종, 노란 경고 박스 3 색, 숫자 원 2 색, 진행 바 트랙 alpha 1, 카드 border alpha 1, 오버레이 alpha 1, 카드 boxShadow 1) 중 토큰 대응 명확한 ~10개 치환 (page/card bg + text 4종 + 노란 경고 3색 + 숫자 원 2색), 인라인 잔존 4개 (진행 바 트랙 `rgba(255,255,255,0.07)` + 카드 border `rgba(59,130,246,0.3)` + 오버레이 `rgba(0,0,0,0.85)` + 카드 boxShadow `0 8px 40px rgba(0,0,0,0.5)`) 는 단일 사용처 + alpha 정밀도 + design-system 토큰과 차이 (오버레이 0.85 vs --surface-overlay 0.6 / 카드 boxShadow 룰 §6.7 위반 후보) 라 인라인 유지. 17-annual-plan W1 OQ #4 일관 패턴.
+  - **LOCKED (2026-05-22):** 토큰 치환 verbatim:
+    - SplashScreen page bg #161b22 → `bg-surface-page`
+    - InstallPrompt 카드 bg #1c2128 → `bg-surface-raised`
+    - text #e6edf3 → `text-text-primary` / #8b949e → `text-text-secondary` / #6e7681 → `text-text-tertiary` / #3d444d → `text-text-disabled`
+    - 노란 경고 박스 → `text-warning bg-warning-bg border-warning/25` (status- prefix 없음)
+    - 숫자 원 2색 → `bg-accent/15 text-accent` (rgba(59,130,246,0.15) + #3b82f6 → accent 토큰)
+    - **인라인 유지 4건**: 진행 바 트랙 `rgba(255,255,255,0.07)` / 카드 border `rgba(59,130,246,0.3)` / 오버레이 `rgba(0,0,0,0.85)` / 카드 boxShadow `0 8px 40px rgba(0,0,0,0.5)`
 
 - **OQ #5**: 특수 글리프 ⋮ (Android 가이드 line 122, U+22EE) / ⎋ (iOS 가이드 line 164, U+238B) — Lucide `MoreVertical` / `Share` 교체 vs 콘텐츠 글리프 유지?
   - **default 답: 콘텐츠 글리프 유지** — 27-login OQ #4 ☎ 와 동일 룰 (전화번호 표기 콘텐츠). 사용자가 실제 Android Chrome 우상단 메뉴 / iOS Safari 하단 공유 버튼 UI 에서 볼 글리프와 1:1 매칭 → 교체 시 인지 부조화 (Lucide MoreVertical 은 추상화된 점 3개 — 실제 OS UI 와 시각 차이 가능). fontSize:16 inline span 형태 유지 (line 122 verticalAlign 무 / line 164 verticalAlign:'middle' — line 164 의 verticalAlign:'middle' 은 Safari 하단 공유 버튼 글리프가 행 가운데 정렬되도록 한 의도된 차이, 1 byte 변경 금지). 단 W5 verify gate 에서 emoji-0 grep 검사 시 ⋮ ⎋ 는 예외 처리 (U+22EE / U+238B anchor — emoji range 가 아닌 Vertical Ellipsis / Broken Circle With Northwest Arrow). memory `feedback_tsx_wave_emoji_dot_gap` 의 예외 결정 룰 inline 박제 (§5 룰 8).
+  - **LOCKED (2026-05-22):** ⋮ U+22EE (Android 가이드) + ⎋ U+238B (iOS 가이드) 콘텐츠 글리프 유지. Lucide 교체 X. inline span `<span style={{ fontSize: 16 }}>` + iOS 글리프만 `verticalAlign: 'middle'` 1 byte 변경 0. W4 sketch + TSX 변환 양쪽 동일. W5 verify gate 의 emoji negative grep 은 ⋮ ⎋ 만 예외 anchor 추가.
 
 ---
 
