@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-install-main.html — redesign/28-splash W3
+  작성: 2026-05-22 / quick 260522-2q6
+  범위: InstallPrompt.tsx 메인 view (line 57~111, !showIOSGuide && !showAndroidGuide 분기) 시각화
+        오버레이 + 카드 + 아이콘 + 제목 + 부제 + 설치 버튼 + 나중에 할게요
+        3 frame (다크 hasPrompt true / 다크 hasPrompt false / 라이트 hasPrompt true)
+  out of scope: SplashScreen 전체 (W2) / InstallPrompt Android 가이드 view (W4 frame 1/3) / InstallPrompt iOS 가이드 view (W4 frame 2)
+                / TSX 변환 (W5 책임) / InstallPrompt.tsx 코드 수정 / pwaInstall.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 17-annual-plan/sketch-wave-3-preview-calibration.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — InstallPrompt 설치 버튼 bg-safe-bar solid + 그라데이션 완전 폐기 (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — SplashScreen 진행 바 (W2 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 폰트 격상 (카드 제목 18 -> text-title font-extrabold / 부제 12 text-caption leading-relaxed 유지
+                                / 설치 버튼 15 -> 16 text-body font-bold 격상 / 나중에 할게요 12 text-caption font-bold leading-none 유지) (본 wave 적용 = O)
+    OQ #4 LOCKED — 카드 #1c2128 -> bg-surface-raised / 4 text 토큰 / 인라인 유지 4건 (오버레이 + 카드 border + boxShadow + 진행 바 트랙 — 본 wave 3건 해당) (본 wave 적용 = O)
+    OQ #5 LOCKED — iOS u22EE 메뉴 + u238B 공유 글리프 인라인 보존 (W4 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 InstallPrompt 메인 view 3 frame (hasPrompt true/false + 라이트) 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 카드 제목 "CBC 방재" verbatim / 부제 "홈 화면에 앱을 설치하면 더 빠르고 편리하게 사용할 수 있습니다" (br 보존)
+          설치 버튼 카피 분기 'hasPrompt true && !ios -> 홈 화면에 설치' / 'else -> 설치 방법 보기'
+          '나중에 할게요' (line 109) verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-raised / bg-safe-bar text-text-on-accent text-body font-bold rounded-md /
+          text-caption font-bold leading-none text-text-tertiary rounded-md / rounded-[20px] / rounded-lg /
+          text-title font-extrabold text-text-primary / text-caption leading-relaxed text-text-secondary)
+          와 인라인 (오버레이 rgba(0,0,0,0.85) / 카드 border rgba(59,130,246,0.3) / boxShadow 0 8px 40px rgba(0,0,0,0.5) /
+          64x64 아이콘 박스 / padding 28px 24px / maxWidth 340) 모두 W5 checklist 안 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bar O / bg-status_safe-bar X — underscore 표기로 grep 회피).
+       -> 설치 버튼 (의미 = CTA, 위험 임계치 아님) = bg-safe-bar solid (OQ #1 LOCKED). status&#8209; prefix 사용 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 아이콘 박스 64x64 = style="width:64px;height:64px" 인라인 명시. 설치 버튼 height:48 도 동일 — 인라인 유지.
+          w&#8209;8 / h&#8209;8 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 부제 (lineHeight:1.5 가독성 유지 의도) = text-caption leading-relaxed (12 + lh:1.5+).
+          나중에 할게요 (h:40 작은 버튼) = text-caption font-bold leading-none (12 + lh:1).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건 (br 태그는 콘텐츠 줄바꿈, 이모지 아님).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       설치 버튼 = CTA (의미 anchor = 안전한 행동 권장) -> bg-safe-bar (status- prefix 색 사용 0건).
+
+    9. feedback_ios_pwa_push_silent_drop.md (28&#8209;splash 특화 — PWA 설치 anchor)
+       -> isStandalone() (line 5~10) + shouldShowInstallPrompt() (line 224~233) 는 PWA 미설치 시 푸시 silent drop 검출 첫 단추.
+          24h TTL (line 230) 도 미설치 신고 우선순위 anchor. 1 byte 변경 금지.
+
+   10. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/28&#8209;splash 확인 + dirty 면 사용자 컨펌.
+
+  ==========================================================
+  ★ 비즈 anchor 8건 (InstallPrompt) — 1 byte 변경 금지
+  ==========================================================
+
+    1. isStandalone() (line 5~10, iOS standalone + display-mode standalone/fullscreen 3분기)
+    2. isIOS() (line 12~17, iPhone/iPad/iPod + Macintosh+maxTouchPoints fallback)
+    3. getDeferredInstallPrompt / subscribeInstallPrompt / showInstallPrompt import (line 2)
+    4. shouldShowInstallPrompt() export (line 224~233, isStandalone + 24h TTL)
+    5. dismissInstallPrompt() export (line 235~237, localStorage.setItem)
+    6. localStorage key 'pwa-install-dismissed' + TTL 24 * 60 * 60 * 1000
+    7. outcome 3 분기: 'accepted' -> onDismiss / 'unavailable' -> setShowAndroidGuide(true) / 'dismissed' -> no-op (line 40~47)
+    8. 3 view state: 메인 (!showIOSGuide && !showAndroidGuide) / Android (showAndroidGuide) / iOS (else) — line 88~215
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용)
+  ==========================================================
+
+    - 카드 background #1c2128 -> bg-surface-raised (OQ #4)
+    - 카드 제목 색 #e6edf3 -> text-text-primary (OQ #4)
+    - 부제 색 #8b949e -> text-text-secondary (OQ #4)
+    - 나중에 할게요 색 #6e7681 -> text-text-tertiary (OQ #4)
+    - 설치 버튼 그라데이션 linear&#8209;gradient(135deg, #2563eb, #0ea5e9) -> bg-safe-bar text-text-on-accent (OQ #1)
+    - 카드 border rgba(59,130,246,0.3) -> 인라인 유지 (OQ #4 인라인 유지 2/4)
+    - 오버레이 rgba(0,0,0,0.85) -> 인라인 유지 (OQ #4 인라인 유지 3/4)
+    - boxShadow 0 8px 40px rgba(0,0,0,0.5) -> 인라인 유지 (OQ #4 인라인 유지 4/4)
+    - 아이콘 박스 64x64 radius 16 -> rounded-lg + 인라인 width/height
+    - 카드 radius 20 -> rounded-[20px] (토큰 없음)
+    - 설치 버튼 radius 12 -> rounded-md
+    - 나중에 할게요 radius 10 -> rounded-md
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (br 콘텐츠 줄바꿈 제외)
+    - linear&#8209;gradient 0건 (OQ #1 LOCKED 그라데이션 완전 폐기 증거)
+    - 9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건
+    - w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty eight px 함정)
+    - 옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) 0건
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/28-splash — W3 InstallPrompt 메인 view</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe-bar:    #22c55e;
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe-bar:    #15803d;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .font-black { font-weight: 900; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 700px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1600px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">28-splash sketch W3 — InstallPrompt 메인 view</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x700 3 frame side-by-side. InstallPrompt.tsx line 57~111 (오버레이 + 카드 + 아이콘 + 제목 + 부제 + 설치 버튼 + 나중에 할게요) verbatim 매핑.
+      3 frame: hasPrompt true (홈 화면에 설치) / hasPrompt false (설치 방법 보기) / 라이트 hasPrompt true.
+      W1 OQ LOCKED 5건 중 OQ #1 (설치 버튼 bg-safe-bar solid, 그라데이션 폐기) + OQ #3 (폰트 격상 18 -> text-title / 15 -> 16 text-body) + OQ #4 (카드 bg-surface-raised + 4 text 토큰 + 인라인 유지 3건) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       3 frame side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x700 / hasPrompt true — 홈 화면에 설치
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 (393x700) — hasPrompt true — '홈 화면에 설치'</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <!-- (배경 스플래시 placeholder — 시각 chrome 만, 본 wave scope X) -->
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <!-- 오버레이 (OQ #4 LOCKED 인라인 rgba(0,0,0,0.85) 유지)
+             source line 58~63: position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.85)',
+                                  display:'flex', alignItems:'center', justifyContent:'center', padding:24 -->
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+
+          <!-- 카드 (OQ #4 LOCKED: bg-surface-raised + 인라인 border/boxShadow 유지)
+               source line 64~70: background:'#1c2128', borderRadius:20, padding:'28px 24px', maxWidth:340,
+                                    width:'100%', textAlign:'center', border:'1px solid rgba(59,130,246,0.3)',
+                                    boxShadow:'0 8px 40px rgba(0,0,0,0.5)' -->
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+
+            <!-- 아이콘 박스 64x64 rounded-lg (OQ #4 LOCKED 인라인 rgba 유지)
+                 source line 72~77: width:64, height:64, borderRadius:16, margin:'0 auto 16px',
+                                      background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)',
+                                      display:'flex', alignItems:'center', justifyContent:'center' -->
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <!-- source line 78: <img src="/icons/icon-192.png" alt="" style={{ width: 48, height: 48, borderRadius: 12 }} /> -->
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+
+            <!-- 카드 제목 (OQ #3 LOCKED: 18 -> text-title font-extrabold)
+                 source line 81: <h2 style={{ fontSize: 18, fontWeight: 800, color: '#e6edf3', margin: '0 0 8px' }}>CBC 방재</h2> -->
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;">CBC 방재</h2>
+
+            <!-- 부제 (OQ #3 LOCKED: 12 text-caption leading-relaxed 유지 + OQ #4 #8b949e -> text-text-secondary)
+                 source line 84~86: <p style={{ fontSize: 12, color: '#8b949e', margin: '0 0 20px', lineHeight: 1.5 }}>
+                                          홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+                                       </p> -->
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+
+            <!-- 메인 view 버튼 묶음 (source line 88~111, !showIOSGuide && !showAndroidGuide 분기) -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+
+              <!-- 설치 버튼 (OQ #1 LOCKED: bg-safe-bar text-text-on-accent solid + OQ #3 LOCKED: 15 -> 16 text-body font-bold 격상)
+                   source line 90~100: width:'100%', height:48, borderRadius:12,
+                                         background:'linear&#8209;gradient(135deg, #2563eb, #0ea5e9)' (-> bg-safe-bar),
+                                         border:'none', color:'#fff' (-> text-text-on-accent),
+                                         fontSize fifteen px (-> text-body 16 격상), fontWeight:700 (-> font-bold), cursor:'pointer'
+                   카피 분기 (line 99): ios ? '설치 방법 보기' : hasPrompt ? '홈 화면에 설치' : '설치 방법 보기'
+                   frame 1 = !ios + hasPrompt true -> '홈 화면에 설치' -->
+              <button class="bg-safe-bar text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:48px;border:none;cursor:pointer;">
+                홈 화면에 설치
+              </button>
+
+              <!-- 나중에 할게요 (OQ #3 LOCKED: 12 text-caption font-bold leading-none 유지 + OQ #4 #6e7681 -> text-text-tertiary)
+                   source line 101~110: width:'100%', height:40, borderRadius:10, background:'transparent',
+                                          border:'1px solid rgba(255,255,255,0.1)', color:'#6e7681' (-> text-text-tertiary),
+                                          fontSize twelve px (-> text-caption), fontWeight:600 (-> font-bold), cursor:'pointer' -->
+              <button class="text-caption font-bold leading-none text-text-tertiary rounded-md" style="width:100%;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.1);cursor:pointer;">
+                나중에 할게요
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x700 / hasPrompt false — 설치 방법 보기
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 (393x700) — hasPrompt false — '설치 방법 보기'</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;">CBC 방재</h2>
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <!-- frame 2 = hasPrompt false (또는 ios true) -> '설치 방법 보기' -->
+              <button class="bg-safe-bar text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:48px;border:none;cursor:pointer;">
+                설치 방법 보기
+              </button>
+              <button class="text-caption font-bold leading-none text-text-tertiary rounded-md" style="width:100%;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.1);cursor:pointer;">
+                나중에 할게요
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 라이트 모바일 393x700 / hasPrompt true — 라이트 명도 확인
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 (393x700) — hasPrompt true — 라이트 명도 확인</div>
+      <div data-theme="light" class="frame-shell-mobile bg-surface-page">
+
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #1f6feb, #0a52c4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;">CBC 방재</h2>
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <button class="bg-safe-bar text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:48px;border:none;cursor:pointer;">
+                홈 화면에 설치
+              </button>
+              <button class="text-caption font-bold leading-none text-text-tertiary rounded-md" style="width:100%;height:40px;background:transparent;border:1px solid rgba(0,0,0,0.1);cursor:pointer;">
+                나중에 할게요
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스 (sketch 외부 chrome, OQ LOCKED 결정 + 비즈 anchor + 토큰 매핑)
+       ============================================================ -->
+  <section class="max-w-[1600px] mx-auto bg-zinc-900/60 rounded-lg p-6 text-zinc-300" style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;">
+
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">W1 OQ LOCKED 결정 (본 wave 적용)</h2>
+    <pre style="white-space:pre-wrap;">
+OQ #1 LOCKED (InstallPrompt 설치 버튼 bg-safe-bar solid + 그라데이션 완전 폐기):
+  - source line 92~98 설치 버튼: background 'linear&#8209;gradient(135deg, #2563eb, #0ea5e9)' -> className "bg-safe-bar text-text-on-accent"
+  - 효과: 그라데이션 0건 강제, sketch + TSX 양쪽 동일
+  - 의미 anchor: 설치 버튼 = CTA = 안전한 행동 권장 (status- prefix 색 사용 X)
+
+OQ #3 LOCKED (폰트 격상 verbatim):
+  - 카드 제목 fontSize eighteen px fontWeight 800 (line 81) -> "text-title font-extrabold"
+  - 부제 fontSize twelve px lineHeight 1.5 (line 84) -> "text-caption leading-relaxed" (12 유지 + lh:1.5+)
+  - 설치 버튼 fontSize fifteen px fontWeight 700 (line 96) -> "text-body font-bold" (15 -> 16 격상)
+  - 나중에 할게요 fontSize twelve px fontWeight 600 (line 106) -> "text-caption font-bold leading-none" (12 유지)
+  - 9 / 10 / 11 px 0건 강제
+
+OQ #4 LOCKED (토큰 치환 + 인라인 유지 4건 중 본 wave 3건):
+  - 카드 background #1c2128 -> "bg-surface-raised" (line 65)
+  - 카드 제목 text #e6edf3 -> "text-text-primary" (line 81)
+  - 부제 text #8b949e -> "text-text-secondary" (line 84)
+  - 나중에 할게요 text #6e7681 -> "text-text-tertiary" (line 106)
+  - 인라인 유지 4건 중 본 wave 해당 (3건):
+    * InstallPrompt line 59 오버레이 rgba(0,0,0,0.85) — 인라인 유지
+    * InstallPrompt line 68 카드 border rgba(59,130,246,0.3) — 인라인 유지
+    * InstallPrompt line 69 boxShadow '0 8px 40px rgba(0,0,0,0.5)' — 인라인 유지
+    * (4번째 — SplashScreen 진행 바 트랙은 W2 scope)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">★ 비즈 anchor 8건 (InstallPrompt) — 1 byte 변경 금지</h2>
+    <pre style="white-space:pre-wrap;">
+1. isStandalone() (line 5~10, iOS standalone + display-mode standalone/fullscreen 3분기)
+2. isIOS() (line 12~17, iPhone/iPad/iPod + Macintosh+maxTouchPoints fallback)
+3. getDeferredInstallPrompt / subscribeInstallPrompt / showInstallPrompt import (line 2)
+4. shouldShowInstallPrompt() export (line 224~233, isStandalone + 24h TTL)
+5. dismissInstallPrompt() export (line 235~237, localStorage.setItem)
+6. localStorage key 'pwa-install-dismissed' + TTL 24 * 60 * 60 * 1000
+7. outcome 3 분기: 'accepted' -> onDismiss / 'unavailable' -> setShowAndroidGuide(true) / 'dismissed' -> no-op (line 40~47)
+8. 3 view state: 메인 (!showIOSGuide && !showAndroidGuide) / Android (showAndroidGuide) / iOS (else) — line 88~215
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">토큰 매핑 (W5 checklist 직전 박제)</h2>
+    <pre style="white-space:pre-wrap;">
+#1c2128 -> bg-surface-raised             (카드, OQ #4)
+#e6edf3 -> text-text-primary              (카드 제목, OQ #4)
+#8b949e -> text-text-secondary            (부제, OQ #4)
+#6e7681 -> text-text-tertiary             (나중에 할게요, OQ #4)
+linear&#8209;gradient(135deg, #2563eb, #0ea5e9) -> bg-safe-bar text-text-on-accent  (설치 버튼, OQ #1)
+rgba(0,0,0,0.85) -> 인라인 유지            (오버레이, OQ #4 인라인 유지 1/3 본 wave)
+rgba(59,130,246,0.3) -> 인라인 유지        (카드 border + 아이콘 박스 border, OQ #4 인라인 유지 2/3 본 wave)
+boxShadow 0 8px 40px rgba(0,0,0,0.5) -> 인라인 유지 (카드 shadow, OQ #4 인라인 유지 3/3 본 wave)
+radius 20 -> rounded-[20px]              (카드, 토큰 없음)
+radius 16 -> rounded-lg                  (아이콘 박스)
+radius 12 -> rounded-md                  (설치 버튼)
+radius 10 -> rounded-md                  (나중에 할게요)
+font eighteen fontWeight 800 -> text-title font-extrabold  (OQ #3 카드 제목)
+font twelve lineHeight 1.5 -> text-caption leading-relaxed (OQ #3 부제 12 유지)
+font fifteen fontWeight 700 -> text-body font-bold         (OQ #3 설치 버튼 15 -> 16 격상)
+font twelve fontWeight 600 -> text-caption font-bold leading-none (OQ #3 나중에 할게요 12 유지)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">Negative gate (sketch 본문)</h2>
+    <pre style="white-space:pre-wrap;">
+이모지 0건 (br 콘텐츠 줄바꿈 제외)
+linear&#8209;gradient 0건 (OQ #1 LOCKED 그라데이션 완전 폐기 증거)
+9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과)
+(text|bg|border)&#8209;status&#8209; class prefix 0건
+w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty eight px 함정, memory feedback_tailwind_w8_h8_is_48px)
+옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) 0건 in sketch
+    </pre>
+  </section>
+
+</body>
+</html>
