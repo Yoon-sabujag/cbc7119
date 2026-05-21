@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-staff-card-grid.html — redesign/27-login W3
+  작성: 2026-05-21 / quick 260521-f01
+  범위: 직원 카드 그리드 (영역 3, LoginPage.tsx line 85~115)
+        — 컨테이너 + 라벨 "담당자 선택" + 6 staff card 2-column grid
+        — CARD_COLORS 6 rgba cycle (line 21~28 verbatim)
+        — isSelected variant (border rgba(59,130,246,0.6) + bg rgba(59,130,246,0.12) + initial #2563eb)
+        — isSelected accent 토큰 비교 variant (#2563eb 인라인 vs bg-accent 토큰)
+  out of scope: 모바일/데스크톱 shell (W2 완료) / 로그인 폼 + footer (W4 책임) / TSX 변환 (W5 책임) /
+                LoginPage.tsx 코드 수정 / 다른 페이지
+  참조: wave-1-index.md §3 verbatim, LoginPage.tsx line 21~28 (CARD_COLORS) + line 85~115 (그리드) verbatim,
+        14-reports/sketch-wave-3 frame layout 1:1 mirror
+
+  W1 LOCKED 5건 적용 매트릭스:
+    OQ #1 LOCKED — 로그인 버튼 그라데이션 폐기 (W4 scope, W3 미해당)
+    OQ #2 LOCKED — CARD_COLORS 6 rgba 인라인 verbatim (본 wave 적용 = O, 6 색 모두 시각화)
+                  isSelected accent 만 #2563eb 인라인 / bg-accent 토큰 비교 variant 양쪽 시각화
+    OQ #3 LOCKED — 폰트 격상: "담당자 선택" 10 -> 12 / 카드 이름 13 / role-title 10 -> 12 (본 wave 적용 = O)
+    OQ #4 LOCKED — show/hide + footer ☎ (W4 scope, W3 미해당)
+    OQ #5 LOCKED — staff initial 박스 34x34 rounded-[10px] 인라인 px (본 wave 적용 = O, OQ #5 extension)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, W2 mirror)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 W3 가 W4 진입 전 직원 카드 그리드 컨펌 시안.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 라벨 "담당자 선택" verbatim. role/title 분기 (s.role === 'admin' ? '관리자' : s.title) verbatim.
+         샘플 staff 이름 6명은 sketch 디자인 시각화 용도만 — 실 staff 데이터는 API 가 채움.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 CARD_COLORS 6 rgba + isSelected rgba(59,130,246,0.6)/0.12 + initial #2563eb
+         모두 W5 checklist 변환 매핑표 안에 verbatim 인용 예정.
+
+    4. feedback_redesign_sketch_rule_enforcement.md
+       §6.2 negative rule: 위험 임계치 아닌 카드 status 색 금지.
+       -> CARD_COLORS amber/green/blue/violet/pink/teal 는 카테고리 색 — status 와 무관.
+         bg&#8209;{status}-safe-bg 같은 위험 임계치 class 0건. 인라인 rgba 인라인 유지.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> staff initial 34x34 = w-[34px] h-[34px] rounded-[10px] 인라인 명시.
+          토큰 spacing alias (w-8=48 / w-7=32) 사용 0건. OQ #5 LOCKED extension.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> "담당자 선택" 라벨 + role/title 모두 text-caption + leading-none 명시.
+          카드 이름 (text-label 13px) 도 leading-none 명시 (작은 카드 컨테이너 안).
+
+    7. feedback_avoid_premature_confirmation.md
+       시각 작업에서 "거의 일치" 자신감 표현 금지.
+       -> isSelected accent 결정 (#2563eb 인라인 vs bg-accent 토큰) 2 variant 모두 보여주고
+          사용자 컨펌 받은 후 W5 checklist 에 최종 결정 박제.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/27-login — W3 직원 카드 그리드 (CARD_COLORS 6 rgba + isSelected)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim (W2 mirror)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+    .uppercase { text-transform: uppercase; }
+    .tracking-wider { letter-spacing: 0.06em; }
+
+    /* ============================================================
+     * Sketch chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop-card {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 520px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      padding: 32px 20px;
+    }
+
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * 직원 카드 그리드 (영역 3) — LoginPage.tsx line 85~115 verbatim
+     * 컨테이너: bg-surface-raised + border + rounded-lg + padding 16 + marginBottom 12
+     * ============================================================ */
+    .staff-grid-container {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    /* 카드 button 인라인 매핑 (source line 94~111):
+       display:flex / alignItems:center / gap:10 / padding:10 / borderRadius:12 /
+       border:1px solid (isSelected ? rgba(59,130,246,0.6) : c.border) /
+       background:(isSelected ? rgba(59,130,246,0.12) : c.color) */
+    .staff-card-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      transition: all .13s;
+      width: 100%;
+      font-family: inherit;
+    }
+
+    /* initial 박스 (line 104 source: width:34 height:34 borderRadius:10 bg:#fff color)
+       OQ #5 LOCKED extension: w-[34px] h-[34px] rounded-[10px] 인라인 px */
+    .staff-initial {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      flex-shrink: 0;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">27-login sketch W3 — 직원 카드 그리드 (CARD_COLORS 6 rgba cycle + isSelected variant)</h1>
+    <p class="text-label text-zinc-400">
+      LoginPage.tsx line 21~28 (CARD_COLORS) + line 85~115 (그리드 markup) verbatim 매핑.
+      4 frame: 모바일 다크 default / 모바일 다크 isSelected variant / 모바일 라이트 default / 데스크톱 다크 카드 안 (420px wrapper).
+      W1 LOCKED 5건 중 OQ #2 (rgba 인라인 유지) + OQ #3 (라벨/role 12px text-caption) + OQ #5 (initial 34x34 인라인 px) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 default ─────
+         CARD_COLORS 6 cycle, isSelected = none
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 default (393px 모바일, isSelected = none)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- 모바일 헤더 placeholder (W2 적용 완료 영역 — W3 sketch 안에서 chrome 일관성 유지용 축약 표시) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 본문 영역 (line 215 padding 16px 16px 32px) -->
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <!-- 직원 카드 그리드 컨테이너 -->
+          <div class="staff-grid-container">
+            <!-- 라벨 "담당자 선택" (OQ #3 LOCKED): fontSize 10 -> text-caption 12 + font-bold uppercase tracking-wider + leading-none -->
+            <p class="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style="margin-bottom:12px;">담당자 선택</p>
+
+            <!-- 6 staff x 2-column grid (line 87: display:grid; gridTemplateColumns:'1fr 1fr'; gap:8) -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+              <!-- staff 1 (i=0): amber CARD_COLORS[0] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.15);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(245,158,11,0.35);">
+                  <span class="text-body font-bold leading-none">윤</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">윤종엽</div>
+                  <div class="text-caption text-text-tertiary leading-none">관리자</div>
+                </div>
+              </button>
+
+              <!-- staff 2 (i=1): green CARD_COLORS[1] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(34,197,94,0.3);">
+                  <span class="text-body font-bold leading-none">김</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">김민준</div>
+                  <div class="text-caption text-text-tertiary leading-none">책임</div>
+                </div>
+              </button>
+
+              <!-- staff 3 (i=2): blue CARD_COLORS[2] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(59,130,246,0.3);">
+                  <span class="text-body font-bold leading-none">박</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">박서연</div>
+                  <div class="text-caption text-text-tertiary leading-none">주임</div>
+                </div>
+              </button>
+
+              <!-- staff 4 (i=3): violet CARD_COLORS[3] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(139,92,246,0.3);">
+                  <span class="text-body font-bold leading-none">이</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">이지호</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <!-- staff 5 (i=4): pink CARD_COLORS[4] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(236,72,153,0.3);background:rgba(236,72,153,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(236,72,153,0.3);">
+                  <span class="text-body font-bold leading-none">최</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">최예린</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <!-- staff 6 (i=5): teal CARD_COLORS[5] -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(20,184,166,0.3);">
+                  <span class="text-body font-bold leading-none">정</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">정시우</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- 폼 placeholder (W4 scope) -->
+          <div style="opacity:0.5;text-align:center;padding:24px 0;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">
+            W4 로그인 폼 + footer (영역 4 + 영역 5) placeholder
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 isSelected variant ─────
+         staff 3 (i=2, blue) 가 selected — 2 sub-variant 동시 표현:
+           A) initial bg = #2563eb 인라인 (source line 104 verbatim)
+           B) initial bg = bg-accent 토큰 (대안)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 isSelected variant (staff 3 박서연 선택, accent 2 sub-variant 동시)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+
+          <!-- Sub-variant A: initial bg = #2563eb 인라인 (source line 104 verbatim) -->
+          <div class="variant-label" style="color:#94a3b8;padding-top:0;">isSelected sub-variant A / initial bg = #2563eb (인라인)</div>
+          <div class="staff-grid-container">
+            <p class="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style="margin-bottom:12px;">담당자 선택</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+              <!-- staff 1 unchanged amber -->
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.15);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(245,158,11,0.35);">
+                  <span class="text-body font-bold leading-none">윤</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">윤종엽</div>
+                  <div class="text-caption text-text-tertiary leading-none">관리자</div>
+                </div>
+              </button>
+
+              <!-- staff 2 unchanged green -->
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(34,197,94,0.3);">
+                  <span class="text-body font-bold leading-none">김</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">김민준</div>
+                  <div class="text-caption text-text-tertiary leading-none">책임</div>
+                </div>
+              </button>
+
+              <!-- staff 3 SELECTED — border rgba(59,130,246,0.6) + bg rgba(59,130,246,0.12) + initial #2563eb 인라인 (line 99~104 verbatim) -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(59,130,246,0.6);background:rgba(59,130,246,0.12);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:#2563eb;">
+                  <span class="text-body font-bold leading-none">박</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">박서연</div>
+                  <div class="text-caption text-text-tertiary leading-none">주임</div>
+                </div>
+              </button>
+
+              <!-- staff 4 violet unchanged -->
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(139,92,246,0.3);">
+                  <span class="text-body font-bold leading-none">이</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">이지호</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <!-- staff 5 pink -->
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(236,72,153,0.3);background:rgba(236,72,153,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(236,72,153,0.3);">
+                  <span class="text-body font-bold leading-none">최</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">최예린</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <!-- staff 6 teal -->
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(20,184,166,0.3);">
+                  <span class="text-body font-bold leading-none">정</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">정시우</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Sub-variant B: initial bg = bg-accent 토큰 (OQ #2 LOCKED 의 "토큰화 검토" 옵션) -->
+          <div class="variant-label" style="color:#94a3b8;">isSelected sub-variant B / initial bg = bg-accent (토큰화)</div>
+          <div class="staff-grid-container">
+            <p class="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style="margin-bottom:12px;">담당자 선택</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.15);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(245,158,11,0.35);">
+                  <span class="text-body font-bold leading-none">윤</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">윤종엽</div>
+                  <div class="text-caption text-text-tertiary leading-none">관리자</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(34,197,94,0.3);">
+                  <span class="text-body font-bold leading-none">김</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">김민준</div>
+                  <div class="text-caption text-text-tertiary leading-none">책임</div>
+                </div>
+              </button>
+
+              <!-- staff 3 SELECTED variant B — initial bg = bg-accent 토큰 -->
+              <button type="button" class="staff-card-btn"
+                style="border:1px solid rgba(59,130,246,0.6);background:rgba(59,130,246,0.12);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px] bg-accent">
+                  <span class="text-body font-bold leading-none">박</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">박서연</div>
+                  <div class="text-caption text-text-tertiary leading-none">주임</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(139,92,246,0.3);">
+                  <span class="text-body font-bold leading-none">이</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">이지호</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(236,72,153,0.3);background:rgba(236,72,153,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(236,72,153,0.3);">
+                  <span class="text-body font-bold leading-none">최</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">최예린</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(20,184,166,0.3);">
+                  <span class="text-body font-bold leading-none">정</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">정시우</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 라이트 모바일 default ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 default (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+          <div class="staff-grid-container">
+            <p class="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style="margin-bottom:12px;">담당자 선택</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.15);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(245,158,11,0.35);">
+                  <span class="text-body font-bold leading-none">윤</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">윤종엽</div>
+                  <div class="text-caption text-text-tertiary leading-none">관리자</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(34,197,94,0.3);">
+                  <span class="text-body font-bold leading-none">김</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">김민준</div>
+                  <div class="text-caption text-text-tertiary leading-none">책임</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(59,130,246,0.3);">
+                  <span class="text-body font-bold leading-none">박</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">박서연</div>
+                  <div class="text-caption text-text-tertiary leading-none">주임</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(139,92,246,0.3);">
+                  <span class="text-body font-bold leading-none">이</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">이지호</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(236,72,153,0.3);background:rgba(236,72,153,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(236,72,153,0.3);">
+                  <span class="text-body font-bold leading-none">최</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">최예린</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+              <button type="button" class="staff-card-btn" style="border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">
+                <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(20,184,166,0.3);">
+                  <span class="text-body font-bold leading-none">정</span>
+                </div>
+                <div>
+                  <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">정시우</div>
+                  <div class="text-caption text-text-tertiary leading-none">사원</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 데스크톱 다크 카드 안 (420px wrapper 안 그리드) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 다크 데스크톱 (420px centered 카드 안)</div>
+      <div data-theme="dark" class="frame-shell-desktop-card">
+        <!-- 데스크톱 카드 (LoginPage.tsx line 178 verbatim — maxWidth:420) -->
+        <div class="bg-surface-raised border border-border-default" style="max-width:420px;width:100%;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.4);overflow:hidden;margin:0 auto;">
+          <!-- 카드 헤더 (W2 적용 완료) -->
+          <div class="bg-surface-raised border-b border-border-default" style="padding:24px 24px 20px;">
+            <div class="flex items-center" style="gap:12px;">
+              <div class="w-[38px] h-[38px] rounded-[11px]"
+                   style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+              </div>
+              <div>
+                <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+                <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+              </div>
+            </div>
+          </div>
+          <!-- 카드 바디: padding:16px 16px 24px -->
+          <div style="padding:16px 16px 24px;">
+
+            <!-- 카드 그리드 — 모바일과 동일 markup (line 192~194 inner 공통) -->
+            <div class="staff-grid-container">
+              <p class="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style="margin-bottom:12px;">담당자 선택</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(245,158,11,0.35);background:rgba(245,158,11,0.15);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(245,158,11,0.35);">
+                    <span class="text-body font-bold leading-none">윤</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">윤종엽</div>
+                    <div class="text-caption text-text-tertiary leading-none">관리자</div>
+                  </div>
+                </button>
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.1);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(34,197,94,0.3);">
+                    <span class="text-body font-bold leading-none">김</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">김민준</div>
+                    <div class="text-caption text-text-tertiary leading-none">책임</div>
+                  </div>
+                </button>
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(59,130,246,0.3);background:rgba(59,130,246,0.1);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(59,130,246,0.3);">
+                    <span class="text-body font-bold leading-none">박</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">박서연</div>
+                    <div class="text-caption text-text-tertiary leading-none">주임</div>
+                  </div>
+                </button>
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(139,92,246,0.3);background:rgba(139,92,246,0.1);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(139,92,246,0.3);">
+                    <span class="text-body font-bold leading-none">이</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">이지호</div>
+                    <div class="text-caption text-text-tertiary leading-none">사원</div>
+                  </div>
+                </button>
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(236,72,153,0.3);background:rgba(236,72,153,0.1);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(236,72,153,0.3);">
+                    <span class="text-body font-bold leading-none">최</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">최예린</div>
+                    <div class="text-caption text-text-tertiary leading-none">사원</div>
+                  </div>
+                </button>
+
+                <button type="button" class="staff-card-btn" style="border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.1);">
+                  <div class="staff-initial w-[34px] h-[34px] rounded-[10px]" style="background:rgba(20,184,166,0.3);">
+                    <span class="text-body font-bold leading-none">정</span>
+                  </div>
+                  <div>
+                    <div class="text-label font-bold text-text-primary leading-none" style="margin-bottom:4px;">정시우</div>
+                    <div class="text-caption text-text-tertiary leading-none">사원</div>
+                  </div>
+                </button>
+
+              </div>
+            </div>
+
+            <div style="opacity:0.5;text-align:center;padding:16px 0;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">
+              W4 로그인 폼 + footer (영역 4 + 영역 5) placeholder
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W3 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>CARD_COLORS 6 rgba (LoginPage.tsx line 21~28 verbatim):
+        <code class="text-zinc-200">rgba(245,158,11,0.15) / 0.35</code> amber,
+        <code class="text-zinc-200">rgba(34,197,94,0.1) / 0.3</code> green,
+        <code class="text-zinc-200">rgba(59,130,246,0.1) / 0.3</code> blue,
+        <code class="text-zinc-200">rgba(139,92,246,0.1) / 0.3</code> violet,
+        <code class="text-zinc-200">rgba(236,72,153,0.1) / 0.3</code> pink,
+        <code class="text-zinc-200">rgba(20,184,166,0.1) / 0.3</code> teal.
+        모두 4 frame 안에 인라인 rgba 그대로 노출 — OQ #2 LOCKED 토큰화 X.</li>
+      <li>라벨 "담당자 선택" (OQ #3 LOCKED): fontSize 10 -> <code class="text-zinc-200">text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none</code> (12px + leading-none + tracking 0.06em).</li>
+      <li>카드 이름 (line 108): fontSize 13 -> <code class="text-zinc-200">text-label font-bold text-text-primary leading-none</code>.</li>
+      <li>카드 role/title (OQ #3 LOCKED): fontSize 10 -> <code class="text-zinc-200">text-caption text-text-tertiary leading-none</code>. role 분기 (s.role === 'admin' ? '관리자' : s.title) source verbatim.</li>
+      <li>staff initial 박스 (OQ #5 LOCKED extension): <code class="text-zinc-200">w-[34px] h-[34px] rounded-[10px]</code> 인라인 px. 토큰 spacing (w-8 = 48 / w-7 = 32) 사용 0건.</li>
+      <li>isSelected variant (Frame 2): border <code class="text-zinc-200">rgba(59,130,246,0.6)</code> + bg <code class="text-zinc-200">rgba(59,130,246,0.12)</code> source line 99~100 verbatim. initial bg = <code class="text-zinc-200">#2563eb</code> (sub-variant A, line 104 verbatim) vs <code class="text-zinc-200">bg-accent</code> 토큰 (sub-variant B). 사용자 컨펌 항목.</li>
+      <li>샘플 staff 6명 (윤종엽 / 김민준 / 박서연 / 이지호 / 최예린 / 정시우) — sketch 디자인 시각화 용도 (memory feedback_sketch_realistic_data 룰). 실 staff 데이터는 API <code class="text-zinc-200">/api/public/staff-list</code> 가 채움.</li>
+      <li>카드 button 인라인 style 매핑 (line 94~111 verbatim):
+        <code class="text-zinc-200">display:flex; alignItems:center; gap:10; padding:10; borderRadius:12;</code> +
+        <code class="text-zinc-200">border:1px solid (isSelected ? rgba(59,130,246,0.6) : c.border);</code> +
+        <code class="text-zinc-200">background:(isSelected ? rgba(59,130,246,0.12) : c.color);</code>
+        모두 인라인 유지 (OQ #2 LOCKED — TSX 변환 시 토큰화 X).</li>
+      <li>그리드 컨테이너 = <code class="text-zinc-200">bg-surface-raised border border-border-default rounded-lg</code> + padding 16 인라인 (radius:16 -> rounded-lg 토큰화).</li>
+      <li>그리드 자체 = <code class="text-zinc-200">display:grid; grid-template-columns:1fr 1fr; gap:8px;</code> 인라인 (source line 87 verbatim).</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">status&#8209;(safe&#124;fire)</code> class prefix 0 hit / fontSize 9&#8209;11px 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (로그인 버튼 그라데이션 폐기): W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (CARD_COLORS 6 rgba): 본 wave 적용 = O. 6 색 4 frame 모두 인라인 verbatim. isSelected accent 2 sub-variant (#2563eb 인라인 vs bg-accent 토큰) Frame 2 안 동시 시각화.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. "담당자 선택" 10 -> 12 / role-title 10 -> 12 / 카드 이름 13 그대로.</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (show/hide + ☎): W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (인라인 px) extension: 본 wave 적용 = O. staff initial w-[34px] h-[34px] rounded-[10px] 인라인 px 4 frame 모두 동일.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 진입 전 OQ (default 채택 시 별 의견 없는 것으로 진행)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>OQ #2 sub-variant 결정: <strong class="text-zinc-200">default = A (initial bg = #2563eb 인라인)</strong> — source line 104 verbatim 보존. 토큰화 (sub-variant B) 도 호환되나 OQ #2 LOCKED 의 "인라인 rgba 유지" 일관 정책상 A 추천.</li>
+      <li>W4 = 로그인 폼 + footer 안내문 (영역 4 + 영역 5). 본 W3 grid 의 컨테이너 하단에 마운트 (line 117~170).</li>
+    </ul>
+  </section>
+
+</body>
+</html>
