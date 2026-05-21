@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-mobile-shell.html — redesign/27-login W2
+  작성: 2026-05-21 / quick 260521-f01
+  범위: 모바일 shell + 데스크톱 wrapper + 공통 헤더 (영역 2 + 영역 6)
+        LoginPage.tsx line 175~213 verbatim 매핑 — 로고 박스 + 타이틀 + 서브 + 데스크톱 카드 wrapper
+  out of scope: 직원 카드 그리드 (W3 책임) / 로그인 폼 + footer (W4 책임) / TSX 변환 (W5 책임) /
+                LoginPage.tsx 코드 수정 / 다른 페이지
+  참조: wave-1-index.md §3 verbatim, LoginPage.tsx line 175~213 verbatim,
+        14-reports/sketch-wave-2 frame layout 1:1 mirror
+
+  W1 LOCKED 5건 적용 매트릭스:
+    OQ #1 LOCKED — 로그인 버튼 그라데이션 폐기 (W4 scope, W2 미해당)
+    OQ #2 LOCKED — CARD_COLORS 6 rgba (W3 scope, W2 미해당)
+    OQ #3 LOCKED — 서브 11px -> text-caption 12px + leading-none (본 wave 적용 = O)
+    OQ #4 LOCKED — show/hide + footer (W4 scope, W2 미해당)
+    OQ #5 LOCKED — 로고 38x38 rounded-[11px] + img 28x28 rounded-[7px] 인라인 px (본 wave 적용 = O)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 W3 진입 전 모바일 shell + 데스크톱 wrapper 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 타이틀 "차바이오컴플렉스 방재팀" / 서브 "소방안전 통합관리 시스템" verbatim.
+         임의 변경 0건. 로고 src "/icons/icon-192.png" 도 verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (w-[38px] / rounded-[11px] / text-body / text-caption) 와
+          인라인 style (padding/boxShadow/rgba) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 (메모리 룰 prefix 없는 짧은 토큰 alias 우선).
+       -> 본 sketch 는 bg-surface-raised / border-border-default / text-text-primary 사용.
+          prefix 없는 짧은 형태 (bg-safe-bar 등) 도 W4 에서 사용. 본 wave 미해당.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 로고 38x38 / img 28x28 모두 w-[38px] h-[38px] / w-[28px] h-[28px] 인라인 명시.
+          spacing alias (w-8 = 48 / w-7 = 32) 사용 0건. OQ #5 LOCKED.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 서브 "소방안전 통합관리 시스템" 영역은 text-caption + leading-none 명시.
+          타이틀 영역과의 marginTop:2 인라인 함께 사용.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. ☎ U+260E 는 W4 footer scope.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/27-login — W2 모바일 shell + 데스크톱 wrapper</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .text-mono {
+      font-family: 'JetBrains Mono', 'D2 Coding', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+    .page-bg-light { background: #f3f4f6; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12) — /login 은 인증 전 페이지 라
+       MOBILE_NO_NAV_PATHS + DESKTOP_NO_NAV_PATHS 양쪽 등재 (App.tsx line 71, 74) -> 노출 0 */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * 데스크톱 외곽 wrapper — LoginPage.tsx line 177 verbatim
+     * minHeight:100dvh, flex center, padding:20, bg-surface-page
+     * ============================================================ */
+    .desktop-outer {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-page);
+      padding: 40px 20px;
+    }
+
+    /* ============================================================
+     * 데스크톱 카드 — LoginPage.tsx line 178 verbatim
+     * maxWidth:420, borderRadius:20, bg-surface-raised, border, boxShadow
+     * 다크/라이트 모두 boxShadow 0 8px 32px rgba(0,0,0,0.4) 동일 적용 (source verbatim)
+     * ============================================================ */
+    .desktop-card {
+      max-width: 420px;
+      width: 100%;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+
+    /* ============================================================
+     * 카드 바디 placeholder 영역 (W3/W4 에서 채움)
+     * ============================================================ */
+    .placeholder-inner {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'danger-bg':       'var(--status-danger-bg)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'info':            'var(--status-info)',
+            'info-bar':        'var(--status-info-bar)',
+            'info-bg':         'var(--status-info-bg)',
+            'fire':            'var(--status-fire)',
+            'fire-bar':        'var(--status-fire-bar)',
+            'fire-bg':         'var(--status-fire-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">27-login sketch W2 — 모바일 shell + 데스크톱 wrapper + 공통 헤더</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크/라이트) + 데스크톱 1280px (다크/라이트) 4-frame side-by-side.
+      LoginPage.tsx line 175~213 verbatim 매핑. W1 LOCKED 5건 중 OQ #5 (로고 인라인 px) + OQ #3 (서브 11→12 격상) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 모바일 frame ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- App.tsx GlobalHeader placeholder — /login 인증 전 페이지, 모바일 NoNav 등재됨 -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- ① 모바일 헤더 — LoginPage.tsx line 204~213 verbatim 매핑
+             source: <div style={{ background:'var(--bg2)', padding:'16px 20px 24px', borderBottom:'1px solid var(--bd)' }}>
+             변환: class="bg-surface-raised border-b border-border-default" style={{ padding:'16px 20px 24px' }} -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <!-- 로고 박스 (OQ #5 LOCKED): 38x38 rounded-[11px] 인라인 px, rgba bg/border 인라인 -->
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <!-- 내부 img (OQ #5 LOCKED): 28x28 rounded-[7px] 인라인 px -->
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <!-- 타이틀: fontSize 16 fontWeight 700 var(--t1) -> text-body font-bold text-text-primary -->
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <!-- 서브 (OQ #3 LOCKED): fontSize 11 -> text-caption 12 + leading-none -->
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② 본문 영역 placeholder ({inner} — W3 직원 카드 + W4 폼/footer) -->
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba cycle)<br/>
+            +<br/>
+            W4 로그인 폼 + footer 안내문 (bg-safe-bar solid, 표시/숨김, ☎)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 모바일 frame ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 라이트 모드 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:16px 20px 24px;">
+          <div class="flex items-center" style="gap:12px;margin-top:16px;">
+            <div class="w-[38px] h-[38px] rounded-[11px]"
+                 style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+              <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+            </div>
+            <div>
+              <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+              <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;overflow-y:auto;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 직원 카드 그리드 (CARD_COLORS 6 rgba cycle)<br/>
+            +<br/>
+            W4 로그인 폼 + footer 안내문 (bg-safe-bar solid, 표시/숨김, ☎)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 2개 — 다크 + 라이트 (1280px wide)
+       LoginPage.tsx line 175~196 verbatim 매핑
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 데스크톱 frame ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1280px 데스크톱)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login DESKTOP_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- 데스크톱 외곽: minHeight:100dvh + flex center + bg-surface-page (line 177 verbatim) -->
+        <div class="desktop-outer">
+          <!-- 데스크톱 centered card: maxWidth:420 + rounded-[20px] + bg-surface-raised + border + boxShadow + overflow-hidden -->
+          <div class="desktop-card">
+            <!-- 카드 헤더: padding:24px 24px 20px + border-b border-border-default (line 180 verbatim) -->
+            <div class="bg-surface-raised border-b border-border-default" style="padding:24px 24px 20px;">
+              <div class="flex items-center" style="gap:12px;">
+                <!-- 로고 박스 (OQ #5 LOCKED, line 182): 38x38 rounded-[11px] 인라인 px -->
+                <div class="w-[38px] h-[38px] rounded-[11px]"
+                     style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                  <!-- 내부 img (OQ #5 LOCKED, line 183): 28x28 rounded-[7px] 인라인 px -->
+                  <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+                </div>
+                <div>
+                  <!-- 타이틀: fontSize 16 fontWeight 700 var(--t1) (line 186) -->
+                  <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+                  <!-- 서브 (OQ #3 LOCKED, line 187): fontSize 11 -> text-caption 12 + leading-none -->
+                  <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 카드 바디: padding:16px 16px 24px (line 192) -->
+            <div style="padding:16px 16px 24px;">
+              <div class="placeholder-inner">
+                {inner} placeholder<br/>
+                W3 직원 카드 그리드 (CARD_COLORS 6 rgba cycle)<br/>
+                +<br/>
+                W4 로그인 폼 + footer 안내문 (bg-safe-bar solid, 표시/숨김, ☎)
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 데스크톱 frame ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 모드 (1280px 데스크톱)</div>
+      <div data-theme="light" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /login DESKTOP_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <div class="desktop-outer">
+          <div class="desktop-card">
+            <div class="bg-surface-raised border-b border-border-default" style="padding:24px 24px 20px;">
+              <div class="flex items-center" style="gap:12px;">
+                <div class="w-[38px] h-[38px] rounded-[11px]"
+                     style="background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+                  <img src="/icons/icon-192.png" alt="" class="w-[28px] h-[28px] rounded-[7px]" />
+                </div>
+                <div>
+                  <div class="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+                  <div class="text-caption text-text-tertiary leading-none" style="margin-top:2px;">소방안전 통합관리 시스템</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:16px 16px 24px;">
+              <div class="placeholder-inner">
+                {inner} placeholder<br/>
+                W3 직원 카드 그리드 (CARD_COLORS 6 rgba cycle)<br/>
+                +<br/>
+                W4 로그인 폼 + footer 안내문 (bg-safe-bar solid, 표시/숨김, ☎)
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W2 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>로고 박스 (OQ #5 LOCKED) = <code class="text-zinc-200">w-[38px] h-[38px] rounded-[11px]</code> 인라인 px. 4 frame (모바일 다크/라이트 + 데스크톱 다크/라이트) 모두 동일.</li>
+      <li>내부 icon-192.png (OQ #5 LOCKED) = <code class="text-zinc-200">w-[28px] h-[28px] rounded-[7px]</code> 인라인 px. 마찬가지 4 frame 모두 동일.</li>
+      <li>tailwind config override 함정 회피 — <code class="text-zinc-200">w-8 = 48px</code> / <code class="text-zinc-200">w-7 = 32px</code> 토큰 사용 0건. 38/28 모두 인라인 px <code class="text-zinc-200">w-[Npx]</code> 형태.</li>
+      <li>로고 박스 배경/border 는 rgba 인라인 그대로 — <code class="text-zinc-200">rgba(37,99,235,0.2)</code> bg + <code class="text-zinc-200">rgba(59,130,246,0.3)</code> border (source line 182, 206 verbatim).</li>
+      <li>타이틀 "차바이오컴플렉스 방재팀" = <code class="text-zinc-200">text-body font-bold text-text-primary</code> (fontSize 16, fontWeight 700). 4 frame 동일.</li>
+      <li>서브 "소방안전 통합관리 시스템" (OQ #3 LOCKED) = <code class="text-zinc-200">text-caption text-text-tertiary leading-none</code>. fontSize 11 -> 12 격상 + leading-none 명시 (작은 컨테이너 시각 패딩 회피).</li>
+      <li>데스크톱 카드 외곽 (line 178) = <code class="text-zinc-200">maxWidth:420</code> + <code class="text-zinc-200">rounded-[20px]</code> 인라인 (토큰 없음) + <code class="text-zinc-200">bg-surface-raised</code> + <code class="text-zinc-200">border border-border-default</code> + <code class="text-zinc-200">boxShadow:0 8px 32px rgba(0,0,0,0.4)</code> 인라인 + <code class="text-zinc-200">overflow:hidden</code>.</li>
+      <li>다크/라이트 boxShadow 동일 (source verbatim) — 라이트에서 약화 적용 검토 후보지만 본 wave 는 source 그대로.</li>
+      <li>모바일 헤더 padding (line 204) = <code class="text-zinc-200">16px 20px 24px</code> + 데스크톱 카드 헤더 padding (line 180) = <code class="text-zinc-200">24px 24px 20px</code> 서로 다름. 두 헤더 패턴 source verbatim 보존.</li>
+      <li>placeholder "{inner}" 영역 4 frame 모두 동일 — W3 직원 카드 그리드 + W4 로그인 폼 + footer 안내문 mounting point.</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> prefix 0 hit / fontSize 9&#8209;11px 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W2 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (로그인 버튼 그라데이션 폐기): W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (CARD_COLORS 6 rgba): W3 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 서브 "소방안전 통합관리 시스템" 11 -> 12 text-caption + leading-none.</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (show/hide 텍스트 + ☎ 유지): W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (인라인 px): 본 wave 적용 = O. 로고 38x38 rounded-[11px] + img 28x28 rounded-[7px] 인라인 px 4 frame 모두 동일.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 진입 전 OQ (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + LoginPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W3 = 직원 카드 그리드 (CARD_COLORS 6 rgba cycle + isSelected variant). 본 W2 sketch 의 모바일 inner 영역 + 데스크톱 카드 바디 영역 안 마운트.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
