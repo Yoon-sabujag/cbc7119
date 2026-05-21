@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-install-guides.html — redesign/28-splash W4
+  작성: 2026-05-22 / quick 260522-2q6
+  범위: InstallPrompt.tsx Android 가이드 view (line 112~147, showAndroidGuide 분기) +
+        iOS 가이드 view (line 148~215, else 분기) 시각화
+        오버레이 + 카드 + (Android only 노란 경고) + 3-step + 확인했습니다 버튼
+        3 frame (다크 Android / 다크 iOS / 라이트 Android)
+  out of scope: SplashScreen 전체 (W2) / InstallPrompt 메인 view (W3) / TSX 변환 (W5)
+                / InstallPrompt.tsx 코드 수정 / pwaInstall.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 17-annual-plan/sketch-wave-4-download.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 설치 버튼 bg-safe-bar (W3 scope, 본 wave 미해당)
+    OQ #2 LOCKED — 진행 바 bg-accent (W2 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 폰트 격상 (step 제목 13 text-label leading-none / 하위 설명 11 -> 12 text-caption leading-relaxed 격상
+                              / 숫자 원 글자 13 text-label leading-none font-extrabold / 확인했습니다 13 text-label leading-none) (본 wave 적용 = O)
+    OQ #4 LOCKED — 노란 경고 #f59e0b + rgba(245,158,11,0.1) + rgba(245,158,11,0.25) -> text-warning + bg-warning-bg + border-warning/25
+                   / 숫자 원 rgba(59,130,246,0.15) + #3b82f6 -> bg-accent/15 + text-accent / 4 text 토큰 (본 wave 적용 = O)
+    OQ #5 LOCKED — Android u22EE 메뉴 + iOS u238B 공유 글리프 인라인 span fontSize 16 + verticalAlign middle 보존 (본 wave 적용 = O ★ 핵심)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 InstallPrompt Android + iOS 가이드 3 frame 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> Android only 노란 경고 "자동 설치 창이 뜨지 않으면 아래 순서로 설치해 주세요." verbatim
+          step 1/2/3 카피 (Android: 크롬 우상단 ⋮ 메뉴 / 앱 설치 또는 홈 화면에 추가 / 설치 확인
+                          iOS: 하단 공유 버튼 터치 + Safari 하단의 ⎋ 공유 아이콘 / 홈 화면에 추가 / 추가) verbatim
+          확인했습니다 (line 145 + 212) 양쪽 verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (text-warning bg-warning-bg border-warning/25 rounded-sm /
+          bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm /
+          text-label leading-none text-text-primary / text-caption leading-relaxed text-text-secondary /
+          bg-accent/15 text-accent text-label font-bold leading-none rounded-md) 와 인라인 (28x28 숫자 원 width/height,
+          확인했습니다 height:44, marginTop:18, border 1px solid rgba(59,130,246,0.3), 글리프 fontSize:16,
+          iOS verticalAlign:'middle') 모두 W5 checklist 안 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선.
+       -> 노란 경고 = text-warning + bg-warning-bg + border-warning/25 (status- prefix X). 숫자 원 = bg-accent/15 + text-accent.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 숫자 원 28x28 = style="width:28px;height:28px" 인라인 명시 (w&#8209;8 -> 48 함정 회피).
+          확인했습니다 height 44 도 인라인. w&#8209;8 / h&#8209;8 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 노란 경고 (padding 8px 10px 작은 칩) = text-caption leading-relaxed (텍스트 wrap 가능성, 12 + lh:1.5+).
+          숫자 원 (28x28 작은 컨테이너 안 13px 숫자) = text-label leading-none font-extrabold.
+          step 제목 (h≈18 작은 컨테이너 13px) = text-label leading-none.
+          step 하위 설명 (한~두 줄 wrap 가능) = text-caption leading-relaxed.
+          확인했습니다 (h:44 버튼) = text-label leading-none.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> ★ 단 u22EE (Vertical Ellipsis) + u238B (Broken Circle with Northwest Arrow) 2 글리프는 OQ #5 LOCKED 예외 anchor
+          (emoji 블록 외부 codepoint — Unicode Mathematical Operators / Miscellaneous Technical, 시스템 글꼴 시그니처).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       노란 경고 = warning 의미 (Android 자동 설치 실패 fallback, 사용자 주의 환기) -> text-warning 토큰.
+       숫자 원 = neutral 단계 표시 (위험 임계치 아님) -> bg-accent/15 + text-accent.
+
+    9. project_redesign_12_staff_service_status.md (확인 버튼 패턴 precedent)
+       -> 확인했습니다 버튼 (bg-accent/15 + text-accent + border rgba(59,130,246,0.3) 인라인 + height:44) 패턴 mirror.
+
+   10. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/28&#8209;splash 확인 + dirty 면 사용자 컨펌.
+
+  ==========================================================
+  ★ 특수 글리프 anchor 박스 (OQ #5 LOCKED, sketch + TSX + verify gate 모두 동일)
+  ==========================================================
+
+    u22EE (U+22EE Vertical Ellipsis, Android Chrome 메뉴 시그니처, line 122)
+      -> inline <span style="font-size:16px;">u22EE</span>
+      -> 의미 anchor: Android Chrome 메뉴 아이콘 = 점 3개 세로 (Lucide MoreVertical 와 다름, 시스템 글꼴 그대로 표시)
+      -> 글꼴 의미 anchor (Lucide 교체 X)
+
+    u238B (U+238B Broken Circle With Northwest Arrow, iOS Safari 공유 아이콘 시그니처, line 164)
+      -> inline <span style="font-size:16px;vertical-align:middle;">u238B</span>
+      -> 의미 anchor: iOS Safari 하단 공유 버튼 아이콘 = 사각형 위 화살표 (시스템 글꼴 그대로 표시)
+      -> verticalAlign 'middle' 보존 (시각 정렬 anchor)
+      -> 글꼴 의미 anchor (Lucide 교체 X)
+
+    emoji negative grep 시 [emoji 블록] 패턴은 u22EE + u238B 2 글리프 매칭 안 됨 (둘 다 emoji 블록 외부 codepoint).
+    -> sketch + TSX + verify gate 모두 동일 예외 anchor.
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용)
+  ==========================================================
+
+    - 노란 경고 text #f59e0b -> text-warning (OQ #4)
+    - 노란 경고 background rgba(245,158,11,0.1) -> bg-warning-bg (OQ #4)
+    - 노란 경고 border rgba(245,158,11,0.25) -> border-warning/25 (OQ #4)
+    - 숫자 원 background rgba(59,130,246,0.15) -> bg-accent/15 (OQ #4)
+    - 숫자 원 + 확인했습니다 글자 색 #3b82f6 -> text-accent (OQ #4)
+    - step 제목 text #e6edf3 -> text-text-primary (OQ #4)
+    - step 하위 설명 text #8b949e -> text-text-secondary (OQ #4)
+    - 인라인 유지: 확인했습니다 버튼 border 1px solid rgba(59,130,246,0.3) (OQ #4 인라인 유지 — 본 wave 추가 인스턴스)
+    - 인라인 유지: u22EE / u238B 글리프 fontSize 16 + (iOS) verticalAlign middle (OQ #5)
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 — 단 u22EE + u238B 예외 anchor (OQ #5 LOCKED)
+    - linear&#8209;gradient 0건
+    - 9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과, 단 fontSize sixteen 글리프 OQ #5 예외)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건
+    - w&#8209;8 / h&#8209;8 0건
+    - 옛 alias 토큰 0건
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/28-splash — W4 InstallPrompt 가이드 view</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning:     #fbbf24;
+      --status-warning-bar: #f59e0b;
+      --status-warning-bg:  rgba(245, 158, 11, 0.16);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe-bar:    #15803d;
+      --status-warning:     #854d0e;
+      --status-warning-bar: #b45309;
+      --status-warning-bg:  #fef3c7;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .font-black { font-weight: 900; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'warning-bg':      'var(--status-warning-bg)',
+          },
+          borderColor: {
+            'warning':         'var(--status-warning)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1600px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">28-splash sketch W4 — InstallPrompt 가이드 view (Android + iOS)</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 3 frame side-by-side. InstallPrompt.tsx line 112~147 (Android 가이드) + line 148~215 (iOS 가이드) verbatim 매핑.
+      3 frame: 다크 Android (노란 경고 + ⋮ 글리프) / 다크 iOS (⎋ 글리프 + verticalAlign middle) / 라이트 Android.
+      W1 OQ LOCKED 5건 중 OQ #3 (폰트 격상 step 제목 13 / 하위 설명 11 -> 12 / 숫자 원 13 / 확인했습니다 13) + OQ #4 (노란 경고 토큰 3종 + 숫자 원 + 4 text 토큰) + OQ #5 (⋮ ⎋ 글리프 fontSize 16 + iOS verticalAlign middle 보존) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       3 frame side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / Android 가이드 (노란 경고 + 3-step + ⋮ 글리프)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 (393x800) — Android 가이드 (노란 경고 + ⋮ U+22EE)</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <!-- 오버레이 + 카드 (W3 와 동일 chrome) -->
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+
+            <!-- 아이콘 박스 + 제목 + 부제 (W3 와 동일 chrome) -->
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;text-align:center;">CBC 방재</h2>
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;text-align:center;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+
+            <!-- Android 가이드 view 본문 (source line 113~146) -->
+            <div style="text-align:left;">
+
+              <!-- 노란 경고 (Android only, OQ #4 LOCKED text-warning + bg-warning-bg + border-warning/25 + OQ #3 LOCKED 12 text-caption leading-relaxed)
+                   source line 115: fontSize twelve px, color '#f59e0b', background 'rgba(245,158,11,0.1)',
+                                      border '1px solid rgba(245,158,11,0.25)', borderRadius 8, padding '8px 10px', marginBottom 14 -->
+              <div class="text-caption leading-relaxed text-warning bg-warning-bg border-warning/25 rounded-sm" style="border:1px solid;padding:8px 10px;margin-bottom:14px;">
+                자동 설치 창이 뜨지 않으면 아래 순서로 설치해 주세요.
+              </div>
+
+              <!-- 3-step -->
+              <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <!-- step 1 (Android: 크롬 우상단 ⋮ 메뉴, OQ #5 LOCKED ⋮ 글리프 fontSize 16 인라인 유지)
+                     source line 120~124:
+                       숫자 원 line 120: width 28, height 28, borderRadius 8, background 'rgba(59,130,246,0.15)',
+                                          color '#3b82f6', fontSize thirteen px, fontWeight 800
+                       step 제목 line 122: fontSize thirteen px, fontWeight 700, color '#e6edf3' + ⋮ <span style="fontSize:16">⋮</span>
+                       하위 설명 line 123: fontSize eleven px, color '#8b949e', marginTop 2 -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">1</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">
+                      크롬 우상단 <span style="font-size:16px;">⋮</span> 메뉴
+                    </div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">주소창 오른쪽 점 세 개 메뉴를 누르세요</div>
+                  </div>
+                </div>
+
+                <!-- step 2 (앱 설치 또는 홈 화면에 추가)
+                     source line 127~131 -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">2</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'앱 설치' 또는 '홈 화면에 추가' 선택</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">메뉴에서 <strong class="text-text-primary">앱 설치</strong>(또는 <strong class="text-text-primary">홈 화면에 추가</strong>)를 누르세요</div>
+                  </div>
+                </div>
+
+                <!-- step 3 (설치 확인)
+                     source line 134~138 -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">3</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'설치' 확인</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">팝업에서 <strong class="text-text-primary">설치</strong>를 누르면 완료</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- 확인했습니다 버튼 (OQ #4 LOCKED bg-accent/15 + text-accent + 인라인 border + OQ #3 LOCKED 13 text-label leading-none)
+                   source line 142~146: width '100%', height 44, borderRadius 10, marginTop 18,
+                                          background 'rgba(59,130,246,0.15)', border '1px solid rgba(59,130,246,0.3)',
+                                          color '#3b82f6', fontSize thirteen px, fontWeight 700 -->
+              <button class="bg-accent/15 text-accent text-label font-bold leading-none rounded-md" style="width:100%;height:44px;margin-top:18px;border:1px solid rgba(59,130,246,0.3);cursor:pointer;">
+                확인했습니다
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / iOS 가이드 (3-step + ⎋ 글리프 + verticalAlign middle)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 (393x800) — iOS 가이드 (⎋ U+238B + verticalAlign middle)</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;text-align:center;">CBC 방재</h2>
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;text-align:center;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+
+            <!-- iOS 가이드 view 본문 (source line 150~214, 노란 경고 없음) -->
+            <div style="text-align:left;">
+              <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <!-- step 1 (iOS: 하단 공유 버튼 터치, OQ #5 LOCKED ⎋ 글리프 fontSize 16 + verticalAlign middle)
+                     source line 152~166:
+                       숫자 원 line 153~158
+                       step 제목 line 160 "하단 공유 버튼 터치"
+                       하위 설명 line 163~164 with <span style={{ fontSize: 16, verticalAlign: 'middle' }}>⎋</span> -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">1</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">
+                      하단 공유 버튼 터치
+                    </div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">
+                      Safari 하단의 <span style="font-size:16px;vertical-align:middle;">⎋</span> 공유 아이콘을 누르세요
+                    </div>
+                  </div>
+                </div>
+
+                <!-- step 2 ('홈 화면에 추가' 선택)
+                     source line 169~183 -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">2</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'홈 화면에 추가' 선택</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">스크롤해서 <strong class="text-text-primary">홈 화면에 추가</strong>를 찾아 누르세요</div>
+                  </div>
+                </div>
+
+                <!-- step 3 ('추가' 터치)
+                     source line 186~200 -->
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">3</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'추가' 터치</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">오른쪽 상단 <strong class="text-text-primary">추가</strong> 버튼을 누르면 완료!</div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- 확인했습니다 버튼 (iOS — Android 와 동일 패턴, source line 204~213) -->
+              <button class="bg-accent/15 text-accent text-label font-bold leading-none rounded-md" style="width:100%;height:44px;margin-top:18px;border:1px solid rgba(59,130,246,0.3);cursor:pointer;">
+                확인했습니다
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 라이트 모바일 393x800 / Android 가이드 (라이트 명도 + ⋮ 글리프)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 (393x800) — Android 가이드 (라이트 명도 + ⋮ U+22EE)</div>
+      <div data-theme="light" class="frame-shell-mobile bg-surface-page">
+
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.4;">
+          <div style="text-align:center;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;">SplashScreen background (W2)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;padding:24px;">
+          <div class="bg-surface-raised rounded-[20px]" style="padding:28px 24px;max-width:340px;width:100%;border:1px solid rgba(59,130,246,0.3);box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+
+            <div class="rounded-lg" style="width:64px;height:64px;margin:0 auto 16px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;">
+              <div style="width:48px;height:48px;border-radius:12px;background:linear&#8209;gradient(135deg, #1f6feb, #0a52c4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;letter-spacing:0.05em;">CBC</div>
+            </div>
+            <h2 class="text-title font-extrabold text-text-primary" style="margin:0 0 8px;text-align:center;">CBC 방재</h2>
+            <p class="text-caption leading-relaxed text-text-secondary" style="margin:0 0 20px;text-align:center;">
+              홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
+            </p>
+
+            <div style="text-align:left;">
+              <!-- 라이트 모드 Android 노란 경고 (light tokens: warning #854d0e + bg fef3c7) -->
+              <div class="text-caption leading-relaxed text-warning bg-warning-bg border-warning/25 rounded-sm" style="border:1px solid;padding:8px 10px;margin-bottom:14px;">
+                자동 설치 창이 뜨지 않으면 아래 순서로 설치해 주세요.
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">1</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">
+                      크롬 우상단 <span style="font-size:16px;">⋮</span> 메뉴
+                    </div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">주소창 오른쪽 점 세 개 메뉴를 누르세요</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">2</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'앱 설치' 또는 '홈 화면에 추가' 선택</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">메뉴에서 <strong class="text-text-primary">앱 설치</strong>(또는 <strong class="text-text-primary">홈 화면에 추가</strong>)를 누르세요</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style="width:28px;height:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">3</div>
+                  <div>
+                    <div class="text-label leading-none text-text-primary" style="font-weight:700;">'설치' 확인</div>
+                    <div class="text-caption leading-relaxed text-text-secondary" style="margin-top:2px;">팝업에서 <strong class="text-text-primary">설치</strong>를 누르면 완료</div>
+                  </div>
+                </div>
+              </div>
+              <button class="bg-accent/15 text-accent text-label font-bold leading-none rounded-md" style="width:100%;height:44px;margin-top:18px;border:1px solid rgba(59,130,246,0.3);cursor:pointer;">
+                확인했습니다
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스 (sketch 외부 chrome, OQ LOCKED + 비즈 anchor + 토큰 매핑 + 특수 글리프 anchor)
+       ============================================================ -->
+  <section class="max-w-[1600px] mx-auto bg-zinc-900/60 rounded-lg p-6 text-zinc-300" style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;">
+
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">W1 OQ LOCKED 결정 (본 wave 적용)</h2>
+    <pre style="white-space:pre-wrap;">
+OQ #3 LOCKED (폰트 격상 verbatim):
+  - 노란 경고 fontSize twelve px (line 115) -> "text-caption leading-relaxed"
+  - 숫자 원 fontSize thirteen px fontWeight 800 (line 120/127/134/154/171/187) -> "text-label font-extrabold leading-none"
+  - step 제목 fontSize thirteen px fontWeight 700 (line 122/130/136/160/177/194) -> "text-label leading-none"
+  - step 하위 설명 fontSize eleven px (line 123/131/137/163/180/197) -> "text-caption leading-relaxed" (11 -> 12 격상)
+  - 확인했습니다 fontSize thirteen px fontWeight 700 (line 143/209) -> "text-label font-bold leading-none"
+  - 글리프 fontSize sixteen px (line 122 ⋮ + line 164 ⎋) -> 인라인 유지 (OQ #5 예외)
+  - 9 / 10 / 11 px 0건 강제 (단 fontSize sixteen 글리프 OQ #5 예외)
+
+OQ #4 LOCKED (토큰 치환):
+  - 노란 경고 text #f59e0b -> "text-warning"
+  - 노란 경고 background rgba(245,158,11,0.1) -> "bg-warning-bg"
+  - 노란 경고 border rgba(245,158,11,0.25) -> "border-warning/25"
+  - 숫자 원 background rgba(59,130,246,0.15) -> "bg-accent/15"
+  - 숫자 원 글자 #3b82f6 -> "text-accent"
+  - step 제목 text #e6edf3 -> "text-text-primary"
+  - step 하위 설명 text #8b949e -> "text-text-secondary"
+  - 확인했습니다 동일 (bg-accent/15 + text-accent)
+  - 인라인 유지 (본 wave 추가 인스턴스): 확인했습니다 border '1px solid rgba(59,130,246,0.3)' (line 143/208)
+  - strong 색 #e6edf3 -> "text-text-primary"
+
+OQ #5 LOCKED (iOS ⋮ ⎋ 글리프 인라인 보존):
+  - InstallPrompt line 122 <span style="font-size:16px;">⋮</span> 100% 유지 (Android Chrome 메뉴 시그니처)
+  - InstallPrompt line 164 <span style="font-size:16px;vertical-align:middle;">⎋</span> 100% 유지 (iOS Safari 공유 시그니처)
+  - Lucide 교체 금지 (글꼴 의미 anchor)
+  - emoji negative grep 시 emoji 블록 패턴은 ⋮ ⎋ 매칭 X (Unicode 외부 블록)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">★ 특수 글리프 anchor 박스 (OQ #5 LOCKED, sketch + TSX + verify gate)</h2>
+    <pre style="white-space:pre-wrap;">
+⋮ (U+22EE Vertical Ellipsis, Android Chrome 메뉴 시그니처, line 122) — inline &lt;span style="font-size:16px;"&gt;⋮&lt;/span&gt;
+⎋ (U+238B Broken Circle With Northwest Arrow, iOS Safari 공유 아이콘 시그니처, line 164) — inline &lt;span style="font-size:16px;vertical-align:middle;"&gt;⎋&lt;/span&gt;
+Lucide react import 추가 X (글꼴 의미 anchor — Android Chrome / iOS Safari 시스템 글꼴 그대로 표시)
+emoji negative grep 시 [emoji block] 패턴에서 ⋮ ⎋ 2 글리프는 매칭되지 않음 (U+22EE + U+238B 은 emoji 블록 외부)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">★ 비즈 anchor 8건 (InstallPrompt) — 1 byte 변경 금지</h2>
+    <pre style="white-space:pre-wrap;">
+1. isStandalone() (line 5~10, iOS standalone + display-mode standalone/fullscreen 3분기)
+2. isIOS() (line 12~17, iPhone/iPad/iPod + Macintosh+maxTouchPoints fallback)
+3. getDeferredInstallPrompt / subscribeInstallPrompt / showInstallPrompt import (line 2)
+4. shouldShowInstallPrompt() export (line 224~233, isStandalone + 24h TTL)
+5. dismissInstallPrompt() export (line 235~237, localStorage.setItem)
+6. localStorage key 'pwa-install-dismissed' + TTL 24 * 60 * 60 * 1000
+7. outcome 3 분기: 'accepted' -> onDismiss / 'unavailable' -> setShowAndroidGuide(true) / 'dismissed' -> no-op (line 40~47)
+8. 3 view state: 메인 (!showIOSGuide && !showAndroidGuide) / Android (showAndroidGuide) / iOS (else) — line 88~215
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">Negative gate (sketch 본문)</h2>
+    <pre style="white-space:pre-wrap;">
+이모지 0건 — 단 ⋮ + ⎋ 2 글리프 예외 anchor (OQ #5 LOCKED, Unicode 블록 외부 codepoint)
+linear&#8209;gradient 0건
+9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과, 단 fontSize sixteen 글리프 OQ #5 예외)
+(text|bg|border)&#8209;status&#8209; class prefix 0건
+w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty eight px 함정, memory feedback_tailwind_w8_h8_is_48px)
+옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) 0건 in sketch
+    </pre>
+  </section>
+
+</body>
+</html>
