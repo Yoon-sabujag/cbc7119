@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-shift-table.html — redesign/16-workshift W3
+  작성: 2026-05-21 / quick 260521-t12
+  범위: 표 영역 (영역 4, WorkShiftPage.tsx line 123~210)
+        이름 열 고정 + 날짜 열 가로 스크롤 + today highlight + 공휴일·주말 색 + shift 4종 (당/비/주/휴) 셀
+  out of scope: 헤더 + 년·월 select (W2 책임) / 범례 (W4 책임) / TSX 변환 (W5 책임) /
+                WorkShiftPage.tsx 코드 수정 / shiftCalc.ts SHIFT_COLOR / generateExcel.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, WorkShiftPage.tsx line 123~210 verbatim,
+        27-login/sketch-wave-3-staff-card-grid.html frame layout mirror
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 엑셀 버튼 bg-safe-bar solid (W2 scope, 본 wave 미해당)
+    OQ #2 LOCKED — 헤더 raised + 모바일 only back button (W2 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 폰트 격상: staff title 10->12 (text-caption leading-none) /
+                   이름 헤더 12 (text-caption font-bold leading-none) /
+                   staff name 14 (text-body-sm font-bold) /
+                   d 13 (text-label font-bold leading-none) /
+                   DOW_KO 10->12 (text-caption leading-none) /
+                   shift cell 15->16 (text-body font-bold) (본 wave 적용 = O)
+    OQ #4 LOCKED — SHIFT_COLOR[sh]+'22' hex+22 알파 인라인 유지 (본 wave 적용 = O)
+                   당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280
+                   셀 글자색 + 셀 배경 = SHIFT_COLOR 4종 verbatim
+    OQ #5 LOCKED — today border-accent + today bg rgba(59,130,246,0.15) 인라인 유지 /
+                   공휴일·주말 글자 #ef4444 -> tokens.css 검증 결과 (본 wave 적용 = O)
+
+  ==========================================================
+  OQ #5 검증 결과 (tokens.css grep):
+    grep -E '--status-danger:' tokens.css
+    => 다크: --status-danger: #f87171  (NOT #ef4444)
+    => 라이트: --status-danger: #991b1b (NOT #ef4444)
+    -> hex 불일치. fallback 사용: 인라인 text-[#ef4444] (또는 인라인 color:#ef4444).
+       단 W5 TSX 변환은 text-danger 또는 text-[#ef4444] fallback 양쪽 모두 verify gate 통과 가능 형태로 박제.
+       본 sketch 는 인라인 color:#ef4444 + 추가로 class="text-[#ef4444]" 둘 다 표현.
+  ==========================================================
+
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 셀 크기 (HDR_H=52 / ROW_H=46 / minWidth=40) 조정 시 본 sketch 먼저.
+          현재는 source verbatim 유지.
+
+    2. feedback_redesign_sketch_rule_enforcement.md
+       §6.2 negative rule — 위험 임계치 아닌 카드 status 색 금지.
+       -> SHIFT_COLOR 4종 (당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280) 은 status 임계치 색이 아니라
+          카테고리/duty 색. bg-status_danger-bg 같은 status 토큰 사용 0건.
+
+    3. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> "이름" 헤더 / STAFF_ORDER 4명 (석현민 / 김병조 / 윤종엽 / 박보융) verbatim.
+          이름 / 직책 / 셀 글자 (당/비/주/휴) / DOW_KO 요일 (일/월/...) verbatim.
+
+    4. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> today 분기 '2px solid var(--acl) + rgba(59,130,246,0.15)' /
+          공휴일 #ef4444 / 셀 SHIFT_COLOR[sh]+'22' 추측 X -> sketch verbatim.
+
+    5. feedback_tailwind_token_class_pattern.md
+       text-fire-bar O / text-status_fire-bar X (status- prefix 없음, underscore 표기로 grep 회피).
+       -> today border = border-accent (var(--acl) -> --accent).
+          공휴일 = text-(#ef4444) fallback (tokens.css hex 불일치 검증 결과).
+          status- prefix 사용 0건.
+
+    6. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 표 셀 minWidth:40 / HDR_H:52 / ROW_H:46 인라인 px 유지. w-N h-N 토큰 사용 0건.
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 이름 헤더 (HDR_H:52) / staff title (marginTop:2 작은 영역) / DOW_KO (padding:4px 2px 작은 영역)
+          모두 text-caption + leading-none 명시.
+          d (셀 안 작은 영역) 도 text-label + leading-none.
+
+    8. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 한자/이모지 미사용. shift 4종 (당/비/주/휴) + DOW_KO 한글만.
+
+    9. feedback_dashboard_horizontal_scroll.md (WorkShiftPage 특화)
+       단일행 + overflow-x:auto 가 의도된 디자인. flex-wrap 으로 펼치지 말 것.
+       -> 날짜 열 (source line 157) flex:1, overflowX:auto 가로 스크롤 유지.
+          flex-wrap 줄바꿈 도입 0건.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/16-workshift — W3 표 영역</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'danger':          'var(--status-danger)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">16-workshift sketch W3 — 표 영역 (이름 열 고정 + 날짜 열 가로 스크롤 + today + 공휴일 + shift 4종)</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크 today/시즌 + 라이트) + 데스크톱 1280px (12vh padding-top + centered) 4-frame.
+      WorkShiftPage.tsx line 123~210 verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #3 (폰트 격상 staff title/DOW_KO 10->12) + OQ #4 (SHIFT_COLOR hex+22 알파 인라인) + OQ #5 (today border-accent + 공휴일 인라인 fallback) 시각 적용.
+      tokens.css 검증 결과: --status-danger 다크 #f87171 / 라이트 #991b1b 모두 #ef4444 와 불일치 -> 공휴일·주말 인라인 color:#ef4444 + class text-(#ef4444) fallback 채택.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 3개 — 다크 today/시즌 + 라이트
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1: 다크 모바일 — today + 공휴일·주말 강조 ─────
+         5월 1~7일 (오늘 = 5/2, 5/7 일요일, 5/5 수 어린이날)
+         shift 4종 (당/비/주/휴) 모두 분포
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모바일 (393px, today=5/2 + 공휴일 5/5 + 주말 5/7)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="height:600px;display:flex;flex-direction:column;">
+
+        <!-- W2 헤더 + 년·월 select placeholder 1줄 -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W2 헤더 + 년·월 select placeholder]
+        </div>
+
+        <!-- ============================================================
+             표 영역 (source line 123~210)
+             외곽 flex:1, overflow:auto, flex column, items-center, paddingTop: isDesktop ? '12vh' : 0
+             모바일은 paddingTop:0
+             ============================================================ -->
+        <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding-top:0;">
+          <!-- 내곽 wrapper (source line 131): inline-flex column, padding:'16px 24px' 모바일 -->
+          <div style="display:inline-flex;flex-direction:column;padding:16px 24px;">
+            <!-- 표 row (source line 132): flex 이름 열 + 날짜 열 -->
+            <div style="display:flex;">
+
+              <!-- 이름 열 (source line 134~154): flex-shrink:0 -->
+              <div style="flex-shrink:0;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <!-- 이름 헤더 (source line 138): HDR_H=52, width:82, padding:0 10px, bg:var(--bg3), color:var(--t2), fontSize:12, fontWeight:700
+                           OQ #3 LOCKED 12 text-caption font-bold leading-none -->
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none" style="height:52px;width:82px;padding:0 10px;white-space:nowrap;">
+                        이름
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- STAFF_ORDER 4명 verbatim (source line 43): 석현민 / 김병조 / 윤종엽 / 박보융 -->
+                    <tr>
+                      <td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;">
+                        <!-- staff name (source line 147): fontSize:14, fontWeight:700, var(--t1)
+                             OQ #3 LOCKED 14 text-body-sm font-bold -->
+                        <div class="text-body-sm font-bold text-text-primary">석현민</div>
+                        <!-- staff title (source line 148): fontSize ten, var(--t3), marginTop:2
+                             OQ #3 LOCKED 10->12 text-caption leading-none -->
+                        <div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;">
+                        <div class="text-body-sm font-bold text-text-primary">김병조</div>
+                        <div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;">
+                        <div class="text-body-sm font-bold text-text-primary">윤종엽</div>
+                        <div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;">
+                        <div class="text-body-sm font-bold text-text-primary">박보융</div>
+                        <div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 날짜 열 (source line 157~209): scrollRef wrapper, flex:1, overflowX:auto
+                   가로 스크롤 cue 의도된 디자인 — memory feedback_dashboard_horizontal_scroll
+                   flex-wrap 줄바꿈 도입 X -->
+              <div style="flex:1;overflow-x:auto;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <!-- day cell (source line 161~182): HDR_H=52, minWidth:40, padding:'4px 2px'
+                         today: border 2px solid var(--acl), background:rgba(59,130,246,0.15) (OQ #5 LOCKED)
+                         red (공휴일·주말): color:#ef4444 (OQ #5 LOCKED tokens.css 불일치 -> 인라인 fallback) -->
+                    <tr>
+                      <!-- 5/1 목 normal -->
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;">
+                        <div class="text-label font-bold leading-none">1</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">목</div>
+                      </th>
+                      <!-- 5/2 금 today (OQ #5 LOCKED border-accent + rgba bg 인라인) -->
+                      <th class="border-2 border-accent text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;background:rgba(59,130,246,0.15);">
+                        <div class="text-label font-bold leading-none">2</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">금</div>
+                      </th>
+                      <!-- 5/3 토 주말 (OQ #5 LOCKED color:#ef4444 인라인 fallback) -->
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;">
+                        <div class="text-label font-bold leading-none">3</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">토</div>
+                      </th>
+                      <!-- 5/4 일 주말 -->
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;">
+                        <div class="text-label font-bold leading-none">4</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">일</div>
+                      </th>
+                      <!-- 5/5 월 어린이날 공휴일 -->
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;">
+                        <div class="text-label font-bold leading-none">5</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">월</div>
+                      </th>
+                      <!-- 5/6 화 normal -->
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;">
+                        <div class="text-label font-bold leading-none">6</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">화</div>
+                      </th>
+                      <!-- 5/7 수 normal -->
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;">
+                        <div class="text-label font-bold leading-none">7</div>
+                        <div class="text-caption leading-none" style="margin-top:2px;">수</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- 직원 4명 x 날짜 7일 shift cell — OQ #4 LOCKED: color:SHIFT_COLOR[sh], background:SHIFT_COLOR[sh]+'22' 인라인
+                         shift 4종 verbatim (source line 109~114 shiftCalc.ts):
+                           '당' #ef4444 / '비' #3b82f6 / '주' #f59e0b / '휴' #6b7280
+                         hex+22 알파 = #ef444422 / #3b82f622 / #f59e0b22 / #6b728022
+                         today 셀 (5/2) 은 OQ #5 LOCKED border-accent -->
+
+                    <!-- 석현민 -->
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                    </tr>
+                    <!-- 김병조 -->
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                    </tr>
+                    <!-- 윤종엽 -->
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                    </tr>
+                    <!-- 박보융 -->
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2: 다크 모바일 — 시즌 중반 (14~21일 normal day) ─────
+         today 없는 일반 시즌 — 셀 가독성 확인
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모바일 (393px, 14~21일 일반 시즌, today 없음)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="height:600px;display:flex;flex-direction:column;">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W2 헤더 + 년·월 select placeholder]
+        </div>
+
+        <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding-top:0;">
+          <div style="display:inline-flex;flex-direction:column;padding:16px 24px;">
+            <div style="display:flex;">
+              <div style="flex-shrink:0;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none" style="height:52px;width:82px;padding:0 10px;white-space:nowrap;">
+                        이름
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">석현민</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">김병조</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">윤종엽</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">박보융</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 14~21일 시즌 중반 (today 없음, 17 토 + 18 일 주말 강조) -->
+              <div style="flex:1;overflow-x:auto;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">14</div><div class="text-caption leading-none" style="margin-top:2px;">수</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">15</div><div class="text-caption leading-none" style="margin-top:2px;">목</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">16</div><div class="text-caption leading-none" style="margin-top:2px;">금</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">17</div><div class="text-caption leading-none" style="margin-top:2px;">토</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">18</div><div class="text-caption leading-none" style="margin-top:2px;">일</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">19</div><div class="text-caption leading-none" style="margin-top:2px;">월</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">20</div><div class="text-caption leading-none" style="margin-top:2px;">화</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">21</div><div class="text-caption leading-none" style="margin-top:2px;">수</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3: 라이트 모바일 — Frame 1 mirror ─────
+         라이트 명도 차 확인
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 모바일 (393px, today=5/2 mirror)</div>
+      <div data-theme="light" class="frame-shell-mobile" style="height:600px;display:flex;flex-direction:column;">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W2 헤더 + 년·월 select placeholder]
+        </div>
+
+        <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding-top:0;">
+          <div style="display:inline-flex;flex-direction:column;padding:16px 24px;">
+            <div style="display:flex;">
+              <div style="flex-shrink:0;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none" style="height:52px;width:82px;padding:0 10px;white-space:nowrap;">
+                        이름
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">석현민</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">김병조</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">윤종엽</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">박보융</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style="flex:1;overflow-x:auto;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">1</div><div class="text-caption leading-none" style="margin-top:2px;">목</div></th>
+                      <th class="border-2 border-accent text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;background:rgba(59,130,246,0.15);"><div class="text-label font-bold leading-none">2</div><div class="text-caption leading-none" style="margin-top:2px;">금</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">3</div><div class="text-caption leading-none" style="margin-top:2px;">토</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">4</div><div class="text-caption leading-none" style="margin-top:2px;">일</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">5</div><div class="text-caption leading-none" style="margin-top:2px;">월</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">6</div><div class="text-caption leading-none" style="margin-top:2px;">화</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">7</div><div class="text-caption leading-none" style="margin-top:2px;">수</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Frame 4: 데스크톱 다크 — 12vh padding-top + centered
+       source line 129: paddingTop: isDesktop ? '12vh' : 0
+       source line 131: padding: isDesktop ? '0 32px' : '16px 24px'
+       1~14일 부분 표시 + today 5/2
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 데스크톱 다크 (1280px, paddingTop:12vh + padding:'0 32px' + centered, today=5/2)</div>
+      <div data-theme="dark" class="frame-shell-desktop" style="height:800px;display:flex;flex-direction:column;">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 20px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W2 데스크톱 헤더 (height:54, padding:'0 20px', 뒤로가기 X) + 년·월 select placeholder]
+        </div>
+
+        <!-- 외곽 (source line 124~130): flex:1, overflow:auto, flex column, items-center, paddingTop:12vh -->
+        <div style="flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding-top:12vh;">
+          <!-- 내곽 (source line 131): inline-flex column, padding:'0 32px' 데스크톱 -->
+          <div style="display:inline-flex;flex-direction:column;padding:0 32px;">
+
+            <!-- 가로 스크롤 cue callout (frame 외부 메타 — sketch 검토자에게 안내) -->
+            <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">
+              [가로 스크롤 cue] 날짜 열 = flex:1 + overflow-x:auto. 31일 모두 단일행 (memory feedback_dashboard_horizontal_scroll — flex-wrap 금지)
+            </div>
+
+            <div style="display:flex;">
+              <div style="flex-shrink:0;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none" style="height:52px;width:82px;padding:0 10px;white-space:nowrap;">
+                        이름
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">석현민</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">김병조</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반장</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">윤종엽</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                    <tr><td class="bg-surface-raised border border-border-default" style="height:46px;padding:0 10px;white-space:nowrap;"><div class="text-body-sm font-bold text-text-primary">박보융</div><div class="text-caption leading-none text-text-tertiary" style="margin-top:2px;">반원</div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 날짜 열 14일 분 (1~14, 데스크톱 wide 라 더 많이 보임) -->
+              <div style="flex:1;overflow-x:auto;">
+                <table style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">1</div><div class="text-caption leading-none" style="margin-top:2px;">목</div></th>
+                      <th class="border-2 border-accent text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;background:rgba(59,130,246,0.15);"><div class="text-label font-bold leading-none">2</div><div class="text-caption leading-none" style="margin-top:2px;">금</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">3</div><div class="text-caption leading-none" style="margin-top:2px;">토</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">4</div><div class="text-caption leading-none" style="margin-top:2px;">일</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">5</div><div class="text-caption leading-none" style="margin-top:2px;">월</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">6</div><div class="text-caption leading-none" style="margin-top:2px;">화</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">7</div><div class="text-caption leading-none" style="margin-top:2px;">수</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">8</div><div class="text-caption leading-none" style="margin-top:2px;">목</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">9</div><div class="text-caption leading-none" style="margin-top:2px;">금</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">10</div><div class="text-caption leading-none" style="margin-top:2px;">토</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-[#ef4444]" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;color:#ef4444;"><div class="text-label font-bold leading-none">11</div><div class="text-caption leading-none" style="margin-top:2px;">일</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">12</div><div class="text-caption leading-none" style="margin-top:2px;">월</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">13</div><div class="text-caption leading-none" style="margin-top:2px;">화</div></th>
+                      <th class="bg-surface-sunken border border-border-default text-text-secondary" style="height:52px;min-width:40px;padding:4px 2px;text-align:center;"><div class="text-label font-bold leading-none">14</div><div class="text-caption leading-none" style="margin-top:2px;">수</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                    </tr>
+                    <tr>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border-2 border-accent text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#3b82f6;background:#3b82f622;">비</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#6b7280;background:#6b728022;">휴</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#f59e0b;background:#f59e0b22;">주</td>
+                      <td class="border border-border-default text-body font-bold" style="height:46px;min-width:40px;padding:0 2px;text-align:center;color:#ef4444;background:#ef444422;">당</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W3 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>표 영역 외곽 (source line 124~130) = <code class="text-zinc-200">flex:1, overflow:auto, display:flex flexDirection:column alignItems:center</code> + <code class="text-zinc-200">paddingTop: isDesktop ? '12vh' : 0</code>. 인라인 유지 (vh 단위 토큰화 무관).</li>
+      <li>내곽 wrapper (source line 131) = <code class="text-zinc-200">display:inline-flex flexDirection:column padding: isDesktop ? '0 32px' : '16px 24px'</code>. 인라인 유지 — 데스크톱 / 모바일 padding 분기.</li>
+      <li>표는 <strong class="text-zinc-200">2-table 구조</strong> (이름 열 고정 table + 날짜 열 가로 스크롤 table) — flex 안 nested table. <code class="text-zinc-200">overflow-x:auto</code> 가로 스크롤 의도된 디자인 (memory feedback_dashboard_horizontal_scroll). flex-wrap 줄바꿈 도입 0건.</li>
+      <li>이름 열 헤더 "이름" (source line 138) = <code class="text-zinc-200">bg-surface-sunken border border-border-default text-text-secondary text-caption font-bold leading-none</code> + <code class="text-zinc-200">height:52, width:82, padding:'0 10px', whiteSpace:'nowrap'</code> 인라인. OQ #3 LOCKED: 12 -> text-caption font-bold leading-none.</li>
+      <li>STAFF_ORDER 4명 verbatim (source line 43): 석현민 / 김병조 / 윤종엽 / 박보융. staff name (source line 147) = <code class="text-zinc-200">text-body-sm font-bold text-text-primary</code> (14 fontSize 700 var(--t1) -> OQ #3 LOCKED). staff title (source line 148) = <code class="text-zinc-200">text-caption leading-none text-text-tertiary</code> + <code class="text-zinc-200">marginTop:2</code> 인라인 (10 -> 12 격상 OQ #3 LOCKED, memory feedback_text_caption_leading_none — 작은 영역 leading-none).</li>
+      <li>day cell (source line 161~182) — 3 분기:
+        <ul class="list-disc pl-5">
+          <li>normal: <code class="text-zinc-200">bg-surface-sunken border border-border-default text-text-secondary</code></li>
+          <li>today (OQ #5 LOCKED): <code class="text-zinc-200">border-2 border-accent</code> + <code class="text-zinc-200">background:rgba(59,130,246,0.15)</code> 인라인 (신규 토큰 정의 비용 회피)</li>
+          <li>red 공휴일/주말 (OQ #5 LOCKED, tokens.css 불일치 fallback): <code class="text-zinc-200">text-[#ef4444]</code> class + <code class="text-zinc-200">color:#ef4444</code> 인라인 양쪽 표현 — W5 변환 wave 에서 class 또는 인라인 한쪽만 선택 OK</li>
+        </ul>
+      </li>
+      <li>d (source line 178) = <code class="text-zinc-200">text-label font-bold leading-none</code> (13 fontWeight:700 -> OQ #3 LOCKED). DOW_KO (source line 179) = <code class="text-zinc-200">text-caption leading-none</code> (10 -> 12 격상 OQ #3 LOCKED).</li>
+      <li>shift cell (source line 188~205) — OQ #4 LOCKED <strong class="text-zinc-200">SHIFT_COLOR[sh]+'22' 인라인 유지</strong>:
+        <ul class="list-disc pl-5">
+          <li>당 #ef4444 (빨강) — background:#ef444422 / color:#ef4444 / 빨강 셀 = 당직</li>
+          <li>비 #3b82f6 (파랑) — background:#3b82f622 / color:#3b82f6 / 파랑 셀 = 비번</li>
+          <li>주 #f59e0b (노랑) — background:#f59e0b22 / color:#f59e0b / 노랑 셀 = 주간</li>
+          <li>휴 #6b7280 (회색) — background:#6b728022 / color:#6b7280 / 회색 셀 = 휴무</li>
+        </ul>
+        셀 글자 (source line 197) = <code class="text-zinc-200">text-body font-bold</code> (15 -> 16 격상 OQ #3 LOCKED 셀 가독성 우선). border tdy ? <code class="text-zinc-200">border-2 border-accent</code> : <code class="text-zinc-200">border border-border-default</code>.</li>
+      <li>tokens.css 검증 결과 (OQ #5 LOCKED 요구사항): <code class="text-zinc-200">--status-danger</code> 다크 = <code class="text-zinc-200">#f87171</code> / 라이트 = <code class="text-zinc-200">#991b1b</code> — <strong class="text-zinc-200">둘 다 #ef4444 와 불일치</strong>. fallback 채택: 인라인 <code class="text-zinc-200">color:#ef4444</code> + class <code class="text-zinc-200">text-[#ef4444]</code> 양쪽 표현. W5 변환 wave 진입 시 한쪽 선택.</li>
+      <li>shiftCalc.ts SHIFT_COLOR 4 hex (source line 109~114) verbatim 매칭 — 본 sketch 가 SHIFT_COLOR 상수 변경 0 byte 가정. W5 변환 wave 도 shiftCalc.ts import 그대로 사용.</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> prefix 0 hit / fontSize 9&#8209;11px 0 hit / <code class="text-zinc-200">w&#8209;8 h&#8209;8</code> token 0 hit / 이모지 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (엑셀 버튼 bg-safe-bar solid): W2 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (헤더 raised + 모바일 only back button): W2 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. staff title/DOW_KO 10 -> 12 text-caption leading-none / 이름 헤더 12 text-caption font-bold leading-none / staff name 14 text-body-sm font-bold / d 13 text-label font-bold leading-none / shift cell 15 -> 16 text-body font-bold.</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (SHIFT_COLOR hex+22 알파 인라인): 본 wave 적용 = O. 4 hex (당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280) + +'22' 알파. shift cell 4 frame 모두 동일 패턴.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (today border-accent + 공휴일 text-danger fallback): 본 wave 적용 = O. today border-2 border-accent + 인라인 bg-[rgba(59,130,246,0.15)] / 공휴일·주말 인라인 color:#ef4444 + class text-(#ef4444) fallback (tokens.css 불일치 검증 결과).</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + WorkShiftPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W4 = 범례 (4 shift 박스 24x24 + SHIFT_LABEL 한글 라벨 + 모바일/데스크톱 padding 분기). 본 W3 sketch 의 표 영역 아래에 마운트.</li>
+      <li>SHIFT_COLOR 인라인 hex 패턴은 W4 범례에서도 동일 — sketch CSS verbatim 일관.</li>
+    </ul>
+  </section>
+
+</body>
+</html>

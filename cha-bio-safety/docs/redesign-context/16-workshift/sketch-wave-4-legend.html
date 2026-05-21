@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-legend.html — redesign/16-workshift W4
+  작성: 2026-05-21 / quick 260521-t12
+  범위: 범례 (영역 5, WorkShiftPage.tsx line 212~220)
+        4 shift 박스 (24x24 w-6 h-6) + SHIFT_LABEL 한글 라벨 + 모바일/데스크톱 padding 분기
+  out of scope: 헤더 + 년·월 select (W2 책임) / 표 영역 (W3 책임) / TSX 변환 (W5 책임) /
+                WorkShiftPage.tsx 코드 수정 / shiftCalc.ts SHIFT_COLOR / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, WorkShiftPage.tsx line 212~220 verbatim,
+        27-login/sketch-wave-4-login-form.html frame layout mirror
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 엑셀 버튼 bg-safe-bar solid (W2 scope, 본 wave 미해당)
+    OQ #2 LOCKED — 헤더 raised + 모바일 only back button (W2 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 폰트 격상: 범례 박스 글자 13 (text-label font-extrabold leading-none) /
+                   범례 라벨 12 (text-caption leading-none) (본 wave 적용 = O)
+    OQ #4 LOCKED — SHIFT_COLOR[sh]+'22' hex+22 알파 인라인 유지 (본 wave 적용 = O)
+                   당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280
+                   박스 배경 + border + 글자색 = SHIFT_COLOR 4종 verbatim
+                   범례 라벨 = SHIFT_LABEL 한글 (당직 / 비번 / 주간 / 휴무)
+    OQ #5 LOCKED — today border-accent + 공휴일 text-danger (W3 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 범례 컨테이너 padding ('10px 0 28px') 조정 시 본 sketch 먼저.
+          현재는 source verbatim 유지.
+
+    2. feedback_redesign_sketch_rule_enforcement.md
+       §6.2 negative rule — 위험 임계치 아닌 카드 status 색 금지.
+       -> SHIFT_COLOR 4종 (당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280) 은
+          status 임계치 색이 아니라 카테고리/duty 색.
+
+    3. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 박스 안 글자 (당 / 비 / 주 / 휴) verbatim. SHIFT_LABEL 4종 (당직 / 비번 / 주간 / 휴무) verbatim.
+
+    4. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 박스 24x24 rounded-(5px) border-(1.5px) SHIFT_COLOR 인라인 hex 4종 verbatim.
+          추측 X — sketch source 그대로.
+
+    5. feedback_tailwind_token_class_pattern.md
+       text-fire-bar O / text-status_fire-bar X (status- prefix 없음).
+       -> 범례 박스 = SHIFT_COLOR 4 hex 인라인 (status 토큰 사용 0건).
+
+    6. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 박스 24x24 = w-6 h-6 (24 = w-6 안전). w-(8) h-(8) 사용 시 48x48 (1.5배 사고).
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 박스 안 글자 (w-6 h-6 = 24x24 작은 컨테이너) = text-label font-extrabold leading-none 명시.
+          범례 라벨 = text-caption leading-none 명시.
+
+    8. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 한자/이모지 미사용. 당/비/주/휴 + 당직/비번/주간/휴무 한글만.
+
+    9. feedback_dashboard_horizontal_scroll.md (WorkShiftPage 특화)
+       단일행 + overflow-x:auto 가 의도된 디자인. flex-wrap 금지.
+       -> 범례 영역은 표 영역과 별개 패턴 — 의도적 flex-wrap (4 박스 좁은 폭에서 줄바꿈 OK).
+          source line 213 verbatim flexWrap:'wrap' 유지. 표 영역의 overflow-x:auto 와 혼동 금지.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/16-workshift — W4 범례</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">16-workshift sketch W4 — 범례 (4 shift 박스 + SHIFT_LABEL 한글 라벨)</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크 + 라이트) + 데스크톱 1280px (다크) 3-frame side-by-side.
+      WorkShiftPage.tsx line 212~220 verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #3 (박스 글자 13 text-label font-extrabold leading-none / 라벨 12 text-caption leading-none) + OQ #4 (SHIFT_COLOR 4 hex+22 알파 인라인) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       Frame 1: 다크 모바일 — 범례 컨테이너 (flex-wrap + justify-center)
+       source line 213: display:'flex', gap:14, padding:'10px 0 28px', flexWrap:'wrap', justifyContent:'center'
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모바일 (393px, 범례 영역)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="height:200px;display:flex;flex-direction:column;">
+
+        <!-- 표 영역 placeholder (W3 영역) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W3 표 영역 placeholder — 표 아래에 범례 배치]
+        </div>
+
+        <!-- ============================================================
+             범례 영역 (source line 212~220) — OQ #3 + OQ #4 LOCKED 반영
+             컨테이너: display:flex, gap:14, padding:'10px 0 28px', flexWrap:'wrap', justifyContent:'center'
+             내부 row: display:flex, alignItems:center, gap:5, fontSize:12
+             박스: width:24, height:24, borderRadius:5, background:SHIFT_COLOR[sh]+'22',
+                   border:1.5px solid SHIFT_COLOR[sh], fontWeight:800, fontSize:13, color:SHIFT_COLOR[sh]
+             라벨: fontSize:12, color:'var(--t2)' = SHIFT_LABEL[sh]
+             ============================================================ -->
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface-page);">
+          <div style="display:flex;gap:14px;padding:10px 0 28px;flex-wrap:wrap;justify-content:center;">
+
+            <!-- shift 당직 (빨강 #ef4444) — OQ #4 LOCKED: SHIFT_COLOR[당]='#ef4444' hex+22 알파
+                 OQ #3 LOCKED: 박스 글자 13 text-label font-extrabold leading-none / 라벨 12 text-caption leading-none -->
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#ef444422;border-color:#ef4444;color:#ef4444;">
+                당
+              </div>
+              <span class="text-caption leading-none text-text-secondary">당직</span>
+            </div>
+
+            <!-- shift 비번 (파랑 #3b82f6) -->
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#3b82f622;border-color:#3b82f6;color:#3b82f6;">
+                비
+              </div>
+              <span class="text-caption leading-none text-text-secondary">비번</span>
+            </div>
+
+            <!-- shift 주간 (노랑 #f59e0b) -->
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#f59e0b22;border-color:#f59e0b;color:#f59e0b;">
+                주
+              </div>
+              <span class="text-caption leading-none text-text-secondary">주간</span>
+            </div>
+
+            <!-- shift 휴무 (회색 #6b7280) -->
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#6b728022;border-color:#6b7280;color:#6b7280;">
+                휴
+              </div>
+              <span class="text-caption leading-none text-text-secondary">휴무</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 2: 라이트 모바일 — Frame 1 mirror
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 라이트 모바일 (393px, 범례 영역)</div>
+      <div data-theme="light" class="frame-shell-mobile" style="height:200px;display:flex;flex-direction:column;">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W3 표 영역 placeholder — 표 아래에 범례 배치]
+        </div>
+
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface-page);">
+          <div style="display:flex;gap:14px;padding:10px 0 28px;flex-wrap:wrap;justify-content:center;">
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#ef444422;border-color:#ef4444;color:#ef4444;">
+                당
+              </div>
+              <span class="text-caption leading-none text-text-secondary">당직</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#3b82f622;border-color:#3b82f6;color:#3b82f6;">
+                비
+              </div>
+              <span class="text-caption leading-none text-text-secondary">비번</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#f59e0b22;border-color:#f59e0b;color:#f59e0b;">
+                주
+              </div>
+              <span class="text-caption leading-none text-text-secondary">주간</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#6b728022;border-color:#6b7280;color:#6b7280;">
+                휴
+              </div>
+              <span class="text-caption leading-none text-text-secondary">휴무</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Frame 3: 데스크톱 다크 — 표 아래 자연스러운 위치
+       데스크톱 padding 분기는 source 에 없음 (범례 자체 padding 은 모바일/데스크톱 공통)
+       paddingTop:12vh 는 표 영역 외곽 (W3 scope) 의 분기, 범례 자체는 영향 X
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 데스크톱 다크 (1280px, 범례 영역 = 표 아래)</div>
+      <div data-theme="dark" class="frame-shell-desktop" style="height:200px;display:flex;flex-direction:column;">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 20px;flex-shrink:0;font-size:12px;color:var(--text-tertiary);">
+          [W3 표 영역 placeholder — paddingTop:12vh 표 아래에 범례 자연스럽게 배치 / 범례 자체 padding 은 모바일/데스크톱 공통]
+        </div>
+
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface-page);">
+          <div style="display:flex;gap:14px;padding:10px 0 28px;flex-wrap:wrap;justify-content:center;">
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#ef444422;border-color:#ef4444;color:#ef4444;">
+                당
+              </div>
+              <span class="text-caption leading-none text-text-secondary">당직</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#3b82f622;border-color:#3b82f6;color:#3b82f6;">
+                비
+              </div>
+              <span class="text-caption leading-none text-text-secondary">비번</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#f59e0b22;border-color:#f59e0b;color:#f59e0b;">
+                주
+              </div>
+              <span class="text-caption leading-none text-text-secondary">주간</span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="w-6 h-6 rounded-[5px] border-[1.5px] flex items-center justify-center text-label font-extrabold leading-none" style="background:#6b728022;border-color:#6b7280;color:#6b7280;">
+                휴
+              </div>
+              <span class="text-caption leading-none text-text-secondary">휴무</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W4 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>범례 컨테이너 (source line 213) = <code class="text-zinc-200">display:flex, gap:14, padding:'10px 0 28px', flexWrap:'wrap', justifyContent:'center'</code> 인라인. 모바일/데스크톱 공통.</li>
+      <li>범례 row (source line 215) = <code class="text-zinc-200">display:flex, alignItems:center, gap:5</code> 인라인. fontSize:12 (source) 는 박스/라벨 분리 후 라벨에만 적용 (박스는 13).</li>
+      <li>shift 박스 4종 (source line 216) — OQ #4 LOCKED <strong class="text-zinc-200">SHIFT_COLOR[sh]+'22' 인라인 유지</strong>:
+        <ul class="list-disc pl-5">
+          <li>당 #ef4444 (빨강) — background:#ef444422 / border-color:#ef4444 / color:#ef4444</li>
+          <li>비 #3b82f6 (파랑) — background:#3b82f622 / border-color:#3b82f6 / color:#3b82f6</li>
+          <li>주 #f59e0b (노랑) — background:#f59e0b22 / border-color:#f59e0b / color:#f59e0b</li>
+          <li>휴 #6b7280 (회색) — background:#6b728022 / border-color:#6b7280 / color:#6b7280</li>
+        </ul>
+      </li>
+      <li>박스 크기 24x24 (source line 216 width:24, height:24) = <code class="text-zinc-200">w-6 h-6</code> (24 = w-6 안전, memory feedback_tailwind_w8_h8_is_48px — w&#8209;8 = 48 함정 회피).</li>
+      <li>박스 radius 5 (source line 216 borderRadius:5) = <code class="text-zinc-200">rounded-[5px]</code> 인라인 (토큰 없음 — sm 8 / md 12 / lg 16).</li>
+      <li>박스 border 1.5px (source line 216 border:`1.5px solid SHIFT_COLOR[sh]`) = <code class="text-zinc-200">border-[1.5px]</code> 인라인 + border-color SHIFT_COLOR 인라인.</li>
+      <li>박스 안 글자 (source line 216 fontSize:13, fontWeight:800) = <code class="text-zinc-200">text-label font-extrabold leading-none</code> (OQ #3 LOCKED 13 -> text-label font-extrabold leading-none, w-6 h-6 작은 컨테이너 안 시각 패딩 회피 memory feedback_text_caption_leading_none).</li>
+      <li>박스 안 글자 (당 / 비 / 주 / 휴) verbatim (source line 214 <code class="text-zinc-200">['당','비','주','휴'] as RawShift[]</code> map).</li>
+      <li>라벨 (source line 217 fontSize:12, var(--t2)) = <code class="text-zinc-200">text-caption leading-none text-text-secondary</code> (OQ #3 LOCKED 12 유지 + leading-none).</li>
+      <li>라벨 한글 (source line 217 SHIFT_LABEL[sh]) verbatim (source line 9 SHIFT_LABEL: <code class="text-zinc-200">{ '당':'당직', '비':'비번', '주':'주간', '휴':'휴무' }</code>) — memory feedback_sketch_realistic_data 카피 verbatim.</li>
+      <li>flex-wrap 의도 명시: <strong class="text-zinc-200">범례는 flex-wrap 의도된 디자인</strong> (source line 213 flexWrap:'wrap' verbatim). 모바일 좁은 폭에서 4 박스 줄바꿈 허용. 표 영역 (W3) 의 <code class="text-zinc-200">overflow-x:auto</code> 가로 스크롤 패턴과 다름 — memory feedback_dashboard_horizontal_scroll 룰은 dashboard 월간 도넛 한정.</li>
+      <li>모바일/데스크톱 padding 분기: 범례 자체 padding ('10px 0 28px') 은 모바일/데스크톱 <strong>공통</strong>. 데스크톱은 표 영역 외곽 (W3 paddingTop:12vh) 안에서 범례가 자연스럽게 배치되므로 별도 분기 없음.</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> prefix 0 hit / fontSize 9&#8209;11px 0 hit / <code class="text-zinc-200">w&#8209;8 h&#8209;8</code> token 0 hit / 이모지 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (엑셀 버튼 bg-safe-bar solid): W2 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (헤더 raised + 모바일 only back button): W2 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 박스 글자 13 -> text-label font-extrabold leading-none / 라벨 12 -> text-caption leading-none (12 유지).</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (SHIFT_COLOR hex+22 알파 인라인): 본 wave 적용 = O. 4 hex (당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280) + +'22' 알파. 박스 배경 + border + 글자색 = SHIFT_COLOR 4종 verbatim. 3 frame 모두 동일.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (today border-accent + 공휴일 text-danger fallback): W3 scope, 본 wave 미해당.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W5 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + WorkShiftPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W5 = TSX 변환 verify checklist (markdown, sketch 아님). W2~W4 sketch 의 모든 Tailwind class / CSS 토큰 / OQ LOCKED 결정 / negative gate / positive gate / build gate / 자체 verify 명령을 12 섹션 박제.</li>
+      <li>W5 진입 시 W2/W3/W4 sketch grep 추출 → checklist 안에 verbatim 인용 (memory feedback_planner_prompt_sketch_verbatim).</li>
+    </ul>
+  </section>
+
+</body>
+</html>

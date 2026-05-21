@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-header-select.html — redesign/16-workshift W2
+  작성: 2026-05-21 / quick 260521-t12
+  범위: 헤더 (영역 2, WorkShiftPage.tsx line 87~111) + 년·월 select (영역 3, line 113~121)
+        모바일/데스크톱 분기 4 frame (다크/라이트 2축 × 모바일/데스크톱 2축)
+  out of scope: 표 영역 (W3 책임) / 범례 (W4 책임) / TSX 변환 (W5 책임) /
+                WorkShiftPage.tsx 코드 수정 / shiftCalc.ts / generateExcel.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 27-login/sketch-wave-2-mobile-shell.html mirror
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 엑셀 저장 버튼 bg-safe-bar solid + text-text-on-accent + disabled opacity-60   (본 wave 적용 = O)
+    OQ #2 LOCKED — 헤더 bg-surface-raised + 모바일 only back button + Lucide ChevronLeft size=15 (본 wave 적용 = O)
+    OQ #3 LOCKED — 폰트 격상: 모바일 타이틀 14->16 (text-body font-bold) / 엑셀 버튼 12 text-caption font-bold leading-none / select 13 text-label (본 wave 적용 = O)
+    OQ #4 LOCKED — SHIFT_COLOR hex+22 알파 인라인 (W3 / W4 scope, 본 wave 미해당)
+    OQ #5 LOCKED — today border-accent + 공휴일 text-danger fallback (W3 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 헤더/select 컨펌용. 본 wave 이후 셀 크기 등 손볼 거 있으면 W3 sketch.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 타이틀 "월간 출근부" verbatim. 엑셀 버튼 카피 "엑셀 저장" / "생성중..." verbatim.
+          select 옵션 "2025년" "2026년" "2027년" + "1월"~"12월" verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-raised / bg-safe-bar / text-body font-bold /
+          text-caption font-bold leading-none / text-label / w-(34px) h-(34px) / rounded-sm /
+          rounded-(9px)) 와 인라인 style (padding/gap/height) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bar O / bg-status_safe-bar X — underscore 표기로 grep 회피).
+       -> 엑셀 버튼 = bg-safe-bar (status- prefix 없음). Lucide ChevronLeft size={15} prop 사용
+          (className w-N h-N 금지).
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 모바일 back button 34x34 = w-(34px) h-(34px) 인라인 명시. spacing alias (w&#8209;8 = 48) 사용 0건.
+          엑셀 버튼 height:34 도 동일 함정 - h-(34px) 인라인 (TSX 변환은 인라인 style 로 height:34 유지 OK).
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 엑셀 버튼 (h:34 작은 컨테이너) = text-caption font-bold leading-none 명시.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 한자/이모지 미사용. SVG (Lucide ChevronLeft path) 만 사용.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/16-workshift — W2 헤더 + 년·월 select</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css line 16~69 verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-info:     #38bdf8;
+      --status-fire:     #fb923c;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+      --status-info-bg:    rgba(14, 165, 233, 0.16);
+      --status-fire-bg:    rgba(249, 115, 22, 0.16);
+
+      --duty-day:    #f59e0b;
+      --duty-night:  #ef4444;
+      --duty-off:    #3b82f6;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css line 74~119 verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+      --text-link:       #0969da;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-info:     #075985;
+      --status-fire:     #9a3412;
+
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-info-bar:    #0369a1;
+      --status-fire-bar:    #c2410c;
+
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+      --status-info-bg:    #e0f2fe;
+      --status-fire-bg:    #ffedd5;
+
+      --duty-day:    #b45309;
+      --duty-night:  #b91c1c;
+      --duty-off:    #1f6feb;
+      --duty-leave:  #6b7280;
+    }
+
+    /* ============================================================
+     * Typography — typography.css line 28~95 verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* App.tsx GlobalHeader placeholder (h-12) — /workshift 모바일 NO_NAV 등재 (App.tsx line 71)
+       데스크톱 DESKTOP_HEADER_HIDE_PATHS 등재 (App.tsx line 77) -> 양쪽 미노출 */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* placeholder (W3 + W4 mounting point) */
+    .placeholder-inner {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'danger':          'var(--status-danger)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'warning':         'var(--status-warning)',
+            'warning-bar':     'var(--status-warning-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">16-workshift sketch W2 — 헤더 + 년·월 select</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크/라이트) + 데스크톱 1280px (다크/라이트) 4-frame side-by-side.
+      WorkShiftPage.tsx line 87~121 verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #1 (엑셀 버튼 bg-safe-bar solid) + OQ #2 (헤더 raised + 모바일 only back button + Lucide ChevronLeft) + OQ #3 (폰트 격상) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 모바일 frame 1 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- App.tsx GlobalHeader placeholder — /workshift 모바일 NO_NAV + 데스크톱 HEADER_HIDE 등재 → 미노출 -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /workshift MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- ① 모바일 헤더 — WorkShiftPage.tsx line 87~111 verbatim 매핑
+             source: <header style={{ background:'var(--bg2)', borderBottom:'1px solid var(--bd)',
+                                        padding:'8px 12px 9px', gap:8, display:'flex', alignItems:'center' }}>
+             변환 (OQ #2 LOCKED 헤더 raised + OQ #1 LOCKED 엑셀 버튼 bg-safe-bar): -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;">
+          <!-- 모바일 back button (OQ #2 LOCKED): w-(34px) h-(34px) rounded-sm bg-surface-sunken + Lucide ChevronLeft size=15
+               source line 96~102: width:34, height:34, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)' -->
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;">
+            <!-- Lucide ChevronLeft size={15} (sketch SVG, TSX 변환 시 import { ChevronLeft } from 'lucide-react') -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <!-- 타이틀 (OQ #3 LOCKED 모바일 14->16 격상): text-body font-bold text-text-primary -->
+          <span class="text-body font-bold text-text-primary" style="flex:1;">월간 출근부</span>
+          <!-- 엑셀 저장 버튼 default (OQ #1 LOCKED bg-safe-bar solid + OQ #3 LOCKED 12 text-caption font-bold leading-none):
+               source line 107: height:34, padding:'0 14px', borderRadius:8, background:'var(--acl)', color:'#fff', fontSize:12, fontWeight:600
+               변환: bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 -->
+          <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+            엑셀 저장
+          </button>
+        </header>
+
+        <!-- ② 년·월 select row — WorkShiftPage.tsx line 113~121 verbatim 매핑
+             source: background:'var(--bg2)', borderBottom:'1px solid var(--bd)', gap:8, padding:'10px 12px'
+             변환 (OQ #3 LOCKED 13 text-label): -->
+        <div class="bg-surface-raised border-b border-border-default flex" style="gap:8px;padding:10px 12px;flex-shrink:0;">
+          <!-- year select: source line 115: padding:'7px 10px', borderRadius:9, bg:var(--bg3), border:1px var(--bd2), color:var(--t1), fontSize:13 -->
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>2025년</option>
+            <option selected>2026년</option>
+            <option>2027년</option>
+          </select>
+          <!-- month select: 동일 인라인 토큰 + Array.from({length:12},(_,i) => i+1) verbatim -->
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>1월</option>
+            <option>2월</option>
+            <option>3월</option>
+            <option>4월</option>
+            <option selected>5월</option>
+            <option>6월</option>
+            <option>7월</option>
+            <option>8월</option>
+            <option>9월</option>
+            <option>10월</option>
+            <option>11월</option>
+            <option>12월</option>
+          </select>
+        </div>
+
+        <!-- ③ 본문 영역 placeholder ({inner} — W3 표 영역 + W4 범례) -->
+        <div style="flex:1;padding:16px 16px 32px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 표 영역 (이름 열 고정 + 날짜 열 가로 스크롤 + today border-accent + 공휴일 fallback)<br/>
+            +<br/>
+            W4 범례 (4 shift box 24x24 + 한글 라벨)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 모바일 frame 2 ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 라이트 모드 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /workshift MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- ① 모바일 헤더 (light mirror) -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;">
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;">월간 출근부</span>
+          <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+            엑셀 저장
+          </button>
+        </header>
+
+        <!-- ② 년·월 select (light mirror) -->
+        <div class="bg-surface-raised border-b border-border-default flex" style="gap:8px;padding:10px 12px;flex-shrink:0;">
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>2025년</option>
+            <option selected>2026년</option>
+            <option>2027년</option>
+          </select>
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>1월</option>
+            <option>2월</option>
+            <option>3월</option>
+            <option>4월</option>
+            <option selected>5월</option>
+            <option>6월</option>
+            <option>7월</option>
+            <option>8월</option>
+            <option>9월</option>
+            <option>10월</option>
+            <option>11월</option>
+            <option>12월</option>
+          </select>
+        </div>
+
+        <div style="flex:1;padding:16px 16px 32px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 표 영역 (이름 열 고정 + 날짜 열 가로 스크롤 + today border-accent + 공휴일 fallback)<br/>
+            +<br/>
+            W4 범례 (4 shift box 24x24 + 한글 라벨)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 2개 — 다크 + 라이트 (1280px wide)
+       WorkShiftPage.tsx line 88, 91~92 verbatim:
+         isDesktop ? { height: 54, padding: '0 20px' } : { padding: '8px 12px 9px' }
+         gap: isDesktop ? 10 : 8
+       OQ #2 LOCKED: 데스크톱 back button 추가 X (모바일만 유지)
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 데스크톱 frame 3 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1280px 데스크톱)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /workshift DESKTOP_HEADER_HIDE_PATHS 등재 -> 미노출. 사이드바 BottomNav 는 표시)</div>
+
+        <!-- ① 데스크톱 헤더 — WorkShiftPage.tsx line 87~111 verbatim 매핑 (데스크톱 분기):
+             source line 91: { height: 54, padding: '0 20px' }
+             source line 94: gap: 10
+             OQ #2 LOCKED: 데스크톱 back button 추가 X (모바일만)
+             OQ #1 LOCKED: 엑셀 버튼 bg-safe-bar solid
+             OQ #3 LOCKED: 데스크톱 타이틀 16 text-body font-bold 유지 -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="height:54px;padding:0 20px;gap:10px;flex-shrink:0;">
+          <!-- 데스크톱은 back button 없음 (OQ #2 LOCKED, source line 96 !isDesktop && (...) 분기) -->
+          <!-- 타이틀 (OQ #3 LOCKED 데스크톱 16 유지): text-body font-bold text-text-primary -->
+          <span class="text-body font-bold text-text-primary" style="flex:1;">월간 출근부</span>
+          <!-- 엑셀 저장 버튼 default (OQ #1 LOCKED): bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm -->
+          <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+            엑셀 저장
+          </button>
+        </header>
+
+        <!-- ② 년·월 select row (데스크톱 공통 — source line 114 분기 없음) -->
+        <div class="bg-surface-raised border-b border-border-default flex" style="gap:8px;padding:10px 12px;flex-shrink:0;">
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>2025년</option>
+            <option selected>2026년</option>
+            <option>2027년</option>
+          </select>
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>1월</option>
+            <option>2월</option>
+            <option>3월</option>
+            <option>4월</option>
+            <option selected>5월</option>
+            <option>6월</option>
+            <option>7월</option>
+            <option>8월</option>
+            <option>9월</option>
+            <option>10월</option>
+            <option>11월</option>
+            <option>12월</option>
+          </select>
+        </div>
+
+        <div style="padding:16px 16px 24px;min-height:200px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 표 영역 (paddingTop:12vh + padding:'0 32px' + 데스크톱 분기)<br/>
+            +<br/>
+            W4 범례 (표 아래)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 데스크톱 frame 4 ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 모드 (1280px 데스크톱)</div>
+      <div data-theme="light" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /workshift DESKTOP_HEADER_HIDE_PATHS 등재 -> 미노출)</div>
+
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="height:54px;padding:0 20px;gap:10px;flex-shrink:0;">
+          <span class="text-body font-bold text-text-primary" style="flex:1;">월간 출근부</span>
+          <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+            엑셀 저장
+          </button>
+        </header>
+
+        <div class="bg-surface-raised border-b border-border-default flex" style="gap:8px;padding:10px 12px;flex-shrink:0;">
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>2025년</option>
+            <option selected>2026년</option>
+            <option>2027년</option>
+          </select>
+          <select class="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]" style="padding:7px 10px;outline:none;">
+            <option>1월</option>
+            <option>2월</option>
+            <option>3월</option>
+            <option>4월</option>
+            <option selected>5월</option>
+            <option>6월</option>
+            <option>7월</option>
+            <option>8월</option>
+            <option>9월</option>
+            <option>10월</option>
+            <option>11월</option>
+            <option>12월</option>
+          </select>
+        </div>
+
+        <div style="padding:16px 16px 24px;min-height:200px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 표 영역 (paddingTop:12vh + padding:'0 32px' + 데스크톱 분기)<br/>
+            +<br/>
+            W4 범례 (표 아래)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Disabled (생성중...) variant row — 엑셀 버튼 dlLoading 상태
+       (frame 외부 variant 매트릭스, source line 106~109: opacity: dlLoading ? 0.6 : 1)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto mb-12">
+    <div class="variant-label" style="color:#f6f8fa;">엑셀 저장 버튼 disabled (생성중...) variant — OQ #1 LOCKED opacity-60</div>
+    <div class="flex gap-6 flex-wrap items-start mt-2">
+      <!-- 다크 default -->
+      <div data-theme="dark" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">다크 / default</div>
+        <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+          엑셀 저장
+        </button>
+      </div>
+      <!-- 다크 disabled -->
+      <div data-theme="dark" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">다크 / disabled (생성중)</div>
+        <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 opacity-60" style="height:34px;padding:0 14px;cursor:not-allowed;" disabled>
+          생성중...
+        </button>
+      </div>
+      <!-- 라이트 default -->
+      <div data-theme="light" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">라이트 / default</div>
+        <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0" style="height:34px;padding:0 14px;cursor:pointer;">
+          엑셀 저장
+        </button>
+      </div>
+      <!-- 라이트 disabled -->
+      <div data-theme="light" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">라이트 / disabled (생성중)</div>
+        <button class="bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0 opacity-60" style="height:34px;padding:0 14px;cursor:not-allowed;" disabled>
+          생성중...
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W2 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>헤더 배경 (OQ #2 LOCKED) = <code class="text-zinc-200">bg-surface-raised border-b border-border-default</code>. 모바일/데스크톱 4 frame 모두 동일. (source line 93: <code>background:'var(--bg2)', borderBottom:'1px solid var(--bd)'</code> 토큰 치환.)</li>
+      <li>모바일 헤더 padding (source line 92) = <code class="text-zinc-200">padding:'8px 12px 9px', gap:8</code> 인라인 / 데스크톱 헤더 (source line 91) = <code class="text-zinc-200">height:54, padding:'0 20px', gap:10</code> 인라인. 인라인 px 유지 (토큰화 X).</li>
+      <li>모바일 back button (OQ #2 LOCKED, source line 96~102) = <code class="text-zinc-200">w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default</code> + <code class="text-zinc-200">Lucide ChevronLeft size={15} className="text-text-secondary"</code>. <strong>데스크톱 back button 추가 X</strong> (모바일만, source line 96 <code>!isDesktop && (...)</code> 분기 그대로).</li>
+      <li>tailwind config override 함정 회피 — <code class="text-zinc-200">w&#8209;8 = 48px</code> / <code class="text-zinc-200">w&#8209;7 = 32px</code> 토큰 사용 0건. 34 인라인 px <code class="text-zinc-200">w-[34px] h-[34px]</code> 형태.</li>
+      <li>타이틀 "월간 출근부" = <code class="text-zinc-200">text-body font-bold text-text-primary</code> (fontSize 16, fontWeight 700). <strong>OQ #3 LOCKED 모바일 14 -> 16 격상</strong> (§1.3 모바일/데스크톱 동일 폰트 룰 부합 — 데스크톱 이미 16). 4 frame 동일.</li>
+      <li>엑셀 저장 버튼 (OQ #1 LOCKED) = <code class="text-zinc-200">bg-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm border-0</code> + <code class="text-zinc-200">height:34, padding:'0 14px'</code> 인라인. <code class="text-zinc-200">var(--acl)</code> 폐기 + <code class="text-zinc-200">linear&#8209;gradient</code> 도입 X (단색 solid 유지).</li>
+      <li>엑셀 버튼 fontSize 12 (source line 107) -> <code class="text-zinc-200">text-caption font-bold leading-none</code> (h:34 작은 컨테이너 안 시각 패딩 회피, memory feedback_text_caption_leading_none).</li>
+      <li>disabled (dlLoading) variant: <code class="text-zinc-200">opacity-60 cursor-not-allowed</code> + 카피 "생성중..." (source line 109 <code>{dlLoading ? '생성중...' : '엑셀 저장'}</code> 분기 그대로). 라이트/다크 4 variant 매트릭스 추가 표시.</li>
+      <li>년·월 select 컨테이너 (source line 114) = <code class="text-zinc-200">bg-surface-raised border-b border-border-default flex</code> + <code class="text-zinc-200">gap:8, padding:'10px 12px'</code> 인라인. 모바일/데스크톱 공통.</li>
+      <li>select (source line 115, 118) = <code class="text-zinc-200">bg-surface-sunken border border-border-strong text-text-primary text-label rounded-[9px]</code> + <code class="text-zinc-200">padding:'7px 10px', outline:'none'</code> 인라인. radius 9 토큰 없음 -> <code class="text-zinc-200">rounded-[9px]</code> 인라인.</li>
+      <li>select 옵션 verbatim (memory feedback_sketch_realistic_data): year <code class="text-zinc-200">[2025,2026,2027].map(y => <option>{y}년</option>)</code> + month <code class="text-zinc-200">Array.from({length:12},(_,i) => i+1).map(m => <option>{m}월</option>)</code>. 4 frame 모두 동일 (selected 표시는 2026년 / 5월 sketch 일관).</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 위해 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> prefix 0 hit / fontSize 9&#8209;11px 0 hit / <code class="text-zinc-200">w&#8209;8 h&#8209;8</code> token 0 hit / 이모지 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W2 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (엑셀 버튼 bg-safe-bar solid): 본 wave 적용 = O. <code class="text-zinc-200">bg-safe-bar text-text-on-accent</code> solid + disabled <code class="text-zinc-200">opacity-60</code> 유지. var(--acl) 폐기.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (헤더 raised + 모바일 only back button): 본 wave 적용 = O. 헤더 <code class="text-zinc-200">bg-surface-raised</code> 유지 + 모바일만 <code class="text-zinc-200">w-[34px] h-[34px] rounded-sm bg-surface-sunken border-border-default</code> + Lucide <code class="text-zinc-200">ChevronLeft size={15}</code>. 데스크톱 back button 추가 X.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 모바일 타이틀 14 -> 16 (text-body font-bold) / 엑셀 버튼 12 (text-caption font-bold leading-none) / select 13 (text-label).</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (SHIFT_COLOR hex+22 알파 인라인): W3 + W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (today border-accent + 공휴일 text-danger fallback): W3 scope, 본 wave 미해당.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + WorkShiftPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W3 = 표 영역 (이름 열 고정 + 날짜 열 가로 스크롤 + today + 공휴일·주말 색 + shift 4종 셀). 본 W2 sketch 의 모바일/데스크톱 본문 inner 영역에 마운트.</li>
+      <li>W3 진입 시 <code class="text-zinc-200">grep -E '\-\-status-danger:' tokens.css</code> 으로 OQ #5 fallback 검증 1줄 수행 예정.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
