@@ -364,20 +364,33 @@ line 89: '/workshift': '월간 출근부'  // PAGE_TITLES 등재
 
 본 wave 산출 후 W2 sketch 진입 전 사용자에게 컨펌 받아야 할 항목 5건. 각 OQ 아래 "default 답" 1줄 — 사용자가 별 의견 없으면 이 답으로 진행 (reasonable call). 단, "approved" 받기 전까지 W2 진입 금지 (memory `feedback_avoid_premature_confirmation`).
 
+> **사용자 컨펌 결과 (2026-05-21):** OQ 5개 전부 default 로 진행. W2~W5 sketch + TSX 변환은 아래 LOCKED 결정 그대로 반영.
+
 - **OQ #1**: 엑셀 저장 버튼 `var(--acl)` 단색 (line 107) → `bg-safe-bar` solid 통일 OK?
   - **default 답: OK** — 27-login W1 OQ #1 + 14-reports W1 OQ #1/#3 default OK 일관 + design-system §6.4 CTA solid 룰 + memory `feedback_design_sketch_first` + `feedback_tailwind_token_class_pattern`. 현재 이미 그라데이션 없이 단색이므로 토큰 치환만 (`var(--acl)` → `bg-safe-bar`). disabled 시 = `opacity-60` 유지 또는 `bg-surface-sunken` (`var(--bg3)`) 검토.
+  - **LOCKED (2026-05-21):** 엑셀 저장 버튼 = `bg-safe-bar text-text-on-accent` solid + disabled `opacity-60` 유지. W2 sketch + TSX 변환 양쪽 동일 적용.
 
 - **OQ #2**: header chrome — 헤더 배경 현재 `var(--bg2)` (= `--surface-raised`, line 93). chrome 룰 §2.1 의 `bg-surface-page` 적용 검토. 추가로 데스크톱에도 back button 추가?
   - **default 답: 헤더 배경 raised 유지 / 데스크톱 back button 추가 X** — 02 InspectionPage 헤더와 raised 일관 (출근부도 점검 페이지 시리즈 아닌 운영 페이지로 비슷한 raised 패턴 합리적). 데스크톱 = 메뉴/탭 진입이라 `navigate(-1)` 의미 모호 (어디로 가야 하는지 사이드바가 책임). 모바일만 back button 유지.
+  - **LOCKED (2026-05-21):** 헤더 배경 = `bg-surface-raised` 유지 + 데스크톱 back button 추가 X (모바일만 유지). 모바일 back button = chrome 룰 §7.2 패턴 적용 (`w-[34px] h-[34px] rounded-sm bg-surface-sunken border-border-default` + Lucide `ChevronLeft size={15}`).
 
 - **OQ #3**: 폰트 격상 매핑 — 현재 fontSize:10 (staff title line 148 / DOW_KO line 179), fontSize:12 (이름 헤더 line 138 / 엑셀 버튼 line 107 / 범례 라벨 line 217), fontSize:13 (셀 day line 178 / select line 115,118 / 범례 박스 글자 line 216), fontSize:14 (모바일 헤더 타이틀 line 103 / staff name line 147), fontSize:15 (셀 shift line 197), fontSize:16 (데스크톱 헤더 타이틀 line 103). §1.1 9·10·11px 금지 위반 다수. 어디까지 격상?
   - **default 답: 부분 절충** — fontSize:10 → `text-caption` (12) 격상 (§1.1 위반 일괄 상향, 마이그레이션 §4.2) / fontSize:12 (이름 헤더 / 범례 라벨 / 엑셀 버튼) 는 `text-caption` (12) `leading-none` 명시하고 12px 유지 (표 dense layout 특성, 14-reports W1 footer 절충 패턴 mirror, memory `feedback_text_caption_leading_none`) / fontSize:13~15 본문 영역은 `text-label` (13) / `text-body-sm` (14) / `text-body` (16, 마지노선 — 셀 가독성 우선 데이터 핵심이라 15 → 16 격상 검토) 적용. 모바일 헤더 타이틀 14 → 16 격상 검토 (§1.3 모바일/데스크톱 동일 폰트 룰 부합 — 데스크톱 이미 16).
+  - **LOCKED (2026-05-21):** 폰트 격상 매핑 verbatim (sketch + TSX 변환 양쪽):
+    - fontSize:10 (staff title / DOW_KO 요일) → `text-caption` (12) `leading-none`
+    - fontSize:12 (이름 헤더 / 범례 라벨 / 엑셀 버튼) → `text-caption` (12) `leading-none` 유지
+    - fontSize:13 (셀 day / select / 범례 박스 글자) → `text-label` (13) `font-bold leading-none` (셀 day 는 font-bold 유지)
+    - fontSize:14 (모바일 헤더 타이틀 / staff name) → `text-body-sm` (14) `font-bold` — 단 모바일 헤더 타이틀 14 → 16 격상 (`text-body font-bold`, §1.3 모바일/데스크톱 동일 폰트 룰 부합)
+    - fontSize:15 (셀 shift) → `text-body` (16) `font-bold` (셀 가독성 우선)
+    - fontSize:16 (데스크톱 헤더 타이틀) → `text-body` (16) `font-bold` 유지
 
 - **OQ #4**: 셀 배경 hex+opacity `SHIFT_COLOR[sh]+'22'` (line 198, line 216) — hex+22 알파 흉내. 디자인 토큰화 vs 인라인 유지?
   - **default 답: 인라인 유지** — 4 shift 색 (당 #ef4444 / 비 #3b82f6 / 주 #f59e0b / 휴 #6b7280) 은 카테고리/duty 컬러로 status 와 별개. 27-login OQ #2 CARD_COLORS 유사 룰 (인라인 rgba 유지). 토큰화 시 4종 색 × 알파 4종 새로 정의 비용 vs 인라인 1줄. SHIFT_COLOR hex 와 `--duty-day/-night/-off/-leave` 토큰 hex 가 일치하므로 duty 토큰 사용도 가능하지만, shiftCalc.ts 의 SHIFT_COLOR 단일 source 일관성 우선.
+  - **LOCKED (2026-05-21):** `SHIFT_COLOR[sh]+'22'` hex+22 알파 인라인 유지. 셀 배경 + 셀 글자색 + 범례 박스 + 범례 글자 모두 SHIFT_COLOR 동적 inline `style={{ background: ..., borderColor: ..., color: ... }}` 패턴 유지. shiftCalc.ts SHIFT_COLOR 상수 1 byte 변경 X.
 
 - **OQ #5**: today 셀 `2px solid var(--acl) + rgba(59,130,246,0.15)` (line 172~173, 196) 와 공휴일·주말 글자 `#ef4444` (line 174) — 디자인 토큰 치환?
   - **default 답: 토큰 치환 OK** — today border `var(--acl)` → `border-accent` (마이그레이션 §4.1 매핑) + today bg `rgba(59,130,246,0.15)` → `bg-accent-soft` 토큰 신규 정의 검토 또는 인라인 `bg-[rgba(59,130,246,0.15)]` 유지 / 공휴일·주말 색 `#ef4444` → `text-danger` 토큰 치환 (raw hex 사용은 W5 verify FAIL, memory `feedback_tailwind_token_class_pattern`). 16-workshift.md 섹션 4 "공휴일 빨강은 status-danger 가 아닌 캘린더 빨강 (별도 처리)" 명시이나, `#ef4444` 는 design-system §2.4 `--duty-night` (당직 빨강) hex 와 일치 — `text-danger` 토큰의 hex 와도 일치할 가능성 (tokens.css 실측 필요). default 는 `text-danger` 토큰 치환 (status 의미보다 색 hex 일치 우선) — W5 진입 시 tokens.css grep 으로 hex 매핑 정확성 확인 필수.
+  - **LOCKED (2026-05-21):** today border `var(--acl)` → `border-accent` 토큰 / today bg `rgba(59,130,246,0.15)` → 인라인 `bg-[rgba(59,130,246,0.15)]` 유지 (신규 토큰 정의 비용 회피) / 공휴일·주말 글자 `#ef4444` → `text-danger` 토큰 치환. W5 sketch 진입 시 tokens.css grep 으로 `--status-danger` hex 가 `#ef4444` 와 일치하는지 1줄 검증 후 적용. 일치 안 하면 인라인 `text-[#ef4444]` fallback.
 
 ---
 
