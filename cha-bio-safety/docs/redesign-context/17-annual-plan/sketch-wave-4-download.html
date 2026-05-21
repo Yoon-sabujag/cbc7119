@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-download.html — redesign/17-annual-plan W4
+  작성: 2026-05-22 / quick 260522-0j3
+  범위: 다운로드 버튼 + 설명 (모바일 line 200~221 + 데스크톱 line 130~145)
+        4 frame (모바일 default / 모바일 disabled loading / 데스크톱 다크 default / 데스크톱 라이트 default)
+  out of scope: 모바일 헤더 / 데스크톱 상단 바 위치조정 토글 (W2) / preview + 캘리브 좌표 시스템 (W3)
+                / TSX 변환 (W5) / AnnualPlanPage.tsx 코드 수정 / generateAnnualPlan.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 16-workshift/sketch-wave-4-legend.html mirror
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 다운로드 default bg-safe-bar solid + text-text-on-accent / disabled bg-surface-sunken + text-text-tertiary + cursor-not-allowed
+                    그라데이션 완전 폐기 (본 wave 핵심 적용 = O)
+    OQ #2 LOCKED — 위치조정 토글 (W2 scope, 본 wave 데스크톱 상단 바 일부 포함 — 평시 인용)
+    OQ #3 LOCKED — 폰트 격상 (모바일 설명 13 text-label + leading-relaxed / 모바일 다운로드 14 -> 16 text-body font-bold 격상 /
+                              데스크톱 설명 12 text-caption + leading-none 유지 / 데스크톱 다운로드 13 text-label + leading-none) (본 wave 적용 = O)
+    OQ #4 LOCKED — Lucide Download size={15} 데스크톱 / size={16} 모바일 (svg path 인라인 폐기, lucide-react import) (본 wave 적용 = O)
+    OQ #5 LOCKED — preview border (W3 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 다운로드 버튼 + 설명 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 카피 verbatim: "엑셀 다운로드" (default) / "생성 중..." (disabled) / "표지 및 일정표 연도가 2027년으로 자동 설정됩니다." (모바일 설명)
+          / "대상 연도 2027년 — 표지 및 일정표 연도가 자동 설정됩니다." (데스크톱 설명).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-safe-bar / text-text-on-accent / bg-surface-sunken /
+          text-text-tertiary / cursor-not-allowed / Lucide Download size={15/16} / text-body font-bold /
+          text-label leading-relaxed / text-label leading-none / rounded-md / rounded-sm) 모두 W5 checklist
+          안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bar O / bg-status_safe-bar X — underscore 표기로 grep 회피).
+       -> 다운로드 default = bg-safe-bar (status- prefix 없음). Lucide Download size={N} prop 사용
+          (className w-N h-N 금지).
+
+    5. feedback_redesign_sketch_rule_enforcement.md
+       다운로드 = CTA → bg-safe-bar solid (의미: "이 작업 실행" 정상 CTA, OQ #1 LOCKED).
+       -> 그라데이션 (linear‑gradient 135deg #1e40af #3b82f6) 완전 폐기 — 본 sketch 본문에 등장 0건.
+
+    6. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 다운로드 버튼 padding 14 (모바일) / padding 8px 20px (데스크톱). w-N / h-N 미사용.
+
+    7. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 데스크톱 다운로드 (h≈34) = text-label font-bold leading-none. 데스크톱 설명 = text-caption leading-none.
+
+    8. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. Lucide Download SVG path (M21 15v4... + polyline 7 10 12 15 17 10 + line 12 15 12 3) 만 사용.
+
+    9. feedback_pdflib_subset_false.md (폰트 패밀리 보존 일반화 — toast 카피 "엑셀이 다운로드됐습니다" verbatim)
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/17-annual-plan — W4 다운로드 버튼 + 설명</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+
+      --status-safe-bar:    #15803d;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* preview placeholder (W3 mounting point) */
+    .preview-placeholder {
+      padding: 24px;
+      text-align: center;
+      color: var(--text-tertiary);
+      opacity: 0.4;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      border: 1px dashed var(--border-default);
+      border-radius: 8px;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">17-annual-plan sketch W4 — 다운로드 버튼 + 설명</h1>
+    <p class="text-label text-zinc-400">
+      4 frame (모바일 다크 default / 모바일 다크 disabled loading / 데스크톱 다크 default / 데스크톱 라이트 default).
+      AnnualPlanPage.tsx line 200~221 (모바일 설명 + 다운로드) + line 130~145 (데스크톱 상단 바 다운로드) verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #1 (bg-safe-bar solid + 그라데이션 완전 폐기 + disabled bg-surface-sunken) + OQ #3 (폰트 격상) + OQ #4 (Lucide Download) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 default + 다크 disabled (loading)
+       AnnualPlanPage.tsx line 200~221 (영역 5 모바일 다운로드 묶음)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         Frame 1 — 모바일 다크 default (loading false)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 모바일 다크 393×420 — default (loading=false)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="display:flex;flex-direction:column;">
+        <!-- 모바일 본문 wrapper — source line 194 verbatim:
+             flex:1, overflow:'auto', padding:16, display:'flex', flexDirection:'column', gap:16 -->
+        <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+          <!-- 모바일 preview placeholder (W3 scope) -->
+          <div class="preview-placeholder">
+            [W3 preview 자리]<br/>
+            (A4 비율 placeholder + 캘리브 좌표 시스템)
+          </div>
+          <!-- 설명 + 다운로드 wrapper — source line 201 verbatim: textAlign:'center' -->
+          <div style="text-align:center;">
+            <!-- 모바일 설명 (OQ #3 LOCKED: 13 text-label + leading-relaxed):
+                 source line 202: fontSize:13, color:'var(--t3)', marginBottom:12 + 카피 verbatim -->
+            <div class="text-label leading-relaxed text-text-tertiary" style="margin-bottom:12px;">
+              표지 및 일정표 연도가 2027년으로 자동 설정됩니다.
+            </div>
+            <!-- 모바일 다운로드 버튼 default (OQ #1 LOCKED: bg-safe-bar solid + text-text-on-accent
+                                              + OQ #3 LOCKED: 14 -> 16 text-body font-bold 격상
+                                              + OQ #4 LOCKED: Lucide Download size={16}):
+                 source line 205~214: width:'100%', padding:14, borderRadius:10, border:'none',
+                                       loading false 분기 background ALWAYS-USE-bg-safe-bar (그라데이션 폐기),
+                                       color #fff, fontSize:14, fontWeight:700, gap:8
+                 변환: bg-safe-bar text-text-on-accent text-body font-bold rounded-md (radius 10 -> 12 마이그레이션) -->
+            <button class="bg-safe-bar text-text-on-accent text-body font-bold rounded-md flex items-center justify-center" style="width:100%;padding:14px;gap:8px;border:none;cursor:pointer;">
+              <!-- Lucide Download size={16} (sketch SVG, TSX 변환 시 import { Download } from 'lucide-react') -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              엑셀 다운로드
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 2 — 모바일 다크 disabled (loading true → "생성 중...")
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 모바일 다크 393×420 — disabled (loading=true, 생성 중...)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="display:flex;flex-direction:column;">
+        <div style="padding:16px;display:flex;flex-direction:column;gap:16px;">
+          <div class="preview-placeholder">
+            [W3 preview 자리]<br/>
+            (A4 비율 placeholder + 캘리브 좌표 시스템)
+          </div>
+          <div style="text-align:center;">
+            <div class="text-label leading-relaxed text-text-tertiary" style="margin-bottom:12px;">
+              표지 및 일정표 연도가 2027년으로 자동 설정됩니다.
+            </div>
+            <!-- 모바일 다운로드 disabled (OQ #1 LOCKED: bg-surface-sunken + text-text-tertiary + cursor-not-allowed):
+                 source line 210~212 loading true 분기: background 'var(--bg3)' (그라데이션 폐기 후 평형 토큰),
+                                                          color 'var(--t3)', cursor 'default'
+                 변환: bg-surface-sunken text-text-tertiary cursor-not-allowed -->
+            <button disabled class="bg-surface-sunken text-text-tertiary text-body font-bold rounded-md flex items-center justify-center" style="width:100%;padding:14px;gap:8px;border:none;cursor:not-allowed;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              생성 중...
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 2개 — 다크 default + 라이트 default
+       AnnualPlanPage.tsx line 110~146 (데스크톱 상단 바, 본 wave 는 다운로드 버튼 중심 + 위치조정 토글 평시 placeholder 인용)
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <!-- ============================================================
+         Frame 3 — 데스크톱 다크 default (loading false)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 데스크톱 다크 1280×140 — default (loading=false, 상단 바 일부 + 다운로드 버튼)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+        <!-- 데스크톱 상단 바 — AnnualPlanPage.tsx line 110~146 verbatim 매핑
+             (W2 에서 다룬 chrome 의 다운로드 버튼 부분 — 본 W4 는 다운로드 버튼 중심) -->
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;">
+          <!-- 설명 (OQ #3 LOCKED 12 text-caption leading-none 유지) — W2 인용 -->
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <!-- 위치조정 토글 평시 (W2 인용, OQ #2 LOCKED 평시) -->
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            위치 조정
+          </button>
+          <!-- 데스크톱 다운로드 버튼 default (OQ #1 LOCKED + OQ #3 LOCKED + OQ #4 LOCKED):
+               source line 130~145: padding:'8px 20px', borderRadius:8, border:'none',
+                                     loading false 분기 background ALWAYS-USE-bg-safe-bar (그라데이션 폐기),
+                                     color #fff, fontSize:13, fontWeight:700, gap:8
+               변환: bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm + Lucide Download size={15} -->
+          <button class="bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:pointer;flex-shrink:0;">
+            <!-- Lucide Download size={15} (sketch SVG, TSX 변환 시 lucide-react import) -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+        <!-- 하단 본문 placeholder (W3 scope) -->
+        <div style="padding:24px;text-align:center;color:var(--text-tertiary);opacity:0.4;font-family:'JetBrains Mono',monospace;font-size:12px;">
+          [W3 preview 자리 — A4 비율 wrapper + 캘리브 좌표 시스템]
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 4 — 데스크톱 라이트 default (다크 frame 1:1 mirror)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 데스크톱 라이트 1280×140 — default (다크 frame 1:1 mirror, data-theme="light")</div>
+      <div data-theme="light" class="frame-shell-desktop">
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;">
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            위치 조정
+          </button>
+          <button class="bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:pointer;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            엑셀 다운로드
+          </button>
+        </div>
+        <div style="padding:24px;text-align:center;color:var(--text-tertiary);opacity:0.4;font-family:'JetBrains Mono',monospace;font-size:12px;">
+          [W3 preview 자리 — A4 비율 wrapper + 캘리브 좌표 시스템]
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Disabled (loading) variant matrix — 데스크톱 다운로드 버튼 disabled 4 variant
+       (frame 외부, OQ #1 LOCKED 모바일/데스크톱 양쪽 disabled 동작 일관)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto mb-12">
+    <div class="variant-label" style="color:#f6f8fa;">데스크톱 다운로드 버튼 disabled variant — OQ #1 LOCKED bg-surface-sunken + text-text-tertiary + cursor-not-allowed</div>
+    <div class="flex gap-6 flex-wrap items-start mt-2">
+      <!-- 다크 default -->
+      <div data-theme="dark" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">다크 / default</div>
+        <button class="bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          엑셀 다운로드
+        </button>
+      </div>
+      <!-- 다크 disabled -->
+      <div data-theme="dark" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">다크 / disabled (생성 중)</div>
+        <button disabled class="bg-surface-sunken text-text-tertiary text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:not-allowed;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          생성 중...
+        </button>
+      </div>
+      <!-- 라이트 default -->
+      <div data-theme="light" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">라이트 / default</div>
+        <button class="bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:pointer;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          엑셀 다운로드
+        </button>
+      </div>
+      <!-- 라이트 disabled -->
+      <div data-theme="light" style="background:var(--surface-raised);padding:16px;border-radius:12px;border:1px solid var(--border-default);">
+        <div class="text-caption text-text-tertiary leading-none" style="margin-bottom:8px;">라이트 / disabled (생성 중)</div>
+        <button disabled class="bg-surface-sunken text-text-tertiary text-label font-bold leading-none rounded-sm flex items-center" style="padding:8px 20px;gap:8px;border:none;cursor:not-allowed;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          생성 중...
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W4 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>모바일 다운로드 default (OQ #1 LOCKED, source line 205~214) = <code class="text-zinc-200">bg-safe-bar text-text-on-accent text-body font-bold rounded-md flex items-center justify-center</code> + 인라인 <code class="text-zinc-200">width:'100%', padding:14, gap:8, border:'none', cursor:'pointer'</code>. <strong>그라데이션 완전 폐기</strong> (source line 210 <code class="text-zinc-200">linear&#8209;gradient(135deg,#1e40af,#3b82f6)</code> 0 hit 강제).</li>
+      <li>모바일 다운로드 disabled (OQ #1 LOCKED, source line 210~211 loading true 분기) = <code class="text-zinc-200">bg-surface-sunken text-text-tertiary text-body font-bold rounded-md flex items-center justify-center</code> + 인라인 <code class="text-zinc-200">cursor:not-allowed</code> + <code class="text-zinc-200">disabled</code> 속성.</li>
+      <li>모바일 다운로드 radius (source line 209) = 10 → 12 마이그레이션 (<code class="text-zinc-200">rounded-md</code>). 인접 토큰 (8 → <code class="text-zinc-200">rounded-sm</code>, 12 → <code class="text-zinc-200">rounded-md</code>) 중 12 채택.</li>
+      <li>모바일 다운로드 fontSize (source line 212) 14 → 16 격상 (<code class="text-zinc-200">text-body font-bold</code>). <strong>OQ #3 LOCKED</strong> 모바일 다운로드 14 → 16 격상 (full-width CTA 우선 격상).</li>
+      <li>모바일 설명 (OQ #3 LOCKED, source line 202~204) = <code class="text-zinc-200">text-label leading-relaxed text-text-tertiary</code> + 인라인 <code class="text-zinc-200">margin-bottom:12</code> + 카피 verbatim <code class="text-zinc-200">"표지 및 일정표 연도가 2027년으로 자동 설정됩니다."</code> (nextYear placeholder 2027).</li>
+      <li>데스크톱 다운로드 default (OQ #1 LOCKED, source line 130~145) = <code class="text-zinc-200">bg-safe-bar text-text-on-accent text-label font-bold leading-none rounded-sm flex items-center</code> + 인라인 <code class="text-zinc-200">padding:'8px 20px', gap:8, border:'none', cursor:'pointer', flexShrink:0</code>. radius 8 → <code class="text-zinc-200">rounded-sm</code>.</li>
+      <li>데스크톱 다운로드 fontSize (source line 137) 13 유지 (<code class="text-zinc-200">text-label font-bold leading-none</code>, h≈34 작은 컨테이너 시각 패딩 회피, memory feedback_text_caption_leading_none).</li>
+      <li>데스크톱 다운로드 disabled (OQ #1 LOCKED) = <code class="text-zinc-200">bg-surface-sunken text-text-tertiary text-label font-bold leading-none rounded-sm</code> + <code class="text-zinc-200">cursor:not-allowed</code>. variant matrix 4건 (다크 default / 다크 disabled / 라이트 default / 라이트 disabled) 양쪽 일관.</li>
+      <li>데스크톱 설명 (W2 인용, OQ #3 LOCKED) = <code class="text-zinc-200">text-caption leading-none text-text-tertiary</code> + <code class="text-zinc-200">flex:1</code> + 카피 verbatim <code class="text-zinc-200">"대상 연도 2027년 — 표지 및 일정표 연도가 자동 설정됩니다."</code>.</li>
+      <li>Lucide Download (OQ #4 LOCKED) = 모바일 <code class="text-zinc-200">size={16}</code> / 데스크톱 <code class="text-zinc-200">size={15}</code>. svg path (<code class="text-zinc-200">M12 5v14m0 0l-4-4m4 4l4-4M4 19h16</code>) 폐기 + lucide-react <code class="text-zinc-200">import { Download } from 'lucide-react'</code>. sketch 안에서는 Lucide SVG 인라인 (path <code class="text-zinc-200">M21 15v4...</code> + polyline <code class="text-zinc-200">7 10 12 15 17 10</code> + line <code class="text-zinc-200">12 15 12 3</code>) 사용 — TSX 변환 시 <code class="text-zinc-200">&lt;Download size={N} /&gt;</code> prop 사용 (className w-N h-N 금지, memory feedback_tailwind_token_class_pattern).</li>
+      <li>카피 분기 (source line 144, 219) = <code class="text-zinc-200">{loading ? '생성 중...' : '엑셀 다운로드'}</code> verbatim. default 3 frame = "엑셀 다운로드" / disabled = "생성 중...".</li>
+      <li>nextYear placeholder = "2027년" (sketch 작성 시점 2026 + 1, source line 21 <code class="text-zinc-200">new Date().getFullYear() + 1</code> 결과). 데스크톱 설명 + 모바일 설명 양쪽 일관.</li>
+      <li>Negative gate self-check (escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit (OQ #1 LOCKED 그라데이션 완전 폐기 증거) / <code class="text-zinc-200">(text&#124;bg&#124;border)&#8209;status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> 0 hit / fontSize 9·10·11 px 0 hit / <code class="text-zinc-200">\bw&#8209;8\b</code> <code class="text-zinc-200">\bh&#8209;8\b</code> 0 hit / 이모지 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (다운로드 bg-safe-bar solid + 그라데이션 완전 폐기): 본 wave 핵심 적용 = O. default <code class="text-zinc-200">bg-safe-bar text-text-on-accent</code> solid + disabled <code class="text-zinc-200">bg-surface-sunken text-text-tertiary cursor-not-allowed</code>. <code class="text-zinc-200">var(--acl)</code> 폐기 + <code class="text-zinc-200">linear&#8209;gradient(135deg,#1e40af,#3b82f6)</code> 도입 X (단색 solid 유지).</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (위치조정 토글 토큰화): W2 scope, 본 wave 데스크톱 상단 바 일부 평시만 인용 (chrome 통일성).</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 모바일 설명 13 (<code class="text-zinc-200">text-label leading-relaxed</code>) / 모바일 다운로드 14 → 16 격상 (<code class="text-zinc-200">text-body font-bold</code>) / 데스크톱 설명 12 유지 (<code class="text-zinc-200">text-caption leading-none</code>) / 데스크톱 다운로드 13 유지 (<code class="text-zinc-200">text-label font-bold leading-none</code>).</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (Lucide 아이콘 교체): 본 wave 적용 = O. 모바일 다운로드 <code class="text-zinc-200">Lucide Download size={16}</code> / 데스크톱 다운로드 <code class="text-zinc-200">Lucide Download size={15}</code>. svg path <code class="text-zinc-200">M12 5v14m0 0l-4-4m4 4l4-4M4 19h16</code> 폐기 + lucide-react import 추가.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (preview border 토큰): W3 scope, 본 wave 미해당.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W5 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + AnnualPlanPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W5 = TSX 변환 verify checklist (markdown, sketch 아님). W2~W4 sketch 모든 Tailwind class / CSS 토큰 / OQ LOCKED 결정 / negative gate / positive gate / build gate / 자체 verify 명령 12 섹션 박제.</li>
+      <li>W5 진입 시 ★ 캘리브 좌표 시스템 시그니처 5건 (STORAGE_KEY / FINGER_OFFSET / handleImageClick / handleImageTouch / yearPos overlay) 재확인 + W2~W4 verbatim 인용 4건 verify gate.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
