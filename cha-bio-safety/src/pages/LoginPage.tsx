@@ -71,19 +71,19 @@ export default function LoginPage() {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width:'100%', padding:'12px 14px', borderRadius:12,
-    border:'1px solid var(--bd2)', background:'var(--bg3)',
-    color:'var(--t1)', fontSize:14, outline:'none',
-    transition:'border-color .15s',
+  // input className + 인라인 style 분리 (inputStyle 객체 분해, W5 §3.3)
+  const inputClass = 'w-full bg-surface-sunken border border-border-strong text-text-primary'
+  const inputInline: React.CSSProperties = {
+    padding: '12px 14px', borderRadius: 12, fontSize: 14, outline: 'none',
+    transition: 'border-color .15s',
   }
 
   // ── 공통 내부 콘텐츠 ────────────────────────────────────
   const inner = (
     <>
       {/* 담당자 선택 */}
-      <div style={{ background:'var(--bg2)', borderRadius:16, padding:16, marginBottom:12, border:'1px solid var(--bd)' }}>
-        <p style={{ fontSize:10, fontWeight:700, color:'var(--t3)', letterSpacing:'.06em', textTransform:'uppercase', marginBottom:12 }}>담당자 선택</p>
+      <div className="bg-surface-raised border border-border-default" style={{ borderRadius:16, padding:16, marginBottom:12 }}>
+        <p className="text-caption font-bold uppercase tracking-wider text-text-tertiary leading-none" style={{ marginBottom:12 }}>담당자 선택</p>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
           {staffList.map((s, i) => {
             const isSelected = selected === s.id
@@ -101,12 +101,12 @@ export default function LoginPage() {
                   cursor:'pointer', textAlign:'left', transition:'all .13s',
                 }}
               >
-                <div style={{ width:34, height:34, borderRadius:10, background:isSelected?'#2563eb':c.border, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
-                  {initial}
+                <div className="w-[34px] h-[34px] rounded-[10px]" style={{ background:isSelected?'#2563eb':c.border, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', flexShrink:0 }}>
+                  <span className="text-body font-bold leading-none">{initial}</span>
                 </div>
                 <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--t1)' }}>{s.name}</div>
-                  <div style={{ fontSize:10, color:'var(--t3)' }}>{titleLabel}</div>
+                  <div className="text-label font-bold text-text-primary leading-none" style={{ marginBottom:4 }}>{s.name}</div>
+                  <div className="text-caption text-text-tertiary leading-none">{titleLabel}</div>
                 </div>
               </button>
             )
@@ -115,21 +115,22 @@ export default function LoginPage() {
       </div>
 
       {/* 입력 폼 */}
-      <div style={{ background:'var(--bg2)', borderRadius:16, padding:16, border:'1px solid var(--bd)' }}>
+      <div className="bg-surface-raised border border-border-default" style={{ borderRadius:16, padding:16 }}>
         <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
           <div>
-            <label style={{ fontSize:11, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:6 }}>사번</label>
+            <label className="text-label font-bold leading-none text-text-secondary" style={{ display:'block', marginBottom:6 }}>사번</label>
             <input
               type="text"
               inputMode="numeric"
               value={staffId}
               onChange={e => { setStaffId(e.target.value); setSelected(null) }}
               placeholder="사번 10자리"
-              style={inputStyle}
+              className={inputClass}
+              style={inputInline}
             />
           </div>
           <div>
-            <label style={{ fontSize:11, fontWeight:600, color:'var(--t3)', display:'block', marginBottom:6 }}>비밀번호</label>
+            <label className="text-label font-bold leading-none text-text-secondary" style={{ display:'block', marginBottom:6 }}>비밀번호</label>
             <div style={{ position:'relative' }}>
               <input
                 ref={pwRef}
@@ -138,12 +139,14 @@ export default function LoginPage() {
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 placeholder="비밀번호 입력"
-                style={{ ...inputStyle, paddingRight:44 }}
+                className={inputClass}
+                style={{ padding:'12px 44px 12px 14px', borderRadius:12, fontSize:14, outline:'none', transition:'border-color .15s' }}
               />
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--t3)', cursor:'pointer', fontSize:13 }}
+                className="text-text-tertiary"
+                style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:13 }}
               >
                 {showPw ? '숨김' : '표시'}
               </button>
@@ -152,10 +155,10 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
+            className={loading ? 'bg-surface-sunken text-text-tertiary font-bold' : 'bg-safe-bar text-text-on-accent font-bold'}
             style={{
               padding:'14px', borderRadius:12, border:'none',
-              background: loading ? 'var(--bg3)' : 'linear-gradient(135deg,#1d4ed8,#2563eb)',
-              color:'#fff', fontSize:14, fontWeight:700, cursor:loading?'not-allowed':'pointer',
+              fontSize:14, cursor:loading?'not-allowed':'pointer',
               transition:'all .13s', marginTop:4,
             }}
           >
@@ -164,7 +167,7 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <p style={{ textAlign:'center', fontSize:11, color:'var(--t3)', marginTop:20, lineHeight:1.6 }}>
+      <p className="text-caption leading-relaxed text-text-tertiary" style={{ textAlign:'center', marginTop:20 }}>
         초기 비밀번호: 사번 뒤 4자리<br/>
         문의: 방재팀 내선 ☎ 031-881-7119
       </p>
@@ -174,17 +177,17 @@ export default function LoginPage() {
   // ── 데스크톱 레이아웃 (768px 이상) ──────────────────────
   if (isDesktop) {
     return (
-      <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', padding:'20px' }}>
-        <div style={{ maxWidth:420, width:'100%', borderRadius:20, background:'var(--bg2)', border:'1px solid var(--bd)', boxShadow:'0 8px 32px rgba(0,0,0,0.4)', overflow:'hidden' }}>
+      <div className="bg-surface-page" style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+        <div className="bg-surface-raised border border-border-default" style={{ maxWidth:420, width:'100%', borderRadius:20, boxShadow:'0 8px 32px rgba(0,0,0,0.4)', overflow:'hidden' }}>
           {/* 카드 헤더 */}
-          <div style={{ background:'var(--bg2)', padding:'24px 24px 20px', borderBottom:'1px solid var(--bd)' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-              <div style={{ width:38, height:38, borderRadius:11, background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-                <img src="/icons/icon-192.png" alt="" style={{ width:28, height:28, borderRadius:7 }} />
+          <div className="bg-surface-raised border-b border-border-default" style={{ padding:'24px 24px 20px' }}>
+            <div className="flex items-center" style={{ gap:12 }}>
+              <div className="w-[38px] h-[38px] rounded-[11px]" style={{ background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                <img src="/icons/icon-192.png" alt="" className="w-[28px] h-[28px] rounded-[7px]" />
               </div>
               <div>
-                <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>차바이오컴플렉스 방재팀</div>
-                <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>소방안전 통합관리 시스템</div>
+                <div className="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+                <div className="text-caption text-text-tertiary leading-none" style={{ marginTop:2 }}>소방안전 통합관리 시스템</div>
               </div>
             </div>
           </div>
@@ -199,16 +202,16 @@ export default function LoginPage() {
 
   // ── 모바일 레이아웃 (768px 미만) — 기존 유지 ────────────
   return (
-    <div style={{ minHeight:'100dvh', background:'var(--bg)', display:'flex', flexDirection:'column' }}>
+    <div className="bg-surface-page" style={{ minHeight:'100dvh', display:'flex', flexDirection:'column' }}>
       {/* 상단 헤더 */}
-      <div style={{ background:'var(--bg2)', padding:'16px 20px 24px', borderBottom:'1px solid var(--bd)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginTop:16 }}>
-          <div style={{ width:38, height:38, borderRadius:11, background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-            <img src="/icons/icon-192.png" alt="" style={{ width:28, height:28, borderRadius:7 }} />
+      <div className="bg-surface-raised border-b border-border-default" style={{ padding:'16px 20px 24px' }}>
+        <div className="flex items-center" style={{ gap:12, marginTop:16 }}>
+          <div className="w-[38px] h-[38px] rounded-[11px]" style={{ background:'rgba(37,99,235,0.2)', border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+            <img src="/icons/icon-192.png" alt="" className="w-[28px] h-[28px] rounded-[7px]" />
           </div>
           <div>
-            <div style={{ fontSize:16, fontWeight:700, color:'var(--t1)' }}>차바이오컴플렉스 방재팀</div>
-            <div style={{ fontSize:11, color:'var(--t3)', marginTop:2 }}>소방안전 통합관리 시스템</div>
+            <div className="text-body font-bold text-text-primary">차바이오컴플렉스 방재팀</div>
+            <div className="text-caption text-text-tertiary leading-none" style={{ marginTop:2 }}>소방안전 통합관리 시스템</div>
           </div>
         </div>
       </div>
