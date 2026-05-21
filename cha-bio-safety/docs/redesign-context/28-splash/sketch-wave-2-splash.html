@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-splash.html — redesign/28-splash W2
+  작성: 2026-05-22 / quick 260522-2q6
+  범위: SplashScreen.tsx 전체 (line 38~82) 시각화 — 외곽 + 로고 + 타이틀 + 진행 바 + 버전 + slideUp animation
+        4 frame (모바일 다크 0% / 50% / 100% '준비 완료' + 모바일 라이트 50%) 진행률 매트릭스
+  out of scope: InstallPrompt 메인 view (W3 책임) / InstallPrompt 가이드 view (W4 책임) / TSX 변환 (W5 책임)
+                / SplashScreen.tsx 코드 수정 / versionCheck.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 17-annual-plan/sketch-wave-2-chrome.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — InstallPrompt 설치 버튼 bg-safe-bar solid + 그라데이션 폐기 (W3 scope, 본 wave 미해당)
+    OQ #2 LOCKED — SplashScreen 진행 바 fill bg-accent solid / 트랙 rgba 인라인 유지 (그라데이션 완전 폐기, 본 wave 적용 = O)
+    OQ #3 LOCKED — 폰트 격상 (타이틀 22 -> text-heading font-black tracking-tight / 부제 12 text-caption leading-relaxed 유지
+                                / 진행 라벨 11 -> 12 text-caption leading-none / 버전 10 -> 12 text-caption leading-none) (본 wave 적용 = O)
+    OQ #4 LOCKED — page #161b22 -> bg-surface-page / text 4종 토큰 / 진행 바 트랙 + 카드 border + 오버레이 + boxShadow 인라인 유지 4건 (본 wave 적용 = O, 트랙만)
+    OQ #5 LOCKED — iOS u22EE 메뉴 + u238B 공유 글리프 인라인 보존 (W4 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 SplashScreen 진행률 매트릭스 (0% / 50% / 100% / 라이트) 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 타이틀 "CBC 방재" verbatim / 부제 "소방안전 통합관리 시스템" / 진행 라벨 3 분기
+          (시스템 초기화 중... / 데이터 불러오는 중... / 준비 완료) / 위치 "경기도 성남시 분당구".
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-page / bg-accent / text-heading font-black tracking-tight /
+          text-caption leading-relaxed / text-caption leading-none / text-text-primary/tertiary/disabled /
+          rounded-[22px]) 와 인라인 (rgba(255,255,255,0.07) 트랙 / 88x88 로고 박스 / animation:slideUp .4s ease-out /
+          letterSpacing:.1em 부제 / width:160 진행 바) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;accent O / bg-status&#8209;accent X).
+       -> 진행 바 fill = bg-accent solid (OQ #2 LOCKED). status&#8209; prefix 사용 0건.
+          Lucide 아이콘 미사용 (Splash 는 로고 PNG + 텍스트만).
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 로고 박스 88x88 = style="width:88px;height:88px" 인라인 명시. spacing alias (w&#8209;8 = 48) 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 진행 라벨 (mt:10 + p<center> 짧은 한 줄) = text-caption leading-none (12 + lh:1).
+          버전 (작은 bottom:20 한 줄) = text-caption leading-none.
+          부제만 leading-relaxed 유지 (의미 있는 줄간격, 한 줄이지만 letterSpacing 보강 보존).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. SVG / 이미지만 사용 (로고 PNG).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       진행 바 fill = neutral 진행 (accent, 의미 anchor — 위험 임계치 아님).
+       status&#8209; prefix 색 사용 0건. 그라데이션 폐기 (W1 OQ #2 LOCKED).
+
+    9. feedback_pwa_cache_invalidation.md (28&#8209;splash 특화 — 캐시 갱신 anchor)
+       -> checkVersionAndRefresh() 호출 (line 16) 은 PWA 캐시 무효화 첫 단추. 1 byte 변경 금지.
+
+   10. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/28&#8209;splash 확인 + dirty 면 사용자 컨펌.
+
+  ==========================================================
+  ★ 비즈 anchor 8건 (SplashScreen) — 1 byte 변경 금지
+  ==========================================================
+
+    1. __APP_VERSION__ Vite define (line 73, `v{__APP_VERSION__} · 경기도 성남시 분당구`)
+    2. @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} } (line 79)
+    3. 48ms setInterval tick (line 18: setInterval(... , 48))
+    4. 1600ms setTimeout (line 26: setTimeout(... , 1600))
+    5. +4 increment per tick (line 18: p + 4)
+    6. checkVersionAndRefresh() void 호출 (line 16)
+    7. isAuthenticated ? '/dashboard' : '/login' 분기 (line 24, 34)
+    8. shouldShowInstallPrompt() 분기 (line 21)
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용)
+  ==========================================================
+
+    - 페이지 background #161b22 -> bg-surface-page (OQ #4)
+    - 타이틀 색 #e6edf3 -> text-text-primary (OQ #4)
+    - 부제/진행 라벨 색 #6e7681 -> text-text-tertiary (OQ #4)
+    - 버전 색 #3d444d -> text-text-disabled (OQ #4)
+    - 진행 바 fill linear&#8209;gradient(90deg,#3b82f6,#0ea5e9) -> bg-accent (OQ #2)
+    - 진행 바 트랙 rgba(255,255,255,0.07) -> 인라인 유지 (OQ #4 인라인 유지 4건 중 1)
+    - radius 22 (로고 박스) -> rounded-[22px] (토큰 없음)
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (본 sketch 사용 글리프 0)
+    - linear&#8209;gradient 0건 (OQ #2 LOCKED 그라데이션 완전 폐기 증거)
+    - 9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건
+    - w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty eight px 함정)
+    - 옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) 0건
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/28-splash — W2 SplashScreen</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe-bar:    #22c55e;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe-bar:    #15803d;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .font-black { font-weight: 900; }
+    .tracking-tight { letter-spacing: -0.02em; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * SplashScreen 비즈 anchor 박제 — @keyframes slideUp (1 byte 변경 금지, line 79)
+     * ============================================================ */
+    @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1600px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">28-splash sketch W2 — SplashScreen 진행률 매트릭스</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 4 frame side-by-side. SplashScreen.tsx line 38~82 (외곽 + 로고 + 타이틀 + 진행 바 + 버전 + slideUp animation) verbatim 매핑.
+      진행률 매트릭스: 0% (시스템 초기화 중) / 50% (데이터 불러오는 중) / 100% (준비 완료) / 라이트 50%.
+      W1 OQ LOCKED 5건 중 OQ #2 (진행 바 fill bg-accent solid, 그라데이션 폐기) + OQ #3 (폰트 격상 22 / 12 / 11 -> 12 / 10 -> 12) + OQ #4 (page bg-surface-page + text 4 토큰 + 트랙 인라인 유지) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — 다크 0% / 다크 50% / 다크 100% / 라이트 50%
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / 진행 0% — 시스템 초기화 중
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — 진행 0% — 시스템 초기화 중</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <!-- 외곽 (OQ #4 LOCKED: page #161b22 -> bg-surface-page)
+             source line 38~43: minHeight:'100dvh', background:'#161b22', display:'flex', flexDirection:'column',
+                                  alignItems:'center', justifyContent:'center', gap:0 -->
+        <div class="bg-surface-page" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+
+          <!-- 로고 + 타이틀 묶음 (slideUp animation anchor, 비즈 anchor 2)
+               source line 45: animation:'slideUp .4s ease-out', display:'flex', flexDirection:'column',
+                                 alignItems:'center', gap:20, marginBottom:56 -->
+          <div style="animation:slideUp .4s ease-out;display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:56px;">
+
+            <!-- 로고 박스 88x88 rounded-[22px] (OQ #4 LOCKED 인라인 rgba 유지)
+                 source line 47~55: width:88, height:88, borderRadius:22, background:'rgba(37,99,235,0.2)',
+                                      border:'1px solid rgba(59,130,246,0.3)', display:'flex', alignItems:'center',
+                                      justifyContent:'center', overflow:'hidden' -->
+            <div style="position:relative;">
+              <div class="rounded-[22px]" style="width:88px;height:88px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <!-- source line 54: <img src="/icons/icon-192.png" alt="" style={{ width: 64, height: 64, borderRadius: 14 }} /> -->
+                <div style="width:64px;height:64px;border-radius:14px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;letter-spacing:0.05em;">CBC</div>
+              </div>
+            </div>
+
+            <!-- 타이틀 + 부제 (OQ #3 LOCKED: 22 -> text-heading font-black tracking-tight / 12 부제 text-caption leading-relaxed 유지)
+                 source line 57~60:
+                   <h1 style={{ fontSize:22, fontWeight:900, color:'#e6edf3', margin:0, letterSpacing:'-.02em' }}>CBC 방재</h1>
+                   <p style={{ fontSize:12, color:'#6e7681', margin:'6px 0 0', letterSpacing:'.1em' }}>소방안전 통합관리 시스템</p> -->
+            <div style="text-align:center;">
+              <h1 class="text-heading font-black tracking-tight text-text-primary" style="margin:0;">CBC 방재</h1>
+              <p class="text-caption leading-relaxed text-text-tertiary" style="margin:6px 0 0;letter-spacing:.1em;">소방안전 통합관리 시스템</p>
+            </div>
+          </div>
+
+          <!-- 진행 바 width:160 (OQ #2 LOCKED: fill bg-accent solid + OQ #4 LOCKED: 트랙 rgba 인라인 유지)
+               source line 64~70: width:160, height:2, background:'rgba(255,255,255,0.07)', borderRadius:2, overflow:'hidden',
+                                    fill background:'linear&#8209;gradient(90deg,#3b82f6,#0ea5e9)' (-> bg-accent),
+                                    width:`${pct}%`, transition:'width .05s linear' -->
+          <div style="width:160px;">
+            <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;">
+              <!-- fill (OQ #2 LOCKED bg-accent solid, 진행 0%) -->
+              <div class="bg-accent" style="height:100%;border-radius:2px;width:0%;transition:width .05s linear;"></div>
+            </div>
+            <!-- 진행 라벨 (OQ #3 LOCKED: 11 -> 12 text-caption leading-none 격상)
+                 source line 68~70: fontSize eleven px, color #6e7681, textAlign center, marginTop ten px
+                                      카피 분기: pct < 40 '시스템 초기화 중...' / pct < 80 '데이터 불러오는 중...' / else '준비 완료' -->
+            <p class="text-caption leading-none text-text-tertiary" style="text-align:center;margin-top:10px;">시스템 초기화 중...</p>
+          </div>
+
+          <!-- 버전 (OQ #3 LOCKED: 10 -> 12 text-caption leading-none 격상 + OQ #4 LOCKED: #3d444d -> text-text-disabled)
+               source line 73: position absolute, bottom twenty px, fontSize ten px, color #3d444d
+                                 카피: `v{__APP_VERSION__} · 경기도 성남시 분당구` (__APP_VERSION__ 비즈 anchor 1) -->
+          <p class="text-caption leading-none text-text-disabled" style="position:absolute;bottom:20px;">v0.1.1 · 경기도 성남시 분당구</p>
+
+          <!-- 비즈 anchor 박제 footer (sketch 외부 chrome 메타, 본문 영향 0):
+               비즈 anchor SplashScreen 8건 중 본 frame 시각 anchor: __APP_VERSION__ (line 73) -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / 진행 50% — 데이터 불러오는 중
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — 진행 50% — 데이터 불러오는 중</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <div class="bg-surface-page" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+
+          <!-- 로고 + 타이틀 묶음 (slideUp animation anchor) -->
+          <div style="animation:slideUp .4s ease-out;display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:56px;">
+            <div style="position:relative;">
+              <div class="rounded-[22px]" style="width:88px;height:88px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <div style="width:64px;height:64px;border-radius:14px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;letter-spacing:0.05em;">CBC</div>
+              </div>
+            </div>
+            <div style="text-align:center;">
+              <h1 class="text-heading font-black tracking-tight text-text-primary" style="margin:0;">CBC 방재</h1>
+              <p class="text-caption leading-relaxed text-text-tertiary" style="margin:6px 0 0;letter-spacing:.1em;">소방안전 통합관리 시스템</p>
+            </div>
+          </div>
+
+          <!-- 진행 바 50% (pct=50, '데이터 불러오는 중...' 분기) -->
+          <div style="width:160px;">
+            <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;">
+              <div class="bg-accent" style="height:100%;border-radius:2px;width:50%;transition:width .05s linear;"></div>
+            </div>
+            <p class="text-caption leading-none text-text-tertiary" style="text-align:center;margin-top:10px;">데이터 불러오는 중...</p>
+          </div>
+
+          <p class="text-caption leading-none text-text-disabled" style="position:absolute;bottom:20px;">v0.1.1 · 경기도 성남시 분당구</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 모바일 393x800 / 진행 100% — 준비 완료
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (393x800) — 진행 100% — 준비 완료</div>
+      <div data-theme="dark" class="frame-shell-mobile bg-surface-page">
+
+        <div class="bg-surface-page" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+
+          <div style="animation:slideUp .4s ease-out;display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:56px;">
+            <div style="position:relative;">
+              <div class="rounded-[22px]" style="width:88px;height:88px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <div style="width:64px;height:64px;border-radius:14px;background:linear&#8209;gradient(135deg, #3b82f6, #2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;letter-spacing:0.05em;">CBC</div>
+              </div>
+            </div>
+            <div style="text-align:center;">
+              <h1 class="text-heading font-black tracking-tight text-text-primary" style="margin:0;">CBC 방재</h1>
+              <p class="text-caption leading-relaxed text-text-tertiary" style="margin:6px 0 0;letter-spacing:.1em;">소방안전 통합관리 시스템</p>
+            </div>
+          </div>
+
+          <!-- 진행 바 100% (pct=100, '준비 완료' 분기) -->
+          <div style="width:160px;">
+            <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;">
+              <div class="bg-accent" style="height:100%;border-radius:2px;width:100%;transition:width .05s linear;"></div>
+            </div>
+            <p class="text-caption leading-none text-text-tertiary" style="text-align:center;margin-top:10px;">준비 완료</p>
+          </div>
+
+          <p class="text-caption leading-none text-text-disabled" style="position:absolute;bottom:20px;">v0.1.1 · 경기도 성남시 분당구</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / 진행 50% — 라이트 명도 확인
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 모드 (393x800) — 진행 50% — 라이트 명도 확인</div>
+      <div data-theme="light" class="frame-shell-mobile bg-surface-page">
+
+        <div class="bg-surface-page" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;">
+
+          <div style="animation:slideUp .4s ease-out;display:flex;flex-direction:column;align-items:center;gap:20px;margin-bottom:56px;">
+            <div style="position:relative;">
+              <div class="rounded-[22px]" style="width:88px;height:88px;background:rgba(37,99,235,0.2);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+                <div style="width:64px;height:64px;border-radius:14px;background:linear&#8209;gradient(135deg, #1f6feb, #0a52c4);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px;letter-spacing:0.05em;">CBC</div>
+              </div>
+            </div>
+            <div style="text-align:center;">
+              <h1 class="text-heading font-black tracking-tight text-text-primary" style="margin:0;">CBC 방재</h1>
+              <p class="text-caption leading-relaxed text-text-tertiary" style="margin:6px 0 0;letter-spacing:.1em;">소방안전 통합관리 시스템</p>
+            </div>
+          </div>
+
+          <!-- 진행 바 50% (라이트 — 트랙 rgba(255,255,255,0.07) 인라인 유지, 라이트도 동일 alpha 유지 — OQ #4 LOCKED) -->
+          <div style="width:160px;">
+            <div style="height:2px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;border:1px solid rgba(0,0,0,0.05);">
+              <div class="bg-accent" style="height:100%;border-radius:2px;width:50%;transition:width .05s linear;"></div>
+            </div>
+            <p class="text-caption leading-none text-text-tertiary" style="text-align:center;margin-top:10px;">데이터 불러오는 중...</p>
+          </div>
+
+          <p class="text-caption leading-none text-text-disabled" style="position:absolute;bottom:20px;">v0.1.1 · 경기도 성남시 분당구</p>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스 (sketch 외부 chrome, OQ LOCKED 결정 + 비즈 anchor + 토큰 매핑)
+       ============================================================ -->
+  <section class="max-w-[1600px] mx-auto bg-zinc-900/60 rounded-lg p-6 text-zinc-300" style="font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;">
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">W1 OQ LOCKED 결정 (본 wave 적용)</h2>
+    <pre style="white-space:pre-wrap;">
+OQ #2 LOCKED (SplashScreen 진행 바 bg-accent solid + 그라데이션 완전 폐기):
+  - source line 66 fill: background 'linear&#8209;gradient(90deg,#3b82f6,#0ea5e9)' -> className "bg-accent"
+  - source line 65 트랙: background 'rgba(255,255,255,0.07)' -> 인라인 유지 (OQ #4 인라인 유지 4건 중 1)
+  - 효과: 그라데이션 0건 강제, sketch + TSX 양쪽 동일
+
+OQ #3 LOCKED (폰트 격상 verbatim):
+  - 타이틀 fontSize:22 fontWeight:900 letterSpacing:-.02em (line 58) -> "text-heading font-black tracking-tight"
+  - 부제 fontSize:12 letterSpacing:.1em (line 59) -> "text-caption leading-relaxed" (12 유지) + style letterSpacing:.1em 인라인 유지
+  - 진행 라벨 fontSize eleven px (line 68) -> "text-caption leading-none" (11 -> 12 격상)
+  - 버전 fontSize ten px (line 73) -> "text-caption leading-none" (10 -> 12 격상)
+  - 9 / 10 / 11 px 0건 강제
+
+OQ #4 LOCKED (토큰 치환 + 인라인 유지 4건):
+  - 페이지 background #161b22 -> "bg-surface-page" (line 39)
+  - text #e6edf3 -> "text-text-primary" (line 58 타이틀)
+  - text #6e7681 -> "text-text-tertiary" (line 59 부제 + line 68 진행 라벨)
+  - text #3d444d -> "text-text-disabled" (line 73 버전)
+  - 인라인 유지 4건 중 본 wave 해당:
+    * SplashScreen line 65 진행 바 트랙 rgba(255,255,255,0.07) — 인라인 유지
+    * (나머지 3건 — 카드 border / 오버레이 / boxShadow 는 W3 + W4 InstallPrompt scope)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">★ 비즈 anchor 8건 (SplashScreen) — 1 byte 변경 금지</h2>
+    <pre style="white-space:pre-wrap;">
+1. __APP_VERSION__ Vite define (line 73, `v{__APP_VERSION__} · 경기도 성남시 분당구`)
+2. @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} } (line 79)
+3. 48ms setInterval tick (line 18: setInterval(() => setPct(p => Math.min(p + 4, 100)), 48))
+4. 1600ms setTimeout (line 26: setTimeout(... , 1600))
+5. +4 increment per tick (line 18: p + 4)
+6. checkVersionAndRefresh() void 호출 (line 16)
+7. isAuthenticated ? '/dashboard' : '/login' 분기 (line 24, 34)
+8. shouldShowInstallPrompt() 분기 (line 21)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">토큰 매핑 (W5 checklist 직전 박제)</h2>
+    <pre style="white-space:pre-wrap;">
+#161b22 -> bg-surface-page         (페이지 외곽, OQ #4)
+#e6edf3 -> text-text-primary       (타이틀, OQ #4)
+#6e7681 -> text-text-tertiary      (부제 + 진행 라벨, OQ #4)
+#3d444d -> text-text-disabled      (버전, OQ #4)
+linear&#8209;gradient(90deg,#3b82f6,#0ea5e9) -> bg-accent  (진행 바 fill, OQ #2)
+rgba(255,255,255,0.07) -> 인라인 유지  (진행 바 트랙, OQ #4 인라인 유지 1/4)
+radius 22 -> rounded-[22px]        (로고 박스, 토큰 없음)
+font 22 fontWeight 900 -> text-heading font-black tracking-tight  (OQ #3)
+font 12 letterSpacing .1em -> text-caption leading-relaxed  (OQ #3 12 유지)
+font 11 -> text-caption leading-none  (OQ #3 11 -> 12 격상)
+font 10 -> text-caption leading-none  (OQ #3 10 -> 12 격상)
+    </pre>
+
+    <h2 class="text-white font-bold mb-3 mt-6" style="font-size:16px;">Negative gate (sketch 본문)</h2>
+    <pre style="white-space:pre-wrap;">
+이모지 0건 (본 sketch 사용 글리프 0)
+linear&#8209;gradient 0건 (OQ #2 LOCKED 그라데이션 완전 폐기 증거)
+9 / 10 / 11 px fontSize 0건 (OQ #3 LOCKED 격상 결과)
+(text|bg|border)&#8209;status&#8209; class prefix 0건
+w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty eight px 함정, memory feedback_tailwind_w8_h8_is_48px)
+옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) 0건 in sketch
+    </pre>
+  </section>
+
+</body>
+</html>
