@@ -307,20 +307,32 @@ line 74: const DESKTOP_NO_NAV_PATHS = ['/', '/login']
 
 본 wave 산출 후 W2 sketch 진입 전 사용자에게 컨펌 받아야 할 항목 5건. 각 OQ 아래 "default 답" 1줄 — 사용자가 별 의견 없으면 이 답으로 진행 (reasonable call). 단, "approved" 받기 전까지 W2 진입 금지 (memory `feedback_avoid_premature_confirmation`).
 
+> **사용자 컨펌 결과 (2026-05-21):** OQ 5개 전부 default 로 진행. W2~W5 sketch/TSX 변환은 아래 LOCKED 결정 그대로 반영.
+
 - OQ #1: 로그인 버튼 그라데이션 (`linear-gradient(135deg,#1d4ed8,#2563eb)`, LoginPage.tsx line 157) → `bg-safe-bar` solid 통일 OK?
   - **default 답: OK** — 13-schedule W6 LOCKED b + 14-reports W1 OQ #1/#3 일관 + design-system §6.4 CTA 그라데이션 폐기 룰. 종점 색 `#2563eb` 이 §6.4 의 "유일한 그라디언트 2종"의 `#0ea5e9` 와 다르므로 폐기 후보로 명확.
+  - **LOCKED (2026-05-21):** 로그인 버튼 = `bg-safe-bar` solid + `text-text-on-accent`. 그라데이션 완전 폐기. disabled 시 = `bg-surface-sunken`. W4 sketch + TSX 변환 양쪽 동일 적용.
 
 - OQ #2: 직원 카드 `CARD_COLORS` 6종 (rgba amber 245,158,11 / green 34,197,94 / blue 59,130,246 / violet 139,92,246 / pink 236,72,153 / teal 20,184,166) — 디자인 토큰화 vs 인라인 rgba 유지?
   - **default 답: 인라인 rgba 유지** — 27-login.md 섹션 4 "직원 카드 그리드 색상은 status/duty 와 별개 카테고리 색 — 그대로 유지" 명시. 토큰화 시 카드별 의미 부여 시도가 §6.2 negative rule (status 색 미적 사용) 유발 위험 (memory `feedback_redesign_sketch_rule_enforcement`).
+  - **LOCKED (2026-05-21):** `CARD_COLORS` 6 rgba 인라인 상수 그대로 보존. variant matrix 도 인라인 rgba 로 표현. isSelected accent 만 `#2563eb` → `bg-accent` 토큰화 검토 (W3 sketch 단계 결정).
 
 - OQ #3: 안내 footer 안내문 (현재 fontSize:11, line 167) + 라벨 "사번"/"비밀번호" (현재 fontSize:11, line 121/132) + 카드 라벨 "담당자 선택" (현재 fontSize:10, line 86) + 카드 안 role/title (현재 fontSize:10, line 109) — `text-body` (16px) 노안 친화 완전 준수 vs `text-label` (13px) / `text-caption` (12px) 절충 vs 현재 10·11px 유지?
   - **default 답: `text-label` (13px) / `text-caption` (12px) 절충** — §1.1 마지노선 16px 위반이지만 footer/label/sub 보조 정보 위계상 절충 합리적. 14-reports W1 footer 도 동일 절충 적용 (memory `feedback_text_caption_leading_none` 의 leading-none 명시 같이 적용).
+  - **LOCKED (2026-05-21):** 폰트 격상 매핑 (sketch + TSX 변환 양쪽):
+    - footer 안내문 11px → `text-caption` (12px) `leading-relaxed text-text-tertiary`
+    - 사번/비밀번호 label 11px → `text-label` (13px) `font-bold leading-none text-text-secondary`
+    - "담당자 선택" 라벨 10px → `text-caption` (12px) `font-bold uppercase tracking-wider text-text-tertiary leading-none`
+    - 카드 안 role/title 10px → `text-caption` (12px) `leading-none text-text-tertiary`
+    - §1.1 16px 마지노선 위반은 §3 머리말에 1줄 메타로 명시 (현 footer/label/sub 의 보조 정보 위계상 절충)
 
 - OQ #4: 비밀번호 show/hide 토글 (현재 텍스트 "표시"/"숨김", line 148) → Lucide `Eye`/`EyeOff` 아이콘 교체? + footer 의 ☎ (U+260E) 글리프 (line 169) → lucide `Phone` 교체 or 유지?
   - **default 답: 사용자 컨펌 필요** — 텍스트는 노안 친화 / 아이콘은 공간 절약. 14-reports W2/W3 의 Lucide `Download` 채택 패턴과 일관성 검토. ☎ 는 전화 affordance 로 유지 가능 (메모리 룰 8 "이모지 제거" 의 예외 케이스 — UI 이모지가 아닌 콘텐츠 글리프). default 는 둘 다 유지 (텍스트 + ☎).
+  - **LOCKED (2026-05-21):** show/hide 토글 = 텍스트 "표시"/"숨김" 유지 (노안 친화 우선). footer ☎ (U+260E) 글리프 = 콘텐츠 글리프로 유지 (이모지 제거 룰 8 예외 케이스 — 전화 affordance). W4 sketch 의 비밀번호 input 우측 토글 ghost button 은 텍스트 그대로.
 
 - OQ #5: 로고 (icon-192.png) 박스 — 현재 38×38 + radius 11 + 내부 icon-192.png 28×28 + radius 7 (모바일 line 206~208, 데스크톱 line 182~184) → 토큰화 (`w-9 h-9` = 44px ? / `w-8 h-8` = 48px) vs 인라인 `w-[38px] h-[38px]` 유지?
   - **default 답: 인라인 `w-[38px] h-[38px]` 유지** — tailwind config w-8 = 48 / w-7 = 32 (memory `feedback_tailwind_w8_h8_is_48px` 함정), 38 은 토큰에 없는 1.5px 단위 — `w-[38px]` 명시 사이즈가 안전. 내부 icon 28×28 도 `w-[28px] h-[28px]` 인라인. radius 11 / radius 7 도 토큰 없음 → `rounded-[11px]` / `rounded-[7px]` 인라인.
+  - **LOCKED (2026-05-21):** 로고 박스 = `w-[38px] h-[38px] rounded-[11px]` + 내부 img = `w-[28px] h-[28px] rounded-[7px]` 인라인. 모바일/데스크톱 둘 다 동일. W2 sketch + TSX 변환 양쪽 동일 적용. 동시에 staff initial 박스 34×34 도 `w-[34px] h-[34px] rounded-[10px]` 인라인 (W3, OQ 항목 아니지만 동일 인라인 명시 룰 적용).
 
 ---
 
