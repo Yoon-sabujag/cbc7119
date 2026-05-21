@@ -392,22 +392,34 @@ line 292: <Route path="/annual-plan" element={<Auth><AnnualPlanPage /></Auth>} /
 
 본 wave 산출 후 W2 sketch 진입 전 사용자에게 컨펌 받아야 할 항목 5건. 각 OQ 아래 "default 답" 1줄 — 사용자가 별 의견 없으면 이 답으로 진행 (reasonable call). 단, "approved" 받기 전까지 W2 진입 금지 (memory `feedback_avoid_premature_confirmation`).
 
+> **사용자 컨펌 결과 (2026-05-22):** OQ 5개 전부 default 로 진행. W2~W5 sketch + TSX 변환은 아래 LOCKED 결정 그대로 반영.
+
 - **OQ #1**: 다운로드 버튼 `linear-gradient(135deg,#1e40af,#3b82f6)` (line 135 / line 210) → `bg-safe-bar` solid 통일 OK?
   - **default 답: OK** — 27-login W1 OQ #1 + 14-reports W1 OQ #1/#3 + 16-workshift W1 OQ #1 default OK 일관 + design-system §6.4 CTA solid 룰 (그라데이션 종점 #3b82f6 이 §6.4 의 "유일한 그라디언트 2종"의 #0ea5e9 와 다르므로 폐기 후보로 명확). disabled 시 = `bg-surface-sunken text-text-tertiary` (현재 `var(--bg3)` + `var(--t3)` 일관).
+  - **LOCKED (2026-05-22):** 다운로드 버튼 = `bg-safe-bar text-text-on-accent` solid + disabled `bg-surface-sunken text-text-tertiary cursor-not-allowed`. 그라데이션 완전 폐기. W4 sketch + TSX 변환 양쪽 동일 적용.
 
 - **OQ #2**: 위치조정 토글 active 색 (현재 `border: 1px solid var(--acl)` + `background: rgba(59,130,246,0.1)` + `color: var(--acl)` — line 122~124 / 184~186) → 디자인 토큰화 (`border-accent` + `bg-accent/10` + `text-accent`) vs 인라인 유지?
   - **default 답: 토큰 치환 OK** — `border-accent` + `bg-accent/10` + `text-accent`, **status- prefix 없음 룰** (memory `feedback_tailwind_token_class_pattern`) + 마이그레이션 §4.1 `var(--acl)` → `--accent` 매핑. 16-workshift W1 OQ #5 today border 토큰화 일관. 평시 토큰은 `bg-surface-sunken border-border-strong text-text-secondary` (마이그레이션 §4.1 일관).
+  - **LOCKED (2026-05-22):** 위치조정 토글 — active = `border-accent bg-accent/10 text-accent`, 평시 = `bg-surface-sunken border-border-strong text-text-secondary`. W2 sketch + TSX 변환 양쪽 동일.
 
 - **OQ #3**: 폰트 격상 매핑 — 현재 fontSize:**11** (모바일 위치조정 토글 line 187) / **12** (데스크톱 설명 line 115, 데스크톱 위치조정 line 125, 캘리브 안내 칩 line 96) / **13** (모바일 설명 line 202, 데스크톱 다운로드 line 137) / **14** (모바일 헤더 line 179, 모바일 다운로드 line 212) / **'min(1.4vw, 16px)'** (연도 오버레이 line 83). §1.1 11px 위반. 어디까지 격상?
   - **default 답: 부분 절충** — fontSize:11 → `text-caption` (12) `leading-none` 격상 (§1.1 위반 일괄 상향, 마이그레이션 §4.2) / fontSize:12 → `text-caption leading-none` 유지 (캘리브 안내 칩 / 데스크톱 설명·토글 dense layout 절충, 14-reports W1 footer 절충 패턴 mirror, memory `feedback_text_caption_leading_none`) / fontSize:13 → `text-label` (13) `leading-none` (필요 시) / fontSize:14 (모바일 헤더 / 다운로드 버튼) → `text-body` (16) `font-bold` 격상 (§1.3 모바일/데스크톱 동일 폰트 룰 + 노안 친화 강화, 모바일 full-width CTA 가독성 우선) / **연도 오버레이 `'min(1.4vw, 16px)'` 유지** (엑셀 표지 시각 일치, 캘리브 좌표 시스템 일부 — 변경 금지, memory `feedback_pdflib_subset_false` 일반화 룰). 16-workshift W1 OQ #3 부분 절충 패턴 mirror.
+  - **LOCKED (2026-05-22):** 폰트 격상 매핑 verbatim (sketch + TSX 양쪽):
+    - fontSize:11 (모바일 위치조정 토글) → `text-caption` (12) `leading-none`
+    - fontSize:12 (데스크톱 설명·토글·캘리브 안내 칩) → `text-caption` (12) `leading-none` 유지
+    - fontSize:13 (모바일 설명·데스크톱 다운로드) → `text-label` (13) `leading-none`
+    - fontSize:14 (모바일 헤더 타이틀·모바일 다운로드 버튼) → `text-body` (16) `font-bold` 격상
+    - 연도 오버레이 `'min(1.4vw, 16px)'` 유지 (캘리브 좌표 시스템 일부, 엑셀 표지 시각 일치)
 
 - **OQ #4**: 아이콘 Lucide 교체 —
   - (a) 모바일 헤더 back button 커스텀 SVG ChevronLeft (line 175~177, `M15 19l-7-7 7-7` size 15) → Lucide `ChevronLeft size={15}` 교체?
   - (b) 다운로드 버튼 커스텀 SVG (line 141~143 데스크톱 size 15, line 216~218 모바일 size 16, `M12 5v14m0 0l-4-4m4 4l4-4M4 19h16`) → Lucide `Download size={15/16}` 교체?
   - **default 답: (a) + (b) 모두 교체 OK** — 16-workshift W1 OQ #2 ChevronLeft Lucide 교체 LOCKED + design-system §7.1 Lucide 사용 가능 룰 + §7.4 "뒤로가기: ChevronLeft" 명시 + Lucide 의 `Download` 아이콘이 동일 의미 (Lucide 권장 사이즈 16/20/24 외 `size={15}` 도 prop 임의 정수 허용으로 인라인 안전). svg size 는 line 별 (데스크톱 15 / 모바일 16) 유지. Lucide prop `size={N}` 사용 — className 으로 `w-N h-N` 금지 (memory `feedback_tailwind_token_class_pattern`).
+  - **LOCKED (2026-05-22):** 모바일 back button = Lucide `ChevronLeft size={15}` + 다운로드 = Lucide `Download size={15}` (데스크톱) / `Download size={16}` (모바일). lucide-react import 추가 (svg path 인라인 폐기). W2 모바일 chrome + W4 다운로드 양쪽 적용.
 
 - **OQ #5**: 캘리브 안내 칩 `background: rgba(59,130,246,0.9)` (line 94) + 캘리브 모드 미리보기 border `var(--acl)` (line 72) — 디자인 토큰 치환?
   - **default 답: 부분 토큰** — preview border (`2px solid var(--acl)`) → `border-2 border-accent` 토큰 치환 OK (마이그레이션 §4.1, OQ #2 와 일관). **캘리브 안내 칩 background `rgba(59,130,246,0.9)` 는 인라인 유지** (캘리브 모드 일시 표시용 — 신규 토큰 정의 (`bg-accent/90` 가능하나 alpha 정밀도 다름) 비용 vs 1줄 인라인 trade-off, 16-workshift W1 OQ #4 SHIFT_COLOR hex+22 인라인 유지 일관 + 27-login W1 OQ #2 CARD_COLORS rgba 인라인 유지 일관). 안내 칩 color #fff + fontWeight 700 + whiteSpace nowrap + pointerEvents none 유지.
+  - **LOCKED (2026-05-22):** preview border (캘리브 모드) = `border-2 border-accent` 토큰 / 평시 = `border border-border-default`. 캘리브 안내 칩 = 인라인 `bg-[rgba(59,130,246,0.9)] text-white` 유지 (color #fff + fontWeight 700 + whiteSpace nowrap + pointerEvents none 보존). W3 preview-calibration sketch + TSX 변환 양쪽 동일.
 
 ---
 
