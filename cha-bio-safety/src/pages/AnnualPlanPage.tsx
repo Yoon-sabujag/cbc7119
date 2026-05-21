@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { generateAnnualPlan } from '../utils/generateAnnualPlan'
 import { useIsDesktop } from '../hooks/useIsDesktop'
+import { ChevronLeft, Download } from 'lucide-react'
 
 const STORAGE_KEY = 'annual_plan_year_pos'
 const FINGER_OFFSET = 60
@@ -66,15 +67,14 @@ export default function AnnualPlanPage() {
         alt="연간 업무 추진 계획 미리보기"
         onClick={handleImageClick}
         onTouchStart={handleImageTouch}
+        className={`rounded-sm ${calibMode ? 'border-2 border-accent' : 'border border-border-default'}`}
         style={{
           width:'100%', height:'100%', objectFit:'contain',
-          borderRadius:8,
-          border: calibMode ? '2px solid var(--acl)' : '1px solid var(--bd)',
           background:'#fff',
           cursor: calibMode ? 'crosshair' : 'default',
         }}
       />
-      {/* 연도 오버레이 */}
+      {/* 연도 오버레이 — 캘리브 좌표 시스템 시그니처 (1 byte 변경 금지) */}
       {yearPos && (
         <div style={{
           position:'absolute',
@@ -87,15 +87,18 @@ export default function AnnualPlanPage() {
           {nextYear}
         </div>
       )}
-      {/* 캘리브레이션 안내 */}
+      {/* 캘리브레이션 안내 — OQ #5 LOCKED (rgba 인라인 유지) */}
       {calibMode && (
-        <div style={{
-          position:'absolute', top:8, left:'50%', transform:'translateX(-50%)',
-          background:'rgba(59,130,246,0.9)', color:'#fff',
-          padding:'6px 16px', borderRadius:8,
-          fontSize:12, fontWeight:700, whiteSpace:'nowrap',
-          pointerEvents:'none',
-        }}>
+        <div
+          className="text-caption font-bold leading-none text-white rounded-sm"
+          style={{
+            position:'absolute', top:8, left:'50%', transform:'translateX(-50%)',
+            background:'rgba(59,130,246,0.9)',
+            padding:'6px 16px',
+            whiteSpace:'nowrap',
+            pointerEvents:'none',
+          }}
+        >
           연도가 들어갈 위치를 클릭하세요
         </div>
       )}
@@ -107,50 +110,40 @@ export default function AnnualPlanPage() {
     return (
       <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
         {/* 상단: 설명 + 버튼들 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div style={{
-          flexShrink:0, padding:'14px 28px',
-          display:'flex', alignItems:'center', gap:12,
-          borderBottom:'1px solid var(--bd)',
-        }}>
-          <div style={{ flex:1, fontSize:12, color:'var(--t3)' }}>
-            대상 연도 <strong style={{ color:'var(--t1)', fontWeight:700 }}>{nextYear}년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+        <div
+          className="border-b border-border-default flex items-center"
+          style={{ flexShrink:0, padding:'14px 28px', gap:12 }}
+        >
+          <div className="text-caption leading-none text-text-tertiary" style={{ flex:1 }}>
+            대상 연도 <strong className="text-text-primary font-bold">{nextYear}년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
           </div>
           <button
             onClick={() => setCalibMode(m => !m)}
-            style={{
-              padding:'8px 14px', borderRadius:8,
-              border: calibMode ? '1px solid var(--acl)' : '1px solid var(--bd2)',
-              background: calibMode ? 'rgba(59,130,246,0.1)' : 'var(--bg3)',
-              color: calibMode ? 'var(--acl)' : 'var(--t2)',
-              fontSize:12, fontWeight:700, cursor:'pointer',
-            }}
+            className={`text-caption font-bold leading-none rounded-sm border ${calibMode ? 'border-accent bg-accent/10 text-accent' : 'bg-surface-sunken border-border-strong text-text-secondary'}`}
+            style={{ padding:'8px 14px', cursor:'pointer' }}
           >
             {calibMode ? '취소' : '위치 조정'}
           </button>
           <button
             onClick={handleDownload}
             disabled={loading}
-            style={{
-              padding:'8px 20px', borderRadius:8, border:'none',
-              background: loading ? 'var(--bg3)' : 'linear-gradient(135deg,#1e40af,#3b82f6)',
-              color: loading ? 'var(--t3)' : '#fff',
-              fontSize:13, fontWeight:700, cursor: loading ? 'default' : 'pointer',
-              display:'flex', alignItems:'center', gap:8, flexShrink:0,
-            }}
+            className={`text-label font-bold leading-none rounded-sm flex items-center ${loading ? 'bg-surface-sunken text-text-tertiary cursor-not-allowed' : 'bg-safe-bar text-text-on-accent cursor-pointer'}`}
+            style={{ padding:'8px 20px', gap:8, border:'none', flexShrink:0 }}
           >
-            <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
-            </svg>
+            <Download size={15} />
             {loading ? '생성 중...' : '엑셀 다운로드'}
           </button>
         </div>
 
         {/* 하단: 미리보기 */}
-        <div style={{
-          flex:1, minHeight:0, overflow:'hidden',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          padding:24, background:'var(--bg)',
-        }}>
+        <div
+          className="bg-surface-page"
+          style={{
+            flex:1, minHeight:0, overflow:'hidden',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            padding:24,
+          }}
+        >
           <div style={{
             width:'100%', height:'100%',
             maxWidth:'calc((100vh - 140px) * 1.414)',
@@ -165,27 +158,26 @@ export default function AnnualPlanPage() {
 
   // ── 모바일 ──
   return (
-    <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'var(--bg)' }}>
-      <header style={{ flexShrink:0, background:'var(--bg2)', borderBottom:'1px solid var(--bd)', padding:'8px 12px 9px', display:'flex', alignItems:'center', gap:8 }}>
-        <button onClick={() => navigate(-1)} style={{
-          width:34, height:34, borderRadius:8, flexShrink:0,
-          background:'var(--bg3)', border:'1px solid var(--bd)',
-          cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
-        }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+    <div
+      className="bg-surface-page"
+      style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}
+    >
+      <header
+        className="bg-surface-raised border-b border-border-default flex items-center"
+        style={{ flexShrink:0, padding:'8px 12px 9px', gap:8 }}
+      >
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center"
+          style={{ flexShrink:0, cursor:'pointer' }}
+        >
+          <ChevronLeft size={15} className="text-text-secondary" />
         </button>
-        <span style={{ flex:1, fontSize:14, fontWeight:700, color:'var(--t1)' }}>연간 업무 추진 계획</span>
+        <span className="text-body font-bold text-text-primary" style={{ flex:1 }}>연간 업무 추진 계획</span>
         <button
           onClick={() => setCalibMode(m => !m)}
-          style={{
-            padding:'6px 10px', borderRadius:8,
-            border: calibMode ? '1px solid var(--acl)' : '1px solid var(--bd2)',
-            background: calibMode ? 'rgba(59,130,246,0.1)' : 'var(--bg3)',
-            color: calibMode ? 'var(--acl)' : 'var(--t2)',
-            fontSize:11, fontWeight:700, cursor:'pointer',
-          }}
+          className={`text-caption font-bold leading-none rounded-sm border ${calibMode ? 'border-accent bg-accent/10 text-accent' : 'bg-surface-sunken border-border-strong text-text-secondary'}`}
+          style={{ padding:'6px 10px', cursor:'pointer' }}
         >
           {calibMode ? '취소' : '위치 조정'}
         </button>
@@ -199,23 +191,16 @@ export default function AnnualPlanPage() {
 
         {/* 설명 + 다운로드 */}
         <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:13, color:'var(--t3)', marginBottom:12 }}>
+          <div className="text-label leading-relaxed text-text-tertiary" style={{ marginBottom:12 }}>
             표지 및 일정표 연도가 {nextYear}년으로 자동 설정됩니다.
           </div>
           <button
             onClick={handleDownload}
             disabled={loading}
-            style={{
-              width:'100%', padding:'14px', borderRadius:10, border:'none',
-              background: loading ? 'var(--bg3)' : 'linear-gradient(135deg,#1e40af,#3b82f6)',
-              color: loading ? 'var(--t3)' : '#fff',
-              fontSize:14, fontWeight:700, cursor: loading ? 'default' : 'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            }}
+            className={`text-body font-bold rounded-md flex items-center justify-center ${loading ? 'bg-surface-sunken text-text-tertiary cursor-not-allowed' : 'bg-safe-bar text-text-on-accent cursor-pointer'}`}
+            style={{ width:'100%', padding:'14px', gap:8, border:'none' }}
           >
-            <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m0 0l-4-4m4 4l4-4M4 19h16"/>
-            </svg>
+            <Download size={16} />
             {loading ? '생성 중...' : '엑셀 다운로드'}
           </button>
         </div>
