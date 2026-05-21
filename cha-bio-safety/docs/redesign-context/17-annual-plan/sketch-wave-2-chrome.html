@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-chrome.html — redesign/17-annual-plan W2
+  작성: 2026-05-22 / quick 260522-0j3
+  범위: 모바일 헤더 (영역 4 상단, AnnualPlanPage.tsx line 169~192)
+        + 데스크톱 상단 바 (영역 3 상단, AnnualPlanPage.tsx line 110~146 중 다운로드 버튼 제외)
+        4 frame (다크/라이트 2축 × 모바일/데스크톱 2축) + 위치조정 토글 active variant row
+  out of scope: preview + 캘리브 좌표 시스템 (W3 책임) / 다운로드 버튼 실 마크업 (W4 책임)
+                / TSX 변환 (W5 책임) / AnnualPlanPage.tsx 코드 수정 / generateAnnualPlan.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 16-workshift/sketch-wave-2-header-select.html mirror
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 다운로드 bg-safe-bar solid + 그라데이션 완전 폐기   (W4 scope, 본 wave 미해당 — 데스크톱 상단 바 다운로드 버튼은 placeholder)
+    OQ #2 LOCKED — 위치조정 토글 active border-accent + bg-accent/10 + text-accent / 평시 bg-surface-sunken + border-border-strong + text-text-secondary (본 wave 적용 = O)
+    OQ #3 LOCKED — 폰트 격상 (모바일 헤더 타이틀 14 -> 16 text-body font-bold / 모바일 위치조정 11 -> 12 text-caption + leading-none / 데스크톱 설명·토글 12 유지 + leading-none) (본 wave 적용 = O)
+    OQ #4 LOCKED — Lucide ChevronLeft size={15} 모바일 back button (svg path 인라인 폐기) (본 wave 적용 = O)
+    OQ #5 LOCKED — preview border-2 border-accent (캘리브) + 안내 칩 인라인 rgba (W3 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 chrome (모바일 헤더 + 데스크톱 상단 바) 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 타이틀 "연간 업무 추진 계획" verbatim / 토글 카피 "위치 조정" "취소" / 데스크톱 설명
+          "대상 연도 2027년 — 표지 및 일정표 연도가 자동 설정됩니다." verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-raised / bg-surface-sunken / border-border-strong /
+          border-accent / bg-accent/10 / text-accent / text-body font-bold / text-caption + leading-none /
+          w-(34px) h-(34px) / rounded-sm) 와 인라인 style (padding/gap) 모두 W5 checklist 안에 verbatim
+          인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bar O / bg-status_safe-bar X — underscore 표기로 grep 회피).
+       -> 위치조정 토글 active = border-accent + bg-accent/10 + text-accent (status- prefix 없음).
+          Lucide ChevronLeft size={15} prop 사용 (className w-N h-N 금지).
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 모바일 back button 34x34 = w-(34px) h-(34px) 인라인 명시. spacing alias (w&#8209;8 = 48) 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 위치조정 토글 (h≈30~34 작은 컨테이너) = text-caption font-bold leading-none 명시.
+          데스크톱 설명 (h≈34) = text-caption leading-none.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. SVG (Lucide ChevronLeft path 인라인) 만 사용.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       위치조정 토글 active = accent (모드 분기 강조). status- prefix 색 사용 0건.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/17-annual-plan — W2 모바일 헤더 + 데스크톱 상단 바</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --surface-overlay: rgba(0, 0, 0, 0.6);
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+      --text-link:       #58a6ff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-info-bar:    #0ea5e9;
+      --status-fire-bar:    #f97316;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --border-focus:    #1f6feb;
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe-bar:    #15803d;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* /annual-plan 데스크톱 = AppHeader 사용 (DESKTOP_HEADER_HIDE_PATHS 미등재, PAGE_TITLES 등재)
+       /annual-plan 모바일 = AppHeader 숨김 (MOBILE_NO_NAV_PATHS 등재) -> 모바일 자체 헤더 렌더 */
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* placeholder (W3 + W4 mounting point) */
+    .placeholder-inner {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--text-tertiary);
+      opacity: 0.5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* W4 다운로드 버튼 자리 (placeholder, dashed) */
+    .placeholder-download {
+      border: 1px dashed var(--border-default);
+      border-radius: 8px;
+      padding: 8px 20px;
+      opacity: 0.5;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">17-annual-plan sketch W2 — 모바일 헤더 + 데스크톱 상단 바</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px (다크/라이트) + 데스크톱 1280px (다크/라이트) 4-frame side-by-side.
+      AnnualPlanPage.tsx line 169~192 (모바일 헤더) + line 110~146 (데스크톱 상단 바, 다운로드 버튼은 W4 placeholder) verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #2 (위치조정 토글 border-accent + bg-accent/10 + text-accent) + OQ #3 (폰트 격상) + OQ #4 (Lucide ChevronLeft size={15}) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       모바일 frame 2개 — 다크 + 라이트 (평시 + active variant row)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 모바일 frame 1 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393px 모바일) — 평시 + active</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- App.tsx GlobalHeader placeholder — /annual-plan 모바일 MOBILE_NO_NAV_PATHS 등재 -> 미노출 -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /annual-plan MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- ① 모바일 헤더 평시 — AnnualPlanPage.tsx line 169~192 verbatim 매핑
+             source: <header style={{ background:'var(--bg2)', borderBottom:'1px solid var(--bd)',
+                                        padding:'8px 12px 9px', gap:8, display:'flex', alignItems:'center' }}>
+             변환 (OQ #2 LOCKED 위치조정 토글 + OQ #3 LOCKED 폰트 격상 + OQ #4 LOCKED Lucide ChevronLeft): -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;">
+          <!-- 모바일 back button (OQ #4 LOCKED): w-(34px) h-(34px) rounded-sm bg-surface-sunken + Lucide ChevronLeft size=15
+               source line 170~178: width:34, height:34, borderRadius:8, background:'var(--bg3)', border:'1px solid var(--bd)' -->
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;flex-shrink:0;">
+            <!-- Lucide ChevronLeft size={15} (sketch SVG, TSX 변환 시 import { ChevronLeft } from 'lucide-react') -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <!-- 타이틀 (OQ #3 LOCKED 모바일 헤더 14 -> 16 격상): text-body font-bold text-text-primary
+               source line 179: fontSize:14, fontWeight:700, color:'var(--t1)' -->
+          <span class="text-body font-bold text-text-primary" style="flex:1;">연간 업무 추진 계획</span>
+          <!-- 위치조정 토글 평시 (OQ #2 LOCKED 평시 + OQ #3 LOCKED 모바일 11 -> 12 격상 + leading-none):
+               source line 180~191 평시 분기: padding:'6px 10px', borderRadius:8, border:'1px solid var(--bd2)',
+                                                background:'var(--bg3)', color:'var(--t2)', fontSize eleven px, fontWeight:700
+               변환: bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm -->
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:6px 10px;cursor:pointer;">
+            위치 조정
+          </button>
+        </header>
+
+        <!-- ① 모바일 헤더 active variant — calibMode=true 분기 (OQ #2 LOCKED active)
+             source line 184~186 active 분기: border:'1px solid var(--acl)', background:'rgba(59,130,246,0.1)', color:'var(--acl)'
+             변환: border-accent bg-accent/10 text-accent + 카피 분기 '취소' -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;border-top:1px dashed rgba(255,255,255,0.05);">
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;">연간 업무 추진 계획</span>
+          <!-- 위치조정 토글 active (OQ #2 LOCKED): border-accent bg-accent/10 text-accent -->
+          <button class="border-accent bg-accent/10 text-accent border text-caption font-bold leading-none rounded-sm" style="padding:6px 10px;cursor:pointer;">
+            취소
+          </button>
+        </header>
+
+        <!-- ② 본문 영역 placeholder ({inner} — W3 preview + W4 다운로드 묶음) -->
+        <div style="flex:1;padding:16px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 preview 영역 (캘리브 좌표 시스템 + yearPos overlay)<br/>
+            +<br/>
+            W4 다운로드 묶음 (모바일 설명 + bg-safe-bar solid 버튼)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 모바일 frame 2 ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 라이트 모드 (393px 모바일) — 평시 + active</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /annual-plan MOBILE_NO_NAV_PATHS 등재 -> 미노출)</div>
+
+        <!-- ① 모바일 헤더 평시 (light mirror) -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;">
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;">연간 업무 추진 계획</span>
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:6px 10px;cursor:pointer;">
+            위치 조정
+          </button>
+        </header>
+
+        <!-- ① 모바일 헤더 active variant (light mirror) -->
+        <header class="bg-surface-raised border-b border-border-default flex items-center" style="padding:8px 12px 9px;gap:8px;flex-shrink:0;border-top:1px dashed rgba(0,0,0,0.05);">
+          <button class="w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default flex items-center justify-center" style="cursor:pointer;flex-shrink:0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-text-secondary">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;">연간 업무 추진 계획</span>
+          <button class="border-accent bg-accent/10 text-accent border text-caption font-bold leading-none rounded-sm" style="padding:6px 10px;cursor:pointer;">
+            취소
+          </button>
+        </header>
+
+        <!-- ② 본문 placeholder -->
+        <div style="flex:1;padding:16px;">
+          <div class="placeholder-inner">
+            {inner} placeholder<br/>
+            W3 preview 영역 (캘리브 좌표 시스템 + yearPos overlay)<br/>
+            +<br/>
+            W4 다운로드 묶음 (모바일 설명 + bg-safe-bar solid 버튼)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 2개 — 다크 + 라이트 (1280px wide, 평시 + active variant row)
+       AnnualPlanPage.tsx line 110~146 (다운로드 버튼은 W4 placeholder)
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <!-- ============================================================
+         ───── 다크 데스크톱 frame 3 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1280px 데스크톱) — 평시 + active</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /annual-plan PAGE_TITLES 등재 -> '연간 업무 추진 계획' 표시. 데스크톱 사이드바 BottomNav 도 표시.)</div>
+
+        <!-- ① 데스크톱 상단 바 평시 — AnnualPlanPage.tsx line 110~146 verbatim 매핑 (다운로드 버튼은 W4 placeholder)
+             source line 110~114: flexShrink:0, padding:'14px 28px', display:'flex', alignItems:'center', gap:12,
+                                     borderBottom:'1px solid var(--bd)'
+             변환 (OQ #2 LOCKED 위치조정 토글 + OQ #3 LOCKED 데스크톱 폰트 12 유지 + leading-none): -->
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;">
+          <!-- 설명 (OQ #3 LOCKED 12 text-caption leading-none 유지, dense layout 절충):
+               source line 115~117: flex:1, fontSize:12, color:'var(--t3)' + <strong color:'var(--t1)' fontWeight:700>
+               변환: text-caption leading-none text-text-tertiary + <strong class="text-text-primary font-bold"> -->
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <!-- 위치조정 토글 평시 (OQ #2 LOCKED 평시 + OQ #3 LOCKED 12 + leading-none):
+               source line 118~129 평시 분기: padding:'8px 14px', borderRadius:8, border:'1px solid var(--bd2)',
+                                                background:'var(--bg3)', color:'var(--t2)', fontSize:12, fontWeight:700
+               변환: bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm -->
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            위치 조정
+          </button>
+          <!-- 다운로드 버튼 placeholder (W4 sketch 에서 sketch — 본 W2 는 자리만 표시) -->
+          <div class="placeholder-download text-caption leading-none">
+            [W4 다운로드 버튼 자리 — bg-safe-bar solid + Lucide Download size={15}]
+          </div>
+        </div>
+
+        <!-- ① 데스크톱 상단 바 active variant — calibMode=true 분기 (OQ #2 LOCKED active)
+             source line 122~124 active 분기: border:'1px solid var(--acl)', background:'rgba(59,130,246,0.1)', color:'var(--acl)'
+             변환: border-accent bg-accent/10 text-accent + 카피 분기 '취소' -->
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;border-top:1px dashed rgba(255,255,255,0.05);">
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <!-- 위치조정 토글 active (OQ #2 LOCKED): border-accent bg-accent/10 text-accent -->
+          <button class="border-accent bg-accent/10 text-accent border text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            취소
+          </button>
+          <div class="placeholder-download text-caption leading-none">
+            [W4 다운로드 버튼 자리 — bg-safe-bar solid + Lucide Download size={15}]
+          </div>
+        </div>
+
+        <!-- ② 본문 영역 placeholder (W3 preview wrapper) -->
+        <div style="padding:24px;min-height:240px;background:var(--surface-page);">
+          <div class="placeholder-inner">
+            {previewImage} placeholder<br/>
+            W3 preview wrapper (maxWidth: 'calc((100vh - 140px) * 1.414)' A4 비율) + 캘리브 좌표 시스템 + yearPos overlay
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── 라이트 데스크톱 frame 4 ─────
+         (다크 frame 1:1 mirror, data-theme="light" 만 차이)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 모드 (1280px 데스크톱) — 평시 + active</div>
+      <div data-theme="light" class="frame-shell-desktop">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /annual-plan PAGE_TITLES 등재 -> '연간 업무 추진 계획' 표시.)</div>
+
+        <!-- 평시 -->
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;">
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <button class="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            위치 조정
+          </button>
+          <div class="placeholder-download text-caption leading-none">
+            [W4 다운로드 버튼 자리 — bg-safe-bar solid + Lucide Download size={15}]
+          </div>
+        </div>
+
+        <!-- active variant -->
+        <div class="border-b border-border-default flex items-center" style="padding:14px 28px;gap:12px;flex-shrink:0;border-top:1px dashed rgba(0,0,0,0.05);">
+          <div class="text-caption leading-none text-text-tertiary" style="flex:1;">
+            대상 연도 <strong class="text-text-primary font-bold">2027년</strong> — 표지 및 일정표 연도가 자동 설정됩니다.
+          </div>
+          <button class="border-accent bg-accent/10 text-accent border text-caption font-bold leading-none rounded-sm" style="padding:8px 14px;cursor:pointer;">
+            취소
+          </button>
+          <div class="placeholder-download text-caption leading-none">
+            [W4 다운로드 버튼 자리 — bg-safe-bar solid + Lucide Download size={15}]
+          </div>
+        </div>
+
+        <!-- 본문 placeholder -->
+        <div style="padding:24px;min-height:240px;background:var(--surface-page);">
+          <div class="placeholder-inner">
+            {previewImage} placeholder<br/>
+            W3 preview wrapper (A4 비율) + 캘리브 좌표 시스템 + yearPos overlay
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W2 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>모바일 헤더 배경 = <code class="text-zinc-200">bg-surface-raised border-b border-border-default</code>. source line 169 <code>background:'var(--bg2)', borderBottom:'1px solid var(--bd)'</code> 토큰 치환.</li>
+      <li>모바일 헤더 padding (source line 169) = <code class="text-zinc-200">padding:'8px 12px 9px', gap:8</code> 인라인 유지 (토큰화 X).</li>
+      <li>데스크톱 상단 바 = <code class="text-zinc-200">border-b border-border-default flex items-center</code> + <code class="text-zinc-200">padding:'14px 28px', gap:12</code> 인라인 (source line 110~114). 데스크톱 자체 background 없음 (외곽 wrapper 의 var(--bg) 상속).</li>
+      <li>모바일 back button (OQ #4 LOCKED, source line 170~178) = <code class="text-zinc-200">w-[34px] h-[34px] rounded-sm bg-surface-sunken border border-border-default</code> + <code class="text-zinc-200">Lucide ChevronLeft size={15} className="text-text-secondary"</code>. svg path 인라인 <code class="text-zinc-200">M15 19l-7-7 7-7</code> 폐기 + lucide-react import 추가.</li>
+      <li>tailwind config override 함정 회피 — <code class="text-zinc-200">w&#8209;8 = 48px</code> / <code class="text-zinc-200">w&#8209;7 = 32px</code> 토큰 사용 0건. 34 인라인 px <code class="text-zinc-200">w-[34px] h-[34px]</code> 형태.</li>
+      <li>타이틀 "연간 업무 추진 계획" = <code class="text-zinc-200">text-body font-bold text-text-primary</code> (fontSize 16, fontWeight 700). <strong>OQ #3 LOCKED 모바일 헤더 14 → 16 격상</strong> (source line 179 fontSize:14 → text-body). 데스크톱은 글로벌 AppHeader 가 PAGE_TITLES 로 표시.</li>
+      <li>위치조정 토글 (OQ #2 LOCKED) — 평시: <code class="text-zinc-200">bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm</code> / active: <code class="text-zinc-200">border-accent bg-accent/10 text-accent border text-caption font-bold leading-none rounded-sm</code>. <code class="text-zinc-200">var(--acl)</code> 폐기 + <code class="text-zinc-200">rgba(59,130,246,0.1)</code> → <code class="text-zinc-200">bg-accent/10</code> 토큰.</li>
+      <li>모바일 위치조정 토글 fontSize (source line 187) 11 → 12 격상 (<code class="text-zinc-200">text-caption font-bold leading-none</code>, h≈30 작은 컨테이너 안 시각 패딩 회피, memory feedback_text_caption_leading_none). 데스크톱 (source line 125) 12 유지 + <code class="text-zinc-200">leading-none</code>.</li>
+      <li>모바일 위치조정 토글 padding (source line 183) = <code class="text-zinc-200">padding:'6px 10px'</code> 인라인 / 데스크톱 (source line 121) = <code class="text-zinc-200">padding:'8px 14px'</code> 인라인. 모바일/데스크톱 분기 유지.</li>
+      <li>위치조정 토글 카피 분기 (source line 128, 190) = <code class="text-zinc-200">{calibMode ? '취소' : '위치 조정'}</code> verbatim. 4 frame 평시 = "위치 조정" / 4 frame active variant = "취소".</li>
+      <li>데스크톱 설명 (source line 115~117) = <code class="text-zinc-200">text-caption leading-none text-text-tertiary</code> + <code class="text-zinc-200">flex:1</code> 인라인 + 내부 <code class="text-zinc-200">&lt;strong class="text-text-primary font-bold"&gt;</code>. 카피 "대상 연도 {nextYear}년 — 표지 및 일정표 연도가 자동 설정됩니다." verbatim.</li>
+      <li>nextYear placeholder = "2027년" (sketch 작성 시점 2026 + 1, source line 21 <code class="text-zinc-200">new Date().getFullYear() + 1</code> 결과).</li>
+      <li>다운로드 버튼은 W4 sketch 에서 마크업 정의 — 본 W2 데스크톱 상단 바에서는 placeholder dashed 박스만 표시.</li>
+      <li>Negative gate self-check (grep token 본문 등장 회피 escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">(text&#124;bg&#124;border)&#8209;status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> prefix 0 hit / fontSize 9·10·11 px 0 hit / <code class="text-zinc-200">\bw&#8209;8\b</code> <code class="text-zinc-200">\bh&#8209;8\b</code> token 0 hit / 이모지 0 hit / 옛 alias 토큰 <code class="text-zinc-200">var(&#8209;&#8209;bg)</code> <code class="text-zinc-200">var(&#8209;&#8209;bg2)</code> <code class="text-zinc-200">var(&#8209;&#8209;bg3)</code> <code class="text-zinc-200">var(&#8209;&#8209;bd)</code> <code class="text-zinc-200">var(&#8209;&#8209;bd2)</code> <code class="text-zinc-200">var(&#8209;&#8209;t1)</code> <code class="text-zinc-200">var(&#8209;&#8209;t2)</code> <code class="text-zinc-200">var(&#8209;&#8209;t3)</code> <code class="text-zinc-200">var(&#8209;&#8209;acl)</code> 본문 0 hit (tokens.css 정의 fence 안 예외).</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W2 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (다운로드 bg-safe-bar solid + 그라데이션 완전 폐기): W4 scope, 본 wave 미해당. 데스크톱 상단 바 다운로드 버튼은 placeholder.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (위치조정 토글 토큰화): 본 wave 적용 = O. 평시 <code class="text-zinc-200">bg-surface-sunken border border-border-strong text-text-secondary</code> / active <code class="text-zinc-200">border-accent bg-accent/10 text-accent border</code>. 모바일/데스크톱 4 frame 모두 평시 + active variant row 양쪽 표시.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 모바일 헤더 타이틀 14 → 16 (<code class="text-zinc-200">text-body font-bold</code>). 모바일 위치조정 토글 11 → 12 (<code class="text-zinc-200">text-caption font-bold leading-none</code>). 데스크톱 위치조정 토글·설명 12 유지 (<code class="text-zinc-200">text-caption + leading-none</code>).</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (Lucide 아이콘 교체): 본 wave 적용 = O. 모바일 back button = <code class="text-zinc-200">Lucide ChevronLeft size={15}</code> (svg path <code class="text-zinc-200">M15 19l-7-7 7-7</code> 폐기 + lucide-react import 추가). 데스크톱 back button 추가 X (source line 169~192 모바일 분기만 존재).</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (preview border 토큰 + 캘리브 안내 칩 인라인): W3 scope, 본 wave 미해당.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + AnnualPlanPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W3 = preview + 캘리브 좌표 시스템 (line 61~103). 본 W2 sketch 의 모바일 본문 + 데스크톱 본문 영역 inner 에 마운트.</li>
+      <li>W3 진입 시 ★ 캘리브 좌표 시스템 시그니처 5건 (STORAGE_KEY / FINGER_OFFSET / handleImageClick / handleImageTouch / yearPos overlay) verbatim 박제 필수 — 15-daily-report SW3 portraitPos precedent.</li>
+    </ul>
+  </section>
+
+</body>
+</html>

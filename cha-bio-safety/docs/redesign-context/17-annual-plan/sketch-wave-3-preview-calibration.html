@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-preview-calibration.html — redesign/17-annual-plan W3
+  작성: 2026-05-22 / quick 260522-0j3
+  범위: preview + 캘리브 좌표 시스템 (영역 2 단독, AnnualPlanPage.tsx line 61~103)
+        4 frame 매트릭스 (평시 + 캘리브 + yearPos null + yearPos 저장후 4 state)
+  out of scope: 모바일 헤더 / 데스크톱 상단 바 (W2) / 다운로드 버튼 (W4) / TSX 변환 (W5)
+                / AnnualPlanPage.tsx 코드 수정 / generateAnnualPlan.ts / 다른 페이지
+  참조: wave-1-index.md §3 / §7 verbatim, 16-workshift/sketch-wave-3-shift-table.html mirror,
+        15-daily-report SW3 portraitPos 캘리브 좌표 시스템 precedent (project_redesign_15_daily_report_status)
+
+  ★ 캘리브 좌표 시스템 단독 wave (옵션 C) — 페이지 핵심 동작이므로 W3 분리.
+
+  W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 다운로드 bg-safe-bar solid + 그라데이션 완전 폐기   (W4 scope, 본 wave 미해당)
+    OQ #2 LOCKED — 위치조정 토글 (W2 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 폰트 격상 (캘리브 안내 칩 12 text-caption + leading-none + font-bold / 연도 오버레이 min(1.4vw, 16px) 유지) (본 wave 적용 = O)
+    OQ #4 LOCKED — Lucide 아이콘 (W2 + W4 scope, 본 wave 미해당)
+    OQ #5 LOCKED — preview border 캘리브 모드 border-2 border-accent / 평시 border border-border-default
+                   캘리브 안내 칩 인라인 rgba(59,130,246,0.9) + text-white + fontWeight 700 + whiteSpace nowrap + pointerEvents none (본 wave 적용 = O)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 preview + 캘리브 좌표 시스템 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 안내 칩 "연도가 들어갈 위치를 클릭하세요" verbatim. img alt "연간 업무 추진 계획 미리보기" verbatim.
+          nextYear = 2027 (sketch 작성 시점 2026 + 1).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 캘리브 안내 칩 background:rgba(59,130,246,0.9) / 연도 오버레이 fontSize:'min(1.4vw, 16px)' /
+          fontFamily:'Malgun Gothic, 맑은 고딕, sans-serif' / preview wrapper maxWidth:'calc((100vh - 140px) * 1.414)'
+          모두 W5 checklist 안 verbatim 인용 예정. 추측 X — sketch verbatim.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선.
+       -> preview border calibMode = border-2 border-accent (status-accent X). 안내 칩 색 = text-white (status- prefix 0).
+
+    5. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 가 작은 컨테이너 안 시각 패딩.
+       -> 캘리브 안내 칩 (작은 칩 padding 6px 16px) = text-caption font-bold leading-none.
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건.
+
+    7. feedback_pdflib_subset_false.md (폰트 패밀리 보존 일반화)
+       -> 연도 오버레이 fontFamily 'Malgun Gothic' 보존 = 엑셀 표지 글꼴과 시각 일치. 디자인 토큰 폰트로 교체 금지.
+
+    8. project_redesign_15_daily_report_status.md (캘리브 좌표 시스템 precedent)
+       -> 15-daily-report SW3 의 portraitPos 보존 룰 동일 적용. STORAGE_KEY / FINGER_OFFSET /
+          handleImageClick / handleImageTouch / yearPos overlay 모두 1 byte 변경 금지.
+
+    9. feedback_redesign_sketch_rule_enforcement.md
+       -> calibMode 강조 색 = accent (status- prefix X). 안내 칩 인라인 rgba 유지 (alpha 정밀도 토큰 비용 회피).
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/17-annual-plan — W3 preview + 캘리브 좌표 시스템</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --border-focus:    #3b82f6;
+
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;
+
+      --status-safe-bar:    #22c55e;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+    }
+    .font-bold { font-weight: 700; }
+    .leading-none { line-height: 1; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 1280px;
+      max-width: 1280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* preview img placeholder (실제 PNG 대신 white box) */
+    .preview-img-placeholder {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      box-sizing: border-box;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white font-bold mb-2" style="font-size:22px;">17-annual-plan sketch W3 — preview + 캘리브 좌표 시스템</h1>
+    <p class="text-label text-zinc-400">
+      4 frame 상태 매트릭스 (모바일 393×600 평시 / 모바일 캘리브 모드 / 데스크톱 1280×800 평시 yearPos 저장후 / 데스크톱 캘리브 모드 yearPos 저장후).
+      AnnualPlanPage.tsx line 61~103 (previewImage element) verbatim 매핑.
+      W1 LOCKED 5건 중 OQ #3 (캘리브 안내 칩 12 text-caption + 연도 오버레이 min(1.4vw, 16px)) + OQ #5 (preview border-2 border-accent 캘리브 / 안내 칩 인라인 rgba) 시각 적용.
+      ★ 캘리브 좌표 시스템 시그니처 5건 verbatim 박제 (rules 박스 하단 fence) — 15-daily-report SW3 precedent.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       Frame 1 — 모바일 다크 393×600 평시 (yearPos null, calibMode false)
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 모바일 다크 393×600 — 평시 (yearPos null, calibMode false)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="height:600px;display:flex;flex-direction:column;">
+        <!-- 모바일 본문 wrapper — source line 194 verbatim:
+             flex:1, overflow:'auto', padding:16, display:'flex', flexDirection:'column', gap:16 -->
+        <div style="flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px;">
+          <!-- 모바일 preview wrapper — source line 196 verbatim: width:'100%' -->
+          <div style="width:100%;">
+            <!-- previewImage 마운트 (영역 2 line 61~103) — 평시 분기 (calibMode false, yearPos null) -->
+            <div style="position:relative;width:100%;aspect-ratio:1/1.414;">
+              <!-- preview img 평시 (OQ #5 LOCKED: border border-border-default 토큰 + cursor default):
+                   source line 63~76: src '/templates/preview/annual-plan.png', alt '연간 업무 추진 계획 미리보기',
+                                       width:100%, height:100%, objectFit:'contain', borderRadius:8, background:'#fff',
+                                       calibMode false 분기 = border '1px solid var(--bd)' + cursor 'default' -->
+              <img
+                src="/templates/preview/annual-plan.png"
+                alt="연간 업무 추진 계획 미리보기"
+                class="border border-border-default rounded-sm"
+                style="width:100%;height:100%;object-fit:contain;background:#fff;cursor:default;"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+              />
+              <div class="preview-img-placeholder border border-border-default rounded-sm" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;">
+                /templates/preview/annual-plan.png<br/>(A4 비율 1:1.414)
+              </div>
+              <!-- yearPos null → 연도 오버레이 미표시 / calibMode false → 안내 칩 미표시 -->
+            </div>
+          </div>
+          <!-- W4 다운로드 묶음 placeholder -->
+          <div style="text-align:center;color:var(--text-tertiary);opacity:0.5;font-family:'JetBrains Mono',monospace;font-size:12px;padding:16px;">
+            [W4 다운로드 묶음 자리]
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 2 — 모바일 다크 393×600 캘리브 모드 (yearPos null, calibMode true)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 모바일 다크 393×600 — 캘리브 모드 (yearPos null, calibMode true)</div>
+      <div data-theme="dark" class="frame-shell-mobile" style="height:600px;display:flex;flex-direction:column;">
+        <div style="flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:16px;">
+          <div style="width:100%;">
+            <!-- previewImage — 캘리브 모드 분기 (calibMode true, yearPos null) -->
+            <div style="position:relative;width:100%;aspect-ratio:1/1.414;">
+              <!-- preview img 캘리브 모드 (OQ #5 LOCKED: border-2 border-accent 토큰 + cursor crosshair):
+                   source line 72 calibMode true 분기 = '2px solid var(--acl)' + cursor 'crosshair' -->
+              <img
+                src="/templates/preview/annual-plan.png"
+                alt="연간 업무 추진 계획 미리보기"
+                class="border-2 border-accent rounded-sm"
+                style="width:100%;height:100%;object-fit:contain;background:#fff;cursor:crosshair;"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+              />
+              <div class="preview-img-placeholder border-2 border-accent rounded-sm" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;">
+                /templates/preview/annual-plan.png<br/>(캘리브 모드: cursor crosshair)
+              </div>
+              <!-- 캘리브 안내 칩 (OQ #5 LOCKED: 인라인 rgba(59,130,246,0.9) + text-white + OQ #3 LOCKED: 12 text-caption + leading-none + font-bold):
+                   source line 91~101 verbatim: top:8, left:'50%', transform:'translateX(-50%)',
+                                                 background:'rgba(59,130,246,0.9)', color:'#fff',
+                                                 padding:'6px 16px', borderRadius:8,
+                                                 fontSize:12, fontWeight:700, whiteSpace:'nowrap', pointerEvents:'none' -->
+              <div class="text-caption font-bold leading-none text-white rounded-sm" style="position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(59,130,246,0.9);padding:6px 16px;white-space:nowrap;pointer-events:none;">
+                연도가 들어갈 위치를 클릭하세요
+              </div>
+              <!-- yearPos null → 연도 오버레이 미표시 -->
+            </div>
+          </div>
+          <div style="text-align:center;color:var(--text-tertiary);opacity:0.5;font-family:'JetBrains Mono',monospace;font-size:12px;padding:16px;">
+            [W4 다운로드 묶음 자리]
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       데스크톱 frame 2개 — 다크 평시 (yearPos 저장후) + 다크 캘리브 모드 (yearPos 저장후 + 안내 칩 동시 표시)
+       ============================================================ -->
+  <section class="flex gap-8 flex-col items-center mb-12">
+
+    <!-- ============================================================
+         Frame 3 — 데스크톱 다크 1280×800 평시 (yearPos 저장후)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 데스크톱 다크 1280×800 — 평시 (yearPos 저장후, calibMode false, 연도 오버레이 표시)</div>
+      <div data-theme="dark" class="frame-shell-desktop" style="height:800px;display:flex;flex-direction:column;">
+        <!-- 데스크톱 상단 바 placeholder (W2 sketch 책임) -->
+        <div style="flex-shrink:0;height:54px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 28px;color:var(--text-tertiary);opacity:0.5;font-family:'JetBrains Mono',monospace;font-size:12px;">
+          [W2 상단 바 자리 — 설명 + 위치조정 토글 + W4 다운로드 버튼]
+        </div>
+        <!-- 하단 미리보기 wrapper — source line 149~161 verbatim:
+             flex:1, minHeight:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center',
+             padding:24, background:'var(--bg)' (→ var(--surface-page) 마이그레이션) -->
+        <div style="flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--surface-page);">
+          <!-- A4 비율 wrapper — source line 154~158 verbatim:
+               width:'100%', height:'100%', maxWidth:'calc((100vh - 140px) * 1.414)', maxHeight:'100%' -->
+          <div style="width:100%;height:100%;max-width:calc((100vh - 140px) * 1.414);max-height:100%;">
+            <!-- previewImage — 평시 분기 + yearPos 저장후 (연도 오버레이 표시) -->
+            <div style="position:relative;width:100%;height:100%;">
+              <img
+                src="/templates/preview/annual-plan.png"
+                alt="연간 업무 추진 계획 미리보기"
+                class="border border-border-default rounded-sm"
+                style="width:100%;height:100%;object-fit:contain;background:#fff;cursor:default;"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+              />
+              <div class="preview-img-placeholder border border-border-default rounded-sm" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;">
+                /templates/preview/annual-plan.png<br/>(A4 1:1.414, maxWidth calc((100vh - 140px) * 1.414))
+              </div>
+              <!-- 연도 오버레이 (yearPos overlay, source line 78~89 verbatim, ★ 캘리브 시그니처):
+                   position:'absolute', top:`${yearPos.y}%`, left:`${yearPos.x}%`,
+                   transform:'translate(-50%,-50%)',
+                   fontSize:'min(1.4vw, 16px)', fontWeight:700,
+                   color:'#000', fontFamily:'Malgun Gothic, 맑은 고딕, sans-serif',
+                   pointerEvents:'none'
+                   → 본 sketch placeholder yearPos = { x:52, y:62 } (시각 예시) -->
+              <div style="position:absolute;top:62%;left:52%;transform:translate(-50%,-50%);font-size:min(1.4vw, 16px);font-weight:700;color:#000;font-family:'Malgun Gothic, 맑은 고딕, sans-serif';pointer-events:none;">
+                2027
+              </div>
+              <!-- calibMode false → 안내 칩 미표시 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         Frame 4 — 데스크톱 다크 1280×800 캘리브 모드 (yearPos 저장후 + 안내 칩 동시 표시)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 데스크톱 다크 1280×800 — 캘리브 모드 (yearPos 저장후 + 안내 칩 동시 표시, calibMode true)</div>
+      <div data-theme="dark" class="frame-shell-desktop" style="height:800px;display:flex;flex-direction:column;">
+        <div style="flex-shrink:0;height:54px;border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 28px;color:var(--text-tertiary);opacity:0.5;font-family:'JetBrains Mono',monospace;font-size:12px;">
+          [W2 상단 바 자리 — 설명 + 위치조정 토글 active + W4 다운로드 버튼]
+        </div>
+        <div style="flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--surface-page);">
+          <div style="width:100%;height:100%;max-width:calc((100vh - 140px) * 1.414);max-height:100%;">
+            <!-- previewImage — 캘리브 모드 + yearPos 저장후 (둘 다 동시 표시) -->
+            <div style="position:relative;width:100%;height:100%;">
+              <!-- preview img 캘리브 모드 (OQ #5 LOCKED) -->
+              <img
+                src="/templates/preview/annual-plan.png"
+                alt="연간 업무 추진 계획 미리보기"
+                class="border-2 border-accent rounded-sm"
+                style="width:100%;height:100%;object-fit:contain;background:#fff;cursor:crosshair;"
+                onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+              />
+              <div class="preview-img-placeholder border-2 border-accent rounded-sm" style="display:none;position:absolute;top:0;left:0;width:100%;height:100%;">
+                /templates/preview/annual-plan.png<br/>(캘리브 모드: cursor crosshair + border-2 border-accent)
+              </div>
+              <!-- 캘리브 안내 칩 (OQ #5 LOCKED: 인라인 rgba(59,130,246,0.9) + text-white + OQ #3 LOCKED: 12 text-caption + leading-none) -->
+              <div class="text-caption font-bold leading-none text-white rounded-sm" style="position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(59,130,246,0.9);padding:6px 16px;white-space:nowrap;pointer-events:none;">
+                연도가 들어갈 위치를 클릭하세요
+              </div>
+              <!-- 연도 오버레이 (yearPos 저장후, ★ 캘리브 시그니처 verbatim) -->
+              <div style="position:absolute;top:62%;left:52%;transform:translate(-50%,-50%);font-size:min(1.4vw, 16px);font-weight:700;color:#000;font-family:'Malgun Gothic, 맑은 고딕, sans-serif';pointer-events:none;">
+                2027
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       ★ 캘리브 좌표 시스템 시그니처 박스 (rules 박스 verbatim 박제, 15-daily-report SW3 precedent)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto mb-12" style="background:rgba(59,130,246,0.06);border:1px solid var(--border-default);border-radius:12px;padding:24px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">★ 캘리브 좌표 시스템 시그니처 5건 verbatim 박제 (W5 TSX 변환 wave 시 1 byte 변경 금지)</h2>
+    <p class="text-label text-zinc-400 mb-3" style="line-height:1.6;">
+      15-daily-report SW3 의 portraitPos 보존 룰 동일 적용. 좌표 시스템 시그니처 5건 1 byte 변경 시 사용자 좌표 손실 → W5 TSX 변환 wave grep gate 강제. memory <code class="text-zinc-200">project_redesign_15_daily_report_status</code> precedent.
+    </p>
+    <pre class="text-caption text-zinc-200" style="background:rgba(0,0,0,0.4);padding:16px;border-radius:8px;overflow-x:auto;line-height:1.6;font-family:'JetBrains Mono',monospace;font-size:12px;"><code>1. STORAGE_KEY = 'annual_plan_year_pos'              (line 7, localStorage key — 변경 시 기존 사용자 좌표 손실)
+
+2. FINGER_OFFSET = 60                                (line 8, TouchEvent y 보정 px — 손가락 가리는 영역 보정값)
+
+3. handleImageClick (line 35~45) 좌표 계산식:
+   - e.currentTarget.getBoundingClientRect()
+   - ((e.clientX - rect.left) / rect.width) * 100
+   - ((e.clientY - rect.top) / rect.height) * 100
+   - setYearPos(pos) / localStorage.setItem(STORAGE_KEY, JSON.stringify(pos)) / setCalibMode(false)
+
+4. handleImageTouch (line 47~59) 좌표 계산식 (FINGER_OFFSET y 보정):
+   - touch.clientY - FINGER_OFFSET 보정
+   - ((touch.clientX - rect.left) / rect.width) * 100
+   - (((touch.clientY - FINGER_OFFSET) - rect.top) / rect.height) * 100
+   - 동일 setYearPos / localStorage.setItem / setCalibMode(false) 흐름
+
+5. yearPos overlay inline style (line 78~89):
+   - position:'absolute', top:`${yearPos.y}%`, left:`${yearPos.x}%`,
+   - transform:'translate(-50%,-50%)',
+   - fontSize:'min(1.4vw, 16px)', fontWeight:700,
+   - color:'#000', fontFamily:'Malgun Gothic, 맑은 고딕, sans-serif',
+   - pointerEvents:'none'
+
+추가 보존 (preview 자산):
+- '/templates/preview/annual-plan.png' (line 65, preview img src — 경로 변경 시 404)
+- img alt '연간 업무 추진 계획 미리보기' (line 66) verbatim
+- nextYear = new Date().getFullYear() + 1 (line 21)
+- generateAnnualPlan() direct import (line 4, dynamic import 아님)</code></pre>
+  </section>
+
+  <!-- ============================================================
+       Notes block — sketch 검토자에게 안내 (frame 외부)
+       ============================================================ -->
+  <section class="max-w-[1100px] mx-auto text-zinc-400" style="line-height:1.6;font-size:13px;">
+    <h2 class="text-title text-white mb-3" style="font-size:18px;font-weight:700;">W3 검토 포인트</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>preview img 평시 (OQ #5 LOCKED, source line 72 분기) = <code class="text-zinc-200">border border-border-default</code> + 인라인 <code class="text-zinc-200">cursor:default</code>. 외곽 <code class="text-zinc-200">rounded-sm</code> (radius 8 토큰).</li>
+      <li>preview img 캘리브 모드 (OQ #5 LOCKED, source line 72 분기) = <code class="text-zinc-200">border-2 border-accent</code> + 인라인 <code class="text-zinc-200">cursor:crosshair</code>. <code class="text-zinc-200">var(--acl)</code> 폐기 + <code class="text-zinc-200">border-accent</code> 토큰.</li>
+      <li>preview 자산 (source line 65 verbatim) = <code class="text-zinc-200">/templates/preview/annual-plan.png</code> (public/templates 폴더). 경로 변경 시 404 — 본 sketch 의 4 frame 모두 동일 path.</li>
+      <li>img alt (source line 66 verbatim) = "연간 업무 추진 계획 미리보기". 카피 변경 X.</li>
+      <li>preview 외곽 (모바일, source line 196) = <code class="text-zinc-200">width:'100%'</code> 인라인 / preview 외곽 (데스크톱, source line 154~158) = <code class="text-zinc-200">width:'100%', height:'100%', maxWidth:'calc((100vh - 140px) * 1.414)', maxHeight:'100%'</code> 인라인. A4 비율 (1:1.414) 시각 anchor — wrapper 토큰화 X (인라인 유지).</li>
+      <li>데스크톱 하단 미리보기 wrapper (source line 149~152) = <code class="text-zinc-200">flex:1, minHeight:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)'</code> → <code class="text-zinc-200">var(--bg) → var(--surface-page)</code> 마이그레이션.</li>
+      <li>★ 캘리브 안내 칩 (OQ #5 LOCKED, source line 91~101 verbatim) = 인라인 <code class="text-zinc-200">background:rgba(59,130,246,0.9)</code> + Tailwind <code class="text-zinc-200">text-white</code> + 인라인 <code class="text-zinc-200">padding:'6px 16px', borderRadius:8, white-space:nowrap, pointer-events:none</code> + OQ #3 LOCKED <code class="text-zinc-200">text-caption font-bold leading-none</code>. <strong>alpha 0.9 정밀도 토큰 비용 회피</strong> — 인라인 rgba 유지.</li>
+      <li>캘리브 안내 칩 카피 (source line 99 verbatim) = "연도가 들어갈 위치를 클릭하세요". 변경 X.</li>
+      <li>★ 연도 오버레이 (yearPos overlay, source line 78~89 verbatim, ★ 캘리브 시그니처) = <code class="text-zinc-200">position:'absolute', top:`${yearPos.y}%`, left:`${yearPos.x}%`, transform:'translate(-50%,-50%)', fontSize:'min(1.4vw, 16px)', fontWeight:700, color:'#000', fontFamily:'Malgun Gothic, 맑은 고딕, sans-serif', pointerEvents:'none'</code>. <strong>1 byte 변경 금지</strong>.</li>
+      <li>연도 오버레이 폰트 패밀리 (source line 84 verbatim) = <code class="text-zinc-200">'Malgun Gothic, 맑은 고딕, sans-serif'</code>. 엑셀 표지 글꼴과 시각 일치 — 디자인 토큰 폰트로 교체 금지 (memory feedback_pdflib_subset_false 일반화).</li>
+      <li>연도 오버레이 fontSize <code class="text-zinc-200">'min(1.4vw, 16px)'</code> 유지 — 캘리브 좌표 시스템 일부, % 좌표와 함께 시각 anchor.</li>
+      <li>나머지 카피 verbatim (memory feedback_sketch_realistic_data): <code class="text-zinc-200">nextYear = 2027</code> (sketch 작성 시점 2026 + 1, source line 21).</li>
+      <li>handleImageClick (source line 35~45) + handleImageTouch (source line 47~59) — 본 sketch 는 시각만 표현. 실제 좌표 계산식은 ★ 시그니처 박스 verbatim 박제 (W5 checklist 동일 인용).</li>
+      <li>Negative gate self-check (escape 표기): <code class="text-zinc-200">linear&#8209;gradient</code> 0 hit / <code class="text-zinc-200">(text&#124;bg&#124;border)&#8209;status&#8209;(safe&#124;fire&#124;warning&#124;danger&#124;caution)</code> 0 hit / fontSize 9·10·11 px 0 hit (단 'min(1.4vw, 16px)' 의 16 은 11 아님) / <code class="text-zinc-200">\bw&#8209;8\b</code> <code class="text-zinc-200">\bh&#8209;8\b</code> 0 hit / 이모지 0 hit.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W3 OQ LOCKED 5건 적용 매트릭스</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong class="text-zinc-200">OQ #1 LOCKED</strong> (다운로드 bg-safe-bar solid + 그라데이션 폐기): W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #2 LOCKED</strong> (위치조정 토글 토큰화): W2 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #3 LOCKED</strong> (폰트 격상): 본 wave 적용 = O. 캘리브 안내 칩 12 → <code class="text-zinc-200">text-caption font-bold leading-none</code> 유지 (작은 칩 시각 패딩 회피). 연도 오버레이 <code class="text-zinc-200">'min(1.4vw, 16px)'</code> 유지 (캘리브 좌표 시스템 일부).</li>
+      <li><strong class="text-zinc-200">OQ #4 LOCKED</strong> (Lucide 아이콘): W2 + W4 scope, 본 wave 미해당.</li>
+      <li><strong class="text-zinc-200">OQ #5 LOCKED</strong> (preview border 토큰 + 안내 칩 인라인): 본 wave 적용 = O. preview <code class="text-zinc-200">border-2 border-accent</code> (캘리브) / <code class="text-zinc-200">border border-border-default</code> (평시). 안내 칩 인라인 <code class="text-zinc-200">background:rgba(59,130,246,0.9)</code> + Tailwind <code class="text-zinc-200">text-white</code> + <code class="text-zinc-200">fontWeight 700 / whiteSpace nowrap / pointerEvents none</code> 모두 보존.</li>
+    </ul>
+
+    <h2 class="text-title text-white mb-3 mt-6" style="font-size:18px;font-weight:700;">W4 진입 전 메모 (default 채택)</h2>
+    <ul class="list-disc pl-5 space-y-1">
+      <li>본 wave 신규 OQ 없음 — W1 LOCKED 5건 + AnnualPlanPage.tsx source verbatim 만으로 sketch 결정 완료.</li>
+      <li>W4 = 다운로드 버튼 + 설명 (모바일 line 200~221 + 데스크톱 line 130~145). 본 W3 sketch 의 모바일 본문 <code class="text-zinc-200">[W4 다운로드 묶음 자리]</code> 영역에 마운트.</li>
+      <li>W4 진입 시 OQ #1 (bg-safe-bar solid + 그라데이션 완전 폐기) + OQ #3 (모바일 14 → 16 text-body font-bold 격상 / 데스크톱 13 text-label) + OQ #4 (Lucide Download size={15} 데스크톱 / size={16} 모바일) 3건 verify gate.</li>
+    </ul>
+  </section>
+
+</body>
+</html>
