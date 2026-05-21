@@ -61,27 +61,32 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24,
     }}>
-      <div style={{
-        background: '#1c2128', borderRadius: 20,
-        padding: '28px 24px', maxWidth: 340, width: '100%',
-        textAlign: 'center',
-        border: '1px solid rgba(59,130,246,0.3)',
-        boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
-      }}>
-        {/* 아이콘 */}
-        <div style={{
-          width: 64, height: 64, borderRadius: 16, margin: '0 auto 16px',
-          background: 'rgba(37,99,235,0.2)',
+      <div
+        className="bg-surface-raised rounded-[20px]"
+        style={{
+          padding: '28px 24px', maxWidth: 340, width: '100%',
+          textAlign: 'center',
           border: '1px solid rgba(59,130,246,0.3)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+          boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+        }}
+      >
+        {/* 아이콘 */}
+        <div
+          className="rounded-lg"
+          style={{
+            width: 64, height: 64, margin: '0 auto 16px',
+            background: 'rgba(37,99,235,0.2)',
+            border: '1px solid rgba(59,130,246,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
           <img src="/icons/icon-192.png" alt="" style={{ width: 48, height: 48, borderRadius: 12 }} />
         </div>
 
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#e6edf3', margin: '0 0 8px' }}>
+        <h2 className="text-title font-extrabold text-text-primary" style={{ margin: '0 0 8px' }}>
           CBC 방재
         </h2>
-        <p style={{ fontSize: 12, color: '#8b949e', margin: '0 0 20px', lineHeight: 1.5 }}>
+        <p className="text-caption leading-relaxed text-text-secondary" style={{ margin: '0 0 20px' }}>
           홈 화면에 앱을 설치하면<br/>더 빠르고 편리하게 사용할 수 있습니다
         </p>
 
@@ -89,21 +94,22 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={ios ? handleInstallIOS : handleInstallAndroid}
+              className="bg-safe-bar text-text-on-accent text-body font-bold rounded-md"
               style={{
-                width: '100%', height: 48, borderRadius: 12,
-                background: 'linear-gradient(135deg, #2563eb, #0ea5e9)',
-                border: 'none', color: '#fff',
-                fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                width: '100%', height: 48,
+                border: 'none',
+                cursor: 'pointer',
               }}
             >
               {ios ? '설치 방법 보기' : hasPrompt ? '홈 화면에 설치' : '설치 방법 보기'}
             </button>
             <button
               onClick={onDismiss}
+              className="text-caption font-bold leading-none text-text-tertiary rounded-md"
               style={{
-                width: '100%', height: 40, borderRadius: 10,
+                width: '100%', height: 40,
                 background: 'transparent', border: '1px solid rgba(255,255,255,0.1)',
-                color: '#6e7681', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                cursor: 'pointer',
               }}
             >
               나중에 할게요
@@ -112,35 +118,36 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
         ) : showAndroidGuide ? (
           /* Android Chrome 수동 설치 가이드 (이벤트 미발사 fallback) */
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 12, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '8px 10px', marginBottom: 14 }}>
+            <div className="text-caption leading-relaxed text-warning bg-warning-bg border-warning/25 rounded-sm" style={{ border: '1px solid', padding: '8px 10px', marginBottom: 14 }}>
               자동 설치 창이 뜨지 않으면 아래 순서로 설치해 주세요.
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>1</div>
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>크롬 우상단 <span style={{ fontSize: 16 }}>⋮</span> 메뉴</div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>주소창 오른쪽 점 세 개 메뉴를 누르세요</div>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>크롬 우상단 <span style={{ fontSize: 16 }}>⋮</span> 메뉴</div>
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>주소창 오른쪽 점 세 개 메뉴를 누르세요</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>2</div>
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>'앱 설치' 또는 '홈 화면에 추가' 선택</div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>메뉴에서 <strong style={{ color: '#e6edf3' }}>앱 설치</strong>(또는 <strong style={{ color: '#e6edf3' }}>홈 화면에 추가</strong>)를 누르세요</div>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>'앱 설치' 또는 '홈 화면에 추가' 선택</div>
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>메뉴에서 <strong className="text-text-primary">앱 설치</strong>(또는 <strong className="text-text-primary">홈 화면에 추가</strong>)를 누르세요</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, background: 'rgba(59,130,246,0.15)', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>3</div>
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>'설치' 확인</div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>팝업에서 <strong style={{ color: '#e6edf3' }}>설치</strong>를 누르면 완료</div>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>'설치' 확인</div>
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>팝업에서 <strong className="text-text-primary">설치</strong>를 누르면 완료</div>
                 </div>
               </div>
             </div>
             <button
               onClick={onDismiss}
-              style={{ width: '100%', height: 44, borderRadius: 10, marginTop: 18, background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)', color: '#3b82f6', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              className="bg-accent/15 text-accent text-label font-bold leading-none rounded-md"
+              style={{ width: '100%', height: 44, marginTop: 18, border: '1px solid rgba(59,130,246,0.3)', cursor: 'pointer' }}
             >
               확인했습니다
             </button>
@@ -150,52 +157,46 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
           <div style={{ textAlign: 'left' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                  background: 'rgba(59,130,246,0.15)', color: '#3b82f6',
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{
+                  width: 28, height: 28, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 800,
                 }}>1</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>
                     하단 공유 버튼 터치
                   </div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>
                     Safari 하단의 <span style={{ fontSize: 16, verticalAlign: 'middle' }}>⎋</span> 공유 아이콘을 누르세요
                   </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                  background: 'rgba(59,130,246,0.15)', color: '#3b82f6',
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{
+                  width: 28, height: 28, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 800,
                 }}>2</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>
                     '홈 화면에 추가' 선택
                   </div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>
-                    스크롤해서 <strong style={{ color: '#e6edf3' }}>홈 화면에 추가</strong>를 찾아 누르세요
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>
+                    스크롤해서 <strong className="text-text-primary">홈 화면에 추가</strong>를 찾아 누르세요
                   </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                  background: 'rgba(59,130,246,0.15)', color: '#3b82f6',
+                <div className="bg-accent/15 text-accent text-label font-extrabold leading-none rounded-sm" style={{
+                  width: 28, height: 28, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 800,
                 }}>3</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>
+                  <div className="text-label leading-none text-text-primary" style={{ fontWeight: 700 }}>
                     '추가' 터치
                   </div>
-                  <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>
-                    오른쪽 상단 <strong style={{ color: '#e6edf3' }}>추가</strong> 버튼을 누르면 완료!
+                  <div className="text-caption leading-relaxed text-text-secondary" style={{ marginTop: 2 }}>
+                    오른쪽 상단 <strong className="text-text-primary">추가</strong> 버튼을 누르면 완료!
                   </div>
                 </div>
               </div>
@@ -203,10 +204,11 @@ export function InstallPrompt({ onDismiss }: { onDismiss: () => void }) {
 
             <button
               onClick={onDismiss}
+              className="bg-accent/15 text-accent text-label font-bold leading-none rounded-md"
               style={{
-                width: '100%', height: 44, borderRadius: 10, marginTop: 18,
-                background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
-                color: '#3b82f6', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                width: '100%', height: 44, marginTop: 18,
+                border: '1px solid rgba(59,130,246,0.3)',
+                cursor: 'pointer',
               }}
             >
               확인했습니다
