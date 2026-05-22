@@ -583,6 +583,18 @@ line 288: <Route path="/education" element={<Auth><EducationPage /></Auth>} />
 
 ---
 
+## §7.LOCKED — OQ 5건 사용자 default OK LOCK (2026-05-22)
+
+사용자 "다음 할거 진행해" + autonomous mode 컨펌으로 default 답 그대로 LOCKED. 28-splash W1 f4cc991 precedent mirror. W2~W5 진행 시 본 LOCKED 룰 100% 적용 — 변경 필요 시 사용자 push back 으로만 재오픈.
+
+- **OQ #1 LOCKED**: 모바일 자체 헤더 배경 `bg-surface-raised` 유지 (border-b border-border-default). 16-workshift + 17-annual-plan + 02 + 28-splash 4 페이지 일관.
+- **OQ #2 LOCKED**: D-day 배지 status 토큰 치환 OK — `bg-safe-bg text-safe` / `bg-warning-bg text-warning` / `bg-danger-bg text-danger`. status- prefix 없음 룰 일관. 임계치 30·0 + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과' = 1 byte 변경 금지.
+- **OQ #3 LOCKED**: submit button 그라데이션 채택 — `linear-gradient(135deg, #1d4ed8, #0ea5e9)` (design-system §6.4 색). 14-reports / 16-workshift / 17-annual-plan W1 OQ #1 그라데이션 default 일관. 28-splash 와 정반대지만 23-education 은 §6.4 CTA 룰 우선. 데스크톱 selected 카드 border = `border-2 border-accent` 동시 LOCKED (1.5 → 2 토큰 치환).
+- **OQ #4 LOCKED**: 빈/오류 상태 아이콘 무 유지 — 카피만. 17-annual-plan + 16-workshift + 28-splash W1 일관.
+- **OQ #5 LOCKED**: 모바일 back button Lucide `ChevronLeft size={20} color="var(--t2)"` 교체 OK. IconChevronLeft 인라인 SVG 폐기. lucide-react import 추가. 16-workshift / 17-annual-plan / 28-splash 동일 패턴.
+
+---
+
 ## 자체 verify (작성 완료 후 본 인덱스가 통과해야 할 gate)
 
 본 문서가 후속 wave 진입 자격을 갖췄는지 verify:
