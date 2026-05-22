@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-edit-modal.html — redesign/23-education W4
+  작성: 2026-05-22 / quick 260522-o7b
+  범위: EducationPage.tsx EducationEditPanel (line 190~390, 프로필 헤더 + 마감 정보 박스 + 이수 이력 리스트
+        + 등록/수정 폼) + EducationBottomSheet (line 393~417, 모바일 바텀시트 wrapper) 시각화
+        4 frame (canEdit true 평시 / isEditMode 수정 / canEdit false / 데스크톱 신규 첫 실무 select disabled) 매트릭스
+  out of scope: 모바일 헤더 + 빈/로딩/오류 (W2 책임) / 직원 카드 + DdayBadge + 그룹핑 (W3 책임)
+                / TSX 변환 (W5 checklist 책임) / EducationPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, 28-splash/sketch-wave-4-install-guides.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 자체 헤더 (W2 scope, 본 wave 미해당 — 바텀시트는 헤더 위로 띄움)
+    OQ #2 LOCKED — DdayBadge 3 임계치 (W3 scope, 본 wave 일부 anchor — 프로필 헤더 D-day 박제만)
+    OQ #3 LOCKED — submit button linear&#8209;gradient(135deg, #1d4ed8, #0ea5e9) 인라인 그라데이션 (★ 본 wave 핵심
+                    — W4 만 linear&#8209;gradient negative gate 예외 anchor ≥3 박제)
+                  + disabled `bg-surface-sunken text-text-tertiary cursor-not-allowed` (신규 첫 실무 select)
+                  + selected card border-2 border-accent (W3 박제, 데스크톱만)
+    OQ #4 LOCKED — 빈/오류 아이콘 무 (W2 scope, 본 wave 미해당)
+    OQ #5 LOCKED — Lucide ChevronLeft (W2 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       -> 본 sketch 가 등록/수정/삭제 모달 + 신규 첫 실무 select disabled 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       -> 윤종엽 주임 (assistant, 본인) D-30 warning 평시 / 첫 실무 신규 김신규 기사 select disabled.
+          폼 라벨 verbatim — '이수 기록 등록' / '이수일 수정' / '이수일' / '교육 유형'.
+          select option verbatim — '실무교육 (최초)' (initial) / '보수교육' (refresher).
+          submit 버튼 verbatim — '이수일 기록' (평시) / '수정 완료' (isEditMode) / '저장 중...' (isSubmitting).
+          액션 버튼 verbatim — '수정' / '취소' / '삭제'.
+          이수 이력 row format verbatim — 'YYYY-MM-DD (실무/보수)'.
+          toast 카피 5종 verbatim (본문 미렌더, rules 박스 박제).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       -> 본 sketch 의 Tailwind class (bg-surface-raised / bg-surface-sunken / border-border-default /
+          border-border-strong / text-text-primary/secondary/tertiary / text-title font-extrabold /
+          text-body / text-body-sm / text-label / text-caption / rounded-md / rounded-sm / rounded-t-lg /
+          rounded-full / bg-warning-bg text-warning / border-2 border-accent — Frame 4) 모두 W5 안에 verbatim 인용.
+
+    4. feedback_tailwind_token_class_pattern.md
+       -> status&#8209; prefix 사용 0건. submit 그라데이션은 인라인 유지 (단일 사용처, 토큰 채택 X).
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       -> 아바타 40x40 = style="width:40px;height:40px" 인라인 (w&#8209;8 함정 회피).
+          submit button height 44 = style="height:44px" 인라인.
+
+    6. feedback_text_caption_leading_none.md
+       -> 마감 정보 라벨 (한 줄 '다음 마감') = text-caption leading-none 격상.
+          폼 라벨 (한 줄 '이수일' / '교육 유형') = text-caption leading-none font-bold 격상.
+          이수 이력 row date (한 줄) = text-label (13, 행 본문) leading 기본.
+          액션 버튼 '수정' '취소' '삭제' (작은 컨테이너 안 한 글자) = text-label leading-none.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       -> 본 wave 사용 글리프 0건. 아바타 = 이니셜 텍스트만.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       -> submit = CTA (의미 강조, 위험 임계치 아님). 그라데이션은 OQ #3 LOCKED 채택 결과 (인라인 유지).
+          disabled = neutral (status&#8209; prefix 0). selected card = border-accent (브랜드 강조, 위험 X).
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/23-education 확인 (현재 ✓).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> canEdit (admin 모두 / assistant 본인) source of truth. Frame 3 canEdit false 분기 (액션 버튼 + 등록 폼 미렌더).
+          useMutation 3종 invalidateQueries ['education'] + toast 5종 verbatim 박제.
+
+   11. feedback_body_scroll_lock_safe_area.md (★ 본 wave 일부 적용)
+       -> 모바일 바텀시트 오버레이 (rgba(0,0,0,0.6)) 는 position:fixed inset:0 채택. body.position=fixed 사용 X.
+
+   12. feedback_subagent_production_deploy_forbidden.md
+       -> 본 wave 는 sketch 디자인만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 12건 (EducationPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+    2. differenceInCalendarDays(d, new Date())
+    3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+    4. D-day 분기 매트릭스 (>30/0~30/<0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+    5. useQuery&lt;StaffEducation[]&gt;({ queryKey: ['education'], queryFn: educationApi.list })
+    6. useMutation x 3 (★ 본 wave 핵심):
+       - createMutation: educationApi.create({ staffId, education_type, completed_at }) + onSuccess invalidateQueries ['education'] + toast.success '이수일이 기록되었습니다.' + onSaved
+       - updateMutation: educationApi.update(editingRecord!.id, { completed_at }) + onSuccess + toast.success '이수일이 수정되었습니다.'
+       - deleteMutation: educationApi.delete(id) + onSuccess + toast.success '이수 기록이 삭제되었습니다.' + onError (e.message ?? '삭제에 실패했습니다.')
+       모두 isSubmitting = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
+    7. educationApi.list / create / update / delete 시그니처 (snake_case payload + positional id)
+    8. useIsDesktop() hook (>=768px) -> 데스크톱 우측 패널 / 모바일 바텀시트 분기
+    9. useAuthStore canEdit (admin 모두 / assistant 본인) — Frame 3 false 분기 (액션 버튼 + 등록 폼 미렌더, line 314/346)
+   10. @keyframes slideUp (글로벌, 바텀시트 line 406 'slideUp 0.28s ease-out both') 박제
+   11. toast 카피 5종 verbatim (★ 본 wave 핵심):
+       create.success '이수일이 기록되었습니다.' / update.success '이수일이 수정되었습니다.' /
+       delete.success '이수 기록이 삭제되었습니다.' / create+update.error '이수 기록 저장에 실패했습니다.' /
+       delete.error 'e?.message ?? 삭제에 실패했습니다.'
+   12. 빈/오류 카피 (W2 scope, 본 wave 미해당)
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — EducationEditPanel + EducationBottomSheet)
+  ==========================================================
+
+    - 바텀시트 wrapper background var(&#8209;&#8209;bg2) -> bg-surface-raised
+    - 바텀시트 오버레이 rgba(0,0,0,0.6) -> 인라인 유지 (alpha 정밀도, OQ #4 정신 일관 — 인라인 유지 anchor)
+    - 마감 정보 박스 + 아바타 + 이수 이력 row + input/select background var(&#8209;&#8209;bg3) -> bg-surface-sunken
+    - 액션 버튼 + 폼 borderTop var(&#8209;&#8209;bd) -> border-border-default
+    - 액션 버튼 border + input/select border var(&#8209;&#8209;bd2) -> border-border-strong
+    - 이름 color var(&#8209;&#8209;t1) -> text-text-primary
+    - 직책 + 라벨 + 다음 마감 일자 var(&#8209;&#8209;t2) -> text-text-secondary
+    - 메타 + 마감 정보 라벨 + 폼 라벨 + 신규 select color var(&#8209;&#8209;t3) -> text-text-tertiary
+    - DdayBadge (OQ #2 LOCKED, 본 wave 프로필 헤더 박제)
+    - submit button var(&#8209;&#8209;acl) -> 인라인 linear&#8209;gradient(135deg, #1d4ed8, #0ea5e9) (OQ #3 ★ 단일 사용처, W4 만 예외 anchor)
+    - submit disabled opacity:0.6 + cursor:'default' (line 379 verbatim)
+    - select disabled (!hasRecords && !isEditMode) -> bg-surface-sunken text-text-tertiary cursor-not-allowed (OQ #3 ★ 토큰)
+    - 바텀시트 borderRadius '16px 16px 0 0' -> rounded-t-lg 또는 rounded-t-[16px]
+    - handle 32x4 background var(&#8209;&#8209;bd2) -> bg-border-strong
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건
+    - linear&#8209;gradient — ★ W4 만 OQ #3 LOCKED 예외 anchor ≥3 박제
+      (Frame 1 평시 submit / Frame 2 isEditMode submit / Frame 4 데스크톱 신규 submit — 3 frame submit 박제,
+       Frame 3 canEdit false 폼 미렌더 = submit 미사용)
+    - 9 / 10 / 11 px fontSize 0건
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건
+    - w&#8209;8 / h&#8209;8 0건
+    - 옛 alias 토큰 sketch 본문 안 0건
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/23-education — W4 edit/bottom-sheet modal</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-warning-bar: #f59e0b;
+      --status-safe-bar:    #22c55e;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* @keyframes slideUp — 바텀시트 anchor (1 byte 변경 금지, line 406) */
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .frame-shell-desktop-panel {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 640px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1700px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">23-education sketch W4 — 등록/수정/삭제 모달 (EducationEditPanel + EducationBottomSheet)</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 3 frame (canEdit true 평시 + isEditMode 수정 + canEdit false) + 데스크톱 640x800 1 frame (신규 첫 실무 select disabled).
+      EducationPage.tsx EducationEditPanel (line 190~390) + EducationBottomSheet (line 393~417) verbatim 매핑.
+      W1 OQ LOCKED 5건 중 OQ #3 (submit 그라데이션 + disabled + selected) 시각 적용 ★ 본 wave 핵심.
+      ★ linear-gradient negative gate W4 만 예외 anchor ≥3 박제 (Frame 1/2/4 submit, Frame 3 미렌더).
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / canEdit true 평시 (바텀시트, 윤종엽 D-30 warning)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 (393x800) — canEdit true 평시 — '이수 기록 등록' + submit '이수일 기록'</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 배경 스플래시 placeholder (StaffEducationCard 목록, 본 wave scope X 시각 chrome 만) -->
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;opacity:0.3;">
+          <div style="height:48px;background:var(--surface-raised);border-bottom:1px solid var(--border-default);"></div>
+          <div style="flex:1;padding:16px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding-top:80px;">(StaffEducationCard 목록 — W3 sketch 영역)</div>
+        </div>
+
+        <!-- 오버레이 (line 397~400 verbatim 인라인 rgba 유지) -->
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-end;z-index:50;">
+
+          <!-- 바텀시트 (line 402~408 verbatim, slideUp 0.28s + rounded-t-lg / 16px + maxHeight 90vh) -->
+          <div class="bg-surface-raised rounded-t-lg" style="animation:slideUp 0.28s ease-out both;max-height:90vh;overflow-y:auto;padding:16px 16px 32px;">
+
+            <!-- handle 32x4 (line 410~412 verbatim) -->
+            <div style="display:flex;justify-content:center;margin-bottom:8px;">
+              <div class="bg-border-strong rounded-sm" style="width:32px;height:4px;"></div>
+            </div>
+
+            <!-- 본문 EducationEditPanel (line 273~388 verbatim) -->
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+              <!-- 프로필 헤더 (line 276~289 verbatim) -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <!-- 아바타 40x40 (line 277~283) -->
+                <div class="bg-surface-sunken text-text-secondary text-body font-bold rounded-full" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">윤</div>
+                <div style="flex:1;">
+                  <!-- 이름 18 -> text-title font-extrabold + 직책 13 text-label -->
+                  <div class="text-title font-extrabold text-text-primary">윤종엽</div>
+                  <div class="text-label text-text-secondary" style="margin-top:2px;">주임</div>
+                </div>
+                <!-- DdayBadge (OQ #2 LOCKED warning, dday=30 박제 anchor) -->
+                <div class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-30</div>
+              </div>
+
+              <!-- 마감 정보 박스 (line 292~299 verbatim) -->
+              <div class="bg-surface-sunken rounded-md" style="padding:12px 16px;">
+                <div class="text-caption leading-none text-text-tertiary" style="margin-bottom:4px;">다음 마감</div>
+                <div class="text-body-sm font-bold text-text-primary">
+                  2026-06-22 <span class="text-caption leading-none text-text-tertiary" style="font-weight:400;">(보수교육)</span>
+                </div>
+              </div>
+
+              <!-- 이수 이력 리스트 (line 302~343 verbatim, sorted.length > 0 분기) -->
+              <div>
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;">이수 이력</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <!-- row 1 (line 306~340) -->
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2024-06-22 (보수)</span>
+                    <!-- canEdit true 액션 버튼 (line 314~338) -->
+                    <div style="display:flex;gap:4px;">
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-secondary rounded-sm" style="padding:4px 10px;cursor:pointer;">수정</button>
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-tertiary rounded-sm" style="padding:4px 10px;cursor:pointer;">삭제</button>
+                    </div>
+                  </div>
+                  <!-- row 2 -->
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2022-06-22 (실무)</span>
+                    <div style="display:flex;gap:4px;">
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-secondary rounded-sm" style="padding:4px 10px;cursor:pointer;">수정</button>
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-tertiary rounded-sm" style="padding:4px 10px;cursor:pointer;">삭제</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 등록 폼 (line 346~387 verbatim — canEdit && 분기, frame 1/2/4 만 렌더) -->
+              <div class="border-t border-border-default" style="padding-top:16px;">
+                <!-- 평시 라벨 '이수 기록 등록' (line 349) -->
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:10px;">이수 기록 등록</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <div>
+                    <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">이수일</div>
+                    <input type="date" value="2026-05-22" class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;font-family:inherit;-webkit-appearance:none;appearance:none;" />
+                  </div>
+                  <div>
+                    <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">교육 유형</div>
+                    <!-- hasRecords=true (이수 이력 2건) -> select 활성 -->
+                    <select class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;-webkit-appearance:none;appearance:none;cursor:pointer;">
+                      <option value="initial">실무교육 (최초)</option>
+                      <option value="refresher" selected>보수교육</option>
+                    </select>
+                  </div>
+                  <!-- ★ submit button (OQ #3 LOCKED 인라인 그라데이션, W4 만 linear-gradient 예외 anchor 1/3) -->
+                  <button class="text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:44px;border:none;cursor:pointer;margin-top:4px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                    이수일 기록
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / isEditMode 수정 (첫 row '취소' 활성 + submit '수정 완료')
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 (393x800) — isEditMode 수정 — '이수일 수정' + submit '수정 완료'</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;opacity:0.3;">
+          <div style="height:48px;background:var(--surface-raised);border-bottom:1px solid var(--border-default);"></div>
+          <div style="flex:1;padding:16px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding-top:80px;">(StaffEducationCard 목록 placeholder)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-end;z-index:50;">
+
+          <div class="bg-surface-raised rounded-t-lg" style="animation:slideUp 0.28s ease-out both;max-height:90vh;overflow-y:auto;padding:16px 16px 32px;">
+
+            <div style="display:flex;justify-content:center;margin-bottom:8px;">
+              <div class="bg-border-strong rounded-sm" style="width:32px;height:4px;"></div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+              <!-- 프로필 헤더 (frame 1 동일) -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="bg-surface-sunken text-text-secondary text-body font-bold rounded-full" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">윤</div>
+                <div style="flex:1;">
+                  <div class="text-title font-extrabold text-text-primary">윤종엽</div>
+                  <div class="text-label text-text-secondary" style="margin-top:2px;">주임</div>
+                </div>
+                <div class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-30</div>
+              </div>
+
+              <div class="bg-surface-sunken rounded-md" style="padding:12px 16px;">
+                <div class="text-caption leading-none text-text-tertiary" style="margin-bottom:4px;">다음 마감</div>
+                <div class="text-body-sm font-bold text-text-primary">
+                  2026-06-22 <span class="text-caption leading-none text-text-tertiary" style="font-weight:400;">(보수교육)</span>
+                </div>
+              </div>
+
+              <!-- 이수 이력 리스트 — 첫 row '취소' 활성 (line 317~325, editingRecord?.id === rec.id 분기) -->
+              <div>
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;">이수 이력</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <!-- 편집중 row (background var(--bg4)) -->
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2024-06-22 (보수)</span>
+                    <div style="display:flex;gap:4px;">
+                      <!-- '취소' 활성 (background var(--bg4) -> surface-active 인라인) -->
+                      <button class="text-label leading-none text-text-secondary rounded-sm" style="padding:4px 10px;cursor:pointer;background:var(--surface-active);border:1px solid var(--border-strong);">취소</button>
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-tertiary rounded-sm" style="padding:4px 10px;cursor:pointer;">삭제</button>
+                    </div>
+                  </div>
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2022-06-22 (실무)</span>
+                    <div style="display:flex;gap:4px;">
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-secondary rounded-sm" style="padding:4px 10px;cursor:pointer;">수정</button>
+                      <button class="bg-surface-raised border border-border-strong text-label leading-none text-text-tertiary rounded-sm" style="padding:4px 10px;cursor:pointer;">삭제</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 수정 폼 (isEditMode true, line 349 isEditMode ? '이수일 수정' : '이수 기록 등록') -->
+              <div class="border-t border-border-default" style="padding-top:16px;">
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:10px;">이수일 수정</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <div>
+                    <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">이수일</div>
+                    <input type="date" value="2024-06-22" class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;font-family:inherit;-webkit-appearance:none;appearance:none;" />
+                  </div>
+                  <div>
+                    <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">교육 유형</div>
+                    <select class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;-webkit-appearance:none;appearance:none;cursor:pointer;">
+                      <option value="initial">실무교육 (최초)</option>
+                      <option value="refresher" selected>보수교육</option>
+                    </select>
+                  </div>
+                  <!-- ★ submit button (OQ #3 LOCKED 그라데이션, W4 예외 anchor 2/3, isEditMode '수정 완료') -->
+                  <button class="text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:44px;border:none;cursor:pointer;margin-top:4px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                    수정 완료
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 모바일 393x800 / canEdit false (다른 직원 본 admin 외 assistant)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 (393x800) — canEdit false — 액션 버튼 + 등록 폼 미렌더 (submit 없음)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;opacity:0.3;">
+          <div style="height:48px;background:var(--surface-raised);border-bottom:1px solid var(--border-default);"></div>
+          <div style="flex:1;padding:16px;color:var(--text-tertiary);font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;padding-top:80px;">(StaffEducationCard 목록 placeholder)</div>
+        </div>
+
+        <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;flex-direction:column;justify-content:flex-end;z-index:50;">
+
+          <div class="bg-surface-raised rounded-t-lg" style="animation:slideUp 0.28s ease-out both;max-height:90vh;overflow-y:auto;padding:16px 16px 32px;">
+
+            <div style="display:flex;justify-content:center;margin-bottom:8px;">
+              <div class="bg-border-strong rounded-sm" style="width:32px;height:4px;"></div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:16px;">
+
+              <!-- 프로필 헤더 — 다른 직원 (canEdit false, currentStaff 가 admin 아닌 assistant + 본인 아님) -->
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="bg-surface-sunken text-text-secondary text-body font-bold rounded-full" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+                <div style="flex:1;">
+                  <div class="text-title font-extrabold text-text-primary">김재선</div>
+                  <div class="text-label text-text-secondary" style="margin-top:2px;">부장</div>
+                </div>
+                <div class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-30</div>
+              </div>
+
+              <div class="bg-surface-sunken rounded-md" style="padding:12px 16px;">
+                <div class="text-caption leading-none text-text-tertiary" style="margin-bottom:4px;">다음 마감</div>
+                <div class="text-body-sm font-bold text-text-primary">
+                  2026-06-22 <span class="text-caption leading-none text-text-tertiary" style="font-weight:400;">(보수교육)</span>
+                </div>
+              </div>
+
+              <!-- 이수 이력 리스트 — canEdit false 분기 (line 314, 액션 버튼 미렌더) -->
+              <div>
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;">이수 이력</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2024-06-22 (보수)</span>
+                    <!-- canEdit false -> 액션 버튼 X (line 314 분기) -->
+                  </div>
+                  <div class="bg-surface-sunken rounded-sm" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+                    <span class="text-label text-text-secondary">2022-06-22 (실무)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 등록/수정 폼 미렌더 (line 346, canEdit && 분기 false)
+                   ★ Frame 3 = submit button 미사용 = linear-gradient 미사용 anchor (W4 예외 anchor 룰에서 빠짐) -->
+              <div class="text-caption leading-none text-text-tertiary" style="text-align:center;padding-top:8px;">
+                (canEdit false — 등록/수정 폼 + 액션 버튼 미렌더, line 314 + 346 분기)
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 다크 데스크톱 640x800 우측 패널 / 신규 첫 실무 select disabled
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 다크 데스크톱 우측 패널 (640x800) — 신규 직원 select disabled — submit '이수일 기록'</div>
+      <div data-theme="dark" class="frame-shell-desktop-panel">
+
+        <!-- 데스크톱 우측 패널 wrapper (line 515~522 verbatim, 인라인 padding 24 32, 오버레이 X) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:24px 32px;">
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+
+            <!-- 프로필 헤더 — 신규 직원 김신규 (canEdit true, records 0건) -->
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body font-bold rounded-full" style="width:40px;height:40px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+              <div style="flex:1;">
+                <div class="text-title font-extrabold text-text-primary">김신규</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">기사</div>
+              </div>
+              <!-- 신규 — appointedAt 있음 but records 0 -> dday 첫 실무교육 -->
+              <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-180</div>
+            </div>
+
+            <!-- 마감 정보 박스 — 첫 실무교육 label -->
+            <div class="bg-surface-sunken rounded-md" style="padding:12px 16px;">
+              <div class="text-caption leading-none text-text-tertiary" style="margin-bottom:4px;">다음 마감</div>
+              <div class="text-body-sm font-bold text-text-primary">
+                2026-11-18 <span class="text-caption leading-none text-text-tertiary" style="font-weight:400;">(첫 실무교육)</span>
+              </div>
+            </div>
+
+            <!-- 이수 이력 0건 (sorted.length === 0, line 302 분기 false -> 이수 이력 섹션 미렌더)
+                 본 frame 은 신규 직원이라 이수 이력 섹션 자체 미렌더 — line 302 verbatim -->
+            <div class="text-caption leading-none text-text-tertiary" style="font-style:italic;padding:8px 0;">
+              (이수 이력 0건 — line 302 hasRecords false 분기, 섹션 미렌더)
+            </div>
+
+            <!-- 등록 폼 (line 346~387 verbatim — canEdit true, 신규) -->
+            <div class="border-t border-border-default" style="padding-top:16px;">
+              <div class="text-label font-bold text-text-secondary" style="margin-bottom:10px;">이수 기록 등록</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div>
+                  <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">이수일</div>
+                  <input type="date" value="2026-05-22" class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;font-family:inherit;-webkit-appearance:none;appearance:none;" />
+                </div>
+                <div>
+                  <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">교육 유형</div>
+                  <!-- ★ select disabled (OQ #3 LOCKED ★, !hasRecords && !isEditMode 분기, line 358~371)
+                       기존 인라인 color: var(--t3), cursor: 'default', pointerEvents: 'none' (line 363~366)
+                       -> bg-surface-sunken text-text-tertiary cursor-not-allowed 클래스 치환 -->
+                  <select disabled class="bg-surface-sunken text-text-tertiary border border-border-strong text-label rounded-md cursor-not-allowed" style="width:100%;padding:10px 12px;outline:none;box-sizing:border-box;-webkit-appearance:none;appearance:none;pointer-events:none;">
+                    <option value="initial" selected>실무교육 (최초)</option>
+                    <option value="refresher">보수교육</option>
+                  </select>
+                </div>
+                <!-- ★ submit button (OQ #3 LOCKED 그라데이션, W4 예외 anchor 3/3) -->
+                <button class="text-text-on-accent text-body font-bold rounded-md" style="width:100%;height:44px;border:none;cursor:pointer;margin-top:4px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                  이수일 기록
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       rules 박스 (sketch 하단 메타)
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto bg-zinc-900 border border-zinc-700 rounded-md p-6 text-zinc-300" style="font-size:13px;line-height:1.6;">
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">★ W4 rules 박스 — OQ #3 LOCKED + 비즈 anchor 12건 + toast 5종 + 토큰 매핑 + negative gate</h2>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">OQ #3 LOCKED (본 wave 핵심 ★)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li><strong>OQ #3 LOCKED</strong> — EducationEditPanel submit button = <code>style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}</code> 인라인 그라데이션 (디자인 강조용). 토큰 채택 X (linear-gradient negative gate 의 W4 만 예외 anchor — Frame 1/2/4 submit ≥3 박제). disabled 분기 = <code>bg-surface-sunken text-text-tertiary cursor-not-allowed</code> (토큰 치환, 신규 첫 실무 select). selected card border = <code>border-2 border-accent</code> (W3 박제, 1.5 → 2, 데스크톱만). W4 sketch + TSX 변환 모두 동일 적용.</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">★ 비즈 anchor 12건 박제 — useMutation 3종 + educationApi + toast 5종 강조</h3>
+    <pre class="bg-zinc-950 border border-zinc-700 rounded p-3 overflow-auto" style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;">
+1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+2. differenceInCalendarDays(d, new Date())
+3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+4. D-day 분기 매트릭스 (&gt;30/0~30/&lt;0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+5. useQuery&lt;StaffEducation[]&gt;({ queryKey: ['education'], queryFn: educationApi.list })
+6. ★ useMutation x 3 (본 wave 핵심):
+   - createMutation: educationApi.create({ staffId, education_type, completed_at }) + invalidate + toast.success '이수일이 기록되었습니다.' + onSaved
+   - updateMutation: educationApi.update(editingRecord!.id, { completed_at }) + invalidate + toast.success '이수일이 수정되었습니다.'
+   - deleteMutation: educationApi.delete(id) + invalidate + toast.success '이수 기록이 삭제되었습니다.' + onError 'e?.message ?? 삭제에 실패했습니다.'
+7. educationApi.list / create / update / delete 시그니처 (snake_case payload + positional id)
+8. useIsDesktop() hook (&gt;=768px) -&gt; 데스크톱 우측 패널 / 모바일 바텀시트 분기
+9. useAuthStore canEdit (admin 모두 / assistant 본인) — Frame 3 false 분기 (액션 버튼 + 등록 폼 미렌더)
+10. @keyframes slideUp (바텀시트 line 406 'slideUp 0.28s ease-out both')
+11. ★ toast 카피 5종 verbatim:
+    create.success '이수일이 기록되었습니다.'
+    update.success '이수일이 수정되었습니다.'
+    delete.success '이수 기록이 삭제되었습니다.'
+    create+update.error '이수 기록 저장에 실패했습니다.'
+    delete.error 'e?.message ?? 삭제에 실패했습니다.'
+12. 빈/오류 카피 (W2 scope)
+    </pre>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">토큰 매핑 (EducationEditPanel + EducationBottomSheet)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>바텀시트 wrapper <code>var(&#8209;&#8209;bg2)</code> → <code>bg-surface-raised</code></li>
+      <li>바텀시트 오버레이 <code>rgba(0,0,0,0.6)</code> → 인라인 유지 (alpha 정밀도, 인라인 anchor)</li>
+      <li>마감 정보 + 아바타 + 이수 이력 row + input/select <code>var(&#8209;&#8209;bg3)</code> → <code>bg-surface-sunken</code></li>
+      <li>액션 버튼 + 폼 borderTop <code>var(&#8209;&#8209;bd)</code> → <code>border-border-default</code></li>
+      <li>액션 버튼 border + input/select border <code>var(&#8209;&#8209;bd2)</code> → <code>border-border-strong</code></li>
+      <li>이름 <code>var(&#8209;&#8209;t1)</code> → <code>text-text-primary</code></li>
+      <li>직책 + 라벨 + 일자 <code>var(&#8209;&#8209;t2)</code> → <code>text-text-secondary</code></li>
+      <li>메타 + 마감 정보 라벨 + 폼 라벨 + 신규 select color <code>var(&#8209;&#8209;t3)</code> → <code>text-text-tertiary</code></li>
+      <li>★ submit button <code>var(&#8209;&#8209;acl)</code> → 인라인 <code>linear-gradient(135deg, #1d4ed8, #0ea5e9)</code> (OQ #3, W4 만 예외 anchor)</li>
+      <li>★ select disabled (신규 첫 실무) → <code>bg-surface-sunken text-text-tertiary cursor-not-allowed</code> (OQ #3 토큰)</li>
+      <li>바텀시트 borderRadius '16px 16px 0 0' → <code>rounded-t-lg</code></li>
+      <li>handle 32x4 <code>var(&#8209;&#8209;bd2)</code> → <code>bg-border-strong</code></li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">Negative gate (sketch 본문)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>이모지 0건</li>
+      <li>★ linear-gradient — <strong>W4 만 OQ #3 LOCKED 예외 anchor</strong> ≥3 박제 (Frame 1 평시 / Frame 2 isEditMode / Frame 4 데스크톱 신규 submit). Frame 3 canEdit false = submit 미렌더 = 미사용.</li>
+      <li>9 / 10 / 11 px fontSize 0건</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건</li>
+      <li>w&#8209;8 / h&#8209;8 0건</li>
+      <li>옛 alias 토큰 sketch 본문 안 0건</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">다음 wave</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>W5 — TSX 변환 verify checklist markdown (12 섹션, 591 lines 단일 atomic 변환 룰 + 비즈 anchor 12건 박제 + OQ LOCKED 5건 반영 + 메모리 룰 inline 12+)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
