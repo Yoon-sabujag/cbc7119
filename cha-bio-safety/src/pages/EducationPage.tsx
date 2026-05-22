@@ -7,15 +7,7 @@ import { educationApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { EducationRecord, StaffEducation } from '../types'
-
-// ── 인라인 SVG 아이콘 ─────────────────────────────────────────
-function IconChevronLeft({ size = 20, color = 'currentColor' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
-  )
-}
+import { ChevronLeft } from 'lucide-react'
 
 // ── D-day 계산 ────────────────────────────────────────────────
 function calcNextDeadline(
@@ -49,44 +41,27 @@ function dateToYmd(d: Date) {
 const TITLE_ORDER: Record<string, number> = { '주임': 0, '대리': 1, '기사': 2 }
 function titleRank(title: string) { return TITLE_ORDER[title] ?? 99 }
 
-// ── 스켈레톤 ──────────────────────────────────────────────────
-const SKELETON_STYLE: React.CSSProperties = {
-  background: 'var(--bg3)',
-  borderRadius: 12,
-  height: 88,
-  animation: 'blink 2s ease-in-out infinite',
-}
-
 // ── D-day 배지 ────────────────────────────────────────────────
 function DdayBadge({ dday }: { dday: number }) {
-  let bg: string
-  let color: string
+  let colorClass: string
   let label: string
 
   if (dday > 30) {
-    bg = 'rgba(34,197,94,0.12)'
-    color = 'var(--safe)'
+    colorClass = 'bg-safe-bg text-safe'
     label = `D-${dday}`
   } else if (dday >= 0) {
-    bg = 'rgba(245,158,11,0.15)'
-    color = 'var(--warn)'
+    colorClass = 'bg-warning-bg text-warning'
     label = `D-${dday}`
   } else {
-    bg = 'rgba(239,68,68,0.15)'
-    color = 'var(--danger)'
+    colorClass = 'bg-danger-bg text-danger'
     label = `D+${Math.abs(dday)} 초과`
   }
 
   return (
-    <div style={{
-      background: bg,
-      color,
-      fontSize: 12,
-      fontWeight: 700,
-      padding: '2px 8px',
-      borderRadius: 8,
-      flexShrink: 0,
-    }}>
+    <div
+      className={`text-caption font-bold leading-none rounded-sm ${colorClass}`}
+      style={{ padding: '2px 8px', flexShrink: 0 }}
+    >
       {label}
     </div>
   )
@@ -113,13 +88,11 @@ function StaffEducationCard({
   return (
     <div
       onClick={canEdit ? onTap : undefined}
+      className={`bg-surface-raised rounded-md ${selected ? 'border-2 border-accent' : 'border border-border-default'}`}
       style={{
-        background: 'var(--bg2)',
-        borderRadius: 12,
         padding: 16,
-        border: selected ? '1.5px solid var(--acl)' : '1px solid var(--bd)',
-        cursor: canEdit ? 'pointer' : 'default',
         minHeight: 80,
+        cursor: canEdit ? 'pointer' : 'default',
         WebkitTapHighlightColor: 'transparent',
         userSelect: 'none',
       }}
@@ -127,28 +100,26 @@ function StaffEducationCard({
       {/* 상단 행: 아바타 + 이름/직책 + 배지 */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
         {/* 아바타 */}
-        <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: '50%',
-          background: 'var(--bg3)',
-          color: 'var(--t2)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 14,
-          fontWeight: 700,
-          flexShrink: 0,
-        }}>
+        <div
+          className="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full"
+          style={{
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
           {staff.name.charAt(0)}
         </div>
 
         {/* 이름 + 직책 */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)', lineHeight: 1.3 }}>
+          <div className="text-body font-bold text-text-primary" style={{ lineHeight: 1.3 }}>
             {staff.name}
           </div>
-          <div style={{ fontSize: 13, fontWeight: 400, color: 'var(--t2)', marginTop: 2 }}>
+          <div className="text-label text-text-secondary" style={{ marginTop: 2 }}>
             {staff.title}
           </div>
         </div>
@@ -162,21 +133,21 @@ function StaffEducationCard({
       {/* 하단 행: 이수 이력 + 다음 마감 */}
       <div style={{ marginTop: 10, paddingLeft: 44 }}>
         {lastRecord ? (
-          <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t3)', marginBottom: 2 }}>
+          <div className="text-caption leading-relaxed text-text-tertiary" style={{ marginBottom: 2 }}>
             마지막 이수: {fmtDate(lastRecord.completedAt)} ({lastRecord.educationType === 'initial' ? '실무' : '보수'})
           </div>
         ) : null}
 
         {staff.appointedAt === null ? (
-          <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t3)' }}>
+          <div className="text-caption leading-relaxed text-text-tertiary">
             선임일 미등록
           </div>
         ) : deadline ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--t2)' }}>
+            <span className="text-caption leading-relaxed text-text-secondary">
               다음 마감: {dateToYmd(deadline)}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--t3)' }}>
+            <span className="text-caption leading-relaxed text-text-tertiary">
               ({label})
             </span>
           </div>
@@ -263,37 +234,36 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
     else createMutation.mutate()
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', background: 'var(--bg3)', borderRadius: 9,
-    padding: '10px 12px', border: '1px solid var(--bd2)', color: 'var(--t1)',
-    fontSize: 13, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit',
-    minWidth: 0, WebkitAppearance: 'none', appearance: 'none',
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* 프로필 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: '50%', background: 'var(--bg3)',
-          color: 'var(--t2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 16, fontWeight: 700, flexShrink: 0,
-        }}>
+        <div
+          className="bg-surface-sunken text-text-secondary text-body font-bold rounded-full"
+          style={{
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
           {staff.name.charAt(0)}
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{staff.name}</div>
-          <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 2 }}>{staff.title}</div>
+          <div className="text-title font-extrabold text-text-primary">{staff.name}</div>
+          <div className="text-label text-text-secondary" style={{ marginTop: 2 }}>{staff.title}</div>
         </div>
         {dday !== null && <DdayBadge dday={dday} />}
       </div>
 
       {/* 마감 정보 */}
       {staff.appointedAt && deadline && (
-        <div style={{ background: 'var(--bg3)', borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t3)', marginBottom: 4 }}>다음 마감</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1)' }}>
-            {dateToYmd(deadline)} <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--t3)' }}>({label})</span>
+        <div className="bg-surface-sunken rounded-md" style={{ padding: '12px 16px' }}>
+          <div className="text-caption leading-none text-text-tertiary" style={{ marginBottom: 4 }}>다음 마감</div>
+          <div className="text-body-sm font-bold text-text-primary">
+            {dateToYmd(deadline)} <span className="text-caption leading-none text-text-tertiary">({label})</span>
           </div>
         </div>
       )}
@@ -301,24 +271,28 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
       {/* 이수 이력 */}
       {sorted.length > 0 && (
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 8 }}>이수 이력</div>
+          <div className="text-label font-bold text-text-secondary" style={{ marginBottom: 8 }}>이수 이력</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {sorted.map(rec => (
-              <div key={rec.id} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px',
-              }}>
-                <span style={{ fontSize: 13, color: 'var(--t2)' }}>
+              <div
+                key={rec.id}
+                className="bg-surface-sunken rounded-sm"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 12px',
+                }}
+              >
+                <span className="text-label text-text-secondary">
                   {fmtDate(rec.completedAt)} ({rec.educationType === 'initial' ? '실무' : '보수'})
                 </span>
                 {canEdit && (
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button
                       onClick={() => editingRecord?.id === rec.id ? handleCancelEdit() : handleStartEdit(rec)}
+                      className="bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-secondary"
                       style={{
-                        background: editingRecord?.id === rec.id ? 'var(--bg4)' : 'var(--bg2)',
-                        border: '1px solid var(--bd2)', borderRadius: 6,
-                        padding: '4px 10px', fontSize: 12, color: 'var(--t2)', cursor: 'pointer',
+                        padding: '4px 10px',
+                        cursor: 'pointer',
                       }}
                     >
                       {editingRecord?.id === rec.id ? '취소' : '수정'}
@@ -326,9 +300,9 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
                     <button
                       onClick={() => deleteMutation.mutate(rec.id)}
                       disabled={isSubmitting}
+                      className="bg-surface-raised border border-border-strong text-label leading-none rounded-sm text-text-tertiary"
                       style={{
-                        background: 'var(--bg2)', border: '1px solid var(--bd2)', borderRadius: 6,
-                        padding: '4px 10px', fontSize: 12, color: 'var(--t3)',
+                        padding: '4px 10px',
                         cursor: isSubmitting ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -344,25 +318,46 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
 
       {/* 등록/수정 폼 */}
       {canEdit && (
-        <div style={{ borderTop: '1px solid var(--bd)', paddingTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', marginBottom: 10 }}>
+        <div className="border-t border-border-default" style={{ paddingTop: 16 }}>
+          <div className="text-label font-bold text-text-secondary" style={{ marginBottom: 10 }}>
             {isEditMode ? '이수일 수정' : '이수 기록 등록'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>이수일</div>
-              <input type="date" value={completedAt} onChange={e => setCompletedAt(e.target.value)} style={inputStyle} />
+              <div className="text-caption leading-none font-bold text-text-tertiary" style={{ marginBottom: 6 }}>이수일</div>
+              <input
+                type="date"
+                value={completedAt}
+                onChange={e => setCompletedAt(e.target.value)}
+                className="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                  minWidth: 0,
+                }}
+              />
             </div>
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>교육 유형</div>
+              <div className="text-caption leading-none font-bold text-text-tertiary" style={{ marginBottom: 6 }}>교육 유형</div>
               <select
                 value={educationType}
                 onChange={e => setEducationType(e.target.value as 'initial' | 'refresher')}
                 disabled={!hasRecords && !isEditMode}
+                className={`${(!hasRecords && !isEditMode) ? 'bg-surface-sunken text-text-tertiary cursor-not-allowed' : 'bg-surface-sunken text-text-primary cursor-pointer'} border border-border-strong text-label rounded-md`}
                 style={{
-                  ...inputStyle,
-                  color: (!hasRecords && !isEditMode) ? 'var(--t3)' : 'var(--t1)',
-                  cursor: (!hasRecords && !isEditMode) ? 'default' : 'pointer',
+                  width: '100%',
+                  padding: '10px 12px',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                  WebkitAppearance: 'none',
+                  appearance: 'none',
+                  minWidth: 0,
                   pointerEvents: (!hasRecords && !isEditMode) ? 'none' : 'auto',
                 }}
               >
@@ -373,11 +368,15 @@ function EducationEditPanel({ item, canEdit, onSaved }: EditPanelProps) {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !completedAt}
+              className="text-text-on-accent text-body font-bold rounded-md"
               style={{
-                width: '100%', height: 44, background: 'var(--acl)', borderRadius: 10,
-                border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
-                cursor: isSubmitting ? 'default' : 'pointer', opacity: isSubmitting ? 0.6 : 1,
+                width: '100%',
+                height: 44,
+                border: 'none',
+                cursor: isSubmitting ? 'default' : 'pointer',
+                opacity: isSubmitting ? 0.6 : 1,
                 marginTop: 4,
+                background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
               }}
             >
               {isSubmitting ? '저장 중...' : (isEditMode ? '수정 완료' : '이수일 기록')}
@@ -401,14 +400,16 @@ function EducationBottomSheet({ item, canEdit, onClose, onSaved }: EditPanelProp
     >
       <div
         onClick={e => e.stopPropagation()}
+        className="bg-surface-raised rounded-t-lg"
         style={{
-          background: 'var(--bg2)', borderRadius: '16px 16px 0 0',
-          animation: 'slideUp 0.28s ease-out both', maxHeight: '90vh',
-          overflowY: 'auto', padding: '16px 16px 32px',
+          animation: 'slideUp 0.28s ease-out both',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          padding: '16px 16px 32px',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-          <div style={{ width: 32, height: 4, background: 'var(--bd2)', borderRadius: 2 }} />
+          <div className="bg-border-strong rounded-sm" style={{ width: 32, height: 4 }} />
         </div>
         <EducationEditPanel item={item} canEdit={canEdit} onSaved={onSaved} />
       </div>
@@ -453,7 +454,7 @@ export default function EducationPage() {
   const sectionLabelStyle: React.CSSProperties = {
     fontSize: isDesktop ? 15 : 13,
     fontWeight: 700,
-    color: 'var(--t2)',
+    color: 'var(--text-secondary)',
     marginBottom: 8,
     marginTop: 4,
   }
@@ -461,21 +462,21 @@ export default function EducationPage() {
   function renderGroupedList() {
     if (isLoading) return (
       <>
-        <div style={SKELETON_STYLE} />
-        <div style={SKELETON_STYLE} />
-        <div style={SKELETON_STYLE} />
-        <div style={SKELETON_STYLE} />
+        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
+        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
+        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
+        <div className="bg-surface-sunken rounded-md" style={{ height: 88, animation: 'blink 2s ease-in-out infinite' }} />
       </>
     )
     if (isError) return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', fontSize: 14, color: 'var(--danger)', padding: 24 }}>
+      <div className="text-body-sm text-danger" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: 24 }}>
         교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요.
       </div>
     )
     if (!data || data.length === 0) return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, textAlign: 'center', padding: 24, gap: 8 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t2)' }}>교육 이력 없음</div>
-        <div style={{ fontSize: 14, color: 'var(--t3)' }}>이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.</div>
+        <div className="text-body font-bold text-text-secondary">교육 이력 없음</div>
+        <div className="text-body-sm text-text-tertiary">이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.</div>
       </div>
     )
 
@@ -500,12 +501,9 @@ export default function EducationPage() {
   // ── 데스크톱: 2분할 레이아웃 ──
   if (isDesktop) {
     return (
-      <div style={{ display: 'flex', height: '100%', background: 'var(--bg)' }}>
+      <div className="bg-surface-page" style={{ display: 'flex', height: '100%' }}>
         {/* 좌측: 카드 목록 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div style={{
-          flex: 1, borderRight: '1px solid var(--bd)',
-          display: 'flex', flexDirection: 'column', height: '100%',
-        }}>
+        <div className="border-r border-border-default" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
             {renderGroupedList()}
           </div>
@@ -521,10 +519,7 @@ export default function EducationPage() {
               onSaved={() => {}}
             />
           ) : (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              height: '100%', color: 'var(--t3)', fontSize: 14,
-            }}>
+            <div className="text-body-sm text-text-tertiary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
               좌측에서 직원을 선택하세요
             </div>
           )}
@@ -535,30 +530,30 @@ export default function EducationPage() {
 
   // ── 모바일 ──
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)' }}>
+    <div className="bg-surface-page" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* 모바일 헤더 */}
-      <div style={{
-        height: 48,
-        background: 'var(--bg2)',
-        borderBottom: '1px solid var(--bd)',
-        display: 'flex',
-        alignItems: 'center',
-        flexShrink: 0,
-      }}>
+      <div
+        className="bg-surface-raised border-b border-border-default"
+        style={{ height: 48, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+      >
         <button
           onClick={() => navigate(-1)}
+          className="text-text-secondary"
           style={{
-            width: 44, height: 44,
-            background: 'none', border: 'none',
+            width: 44,
+            height: 44,
+            background: 'none',
+            border: 'none',
             cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--t2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <IconChevronLeft size={20} color="var(--t2)" />
+          <ChevronLeft size={20} />
         </button>
-        <span style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>
+        <span className="text-body font-bold text-text-primary" style={{ flex: 1, textAlign: 'center' }}>
           보수교육
         </span>
         <div style={{ width: 44 }} />

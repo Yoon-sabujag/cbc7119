@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-staff-card.html — redesign/23-education W3
+  작성: 2026-05-22 / quick 260522-o7b
+  범위: EducationPage.tsx DdayBadge (line 61~93, 3 임계치 매트릭스) + StaffEducationCard (line 96~187)
+        + role 그룹핑 + 직급순 정렬 (line 438~439, 482~497) 시각화
+        4 frame (D-365 safe / D-30 warning / D+10 danger 데스크톱 selected / 라이트 D-365) D-day 매트릭스
+  out of scope: 모바일 헤더 + 빈/로딩/오류 (W2 책임) / 등록/수정/삭제 모달 (W4 책임)
+                / TSX 변환 (W5 checklist 책임) / EducationPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, 28-splash/sketch-wave-3-install-main.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 자체 헤더 (W2 scope, 본 wave 미해당)
+    OQ #2 LOCKED — DdayBadge 3 임계치 status 토큰 (&gt;30 safe / 0~30 warning / &lt;0 danger,
+                    임계치 30·0 + 라벨 verbatim 1 byte 변경 금지) (본 wave 적용 = O ★ 핵심)
+    OQ #3 LOCKED — selected card border-2 border-accent (1.5 → 2, 데스크톱만) (본 wave 적용 = O ★ 핵심 — submit 그라데이션 + disabled 는 W4)
+    OQ #4 LOCKED — 빈/오류 아이콘 무 (W2 scope, 본 wave 미해당)
+    OQ #5 LOCKED — Lucide ChevronLeft (W2 scope, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       -> 본 sketch 가 직원 카드 + DdayBadge 3 임계치 매트릭스 + role 그룹핑 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 실제 운영 데이터 베이스: 윤종엽 주임 (2022051052 본인) + 김재선 부장 (admin) 카드 박제.
+          라벨 verbatim — 'D-${dday}' (safe + warning) / 'D+${Math.abs(dday)} 초과' (danger).
+          그룹 라벨 '소방안전관리자' (admin) / '소방안전관리 보조자' (assistant) verbatim.
+          마지막 이수 '마지막 이수: YYYY-MM-DD (실무/보수)' verbatim format.
+          다음 마감 '다음 마감: YYYY-MM-DD' + '(보수교육)' / '(첫 실무교육)' verbatim.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-raised / border border-border-default / border-2 border-accent /
+          rounded-md / bg-surface-sunken / rounded-full / text-body font-bold / text-label / text-caption /
+          leading-relaxed / leading-none / bg-safe-bg text-safe / bg-warning-bg text-warning /
+          bg-danger-bg text-danger / rounded-sm) 와 인라인 (padding:16 / min-height:80 / width:32+height:32 아바타 /
+          padding-left:44 들여쓰기 / padding:2px 8px DdayBadge / margin-top:10) 모두 W5 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md (★ 본 wave 핵심)
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> DdayBadge 3 임계치 모두 bg&#8209;safe&#8209;bg / bg&#8209;warning&#8209;bg / bg&#8209;danger&#8209;bg.
+          status&#8209; prefix 사용 시 verify FAIL (OQ #2 LOCKED 위반).
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       -> 아바타 32x32 = style="width:32px;height:32px" 인라인 명시 (w&#8209;8 = 48px 함정 회피).
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> DdayBadge (padding:2px 8px 짧은 한 줄) = text-caption font-bold leading-none.
+          메타 (마지막 이수 + 다음 마감 한 줄) = text-caption leading-relaxed (의미 있는 줄간격,
+                                                       마진 보조 정보 한 줄이지만 leading-none 도 가능).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 아바타 = 이니셜 텍스트만 (staff.name.charAt(0)).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       DdayBadge fill = 위험 임계치 매핑 (>30 safe / 0~30 warning / <0 danger).
+       -> 임계치 30·0 + 토큰 매핑 OQ #2 LOCKED 박제. neutral 사용 X.
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/23-education 확인 (현재 ✓).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> role 그룹핑 (admin / assistant) + titleRank (주임 0, 대리 1, 기사 2, fallback 99) source of truth.
+          adminList + assistantList 분기 + 직급순 정렬 비즈 anchor 유지 (line 438~439).
+
+   11. feedback_inspection_unresolved_color.md (★ 본 wave 핵심 일반화)
+       -> D-day 임계치 status 토큰 일반화. 메모리 룰 verbatim "조치 대기 = fire (주황)" 일반화 →
+          본 wave 는 '교육 마감 임계치 매트릭스' 동일 정신 (>30 safe / 0~30 warning / <0 danger).
+
+   12. feedback_subagent_production_deploy_forbidden.md
+       -> 본 wave 는 sketch 디자인만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 12건 (EducationPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+    2. differenceInCalendarDays(d, new Date())
+    3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+    4. D-day 분기 매트릭스 (>30/0~30/<0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+    5. useQuery&lt;StaffEducation[]&gt;({ queryKey: ['education'], queryFn: educationApi.list })
+    6. useMutation x 3 (create / update / delete) + onSuccess invalidateQueries ['education'] + toast
+    7. educationApi.list / educationApi.create / educationApi.update / educationApi.delete 시그니처
+    8. useIsDesktop() hook (>=768px) -> 모바일/데스크톱 분기
+    9. useAuthStore canEdit (admin 모두 / assistant 본인)
+   10. @keyframes blink + @keyframes slideUp
+   11. toast 카피 5종
+   12. 빈/오류 카피 verbatim
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — StaffEducationCard + DdayBadge + role 그룹핑)
+  ==========================================================
+
+    - 카드 외곽 background var(&#8209;&#8209;bg2) -> bg-surface-raised
+    - 카드 border (평시) 1px solid var(&#8209;&#8209;bd) -> border border-border-default
+    - 카드 border (selected, 데스크톱만) 1.5px solid var(&#8209;&#8209;acl) -> border-2 border-accent (OQ #3 ★ 1.5 → 2)
+    - 아바타 background var(&#8209;&#8209;bg3) -> bg-surface-sunken
+    - 아바타 color var(&#8209;&#8209;t2) -> text-text-secondary
+    - 이름 color var(&#8209;&#8209;t1) -> text-text-primary
+    - 직책 + sectionLabel + 다음 마감 일자 색 var(&#8209;&#8209;t2) -> text-text-secondary
+    - 메타 (마지막 이수 + 다음 마감 label) 색 var(&#8209;&#8209;t3) -> text-text-tertiary
+    - DdayBadge safe rgba(34,197,94,0.12) + var(&#8209;&#8209;safe) -> bg-safe-bg text-safe (OQ #2 ★, dday > 30)
+    - DdayBadge warning rgba(245,158,11,0.15) + var(&#8209;&#8209;warn) -> bg-warning-bg text-warning (OQ #2 ★, 0 <= dday <= 30)
+    - DdayBadge danger rgba(239,68,68,0.15) + var(&#8209;&#8209;danger) -> bg-danger-bg text-danger (OQ #2 ★, dday < 0)
+    - 카드 radius 12 -> rounded-md
+    - DdayBadge radius 8 -> rounded-sm
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건
+    - linear&#8209;gradient 0건 (W4 만 OQ #3 LOCKED 예외)
+    - 9 / 10 / 11 px fontSize 0건
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 LOCKED 위반 시 verify FAIL ★)
+    - w&#8209;8 / h&#8209;8 0건 (아바타 32x32 = w&#8209;[32px] h&#8209;[32px] 또는 인라인)
+    - 옛 alias 토큰 sketch 본문 안 0건
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/23-education — W3 staff card + DdayBadge</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1280px;
+      height: 720px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  '#ffffff',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1700px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">23-education sketch W3 — 직원 교육 카드 + DdayBadge 3 임계치 매트릭스</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 3 frame + 데스크톱 1280x720 1 frame side-by-side. EducationPage.tsx DdayBadge (line 61~93)
+      + StaffEducationCard (line 96~187) + role 그룹핑 + 직급순 정렬 (line 438~439, 482~497) verbatim 매핑.
+      4 frame D-day 매트릭스: 다크 D-365 safe / 다크 D-30 warning / 다크 데스크톱 D+10 danger + selected / 라이트 D-365 safe.
+      W1 OQ LOCKED 5건 중 OQ #2 (DdayBadge 3 임계치 status 토큰 매트릭스 — bg-safe-bg text-safe / bg-warning-bg text-warning /
+      bg-danger-bg text-danger, status&#8209; prefix 없음) + OQ #3 (selected card border-2 border-accent, 1.5 → 2 데스크톱만) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — D-365 safe / D-30 warning / 데스크톱 D+10 danger selected / 라이트 D-365 safe
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / D-365 safe — 모든 직원 dday > 30
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 (393x800) — D-365 safe — dday &gt; 30</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 자체 헤더 (W2 sketch verbatim — chrome anchor) -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <div style="width:44px;"></div>
+        </div>
+
+        <!-- 스크롤 영역 (line 568, flex:1, overflow-y:auto, padding:16) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+          <!-- 그룹: 소방안전관리자 (admin, line 484~488 verbatim, sectionLabelStyle text-label) -->
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:4px;">소방안전관리자</div>
+
+          <!-- 카드 1 — 김재선 부장 (admin, dday=365 safe, OQ #2 LOCKED ★) -->
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <!-- 아바타 32x32 (staff.name.charAt(0) 이니셜) -->
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+              <!-- 이름 + 직책 (line 148/151 verbatim) -->
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">김재선</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">부장</div>
+              </div>
+              <!-- DdayBadge (OQ #2 LOCKED ★ safe, dday=365 > 30, 라벨 'D-${dday}' verbatim) -->
+              <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-365</div>
+            </div>
+            <!-- 하단 행 (paddingLeft 44 = 아바타 32 + gap 12 들여쓰기, line 163) -->
+            <div style="margin-top:10px;padding-left:44px;">
+              <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2024-12-15 (보수)</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2026-12-15</span>
+                <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 그룹: 소방안전관리 보조자 (assistant, line 491~495 verbatim) -->
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:12px;">소방안전관리 보조자</div>
+
+          <!-- 카드 2 — 윤종엽 주임 (assistant, dday=180 safe, titleRank 0) -->
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">윤</div>
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">윤종엽</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">주임</div>
+              </div>
+              <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-180</div>
+            </div>
+            <div style="margin-top:10px;padding-left:44px;">
+              <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2025-03-15 (보수)</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2027-03-15</span>
+                <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / D-30 warning — 0 <= dday <= 30
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 (393x800) — D-30 warning — 0 &le; dday &le; 30</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <div style="width:44px;"></div>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:4px;">소방안전관리자</div>
+
+          <!-- 카드 — 김재선 부장 (dday=30 warning, OQ #2 LOCKED ★, 임계치 30 boundary) -->
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">김재선</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">부장</div>
+              </div>
+              <!-- DdayBadge (OQ #2 LOCKED ★ warning, dday=30 = 경계값, 라벨 'D-${dday}' verbatim) -->
+              <div class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-30</div>
+            </div>
+            <div style="margin-top:10px;padding-left:44px;">
+              <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2024-06-22 (보수)</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2026-06-22</span>
+                <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:12px;">소방안전관리 보조자</div>
+
+          <!-- 카드 — 신규 직원 (선임일 미등록, dday null 분기, line 170~173 verbatim) -->
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">박</div>
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">박신규</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">기사</div>
+              </div>
+              <!-- dday null = DdayBadge 미렌더 (line 158, dday !== null ? <DdayBadge /> : null) -->
+            </div>
+            <div style="margin-top:10px;padding-left:44px;">
+              <!-- staff.appointedAt === null 분기 (line 170~173 verbatim) -->
+              <div class="text-caption leading-relaxed text-text-tertiary">선임일 미등록</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 데스크톱 1280x720 / D+10 danger + selected card
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 데스크톱 (1280x720) — D+10 danger + selected card border-2</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!-- 글로벌 AppHeader placeholder -->
+        <div style="height:48px;background:var(--surface-raised);border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 24px;flex-shrink:0;">
+          <span class="text-body font-bold text-text-primary">보수교육</span>
+        </div>
+
+        <!-- 데스크톱 외곽 (line 501~534 verbatim) -->
+        <div class="bg-surface-page" style="display:flex;flex:1;height:100%;min-height:0;">
+
+          <!-- 좌측: 카드 목록 (line 504~512 verbatim) -->
+          <div class="border-r border-border-default" style="flex:1;display:flex;flex-direction:column;height:100%;min-height:0;">
+            <div style="flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:12px;">
+
+              <!-- sectionLabel 데스크톱 (isDesktop ? 15 : 13, sectionLabelStyle line 453~459) -->
+              <div class="text-label font-bold text-text-secondary" style="font-size:15px;margin-bottom:8px;margin-top:4px;">소방안전관리자</div>
+
+              <!-- 카드 — 김재선 부장 (selected, dday=-10 danger, OQ #2 + OQ #3 LOCKED ★) -->
+              <div class="bg-surface-raised border-2 border-accent rounded-md" style="padding:16px;min-height:80px;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none;">
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="text-body font-bold text-text-primary" style="line-height:1.3;">김재선</div>
+                    <div class="text-label text-text-secondary" style="margin-top:2px;">부장</div>
+                  </div>
+                  <!-- DdayBadge (OQ #2 LOCKED ★ danger, dday=-10, 라벨 'D+${Math.abs(dday)} 초과' verbatim) -->
+                  <div class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D+10 초과</div>
+                </div>
+                <div style="margin-top:10px;padding-left:44px;">
+                  <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2024-05-12 (보수)</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2026-05-12</span>
+                    <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-label font-bold text-text-secondary" style="font-size:15px;margin-bottom:8px;margin-top:12px;">소방안전관리 보조자</div>
+
+              <!-- 카드 — 윤종엽 주임 (assistant, dday=180 safe) -->
+              <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;">
+                <div style="display:flex;align-items:flex-start;gap:12px;">
+                  <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">윤</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="text-body font-bold text-text-primary" style="line-height:1.3;">윤종엽</div>
+                    <div class="text-label text-text-secondary" style="margin-top:2px;">주임</div>
+                  </div>
+                  <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-180</div>
+                </div>
+                <div style="margin-top:10px;padding-left:44px;">
+                  <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2025-03-15 (보수)</div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2027-03-15</span>
+                    <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 우측: 상세 패널 placeholder (W4 에서 채울 영역) -->
+          <div style="flex:1;overflow-y:auto;padding:24px 32px;">
+            <div class="text-body-sm text-text-tertiary" style="display:flex;align-items:center;justify-content:center;height:100%;text-align:center;">
+              (W4 sketch 에서 EducationEditPanel 우측 패널 렌더 — 본 wave outline)
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / D-365 safe (Frame 1 라이트 미러)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#1f2328;">Frame 4 / 라이트 (393x800) — D-365 safe (Frame 1 라이트 미러)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <div style="width:44px;"></div>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:4px;">소방안전관리자</div>
+
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">김</div>
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">김재선</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">부장</div>
+              </div>
+              <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-365</div>
+            </div>
+            <div style="margin-top:10px;padding-left:44px;">
+              <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2024-12-15 (보수)</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2026-12-15</span>
+                <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:12px;">소방안전관리 보조자</div>
+
+          <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;min-height:80px;cursor:pointer;">
+            <div style="display:flex;align-items:flex-start;gap:12px;">
+              <div class="bg-surface-sunken text-text-secondary text-body-sm font-bold rounded-full" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">윤</div>
+              <div style="flex:1;min-width:0;">
+                <div class="text-body font-bold text-text-primary" style="line-height:1.3;">윤종엽</div>
+                <div class="text-label text-text-secondary" style="margin-top:2px;">주임</div>
+              </div>
+              <div class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">D-180</div>
+            </div>
+            <div style="margin-top:10px;padding-left:44px;">
+              <div class="text-caption leading-relaxed text-text-tertiary" style="margin-bottom:2px;">마지막 이수: 2025-03-15 (보수)</div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span class="text-caption leading-relaxed text-text-secondary">다음 마감: 2027-03-15</span>
+                <span class="text-caption leading-relaxed text-text-tertiary">(보수교육)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       rules 박스 (sketch 하단 메타, 본문 영향 0)
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto bg-zinc-900 border border-zinc-700 rounded-md p-6 text-zinc-300" style="font-size:13px;line-height:1.6;">
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">★ W3 rules 박스 — OQ LOCKED 2건 + 비즈 anchor 12건 + 토큰 매핑 + negative gate</h2>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">OQ LOCKED 2건 (본 wave 적용)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li><strong>OQ #2 LOCKED</strong> — DdayBadge 색 분기 매트릭스 3 임계치. <code>bg-safe-bg text-safe</code> (dday &gt; 30) / <code>bg-warning-bg text-warning</code> (0 &le; dday &le; 30) / <code>bg-danger-bg text-danger</code> (dday &lt; 0). 기존 rgba 인라인 (<code>rgba(34,197,94,0.12)</code> / <code>rgba(245,158,11,0.15)</code> / <code>rgba(239,68,68,0.15)</code>) + <code>var(&#8209;&#8209;safe)</code> / <code>var(&#8209;&#8209;warn)</code> / <code>var(&#8209;&#8209;danger)</code> 모두 토큰 클래스로 치환. <strong>임계치 30 / 0 + 라벨 verbatim 1 byte 변경 금지</strong> — <code>D-${dday}</code> (safe + warning) / <code>D+${Math.abs(dday)} 초과</code> (danger). <strong>status&#8209; prefix 없음</strong> (memory feedback_tailwind_token_class_pattern).</li>
+      <li><strong>OQ #3 LOCKED</strong> — EducationEditPanel submit + selected card. selected card border = <code>border-2 border-accent</code> (1.5 → 2 / <code>var(&#8209;&#8209;acl)</code> → border-accent, 데스크톱만, 16-workshift / 17-annual-plan / 28-splash OQ 일관). submit 그라데이션 + disabled 토큰은 W4 scope. 본 wave 는 selected border 만 적용 (Frame 3 데스크톱).</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">★ 비즈 anchor 12건 박제 (1 byte 변경 금지, 4 파일 W2~W5 모두 박제)</h3>
+    <pre class="bg-zinc-950 border border-zinc-700 rounded p-3 overflow-auto" style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;">
+1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+2. differenceInCalendarDays(d, new Date())
+3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+4. D-day 분기 매트릭스 (&gt;30/0~30/&lt;0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+5. useQuery&lt;StaffEducation[]&gt;({ queryKey: ['education'], queryFn: educationApi.list })
+6. useMutation x 3 (create / update / delete) + onSuccess invalidateQueries ['education'] + toast
+7. educationApi.list / educationApi.create / educationApi.update / educationApi.delete 시그니처
+8. useIsDesktop() hook (&gt;=768px) -&gt; 모바일/데스크톱 분기
+9. useAuthStore canEdit (admin 모두 / assistant 본인)
+10. @keyframes blink + @keyframes slideUp
+11. toast 카피 5종
+12. 빈/오류 카피 verbatim
+    </pre>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">토큰 매핑 (StaffEducationCard + DdayBadge + role 그룹핑)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>카드 외곽 <code>var(&#8209;&#8209;bg2)</code> → <code>bg-surface-raised</code></li>
+      <li>카드 border (평시) <code>1px solid var(&#8209;&#8209;bd)</code> → <code>border border-border-default</code></li>
+      <li>카드 border (selected, 데스크톱만) <code>1.5px solid var(&#8209;&#8209;acl)</code> → <code>border-2 border-accent</code> (OQ #3 ★ 1.5 → 2)</li>
+      <li>아바타 background <code>var(&#8209;&#8209;bg3)</code> → <code>bg-surface-sunken</code> + color <code>var(&#8209;&#8209;t2)</code> → <code>text-text-secondary</code></li>
+      <li>이름 <code>var(&#8209;&#8209;t1)</code> → <code>text-text-primary</code></li>
+      <li>직책 + sectionLabel + 다음 마감 일자 색 <code>var(&#8209;&#8209;t2)</code> → <code>text-text-secondary</code></li>
+      <li>메타 + 다음 마감 label 색 <code>var(&#8209;&#8209;t3)</code> → <code>text-text-tertiary</code></li>
+      <li>DdayBadge safe rgba(34,197,94,0.12) + <code>var(&#8209;&#8209;safe)</code> → <code>bg-safe-bg text-safe</code> (OQ #2 ★)</li>
+      <li>DdayBadge warning rgba(245,158,11,0.15) + <code>var(&#8209;&#8209;warn)</code> → <code>bg-warning-bg text-warning</code> (OQ #2 ★)</li>
+      <li>DdayBadge danger rgba(239,68,68,0.15) + <code>var(&#8209;&#8209;danger)</code> → <code>bg-danger-bg text-danger</code> (OQ #2 ★)</li>
+      <li>카드 radius 12 → <code>rounded-md</code> / DdayBadge radius 8 → <code>rounded-sm</code></li>
+      <li>아바타 32x32 = <code>style="width:32px;height:32px"</code> 인라인 (w&#8209;8 = 48px 함정 회피)</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">Negative gate (sketch 본문)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>이모지 0건</li>
+      <li>linear&#8209;gradient 0건 (W4 만 OQ #3 LOCKED 예외 anchor)</li>
+      <li>9 / 10 / 11 px fontSize 0건</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 LOCKED 위반 시 verify FAIL ★)</li>
+      <li>w&#8209;8 / h&#8209;8 0건</li>
+      <li>옛 alias 토큰 sketch 본문 안 0건</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">다음 wave</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>W4 — 등록/수정/삭제 모달 (EducationEditPanel + EducationBottomSheet, OQ #3 LOCKED submit 그라데이션 인라인 ≥3 + disabled 토큰 + 신규 첫 실무 select disabled)</li>
+      <li>W5 — TSX 변환 verify checklist markdown (12 섹션, 591 lines 단일 atomic 변환 룰)</li>
+    </ul>
+  </section>
+
+</body>
+</html>

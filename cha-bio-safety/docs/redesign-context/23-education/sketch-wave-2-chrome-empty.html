@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-chrome-empty.html — redesign/23-education W2
+  작성: 2026-05-22 / quick 260522-o7b
+  범위: EducationPage.tsx 모바일 자체 헤더 (line 541~565) + 데스크톱 좌/우 분할 outline (line 501~534)
+        + 빈/로딩/오류 3 state (line 462~480) + SKELETON_STYLE (line 53~58) + @keyframes blink (line 583~588) 시각화
+        4 frame (다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 / 라이트 모바일 오류) state 매트릭스
+  out of scope: 직원 교육 카드 + DdayBadge + 그룹핑 (W3 책임) / 등록/수정/삭제 모달 (W4 책임)
+                / TSX 변환 (W5 checklist 책임) / EducationPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, 28-splash/sketch-wave-2-splash.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — EducationPage 모바일 자체 헤더 bg-surface-raised + border-b border-border-default
+                    (var(&#8209;&#8209;bg2) + 1px solid var(&#8209;&#8209;bd) 인라인 폐기) (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — DdayBadge 3 임계치 status 토큰 (W3 scope, 본 wave 미해당)
+    OQ #3 LOCKED — submit 그라데이션 + disabled + selected border-2 (W3/W4 scope, 본 wave 미해당)
+    OQ #4 LOCKED — 빈/오류 아이콘 무 카피만 유지 ('교육 이력 없음' + '이수일을 기록하면...' + '교육 현황을 불러오지 못했습니다...' verbatim, 본 wave 적용 = O ★ 핵심)
+    OQ #5 LOCKED — 모바일 back button Lucide ChevronLeft size={20} 교체 (IconChevronLeft polyline 인라인 SVG 폐기) (본 wave 적용 = O ★ 핵심)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 EducationPage 모바일 헤더 + 빈/로딩/오류 + 데스크톱 outline 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 타이틀 "보수교육" verbatim / 빈 "교육 이력 없음" + "이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다."
+          / 오류 "교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요." / 데스크톱 fallback "좌측에서 직원을 선택하세요"
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-page / bg-surface-raised / border-b border-border-default /
+          text-text-primary/secondary/tertiary / text-body font-bold / text-body-sm / text-caption /
+          rounded-md / bg-surface-sunken) 와 인라인 (height:48 모바일 헤더 / width:44 back button + spacer /
+          height:88 SKELETON / animation:blink 2s ease-in-out infinite) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> Lucide ChevronLeft 사용 (OQ #5 LOCKED). status&#8209; prefix 사용 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> back button 44x44 = style="width:44px;height:44px" 인라인 명시. spacing alias (w&#8209;8 = 48px) 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 모바일 헤더 안 짧은 한 줄 타이틀 = text-body font-bold (16, lh:1.7 그대로) leading-none 강제 X
+          (단, 진행 라벨 / 메타 짧은 한 줄 = text-caption leading-none 격상 W3/W4 에서 적용).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. SVG (Lucide ChevronLeft 자리 표시) + 텍스트만 사용.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       빈/오류 상태 = neutral (위험 임계치 아님). status&#8209; prefix 색 사용 0건.
+       -> 오류 카피만 text-danger (var(&#8209;&#8209;danger) → text-danger) — 오류 의미 fallback color.
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/23-education 확인 (현재 ✓).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> renderGroupedList 안 빈/오류/로딩 분기 source of truth = data ?? [] + isLoading + isError. 본 sketch frame 매핑 일치.
+
+   11. feedback_inspection_unresolved_color.md (일반화, W3 scope 본격 적용)
+       -> 오류 카피 색 var(&#8209;&#8209;danger) → text-danger 토큰 (3 임계치 status 토큰 일반화 일관).
+
+   12. feedback_subagent_production_deploy_forbidden.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 12건 (EducationPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+    2. differenceInCalendarDays(d, new Date())
+    3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+    4. D-day 분기 매트릭스 (>30/0~30/<0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+    5. useQuery<StaffEducation[]>({ queryKey: ['education'], queryFn: educationApi.list })
+    6. useMutation x 3 (create / update / delete) + onSuccess invalidateQueries ['education'] + toast
+    7. educationApi.list / educationApi.create / educationApi.update / educationApi.delete 시그니처
+    8. useIsDesktop() hook (>=768px) -> 모바일/데스크톱 분기
+    9. useAuthStore canEdit (admin 모두 / assistant 본인)
+   10. @keyframes blink (line 583~588) + @keyframes slideUp (글로벌, 바텀시트 line 406)
+   11. toast 카피 5종 (create/update/delete success + create+update/delete error)
+   12. 빈/오류 카피 verbatim ('교육 이력 없음' / '이수일을 기록하면...' / '교육 현황을 불러오지 못했습니다...')
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — 영역 6 모바일 헤더 + 데스크톱 outline + 빈/로딩/오류)
+  ==========================================================
+
+    - 페이지 외곽 var(&#8209;&#8209;bg) -> bg-surface-page
+    - 모바일 헤더 background var(&#8209;&#8209;bg2) -> bg-surface-raised (OQ #1 ★)
+    - 모바일 헤더 borderBottom 1px solid var(&#8209;&#8209;bd) -> border-b border-border-default (OQ #1 ★)
+    - SKELETON background var(&#8209;&#8209;bg3) -> bg-surface-sunken
+    - 모바일 타이틀 색 var(&#8209;&#8209;t1) -> text-text-primary
+    - back button color var(&#8209;&#8209;t2) -> text-text-secondary
+    - 빈 제목 색 var(&#8209;&#8209;t2) -> text-text-secondary
+    - 빈 보조 / 데스크톱 fallback 색 var(&#8209;&#8209;t3) -> text-text-tertiary
+    - 오류 카피 색 var(&#8209;&#8209;danger) -> text-danger (OQ #4)
+    - 데스크톱 좌측 borderRight var(&#8209;&#8209;bd) -> border-r border-border-default
+    - SKELETON radius 12 -> rounded-md
+    - back button 44x44 = w-[44px] h-[44px] (w&#8209;11 도 가능)
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (본 sketch 사용 글리프 0)
+    - linear&#8209;gradient 0건 (W4 만 OQ #3 LOCKED 예외, W2 본문 0건)
+    - 9 / 10 / 11 px fontSize 0건
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건
+    - w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty-eight px 함정)
+    - 옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;t1) 등) sketch 본문 안 0건 (단 tokens.css 정의 블록 fence 안 인용은 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/23-education — W2 chrome + empty/loading/error</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+    .text-heading {
+      font-size: 22px;
+      line-height: 1.3;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .leading-none { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * EducationPage 비즈 anchor 박제 — @keyframes blink (1 byte 변경 금지, line 583~588)
+     * ============================================================ */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark  { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1280px;
+      height: 720px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Variant 라벨 (sketch 외부 chrome) */
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1700px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">23-education sketch W2 — chrome + 빈/로딩/오류 state 매트릭스</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 3 frame + 데스크톱 1280x720 1 frame side-by-side. EducationPage.tsx 모바일 자체 헤더 (line 541~565)
+      + 데스크톱 좌/우 분할 outline (line 501~534) + 빈/로딩/오류 3 state (line 462~480) + SKELETON_STYLE (line 53~58)
+      + @keyframes blink (line 583~588) verbatim 매핑.
+      4 frame: 다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 (좌측 placeholder + 우측 fallback) / 라이트 모바일 오류.
+      W1 OQ LOCKED 5건 중 OQ #1 (모바일 헤더 bg-surface-raised + border-b border-border-default 토큰 치환) +
+      OQ #4 (빈/오류 아이콘 무 카피만 verbatim 유지) + OQ #5 (Lucide ChevronLeft size={20} 교체) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — 다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 / 라이트 모바일 오류
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / 빈 상태 — '교육 이력 없음'
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — 빈 상태 — '교육 이력 없음'</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 자체 헤더 (OQ #1 LOCKED ★: bg-surface-raised + border-b border-border-default,
+             옛 var(&#8209;&#8209;bg2) + 1px solid var(&#8209;&#8209;bd) 인라인 폐기)
+             source line 541~548: height:48, background:'var(--bg2)', borderBottom:'1px solid var(--bd)',
+                                    display:'flex', alignItems:'center', flexShrink:0 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <!-- back button (OQ #5 LOCKED ★: Lucide ChevronLeft size={20} 교체,
+               IconChevronLeft 인라인 SVG 폐기) — 44x44 명시 인라인 (w&#8209;8 함정 회피)
+               source line 549~560: width:44, height:44, background:'none', border:'none', cursor:'pointer',
+                                      display:'flex', alignItems:'center', justifyContent:'center', color:'var(--t2)' -->
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <!-- sketch: Lucide ChevronLeft 자리 표시 (TSX 변환 시 <ChevronLeft size={20} /> + import { ChevronLeft } from 'lucide-react') -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <!-- 타이틀 '보수교육' (line 561~563 verbatim, text-body font-bold) -->
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <!-- right spacer 44 (line 564, 타이틀 정중앙 보정) -->
+          <div style="width:44px;"></div>
+        </div>
+
+        <!-- 스크롤 영역 (line 568, flex:1, overflowY:auto, padding:16) — 빈 상태 (OQ #4 LOCKED ★)
+             source line 475~480: display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+                                    flex:1, textAlign:'center', padding:24, gap:8 -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;">
+          <!-- 빈 제목 (line 477 verbatim, OQ #4 ★ 아이콘 추가 X) -->
+          <div class="text-body font-bold text-text-secondary">교육 이력 없음</div>
+          <!-- 빈 보조 (line 478 verbatim) -->
+          <div class="text-body-sm text-text-tertiary">이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / 로딩 상태 — 4 SKELETON rows
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — 로딩 상태 — 4 SKELETON rows</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (OQ #1 LOCKED ★) — Frame 1 동일 마크업 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <div style="width:44px;"></div>
+        </div>
+
+        <!-- 스크롤 영역 — 로딩 4 SKELETON rows
+             source line 462~468: 4x <div style={SKELETON_STYLE} />
+             SKELETON_STYLE (line 53~58): background var(--bg3), borderRadius 12, height 88, animation 'blink 2s ease-in-out infinite' -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div class="bg-surface-sunken rounded-md" style="height:88px;animation:blink 2s ease-in-out infinite;"></div>
+          <div class="bg-surface-sunken rounded-md" style="height:88px;animation:blink 2s ease-in-out infinite;"></div>
+          <div class="bg-surface-sunken rounded-md" style="height:88px;animation:blink 2s ease-in-out infinite;"></div>
+          <div class="bg-surface-sunken rounded-md" style="height:88px;animation:blink 2s ease-in-out infinite;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 데스크톱 1280x720 / 좌측 placeholder + 우측 fallback
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 데스크톱 (1280x720) — 좌측 카드 목록 placeholder + 우측 fallback</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!-- 글로벌 AppHeader 자리 (PAGE_TITLES '/education' = '보수교육', 본 wave scope 외 — 시각 chrome 만) -->
+        <div style="height:48px;background:var(--surface-raised);border-bottom:1px solid var(--border-default);display:flex;align-items:center;padding:0 24px;flex-shrink:0;">
+          <span class="text-body font-bold text-text-primary">보수교육</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">(App.tsx 글로벌 AppHeader — 본 wave scope 외 placeholder)</span>
+        </div>
+
+        <!-- 데스크톱 외곽 (line 501~534 verbatim outline)
+             source line 502~503: display:'flex', height:'100%', background:'var(--bg)' -->
+        <div class="bg-surface-page" style="display:flex;flex:1;height:100%;min-height:0;">
+
+          <!-- 좌측: 카드 목록 (line 504~512 verbatim, flex:1, borderRight, height:100%, padding:24)
+               border-right 1px solid var(--bd) -> border-r border-border-default -->
+          <div class="border-r border-border-default" style="flex:1;display:flex;flex-direction:column;height:100%;min-height:0;">
+            <div style="flex:1;overflow-y:auto;padding:24px;">
+              <!-- W3 sketch 에서 그룹 카드 채울 영역 (sectionLabel + StaffEducationCard 그리드) -->
+              <div class="text-body-sm text-text-tertiary" style="display:flex;flex-direction:column;gap:8px;">
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;">소방안전관리자</div>
+                <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;height:80px;display:flex;align-items:center;color:var(--text-tertiary);">(W3 sketch 에서 그룹 카드 렌더 — 본 wave outline)</div>
+                <div class="text-label font-bold text-text-secondary" style="margin-bottom:8px;margin-top:12px;">소방안전관리 보조자</div>
+                <div class="bg-surface-raised border border-border-default rounded-md" style="padding:16px;height:80px;display:flex;align-items:center;color:var(--text-tertiary);">(W3 sketch 에서 그룹 카드 렌더 — 본 wave outline)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 우측: 상세 패널 fallback (line 514~530 verbatim, flex:1, padding:'24px 32px')
+               source line 524~530: display:'flex', alignItems:'center', justifyContent:'center', height:'100%',
+                                      color:'var(--t3)', fontSize:14 -->
+          <div style="flex:1;overflow-y:auto;padding:24px 32px;">
+            <div class="text-body-sm text-text-tertiary" style="display:flex;align-items:center;justify-content:center;height:100%;">
+              좌측에서 직원을 선택하세요
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / 오류 상태 — '교육 현황을 불러오지 못했습니다'
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#1f2328;">Frame 4 / 라이트 모드 (393x800) — 오류 상태 — '교육 현황을 불러오지 못했습니다'</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (OQ #1 LOCKED ★) — Frame 1 동일 마크업, 라이트 모드 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;flex-shrink:0;">
+          <button class="text-text-secondary" style="width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary" style="flex:1;text-align:center;">보수교육</span>
+          <div style="width:44px;"></div>
+        </div>
+
+        <!-- 스크롤 영역 — 오류 상태 (OQ #4 LOCKED ★)
+             source line 471~473: display:'flex', alignItems:'center', justifyContent:'center', flex:1,
+                                    textAlign:'center', fontSize:14, color:'var(--danger)', padding:24
+             -> text-body-sm text-danger -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px;display:flex;align-items:center;justify-content:center;text-align:center;">
+          <div class="text-body-sm text-danger" style="padding:24px;">
+            교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       rules 박스 (sketch 하단 메타, 본문 영향 0)
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto bg-zinc-900 border border-zinc-700 rounded-md p-6 text-zinc-300" style="font-size:13px;line-height:1.6;">
+    <h2 class="text-white font-bold mb-3" style="font-size:16px;">★ W2 rules 박스 — OQ LOCKED 3건 + 비즈 anchor 12건 + 토큰 매핑 + negative gate</h2>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">OQ LOCKED 3건 (본 wave 적용)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li><strong>OQ #1 LOCKED</strong> — EducationPage 모바일 자체 헤더 = <code>bg-surface-raised border-b border-border-default</code>. 기존 <code>var(&#8209;&#8209;bg2)</code> + <code>1px solid var(&#8209;&#8209;bd)</code> 인라인 토큰 완전 폐기. height 48 + 자체 헤더 구조 (back button 44x44 + 타이틀 '보수교육' + right spacer 44) 1 byte 변경 금지. W2 sketch 모바일 frame 1/2/4 + TSX 변환 양쪽 동일 적용.</li>
+      <li><strong>OQ #4 LOCKED</strong> — 빈/오류 상태 = 아이콘 추가 X, 현재 카피 verbatim 유지. 빈 '교육 이력 없음' + '이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.' (line 477, 478) / 오류 '교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요.' (line 472) 1 byte 변경 금지. W2 sketch frame 1/4 + TSX 변환 양쪽 동일.</li>
+      <li><strong>OQ #5 LOCKED</strong> — 모바일 헤더 back button = IconChevronLeft 인라인 SVG (line 12~18) → Lucide <code>&lt;ChevronLeft size={20} /&gt;</code> 교체. 단일 사용처 (line 559). polyline 좌표 제거. <code>import { ChevronLeft } from 'lucide-react'</code> 추가. W2 sketch frame 1/2/4 + TSX 변환 양쪽 동일.</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">★ 비즈 anchor 12건 박제 (1 byte 변경 금지, 4 파일 W2~W5 모두 박제)</h3>
+    <pre class="bg-zinc-950 border border-zinc-700 rounded p-3 overflow-auto" style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;">
+1. calcNextDeadline + addMonths(parseISO(appointedAt), 6) + addYears(parseISO(sorted[0].completedAt), 2)
+2. differenceInCalendarDays(d, new Date())
+3. TITLE_ORDER {'주임':0, '대리':1, '기사':2} + titleRank fallback 99
+4. D-day 분기 매트릭스 (&gt;30/0~30/&lt;0) + 라벨 'D-${dday}' / 'D+${Math.abs(dday)} 초과'
+5. useQuery&lt;StaffEducation[]&gt;({ queryKey: ['education'], queryFn: educationApi.list })
+6. useMutation x 3 (create / update / delete) + onSuccess invalidateQueries ['education'] + toast
+7. educationApi.list / educationApi.create / educationApi.update / educationApi.delete 시그니처
+8. useIsDesktop() hook (&gt;=768px) -&gt; 모바일/데스크톱 분기
+9. useAuthStore canEdit (admin 모두 / assistant 본인)
+10. @keyframes blink (line 583~588) + @keyframes slideUp (글로벌, 바텀시트 line 406)
+11. toast 카피 5종 (create.success '이수일이 기록되었습니다.' / update.success '이수일이 수정되었습니다.' /
+    delete.success '이수 기록이 삭제되었습니다.' / create+update.error '이수 기록 저장에 실패했습니다.' /
+    delete.error 'e?.message ?? 삭제에 실패했습니다.')
+12. 빈/오류 카피 verbatim ('교육 이력 없음' / '이수일을 기록하면 다음 교육 마감일이 자동으로 계산됩니다.' /
+    '교육 현황을 불러오지 못했습니다. 화면을 당겨서 새로고침하세요.')
+    </pre>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">토큰 매핑 (영역 6 모바일 헤더 + 데스크톱 outline + 빈/로딩/오류)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>페이지 외곽 <code>var(&#8209;&#8209;bg)</code> → <code>bg-surface-page</code></li>
+      <li>모바일 헤더 background <code>var(&#8209;&#8209;bg2)</code> → <code>bg-surface-raised</code> (OQ #1 ★)</li>
+      <li>모바일 헤더 borderBottom <code>1px solid var(&#8209;&#8209;bd)</code> → <code>border-b border-border-default</code> (OQ #1 ★)</li>
+      <li>SKELETON background <code>var(&#8209;&#8209;bg3)</code> → <code>bg-surface-sunken</code></li>
+      <li>모바일 타이틀 <code>var(&#8209;&#8209;t1)</code> → <code>text-text-primary</code></li>
+      <li>back button color <code>var(&#8209;&#8209;t2)</code> → <code>text-text-secondary</code></li>
+      <li>빈 제목 <code>var(&#8209;&#8209;t2)</code> → <code>text-text-secondary</code></li>
+      <li>빈 보조 + 데스크톱 fallback <code>var(&#8209;&#8209;t3)</code> → <code>text-text-tertiary</code></li>
+      <li>오류 카피 <code>var(&#8209;&#8209;danger)</code> → <code>text-danger</code> (OQ #4)</li>
+      <li>데스크톱 좌측 borderRight <code>var(&#8209;&#8209;bd)</code> → <code>border-r border-border-default</code></li>
+      <li>SKELETON radius 12 → <code>rounded-md</code></li>
+      <li>back button 44x44 = <code>style="width:44px;height:44px"</code> 인라인 (w&#8209;8 = 48px 함정 회피)</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">Negative gate (sketch 본문)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>이모지 0건</li>
+      <li>linear&#8209;gradient 0건 (W4 만 OQ #3 LOCKED 예외 anchor)</li>
+      <li>9 / 10 / 11 px fontSize 0건</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건</li>
+      <li>w&#8209;8 / h&#8209;8 0건</li>
+      <li>옛 alias 토큰 sketch 본문 안 0건 (tokens.css 정의 블록 fence 안 인용 예외)</li>
+    </ul>
+
+    <h3 class="text-white font-bold mt-4 mb-2" style="font-size:14px;">다음 wave (sub-wave 분배)</h3>
+    <ul class="list-disc pl-6 space-y-1">
+      <li>W3 — 직원 교육 카드 + DdayBadge 3 임계치 (>30 safe / 0~30 warning / <0 danger, OQ #2 LOCKED) + role 그룹핑 (admin/assistant, TITLE_ORDER 정렬)</li>
+      <li>W4 — 등록/수정/삭제 모달 (EducationEditPanel + EducationBottomSheet, OQ #3 LOCKED submit 그라데이션 + disabled + selected border-2 데스크톱만)</li>
+      <li>W5 — TSX 변환 verify checklist markdown (12 섹션, 591 lines 단일 atomic 변환 룰)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
