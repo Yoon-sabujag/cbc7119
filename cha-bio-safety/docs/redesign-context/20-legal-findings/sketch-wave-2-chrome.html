@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-chrome.html — redesign/20-legal-findings W2
+  작성: 2026-05-23 / quick 260523-wic
+  범위: LegalFindingsPage.tsx 모바일 자체 헤더 (line 298~308) + 데스크톱 타이틀 영역 (line 311~319,
+        글로벌 chrome 0건 — App.tsx line 117 정규식 `^\/legal\/.+` 매칭 → showNav=false)
+        + 빈/로딩/오류 4 state 매트릭스 (line 24~29 SKELETON_STYLE / 32~39 Spinner / 326~329 오류 / 338~342 빈)
+        + @keyframes blink (line 295 — 19-legal .6/.3 일치, Education .4 와 다름) 시각화
+        4 frame (다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 콘텐츠 + 빈 / 라이트 모바일 오류) state 매트릭스
+  out of scope: finding 카드 + sortedFindings (W3 책임) / adminBar role admin + addButton 그라데이션 + 모바일 고정 하단 CTA + ZIP (W4 책임)
+                / TSX 변환 (W5 checklist 책임) / LegalFindingsPage.tsx 코드 수정 / App.tsx
+                / 자식 페이지 LegalFindingDetailPage (별도 wave)
+  참조: wave-1-index.md §3 / §7 verbatim, 19-legal/sketch-wave-2-chrome.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — LegalFindingsPage 모바일 자체 헤더 bg-surface-raised + border-b border-border-default
+                    (옛 rgba(22,27,34,0.97) raised 변형 + 1px solid var(&#8209;&#8209;bd) 인라인 폐기) (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — finding 2분기 borderLeft 2px + 칩 status 토큰 (W3 scope, 본 wave 미해당)
+    OQ #3 LOCKED — §1.1 9&#183;10&#183;11 → 12 격상 + leading-none (W3/W4 scope, 본 wave 부분 적용 — 빈 보조 12 leading-none)
+    OQ #4 LOCKED — addButton 그라데이션 ≥3 + 작은 도구 solid + 빈/오류 카피 verbatim + SKELETON+Spinner 유지 (본 wave 부분 적용 = O,
+                    '지적사항 없음' + '현장에서 지적된 항목을 등록하려면 ${isDesktop ? "상단" : "아래"} 버튼을 누르세요.' isDesktop 분기
+                    + '목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.' 단일 문장 verbatim (19-legal 분리 패턴과 다름))
+    OQ #5 LOCKED — 모바일 back button Lucide ChevronLeft size={20} 교체 + back button 36x36 → 44x44 격상
+                    (인라인 SVG path d="M15 19l-7-7 7-7" strokeWidth 2 폐기, w&#8209;8 함정 회피 = w-11 h-11 또는 w-[44px] h-[44px])
+                    + Spinner Lucide Loader2 animate-spin size={24} 교체
+                    + Camera 교체 없음 (FindingFormSheet 내부 사용 — 본 페이지 직접 사용 X, 19-legal OQ #5 Camera 와 다름)
+                    (본 wave 적용 = O ★ 핵심)
+
+  ★ 글로벌 chrome 0건 anchor (App.tsx line 117 정규식 verbatim — 19-legal 차이 1):
+    !location.pathname.match(/^\/legal\/.+/) → showNav=false
+    → 모바일 BottomNav + 데스크톱 사이드바 + 데스크톱 글로벌 AppHeader 모두 숨김
+    → 자체 헤더 (모바일 line 298~308) + 데스크톱 타이틀 영역 (line 311~319) 이 chrome 의 유일한 외곽
+    (19-legal LegalPage `/legal` 본 페이지의 데스크톱 글로벌 AppHeader + 사이드바 표시 패턴과 결정적 다름)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 LegalFindingsPage 모바일 헤더 + 데스크톱 타이틀 + 빈/로딩/오류 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> headerTitle 동적 분기 verbatim (line 120~122): "종합정밀 2026.05." / "작동기능 2026.04." / "지적사항 목록" (fallback)
+          / round.title 부제 verbatim: "2026 상반기 종합정밀점검"
+          / 모바일 빈 "지적사항 없음" + isDesktop=false 분기 "현장에서 지적된 항목을 등록하려면 아래 버튼을 누르세요."
+          / 데스크톱 빈 isDesktop=true 분기 "현장에서 지적된 항목을 등록하려면 상단 버튼을 누르세요."
+          / 모바일 오류 단일 문장 "목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요." (19-legal 분리 패턴과 다름)
+          / addButton "+ 지적사항 등록" (line 289 verbatim, 데스크톱 placeholder solid bg-accent — T3 에서 그라데이션 채움)
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-page / bg-surface-raised / border-b border-border-default /
+          text-text-primary/secondary/tertiary / text-body font-bold / text-caption / leading-none /
+          rounded-md / bg-surface-sunken) 와 인라인 (height:48 모바일 헤더 / width:44 height:44 back button /
+          height:88 SKELETON / animation:blink 2s ease-in-out infinite .6/.3) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> Lucide ChevronLeft + Loader2 사용 (OQ #5 LOCKED). status&#8209; prefix 사용 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> back button 44x44 = style="width:44px;height:44px" 인라인 명시 (w-[44px] h-[44px] arbitrary 또는 w-11 h-11). spacing alias (w&#8209;8 = 48px) 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 모바일 헤더 안 짧은 한 줄 타이틀 = text-body font-bold (16, lh:1.7 그대로) leading-none 강제 X.
+          빈 보조 / 헤더 데스크톱 부제 = text-caption leading-none 격상 OQ #3 부분 적용.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. SVG (Lucide ChevronLeft + Loader2 자리 표시) + 텍스트만 사용.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       빈/오류 상태 = neutral (위험 임계치 아님). status&#8209; prefix 색 사용 0건.
+       -> 오류 카피만 text-text-secondary (var(&#8209;&#8209;t2) → text-text-secondary) — danger 토큰 사용 X (legal 운영 룰: 빈/오류 neutral).
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/20-legal-findings 확인 (worktree base f2aa9e1).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> 콘텐츠 영역 안 빈/오류/로딩 분기 source of truth = isLoading + isError + sortedFindings.length === 0. 본 sketch frame 매핑 일치.
+
+   11. feedback_inspection_unresolved_color.md (일반화, W3 scope 본격 적용)
+       -> finding open 미조치 색 = danger (border-l-2 border-danger-bar + bg-danger-bg text-danger) (2px 19-legal 3px 와 다름).
+
+   12. feedback_subagent_production_deploy_forbidden.md / feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 11건 (LegalFindingsPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-round', id], queryFn: () =&gt; legalApi.get(id!), enabled: !!id }) (line 57~62)
+    2. useQuery({ queryKey: ['legal-findings', id], queryFn: () =&gt; legalApi.getFindings(id!), enabled: !!id, staleTime: 30_000 }) (line 63~68)
+    3. queryClient.invalidateQueries 3 키 — ['legal-round', id] / ['legal-rounds'] / ['legal-findings', id]
+    4. legalApi 4종 — get / getFindings / updateResult({result?, report_file_key?}) / deleteFinding (snake_case payload 변경 금지)
+    5. headerTitle (line 120~122): round 있으면 ${round.title.includes("종합정밀") ? "종합정밀" : "작동기능"} ${fmtMonthOnly(round.date)} / 없으면 "지적사항 목록" (동적 분기 변경 금지)
+    6. sortedFindings (line 198~203): status "open" 먼저 (open === -1, open !== 1, 그 외 createdAt desc localeCompare)
+    7. adminBar 조건부 (line 208): role === "admin" &amp;&amp; round
+    8. findingCard onClick (line 240): navigate(`/legal/${id}/finding/${finding.id}`) — 자식 페이지 진입 (19-legal 우측 패널 표시와 다름)
+    9. handleZipDownload (line 138~196): fflate + buildMetaTxt + iOS PWA `&lt;a download&gt;` + setTimeout(URL.revokeObjectURL, 3000) + ZIP 파일명 `지적사항_${round?.title ?? "report"}.zip` (line 184, 19-legal location 기반과 다름)
+   10. @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} } (line 295) — 19-legal 일치, Education 1/0.4 와 다름 + @keyframes spin (line 36, OQ #5 LOCKED 시 Lucide Loader2 교체)
+   11. toast 카피 8종 — success 4 ("점검 결과가 저장되었습니다." / "보고서가 업로드되었습니다." / "삭제되었습니다" / "다운로드 완료") + error 4 ("저장에 실패했습니다." / "사진 업로드 실패" / err?.message ?? "삭제 실패" / "다운로드에 실패했습니다")
+       + 빈/오류 카피 verbatim ("지적사항 없음" + "현장에서 지적된 항목을 등록하려면 ${isDesktop ? &apos;상단&apos; : &apos;아래&apos;} 버튼을 누르세요." + 단일 문장 "목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.")
+       + adminBar 4 옵션 ("결과 미입력"/"적합"/"부적합"/"조건부적합") + "결과 저장" + 보고서 분기 ("보고서 보기"/"보고서 업로드"/"업로드 중...") + ZIP zipLoading 5단계 + addButton "+ 지적사항 등록"
+       + finding 칩 "미조치"/"완료" + 위치 fallback "위치 미지정" + 액션 "수정"/"삭제"
+
+  ==========================================================
+  19-legal 차이 5건 (sketch 시각 반영)
+  ==========================================================
+
+    (1) 글로벌 chrome 0건 — App.tsx line 117 정규식 `^\/legal\/.+` 매칭 → showNav=false (모바일/데스크톱 모두)
+        → 자체 헤더 (모바일) + 데스크톱 타이틀 영역이 chrome 의 유일한 외곽 (본 wave Frame 3 박제 ★)
+    (2) 단일 export 378 lines — 19-legal LegalPage 의 FindingsPanel + FindingDetailPanel + 메인 3개 통합과 다름
+    (3) finding borderLeft 2px — 19-legal 3px 와 다름 (본 페이지 2px 보존, W3 scope)
+    (4) ZIP 파일명 round.title 기반 — `지적사항_${round?.title ?? "report"}.zip` (line 184, 19-legal location 기반과 다름, W4 scope)
+    (5) findingCard 클릭 시 자식 페이지 진입 — navigate(`/legal/${id}/finding/${finding.id}`) → LegalFindingDetailPage (App.tsx line 291, 19-legal 우측 패널 표시와 다름, W3 scope + W5 §12 별도 wave 명시)
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — 모바일 헤더 + 데스크톱 타이틀 + 빈/로딩/오류)
+  ==========================================================
+
+    - 페이지 외곽 var(&#8209;&#8209;bg) -> bg-surface-page
+    - 모바일 헤더 background var(&#8209;&#8209;bg2) -> bg-surface-raised (OQ #1 ★)
+    - 모바일 헤더 borderBottom 1px solid var(&#8209;&#8209;bd) -> border-b border-border-default (OQ #1 ★)
+    - SKELETON background var(&#8209;&#8209;bg3) -> bg-surface-sunken (line 25 verbatim, height 88)
+    - 모바일 타이틀 색 var(&#8209;&#8209;t1) -> text-text-primary
+    - 데스크톱 headerTitle 색 var(&#8209;&#8209;t1) -> text-text-primary 22/800 (line 314)
+    - 데스크톱 부제 round.title 색 var(&#8209;&#8209;t2) -> text-text-secondary 13 (line 315)
+    - 빈 제목 색 var(&#8209;&#8209;t1) -> text-text-primary 16/700 (line 340)
+    - 빈 보조 색 var(&#8209;&#8209;t2) -> text-text-secondary 12 leading-none (line 341)
+    - 오류 카피 색 var(&#8209;&#8209;t2) -> text-text-secondary 14 (line 327)
+    - addButton 데스크톱 placeholder bg var(&#8209;&#8209;acl) -> bg-accent text-text-on-accent (T1 본 wave solid placeholder, T3 에서 그라데이션 채움)
+    - Spinner color var(&#8209;&#8209;acl) -> text-accent (Lucide Loader2 OQ #5)
+    - back button 44x44 = w-[44px] h-[44px] arbitrary 또는 w-11 h-11 (OQ #5 LOCKED 36x36 → 44x44 격상, w&#8209;8 함정 회피)
+
+  ==========================================================
+  Negative gate (sketch 본문 — 자체매칭 회피 위해 HTML entity escape)
+  ==========================================================
+
+    - 이모지 0건 (본 sketch 사용 글리프 0)
+    - linear&#8209;gradient 0건 (T3 만 OQ #4 LOCKED 예외 anchor &ge;3, 본 wave 본문 0건)
+    - 9 &#183; 10 &#183; 11 px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건 (bg&#8209;status&#8209;safe X 예시는 HTML entity 사용)
+    - w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty-eight px 함정, back button 44x44 = w-[44px] h-[44px])
+    - 옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;bg2) / var(&#8209;&#8209;bg3) / var(&#8209;&#8209;bd) / var(&#8209;&#8209;t1) / var(&#8209;&#8209;t2) / var(&#8209;&#8209;t3) / var(&#8209;&#8209;acl) 등) sketch 본문 0건 (단 frame chrome 외곽 + tokens.css 정의 fence 안 인용 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/20-legal-findings — W2 chrome + empty/loading/error</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-headline { font-size: 22px; line-height: 1.2; font-weight: 700; }
+    .font-bold     { font-weight: 700; }
+    .font-extrabold{ font-weight: 800; }
+    .leading-none  { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * LegalFindingsPage 비즈 anchor 박제 — @keyframes blink (line 295 verbatim, .6/.3, Education .4 와 다름)
+     * + @keyframes spin (line 36, OQ #5 LOCKED 시 Lucide Loader2 교체)
+     * ============================================================ */
+    @keyframes blink {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 0.3; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1440px;
+      height: 900px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1900px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">20-legal-findings sketch W2 — chrome (모바일 자체 헤더 + 데스크톱 타이틀, 글로벌 chrome 0건) + 빈/로딩/오류 4 state 매트릭스</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 3 frame + 데스크톱 1440x900 1 frame side-by-side. LegalFindingsPage.tsx 모바일 자체 헤더 (line 298~308)
+      + 데스크톱 타이틀 영역 (line 311~319, 글로벌 chrome 0건 — App.tsx line 117 정규식 매칭 → showNav=false)
+      + 빈/로딩/오류 4 state (line 24~29 SKELETON_STYLE / 32~39 Spinner / 326~329 오류 / 338~342 빈)
+      + @keyframes blink (line 295 — .6/.3) verbatim 매핑.
+      4 frame: 다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 콘텐츠 + 빈 / 라이트 모바일 오류.
+      W1 OQ LOCKED 5건 중 OQ #1 (모바일 헤더 bg-surface-raised + border-b border-border-default 토큰 치환) +
+      OQ #4 부분 (빈/오류 카피 verbatim 유지 — isDesktop 분기 "상단/아래" + 단일 문장 오류) +
+      OQ #5 (Lucide ChevronLeft size={20} 교체 + back button 44x44 격상 + Lucide Loader2 animate-spin size={24} 교체) 시각 적용.
+      <br/>
+      <strong>19-legal 차이 1 핵심:</strong> Frame 3 (데스크톱) 에는 글로벌 AppHeader 표시 X + 사이드바 표시 X
+      → App.tsx line 117 정규식 <code>^\/legal\/.+</code> 매칭으로 showNav=false → 자체 타이틀 영역이 유일한 chrome 외곽.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — 다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 콘텐츠+빈 / 라이트 모바일 오류
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / 빈 상태 — headerTitle "종합정밀 2026.05." (round 있음 + 종합정밀)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — 빈 상태 — headerTitle "종합정밀 2026.05." + 빈 "지적사항 없음" (isDesktop=false → 아래)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 자체 헤더 (OQ #1 LOCKED ★: bg-surface-raised + border-b border-border-default,
+             옛 rgba(22,27,34,0.97) + 1px solid var(&#8209;&#8209;bd) 인라인 폐기)
+             source line 298~308: height:48, background:'rgba(22,27,34,0.97)', borderBottom:'1px solid var(--bd)',
+                                    display:'flex', alignItems:'center', justifyContent:'center', position:'relative', flexShrink:0 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <!-- back button (OQ #5 LOCKED ★: Lucide ChevronLeft size={20} 교체 + 36x36 → 44x44 격상 (w-11 h-11),
+               인라인 SVG path d="M15 19l-7-7 7-7" strokeWidth 2 폐기, w&#8209;8 함정 회피)
+               source line 303~305: position:'absolute', left:12, width:36, height:36, border:'none', background:'none',
+                                      cursor:'pointer', color:'var(--t1)', display:'flex', alignItems:'center', justifyContent:'center' -->
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20} back button 44x44 (w-11 h-11, OQ #5)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <!-- 타이틀 headerTitle 동적 분기 verbatim — round 있음 + title.includes("종합정밀") → "종합정밀 2026.05."
+               source line 306: fontSize:16, fontWeight:700, color:'var(--t1)' -->
+          <span class="text-body font-bold text-text-primary">종합정밀 2026.05.</span>
+        </div>
+
+        <!-- 콘텐츠 영역 (line 330~344, flex:1, overflowY:auto, padding:'12px 16px', paddingBottom:'calc(72px + var(--sab, 0px))') — 빈 상태 (OQ #4 LOCKED ★)
+             source line 338~342: display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8, padding:'60px 16px' -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;padding-bottom:calc(72px + 0px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;">
+          <!-- 빈 제목 (line 340 verbatim, OQ #4 ★ 아이콘 추가 X, fontSize:16, fontWeight:700, color:'var(--t1)') -->
+          <div class="text-body font-bold text-text-primary">지적사항 없음</div>
+          <!-- 빈 보조 (line 341 verbatim, isDesktop=false 분기 "아래", fontSize:12, color:'var(--t2)') -->
+          <div class="text-caption leading-none text-text-secondary">현장에서 지적된 항목을 등록하려면 아래 버튼을 누르세요.</div>
+        </div>
+
+        <!-- 모바일 고정 하단 CTA placeholder (T3 W4 sketch 에서 그라데이션 채움 — 본 frame 은 외곽 + 빈 안내 박제) -->
+        <div class="bg-surface-page border-t border-border-default" style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + 0px);z-index:20;">
+          <div class="text-caption leading-none text-text-tertiary" style="text-align:center;">(W4: 모바일 고정 하단 CTA — addButton 그라데이션 anchor)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / 로딩 상태 — headerTitle "작동기능 2026.04." (round 있음 + 작동기능) + Lucide Loader2 OQ #5
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — 로딩 상태 — headerTitle "작동기능 2026.04." + Lucide Loader2 animate-spin size={24} (OQ #5)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (OQ #1 LOCKED ★) — Frame 1 동일 마크업, 동적 분기 "작동기능 2026.04." -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20} back button 44x44 (w-11 h-11, OQ #5)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <!-- 타이틀 headerTitle 동적 분기 verbatim — round 있음 + title.includes("종합정밀") 아님 → "작동기능 2026.04." -->
+          <span class="text-body font-bold text-text-primary">작동기능 2026.04.</span>
+        </div>
+
+        <!-- 콘텐츠 영역 — 로딩 (OQ #5 ★ Spinner div → Lucide Loader2 animate-spin size={24} 교체)
+             source line 324~325 isLoading 분기, Spinner 함수 line 32~39 verbatim 폐기 -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;padding-bottom:calc(72px + 0px);display:flex;align-items:center;justify-content:center;">
+          <!-- Lucide Loader2 animate-spin size={24} (OQ #5 LOCKED 교체, color text-accent) -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-accent" style="animation:spin 1s linear infinite;" aria-label="Lucide Loader2 animate-spin size={24} (OQ #5)">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+        </div>
+
+        <!-- 모바일 고정 하단 CTA placeholder (T3 채움) -->
+        <div class="bg-surface-page border-t border-border-default" style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + 0px);z-index:20;">
+          <div class="text-caption leading-none text-text-tertiary" style="text-align:center;">(W4: 모바일 고정 하단 CTA — addButton 그라데이션 anchor)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 데스크톱 1440x900 / 데스크톱 타이틀 + 콘텐츠 빈 (글로벌 chrome 0건 — 19-legal 차이 1 ★)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1440x900) — 데스크톱 타이틀 + 콘텐츠 빈 (글로벌 chrome 0건 — 19-legal 차이 1 ★) — Lucide ChevronLeft + headerTitle "종합정밀 2026.05." + addButton placeholder + 빈 isDesktop=true "상단"</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!--
+          ★ 글로벌 chrome 0건 anchor (App.tsx line 117 정규식 verbatim — 19-legal 차이 1):
+            !location.pathname.match(/^\/legal\/.+/) → showNav=false
+            → 글로벌 AppHeader 표시 X + 사이드바 표시 X (19-legal LegalPage `/legal` 본 페이지와 결정적 다름)
+            → 자체 타이틀 영역 (line 311~319) 이 chrome 의 유일한 외곽
+        -->
+
+        <!-- 데스크톱 타이틀 영역 (line 311~319 verbatim, padding '24px 32px 12px', isDesktop=true 조건)
+             좌측: headerTitle 22/800 var(--t1) + round?.title 부제 13 var(--t2) marginTop 4 -->
+        <div class="bg-surface-page" style="padding:24px 32px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <!-- headerTitle 동적 분기 verbatim — round 있음 + title.includes("종합정밀") → "종합정밀 2026.05." (line 314, 22/800 var(--t1)) -->
+            <span class="text-headline font-bold text-text-primary">종합정밀 2026.05.</span>
+            <!-- round.title 부제 verbatim (line 315, round && fontSize 13 var(--t2) marginTop 4) -->
+            <span class="text-label text-text-secondary">2026 상반기 종합정밀점검</span>
+          </div>
+          <!-- 우측 addButton 데스크톱 placeholder (line 317 verbatim, width auto height 36, T1 본 wave solid placeholder, T3 에서 그라데이션 채움)
+               source addButton 함수 line 272~291: width 'auto', height 36, bg 'var(--acl)', color '#fff', fontSize 13, fontWeight 700, borderRadius 8, padding '0 16px' -->
+          <button class="bg-accent text-text-on-accent text-label font-bold rounded-sm" style="height:36px;padding:0 16px;border:none;cursor:pointer;flex-shrink:0;" aria-label="addButton 데스크톱 placeholder (T3 W4 sketch 에서 linear&#8209;gradient(135deg, #1d4ed8, #0ea5e9) 채움)">+ 지적사항 등록</button>
+        </div>
+
+        <!-- adminBar placeholder (W4 책임 — role === 'admin' && round 조건부 line 208) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 24px;display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          <div class="text-caption leading-none text-text-tertiary">(W4: adminBar — role === &apos;admin&apos; &amp;&amp; round 조건부, 결과 select + 결과 저장 + 보고서 + ZIP)</div>
+        </div>
+
+        <!-- 콘텐츠 영역 (line 330~344, padding '16px 32px', maxWidth 800 데스크톱 중앙) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px 32px;display:flex;justify-content:center;">
+          <div style="flex:1;max-width:800px;width:100%;display:flex;flex-direction:column;gap:8px;">
+            <!-- 빈 분기 (line 338~342 verbatim, isDesktop=true 분기 "상단") -->
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:60px 16px;text-align:center;">
+              <div class="text-body font-bold text-text-primary">지적사항 없음</div>
+              <div class="text-caption leading-none text-text-secondary">현장에서 지적된 항목을 등록하려면 상단 버튼을 누르세요.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / 오류 상태 — "목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요." (단일 문장, 19-legal 분리 패턴과 다름) ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#0f172a;">Frame 4 / 라이트 모드 (393x800) — 오류 상태 — 단일 문장 (19-legal 분리 패턴과 다름) ★ + headerTitle fallback "지적사항 목록"</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (OQ #1 LOCKED ★) — 라이트 모드, headerTitle round 없음 fallback "지적사항 목록" -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20} back button 44x44 (w-[44px] h-[44px], OQ #5)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide ChevronLeft size={20}"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <!-- headerTitle round 없음 fallback verbatim (line 122) -->
+          <span class="text-body font-bold text-text-primary">지적사항 목록</span>
+        </div>
+
+        <!-- 콘텐츠 영역 — 오류 상태 (OQ #4 LOCKED ★ 아이콘 X)
+             source line 326~329 verbatim: isError 분기, flex 1, alignItems center, justifyContent center,
+             padding '0 24px', textAlign center, fontSize 14, color 'var(--t2)'
+             ★ 단일 문장 "목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요." (19-legal 분리 패턴 + 다시 시도 button 과 다름) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;display:flex;align-items:center;justify-content:center;padding:0 24px;text-align:center;">
+          <!-- 오류 단일 문장 (line 328 verbatim, 14 var(--t2) text-body-sm text-text-secondary) -->
+          <div class="text-body-sm text-text-secondary">목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.</div>
+        </div>
+
+        <!-- 모바일 고정 하단 CTA placeholder (T3 채움) -->
+        <div class="bg-surface-page border-t border-border-default" style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + 0px);z-index:20;">
+          <div class="text-caption leading-none text-text-tertiary" style="text-align:center;">(W4: 모바일 고정 하단 CTA — addButton 그라데이션 anchor)</div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스 (sketch 하단, 본 wave 의 OQ LOCKED + 비즈 anchor + 19-legal 차이 + 토큰 매핑 + negative gate 메타 정리)
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto" style="background:#0f1419;border:1px solid #1f2937;border-radius:12px;padding:20px;color:#cbd5e1;">
+    <h2 class="text-white font-bold" style="font-size:16px;margin-bottom:12px;">★ 본 wave Rules — LOCKED 결정 + 비즈 anchor 11건 + 19-legal 차이 5건 + negative gate</h2>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">OQ LOCKED 5건 (W1 인덱스 §7 verbatim — 본 wave 적용분)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+OQ #1 LOCKED: LegalFindingsPage 모바일 자체 헤더 = `bg-surface-raised border-b border-border-default`.
+              기존 `rgba(22,27,34,0.97)` (raised 변형 alpha) + `1px solid var(--bd)` 인라인 토큰 완전 폐기.
+              height 48 + headerTitle (동적 분기) 정중앙 + back button 44x44 (OQ #5 격상) + position absolute left 8 또는 left 12 유지.
+              19-legal 40p + 16-workshift + 17-annual-plan + 28-splash + 23-education 5 페이지 일관.
+
+OQ #4 LOCKED (본 wave 부분): 빈/오류 상태 = 아이콘 추가 X, 현재 카피 verbatim 유지.
+              모바일 빈 '지적사항 없음' + isDesktop=false 분기 '현장에서 지적된 항목을 등록하려면 아래 버튼을 누르세요.'
+              데스크톱 빈 isDesktop=true 분기 '현장에서 지적된 항목을 등록하려면 상단 버튼을 누르세요.'
+              모바일 오류 단일 문장 '목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.' (19-legal 분리 패턴과 다름 ★).
+              본 sketch 의 Frame 1 모바일 빈 + Frame 3 데스크톱 빈 + Frame 4 모바일 오류 모두 아이콘 무.
+              SKELETON_STYLE (line 24~29 height 88, 19-legal 72 와 다름) + Spinner 함수 (line 32~39) 현 상태 박제
+              (Lucide Loader2 교체는 OQ #5).
+
+OQ #5 LOCKED: (1) 모바일 헤더 back button — 인라인 SVG ChevronLeft (line 303~305, path `d="M15 19l-7-7 7-7"` strokeWidth 2 size 20)
+              → Lucide `&lt;ChevronLeft size={20} /&gt;` 교체.
+              back button 36x36 → 44x44 격상 (§1.1 터치 마지노선 44px). w&#8209;8 함정 회피 → `w-11 h-11` (44px tailwind 기본 spacing 11) 또는 `w-[44px] h-[44px]` arbitrary.
+              (2) Spinner div + @keyframes spin (line 32~39) → Lucide `&lt;Loader2 className="animate-spin" size={24} /&gt;` 교체.
+              import 추가: `import { ChevronLeft, Loader2 } from 'lucide-react'`.
+              ★ Camera 교체 없음 (FindingFormSheet 내부 사용, 본 페이지 직접 사용 X — 19-legal 40p OQ #5 Camera 와 다름).
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">★ 글로벌 chrome 0건 anchor (App.tsx line 117 정규식 verbatim — 19-legal 차이 1)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+// App.tsx line 117 정규식 verbatim anchor
+const showNav = !location.pathname.match(/^\/legal\/.+/);
+// → 모바일 BottomNav + 데스크톱 사이드바 + 데스크톱 글로벌 AppHeader 모두 숨김
+// → 자체 헤더 (모바일 line 298~308) + 데스크톱 타이틀 영역 (line 311~319) 이 chrome 의 유일한 외곽
+// 19-legal LegalPage `/legal` 본 페이지의 데스크톱 글로벌 AppHeader + 사이드바 표시 패턴과 결정적 다름
+// (Frame 3 시각 박제 — 글로벌 AppHeader 표시 X / 사이드바 표시 X)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">★ 비즈 anchor 11건 (LegalFindingsPage) — 1 byte 변경 금지 (W2~W5 모두 박제)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+[react-query / 비즈 시그니처]
+ 1. useQuery({ queryKey: ['legal-round', id], queryFn: () =&gt; legalApi.get(id!), enabled: !!id })  (line 57~62)
+ 2. useQuery({ queryKey: ['legal-findings', id], queryFn: () =&gt; legalApi.getFindings(id!), enabled: !!id, staleTime: 30_000 })  (line 63~68)
+ 3. queryClient.invalidateQueries — ['legal-round', id] / ['legal-rounds'] / ['legal-findings', id] 3 키
+
+[utils/api.ts legalApi 4종]
+ 4. legalApi.get(roundId) / legalApi.getFindings(roundId) / legalApi.updateResult(roundId, {result?, report_file_key?}) / legalApi.deleteFinding(roundId, findingId)
+    (snake_case payload + camelCase props 혼용 보존)
+
+[비즈 로직 함수 + 분기]
+ 5. headerTitle (line 120~122): round 있으면 `${round.title.includes('종합정밀') ? '종합정밀' : '작동기능'} ${fmtMonthOnly(round.date)}` / 없으면 '지적사항 목록' (동적 분기 1 byte 변경 금지)
+ 6. sortedFindings (line 198~203): status 'open' 먼저 + 그 외 createdAt desc localeCompare
+ 7. adminBar 조건부 (line 208): role === 'admin' &amp;&amp; round
+ 8. findingCard onClick (line 240): navigate(`/legal/${id}/finding/${finding.id}`) → 자식 페이지 LegalFindingDetailPage 진입 (19-legal 우측 패널 표시와 다름 ★)
+
+[handleZipDownload + iOS PWA + animation + 카피]
+ 9. handleZipDownload (line 138~196): fflate `zipSync` 동적 import + buildMetaTxt → 내용.txt always + Promise.allSettled photoKeys/resolutionPhotoKeys
+    + iOS PWA `&lt;a download&gt;` 패턴 (createElement + body.appendChild + click + removeChild + setTimeout(URL.revokeObjectURL, 3000))
+    + zipLoading 5 단계 ('준비 중...' / '수집 중... (N/M)' / '압축 중...' / false / idle '일괄 다운로드')
+    + ZIP 파일명 `지적사항_${round?.title ?? 'report'}.zip` (line 184, 19-legal location 기반과 다름 ★)
+10. @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} } (line 295) — 19-legal 일치, Education 1/0.4 와 다름
+    + @keyframes spin { to{transform:rotate(360deg)} } (line 36, OQ #5 LOCKED 시 Lucide Loader2 교체)
+11. toast 카피 8종 verbatim:
+    success 4 — '점검 결과가 저장되었습니다.' / '보고서가 업로드되었습니다.' / '삭제되었습니다' / '다운로드 완료'
+    error  4 — '저장에 실패했습니다.' / '사진 업로드 실패' / err?.message ?? '삭제 실패' / '다운로드에 실패했습니다'
+    + 빈/오류 카피 verbatim — '지적사항 없음' + '현장에서 지적된 항목을 등록하려면 ${isDesktop ? "상단" : "아래"} 버튼을 누르세요.'
+    + 단일 문장 오류 '목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.'
+    + adminBar select 4 옵션 '결과 미입력'/'적합'/'부적합'/'조건부적합' + '결과 저장' + 보고서 분기 '보고서 보기'/'보고서 업로드'/'업로드 중...'
+    + ZIP zipLoading 5 단계 + addButton '+ 지적사항 등록' + finding 칩 '미조치'/'완료' + 위치 fallback '위치 미지정' + 액션 '수정'/'삭제'
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">19-legal 차이 5건 (sketch 시각 반영)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+(1) 글로벌 chrome 0건 — App.tsx line 117 정규식 `^\/legal\/.+` 매칭 → showNav=false (모바일/데스크톱 모두) ★ 본 wave Frame 3 박제
+(2) 단일 export 378 lines — 19-legal LegalPage 의 FindingsPanel + FindingDetailPanel + 메인 3개 통합과 다름
+(3) finding borderLeft 2px — 19-legal 3px 와 다름 (본 페이지 2px 보존, W3 scope)
+(4) ZIP 파일명 round.title 기반 — `지적사항_${round?.title ?? 'report'}.zip` (line 184, 19-legal location 기반과 다름, W4 scope)
+(5) findingCard 클릭 시 자식 페이지 진입 — navigate(`/legal/${id}/finding/${finding.id}`) → LegalFindingDetailPage (App.tsx line 291, 19-legal 우측 패널 표시와 다름, W3 scope + W5 §12 별도 wave 명시)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">토큰 매핑 (본 wave 영역 — 모바일 헤더 + 데스크톱 타이틀 + 빈/로딩/오류)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+페이지 외곽         : var(--bg)  -&gt; bg-surface-page
+모바일 헤더 bg      : var(--bg2) -&gt; bg-surface-raised      (OQ #1 ★)
+모바일 헤더 border  : var(--bd)  -&gt; border-b border-border-default  (OQ #1 ★)
+SKELETON bg         : var(--bg3) -&gt; bg-surface-sunken      (line 25 verbatim, height 88)
+모바일 타이틀       : var(--t1)  -&gt; text-text-primary
+back button color   : var(--t1)  -&gt; text-text-primary      (line 303 verbatim)
+데스크톱 headerTitle: var(--t1)  -&gt; text-text-primary 22/800 (line 314)
+데스크톱 round 부제 : var(--t2)  -&gt; text-text-secondary 13 (line 315)
+빈 제목             : var(--t1)  -&gt; text-text-primary 16/700 (line 340)
+빈 보조             : var(--t2)  -&gt; text-text-secondary 12 leading-none (line 341)
+오류 단일 문장      : var(--t2)  -&gt; text-text-secondary 14 (line 327)
+addButton placeholder: var(--acl) -&gt; bg-accent text-text-on-accent (T1 본 wave solid placeholder, T3 에서 그라데이션 채움)
+Spinner color       : var(--acl) -&gt; text-accent (Lucide Loader2 OQ #5)
+back button 44x44   : w-[44px] h-[44px] arbitrary 또는 w-11 h-11 (OQ #5 LOCKED 36x36 → 44x44 격상, w&#8209;8 함정 회피)
+    </pre>
+
+    <h3 style="color:#ef4444;font-size:13px;font-weight:700;margin-top:16px;">Negative gate (본 wave sketch 본문 — 자체매칭 회피 위해 HTML entity escape)</h3>
+    <ul style="font-size:12px;line-height:1.8;color:#fecaca;margin-left:1em;list-style:disc;">
+      <li>이모지 0건 (본 sketch 사용 글리프 0)</li>
+      <li>linear&#8209;gradient 0건 (T3 만 OQ #4 LOCKED 예외 anchor &ge;3, 본 wave 본문 0건)</li>
+      <li>9 &#183; 10 &#183; 11 px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건 (bg&#8209;status&#8209;safe X 예시는 HTML entity 사용)</li>
+      <li>w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty-eight px 함정, back button 44x44 = w-[44px] h-[44px])</li>
+      <li>옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;bg2) / var(&#8209;&#8209;bg3) / var(&#8209;&#8209;bd) / var(&#8209;&#8209;t1) / var(&#8209;&#8209;t2) / var(&#8209;&#8209;t3) / var(&#8209;&#8209;acl) 등) sketch 본문 0건 (단 frame chrome 외곽 + tokens.css 정의 fence 안 인용 예외)</li>
+    </ul>
+  </section>
+
+</body>
+</html>

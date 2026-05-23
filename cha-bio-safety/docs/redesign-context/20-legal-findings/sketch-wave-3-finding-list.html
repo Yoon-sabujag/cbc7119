@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-finding-list.html — redesign/20-legal-findings W3
+  작성: 2026-05-23 / quick 260523-wic
+  범위: LegalFindingsPage.tsx findingCard 함수 (line 237~269) + sortedFindings (line 198~203 open-first)
+        + 콘텐츠 영역 카드 매핑 (line 343 sortedFindings.map) 시각화
+        + finding 2분기 borderLeft 2px (19-legal 3px 와 다름 ★) + 칩 status 토큰 (status- prefix 없음 OQ #2)
+        + description ellipsis + 위치 fallback "위치 미지정" + 메타 fmtDate + 수정/삭제 액션
+        + findingCard navigate 자식 페이지 진입 anchor (19-legal 우측 패널 표시와 다름 ★)
+        4 frame (다크 모바일 open / 다크 모바일 resolved / 다크 데스크톱 mixed sorted / 라이트 데스크톱 mixed) status 매트릭스
+  out of scope: 모바일 헤더 + 데스크톱 타이틀 + 빈/로딩/오류 (W2 책임) / adminBar + addButton 그라데이션 + 모바일 고정 하단 CTA + ZIP (W4 책임)
+                / TSX 변환 (W5 checklist 책임) / LegalFindingsPage.tsx 코드 수정 / 자식 페이지 LegalFindingDetailPage (별도 wave)
+  참조: wave-1-index.md §3 / §7 verbatim, 19-legal/sketch-wave-3-round-card.html + sketch-wave-4-findings-panel.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 헤더 bg-surface-raised (W2 scope, 본 wave Frame 1/2 chrome 동일 적용)
+    OQ #2 LOCKED ★ 핵심 — finding 2분기 borderLeft 2px (19-legal LegalPage 3px 과 다름 — 본 페이지 2px 보존)
+                    + 칩 status 토큰 (status- prefix 없음):
+                    open  → border-l-2 border-danger-bar + bg-danger-bg text-danger '미조치'
+                    resolved → border-l-2 border-safe-bar + bg-safe-bg text-safe '완료'
+                    (memory feedback_inspection_unresolved_color 일반화 + memory feedback_tailwind_token_class_pattern status- prefix 없음 룰)
+    OQ #3 LOCKED ★ 핵심 — §1.1 9·10·11 fontSize 12 격상 + leading-none:
+                    finding 칩 11 + 메타 11 + 수정/삭제 10 모두 → text-caption font-bold leading-none (12px)
+    OQ #4 LOCKED — addButton 그라데이션 (W4 scope, 본 wave 미해당) + 빈/오류 카피 verbatim (W2 scope)
+    OQ #5 LOCKED — Lucide ChevronLeft + Loader2 교체 (W2 scope, 본 wave Frame 1/2 chrome 동일 적용)
+
+  ★ findingCard navigate 자식 페이지 진입 anchor (line 240 verbatim — 19-legal 차이 5):
+    navigate(`/legal/${id}/finding/${finding.id}`) → 자식 페이지 LegalFindingDetailPage (App.tsx line 291)
+    19-legal LegalPage 의 우측 패널 표시 (handleFindingClick → setSelectedFindingId) 와 결정적 다름
+    본 wave Frame 3 colsorted desktop 박제 ★
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_inspection_unresolved_color.md (일반화) — finding 2분기 status 토큰 (OQ #2 LOCKED)
+       open  → border-l-2 border-danger-bar + bg-danger-bg text-danger '미조치'
+       resolved → border-l-2 border-safe-bar + bg-safe-bg text-safe '완료'
+       (borderLeft 2px 19-legal 3px 와 다름 — 본 페이지 2px 보존)
+
+    2. project_inspection_completion_rule.md (일반화) — sortedFindings open-first source of truth
+       sortedFindings (line 198~203 verbatim) = status 'open' 먼저 + 그 외 createdAt desc localeCompare
+       카드 cursor pointer = 모든 사용자 자식 페이지 진입 가능 (admin/assistant 동일)
+
+    3. feedback_tailwind_token_class_pattern.md — status- prefix 없음 (bg-safe-bg O / bg&#8209;status&#8209;safe X)
+
+    4. feedback_text_caption_leading_none.md — text-caption (12, lh 1.5 = 18px) 작은 컨테이너 안 leading-none 명시
+       finding 칩 + 위치 + 메타 + 수정/삭제 모두 text-caption font-bold leading-none (OQ #3 격상)
+
+    5. feedback_tailwind_w8_h8_is_48px.md — w&#8209;8/h&#8209;8 = 48px 함정 (back button 44x44 = w-11 h-11)
+
+    6. feedback_sketch_realistic_data.md — 표시 분기/라벨 룰 코드 그대로
+       finding description / 위치 / 메타 / 칩 라벨 / 액션 모두 source TSX verbatim
+
+    7. feedback_planner_prompt_sketch_verbatim.md — sketch CSS 토큰/사이즈 verbatim 인용 (W5 checklist 박제)
+
+    8. feedback_tsx_wave_emoji_dot_gap.md — sketch negative gate (이모지 0)
+
+    9. feedback_redesign_sketch_rule_enforcement.md — OQ #2 status 토큰 예외 (운영 결과 상태 색)
+       빈/오류 neutral (W2 scope), finding 2분기 = OQ #2 status 토큰 예외 (위험 임계치 = 운영 룰)
+
+   10. feedback_design_changes_ask_first.md — 디자인 변경 전 사용자 컨펌
+
+   11. feedback_subagent_production_deploy_forbidden.md / feedback_cbc7119_design_never_wrangler.md
+       본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X
+
+   12. feedback_check_branch_before_edit.md
+       본 sketch 작업 진입 전 branch redesign/20-legal-findings 확인 (worktree base 7cae6fc)
+
+  ==========================================================
+  ★ 비즈 anchor 11건 (LegalFindingsPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-round', id], ... }) (line 57~62)
+    2. useQuery({ queryKey: ['legal-findings', id], ... staleTime: 30_000 }) (line 63~68)
+    3. queryClient.invalidateQueries 3 키 — ['legal-round', id] / ['legal-rounds'] / ['legal-findings', id]
+    4. legalApi 4종 — get / getFindings / updateResult({result?, report_file_key?}) / deleteFinding
+    5. headerTitle (line 120~122): round 있으면 ${round.title.includes("종합정밀") ? "종합정밀" : "작동기능"} ${fmtMonthOnly(round.date)} / 없으면 "지적사항 목록"
+    6. ★ sortedFindings (line 198~203): status "open" 먼저 + 그 외 createdAt desc localeCompare (본 wave 핵심 anchor)
+    7. adminBar 조건부 (line 208): role === "admin" && round (W4 scope)
+    8. ★ findingCard onClick (line 240): navigate(`/legal/${id}/finding/${finding.id}`) — 자식 페이지 진입 (19-legal 우측 패널과 다름, 본 wave 핵심 anchor)
+    9. handleZipDownload (line 138~196): fflate + iOS PWA (W4 scope)
+   10. @keyframes blink .6/.3 (line 295) (W2 scope)
+   11. toast 8종 + 카피 verbatim — finding 칩 "미조치"/"완료" + 위치 fallback "위치 미지정" + 액션 "수정"/"삭제" + 메타 fmtDate + " · " + (createdByName ?? createdBy)
+
+  ==========================================================
+  19-legal 차이 5건 (sketch 시각 반영 — 본 wave 핵심 차이 2건 emphasis)
+  ==========================================================
+
+    (1) 글로벌 chrome 0건 (W2 scope)
+    (2) 단일 export 378 lines — 19-legal LegalPage 통합과 다름
+    (3) ★ finding borderLeft 2px — 19-legal 3px 와 다름 (본 페이지 2px 보존, 본 wave Frame 1~4 모두 박제)
+    (4) ZIP 파일명 round.title 기반 (W4 scope)
+    (5) ★ findingCard 클릭 시 자식 페이지 진입 — navigate(`/legal/${id}/finding/${finding.id}`) → LegalFindingDetailPage (App.tsx line 291)
+        본 wave Frame 3 sorted desktop 박제, W5 §12 별도 wave 명시
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — finding 카드 + sortedFindings)
+  ==========================================================
+
+    - finding 카드 외곽 bg var(&#8209;&#8209;bg3) -> bg-surface-sunken (line 242)
+    - finding 카드 평시 border var(&#8209;&#8209;bd) -> border border-border-default (line 243)
+    - finding borderLeft open var(&#8209;&#8209;danger) -> border-l-2 border-danger-bar (line 244, ★ 2px 19-legal 3px 와 다름)
+    - finding borderLeft resolved var(&#8209;&#8209;safe) -> border-l-2 border-safe-bar (line 244, ★ 2px)
+    - 칩 open bg rgba(239,68,68,.15) + color var(&#8209;&#8209;danger) -> bg-danger-bg text-danger (line 255 verbatim, OQ #2)
+    - 칩 resolved bg rgba(34,197,94,.13) + color var(&#8209;&#8209;safe) -> bg-safe-bg text-safe (line 255 verbatim, OQ #2)
+    - 칩 라벨 verbatim — open "미조치" / resolved "완료" (line 255)
+    - description 14/500 var(&#8209;&#8209;t1) -> text-body-sm text-text-primary (line 254 verbatim, ellipsis)
+    - 위치 fallback "위치 미지정" 12 var(&#8209;&#8209;t2) -> text-caption leading-none text-text-secondary (line 257 verbatim, OQ #3 격상)
+    - 메타 fmtDate + " · " + (createdByName ?? createdBy) 11 var(&#8209;&#8209;t3) -> text-caption font-bold leading-none text-text-tertiary (line 259 verbatim, OQ #3 격상)
+    - 수정/삭제 액션 10 var(&#8209;&#8209;t3) -> text-caption leading-none text-text-tertiary (line 264~265 verbatim, OQ #3 격상)
+    - 카드 radius 12 -> rounded-md
+    - 칩 radius 6 -> rounded-sm
+
+  ==========================================================
+  Negative gate (sketch 본문 — 자체매칭 회피 위해 HTML entity escape)
+  ==========================================================
+
+    - 이모지 0건
+    - linear&#8209;gradient 0건 (T3 W4 만 OQ #4 LOCKED 예외 anchor &ge;3, 본 wave 본문 0건)
+    - 9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED 12 격상)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 위반 — bg&#8209;status&#8209;safe X 예시는 HTML entity 사용)
+    - w&#8209;8 / h&#8209;8 0건
+    - border&#8209;l&#8209;3 / border&#8209;l&#8209;[3px] 0건 (19-legal 3px pattern, 본 페이지 2px 보존)
+    - 옛 alias 토큰 sketch 본문 0건 (단 tokens.css 정의 fence 안 인용 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/20-legal-findings — W3 finding list + sorted + navigate</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title    { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading  { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .text-headline { font-size: 22px; line-height: 1.2; font-weight: 700; }
+    .font-bold     { font-weight: 700; }
+    .font-extrabold{ font-weight: 800; }
+    .leading-none  { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* @keyframes blink (line 295 verbatim, .6/.3) — W2 scope, 본 wave 미사용 (헤더 chrome 동일 적용 위한 박제) */
+    @keyframes blink {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 0.3; }
+    }
+
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1440px;
+      height: 900px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1900px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">20-legal-findings sketch W3 — finding list + sortedFindings open-first + borderLeft 2px [19-legal 3px 와 다름 ★] + findingCard navigate 자식 진입</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 2 frame + 데스크톱 1440x900 2 frame side-by-side. LegalFindingsPage.tsx findingCard 함수 (line 237~269)
+      + sortedFindings (line 198~203 open-first) + 콘텐츠 영역 카드 매핑 (line 343 sortedFindings.map) verbatim 매핑.
+      4 frame: 다크 모바일 open / 다크 모바일 resolved / 다크 데스크톱 mixed sorted (open 먼저 + resolved 뒤) / 라이트 데스크톱 mixed.
+      W1 OQ LOCKED 5건 중 OQ #2 (★ 핵심 finding 2분기 borderLeft 2px + 칩 status 토큰, status- prefix 없음) +
+      OQ #3 (★ 핵심 §1.1 9·10·11 → 12 격상 + leading-none) 시각 적용.
+      <br/>
+      <strong>19-legal 차이 2 핵심:</strong> (1) finding borderLeft 2px (19-legal 3px 와 다름) — Frame 1~4 모두 `border-l-2` 박제.
+      (2) findingCard 클릭 시 자식 페이지 진입 `navigate(/legal/:id/finding/:fid)` → LegalFindingDetailPage (App.tsx line 291) — 19-legal 우측 패널 표시와 다름. Frame 3 sorted desktop 박제.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — 다크 모바일 open / 다크 모바일 resolved / 다크 데스크톱 mixed sorted / 라이트 데스크톱 mixed
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / open finding 1개 — borderLeft 2px danger + 칩 "미조치" ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — open finding — border-l-2 border-danger-bar (★ 2px, 19-legal 3px 와 다름) + 칩 bg-danger-bg text-danger "미조치" (OQ #2)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (W2 chrome — bg-surface-raised + border-b border-border-default OQ #1, Lucide ChevronLeft 44x44 OQ #5) -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20} (W2 scope, OQ #5)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">종합정밀 2026.05.</span>
+        </div>
+
+        <!-- 콘텐츠 영역 (line 330~344, padding '12px 16px') -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;padding-bottom:calc(72px + 0px);display:flex;flex-direction:column;gap:8px;">
+
+          <!-- ★ open finding 카드 — borderLeft 2px danger (OQ #2 LOCKED, ★ 2px 19-legal 3px 와 다름)
+               source line 237~269: bg var(--bg3), border 1px solid var(--bd), borderLeft 2px solid var(--danger),
+                                      borderRadius 12, padding 12 (mobile), cursor pointer, display flex column gap 3
+               onClick: navigate(`/legal/${id}/finding/${finding.id}`) — 자식 페이지 진입 anchor (line 240, 19-legal 우측 패널과 다름) -->
+          <div class="bg-surface-sunken border border-border-default border-l-2 border-danger-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;" data-onclick-anchor="navigate(/legal/:id/finding/f-001) — 자식 페이지 진입 (line 240 verbatim)">
+
+            <!-- 상단 라인: description ellipsis + 상태 칩 (line 253~256 verbatim) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <!-- description 14/500 var(--t1) flex 1 ellipsis (line 254 verbatim) -->
+              <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">계단실 비상조명등 점등불량</span>
+              <!-- 상태 칩 open (line 255 verbatim, OQ #2 LOCKED bg-danger-bg text-danger '미조치', OQ #3 격상 text-caption font-bold leading-none) -->
+              <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+            </div>
+
+            <!-- 위치 (line 257 verbatim, fallback "위치 미지정", 12 var(--t2) leading-none OQ #3) -->
+            <div class="text-caption leading-none text-text-secondary">3F 비상계단실</div>
+
+            <!-- 메타 + 액션 (line 258~267 verbatim) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <!-- 메타 fmtDate(createdAt) + " · " + (createdByName ?? createdBy) (line 259 verbatim, 11 var(--t3) → text-caption leading-none OQ #3 격상) -->
+              <span class="text-caption leading-none text-text-tertiary">2026.03.15 · 윤종엽</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <!-- 수정 액션 (line 264 verbatim, 10 var(--t3) → text-caption leading-none OQ #3 격상, e.stopPropagation) -->
+                <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;" aria-label="수정 (e.stopPropagation + setEditingFinding)">수정</button>
+                <!-- 삭제 액션 (line 265 verbatim, handleDeleteFinding) -->
+                <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;" aria-label="삭제 (handleDeleteFinding — legalApi.deleteFinding + invalidate 3 키)">삭제</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 모바일 고정 하단 CTA placeholder (W4 책임) -->
+        <div class="bg-surface-page border-t border-border-default" style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + 0px);z-index:20;">
+          <div class="text-caption leading-none text-text-tertiary" style="text-align:center;">(W4: 모바일 고정 하단 CTA — addButton 그라데이션 anchor)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / resolved finding 1개 — borderLeft 2px safe + 칩 "완료" ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — resolved finding — border-l-2 border-safe-bar (★ 2px) + 칩 bg-safe-bg text-safe "완료" + 위치 fallback "위치 미지정" (OQ #2)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20} (W2 scope)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">작동기능 2026.04.</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;padding-bottom:calc(72px + 0px);display:flex;flex-direction:column;gap:8px;">
+
+          <!-- ★ resolved finding 카드 — borderLeft 2px safe (OQ #2 LOCKED ★) + 칩 "완료" + 위치 fallback "위치 미지정"
+               source line 237~269 동일, status === 'resolved' 분기 -->
+          <div class="bg-surface-sunken border border-border-default border-l-2 border-safe-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;" data-onclick-anchor="navigate(/legal/:id/finding/f-002) — 자식 페이지 진입 (line 240 verbatim)">
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">소화기 압력불량 (재충전)</span>
+              <!-- 상태 칩 resolved (line 255 verbatim, OQ #2 bg-safe-bg text-safe '완료', OQ #3 격상) -->
+              <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+            </div>
+
+            <!-- ★ 위치 fallback "위치 미지정" (line 257 verbatim — location ?? '위치 미지정') -->
+            <div class="text-caption leading-none text-text-secondary">위치 미지정</div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="text-caption leading-none text-text-tertiary">2026.02.28 · 이팀장</span>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="bg-surface-page border-t border-border-default" style="position:absolute;bottom:0;left:0;right:0;padding:12px 16px;padding-bottom:calc(12px + 0px);z-index:20;">
+          <div class="text-caption leading-none text-text-tertiary" style="text-align:center;">(W4: 모바일 고정 하단 CTA — addButton 그라데이션 anchor)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 데스크톱 1440x900 / mixed sorted (open 2 + resolved 1) — sortedFindings open-first ★ + findingCard navigate 자식 진입 ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1440x900) — mixed sorted (★ sortedFindings open-first: open 2 + resolved 1) — borderLeft 2px (★ 19-legal 3px 와 다름) + findingCard navigate /legal/:id/finding/:fid 자식 페이지 진입 anchor (★ 19-legal 우측 패널과 다름)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!-- 데스크톱 타이틀 영역 (W2 scope, 글로벌 chrome 0건) -->
+        <div class="bg-surface-page" style="padding:24px 32px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span class="text-headline font-bold text-text-primary">종합정밀 2026.05.</span>
+            <span class="text-label text-text-secondary">2026 상반기 종합정밀점검</span>
+          </div>
+          <button class="bg-accent text-text-on-accent text-label font-bold rounded-sm" style="height:36px;padding:0 16px;border:none;cursor:pointer;flex-shrink:0;">+ 지적사항 등록</button>
+        </div>
+
+        <!-- adminBar placeholder (W4) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 24px;display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          <div class="text-caption leading-none text-text-tertiary">(W4: adminBar — role === &apos;admin&apos; &amp;&amp; round)</div>
+        </div>
+
+        <!--
+          ★ sortedFindings 정렬 룰 anchor (line 198~203 verbatim)
+          const sortedFindings = [...(findings ?? [])].sort((a, b) =>
+            a.status === 'open' && b.status !== 'open' ? -1
+            : (a.status !== 'open' && b.status === 'open' ? 1
+              : b.createdAt.localeCompare(a.createdAt))
+          );
+          → open 먼저 + 그 외 createdAt desc (운영 룰 source of truth, memory project_inspection_completion_rule 일반화)
+        -->
+
+        <!-- 콘텐츠 영역 (line 330~344, padding '16px 32px', maxWidth 800 데스크톱 중앙) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px 32px;display:flex;justify-content:center;">
+          <div style="flex:1;max-width:800px;width:100%;display:flex;flex-direction:column;gap:8px;">
+
+            <!-- ★ sortedFindings open-first 첫번째 카드 (open, createdAt 더 최근)
+                 source line 343 sortedFindings.map(findingCard), line 240 navigate 자식 페이지 진입 -->
+            <div class="bg-surface-sunken border border-border-default border-l-2 border-danger-bar rounded-md" style="padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;" data-onclick-anchor="navigate(/legal/round-001/finding/f-001) — 자식 페이지 진입 ★ (line 240, 19-legal 우측 패널과 다름)">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">계단실 비상조명등 점등불량</span>
+                <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+              </div>
+              <div class="text-caption leading-none text-text-secondary">3F 비상계단실</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="text-caption leading-none text-text-tertiary">2026.03.15 · 윤종엽</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ★ sortedFindings open-first 두번째 카드 (open, createdAt 더 오래) -->
+            <div class="bg-surface-sunken border border-border-default border-l-2 border-danger-bar rounded-md" style="padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;" data-onclick-anchor="navigate(/legal/round-001/finding/f-002) — 자식 페이지 진입 ★">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">방화셔터 동작불량</span>
+                <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+              </div>
+              <div class="text-caption leading-none text-text-secondary">B1 주차장 진입로</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="text-caption leading-none text-text-tertiary">2026.03.12 · 이팀장</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ★ sortedFindings open-first 세번째 카드 (resolved, 뒤로 밀림) -->
+            <div class="bg-surface-sunken border border-border-default border-l-2 border-safe-bar rounded-md" style="padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;" data-onclick-anchor="navigate(/legal/round-001/finding/f-003) — 자식 페이지 진입 ★">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">소화기 압력불량 (재충전)</span>
+                <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+              </div>
+              <div class="text-caption leading-none text-text-secondary">7F 복도</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="text-caption leading-none text-text-tertiary">2026.02.28 · 이팀장</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 데스크톱 1440x900 / mixed sorted (open + resolved 라이트 색 검증)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#0f172a;">Frame 4 / 라이트 모드 (1440x900) — mixed sorted (open + resolved) — 라이트 status 색 검증 + border-l-2 (★ 2px) + sortedFindings open-first</div>
+      <div data-theme="light" class="frame-shell-desktop">
+
+        <div class="bg-surface-page" style="padding:24px 32px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <span class="text-headline font-bold text-text-primary">종합정밀 2026.05.</span>
+            <span class="text-label text-text-secondary">2026 상반기 종합정밀점검</span>
+          </div>
+          <button class="bg-accent text-text-on-accent text-label font-bold rounded-sm" style="height:36px;padding:0 16px;border:none;cursor:pointer;flex-shrink:0;">+ 지적사항 등록</button>
+        </div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 24px;display:flex;gap:8px;align-items:center;flex-shrink:0;">
+          <div class="text-caption leading-none text-text-tertiary">(W4: adminBar)</div>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:16px 32px;display:flex;justify-content:center;">
+          <div style="flex:1;max-width:800px;width:100%;display:flex;flex-direction:column;gap:8px;">
+
+            <!-- open 카드 라이트 -->
+            <div class="bg-surface-sunken border border-border-default border-l-2 border-danger-bar rounded-md" style="padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">스프링클러 헤드 부식</span>
+                <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+              </div>
+              <div class="text-caption leading-none text-text-secondary">5F 기계실</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="text-caption leading-none text-text-tertiary">2026.05.10 · 박반장</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- resolved 카드 라이트 -->
+            <div class="bg-surface-sunken border border-border-default border-l-2 border-safe-bar rounded-md" style="padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span class="text-body-sm text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">유도등 LED 1개 불량</span>
+                <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+              </div>
+              <div class="text-caption leading-none text-text-secondary">2F 동관 비상계단</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span class="text-caption leading-none text-text-tertiary">2026.04.22 · 윤종엽</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">수정</button>
+                  <button class="text-caption leading-none text-text-tertiary" style="padding:2px 4px;background:none;border:none;cursor:pointer;">삭제</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스 (sketch 하단)
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto" style="background:#0f1419;border:1px solid #1f2937;border-radius:12px;padding:20px;color:#cbd5e1;">
+    <h2 class="text-white font-bold" style="font-size:16px;margin-bottom:12px;">★ 본 wave Rules — LOCKED 결정 + 비즈 anchor 11건 + sortedFindings 정렬 룰 + findingCard navigate 자식 진입 + negative gate</h2>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">OQ LOCKED 5건 (W1 인덱스 §7 verbatim — 본 wave 적용분)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+OQ #2 LOCKED ★ 핵심: finding 카드 borderLeft → open `border-l-2 border-danger-bar` / resolved `border-l-2 border-safe-bar`
+              (★ borderLeft 2px — 19-legal LegalPage 의 3px 과 다름, 본 페이지는 2px 보존).
+              칩 → open `bg-danger-bg text-danger '미조치'` / resolved `bg-safe-bg text-safe '완료'`.
+              2분기 + 라벨 + 매핑 + 2px 1 byte 변경 금지 (memory feedback_inspection_unresolved_color 일반화).
+              status- prefix 없음 (`text&#8209;status&#8209;safe` 같은 패턴 사용 시 W5 verify FAIL,
+              memory feedback_tailwind_token_class_pattern).
+              alpha 0.13/0.15 vs tokens.css status 토큰 미세 차이는 tokens.css 값 채택.
+
+OQ #3 LOCKED ★ 핵심: finding 칩 11 + finding 메타 11 + 수정/삭제 10 모두 → `text-caption font-bold leading-none` (12px).
+              adminBar select+button 은 이미 12 — leading-none 명시 (W4 scope).
+              격상 후 padding 미세 조정. 14 (description) + 13 (adminBar select fontSize) + 16 (모바일 헤더 + 빈 제목)
+              + 22 (데스크톱 headerTitle) 보존.
+
+OQ #1/#4/#5 LOCKED: W2 scope (본 wave Frame 1/2 chrome 동일 적용, W4 scope 보조)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">★ sortedFindings 정렬 룰 anchor (line 198~203 verbatim) + findingCard navigate 자식 진입 (line 240 verbatim)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+// sortedFindings (line 198~203 verbatim anchor)
+const sortedFindings = [...(findings ?? [])].sort((a, b) =&gt;
+  a.status === 'open' &amp;&amp; b.status !== 'open' ? -1
+  : (a.status !== 'open' &amp;&amp; b.status === 'open' ? 1
+    : b.createdAt.localeCompare(a.createdAt))
+);
+// 운영 룰 source of truth — open 먼저 + 그 외 createdAt desc (memory project_inspection_completion_rule 일반화)
+// 본 wave Frame 3/4 데스크톱 mixed sorted 박제 (open 2개 먼저 + resolved 1개 뒤)
+
+// findingCard onClick (line 240 verbatim anchor — ★ 19-legal 차이 5)
+onClick={() =&gt; navigate(`/legal/${id}/finding/${finding.id}`)}
+// → 자식 페이지 LegalFindingDetailPage 진입 (App.tsx line 291)
+// ★ 19-legal LegalPage 의 우측 패널 표시 (handleFindingClick → setSelectedFindingId) 와 결정적 다름
+// 본 wave Frame 3 sorted desktop + Frame 1/2 모바일 카드 모두 data-onclick-anchor 박제
+// 자식 페이지 LegalFindingDetailPage 는 별도 wave (W5 §12 다음 단계)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">★ 비즈 anchor 11건 (LegalFindingsPage) — 1 byte 변경 금지 (W2~W5 모두 박제)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+[react-query / 비즈 시그니처]
+ 1. useQuery({ queryKey: ['legal-round', id], queryFn: () =&gt; legalApi.get(id!), enabled: !!id })  (line 57~62)
+ 2. useQuery({ queryKey: ['legal-findings', id], queryFn: () =&gt; legalApi.getFindings(id!), enabled: !!id, staleTime: 30_000 })  (line 63~68)
+ 3. queryClient.invalidateQueries — ['legal-round', id] / ['legal-rounds'] / ['legal-findings', id] 3 키
+
+[utils/api.ts legalApi 4종]
+ 4. legalApi.get(roundId) / legalApi.getFindings(roundId) / legalApi.updateResult(roundId, {result?, report_file_key?}) / legalApi.deleteFinding(roundId, findingId)
+
+[비즈 로직 함수 + 분기]
+ 5. headerTitle (line 120~122): round 있으면 동적 분기 / 없으면 '지적사항 목록'  (W2 scope)
+ 6. ★ sortedFindings (line 198~203): status 'open' 먼저 + 그 외 createdAt desc localeCompare  (★ 본 wave 핵심 anchor)
+ 7. adminBar 조건부 (line 208): role === 'admin' &amp;&amp; round  (W4 scope)
+ 8. ★ findingCard onClick (line 240): navigate(`/legal/${id}/finding/${finding.id}`) — 자식 페이지 진입  (★ 본 wave 핵심 anchor, 19-legal 우측 패널과 다름)
+
+[handleZipDownload + iOS PWA + animation + 카피]
+ 9. handleZipDownload (line 138~196): fflate + iOS PWA  (W4 scope)
+10. @keyframes blink .6/.3 (line 295) + @keyframes spin (line 36)  (W2 scope)
+11. toast 8종 + 빈/오류 카피 (W2 scope) + finding 카드 카피 verbatim (본 wave) ★:
+    - 칩 'open'/'resolved' 분기 → '미조치' / '완료' (line 255 verbatim)
+    - 위치 fallback 'location ?? "위치 미지정"' (line 257 verbatim)
+    - 메타 'fmtDate(createdAt) + " · " + (createdByName ?? createdBy)' (line 259 verbatim)
+    - 액션 '수정' / '삭제' (line 264/265 verbatim)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">19-legal 차이 5건 (sketch 시각 반영 — 본 wave 핵심 차이 2건 ★)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+(1) 글로벌 chrome 0건  (W2 scope)
+(2) 단일 export 378 lines — 19-legal LegalPage 의 FindingsPanel + FindingDetailPanel + 메인 3개 통합과 다름
+(3) ★ finding borderLeft 2px — 19-legal 3px 와 다름 (본 페이지 2px 보존)
+    → Frame 1~4 모두 `border-l-2 border-{safe|danger}-bar` 박제, `border&#8209;l&#8209;[3px]` 사용 0건
+(4) ZIP 파일명 round.title 기반  (W4 scope)
+(5) ★ findingCard 클릭 시 자식 페이지 진입 — navigate(`/legal/${id}/finding/${finding.id}`) → LegalFindingDetailPage (App.tsx line 291)
+    → Frame 3 sorted desktop data-onclick-anchor 박제, W5 §12 별도 wave 명시
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">토큰 매핑 (본 wave 영역 — finding 카드 + status 토큰)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+finding 카드 bg            : var(--bg3)   -&gt; bg-surface-sunken      (line 242)
+finding 카드 평시 border    : var(--bd)    -&gt; border border-border-default  (line 243)
+finding borderLeft open     : var(--danger)-&gt; border-l-2 border-danger-bar  (line 244, ★ 2px 19-legal 3px 와 다름)
+finding borderLeft resolved : var(--safe)  -&gt; border-l-2 border-safe-bar   (line 244, ★ 2px)
+칩 open                     : rgba(239,68,68,.15) + var(--danger) -&gt; bg-danger-bg text-danger  (line 255, OQ #2)
+칩 resolved                 : rgba(34,197,94,.13) + var(--safe)   -&gt; bg-safe-bg text-safe     (line 255, OQ #2)
+칩 라벨                     : open '미조치' / resolved '완료' verbatim (line 255)
+description 14/500          : var(--t1) -&gt; text-body-sm text-text-primary  (line 254, ellipsis)
+위치 fallback '위치 미지정' : var(--t2) -&gt; text-caption leading-none text-text-secondary  (line 257, OQ #3 격상)
+메타 fmtDate + ' · '        : var(--t3) -&gt; text-caption font-bold leading-none text-text-tertiary  (line 259, OQ #3)
+수정/삭제 액션              : var(--t3) -&gt; text-caption leading-none text-text-tertiary  (line 264~265, OQ #3)
+카드 radius 12              : rounded-md
+칩 radius 6                 : rounded-sm
+    </pre>
+
+    <h3 style="color:#ef4444;font-size:13px;font-weight:700;margin-top:16px;">Negative gate (본 wave sketch 본문 — 자체매칭 회피 위해 HTML entity escape)</h3>
+    <ul style="font-size:12px;line-height:1.8;color:#fecaca;margin-left:1em;list-style:disc;">
+      <li>이모지 0건</li>
+      <li>linear&#8209;gradient 0건 (T3 W4 만 OQ #4 LOCKED 예외 anchor &ge;3, 본 wave 본문 0건)</li>
+      <li>9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED 12 격상)</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 위반 — bg&#8209;status&#8209;safe X 예시는 HTML entity 사용)</li>
+      <li>w&#8209;8 / h&#8209;8 0건</li>
+      <li>border&#8209;l&#8209;3 / border&#8209;l&#8209;[3px] 0건 (★ 19-legal 3px pattern, 본 페이지 2px 보존)</li>
+      <li>옛 alias 토큰 sketch 본문 0건 (단 frame chrome 외곽 + tokens.css 정의 fence 안 인용 예외)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
