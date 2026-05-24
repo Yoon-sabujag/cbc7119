@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-finding-info.html — redesign/21-legal-finding-detail W3
+  작성: 2026-05-25 / quick 260525-4of
+  범위: LegalFindingDetailPage.tsx Section 1 지적 정보 (line 197~205, KVRow 4행 — 지적 내용/위치/등록일/등록자)
+        + Section 2 지적 사진 (line 208~215, PhotoGrid 또는 '사진 없음' 단일)
+        + KVRow 컴포넌트 (line 22~29, label 12 width 64 flexShrink 0 + children 14 flex 1 lineHeight 1.5)
+        + SectionHeader 컴포넌트 (line 32~38, 12/700 var(--t3) marginBottom 10)
+        + fmtDate (line 15~19, 분까지 표시 zero-padded — 20-legal-findings 일까지만 표시와 다름)
+        + 콘텐츠 영역 외곽 (line 190~195, paddingBottom 분기 + maxWidth 700 데스크톱)
+        4 frame (다크 모바일 사진 0건 / 다크 데스크톱 사진 3개 / 라이트 모바일 위치 fallback '-' / 라이트 데스크톱 사진 5개)
+  out of scope: 모바일 헤더 + 데스크톱 타이틀 + Spinner + 에러 (W2 책임) /
+                Section 3+4 status open/resolved 분기 + 사진 5장 + 모바일 고정 CTA + admin ZIP (W4 책임) /
+                TSX 변환 (W5 checklist 책임) / LegalFindingDetailPage.tsx 코드 수정 / 10 src 파일 0 byte
+  참조: wave-1-index.md §3 / §7 verbatim, 20-legal-findings/sketch-wave-3-finding-list.html mirror (단 본 페이지는 finding 카드 목록 아닌 단일 finding 정보)
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 자체 헤더 (W2 scope, 본 wave 미해당 — Section 영역만 시각화)
+    OQ #2 LOCKED — finding 상태 chip 본 페이지 없음 + KVRow value 좌측 강조 없음 ★ 핵심
+                    status 표시는 화면 모드 자체로 (finding.status === 'open' Section 3 / 'resolved' Section 4 W4 scope)
+                    Section 1+2 는 status 공통 (KVRow 4행 + PhotoGrid/사진 없음 — 미&#8209;조치/완&#8209;료 chip 사용 0건)
+                    20-legal-findings finding 카드 안 미&#8209;조치/완&#8209;료 ch&#8209;ip + 좌측bar 2px 분기 패턴 본 페이지 미사용
+                    KVRow value 좌측 강조 (borderLeft 등) 없음 — 단순 패턴 유지 (본 wave 적용 = O ★ 핵심)
+    OQ #3 LOCKED — §1.1 12 격상 + leading-none ★ 핵심
+                    KVRow label 12 (line 25) + SectionHeader 12 (line 34) 이미 12 — leading-none 명시
+                    14 (KVRow children) + 13 (사진 없음 line 213) + 12 보존
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #4 LOCKED — 조치 완료 CTA 그라데이션 (W4 scope, 본 wave T2 = linear&#8209;gradient 0건)
+    OQ #5 LOCKED — Lucide ChevronLeft + Download + Loader2 + Camera 교체 (W2/W4 scope, 본 wave 미해당)
+
+  ★ 19/20-legal 차이 5건 (W2~W4 sketch + W5 checklist 모두 박제, 본 wave 시각 반영):
+    1. 단일 finding 페이지 — Section 1+2 는 finding 1건의 상세 (20-legal-findings 다건 finding 카드 목록과 다름)
+       본 wave 시각: 데스크톱 maxWidth 700 (20-legal-findings 800 보다 좁음, line 194 verbatim)
+    2. resolution form 풀 페이지 — 사진 5장 useMultiPhotoUpload 직접 (W4 scope, 본 wave 미해당)
+    3. 조치 완료 button 풀폭 CTA 그라데이션 (W4 scope, 본 wave 미해당)
+    4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 (W4 scope handleDownload, 본 wave 미해당)
+    5. finding.status open/resolved 분기로 화면 모드 자체 (W4 scope Section 3/4, 본 wave 미해당 — Section 1+2 공통)
+       단, 본 wave 시각: 위치 fallback '-' (line 202 verbatim, 20-legal-findings 의 '위치 미지정' 과 다름) +
+       fmtDate 분까지 표시 (line 18 verbatim, 20-legal-findings 일까지만 표시와 다름) 박제
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       -> 본 sketch 가 Section 1+2 KVRow + PhotoGrid + SectionHeader 컴포넌트 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> KVRow label 4행 verbatim (line 200~204): '지적 내용' / '위치' / '등록일' / '등록자'
+          / SectionHeader 2종 verbatim: '지적 정보' (line 198) / '지적 사진' (line 209)
+          / 위치 fallback verbatim '-' (line 202, 20-legal-findings '위치 미지정' 과 다름)
+          / 등록자 fallback verbatim createdByName ?? createdBy (line 204)
+          / 등록일 fmtDate verbatim 분까지 (line 18, 20-legal-findings 일까지만 과 다름)
+          / 사진 없음 verbatim '사진 없음' (line 213, 13 text-text-tertiary marginTop 8)
+          / description whiteSpace pre-wrap (line 201 verbatim)
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (text-caption / leading-none / text-text-tertiary / text-text-primary /
+          text-label / text-body-sm / font-bold / border-b border-border-default / bg-surface-page) 와
+          인라인 (sectionPad '20px 16px' 모바일 / '20px 32px' 데스크톱 / KVRow width 64 / KVRow gap 12 +
+          children lineHeight 1.5 / Section 내부 flex column gap 8 / PhotoGrid marginTop 8 /
+          maxWidth 700 데스크톱) W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> KVRow + SectionHeader 모두 단순 토큰 (text-text-tertiary / text-text-primary).
+          status&#8209; prefix 사용 0건 (★ OQ #2 — finding chip 본 페이지 없음 + KVRow value 좌측 강조 없음).
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       -> KVRow label width 64 = style="width:64px" 인라인 명시. w&#8209;8 사용 0건.
+
+    6. feedback_text_caption_leading_none.md ★ 핵심
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> KVRow label 12 (width 64 안) + SectionHeader 12 (marginBottom 10 + 단독 줄 안) 모두
+          leading-none 명시. OQ #3 LOCKED 부분 적용.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건 (PhotoGrid placeholder 만 텍스트 + 사진 placeholder DIV).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       Section 1+2 = neutral. status&#8209; prefix 색 사용 0건 (OQ #2 LOCKED 위반 시 verify FAIL).
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/21-legal-finding-detail 확인 (worktree base 046c8ec + T1 922eef1).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> Section 1+2 는 status 공통 (open/resolved 양쪽 동일 렌더). status 분기 source of truth = finding.status (W4 scope).
+
+   11. feedback_inspection_unresolved_color.md (일반화) ★ OQ #2 LOCKED
+       -> finding 상태 chip 본 페이지 없음 — status 표시는 화면 모드 자체 (Section 3 form vs Section 4 결과 W4 scope).
+          KVRow value 좌측 강조 (borderLeft 등) 없음. status&#8209; prefix 0건.
+
+   12. feedback_subagent_production_deploy_forbidden.md / feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 11건 (LegalFindingDetailPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-finding', id, fid], queryFn: () => legalApi.getFinding(id!, fid!),
+       enabled: !!id && !!fid }) — line 61~65 (★ 본 wave finding.description/location/createdAt/createdByName/photoKeys 모두 query 결과)
+    2. useMutation: uploadAll 선행 + legalApi.resolveFinding (line 67~87 — W4 scope, 본 wave 미해당)
+    3. queryClient.invalidateQueries 4 키 onSuccess (W4 scope handleResolve 후, 본 wave 미해당)
+    4. legalApi 2종 — getFinding (★ 본 wave 호출) + resolveFinding (W4 scope)
+    5. resolutionPhotos = useMultiPhotoUpload() — line 59 (W4 scope, 본 wave 미해당)
+    6. handleResolve — line 132~138 (W4 scope, 본 wave 미해당)
+    7. finding.status 분기 — line 218/253 (W4 scope, 본 wave 미해당 — Section 1+2 공통)
+    8. admin 다운로드 button 조건부 — staff?.role === 'admin' && finding (W2 헤더 + W4 handleDownload, 본 wave 미해당)
+    9. handleDownload + iOS PWA + ZIP location 기반 — line 89~130 (W4 scope, 본 wave 미해당)
+   10. @keyframes spin (line 45/147, W2 Spinner scope)
+   11. toast 카피 5종 + 추가 카피 (W2 헤더 + W4 CTA, 본 wave 카피 = SectionHeader + KVRow label + 사진 없음 + 위치/등록자 fallback)
+       Section 1+2 카피 verbatim: '지적 정보' / '지적 사진' (SectionHeader line 198/209) /
+       '지적 내용' / '위치' / '등록일' / '등록자' (KVRow label line 200~204) /
+       '사진 없음' (line 213) / 위치 fallback '-' (line 202) / 등록자 fallback createdByName ?? createdBy (line 204)
+
+  ==========================================================
+  Tailwind cheatsheet (v0.1.1 토큰 → utility class 매핑, 본 wave 적용)
+  ==========================================================
+    var(--bd)         → border-border-default     (Section 1+2 borderBottom line 197/208)
+    var(--t3)         → text-text-tertiary        (SectionHeader color line 34 + KVRow label color line 25 +
+                                                    '사진 없음' color line 213)
+    var(--t1)         → text-text-primary         (KVRow children color line 26 — description/위치/등록일/등록자)
+    radius — Section 자체 border-radius 없음 (borderBottom 만)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/21-legal-finding-detail — W3 finding info + KVRow + PhotoGrid + 사진 없음</title>
+<style>
+/* ============================================================
+ * v0.1.1 tokens.css (dark + light) verbatim 인용
+ * ============================================================ */
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255,255,255,0.14);
+  --border-strong:   rgba(255,255,255,0.22);
+  --accent:          #3b82f6;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(0,0,0,0.14);
+  --border-strong:   rgba(0,0,0,0.22);
+  --accent:          #1f6feb;
+}
+body { font-family: 'Pretendard Variable','Pretendard',system-ui,sans-serif; font-size:16px; line-height:1.7; background:#222; color:#ddd; margin:0; padding:24px; }
+.text-caption  { font-size:12px; line-height:1.5; font-weight:400; }
+.text-label    { font-size:13px; line-height:1.5; font-weight:400; }
+.text-body-sm  { font-size:14px; line-height:1.6; font-weight:400; }
+.text-body     { font-size:16px; line-height:1.7; font-weight:400; }
+.font-semibold { font-weight:600; }
+.font-bold     { font-weight:700; }
+.leading-none  { line-height:1; }
+.bg-surface-page      { background: var(--surface-page); }
+.bg-surface-raised    { background: var(--surface-raised); }
+.text-text-primary    { color: var(--text-primary); }
+.text-text-secondary  { color: var(--text-secondary); }
+.text-text-tertiary   { color: var(--text-tertiary); }
+.border-border-default{ border-color: var(--border-default); }
+.border-border-strong { border-color: var(--border-strong); }
+.border-b             { border-bottom-width:1px; border-bottom-style:solid; }
+
+.frame-row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.frame-card { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.frame-label { font-size:12px; color:#888; font-family:monospace; }
+.viewport { border:1px dashed #444; box-sizing:border-box; }
+.viewport-mobile  { width:393px; height:600px; }
+.viewport-desktop { width:1100px; height:600px; }
+
+/* PhotoGrid placeholder — finding.photoKeys 가 url 로 매핑되어 grid 시각화 */
+.photo-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:8px; }
+.photo-cell { aspect-ratio:1; background:#444; border-radius:8px; border:1px solid var(--bd); display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 16px; font-size:18px; color:#fff;">W3 finding-info — Section 1 KVRow 4행 (OQ #2 + OQ #3) + Section 2 PhotoGrid / 사진 없음</h1>
+<p style="margin:0 0 24px; color:#aaa; font-size:13px;">4 frame finding 정보 + 사진 매트릭스 — finding 상태 chip 본 페이지 없음 (status 표시는 화면 모드 자체로 W4 scope, KVRow value 좌측 강조 없음)</p>
+
+<div class="frame-row">
+
+  <!-- ==========================================================
+       Frame 1: 다크 모바일 393x600 finding 정보 + 사진 0건
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[1] dark mobile 393x600 — finding info + 사진 0건 ('사진 없음' line 213 verbatim)</span>
+    <div data-theme="dark" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 모바일 자체 헤더 anchor (W2 scope, 시각 생략 — Section 영역만 시각화) -->
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#666;font-size:12px;">[W2 모바일 자체 헤더]</div>
+
+      <div style="flex:1;overflow-y:auto;">
+        <!-- Section 1: 지적 정보 (line 197~205, sectionPad '20px 16px' 모바일) -->
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <!-- SectionHeader '지적 정보' (line 32~38 verbatim, 12/700 var(--t3) marginBottom 10, OQ #3 leading-none) -->
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 정보</div>
+          <!-- KVRow 4행 verbatim (line 199~204, 내부 flex column gap 8) -->
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <!-- KVRow '지적 내용' (line 200, description whiteSpace pre-wrap) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">지적 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">계단실 비상조명등 점등불량</span>
+            </div>
+            <!-- KVRow '위치' (line 202, location ?? '-' fallback) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">위치</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">3F 비상계단실</span>
+            </div>
+            <!-- KVRow '등록일' (line 203, fmtDate verbatim — 분까지 표시 ${y}.${m}.${d} ${HH}:${mm} zero-padded, 20-legal-findings 일까지만 과 다름) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록일</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.15 14:32</span>
+            </div>
+            <!-- KVRow '등록자' (line 204, createdByName ?? createdBy fallback) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">윤종엽</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: 지적 사진 (line 208~215, 사진 0건 → '사진 없음' line 213 verbatim) -->
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 사진</div>
+          <!-- '사진 없음' (line 213 verbatim, 13 text-text-tertiary marginTop 8) -->
+          <div class="text-label text-text-tertiary" style="margin-top:8px;">사진 없음</div>
+        </div>
+
+        <!-- Section 3+4 placeholder (W4 scope) -->
+        <div style="padding:20px 16px;color:#555;font-size:12px;text-align:center;">
+          [Section 3 status open form / Section 4 status resolved 결과 — W4 scope]
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 2: 다크 데스크톱 1100x600 finding 정보 + 사진 3개 (maxWidth 700, 19/20 차이 1)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[2] dark desktop 1100x600 — finding info + PhotoGrid 사진 3개 (maxWidth 700, 20-legal-findings 800 보다 좁음)</span>
+    <div data-theme="dark" class="viewport viewport-desktop bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:24px 32px 12px;flex-shrink:0;color:#666;font-size:12px;">[W2 데스크톱 타이틀 영역 line 168~177]</div>
+
+      <div style="flex:1;overflow-y:auto;max-width:700px;width:100%;">
+        <!-- Section 1: 지적 정보 (sectionPad '20px 32px' 데스크톱) -->
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 정보</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">지적 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">소화기 압력불량 (재충전)</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">위치</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">7F 복도</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록일</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.10 09:08</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">김방재</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: 지적 사진 (PhotoGrid photoUrls={photoKeys.map(k => '/api/uploads/' + k)} marginTop 8) -->
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 사진</div>
+          <!-- PhotoGrid 3개 사진 placeholder -->
+          <div class="photo-grid">
+            <div class="photo-cell">[photo 1]</div>
+            <div class="photo-cell">[photo 2]</div>
+            <div class="photo-cell">[photo 3]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 3: 라이트 모바일 393x600 finding 정보 + 위치 fallback '-' (line 202, 20-legal-findings '위치 미지정' 과 다름)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[3] light mobile 393x600 — finding info + 위치 fallback '-' (line 202 verbatim, 20-legal-findings '위치 미지정' 과 다름)</span>
+    <div data-theme="light" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#888;font-size:12px;">[W2 모바일 자체 헤더]</div>
+
+      <div style="flex:1;overflow-y:auto;">
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 정보</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">지적 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">방화셔터 동작불량</span>
+            </div>
+            <!-- ★ 위치 fallback '-' (line 202 verbatim, 19/20 차이 5 — 20-legal-findings '위치 미지정' 과 다름) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">위치</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">-</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록일</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.18 17:45</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">이방재</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 사진</div>
+          <div class="text-label text-text-tertiary" style="margin-top:8px;">사진 없음</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 4: 라이트 데스크톱 1100x600 finding 정보 + PhotoGrid 사진 5개
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[4] light desktop 1100x600 — finding info + PhotoGrid 사진 5개 (fmtDate 분까지 표시 verbatim)</span>
+    <div data-theme="light" class="viewport viewport-desktop bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:24px 32px 12px;flex-shrink:0;color:#888;font-size:12px;">[W2 데스크톱 타이틀 영역]</div>
+
+      <div style="flex:1;overflow-y:auto;max-width:700px;width:100%;">
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 정보</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">지적 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">전실제연댐퍼 미작동
+(자탐 수신반에서 신호 없음)</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">위치</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">B2 기계실</span>
+            </div>
+            <!-- ★ 등록일 fmtDate verbatim 분까지 (line 18, 20-legal-findings 일까지만 과 다름) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록일</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.20 11:05</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">등록자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">박방재</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">지적 사진</div>
+          <div class="photo-grid">
+            <div class="photo-cell">[photo 1]</div>
+            <div class="photo-cell">[photo 2]</div>
+            <div class="photo-cell">[photo 3]</div>
+            <div class="photo-cell">[photo 4]</div>
+            <div class="photo-cell">[photo 5]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==========================================================
+     rules 박스
+     ========================================================== -->
+<div style="margin-top:32px;padding:20px;background:#1a1a1a;border-radius:8px;color:#ccc;font-size:13px;line-height:1.7;">
+
+<h2 style="margin:0 0 12px;font-size:15px;color:#fff;">★ rules — OQ #2 + OQ #3 LOCKED + 비즈 anchor + 19/20 차이 5건</h2>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">OQ #2 LOCKED — finding 상태 chip 본 페이지 없음 + KVRow value 좌측 강조 없음 ★ 핵심</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+finding 상태 chip 본 페이지 없음 — 20-legal-findings 미&#8209;조치/완&#8209;료 ch&#8209;ip + 좌측bar 2px 분기 패턴이 본 페이지에는 없음.
+단일 finding 상세 페이지 → status 표시는 화면 모드 자체로 표현:
+  finding.status === 'open'     → Section 3 (form: textarea + 사진 5장 슬롯 + CTA)  [W4 scope]
+  finding.status === 'resolved' → Section 4 (결과: KVRow 3행 + PhotoGrid)            [W4 scope]
+mutually exclusive — open && resolved 양쪽 동시 렌더 불가.
+
+KVRow 컴포넌트 (line 22~29) 만 사용 — label 12 width 64 flexShrink 0 + children 14 flex 1 lineHeight 1.5
++ gap 12 alignItems flex-start. value 좌측 강조 (borderLeft 등) 없음 — KVRow 단순 패턴 유지.
+status&#8209; prefix 없음 (`text&#8209;status&#8209;safe` 같은 패턴 사용 시 W5 verify FAIL, memory `feedback_tailwind_token_class_pattern`).
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">OQ #3 LOCKED — §1.1 9·10·11 → 12 격상 + leading-none ★ 핵심</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+KVRow label 12 (line 25) + SectionHeader 12 (line 34) — 이미 12, leading-none 명시.
+조치 사진 라벨 12 (line 223 W4 scope) — 이미 12, leading-none 명시.
+14 (KVRow children + 에러 + CTA button) + 13 (textarea + '사진 없음' + 데스크톱 admin 다운로드 button) +
+16 (모바일 헤더 타이틀) + 22 (데스크톱 타이틀) 보존.
+20-legal-findings wic + 19-legal 40p + 23-education + 16-workshift + 17-annual-plan OQ 일관 (§1.1 노안 룰 우선).
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 비즈 anchor 11건 (1 byte 변경 금지)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. useQuery(['legal-finding', id, fid], legalApi.getFinding(id!, fid!)) — line 61~65 (★ 본 wave finding query 호출)
+2. useMutation: uploadAll 선행 + legalApi.resolveFinding (line 67~87, W4 scope)
+3. queryClient.invalidateQueries 4 키 onSuccess (W4 scope)
+4. legalApi 2종 — getFinding (★ 본 wave) + resolveFinding (W4 scope)
+5. resolutionPhotos = useMultiPhotoUpload() — line 59 (W4 scope)
+6. handleResolve — line 132~138 (W4 scope)
+7. finding.status 분기 line 218 open / 253 resolved (W4 scope — Section 1+2 는 공통)
+8. admin 다운로드 button 조건부 staff?.role === 'admin' && finding (W2/W4 scope)
+9. handleDownload + iOS PWA + ZIP location 기반 — line 89~130 (W4 scope)
+10. @keyframes spin (W2 Spinner scope)
+11. toast 카피 5종 (W2/W4 scope)
+    + Section 1+2 카피 verbatim: SectionHeader '지적 정보'/'지적 사진' (line 198/209) /
+      KVRow label '지적 내용'/'위치'/'등록일'/'등록자' (line 200~204) /
+      위치 fallback '-' (line 202, 20-legal-findings '위치 미지정' 과 다름) /
+      등록자 fallback createdByName ?? createdBy (line 204) /
+      등록일 fmtDate 분까지 (line 18, 20-legal-findings 일까지만 과 다름) /
+      '사진 없음' (line 213) / description whiteSpace pre-wrap (line 201)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 19/20-legal 차이 5건 (sketch 시각 반영)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. 단일 finding 페이지 — Section 1+2 는 finding 1건 상세 (20-legal-findings 다건 finding 카드 목록과 다름)
+   본 wave 시각: 데스크톱 maxWidth 700 (20-legal-findings 800 보다 좁음, line 194)
+2. resolution form 풀 페이지 — useMultiPhotoUpload 직접 (W4 scope, 본 wave 미해당)
+3. 조치 완료 CTA 풀폭 그라데이션 (W4 scope, 본 wave 미해당)
+4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 (W4 scope, 본 wave 미해당)
+5. finding.status open/resolved 분기로 화면 모드 자체 (W4 scope Section 3/4, 본 wave 미해당)
+   ★ 단, 본 wave 시각 반영: 위치 fallback '-' (line 202, 20-legal-findings '위치 미지정' 과 다름) +
+     fmtDate 분까지 (line 18, 20-legal-findings 일까지만 과 다름) 박제
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">토큰 매핑</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+var(--bd) → border-b border-border-default (Section 1+2 borderBottom line 197/208)
+var(--t3) → text-text-tertiary (SectionHeader color line 34 + KVRow label color line 25 + '사진 없음' color line 213)
+var(--t1) → text-text-primary  (KVRow children color line 26 — description/위치/등록일/등록자)
+KVRow gap 12 / KVRow label width 64 / KVRow children flex 1 line-height 1.5 (line 22~29 verbatim)
+SectionHeader marginBottom 10 / Section 내부 flex column gap 8 / PhotoGrid marginTop 8 / 사진 없음 marginTop 8
+sectionPad: isDesktop ? '20px 32px' : '20px 16px' (line 143 verbatim)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ negative gate (본 wave 자체 검수)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+- 이모지 0건 (sketch 본문)
+- linear&#8209;gradient 0건 (T3 만 예외 anchor ≥3 — W4 scope OQ #4 LOCKED)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선)
+- (text|bg|border)-status- prefix 0건 ★ OQ #2 LOCKED 위반 시 FAIL
+- \b(w|h)-8\b 0건
+- 옛 alias 토큰 sketch 본문 안 0건 (tokens.css 정의 인용 fence 안 예외)
+- finding 상태 chip / borderLeft 본 페이지 사용 0건 ★ OQ #2 LOCKED
+</pre>
+
+</div>
+
+</body>
+</html>
