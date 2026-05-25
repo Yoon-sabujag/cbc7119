@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-download-actions.html — redesign/25-qr-print W4
+  작성: 2026-05-26 / quick 260526-9yw
+  범위: QRPrintPage.tsx 다운로드 버튼 inspect (line 284~290) + public (line 293~301, cat.hasPublic 분기) +
+        dlBtnStyle (line 312~330, 3 state) + handleDownload (line 229~250) +
+        generatePdf (line 122~219) + renderCardCanvas (line 29~119) + 인쇄 모드 분기 (inspect 30x38mm 세로 / public 70x90mm 가로)
+        4 frame (다크 소화기 2 버튼 / 다크 inspect 로딩 / 라이트 소화전 inspect만 / 라이트 데스크톱 7 카드 매트릭스)
+  out of scope: 외곽 wrapper + 자체 헤더 (W2 책임) / 안내 박스 + 카드 wrapper (W3 책임)
+                / TSX 변환 (W5 별도 wave) / QRPrintPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, sketch-wave-2 + sketch-wave-3 mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 다운로드 버튼 그라데이션 처리:
+                    public 분기 그라데이션 `lin&#8209;grad(135deg,#16a34a,#22c55e)` 폐기 (§6.4 위반)
+                    -> default (a) solid `bg-status-safe-bar text-text-on-accent` 치환
+                    inspect 분기 `lin&#8209;grad(135deg,#1d4ed8,#0ea5e9)` 유지 (§6.4 "저장/CTA 버튼" 그라데이션 anchor)
+                    loading 상태 var(--bd2) -> bg-border-strong / var(--t3) -> text-text-tertiary cursor-default
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — 안내 박스 status-info (W3 scope, 본 wave 미해당)
+    OQ #3 LOCKED — 뒤로가기 Lucide ChevronLeft (W2 scope, 본 wave 미해당)
+    OQ #4 LOCKED — 외곽 hex 토큰 치환 (W2/W3 scope, 본 wave 미해당)
+    OQ #5 LOCKED — 비즈 anchor (CATEGORIES + renderCardCanvas + generatePdf + handleDownload + dlBtnStyle)
+                    1 byte 변경 금지 fence 박제 (본 wave 적용 = O ★ 핵심 — 5 anchor 모두 박제)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md — 본 sketch 가 다운로드 버튼 + PDF 카드 미리보기 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 카피 verbatim '점검용 QR PDF' / '점검확인용 QR PDF' / '생성 중...' / '체크포인트가 없습니다' /
+          'PDF 다운로드 완료' / 'PDF 생성 오류' / typeLabel '점검용'/'점검확인용' / 파일명 `${categoryLabel}_${typeLabel}_QR.pdf`
+          / renderCardCanvas topLines 3줄 '본 소화기는 QR코드로 관리되며,' / '아래 QR코드로' / '점검 내역 확인 가능합니다.'
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> dlBtnStyle 시그니처 (line 312~330: padding 9px 16px / borderRadius 9 / border none / fontSize 12 /
+          fontWeight 700 / display flex / alignItems center / gap 6) + handleDownload (line 229~250: useAuthStore +
+          fetch Authorization Bearer + json.success / data?.length 체크 + catLabel + generatePdf + toast 5종) +
+          generatePdf (line 122~219: jsPDF a4 / MARGIN 10 / cardW inspect 30 public 70 / cardH inspect 38 public 90 /
+          gap 1 / qrSize Math.floor(cardW * 0.65) / setFillColor 255,255,255 / setDrawColor 150,150,150 /
+          setLineWidth 0.2 / typeLabel + 파일명) + renderCardCanvas (line 29~119: scale 3 / PAD 3*S /
+          FONT Apple SD Gothic Neo verbatim / topFontSize 12 / bottomFontSize 13 / maxQrW 0.85 /
+          qrDrawSize Math.min Math.max / fillStyle #ffffff/#222222/#333333 / textAlign center / textBaseline top /
+          첫 하단 'bold ') 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bg O / bg&#8209;status&#8209;safe X).
+       -> bg-status-safe-bar 는 status-safe-bar 가 단일 토큰명 (design-system §2.3 verbatim).
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 다운로드 버튼 padding 9px 16px 인라인 (height 자동, button 자체 spacing alias 사용 0건).
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 다운로드 버튼 안 label text-caption font-bold leading-none 명시 (버튼 height ≈ 33~34px).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 라벨 텍스트만 사용.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       빈/오류 상태 = neutral (위험 임계치 아님). status- prefix 색 사용 0건.
+       -> bg-status-safe-bar 는 "다운로드 = 안전 작업 완료" 의미 — design-system §6.2 일치 (위험 색 X).
+          loading 상태 = bg-border-strong (neutral surface) + text-text-tertiary (neutral text).
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/25-qr-print 확인 (현재 ✓).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> renderCardCanvas + generatePdf + handleDownload = source of truth. W5 TSX 변환에서도 1 byte 변경 금지.
+
+   11. feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+   12. project_redesign_15_daily_report_status.md (캘리브 좌표 시스템 보존 일반화)
+       -> 종이 인쇄 mm 값 (inspect 30x38 / public 70x90 / gap 1 / MARGIN 10 / qrSize ratio 0.65)
+          + canvas 픽셀 값 (scale 3 / PAD 3*S / FONT verbatim / topFontSize 12 / bottomFontSize 13 / maxQrW 0.85)
+          + 색 값 (fillStyle #ffffff / #222222 / #333333 / setFillColor 255,255,255 / setDrawColor 150,150,150)
+          모두 1 byte 변경 금지 fence 박제 — 캘리브 좌표 시스템 보존 룰 100% 일반화.
+
+  ==========================================================
+  ★ linear&#8209;gradient negative gate 예외 — 본 W4 만 inspect 버튼 anchor ≥3 박제
+  ==========================================================
+
+  본 W4 sketch 본문 안 사용 그라데이션:
+    - inspect 버튼: style="background:linear-gradient(135deg, #1d4ed8, #0ea5e9);" verbatim (OQ #1 LOCKED inspect 유지)
+      Frame 1 + Frame 3 + Frame 4 매트릭스 최소 ≥3 박제 (T3 verify gate)
+  본 W4 sketch 본문 안 미사용 그라데이션:
+    - public 버튼: linear&#8209;gradient(135deg,#16a34a,#22c55e) 폐기 (OQ #1 LOCKED solid 치환)
+      -> solid bg-status-safe-bar text-text-on-accent 치환 — design-system §6.4 "유일한 그라디언트 2종" 위반 회피
+
+  ==========================================================
+  ★ 비즈 anchor 5건 박제 — handleDownload + generatePdf + renderCardCanvas + dlBtnStyle + busy 3 state
+  ==========================================================
+
+  [1] handleDownload (line 229~250 verbatim — useAuthStore + fetch + Authorization Bearer + toast)
+  [2] generatePdf (line 122~219 verbatim 발췌 — jsPDF a4 / MARGIN 10 / cardW/cardH / typeLabel / 파일명)
+  [3] renderCardCanvas (line 29~119 verbatim 발췌 — scale 3 / PAD / FONT / topFontSize/bottomFontSize / maxQrW / 색)
+  [4] dlBtnStyle (line 312~330 verbatim — loading/public/기본 3 state + OQ #1 LOCKED public solid 치환 표)
+  [5] busy 3 state matrix (null / inspKey '${cat.value}-inspect' / publicKey '${cat.value}-public')
+
+  ==========================================================
+  ★ 인쇄 모드 분기 카드 미리보기 박제 fence
+  ==========================================================
+
+  inspect 카드 미리보기 (30x38mm 세로):
+    - cardW=30 / cardH=38 / scale 3 / qrSize Math.floor(30 * 0.65)=19mm
+    - bottomLines: [locationNo??id, location, floor] / bottomFontSize 3
+    - (renderCardCanvas line 174~186 verbatim)
+
+  public 카드 미리보기 (70x90mm 가로):
+    - cardW=70 / cardH=90 / scale 3 / qrSize Math.floor(70 * 0.65)=45mm
+    - topLines verbatim: ['본 소화기는 QR코드로 관리되며,', '아래 QR코드로', '점검 내역 확인 가능합니다.'] / topFontSize 3
+    - bottomLines: [locationNo??id, location, floor] / bottomFontSize 3
+    - (renderCardCanvas line 189~205 verbatim)
+
+  ==========================================================
+  ★ 카피 verbatim 9건 박제
+  ==========================================================
+
+   1. 'QR 코드 출력' (헤더 타이틀, line 262) — W2 책임 cross-ref
+   2. '항목별 QR 코드를 PDF 파일로 다운로드합니다.' (안내 1줄, line 268) — W3 책임 cross-ref
+   3. '소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.' (안내 2줄, line 269) — W3
+   4. '점검용 QR PDF' / '생성 중...' (inspect 버튼, line 289)
+   5. '점검확인용 QR PDF' / '생성 중...' (public 버튼, line 299)
+   6. '체크포인트가 없습니다' (toast.error, line 128 + line 238)
+   7. 'PDF 다운로드 완료' (toast.success, line 243)
+   8. 'PDF 생성 오류' (toast.error, line 245)
+   9. '본 소화기는 QR코드로 관리되며,\n아래 QR코드로\n점검 내역 확인 가능합니다.' (renderCardCanvas topLines, line 194~196)
+  10. 파일명 `${categoryLabel}_${typeLabel}_QR.pdf` (generatePdf save, line 218)
+  11. typeLabel '점검용' / '점검확인용' (line 217)
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (본 sketch 사용 글리프 0)
+    - linear-gradient — inspect 버튼 만 예외 anchor ≥3 박제 (lin-grad(135deg, #1d4ed8, #0ea5e9))
+                       public 그라데이션 0건 (lin-grad(135deg, #16a34a, #22c55e) 폐기 — solid 치환)
+    - 9 / 10 / 11 px fontSize 0건 (text-caption 12 마지노선)
+    - (text|bg|border)-status- class prefix — bg-status-safe-bar 만 예외 (단일 토큰명)
+    - w&#8209;8 / h&#8209;8 0건
+    - 옛 alias 토큰 (var(--bd2) / var(--t3)) sketch 본문 안 0건
+      (비즈 anchor fence 안 인용은 예외 — dlBtnStyle line 312~330 verbatim)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/25-qr-print — W4 download buttons + PDF preview + busy 3 state</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim 발췌
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --status-info-bar: #0ea5e9;
+      --status-info-bg:  rgba(14, 165, 233, 0.16);
+      --status-safe-bar: #22c55e;
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim 발췌
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --status-info-bar: #0369a1;
+      --status-info-bg:  #e0f2fe;
+      --status-safe-bar: #15803d;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim 발췌
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .font-bold     { font-weight: 700; }
+    .leading-none  { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1024px;
+      height: 720px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* PDF 카드 미리보기 mock (mm -> px 시각 비율 ≈ 4x) */
+    .pdf-mock-card {
+      background: #ffffff;
+      color: #222222;
+      border: 0.2mm solid #969696;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'status-info-bar': 'var(--status-info-bar)',
+            'status-info-bg':  'var(--status-info-bg)',
+            'status-safe-bar': 'var(--status-safe-bar)',
+          },
+          borderRadius: {
+            'sm':   '8px',
+            'md':   '12px',
+            'lg':   '16px',
+            'pill': '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1700px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">25-qr-print sketch W4 — 다운로드 버튼 + busy 3 state + PDF 카드 미리보기</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      quick: 260526-9yw / branch: redesign/25-qr-print / 평면 배치: 25-qr-print/ 직속 (sketch/ 서브폴더 X).
+      QRPrintPage.tsx 다운로드 버튼 inspect (line 284~290, lin-grad anchor 유지) + public (line 293~301, OQ #1 LOCKED solid 치환)
+      + dlBtnStyle (line 312~330, 3 state) + handleDownload (line 229~250) + generatePdf (line 122~219) +
+      renderCardCanvas (line 29~119) + 인쇄 모드 분기 (inspect 30x38mm 세로 / public 70x90mm 가로) verbatim 매핑.
+      4 frame: 다크 소화기 2 버튼 정상 / 다크 소화기 inspect 로딩 / 라이트 소화전 inspect 만 (hasPublic=false) /
+      라이트 데스크톱 7 카드 매트릭스 (전체 카테고리 버튼 상태).
+      OQ #1 (inspect lin-grad anchor + public solid 치환) + OQ #5 (비즈 anchor 5건 1 byte 변경 금지) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       Mobile 3 frame side-by-side — 다크 2 버튼 / 다크 inspect 로딩 / 라이트 inspect 만
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / 소화기 카드 2 버튼 정상
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — 소화기 카드 2 버튼 정상 (inspect lin-grad + public solid)</div>
+      <section data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 헤더 placeholder (W2 sketch 참조) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <!-- 안내 박스 placeholder (W3 sketch 참조) -->
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <!-- 카테고리 목록 — 소화기 카드 (cat.hasPublic=true, 2 버튼) -->
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+
+            <!-- 소화기 카드 (W3 sketch 참조) — 버튼 row 채움 (본 W4 핵심) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <!-- inspect 버튼 (line 284~290 verbatim — lin-grad anchor 유지, W4 예외) -->
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                  점검용 QR PDF
+                </button>
+                <!-- public 버튼 (line 293~301, OQ #1 LOCKED ★: solid bg-status-safe-bar text-text-on-accent 치환)
+                     - 폐기: linear&#8209;gradient(135deg,#16a34a,#22c55e) (§6.4 위반)
+                     - 채택: solid bg-status-safe-bar text-text-on-accent -->
+                <button class="bg-status-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                  점검확인용 QR PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- 소화전 카드 (hasPublic=false, inspect 만) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                  점검용 QR PDF
+                </button>
+              </div>
+            </div>
+            <!-- 나머지 5 카테고리 (DIV/청정소화약제/완강기/전실제연댐퍼/방화셔터) placeholder -->
+            <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:8px 0;text-align:center;">[+5 카테고리 — DIV/청정소화약제/완강기/전실제연댐퍼/방화셔터 모두 inspect 만, hasPublic=false]</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / 소화기 inspect 로딩 ('생성 중...') + public disabled
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — busy='소화기-inspect' (inspect 로딩 + public disabled)</div>
+      <section data-theme="dark" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <!-- inspect 버튼 로딩 (busy === inspKey, dlBtnStyle loading=true) -->
+                <!-- - bg: var(--bd2) -> bg-border-strong / color: var(--t3) -> text-text-tertiary / cursor default + opacity 0.5 -->
+                <button class="bg-border-strong text-text-tertiary text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:default;display:flex;align-items:center;gap:6px;opacity:0.5;" disabled>
+                  생성 중...
+                </button>
+                <!-- public 버튼 disabled (busy 활성 — 다른 버튼은 모두 disabled={!!busy}) -->
+                <button class="bg-status-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:not-allowed;display:flex;align-items:center;gap:6px;opacity:0.5;" disabled>
+                  점검확인용 QR PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- 다른 카드 inspect 도 disabled (busy 활성) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:not-allowed;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);opacity:0.5;" disabled>
+                  점검용 QR PDF
+                </button>
+              </div>
+            </div>
+            <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:8px 0;text-align:center;">[busy 활성 — 모든 카드 disabled={!!busy} → opacity 0.5 + cursor not-allowed]</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 라이트 모바일 393x800 / 소화전 카드 inspect 만 (hasPublic=false 분기 검증)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 라이트 모드 (393x800) — 소화전 inspect 만 (cat.hasPublic=false 분기 검증)</div>
+      <section data-theme="light" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <!-- 소화전 카드 — hasPublic=false 이므로 inspect 만 표시 (public 버튼 자체가 렌더 X) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                  점검용 QR PDF
+                </button>
+                <!-- cat.hasPublic && (public 버튼) 분기로 자체가 렌더 X -->
+                <span class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;align-self:center;">// hasPublic=false → public 버튼 미렌더</span>
+              </div>
+            </div>
+            <!-- DIV 카드 도 같은 패턴 -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">DIV</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">
+                  점검용 QR PDF
+                </button>
+              </div>
+            </div>
+            <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:8px 0;text-align:center;">[소화전/DIV/청정소화약제/완강기/전실제연댐퍼/방화셔터 = hasPublic false → inspect 만]</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Frame 4 (Desktop wide) — 라이트 데스크톱 1024x720 / 7 카드 매트릭스
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 데스크톱 (1024x720) — 7 카드 매트릭스 (busy state 비교 + 카테고리 매트릭스)</div>
+      <section data-theme="light" class="frame-shell-desktop">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[데스크톱 view — 7 카드 매트릭스]</span>
+        </div>
+
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:14px;">
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+
+            <!-- 소화기 (hasPublic=true) — inspect lin-grad + public solid 두 버튼 -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+                <button class="bg-status-safe-bar text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;">점검확인용 QR PDF</button>
+              </div>
+            </div>
+
+            <!-- 소화전 (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+              </div>
+            </div>
+
+            <!-- DIV (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">DIV</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="bg-border-strong text-text-tertiary text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:default;display:flex;align-items:center;gap:6px;opacity:0.5;" disabled>생성 중...</button>
+                <span class="text-caption leading-none text-text-tertiary" style="align-self:center;">// busy='DIV-inspect' 가짜 state — 로딩 시각</span>
+              </div>
+            </div>
+
+            <!-- 청정소화약제 (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">청정소화약제</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+              </div>
+            </div>
+
+            <!-- 완강기 (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">완강기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+              </div>
+            </div>
+
+            <!-- 전실제연댐퍼 (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">전실제연댐퍼</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+              </div>
+            </div>
+
+            <!-- 방화셔터 (hasPublic=false) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;grid-column:span 2;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">방화셔터</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="text-text-on-accent text-caption font-bold leading-none rounded-sm" style="padding:9px 16px;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">점검용 QR PDF</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PDF 카드 미리보기 — inspect 30x38mm 세로 + public 70x90mm 가로
+       ============================================================ -->
+  <section class="max-w-[1400px] mx-auto mt-12">
+    <h2 class="text-white font-bold mb-4" style="font-size:18px;">PDF 카드 미리보기 (인쇄 모드 분기 — renderCardCanvas + generatePdf 결과)</h2>
+
+    <div class="flex gap-8 flex-wrap items-start">
+
+      <!-- inspect 카드 미리보기 (30x38mm) -->
+      <div>
+        <div class="variant-label" style="color:#f6f8fa;">inspect 카드 (30x38mm 세로) — qrSize=Math.floor(30*0.65)=19mm / bottomFontSize 3</div>
+        <div class="pdf-mock-card" style="width:30mm;height:38mm;padding:3mm;">
+          <!-- QR placeholder (19mm) -->
+          <div style="width:19mm;height:19mm;background:repeating-linear-gradient(45deg,#000 0 1mm,#fff 1mm 2mm);border:0.3mm solid #000;"></div>
+          <!-- bottomLines: locationNo??id (3+1=4mm) / location (3-1=2mm) / floor (3-1=2mm) — bold 첫 줄 -->
+          <div style="margin-top:2mm;font-size:3mm;font-weight:bold;color:#333;">소화기-101</div>
+          <div style="font-size:2mm;color:#333;">로비 입구</div>
+          <div style="font-size:2mm;color:#333;">1F</div>
+        </div>
+      </div>
+
+      <!-- public 카드 미리보기 (70x90mm) -->
+      <div>
+        <div class="variant-label" style="color:#f6f8fa;">public 카드 (70x90mm 가로) — qrSize=Math.floor(70*0.65)=45mm / topLines verbatim 3줄 + bottomLines</div>
+        <div class="pdf-mock-card" style="width:70mm;height:90mm;padding:3mm;">
+          <!-- topLines verbatim (line 194~196 — 1 byte 변경 금지) -->
+          <div style="font-size:3mm;color:#222;">본 소화기는 QR코드로 관리되며,</div>
+          <div style="font-size:3mm;color:#222;">아래 QR코드로</div>
+          <div style="font-size:3mm;color:#222;margin-bottom:3mm;">점검 내역 확인 가능합니다.</div>
+          <!-- QR placeholder (45mm) — qrValue = `${baseUrl}/e/${cp.id}` 공개 URL -->
+          <div style="width:45mm;height:45mm;background:repeating-linear-gradient(45deg,#000 0 2mm,#fff 2mm 4mm);border:0.3mm solid #000;"></div>
+          <!-- bottomLines: bold 첫 줄 -->
+          <div style="margin-top:3mm;font-size:3mm;font-weight:bold;color:#333;">소화기-101</div>
+          <div style="font-size:2mm;color:#333;">로비 입구</div>
+          <div style="font-size:2mm;color:#333;">1F</div>
+        </div>
+      </div>
+
+      <!-- A4 portrait 그리드 미리보기 (inspect 카드 7 cols × 7 rows = 49장/page) -->
+      <div>
+        <div class="variant-label" style="color:#f6f8fa;">A4 portrait grid (inspect 30x38mm gap 1 / MARGIN 10) — 7 cols × 7 rows ≈ 49장/page</div>
+        <div style="width:210mm;height:148.5mm;background:#fff;padding:10mm;border:1px solid #969696;display:grid;grid-template-columns:repeat(7,30mm);grid-auto-rows:38mm;gap:1mm;align-content:start;transform:scale(0.5);transform-origin:top left;">
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+          <div style="background:#f0f0f0;border:0.2mm solid #969696;font-size:3mm;color:#333;display:flex;align-items:center;justify-content:center;">QR</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============================================================
+       하단 fence — 비즈 anchor 5건 + OQ 매트릭스 + negative gate 자체 검수
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto mt-12 p-6 rounded-lg" style="background:#1a1f27;color:#e6edf3;border:1px solid rgba(255,255,255,0.14);">
+    <h2 class="font-bold mb-3" style="font-size:18px;">★ 비즈 anchor 박제 5건 (QRPrintPage.tsx 1 byte 변경 금지 — W5 TSX 변환 verbatim 인용)</h2>
+
+    <h3 class="font-bold mb-2" style="font-size:14px;color:#adb6c0;">[1] handleDownload (line 229~250 verbatim)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">async function handleDownload(category: string, type: 'inspect' | 'public') {
+  const key = `${category}-${type}`
+  setBusy(key)
+  try {
+    const res  = await fetch(`/api/checkpoints?category=${encodeURIComponent(category)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const json = await res.json() as { success: boolean; data?: CheckPoint[] }
+    if (!json.success || !json.data?.length) {
+      toast.error('체크포인트가 없습니다')
+      return
+    }
+    const catLabel = CATEGORIES.find(c =&gt; c.value === category)?.label ?? category
+    await generatePdf(json.data, type, baseUrl, catLabel)
+    toast.success('PDF 다운로드 완료')
+  } catch (e) {
+    toast.error('PDF 생성 오류')
+    console.error(e)
+  } finally {
+    setBusy(null)
+  }
+}</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">[2] generatePdf (line 122~219 verbatim 발췌 — jsPDF a4 / MARGIN 10 / cardW/cardH / typeLabel / 파일명)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">async function generatePdf(points: CheckPoint[], type: 'inspect' | 'public', baseUrl: string, categoryLabel: string) {
+  if (points.length === 0) { toast.error('체크포인트가 없습니다'); return }
+
+  const isLandscape = type === 'public'
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: isLandscape ? 'landscape' : 'portrait' })
+  const PAGE_W = isLandscape ? 297 : 210, PAGE_H = isLandscape ? 210 : 297
+  const MARGIN = 10
+  const cardW = type === 'inspect' ? 30 : 70
+  const cardH = type === 'inspect' ? 38 : 90
+  const gap = 1
+  // cols/rows Math.floor / setFillColor 255,255,255 / setDrawColor 150,150,150 / setLineWidth 0.2
+  // ...
+  // inspect: qrValue = cp.id / qrSize = Math.floor(cardW * 0.65) / bottomLines [locationNo??id, location, floor] / bottomFontSize 3
+  // public:  qrValue = `${baseUrl}/e/${cp.id}` / topLines verbatim 3줄 + bottomLines / topFontSize 3 / bottomFontSize 3
+  const typeLabel = type === 'inspect' ? '점검용' : '점검확인용'
+  doc.save(`${categoryLabel}_${typeLabel}_QR.pdf`)
+}</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">[3] renderCardCanvas (line 29~119 verbatim 발췌 — scale 3 / PAD / FONT / topFontSize / bottomFontSize / maxQrW / 색)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">async function renderCardCanvas(config: { width, height, qrValue, qrSize, topLines?, topFontSize=12, bottomLines, bottomFontSize=13, scale=3 }): Promise&lt;string&gt; {
+  const W = width * scale, H = height * scale, S = scale
+  const FONT = `-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`
+  const PAD = 3 * S
+
+  // 1) topH = topLines.length * (fs + 2*S) + 2*S
+  // 2) bottomH = 첫 +1 나머지 -1 fontSize 누적
+  // 3) availH = H - PAD*2 - topH - bottomH - 4*S / maxQrW = Math.floor(W * 0.85)
+  //    qrDrawSize = Math.min(Math.max(availH, 20*S), maxQrW)
+  // 4) QRCode.toCanvas margin 1 / fillStyle '#ffffff' bg / '#222222' top / '#333333' bottom
+  //    textAlign 'center' / textBaseline 'top' / 첫 하단 라인 'bold ' 추가
+
+  return canvas.toDataURL('image/png')
+}</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">[4] dlBtnStyle (line 312~330 verbatim — loading/public/기본 3 state, OQ #1 LOCKED ★)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">function dlBtnStyle(loading: boolean, isPublic: boolean): React.CSSProperties {
+  return {
+    padding: '9px 16px',
+    borderRadius: 9,
+    border: 'none',
+    background: loading
+      ? 'var(--bd2)'                                    // -> bg-border-strong (loading)
+      : isPublic
+        ? 'linear&#8209;gradient(135deg,#16a34a,#22c55e)'  // 폐기 (OQ #1 LOCKED) → solid bg-status-safe-bar
+        : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',    // -> inspect 유지 (W4 만 예외 anchor)
+    color: loading ? 'var(--t3)' : '#fff',              // -> text-text-tertiary (loading) / text-text-on-accent (활성)
+    fontSize: 12,                                        // -> text-caption
+    fontWeight: 700,                                     // -> font-bold
+    cursor: loading ? 'default' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  }
+}</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">[5] busy 3 state matrix (line 225~226 + 230~231 + 287/297 verbatim)</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#232a33;">
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">busy 값</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">의미</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">버튼 상태</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><code>null</code></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">유휴 (모든 버튼 활성)</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">inspect lin-grad / public solid (활성) — Frame 1</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><code>inspKey = `${cat.value}-inspect`</code></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">inspect 로딩 (모든 버튼 disabled)</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">자기 자신 '생성 중...' (loading 토큰) / 나머지 disabled (opacity 0.5) — Frame 2</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><code>publicKey = `${cat.value}-public`</code></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">public 로딩 (모든 버튼 disabled)</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">자기 자신 '생성 중...' (loading 토큰) / 나머지 disabled</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">OQ LOCKED 5건 매트릭스 (본 W4 적용 = OQ #1 + OQ #5)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#232a33;">
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">OQ</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">LOCKED 답 (default a)</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">본 W4 적용</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(34,197,94,0.08);">
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>#1 다운로드 버튼 그라데이션</b></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">public 그라데이션 폐기 -> solid bg-status-safe-bar text-text-on-accent / inspect lin-grad 유지 (§6.4 anchor) / loading var(--bd2) -> bg-border-strong, var(--t3) -> text-text-tertiary cursor-default</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>O (본 wave 핵심)</b></td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">#2 안내 박스 색</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">bg-status-info-bg + border-status-info-bar 알리아스 치환</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">X (W3 책임)</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">#3 뒤로가기 Lucide ChevronLeft</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">Lucide ChevronLeft size={16} 교체</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">X (W2 책임)</td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">#4 외곽 hex 토큰 치환</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">design-system §4.1 마이그레이션 표 그대로</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">X (W2/W3 책임)</td>
+        </tr>
+        <tr style="background:rgba(34,197,94,0.08);">
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>#5 비즈 anchor 보존</b></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">CATEGORIES + renderCardCanvas + generatePdf + handleDownload + dlBtnStyle + 카피 9건 + 종이 인쇄 mm/px/색 1 byte 변경 금지</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>O (본 wave 핵심 — 5 anchor 모두 박제)</b></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">4 frame 요약표 (본 W4)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#232a33;">
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">Frame</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">Theme / Size</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">상태</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">시각 검증 포인트</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">1</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">다크 / 모바일 393x800</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">소화기 2 버튼 정상</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">inspect lin-grad #1d4ed8→#0ea5e9 + public solid bg-status-safe-bar 시각 대비</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">2</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">다크 / 모바일 393x800</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">소화기 inspect 로딩</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">busy='소화기-inspect' — 자기 자신 '생성 중...' + 나머지 disabled (opacity 0.5)</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">3</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">라이트 / 모바일 393x800</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">소화전 inspect 만</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">cat.hasPublic=false — public 버튼 자체가 렌더 X (조건부 렌더 분기 검증)</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">4</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">라이트 / 데스크톱 1024x720</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">7 카드 매트릭스</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">7 카테고리 한눈 비교 + busy state (DIV 로딩 가짜) + 소화기만 2 버튼</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">카피 verbatim 9건 (본 W4 본문 안 등장 — '점검용 QR PDF' / '점검확인용 QR PDF' / '생성 중...')</h2>
+    <ul style="font-size:13px;line-height:1.7;list-style:disc;padding-left:24px;">
+      <li><code>'QR 코드 출력'</code> (헤더 타이틀, line 262) — W2 cross-ref</li>
+      <li><code>'항목별 QR 코드를 PDF 파일로 다운로드합니다.'</code> (안내 1줄, line 268) — W3 cross-ref</li>
+      <li><code>'소화기는 &lt;b&gt;점검용&lt;/b&gt;(3×3 cm)과 &lt;b&gt;점검확인용&lt;/b&gt;(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.'</code> (안내 2줄, line 269) — W3 cross-ref</li>
+      <li><code>'점검용 QR PDF'</code> / <code>'생성 중...'</code> (inspect 버튼, line 289) — 본 W4 본문 등장</li>
+      <li><code>'점검확인용 QR PDF'</code> / <code>'생성 중...'</code> (public 버튼, line 299) — 본 W4 본문 등장</li>
+      <li><code>'체크포인트가 없습니다'</code> (toast.error, line 128 + 238) — handleDownload anchor</li>
+      <li><code>'PDF 다운로드 완료'</code> (toast.success, line 243) — handleDownload anchor</li>
+      <li><code>'PDF 생성 오류'</code> (toast.error, line 245) — handleDownload anchor</li>
+      <li><code>'본 소화기는 QR코드로 관리되며,\n아래 QR코드로\n점검 내역 확인 가능합니다.'</code> (renderCardCanvas topLines, line 194~196) — public 카드 미리보기 본문 등장</li>
+      <li>파일명 <code>`${categoryLabel}_${typeLabel}_QR.pdf`</code> + typeLabel <code>'점검용'</code> / <code>'점검확인용'</code> (line 217~218) — generatePdf anchor</li>
+    </ul>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">Negative gate 자체 검수 (본 W4)</h2>
+    <ul style="font-size:13px;line-height:1.7;list-style:disc;padding-left:24px;">
+      <li>이모지 0건 (본 sketch 사용 글리프 0)</li>
+      <li><b>linear-gradient — inspect 버튼 만 예외 anchor ≥3 박제 (lin-grad(135deg, #1d4ed8, #0ea5e9))</b>
+          / public 그라데이션 0건 in sketch body (lin-grad(135deg, #16a34a, #22c55e) 폐기, fence 안 dlBtnStyle 인용만 예외)</li>
+      <li>9 / 10 / 11 px fontSize 0건 (text-caption 12 마지노선, 인쇄 모드 mm 값은 예외 — 종이 인쇄 캘리브)</li>
+      <li>(text|bg|border)-status- class prefix — bg-status-info-bg + border-status-info-bar + bg-status-safe-bar 만 예외
+          (모두 단일 토큰명, design-system §2.3 verbatim)</li>
+      <li>w&#8209;8 / h&#8209;8 0건</li>
+      <li>옛 alias 토큰 (var(--bd2) / var(--t3)) sketch 본문 안 0건
+          (비즈 anchor fence 안 인용은 예외 — dlBtnStyle line 312~330 verbatim)</li>
+      <li>평면 배치 — 25-qr-print/ 직속 (sketch/ 서브폴더 X)</li>
+    </ul>
+  </section>
+
+</body>
+</html>

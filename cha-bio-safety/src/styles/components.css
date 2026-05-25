@@ -1077,6 +1077,33 @@
   .docs-mobile-wrap { padding: 16px 16px 0 16px; }
   .docs-page-root { color: var(--text-primary); }
 
+  /* ============================================================
+   * §15. 25-qr-print QRPrintPage (W2~W4, ~13 class) — TSX 변환 wave 260526-b5t
+   * ── §15. QR Print Page (25-qr-print W5 TSX 변환) ──────────────
+   * Source: sketch-wave-{2,3,4} + W5 §6 cheatsheet + W1 OQ LOCKED 5
+   * Scope: `.qr-print-page` (외곽) ~ `.qr-print-page-dl-btn--inspect`
+   * OQ #1 LOCKED: public lin-grad 16a34a→22c55e 폐기 → solid var(--status-safe-bar)
+   *                inspect lin-grad 1d4ed8→0ea5e9 인라인 유지 (§6.4 정식 anchor)
+   * OQ #2 LOCKED: 안내 박스 rgba(14,165,233) → var(--status-info-bg|bar) 토큰화
+   * OQ #3 LOCKED: 뒤로가기 width:34px height:34px 명시 (memory feedback_tailwind_w8_h8_is_48px)
+   */
+  .qr-print-page { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--surface-page); }
+  .qr-print-page-header { padding: 8px 12px; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .qr-print-page-back-btn { width: 34px; height: 34px; border-radius: 8px; background: var(--surface-sunken); border: 1px solid var(--border-default); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .qr-print-page-title { font-size: 15px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+  .qr-print-page-info-wrap { padding: 10px 14px 4px; flex-shrink: 0; }
+  .qr-print-page-info-box { background: var(--status-info-bg); border: 1px solid var(--status-info-bar); border-radius: 10px; padding: 10px 13px; font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+  .qr-print-page-list { flex: 1; overflow-y: auto; padding: 10px 14px 20px; }
+  .qr-print-page-list-inner { display: flex; flex-direction: column; gap: 10px; }
+  .qr-print-page-card { background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 13px; padding: 13px 14px; }
+  .qr-print-page-card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; line-height: 1.2; }
+  .qr-print-page-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .qr-print-page-dl-btn { padding: 9px 16px; border-radius: 9px; border: none; color: var(--text-on-accent); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; line-height: 1; }
+  .qr-print-page-dl-btn:disabled { cursor: default; }
+  .qr-print-page-dl-btn--loading { background: var(--border-strong); color: var(--text-tertiary); cursor: default; }
+  .qr-print-page-dl-btn--public { background: var(--status-safe-bar); }
+  /* .qr-print-page-dl-btn--inspect 은 인라인 style 로 lin-grad #1d4ed8→#0ea5e9 적용 (§6.4 정식 anchor) */
+
 }
 
 /* ── §12. @keyframes blink (W3 .summary-card-skeleton 의존) ── */
