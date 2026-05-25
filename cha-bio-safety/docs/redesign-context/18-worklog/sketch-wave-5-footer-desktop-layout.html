@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-5-footer-desktop-layout.html — redesign/18-worklog W5
+  작성: 2026-05-25 / quick 260525-mbr
+  범위: footerButtons (저장 + 엑셀 출력) + 모바일 고정 푸터 + 데스크톱 좌측편집/우측A4 분할 layout
+  out of scope: 모바일 헤더 + monthNav (W2) / 기본정보 + 4 카테고리 카드 (W3) /
+                불량사항 개선보고 카드 (W4) / WorkLogPortraitPreview wrapper (W6)
+  참조: wave-1-index.md §1.4 / §1.5 / §2.1 W5 행 verbatim,
+        WorkLogPage.tsx line 667~707 (footerButtons) + 733~793 (데스크톱 외곽) + 796~828 (모바일 외곽) verbatim
+
+  W1 LOCKED 6건 매트릭스 (wave-1-index.md §7 OQ default verbatim):
+    OQ #1 ▶ default: 저장 button solid bg-safe-bar (본 W5 적용 = O — 그라데이션 폐기)
+    OQ #2 ▶ default: admin readOnly opacity 0.5 (W3·W4 scope, W5 미해당)
+    OQ #3 ▶ default: 양호 safe / 불량 danger / 보고·조치 accent (W3·W4 scope, W5 미해당)
+    OQ #4 ▶ default: 미래 월 disabled (W2 scope, W5 미해당)
+    OQ #5 ▶ default: 캘리브 33 step 100% 보존 (W6 scope, W5 미해당)
+    OQ #6 ▶ default: warning glyph → lucide AlertTriangle (W6 scope, W5 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug)
+  ==========================================================
+
+    1. feedback_bottomnav_gap_style.md
+       하단 갭 구현은 bottom 으로 띄우거나 버튼 압축 금지. paddingBottom 증가로 자연스럽게.
+       → 본 sketch 모바일 고정 푸터 paddingBottom = calc(10px + var(--sab)) verbatim 보존 (iOS safe-area).
+
+    2. feedback_text_caption_leading_none.md
+       text-caption 작은 컨테이너 안 leading-none.
+       → '· 수정됨' indicator 12 leading-none.
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 정의 grep 추출 → W7 변환 wave 안 verbatim 인용.
+       → .worklog-footer / .worklog-footer-save / .worklog-footer-save--disabled /
+         .worklog-footer-save-dirty / .worklog-footer-export / .worklog-mobile-footer /
+         .worklog-desktop-layout / .worklog-desktop-edit-panel / .worklog-desktop-preview-panel /
+         .worklog-desktop-print-label 10 class 정의.
+
+    4. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰 코드 그대로.
+       → "저장" / "저장 중..." / "엑셀 출력" / "출력 중..." / "· 수정됨" / "인쇄 미리보기" verbatim.
+
+    5. feedback_redesign_sketch_rule_enforcement.md (§6.2 negative rule)
+       위험 임계치 아닌 카드는 status 색 금지. 저장 button = safe 색 OK (긍정 CTA).
+       → 저장 button bg = var(--status-safe-bar) (긍정 CTA) /
+         엑셀 출력 = bg-surface-raised border (보조 액션 의미 분리).
+
+    6. feedback_design_changes_ask_first.md
+       레이아웃 구조 변경 사전 컨펌.
+       → 데스크톱 좌우 분할 layout = 소스 line 733~793 외곽 그대로 보존 (구조 변경 0).
+
+    7. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave wrangler 금지.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18 업무 수행 기록표 — sketch W5 footer + 모바일/데스크톱 layout</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --accent:          #3b82f6;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --sab: 0px; /* iOS safe-area-inset-bottom — sketch 안 임시 0 */
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --accent:          #1f6feb;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+    }
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .leading-none { line-height: 1; }
+    .page-bg-dark { background: #0a0d12; }
+    .variant-label {
+      font-size: 12px; color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em; padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* 모바일 frame */
+    .frame-mobile {
+      background: var(--surface-page); color: var(--text-primary);
+      border: 1px solid var(--border-default); border-radius: 18px;
+      overflow: hidden; width: 393px; height: 720px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column;
+      position: relative;
+    }
+    /* 데스크톱 frame — 1280×720 축소 */
+    .frame-desktop {
+      background: var(--surface-page); color: var(--text-primary);
+      border: 1px solid var(--border-default); border-radius: 18px;
+      overflow: hidden; width: 960px; height: 540px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+
+    /* ============================================================
+     * §2.1 W5 신규 정의 (line 667~707 + 733~793 + 796~828 매핑)
+     * ============================================================ */
+    .worklog-footer {
+      display: flex;
+      gap: 8px; /* source line 668 gap 8 verbatim */
+    }
+    .worklog-footer-save {
+      flex: 1;
+      padding: 12px 16px; /* source line 674 padding 11 → 12 (button-height 44 인접) */
+      border-radius: 9px;
+      border: none;
+      font-size: 16px; /* source line 675 fontSize 13 → 16 (text-body, 노안 격상) */
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      gap: 0;
+      /* OQ #1 default: solid bg-safe-bar — 그라데이션 폐기 */
+      background: var(--status-safe-bar);
+      color: #fff;
+    }
+    .worklog-footer-save--disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+    .worklog-footer-save-dirty {
+      /* source line 686 fontSize 11 → 12 (text-caption, 노안 격상) */
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      font-weight: 400;
+      color: var(--status-warning-bar);
+      margin-left: 6px;
+    }
+    .worklog-footer-export {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 9px;
+      border: 1px solid var(--border-default);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--surface-raised);
+      color: var(--text-primary);
+    }
+    .worklog-footer-export--disabled {
+      background: var(--surface-sunken);
+      color: var(--text-tertiary);
+      cursor: default;
+    }
+    .worklog-mobile-footer {
+      /* source line 818~825 verbatim — position fixed bottom 0, paddingBottom calc + safe-area */
+      position: absolute; /* sketch frame 안 fixed → absolute (frame 자체가 fixed 컨테이너 대체) */
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 16px;
+      padding-bottom: calc(10px + var(--sab)); /* memory feedback_bottomnav_gap_style */
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      z-index: 10;
+    }
+    .worklog-desktop-layout {
+      /* source line 735 verbatim — flex row height 100% overflow hidden */
+      display: flex; flex-direction: row;
+      height: 100%; overflow: hidden;
+      background: var(--surface-page);
+    }
+    .worklog-desktop-edit-panel {
+      /* source line 739 verbatim — flex 1 overflow auto padding '24px 32px' */
+      flex: 1; overflow: auto;
+      padding: 24px 32px;
+    }
+    .worklog-desktop-preview-panel {
+      /* source line 751~759 verbatim — aspectRatio 210/297 borderLeft 1px */
+      aspect-ratio: 210 / 297;
+      height: 100%; flex-shrink: 0;
+      border-left: 1px solid var(--border-default);
+      overflow: hidden;
+      background: var(--surface-page);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .worklog-desktop-print-label {
+      /* source line 760~767 verbatim — fontSize 11 → 12 (text-caption, 노안 격상) */
+      position: absolute; top: 8px; left: 0; right: 0;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      color: var(--text-secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 5;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'surface-page': 'var(--surface-page)',
+        'surface-raised': 'var(--surface-raised)',
+        'surface-sunken': 'var(--surface-sunken)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary': 'var(--text-tertiary)',
+        'border-default': 'var(--border-default)',
+        'accent': 'var(--accent)',
+        'safe-bar': 'var(--status-safe-bar)',
+        'warning-bar': 'var(--status-warning-bar)',
+        'danger-bar': 'var(--status-danger-bar)',
+      }}}
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">18-worklog sketch W5 — footerButtons + 모바일 고정 푸터 + 데스크톱 좌우 분할</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393×720 (F1: 저장 default, F2: 저장 dirty '· 수정됨') / 데스크톱 960×540 (F3: 좌우 분할, F4: 저장 disabled).
+      WorkLogPage.tsx line 667~707 (footerButtons) + 733~793 (데스크톱 외곽) + 796~828 (모바일 외곽) verbatim 매핑.
+      OQ #1 default: 저장 button solid bg-safe-bar — line 679 그라데이션 (lin-grad 135deg,#1d4ed8,#2563eb) 폐기.
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / 모바일 / 저장 default ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / 모바일 393×720 / 저장 default</div>
+      <div data-theme="dark" class="frame-mobile">
+
+        <!-- 모바일 자체 헤더 placeholder (W2 책임) -->
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 12px 9px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--surface-sunken);"></div>
+          <span style="flex: 1; font-size: 18px; font-weight: 700;">업무 수행 기록표</span>
+          <div style="width: 90px; height: 28px; border-radius: 6px; background: var(--surface-sunken);"></div>
+        </div>
+
+        <!-- 스크롤 본문 (line 812 verbatim — flex 1 overflowY auto padding '12px 16px') -->
+        <div style="flex: 1; overflow-y: auto; padding: 12px 16px;">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6; margin-bottom: 10px;">
+            W3·W4 책임 영역 — 기본정보 + 4 카테고리 + 불량사항 개선보고 카드
+          </div>
+          <!-- height 72 spacer (line 814) — 고정 푸터 회피 -->
+          <div style="height: 72px;"></div>
+        </div>
+
+        <!-- 모바일 고정 푸터 (line 818~826 verbatim — paddingBottom calc(10px + var(--sab))) -->
+        <div class="worklog-mobile-footer">
+          <div class="worklog-footer">
+            <button type="button" class="worklog-footer-save">저장</button>
+            <button type="button" class="worklog-footer-export">엑셀 출력</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 모바일 / 저장 dirty ('· 수정됨') ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / 모바일 393×720 / 저장 dirty + 저장 중 + 출력 중</div>
+      <div data-theme="dark" class="frame-mobile">
+
+        <div style="flex-shrink: 0; background: var(--surface-raised); border-bottom: 1px solid var(--border-default); padding: 8px 12px 9px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--surface-sunken);"></div>
+          <span style="flex: 1; font-size: 18px; font-weight: 700;">업무 수행 기록표</span>
+          <div style="width: 90px; height: 28px; border-radius: 6px; background: var(--surface-sunken);"></div>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 12px 16px;">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6; margin-bottom: 10px;">
+            isDirty=true 분기 — currentPayload ↔ loadedRef 19 필드 diff (line 204~246)
+          </div>
+          <div style="height: 72px;"></div>
+        </div>
+
+        <div class="worklog-mobile-footer">
+          <div class="worklog-footer">
+            <!-- 저장 + dirty (line 685~687 verbatim) — '· 수정됨' indicator -->
+            <button type="button" class="worklog-footer-save">
+              저장
+              <span class="worklog-footer-save-dirty">· 수정됨</span>
+            </button>
+            <button type="button" class="worklog-footer-export">엑셀 출력</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 다크 / 데스크톱 / 좌측편집 + 우측 A4 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 다크 / 데스크톱 960×540 / 좌측 편집 + 우측 A4 portrait</div>
+      <div data-theme="dark" class="frame-desktop">
+
+        <!-- App.tsx GlobalHeader placeholder (데스크톱은 표시 — line 101 '/worklog': '업무 수행 기록표') -->
+        <div style="height: 48px; background: rgba(0,0,0,0.4); color: #888; display: flex; align-items: center; padding: 0 24px; font-size: 13px; font-family: 'JetBrains Mono', monospace;">
+          App GlobalHeader — 업무 수행 기록표 (데스크톱 표시)
+        </div>
+
+        <!-- 데스크톱 layout (line 735~793 verbatim) — flex row height calc(100% - 48px) -->
+        <div class="worklog-desktop-layout" style="height: calc(100% - 48px);">
+
+          <!-- 좌측 편집 패널 (line 739 verbatim — flex 1 overflow auto padding '24px 32px') -->
+          <div class="worklog-desktop-edit-panel">
+            <!-- monthNav flex-end top (line 740~742) -->
+            <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--surface-sunken);"></div>
+                <div style="min-width: 90px; height: 28px; border-radius: 6px; background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">2026년 5월</div>
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--surface-sunken);"></div>
+              </div>
+            </div>
+
+            <!-- formContent placeholder (W3·W4 책임) -->
+            <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6; margin-bottom: 14px;">
+              W3·W4 책임 영역 — 5 카드 (기본정보 + 4 카테고리 + 불량사항 개선보고)
+            </div>
+
+            <!-- footerButtons (line 744~746) inline + height 24 spacer (line 747) -->
+            <div style="margin-top: 4px;">
+              <div class="worklog-footer">
+                <button type="button" class="worklog-footer-save">저장</button>
+                <button type="button" class="worklog-footer-export">엑셀 출력</button>
+              </div>
+            </div>
+            <div style="height: 24px;"></div>
+          </div>
+
+          <!-- 우측 A4 portrait 패널 (line 751~759 verbatim — aspectRatio 210/297) -->
+          <div class="worklog-desktop-preview-panel">
+            <!-- "인쇄 미리보기" 라벨 (line 760~767 verbatim — fontSize 11 → 12 노안 격상) -->
+            <div class="worklog-desktop-print-label leading-none">인쇄 미리보기</div>
+
+            <!-- WorkLogPortraitPreview placeholder (W6 책임) -->
+            <div style="background: #fff; width: 80%; height: 90%; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+              W6 책임 — WorkLogPortraitPreview wrapper (21 props)
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 데스크톱 / 저장 disabled (assistant or 저장 중) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / 데스크톱 960×540 / 저장 disabled + 출력 중</div>
+      <div data-theme="light" class="frame-desktop">
+
+        <div style="height: 48px; background: rgba(0,0,0,0.4); color: #888; display: flex; align-items: center; padding: 0 24px; font-size: 13px; font-family: 'JetBrains Mono', monospace;">
+          App GlobalHeader — 업무 수행 기록표 (데스크톱 표시)
+        </div>
+
+        <div class="worklog-desktop-layout" style="height: calc(100% - 48px);">
+
+          <div class="worklog-desktop-edit-panel">
+            <div style="display: flex; align-items: center; justify-content: flex-end; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 4px;">
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--surface-sunken);"></div>
+                <div style="min-width: 90px; height: 28px; border-radius: 6px; background: var(--surface-sunken); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">2026년 5월</div>
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--surface-sunken); opacity: 0.4;"></div>
+              </div>
+            </div>
+
+            <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6; margin-bottom: 14px;">
+              W3·W4 책임 영역 (assistant readOnly)
+            </div>
+
+            <!-- 저장 disabled (line 677~679 if isSaving || !isAdmin → bg var(--bg3) color var(--t3)) -->
+            <!-- 엑셀 출력 generating (line 699~700 if generating || !isAdmin → bg var(--bg3) color var(--t3)) -->
+            <div style="margin-top: 4px;">
+              <div class="worklog-footer">
+                <button type="button" class="worklog-footer-save worklog-footer-save--disabled" disabled title="관리자만 저장할 수 있습니다">저장 중...</button>
+                <button type="button" class="worklog-footer-export worklog-footer-export--disabled" disabled title="관리자만 저장할 수 있습니다">출력 중...</button>
+              </div>
+            </div>
+            <div style="height: 24px;"></div>
+          </div>
+
+          <div class="worklog-desktop-preview-panel">
+            <div class="worklog-desktop-print-label leading-none">인쇄 미리보기</div>
+            <div style="background: #fff; width: 80%; height: 90%; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+              W6 책임 — WorkLogPortraitPreview wrapper
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="max-w-[1400px] mx-auto mt-12 text-zinc-400" style="font-size: 12px; line-height: 1.7;">
+    <h2 class="text-title text-zinc-200 mb-2">W7 변환 시 보존 비즈 anchor (W5 특화)</h2>
+    <ul class="space-y-1">
+      <li>저장 button — WorkLogPage.tsx line 670~690, onClick isAdmin && !isSaving && saveMutation.mutate()</li>
+      <li>OQ #1 default: line 679 bg solid var(--status-safe-bar) — 폐기된 그라데이션은 source 코드 안에만 (W7 변환 후 삭제 대상)</li>
+      <li>'· 수정됨' indicator — line 685~687, isDirty 분기 (currentPayload ↔ loadedRef 19 필드 diff line 204~246)</li>
+      <li>엑셀 출력 button — line 693~705, onClick isAdmin && !generating && handleExport()</li>
+      <li>handleExport — line 283~302, isDirty 시 confirm → save → generateWorkLogExcel(ym, payload) → finally setGenerating(false)</li>
+      <li>모바일 고정 푸터 — line 818~825 verbatim, paddingBottom calc(10px + var(--sab)) — memory feedback_bottomnav_gap_style</li>
+      <li>height 72 spacer — line 814 (고정 푸터 회피)</li>
+      <li>데스크톱 좌측 패널 — line 739, flex 1 overflow auto padding '24px 32px'</li>
+      <li>데스크톱 우측 패널 — line 751~759, aspectRatio '210/297' borderLeft 1px var(--bd)</li>
+      <li>"인쇄 미리보기" 라벨 — line 760~767, fontSize 11 → 12 노안 격상 (text-caption + leading-none)</li>
+      <li>useIsDesktop ≥768px — line 9 import + line 59 호출 + line 733 분기</li>
+    </ul>
+  </footer>
+
+</body>
+</html>
