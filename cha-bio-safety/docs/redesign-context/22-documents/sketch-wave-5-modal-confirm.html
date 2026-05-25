@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  sketch-wave-5-modal-confirm.html — redesign/22-documents W5
+  작성: 2026-05-26 / quick 260526-85a
+  범위: delete confirm gate + admin 권한 + multipart abort/retry + beforeunload guard 시각화
+        - DocumentSection.tsx handleDelete (line 84~110) — ★ delete confirm full string verbatim
+        - DocumentUploadForm.tsx handleCancel (line 155~166) — ★ abort confirm verbatim
+        - DocumentUploadForm.tsx handleSubmit useEffect beforeunload (line 64~72) — ★ beforeunload returnValue verbatim
+        - DocumentUploadForm.tsx handleRetry (line 168~171) — setError(null) + handleSubmit 재호출
+        - 403 에러 카피 (line 141) — '관리자만 업로드할 수 있습니다.'
+        - admin 권한 분기 (line 40) — useAuthStore role admin
+        - unmount abort cleanup (line 75~79) — abortRef.current?.abort()
+        4 frame (모바일 다크 delete confirm / 데스크톱 다크 abort confirm + Error retry / 모바일 라이트 403 / 데스크톱 라이트 beforeunload)
+  out of scope: DocumentsPage chrome (W2) / DocumentSection 카드 (W3) / DocumentUploadForm 폼 (W4) / TSX 변환 (W6)
+                / src 3 파일 코드 수정 / utils/api
+  참조: wave-1-index.md §3 + §7 OQ #4 verbatim, sketch-wave-2/3/4 모든 anchor
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — bg-accent (W2/W3 적용, 본 wave 부가 anchor)
+    OQ #2 LOCKED — submit lin-grad (W4 anchor ≥3, 본 wave 비-적용)
+    OQ #3 LOCKED — text-caption 12 leading-none (W3/W4 적용, 본 wave 부가 anchor 0)
+    OQ #4 LOCKED — ★ Error 카피 13 → text-body-sm 14 font-medium 격상
+                    403 카피 + ApiError other 카피 모두 14 격상
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #5 LOCKED — bg-surface-sunken (cancel button bg, dialog overlay 등 부가 anchor)
+
+  ★ ★ ★ delete confirm full string verbatim 1 byte 변경 금지 (memory project_legal_findings_delete_incident_260520):
+    `"${item.title}"\n(${item.filename})\n\n정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+    → 2026-05-20 종합정밀 2026.05 22행 삭제 사고 (Time Travel 복구 성공) 일반화
+    → 22 행 사고 = legal_findings 였지만, document 삭제도 동일 가드 강화 룰 적용
+    → 1 byte 변경 금지 (개행 \n 2개 + "title"\n(filename)\n\n정말... 패턴 보존)
+
+  ★ ★ ★ abort confirm verbatim 1 byte 변경 금지 (line 157~159):
+    '업로드를 취소하시겠습니까? 지금까지 전송된 데이터는 저장되지 않습니다.'
+    → handleCancel — isUploading 동안 취소 클릭 시 native confirm 발화
+    → 확인 시 abortRef.current?.abort() — runMultipartUpload signal 통한 5MB chunk 중단
+
+  ★ ★ ★ beforeunload returnValue verbatim 1 byte 변경 금지 (line 67~68):
+    '업로드 중입니다. 페이지를 나가면 전송이 중단됩니다.'
+    → useEffect — isUploading 동안만 등록 + cleanup removeEventListener
+    → 브라우저별 native UI 다름 (Chrome/Safari/Firefox) — 메시지는 거의 무시되고 generic dialog
+    → 메시지 자체는 보조 안전망 (사용자가 의도치 않게 페이지 닫을 때 1차 가드)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. project_legal_findings_delete_incident_260520 ★★★ 핵심
+       → 종합정밀 2026.05 22 행 삭제 사고 (Time Travel 복구 성공) 일반화
+       → delete confirm full string 1 byte 변경 금지 룰
+       → UI 삭제 가드 강화 후보 (admin 만 + confirm + title+filename 노출)
+
+    2. feedback_ios_pwa_push_silent_drop (참고)
+       → iOS PWA 미설치 → push silent drop. 본 페이지 multipart upload 와 비-직접 연관이나
+         업로드 진행 상황을 PWA 통해 알리는 미래 룰 박제 anchor
+
+    3. feedback_tailwind_token_class_pattern
+       → text-danger (status- prefix 없음)
+
+    4. feedback_sketch_realistic_data
+       → ★ confirm 본문 + toast 카피 모두 verbatim (1 byte 변경 금지)
+
+    5. feedback_planner_prompt_sketch_verbatim
+       → handleDelete (line 84~110) + handleCancel (line 155~166) + handleSubmit useEffect (line 64~72)
+         + handleRetry (line 168~171) 핵심 마크업 verbatim 인용
+
+  ==========================================================
+  비즈 anchor 9 그룹 (본 wave 박제, 1 byte 변경 금지)
+  ==========================================================
+
+    [admin 권한 + delete confirm gate]             ★★★ 본 wave 핵심
+    8. isAdmin = useAuthStore((s) => s.staff?.role === 'admin')
+       — DocumentSection line 40 verbatim
+       — ApiError 403 → '관리자만 업로드할 수 있습니다.' (DocumentUploadForm line 140~141 verbatim)
+    9. ★★★ delete confirm full string verbatim 1 byte 변경 금지 (line 87~89)
+       — memory project_legal_findings_delete_incident_260520 일반화
+
+    [multipart upload + abort + beforeunload]      ★★★ 본 wave 핵심
+    5. useEffect beforeunload guard (line 64~72)
+       — isUploading 동안만 등록 + cleanup removeEventListener
+       — returnValue '업로드 중입니다. 페이지를 나가면 전송이 중단됩니다.' (1 byte 변경 금지)
+    6. useEffect unmount abort cleanup (line 75~79)
+       — return () => { abortRef.current?.abort(); }
+       — 모달 닫힘/언마운트 시 in-flight upload 즉시 중단
+
+    handleCancel (line 155~166)                    ★★★ 본 wave 핵심
+       — isUploading=true 시 native window.confirm 발화
+       — 확인 시 abortRef.current?.abort()
+       — abort confirm '업로드를 취소하시겠습니까? 지금까지 전송된 데이터는 저장되지 않습니다.' (1 byte 변경 금지)
+
+    handleRetry (line 168~171)                     ★★★ 본 wave 핵심
+       — setError(null) + void handleSubmit()
+       — Error block 다시 시도 button → handleRetry → 재 multipart upload 시도
+
+    [react-query / 시그니처]                       (W3 책임, 본 wave 부가 anchor)
+    1. useQuery + invalidateQueries documents
+    3. documentsApi.remove (handleDelete 안)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/22-documents — W5 confirm gates + 403 + abort + beforeunload</title>
+<style>
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255, 255, 255, 0.14);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+  --accent:          #2f81f7;
+  --status-danger-bar: #ef4444;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bg4: var(--surface-active);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --surface-active:  #d8dee4;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --border-default:  rgba(0, 0, 0, 0.14);
+  --border-strong:   rgba(0, 0, 0, 0.22);
+  --accent:          #1f6feb;
+  --status-danger-bar: #b91c1c;
+}
+
+body { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.text-heading   { font-size: 22px; line-height: 1.4; }
+.text-body      { font-size: 16px; line-height: 1.5; }
+.text-body-sm   { font-size: 14px; line-height: 1.5; }
+.text-caption   { font-size: 12px; line-height: 1.5; }
+.font-semibold  { font-weight: 600; }
+.font-medium    { font-weight: 500; }
+.font-normal    { font-weight: 400; }
+.font-bold      { font-weight: 700; }
+.leading-none   { line-height: 1 !important; }
+
+body { margin: 0; padding: 24px; background: #0a0d12; color: #fff; }
+.sketch-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.frame {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.frame-label { font-size: 13px; color: #adb6c0; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.frame-mobile  { width: 393px; height: 760px; }
+.frame-desktop { width: 720px; height: 760px; }
+.dialog-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.dialog {
+  padding: 20px;
+  max-width: 360px;
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  box-sizing: border-box;
+}
+
+.rules-box {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  max-width: 1100px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.rules-box h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
+.rules-box code, .rules-box pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--surface-sunken);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+.rules-box pre { padding: 12px; overflow-x: auto; line-height: 1.5; }
+.star { color: #ef4444; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:600;">redesign/22-documents — W5 confirm gates (★ delete + abort + beforeunload verbatim 1 byte 변경 금지 + 403 admin 권한 + handleRetry + unmount abort cleanup)</h1>
+
+<div class="sketch-wrap">
+
+<!-- =================================================== -->
+<!-- Frame 1 — 모바일 다크 delete confirm + admin Trash2 -->
+<!-- =================================================== -->
+<div>
+<div class="frame-label">[1] 393×760 / dark / delete confirm dialog + admin Trash2 클릭 직후 (★ memory project_legal_findings_delete_incident_260520)</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:16px;">
+    <!-- DocumentSection 헤더 + Hero card (배경 — admin Trash2 클릭 직후) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;margin-bottom:16px;">
+      <h2 style="margin:0;font-size:16px;font-weight:600;color:var(--t1);">소방계획서</h2>
+      <button type="button" style="width:40px;height:40px;background:transparent;color:var(--t1);border:1px solid var(--bd);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div role="button" style="position:relative;width:100%;min-height:96px;padding:24px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;display:flex;align-items:center;gap:16px;box-sizing:border-box;">
+      <span style="position:absolute;top:12px;right:12px;color:#fff;background:var(--acl);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;">최신</span>
+      <div style="width:64px;height:64px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono', monospace;font-size:28px;font-weight:600;color:var(--t1);">2026</span>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:16px;font-weight:600;color:var(--t1);">2026년 소방계획서</div>
+        <div style="font-size:14px;font-weight:400;color:var(--t2);">2026년_소방계획서.pdf · 12.4 MB</div>
+      </div>
+      <!-- admin Trash2 32x32 (line 364~392 verbatim — w-[32px] h-[32px] arbitrary) -->
+      <button type="button" aria-label="2026년 소방계획서 삭제" style="position:absolute;bottom:12px;right:12px;width:32px;height:32px;background:transparent;color:var(--danger);border:1px solid var(--bd);border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+
+    <!-- ★ delete confirm dialog overlay (window.confirm native 시각화) -->
+    <!-- ★ DocumentSection handleDelete line 87~89 verbatim (memory project_legal_findings_delete_incident_260520, 1 byte 변경 금지) -->
+    <div class="dialog-overlay">
+      <div class="dialog">
+        <div class="text-text-primary text-body-sm" style="font-size:14px;color:var(--t1);white-space:pre-line;">"2026년 소방계획서"
+(2026년_소방계획서.pdf)
+
+정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+          <button type="button" class="bg-surface-sunken text-text-primary text-body-sm rounded-sm" style="padding:6px 14px;background:var(--bg3);color:var(--t1);border:none;border-radius:6px;cursor:pointer;font-size:14px;">취소</button>
+          <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="padding:6px 14px;background:var(--danger);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =================================================== -->
+<!-- Frame 2 — 데스크톱 다크 abort confirm + Error retry -->
+<!-- =================================================== -->
+<div>
+<div class="frame-label">[2] 720×760 / dark / abort confirm (handleCancel) + Error block (retry handleRetry)</div>
+<div class="frame frame-desktop" data-theme="dark">
+  <div style="padding:24px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <!-- progress 30% (업로드 중) -->
+    <div>
+      <div role="progressbar" aria-valuenow="30" style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+        <div style="width:30%;height:100%;background:var(--acl);border-radius:4px;transition:width 240ms linear;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono', monospace;margin-top:8px;">
+        <span style="font-size:16px;font-weight:600;color:var(--t1);">30%</span>
+        <span style="font-size:14px;color:var(--t2);">3.7 MB / 12.4 MB · 1.8 MB/s</span>
+      </div>
+    </div>
+
+    <!-- ★ Error block (Abort 후 표시 — AbortError → '업로드가 취소되었습니다.' 표시, toast 미발송) -->
+    <div class="bg-surface-sunken border border-border-default rounded-sm" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;">
+      <span class="text-danger text-body-sm font-medium" style="color:var(--danger);font-size:14px;font-weight:500;flex:1;">업로드가 취소되었습니다.</span>
+      <button type="button" class="bg-accent text-text-on-accent text-body-sm font-semibold rounded-sm" style="height:36px;padding:0 14px;background:var(--acl);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;">다시 시도</button>
+    </div>
+
+    <!-- ★ abort confirm dialog overlay (handleCancel line 157~159 verbatim, 1 byte 변경 금지) -->
+    <div class="dialog-overlay">
+      <div class="dialog">
+        <div class="text-text-primary text-body-sm" style="font-size:14px;color:var(--t1);">업로드를 취소하시겠습니까? 지금까지 전송된 데이터는 저장되지 않습니다.</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+          <button type="button" class="bg-surface-sunken text-text-primary text-body-sm rounded-sm" style="padding:6px 14px;background:var(--bg3);color:var(--t1);border:none;border-radius:6px;cursor:pointer;font-size:14px;">취소</button>
+          <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="padding:6px 14px;background:var(--danger);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">확인</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =================================================== -->
+<!-- Frame 3 — 모바일 라이트 403 권한 에러               -->
+<!-- =================================================== -->
+<div>
+<div class="frame-label">[3] 393×760 / light / 403 권한 에러 — ★ admin 권한 분기 isAdmin = useAuthStore role admin (line 40)</div>
+<div class="frame frame-mobile" data-theme="light">
+  <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <div>
+      <label style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">연도</label>
+      <select style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+        <option>2026년</option>
+      </select>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">제목</label>
+      <input type="text" value="2026년 소방계획서" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;"/>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">파일</label>
+      <button type="button" style="width:100%;height:44px;padding:0 12px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bd2);border-radius:8px;font-size:14px;text-align:left;cursor:pointer;">2026년_소방계획서.pdf · 12.4 MB</button>
+    </div>
+
+    <!-- ★ 403 Error block — line 141 verbatim, OQ #4 14 격상 -->
+    <div class="bg-surface-sunken border border-border-default rounded-sm" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;">
+      <span class="text-danger text-body-sm font-medium" style="color:var(--danger);font-size:14px;font-weight:500;flex:1;">관리자만 업로드할 수 있습니다.</span>
+      <!-- ★ 다시 시도 button — 403 은 retry 무의미 (admin 권한 없으면 다시 403) → disabled 시각 -->
+      <button type="button" disabled class="bg-surface-sunken text-text-tertiary text-body-sm font-semibold rounded-sm" style="height:36px;padding:0 14px;background:var(--bg3);color:var(--t3);font-size:14px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:not-allowed;flex-shrink:0;">다시 시도</button>
+    </div>
+
+    <div style="color:var(--t3);font-size:12px;font-family:'JetBrains Mono', monospace;line-height:1.5;">
+      ★ admin 권한 분기 anchor (DocumentSection line 40 verbatim):<br>
+      <code>const isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')</code><br>
+      <br>
+      ApiError 403 분기 (DocumentUploadForm line 140~141 verbatim):<br>
+      <code>else if (err instanceof ApiError && err.status === 403) message = '관리자만 업로드할 수 있습니다.'</code>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =================================================== -->
+<!-- Frame 4 — 라이트 데스크톱 beforeunload native dialog -->
+<!-- =================================================== -->
+<div>
+<div class="frame-label">[4] 720×760 / light / beforeunload (handleSubmit useEffect isUploading guard, line 64~72 verbatim)</div>
+<div class="frame frame-desktop" data-theme="light">
+  <div style="padding:24px;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <!-- progress 60% (업로드 중) -->
+    <div>
+      <div role="progressbar" aria-valuenow="60" style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+        <div style="width:60%;height:100%;background:var(--acl);border-radius:4px;transition:width 240ms linear;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-family:'JetBrains Mono', monospace;margin-top:8px;">
+        <span style="font-size:16px;font-weight:600;color:var(--t1);">60%</span>
+        <span style="font-size:14px;color:var(--t2);">7.4 MB / 12.4 MB · 3.1 MB/s · 남은 시간 약 2초</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;">
+      <!-- submit isUploading=true — W4 OQ #2 LOCKED lin-grad (본 W5 시각 일치만, 본문 anchor X — bg-accent solid 로 변경, W4 sketch 참고) -->
+      <button type="button" style="flex:1;height:44px;background:var(--acl);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;opacity:0.75;">업로드 중…</button>
+      <button type="button" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:15px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:pointer;">취소</button>
+    </div>
+
+    <!-- ★ beforeunload native browser dialog 시각 (브라우저별 UI 다름 — 메시지는 generic 으로 무시되나 박제) -->
+    <!-- ★ DocumentUploadForm useEffect beforeunload line 64~72 verbatim, returnValue 1 byte 변경 금지 -->
+    <div class="dialog-overlay">
+      <div class="dialog" style="max-width:420px;">
+        <div class="text-text-primary text-body font-semibold" style="font-size:16px;font-weight:600;color:var(--t1);margin-bottom:8px;">이 사이트를 나가시겠습니까?</div>
+        <div class="text-text-secondary text-body-sm" style="font-size:14px;color:var(--t2);margin-bottom:8px;">업로드 중입니다. 페이지를 나가면 전송이 중단됩니다.</div>
+        <div class="text-text-tertiary text-caption" style="font-size:12px;color:var(--t3);margin-bottom:16px;line-height:1;">변경사항이 저장되지 않을 수 있습니다. (브라우저 generic 메시지)</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" class="bg-surface-sunken text-text-primary text-body-sm rounded-sm" style="padding:6px 14px;background:var(--bg3);color:var(--t1);border:none;border-radius:6px;cursor:pointer;font-size:14px;">취소</button>
+          <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="padding:6px 14px;background:var(--danger);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">나가기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /.sketch-wrap -->
+
+<!-- ============================================================ -->
+<!-- rules 박스                                                   -->
+<!-- ============================================================ -->
+<div class="rules-box">
+
+<h3 class="star">★★★ delete confirm full string verbatim 1 byte 변경 금지 (memory project_legal_findings_delete_incident_260520)</h3>
+<pre>
+// handleDelete (DocumentSection line 84~110 verbatim)
+async function handleDelete(item: DocumentListItem, e: React.MouseEvent) {
+  e.stopPropagation()                          // Hero card onClick 전파 방지
+  if (deletingIds.has(item.id)) return
+  // ★★★ confirm full string 1 byte 변경 금지 (memory project_legal_findings_delete_incident_260520)
+  // 2026-05-20 종합정밀 2026.05 22행 삭제 사고 (Time Travel 복구) 일반화 — UI 삭제 가드 강화
+  const confirmed = window.confirm(
+    `"${item.title}"\n(${item.filename})\n\n정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+  )
+  if (!confirmed) return
+  setDeletingIds((prev) =&gt; { const next = new Set(prev); next.add(item.id); return next })
+  try {
+    await documentsApi.remove(item.id)
+    toast.success('문서를 삭제했습니다')          // verbatim
+    await queryClient.invalidateQueries({ queryKey: ['documents', type] })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '문서 삭제에 실패했습니다'
+    toast.error(msg)
+  } finally {
+    setDeletingIds((prev) =&gt; { const next = new Set(prev); next.delete(item.id); return next })
+  }
+}
+</pre>
+
+<h3 class="star">★★★ abort confirm verbatim 1 byte 변경 금지 (line 155~166)</h3>
+<pre>
+// handleCancel (DocumentUploadForm line 155~166 verbatim)
+function handleCancel() {
+  if (isUploading) {
+    const ok = window.confirm(
+      '업로드를 취소하시겠습니까? 지금까지 전송된 데이터는 저장되지 않습니다.'
+    )
+    if (ok) {
+      abortRef.current?.abort()                 // runMultipartUpload signal 통한 5MB chunk 중단
+    }
+    return
+  }
+  onClose()
+}
+</pre>
+
+<h3 class="star">★★★ beforeunload guard verbatim 1 byte 변경 금지 (line 64~72)</h3>
+<pre>
+// useEffect beforeunload (DocumentUploadForm line 64~72 verbatim, D-23)
+useEffect(() =&gt; {
+  if (!isUploading) return                       // isUploading 동안만 등록
+  const handler = (e: BeforeUnloadEvent) =&gt; {
+    e.preventDefault()
+    e.returnValue = '업로드 중입니다. 페이지를 나가면 전송이 중단됩니다.'  // 1 byte 변경 금지
+  }
+  window.addEventListener('beforeunload', handler)
+  return () =&gt; window.removeEventListener('beforeunload', handler)         // cleanup
+}, [isUploading])
+
+// unmount abort cleanup (line 75~79 verbatim)
+useEffect(() =&gt; {
+  return () =&gt; { abortRef.current?.abort() }     // 모달 닫힘/언마운트 시 in-flight upload 즉시 중단
+}, [])
+</pre>
+
+<h3 class="star">★ handleRetry anchor (line 168~171 verbatim)</h3>
+<pre>
+function handleRetry() {
+  setError(null)
+  void handleSubmit()                            // Error block 다시 시도 → setError(null) + 재 multipart upload
+}
+</pre>
+
+<h3>★ admin 권한 분기 anchor (DocumentSection line 40 + DocumentUploadForm line 140~141 verbatim)</h3>
+<pre>
+// DocumentSection line 40 verbatim
+const isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')
+// → admin 만 uploadBtn + Trash2 표시. assistant 는 다운로드/조회만
+
+// DocumentUploadForm line 140~141 verbatim (ApiError 403 분기)
+else if (err instanceof ApiError && err.status === 403) {
+  message = '관리자만 업로드할 수 있습니다.'        // line 141 verbatim
+}
+</pre>
+
+<h3>★ OQ #4 LOCKED — Error 카피 14 격상 (13 폐기)</h3>
+<pre>
+Error 카피 class: text-danger text-body-sm font-medium
+style: color:var(--danger); font-size:14px; font-weight:500;
+content (4종 모두 14 격상):
+  - '업로드 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.'  (line 145 verbatim)
+  - '관리자만 업로드할 수 있습니다.'                              (line 141 verbatim)
+  - '업로드가 취소되었습니다.'                                    (line 138 verbatim — AbortError, toast 미발송)
+  - '문서 목록을 불러오지 못했습니다.'                            (DocumentSection line 213 verbatim)
+
+design-system §1.1 노안 마지노선 — 13px 사용 금지
+</pre>
+
+<h3>비즈 anchor 9 그룹 (본 wave 박제, 1 byte 변경 금지)</h3>
+<pre>
+8. isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')    ★★★ 본 wave 핵심
+9. delete confirm full string verbatim (1 byte 변경 금지)        ★★★ 본 wave 핵심
+   — memory project_legal_findings_delete_incident_260520 일반화
+5. useEffect beforeunload guard (isUploading 등록)                ★★★ 본 wave 핵심
+6. useEffect unmount abort cleanup (abortRef.current?.abort())   ★★★ 본 wave 핵심
+   + handleCancel abort confirm verbatim
+   + handleRetry (setError null + handleSubmit 재호출)
+1. queryKey ['documents', type] + invalidateQueries                (W3 책임, anchor 박제)
+3. documentsApi.remove + documentsApi.list                          (handleDelete 안)
+4. runMultipartUpload signal: ctrl.signal                           (handleCancel abort 대상)
+7. ALLOWED 6 ext (W4 책임)                                          (anchor 박제)
+</pre>
+
+<h3>카피 verbatim (12종 + 4 confirm — 1 byte 변경 금지)</h3>
+<pre>
+★★★ delete confirm (line 87~89)  : "${item.title}"\n(${item.filename})\n\n정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+★★★ abort confirm (line 157~159) : 업로드를 취소하시겠습니까? 지금까지 전송된 데이터는 저장되지 않습니다.
+★★★ beforeunload (line 67~68)    : 업로드 중입니다. 페이지를 나가면 전송이 중단됩니다.
+403 (line 141)                    : 관리자만 업로드할 수 있습니다.
+ApiError other (line 145)         : 업로드 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.
+AbortError (line 138)             : 업로드가 취소되었습니다.  (toast 미발송, error block 만)
+
+toast.error (line 87 form)        : 파일 크기가 500MB를 초과합니다.
+toast.error (line 92/97 form)     : 지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, PPTX, HWP, ZIP)
+toast.error (line 108 form)       : 연도, 제목, 파일을 모두 입력해주세요.
+toast.success (line 132 form)     : 업로드가 완료되었습니다.
+toast.success (line 98 section)   : 문서를 삭제했습니다
+toast.success (line 71 section)   : 다운로드를 시작했습니다  (duration 2000)
+toast.loading (line 67 section)   : 다운로드 중입니다…
+toast.error (line 74 section)     : 다운로드에 실패했습니다. 네트워크를 확인해주세요.
+toast.error (line 56 section)     : 문서 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+toast.error (line 101 fallback)   : 문서 삭제에 실패했습니다
+</pre>
+
+<h3>토큰 매핑 (v0.1.1 → 옛 alias)</h3>
+<pre>
+dialog bg            var(--bg2)   → bg-surface-raised
+dialog border        var(--bd)    → border-border-default
+cancel button bg     var(--bg3)   → bg-surface-sunken         (OQ #5)
+삭제/확인 button bg   var(--danger) → text-danger 인라인 bg     (Error 색 일관)
+403 Error 카피       var(--danger) → text-danger text-body-sm 14 font-medium (OQ #4 14 격상)
+disabled 다시 시도   var(--bg3)   → bg-surface-sunken         (OQ #5)
+disabled 다시 시도 색 var(--t3)    → text-text-tertiary
+</pre>
+
+<h3>negative gate self-check (mbr deviation 2건 mirror)</h3>
+<pre>
+- 이모지 0건 (sketch 본문) — Lucide 아이콘 이름만 anchor
+- lin-grad (linear&#8209;gradient 약어) — 본 wave (W5 = T4) = 0건
+  (lin-grad ≥3 는 W4 책임, 본 W5 는 bg-accent solid 사용 — 시각 시뮬레이션만, 본문 anchor 0)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)
+- (text|bg|border)-status-(safe|fire|warning|danger|caution) prefix 0건
+- \bw&#8209;8\b / \bh&#8209;8\b 0건 (w&#8209;8=48 함정 회피)
+- ★ src 변경 0 byte (T1~T4 4 commit 전체) — git diff --name-only HEAD~4 HEAD -- cha-bio-safety/src = 0
+- mbr deviation — 본문 안 "warning glyph" 약어 회피 (negative gate self-collision 차단)
+</pre>
+
+</div><!-- /.rules-box -->
+
+</body>
+</html>
