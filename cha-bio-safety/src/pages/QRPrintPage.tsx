@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
 import { useAuthStore } from '../stores/authStore'
 import toast from 'react-hot-toast'
+import { ChevronLeft, Download, Printer } from 'lucide-react'
 
 interface CheckPoint {
   id: string
@@ -250,53 +251,58 @@ export default function QRPrintPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="qr-print-page">
 
       {/* 헤더 */}
-      <div style={{ padding: '8px 12px', background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <button onClick={() => navigate(-1)} style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg3)', border: '1px solid var(--bd)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
+      <div className="qr-print-page-header">
+        <button onClick={() => navigate(-1)} className="qr-print-page-back-btn">
+          <ChevronLeft size={16} strokeWidth={2} className="text-text-secondary" />
         </button>
-        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)' }}>QR 코드 출력</span>
+        <span className="qr-print-page-title">QR 코드 출력</span>
       </div>
 
       {/* 안내 */}
-      <div style={{ padding: '10px 14px 4px', flexShrink: 0 }}>
-        <div style={{ background: 'rgba(14,165,233,.08)', border: '1px solid rgba(14,165,233,.25)', borderRadius: 10, padding: '10px 13px', fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
+      <div className="qr-print-page-info-wrap">
+        <div className="qr-print-page-info-box">
           항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
           소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
         </div>
       </div>
 
       {/* 카테고리 목록 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="qr-print-page-list">
+        <div className="qr-print-page-list-inner">
           {CATEGORIES.map(cat => {
-            const inspKey   = `${cat.value}-inspect`
-            const publicKey = `${cat.value}-public`
+            const inspKey       = `${cat.value}-inspect`
+            const publicKey     = `${cat.value}-public`
+            const inspLoading   = busy === inspKey
+            const publicLoading = busy === publicKey
             return (
-              <div key={cat.value} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 13, padding: '13px 14px' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 10 }}>{cat.label}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {/* 점검용 */}
+              <div key={cat.value} className="qr-print-page-card">
+                <div className="qr-print-page-card-title">{cat.label}</div>
+                <div className="qr-print-page-btn-row">
+                  {/* 점검용 — inspect lin-grad 1d4ed8→0ea5e9 인라인 유지 (§6.4 정식 anchor) */}
                   <button
                     onClick={() => handleDownload(cat.value, 'inspect')}
                     disabled={!!busy}
-                    style={dlBtnStyle(busy === inspKey, false)}
+                    className={`qr-print-page-dl-btn ${inspLoading ? 'qr-print-page-dl-btn--loading' : 'qr-print-page-dl-btn--inspect'}`}
+                    style={inspLoading ? undefined : { background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)' }}
                   >
-                    {busy === inspKey ? '생성 중...' : '점검용 QR PDF'}
+                    {inspLoading
+                      ? '생성 중...'
+                      : <><Download size={14} strokeWidth={2.4} />점검용 QR PDF</>}
                   </button>
 
-                  {/* 소화기 전용: 점검확인용 */}
+                  {/* 소화기 전용: 점검확인용 — OQ #1 LOCKED lin-grad 폐기 → solid bg-safe-bar (.qr-print-page-dl-btn--public) */}
                   {cat.hasPublic && (
                     <button
                       onClick={() => handleDownload(cat.value, 'public')}
                       disabled={!!busy}
-                      style={dlBtnStyle(busy === publicKey, true)}
+                      className={`qr-print-page-dl-btn ${publicLoading ? 'qr-print-page-dl-btn--loading' : 'qr-print-page-dl-btn--public'}`}
                     >
-                      {busy === publicKey ? '생성 중...' : '점검확인용 QR PDF'}
+                      {publicLoading
+                        ? '생성 중...'
+                        : <><Printer size={14} strokeWidth={2.4} />점검확인용 QR PDF</>}
                     </button>
                   )}
                 </div>
@@ -307,24 +313,4 @@ export default function QRPrintPage() {
       </div>
     </div>
   )
-}
-
-function dlBtnStyle(loading: boolean, isPublic: boolean): React.CSSProperties {
-  return {
-    padding: '9px 16px',
-    borderRadius: 9,
-    border: 'none',
-    background: loading
-      ? 'var(--bd2)'
-      : isPublic
-        ? 'linear-gradient(135deg,#16a34a,#22c55e)'
-        : 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
-    color: loading ? 'var(--t3)' : '#fff',
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: loading ? 'default' : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  }
 }
