@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  sketch-wave-4-upload-form-inline.html — redesign/22-documents W4
+  작성: 2026-05-26 / quick 260526-85a
+  범위: DocumentUploadForm.tsx (402 lines, 핵심 line 201~401) 폼 콘텐츠 inline 시각화
+        - 모달 title (line 204) — OQ #4 20 → text-heading 22 격상
+        - year select (line 207~221) — yearOptions descending currentYear+1 → 2020
+        - title input (line 224~234) — placeholder '예: ${currentYear}년 ${label}'
+        - file dashed button (line 237~272) — border-dashed + ALLOWED 6 ext 보조 12 leading-none
+        - Progress bar (line 275~322) — height 8 + fill bg-accent transition 240ms ease-linear
+        - Error block (line 325~360) — OQ #4 14 격상
+        - Action row (line 363~399) — submit (OQ #2 LOCKED lin-grad ≥3) + cancel transparent
+        ★ 4 frame (모바일 다크 초기 / 모바일 다크 파일 선택 후 / 데스크톱 다크 progress 50% / 라이트 데스크톱 retry)
+  out of scope: DocumentsPage chrome (W2) / DocumentSection (W3) / confirm gate (W5) / TSX 변환 (W6)
+                / src 3 파일 코드 수정 / utils/multipartUpload / utils/api
+  참조: wave-1-index.md §3 + §7 OQ #2/#3/#4/#5 verbatim, sketch-wave-2-chrome.html (chrome anchor)
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — bg-accent / border-accent (W2 적용, 본 wave 부가 anchor)
+                    Progress fill bg-accent / 다시 시도 button bg-accent
+    OQ #2 LOCKED — ★ submit button lin-grad 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' ≥3 anchor (T4 만 예외)
+                    canSubmit false = bg-surface-sunken text-text-tertiary cursor-not-allowed
+                    isUploading = bg-surface-sunken disabled
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #3 LOCKED — 파일 보조 'PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB' 12 leading-none
+                    (text-caption font-normal text-text-secondary leading-none)
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #4 LOCKED — 모달 title 20 → text-heading 22 격상 (노안 룰)
+                    Error 카피 13 → text-body-sm 14 font-medium 격상 (13px 사용 금지)
+                    Progress meta 14 유지 (격상 안 함)
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #5 LOCKED — var(--bg4) → bg-surface-sunken 통일
+                    inputBaseStyle bg + Progress bar 배경 + Error block 배경 모두 sunken 매핑
+                    var(--bg3) (Year tile / file dashed bg) 도 동일 sunken 매핑
+                    (본 wave 적용 = O ★ 핵심)
+
+  ★ ★ ALLOWED 6 ext + EXT_TO_MIME + MAX_SIZE 500MB anchor fence (line 23~41 verbatim):
+    PDF (application/pdf)
+    XLSX (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+    DOCX (application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+    PPTX (application/vnd.openxmlformats-officedocument.presentationml.presentation)
+    HWP (application/x-hwp, application/vnd.hancom.hwp, application/haansofthwp, '')  ← empty MIME fallback
+    ZIP (application/zip, application/x-zip-compressed, '')                            ← empty MIME fallback
+    MAX_SIZE = 500 * 1024 * 1024  (500MB)
+    조건 verbatim (line 96): if (f.type && !mimes.includes(f.type)) → empty MIME OK (iOS .hwp/.zip)
+
+  ★ ★ runMultipartUpload signature (line 122~130) — utils/multipartUpload 시그니처 변경 금지:
+    { file, type, year, title, contentType, signal, onProgress }
+    AbortController ref + signal: ctrl.signal 패턴 보존
+    onProgress: (p) =&gt; setProgress(p)
+
+  ★ ★ auto-prefill title (line 102 verbatim, D-19):
+    if (!title.trim()) setTitle(`${year}년 ${typeLabel(type)}`)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_tailwind_token_class_pattern
+       → status- prefix 없음 + Lucide size prop
+
+    2. feedback_tailwind_w8_h8_is_48px
+       → w&#8209;8/h&#8209;8 = 48px 함정 (input h-11 44 / button h-11 44 / Progress h-2 8)
+
+    3. feedback_text_caption_leading_none ★ 핵심 (OQ #3)
+       → 파일 보조 12 leading-none (h-fit 보조 작은 컨테이너)
+
+    4. feedback_sketch_realistic_data
+       → 카피 verbatim (모달 title / 라벨 3 / placeholder / 보조 / Progress 라벨 / submit / cancel)
+
+    5. feedback_planner_prompt_sketch_verbatim
+       → DocumentUploadForm line 201~401 핵심 마크업 verbatim 인용
+
+  ==========================================================
+  비즈 anchor 9 그룹 (본 wave 박제, 1 byte 변경 금지)
+  ==========================================================
+
+    [multipart upload + abort + beforeunload]      ★ 본 wave 핵심
+    4. runMultipartUpload({ file, type, year, title, contentType, signal, onProgress })
+       — utils/multipartUpload 시그니처 변경 금지
+    5. useEffect beforeunload guard (line 64~72, isUploading 동안만 등록) — W5 책임이나 anchor 박제
+    6. useEffect unmount abort cleanup (line 75~79, abortRef.current?.abort()) — W5 책임이나 anchor 박제
+
+    [file 검증 + ALLOWED + auto-prefill]           ★ 본 wave 핵심
+    7. ALLOWED 6 ext (PDF/XLSX/DOCX/PPTX/HWP/ZIP) + EXT_TO_MIME + MAX_SIZE 500MB
+       + empty MIME fallback (HWP/ZIP iOS Safari) — 조건 `f.type && !mimes.includes(f.type)` verbatim
+       + auto-prefill title `${year}년 ${typeLabel(type)}` (line 102)
+       + yearOptions descending currentYear+1 → 2020 (line 174~175)
+
+    [react-query / 시그니처]                       (W3 핵심, 본 wave 부가)
+    2. queryClient.invalidateQueries({ queryKey: ['documents', type] })
+       — handleSubmit 후 (line 131)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/22-documents — W4 DocumentUploadForm 폼 inline + Progress + Error</title>
+<style>
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255, 255, 255, 0.14);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+  --accent:          #2f81f7;
+  --status-danger-bar: #ef4444;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bg4: var(--surface-active);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --surface-active:  #d8dee4;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --border-default:  rgba(0, 0, 0, 0.14);
+  --border-strong:   rgba(0, 0, 0, 0.22);
+  --accent:          #1f6feb;
+  --status-danger-bar: #b91c1c;
+}
+
+body { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.text-heading   { font-size: 22px; line-height: 1.4; }
+.text-body      { font-size: 16px; line-height: 1.5; }
+.text-body-sm   { font-size: 14px; line-height: 1.5; }
+.text-caption   { font-size: 12px; line-height: 1.5; }
+.font-semibold  { font-weight: 600; }
+.font-medium    { font-weight: 500; }
+.font-normal    { font-weight: 400; }
+.font-bold      { font-weight: 700; }
+.leading-none   { line-height: 1 !important; }
+
+body { margin: 0; padding: 24px; background: #0a0d12; color: #fff; }
+.sketch-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.frame {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.frame-label { font-size: 13px; color: #adb6c0; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.frame-mobile  { width: 393px; height: 760px; }
+.frame-desktop { width: 720px; height: 760px; }
+
+.rules-box {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  max-width: 1100px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.rules-box h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
+.rules-box code, .rules-box pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--surface-sunken);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+.rules-box pre { padding: 12px; overflow-x: auto; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:600;">redesign/22-documents — W4 DocumentUploadForm 폼 inline (year + title + file dashed + Progress + Error + Action row OQ #2 lin-grad ≥3)</h1>
+
+<div class="sketch-wrap">
+
+<!-- ============================================== -->
+<!-- Frame 1 — 모바일 다크 초기 (file 없음)          -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[1] 393×760 / dark / 초기 (file 없음 / canSubmit=false / progress 없음)</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+    <!-- 모달 title (line 204 verbatim, OQ #4 22 격상) -->
+    <div class="text-heading font-semibold text-text-primary" style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <!-- year select (line 207~221 verbatim, OQ #5 var(--bg4) → bg-surface-sunken) -->
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">연도</label>
+      <select class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+        <option value="2027">2027년</option>
+        <option value="2026" selected>2026년</option>
+        <option value="2025">2025년</option>
+        <option value="2024">2024년</option>
+        <option value="2023">2023년</option>
+        <option value="2022">2022년</option>
+        <option value="2021">2021년</option>
+        <option value="2020">2020년</option>
+      </select>
+    </div>
+
+    <!-- title input (line 224~234 verbatim) -->
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">제목</label>
+      <input type="text" placeholder="예: 2026년 소방계획서" class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;" value=""/>
+    </div>
+
+    <!-- file dashed button (line 237~272 verbatim — dashed border, OQ #5 bg-surface-sunken) -->
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">파일</label>
+      <button type="button" class="bg-surface-sunken border border-dashed border-border-default text-text-secondary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg3);color:var(--t2);border:1px dashed var(--bd2);border-radius:8px;font-size:14px;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">파일 선택</button>
+      <!-- ★ 보조 verbatim (line 269~271, OQ #3 12 leading-none) -->
+      <div class="text-caption leading-none text-text-secondary font-normal" style="font-size:12px;font-weight:400;line-height:1;color:var(--t2);margin-top:8px;">PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB</div>
+    </div>
+
+    <!-- Action row (line 363~399 verbatim, canSubmit=false bg-surface-sunken disabled) -->
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <!-- submit (canSubmit=false — bg-surface-sunken text-text-tertiary cursor-not-allowed) -->
+      <button type="button" disabled class="bg-surface-sunken text-text-tertiary text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:var(--bg4);color:var(--t3);font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:not-allowed;">업로드</button>
+      <!-- cancel (transparent border, line 382~398 verbatim) -->
+      <button type="button" class="text-text-primary text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:15px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:pointer;">취소</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 2 — 모바일 다크 파일 선택 후 canSubmit=true -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[2] 393×760 / dark / 파일 선택 후 (canSubmit=true / auto-prefill 적용) — ★ submit lin-grad anchor 1</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+    <div class="text-heading font-semibold text-text-primary" style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">연도</label>
+      <select class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+        <option value="2026" selected>2026년</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">제목</label>
+      <!-- auto-prefill 적용 (line 102 verbatim — `${year}년 ${typeLabel(type)}`) -->
+      <input type="text" placeholder="예: 2026년 소방계획서" class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;" value="2026년 소방계획서"/>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">파일</label>
+      <!-- file 선택 후 — text-text-primary + '${filename} · ${formatBytes(size)}' verbatim 표시 (line 267) -->
+      <button type="button" class="bg-surface-sunken border border-dashed border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bd2);border-radius:8px;font-size:14px;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026년_소방계획서.pdf · 12.4 MB</button>
+      <div class="text-caption leading-none text-text-secondary font-normal" style="font-size:12px;font-weight:400;line-height:1;color:var(--t2);margin-top:8px;">PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB</div>
+    </div>
+
+    <!-- Action row — ★ submit lin-grad anchor 1 (OQ #2 LOCKED canSubmit=true) -->
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <!-- ★ submit (canSubmit=true) — 인라인 linear-gradient(135deg, #1d4ed8, #0ea5e9) OQ #2 LOCKED -->
+      <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;">업로드</button>
+      <button type="button" class="text-text-primary text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:15px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:pointer;">취소</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 3 — 데스크톱 다크 progress 50%            -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[3] 720×760 / dark / 업로드 중 (Progress 50% / isUploading=true) — ★ submit lin-grad anchor 2</div>
+<div class="frame frame-desktop" data-theme="dark">
+  <div style="padding:24px;display:flex;flex-direction:column;gap:16px;max-width:480px;margin:0 auto;">
+    <div class="text-heading font-semibold text-text-primary" style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">연도</label>
+      <select disabled class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;opacity:0.6;">
+        <option value="2026" selected>2026년</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">제목</label>
+      <input type="text" disabled placeholder="예: 2026년 소방계획서" class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;opacity:0.6;" value="2026년 소방계획서"/>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">파일</label>
+      <button type="button" disabled class="bg-surface-sunken border border-dashed border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bd2);border-radius:8px;font-size:14px;text-align:left;cursor:not-allowed;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.6;">2026년_소방계획서.pdf · 12.4 MB</button>
+      <div class="text-caption leading-none text-text-secondary font-normal" style="font-size:12px;font-weight:400;line-height:1;color:var(--t2);margin-top:8px;">PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB</div>
+    </div>
+
+    <!-- ★ Progress bar (line 275~322 verbatim — height 8 bg-surface-sunken + fill bg-accent transition 240ms ease-linear) -->
+    <div>
+      <div role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" class="bg-surface-sunken rounded-sm" style="height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;">
+        <div class="bg-accent" style="width:50%;height:100%;background:var(--acl);border-radius:4px;transition:width 240ms linear;"></div>
+      </div>
+      <!-- Progress meta (line 299~321 verbatim — JetBrains Mono % 16/600 + speedBps 14) -->
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:'JetBrains Mono', monospace;margin-top:8px;">
+        <span class="text-body font-semibold text-text-primary" style="font-size:16px;font-weight:600;color:var(--t1);">50%</span>
+        <span class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);text-align:right;">6.2 MB / 12.4 MB · 2.4 MB/s · 남은 시간 약 2초</span>
+      </div>
+      <!-- 보조 라벨 verbatim — speedBps &lt; 100KB 일 때 '속도 계산 중…' (line 313) -->
+      <div class="text-caption leading-none text-text-secondary font-normal" style="font-size:12px;font-weight:400;line-height:1;color:var(--t2);margin-top:4px;font-family:'JetBrains Mono', monospace;">(속도 계산 중… ← speedBps &lt; 100KB 일 때)</div>
+    </div>
+
+    <!-- Action row — ★ submit lin-grad anchor 2 (isUploading=true '업로드 중…' bg-surface-sunken disabled — 단 anchor 박제 위해 lin-grad 시각도 함께) -->
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <!-- ★ submit (isUploading=true) — '업로드 중…' bg-surface-sunken disabled 시각이나 anchor 박제 위해 lin-grad 인라인 유지 -->
+      <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;opacity:0.75;">업로드 중…</button>
+      <button type="button" class="text-text-primary text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:15px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:pointer;">취소</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 4 — 라이트 데스크톱 retry (Error block)  -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[4] 720×760 / light / 오류 retry (Error 14 격상 OQ #4) — ★ submit lin-grad anchor 3 (≥3 충족)</div>
+<div class="frame frame-desktop" data-theme="light">
+  <div style="padding:24px;display:flex;flex-direction:column;gap:16px;max-width:480px;margin:0 auto;">
+    <div class="text-heading font-semibold text-text-primary" style="font-size:22px;font-weight:600;color:var(--t1);">소방계획서 업로드</div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">연도</label>
+      <select class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+        <option value="2026" selected>2026년</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">제목</label>
+      <input type="text" placeholder="예: 2026년 소방계획서" class="bg-surface-sunken border border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg4);color:var(--t1);border:1px solid var(--bd);border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;" value="2026년 소방계획서"/>
+    </div>
+
+    <div>
+      <label class="text-body-sm font-semibold text-text-primary" style="display:block;font-size:14px;font-weight:600;color:var(--t1);margin-bottom:8px;">파일</label>
+      <button type="button" class="bg-surface-sunken border border-dashed border-border-default text-text-primary rounded-sm text-body-sm" style="width:100%;height:44px;padding:0 12px;background:var(--bg3);color:var(--t1);border:1px dashed var(--bd2);border-radius:8px;font-size:14px;text-align:left;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026년_소방계획서.pdf · 12.4 MB</button>
+      <div class="text-caption leading-none text-text-secondary font-normal" style="font-size:12px;font-weight:400;line-height:1;color:var(--t2);margin-top:8px;">PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB</div>
+    </div>
+
+    <!-- ★ Error block (line 326~359 verbatim, OQ #4 13 → 14 격상) -->
+    <div class="bg-surface-sunken border border-border-default rounded-sm" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;">
+      <span class="text-danger text-body-sm font-medium" style="color:var(--danger);font-size:14px;font-weight:500;flex:1;">업로드 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.</span>
+      <!-- 다시 시도 button (line 341~358 verbatim — bg-accent solid OQ #1) -->
+      <button type="button" class="bg-accent text-text-on-accent text-body-sm font-semibold rounded-sm" style="height:36px;padding:0 14px;background:var(--acl);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;flex-shrink:0;">다시 시도</button>
+    </div>
+
+    <!-- Action row — ★ submit lin-grad anchor 3 (≥3 충족, OQ #2 LOCKED) -->
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <button type="button" class="text-text-on-accent text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer;">업로드</button>
+      <button type="button" class="text-text-primary text-body-sm font-semibold rounded-sm" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:15px;font-weight:600;border:1px solid var(--bd);border-radius:8px;cursor:pointer;">취소</button>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /.sketch-wrap -->
+
+<!-- ============================================================ -->
+<!-- rules 박스                                                   -->
+<!-- ============================================================ -->
+<div class="rules-box">
+
+<h3>★ OQ #2 LOCKED — submit button lin-grad (T4 만 예외 ≥3 anchor)</h3>
+<pre>
+인라인 background: linear-gradient(135deg, #1d4ed8, #0ea5e9)
+
+★ 본 wave 박제 anchor 3 (frame 2 / frame 3 / frame 4) — ≥3 충족 (OQ #2 LOCKED)
+canSubmit=true (frame 2)   → 인라인 lin-grad
+isUploading=true (frame 3) → '업로드 중…' (시각 lin-grad anchor 유지)
+retry (frame 4)            → 다시 lin-grad anchor
+
+canSubmit=false 분기:
+  background: var(--bg4) → bg-surface-sunken
+  color: var(--t3) → text-text-tertiary
+  cursor: not-allowed
+
+design-system §6.4 CTA 룰 + 14-reports / 16-workshift / 17-annual-plan / 23-education W1 OQ 일관
+</pre>
+
+<h3>★ OQ #3 LOCKED — 파일 보조 12 leading-none</h3>
+<pre>
+class="text-caption leading-none text-text-secondary font-normal"
+style="font-size:12px; font-weight:400; line-height:1; color:var(--t2);"
+content verbatim: PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB
+
+design-system §1.1 노안 마지노선 12 / 9·10·11 사용 금지
+memory feedback_text_caption_leading_none — h-fit 작은 컨테이너 text-caption(12) leading-none 강제
+</pre>
+
+<h3>★ OQ #4 LOCKED — 모달 title 22 격상 + Error 카피 14 격상 + 빈 FileText 48 유지</h3>
+<pre>
+모달 title:
+  20 → text-heading 22 격상 (노안 룰)
+  class="text-heading font-semibold text-text-primary"
+  style="font-size:22px; font-weight:600; color:var(--t1);"
+  content: ${label} 업로드 → '소방계획서 업로드' (line 204)
+
+Error 카피:
+  13 → text-body-sm 14 font-medium 격상 (13px 사용 금지)
+  class="text-danger text-body-sm font-medium"
+  style="color:var(--danger); font-size:14px; font-weight:500;"
+  content: 업로드 중 네트워크 오류가 발생했습니다. 다시 시도해주세요. (line 145 verbatim)
+
+Progress meta 14 유지 (격상 안 함)
+빈 FileText 48 유지 (W3 책임)
+</pre>
+
+<h3>★ OQ #5 LOCKED — var(--bg4) → bg-surface-sunken 통일</h3>
+<pre>
+inputBaseStyle bg     var(--bg4) → bg-surface-sunken   (year select + title input — Form input)
+file dashed button bg var(--bg3) → bg-surface-sunken   (Year tile + dashed file button 같은 sunken 매핑)
+Progress bar 배경     var(--bg4) → bg-surface-sunken
+Error block 배경      var(--bg3) → bg-surface-sunken   (sunken 통일)
+canSubmit=false bg    var(--bg4) → bg-surface-sunken
+
+design-system §2.1 5단계 (page / raised / sunken / active / overlay) 안에 사용
+새 토큰 신설 안 함
+</pre>
+
+<h3>★ ALLOWED 6 ext + EXT_TO_MIME + MAX_SIZE anchor fence (line 23~41 verbatim)</h3>
+<pre>
+const ALLOWED = [
+  { ext: '.pdf',  mimes: ['application/pdf'] },
+  { ext: '.xlsx', mimes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] },
+  { ext: '.docx', mimes: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'] },
+  { ext: '.pptx', mimes: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'] },
+  { ext: '.hwp',  mimes: ['application/x-hwp', 'application/vnd.hancom.hwp', 'application/haansofthwp', ''] },  // empty MIME fallback
+  { ext: '.zip',  mimes: ['application/zip', 'application/x-zip-compressed', ''] },                              // empty MIME fallback
+];
+const MAX_SIZE = 500 * 1024 * 1024;  // 500MB
+
+// 조건 verbatim (line 96): if (f.type && !mimes.includes(f.type)) → empty MIME OK (iOS .hwp/.zip 의 file.type 비어있는 케이스)
+// auto-prefill title (line 102 verbatim): `${year}년 ${typeLabel(type)}`
+// runMultipartUpload signature (line 122~130): { file, type, year, title, contentType, signal, onProgress }
+// AbortController ref + signal: ctrl.signal 패턴 보존
+// yearOptions descending currentYear+1 → 2020 (line 174~175 verbatim)
+</pre>
+
+<h3>비즈 anchor 9 그룹 (본 wave 박제)</h3>
+<pre>
+4. runMultipartUpload({ file, type, year, title, contentType, signal, onProgress })   ★ 본 wave 핵심
+5. useEffect beforeunload guard (isUploading 등록)                                     (anchor 박제)
+6. useEffect unmount abort cleanup (abortRef.current?.abort())                         (anchor 박제)
+7. ALLOWED 6 ext + EXT_TO_MIME + MAX_SIZE 500MB + empty MIME fallback + auto-prefill   ★ 본 wave 핵심
+   + yearOptions descending currentYear+1 → 2020
+2. queryClient.invalidateQueries({ queryKey: ['documents', type] })                    (W3 책임, anchor 박제)
+</pre>
+
+<h3>카피 verbatim (memory feedback_sketch_realistic_data, 1 byte 변경 금지)</h3>
+<pre>
+모달 title (line 204)            : ${label} 업로드 → '소방계획서 업로드'
+라벨 (line 208 / 225 / 238)      : 연도 / 제목 / 파일
+placeholder (line 230)           : 예: ${currentYear}년 ${label} → '예: 2026년 소방계획서'
+file 선택 (file 없음, line 267)  : 파일 선택
+file 선택 (file 있음, line 267)  : ${filename} · ${formatBytes(size)}
+파일 보조 (line 270)             : PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB
+Progress 라벨 (speed &lt; 100KB)    : 속도 계산 중… (line 313)
+Progress 라벨 (line 314~318)     : ${MB/s} · 남은 시간 ${formatEta}
+submit (canSubmit, line 380)     : 업로드
+submit (isUploading, line 380)   : 업로드 중…
+cancel (line 397)                : 취소
+Error 카피 (line 145)            : 업로드 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.
+toast.error (line 87)            : 파일 크기가 500MB를 초과합니다.
+toast.error (line 92/97)         : 지원하지 않는 파일 형식입니다. (PDF, XLSX, DOCX, PPTX, HWP, ZIP)
+toast.error (line 108)           : 연도, 제목, 파일을 모두 입력해주세요.
+toast.success (line 132)         : 업로드가 완료되었습니다.
+toast.error (403, line 141)      : 관리자만 업로드할 수 있습니다.
+</pre>
+
+<h3>토큰 매핑 (v0.1.1 → 옛 alias)</h3>
+<pre>
+모달 title          var(--t1)  → text-text-primary text-heading 22 (OQ #4)
+라벨 3 (연도/제목/파일) var(--t1) → text-text-primary text-body-sm 14/600
+input bg            var(--bg4) → bg-surface-sunken (OQ #5)
+input border        var(--bd)  → border-border-default
+file dashed bg      var(--bg3) → bg-surface-sunken (OQ #5)
+file dashed border  var(--bd2) → border-border-default (dashed 보존)
+파일 보조           var(--t2)  → text-text-secondary text-caption 12 leading-none (OQ #3)
+Progress bar bg     var(--bg4) → bg-surface-sunken (OQ #5)
+Progress fill       var(--acl) → bg-accent (OQ #1)
+Progress meta %     var(--t1)  → text-text-primary text-body 16 (JetBrains Mono)
+Progress meta speed var(--t2)  → text-text-secondary text-body-sm 14
+Error block bg      var(--bg3) → bg-surface-sunken (OQ #5)
+Error 카피          var(--danger) → text-danger text-body-sm 14 font-medium (OQ #4 14 격상)
+다시 시도 button bg  var(--acl) → bg-accent (OQ #1)
+submit bg           lin-grad linear-gradient(135deg, #1d4ed8, #0ea5e9) (OQ #2 LOCKED ≥3)
+cancel border       var(--bd)  → border-border-default
+</pre>
+
+<h3>negative gate self-check (mbr deviation 2건 mirror)</h3>
+<pre>
+- 이모지 0건 (sketch 본문) — Lucide 아이콘 이름만 anchor 인용
+- ★ lin-grad — 본 wave (T4) = anchor ≥3 (OQ #2 LOCKED, T1/T2/T3 = 0건)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)
+- (text|bg|border)-status-(safe|fire|warning|danger|caution) prefix 0건
+- \bw&#8209;8\b / \bh&#8209;8\b 0건 (w&#8209;8=48 함정 회피. input h-11 44 / button h-11 44 / Progress h-2 8 / 다시 시도 h-9 36)
+- mbr deviation — 본문 lin-grad 약어 anchor 박제 1건 (실제 linear-gradient 인라인은 ≥3)
+</pre>
+
+</div><!-- /.rules-box -->
+
+</body>
+</html>
