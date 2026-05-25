@@ -972,6 +972,111 @@
     width: 20px; height: 20px;
   }
 
+  /* ============================================================
+   * §14. 22-documents (DocumentsPage + DocumentSection + DocumentUploadForm, ~17 class) — TSX 변환 wave 260526-9bv
+   * 22-documents W7 — sections §1~§13 (W6 checklist §9 verbatim)
+   * Source: wave-6-tsx-conversion-checklist.md §9 (재사용 3 + 신규 17)
+   * 메모리 룰:
+   * - feedback_planner_prompt_sketch_verbatim (W6 §6 fence 36 unique 박제)
+   * - feedback_tailwind_token_class_pattern (status- prefix 0 + Lucide size prop)
+   * - feedback_tailwind_w8_h8_is_48px (.docs-trash-btn 32 / .docs-upload-btn-mobile 40 명시 px)
+   * - feedback_text_caption_leading_none (.docs-latest-pill 12 + leading-none)
+   * - project_legal_findings_delete_incident_260520 (★ delete confirm 가드)
+   * ============================================================ */
+
+  /* §1. 모바일 탭 chrome (DocumentsPage W6 §3) */
+  .docs-tab-bar { position: sticky; top: 0; z-index: 10; display: flex; background: var(--surface-page); border-bottom: 1px solid var(--border-default); margin-bottom: 16px; }
+  .docs-tab-btn { flex: 1; height: 44px; background: transparent; color: var(--text-secondary); font-size: 16px; font-weight: 400; border: none; border-bottom: 2px solid transparent; cursor: pointer; line-height: 1; }
+  .docs-tab-btn-active { color: var(--text-primary); font-weight: 600; border-bottom: 2px solid var(--accent); }  /* OQ #1 LOCKED */
+
+  /* §2. Section 헤더 (DocumentSection W6 §3) */
+  .docs-section-header { display: flex; justify-content: space-between; align-items: center; min-height: 40px; }
+  .docs-section-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-primary); }
+
+  /* §3. Hero card (DocumentSection latest W6 §3) */
+  .docs-hero-card { position: relative; width: 100%; min-height: 96px; padding: 24px; background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 12px; display: flex; align-items: center; gap: 16px; cursor: pointer; text-align: left; }
+  .docs-hero-card--busy { cursor: wait; opacity: 0.7; }
+  .docs-year-tile { width: 64px; height: 64px; background: var(--surface-sunken); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 600; color: var(--text-primary); }  /* OQ #5 sunken */
+  .docs-latest-pill { position: absolute; top: 12px; right: 12px; font-size: 12px; font-weight: 600; line-height: 1; color: var(--text-on-accent); background: var(--accent); padding: 4px 8px; border-radius: 9999px; }  /* OQ #3 11→12 격상 + leading-none + OQ #1 accent */
+  .docs-hero-meta-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .docs-hero-title { font-size: 16px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .docs-hero-meta { font-size: 14px; font-weight: 400; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* §4. 과거 이력 row (DocumentSection history W6 §3) */
+  .docs-history-section-label { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-top: 12px; margin-bottom: 12px; }
+  .docs-history-list { display: flex; flex-direction: column; }
+  .docs-history-row { width: 100%; min-height: 56px; padding: 16px; background: var(--surface-raised); border-right: 1px solid var(--border-default); border-left: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left; }
+  .docs-history-row--first { border-top: 1px solid var(--border-default); border-top-left-radius: 8px; border-top-right-radius: 8px; }
+  .docs-history-row--last { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+  .docs-history-row--busy { cursor: wait; opacity: 0.7; }
+  .docs-history-meta-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .docs-history-title { font-size: 14px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .docs-history-meta { font-size: 14px; font-weight: 400; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* §5. admin Trash2 + uploadBtn (w-8 함정 회피 — feedback_tailwind_w8_h8_is_48px) */
+  .docs-trash-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--danger); border: 1px solid var(--border-default); border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+  .docs-trash-btn--hero { position: absolute; bottom: 12px; right: 12px; }
+  .docs-trash-btn:disabled { cursor: wait; }
+  .docs-trash-spin { animation: docsec-spin 1s linear infinite; }
+  .docs-upload-btn-mobile { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 8px; cursor: pointer; }
+  .docs-upload-btn-desktop { height: 40px; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: var(--text-on-accent); font-size: 14px; font-weight: 600; border: none; border-radius: 9999px; cursor: pointer; line-height: 1; }  /* OQ #1 LOCKED */
+
+  /* §6. upload sheet/modal shell (DocumentsPage W6 §3) */
+  .docs-upload-sheet { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; }
+  .docs-upload-sheet-body { width: 100%; max-height: 85vh; overflow-y: auto; background: var(--surface-raised); border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 24px; animation: docs-slide-up 240ms ease-out; }
+  .docs-upload-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.55); z-index: 1000; display: flex; align-items: center; justify-content: center; animation: docs-fade-in 180ms ease-out; }
+  .docs-upload-modal-body { width: min(480px, 92vw); max-height: 85vh; overflow-y: auto; background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 12px; padding: 24px; }
+  .docs-sheet-handle { width: 40px; height: 4px; background: var(--border-default); border-radius: 2px; margin: 0 auto 16px auto; }
+
+  /* §7. Form input/select/file button (OQ #5 sunken) */
+  .docs-form { display: flex; flex-direction: column; gap: 20px; }
+  .docs-form-title { font-size: 22px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }  /* OQ #4 20→22 격상 */
+  .docs-input { width: 100%; height: 44px; padding: 0 12px; background: var(--surface-sunken); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: 8px; font-size: 14px; outline: none; box-sizing: border-box; }
+  .docs-input-label { display: block; font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+  .docs-file-btn { width: 100%; height: 44px; padding: 0 12px; background: var(--surface-sunken); color: var(--text-secondary); border: 1px dashed var(--border-default); border-radius: 8px; font-size: 14px; text-align: left; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .docs-file-btn--filled { color: var(--text-primary); }
+  .docs-file-btn:disabled { cursor: not-allowed; }
+  .docs-file-hint { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-top: 8px; line-height: 1; }  /* OQ #3 12 + leading-none */
+
+  /* §8. Progress bar + meta (OQ #5 sunken + OQ #1 accent) */
+  .docs-progress-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .docs-progress-bar { height: 8px; background: var(--surface-sunken); border-radius: 4px; overflow: hidden; }
+  .docs-progress-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 240ms linear; }  /* OQ #1 LOCKED */
+  .docs-progress-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-family: 'JetBrains Mono', monospace; }
+  .docs-progress-percent { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .docs-progress-speed { font-size: 14px; font-weight: 400; color: var(--text-secondary); text-align: right; }
+
+  /* §9. Error block (OQ #4 14 격상 + OQ #5 sunken) */
+  .docs-error-block { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: var(--surface-sunken); border: 1px solid var(--border-default); border-radius: 8px; }
+  .docs-error-msg { color: var(--danger); font-size: 14px; font-weight: 500; flex: 1; }
+  .docs-error-retry { height: 36px; padding: 0 14px; background: var(--accent); color: var(--text-on-accent); font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+
+  /* §10. submit button gradient (OQ #2 LOCKED lin-grad 135deg #1d4ed8 #0ea5e9) */
+  .btn-primary-gradient { flex: 1; height: 44px; background: linear-gradient(135deg, #1d4ed8, #0ea5e9); color: #ffffff; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+  .btn-primary-gradient:disabled { background: var(--surface-sunken); color: var(--text-tertiary); cursor: not-allowed; }
+
+  /* §11. cancel button + action row */
+  .docs-action-row { display: flex; gap: 12px; margin-top: 4px; }
+  .docs-cancel-btn { flex: 1; height: 44px; background: transparent; color: var(--text-primary); font-size: 16px; font-weight: 600; border: 1px solid var(--border-default); border-radius: 8px; cursor: pointer; }
+
+  /* §12. Section state blocks */
+  .docs-section { display: flex; flex-direction: column; gap: 12px; }
+  .docs-loading-wrap { display: flex; flex-direction: column; gap: 12px; }
+  .docs-loading-skeleton-hero { height: 96px; background: var(--surface-raised); border-radius: 12px; border: 1px solid var(--border-default); }
+  .docs-loading-skeleton-row { height: 56px; background: var(--surface-raised); border-radius: 8px; }
+  .docs-error-state { padding: 24px; background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .docs-error-state-msg { color: var(--danger); font-size: 16px; font-weight: 600; }
+  .docs-error-state-btn { height: 40px; padding: 0 16px; background: var(--accent); color: var(--text-on-accent); font-size: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; }
+  .docs-empty-state { padding: 48px 24px; background: var(--surface-raised); border: 1px solid var(--border-default); border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+  .docs-empty-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+  .docs-empty-hint { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+
+  /* §13. 데스크톱 좌우 2단 컨테이너 */
+  .docs-desktop-grid { display: flex; gap: 48px; max-width: 1200px; margin: 0 auto; padding: 24px; }
+  .docs-desktop-col { flex: 1; min-width: 0; }
+  .docs-mobile-wrap { padding: 16px 16px 0 16px; }
+  .docs-page-root { color: var(--text-primary); }
+
 }
 
 /* ── §12. @keyframes blink (W3 .summary-card-skeleton 의존) ── */
@@ -980,3 +1085,8 @@
   0%, 100% { opacity: 0.4; }
   50%      { opacity: 1.0; }
 }
+
+/* ── 22-documents W7 @keyframes 3종 (인라인 → components.css 이관) ── */
+@keyframes docs-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes docs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes docsec-spin { to { transform: rotate(360deg); } }

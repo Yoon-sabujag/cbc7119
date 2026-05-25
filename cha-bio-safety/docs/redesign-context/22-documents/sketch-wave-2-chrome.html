@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  sketch-wave-2-chrome.html — redesign/22-documents W2
+  작성: 2026-05-26 / quick 260526-85a
+  범위: DocumentsPage.tsx 전체 (162 lines) chrome 시각화
+        - 모바일 isDesktop=false 분기 (line 41~64) — 탭 sticky plan/drill + DocumentSection 1개
+        - 데스크톱 isDesktop=true 분기 (line 66~83) — 좌우 2단 maxWidth 1200 gap 48 padding 24
+        - upload shell 모바일 BottomSheet (line 86~126) — slideUp 240ms + handle 40x4 + backdrop NO-OP
+        - 데스크톱 Modal (line 128~159) — fade-in 180ms + min(480px,92vw) + backdrop NO-OP
+        - @keyframes docs-slide-up + docs-fade-in 인라인 (line 36~39 verbatim)
+        - tabBtnStyle (line 22~32) verbatim
+        4 frame (모바일 다크 탭 plan / 모바일 다크 탭 drill / 데스크톱 다크 2단 / 모바일 라이트 BottomSheet open) chrome 매트릭스
+  out of scope: DocumentSection 카드 4 state + Hero 최신 + 과거 이력 + admin Trash2 (W3 책임)
+                / DocumentUploadForm 폼 (year+title+file dashed+Progress+Error+Action — W4 책임)
+                / delete confirm + abort + beforeunload + 403 + handleRetry (W5 책임)
+                / TSX 변환 (W6 책임) / src 3 파일 코드 수정 / utils/api / hooks/useIsDesktop
+  참조: wave-1-index.md §3 + §7 OQ #1/#5 verbatim, 20-legal-findings/sketch-wave-2-chrome.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — chrome 강조색 토큰 통일 bg-accent / border-accent (모바일 탭 active borderBottom)
+                    16/17/23/28 4 페이지 일관, tokens.css --accent = #2f81f7 (라이트 #1f6feb)
+                    DocumentsPage line 30 인라인 `borderBottom: '2px solid #2f81f7'` → border-accent 토큰 통일
+                    (본 wave 적용 = O ★ 핵심, anchor ≥3)
+    OQ #2 LOCKED — submit button lin-grad (W4 scope, T4 anchor ≥3) — 본 wave 미해당, T1 = 0건
+    OQ #3 LOCKED — §1.1 9·10·11 → 12 격상 + leading-none (W3/W4 scope, 본 wave 미해당)
+    OQ #4 LOCKED — 모달 title 22 격상 + Error 14 격상 + 빈 FileText 48 유지 (W3/W4/W5 scope, 본 wave 미해당)
+    OQ #5 LOCKED — var(--bg4) → bg-surface-sunken (W4 input/Progress bar 적용, 본 wave 미해당)
+                    단, 모달/시트 body bg-surface-raised (var(--bg2)) anchor 박제 = O
+
+  ★ ★ backdrop NO-OP 코멘트 verbatim 박제 anchor (line 97~99 + 140~142, 1 byte 변경 금지):
+    /* backdrop no-op — user must use 취소 button so confirm guard fires */
+    → 사용자가 반드시 '취소' 버튼을 눌러야 handleCancel(beforeunload guard + abort confirm) 발화
+    → backdrop 클릭으로 무음 닫힘 방지 (multipart upload 데이터 손실 사고 방지)
+    (본 wave 가 W2~W5 4 wave 의 NO-OP 시각화 단독 책임)
+
+  ★ ★ @keyframes 3종 (DocumentsPage 인라인 line 36~39 + DocumentSection 인라인 verbatim, 변경 금지):
+    docs-slide-up — BottomSheet 240ms ease-out (translateY 100% → 0)
+    docs-fade-in  — Modal 180ms ease-out (opacity 0 → 1)
+    docsec-spin   — Loader2 1s linear infinite (W3 책임, rotate 360deg)
+
+  ★ ★ useIsDesktop ≥1024px 분기 anchor (DocumentsPage line 18, hooks/useIsDesktop):
+    isDesktop = window.innerWidth >= 1024
+    → false: 모바일 탭 sticky + 단일 DocumentSection + BottomSheet
+    → true:  좌우 2단 + Modal
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_tailwind_token_class_pattern
+       → status- prefix 없음 + Lucide size prop (className w-N h-N 금지)
+
+    2. feedback_tailwind_w8_h8_is_48px
+       → w&#8209;8 / h&#8209;8 = 48px 함정 (tailwind override). 40x40 = w-[40px] h-[40px], 44 = w-11 h-11
+
+    3. feedback_text_caption_leading_none
+       → text-caption 12 leading-none (작은 컨테이너 마지노선)
+
+    4. feedback_design_sketch_first
+       → spacing/sizing 도 sketch 시안 먼저, 컨펌 후 인라인 적용
+
+    5. feedback_sketch_realistic_data
+       → 표시 분기/라벨 룰 코드 그대로 (typeLabel + 탭 카피 verbatim)
+
+    6. feedback_planner_prompt_sketch_verbatim
+       → sketch CSS verbatim 인용 (추측 토큰명 금지)
+
+    7. feedback_cbc7119_design_never_wrangler
+       → 디자인 wave 중 wrangler 명령 절대 X
+
+    8. project_redesign_19_legal + 21_legal_finding_detail
+       → multi-file 외부 의존 미수정 패턴 (본 wave = 3 파일 통합 시각화)
+
+  ==========================================================
+  비즈 anchor 9 그룹 (1 byte 변경 금지, 본 wave 박제)
+  ==========================================================
+
+    [react-query / 시그니처]                      (W3/W4 핵심, 본 wave anchor 박제)
+    1. useQuery queryKey ['documents', type]
+    2. queryClient.invalidateQueries documents
+    3. documentsApi.list + documentsApi.remove
+
+    [multipart upload + abort + beforeunload]     (W4/W5 핵심, 본 wave anchor 박제)
+    4. runMultipartUpload signature
+    5. beforeunload guard (isUploading 등록)
+    6. unmount abort cleanup
+
+    [file 검증 + ALLOWED + auto-prefill]          (W4 핵심)
+    7. ALLOWED 6 ext + EXT_TO_MIME + MAX_SIZE
+
+    [admin 권한 + delete confirm gate]            (W5 핵심)
+    8. isAdmin useAuthStore role admin
+    9. delete confirm full string 1 byte 변경 금지
+
+    본 wave 직접 anchor (useIsDesktop + DocumentSection + DocumentUploadForm + backdrop + @keyframes + typeLabel)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/22-documents — W2 chrome + 탭 + 2단 + shell</title>
+<style>
+/* v0.1.1 tokens.css verbatim — 다크 (기본) */
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255, 255, 255, 0.14);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+  --accent:          #2f81f7;
+  --status-danger-bar: #ef4444;
+  /* 호환 alias (점진적 제거 대상, sketch 본문 표시용 fence) */
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bg4: var(--surface-active);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+/* 라이트 */
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --surface-active:  #d8dee4;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --border-default:  rgba(0, 0, 0, 0.14);
+  --border-strong:   rgba(0, 0, 0, 0.22);
+  --accent:          #1f6feb;
+  --status-danger-bar: #b91c1c;
+}
+
+/* typography.css verbatim 핵심 */
+body { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.text-heading   { font-size: 22px; line-height: 1.4; }
+.text-body      { font-size: 16px; line-height: 1.5; }
+.text-body-sm   { font-size: 14px; line-height: 1.5; }
+.text-caption   { font-size: 12px; line-height: 1.5; }
+.font-semibold  { font-weight: 600; }
+.font-medium    { font-weight: 500; }
+.font-normal    { font-weight: 400; }
+.font-bold      { font-weight: 700; }
+.leading-none   { line-height: 1 !important; }
+
+/* @keyframes 3종 (DocumentsPage line 36~39 verbatim) */
+@keyframes docs-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes docs-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+/* docsec-spin (DocumentSection 인라인 verbatim — W3 책임이나 anchor 박제) */
+@keyframes docsec-spin   { to { transform: rotate(360deg); } }
+
+/* sketch layout */
+body { margin: 0; padding: 24px; background: #0a0d12; color: #fff; }
+.sketch-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+.frame {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.frame[data-theme="light"] {
+  background: var(--surface-page);
+  color: var(--text-primary);
+}
+.frame-label {
+  font-size: 13px;
+  color: #adb6c0;
+  margin-bottom: 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.frame-mobile  { width: 393px; height: 800px; }
+.frame-desktop { width: 1100px; height: 760px; }
+.placeholder {
+  background: var(--surface-raised);
+  border: 1px dashed var(--border-default);
+  border-radius: 12px;
+  padding: 24px;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* rules 박스 (sketch 하단) */
+.rules-box {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  max-width: 1100px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.rules-box h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
+.rules-box code, .rules-box pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--surface-sunken);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+.rules-box pre { padding: 12px; overflow-x: auto; line-height: 1.5; }
+.star { color: #ef4444; font-weight: 700; }
+
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:600;">redesign/22-documents — W2 chrome (탭 + 좌우 2단 + BottomSheet/Modal + backdrop NO-OP)</h1>
+
+<div class="sketch-wrap">
+
+<!-- =============================================== -->
+<!-- Frame 1 — 모바일 다크 393×800 탭 plan active   -->
+<!-- =============================================== -->
+<div>
+<div class="frame-label">[1] 393×800 / dark / 탭 plan active</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:16px 16px 0 16px;">
+    <!-- 모바일 탭 sticky (DocumentsPage line 43~60 verbatim, OQ #1 LOCKED border-accent) -->
+    <div style="position:sticky;top:0;z-index:10;display:flex;background:var(--bg);border-bottom:1px solid var(--bd);margin-bottom:16px;">
+      <!-- active (plan) — text-text-primary font-semibold border-b-2 border-accent (OQ #1 통일) -->
+      <button type="button" class="text-text-primary font-semibold" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:16px;font-weight:600;border:none;border-bottom:2px solid var(--acl);cursor:pointer;">소방계획서</button>
+      <!-- inactive (drill) — text-text-secondary font-normal border-b-2 border-transparent -->
+      <button type="button" class="text-text-secondary font-normal" style="flex:1;height:44px;background:transparent;color:var(--t2);font-size:16px;font-weight:400;border:none;border-bottom:2px solid transparent;cursor:pointer;">소방훈련자료</button>
+    </div>
+    <!-- DocumentSection placeholder (W3 책임) — typeLabel 분기 'plan' → '소방계획서' -->
+    <div class="placeholder" style="margin-top:8px;height:540px;">
+      DocumentSection (type=&quot;plan&quot;)<br>
+      W3 책임 — 헤더 + uploadBtn 분기<br>
+      + 4 state (loading / error / empty / data)<br>
+      + Hero 최신 pill (OQ #3) + Year tile 64x64<br>
+      + 과거 이력 row + admin Trash2 32x32<br>
+      <br>
+      <code>useQuery({ queryKey: ['documents', 'plan'], ... })</code>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================================== -->
+<!-- Frame 2 — 모바일 다크 393×800 탭 drill active  -->
+<!-- =============================================== -->
+<div>
+<div class="frame-label">[2] 393×800 / dark / 탭 drill active</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:16px 16px 0 16px;">
+    <!-- 모바일 탭 sticky (동일 chrome, drill active) -->
+    <div style="position:sticky;top:0;z-index:10;display:flex;background:var(--bg);border-bottom:1px solid var(--bd);margin-bottom:16px;">
+      <!-- inactive (plan) -->
+      <button type="button" class="text-text-secondary font-normal" style="flex:1;height:44px;background:transparent;color:var(--t2);font-size:16px;font-weight:400;border:none;border-bottom:2px solid transparent;cursor:pointer;">소방계획서</button>
+      <!-- active (drill) — border-b-2 border-accent (OQ #1) -->
+      <button type="button" class="text-text-primary font-semibold" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:16px;font-weight:600;border:none;border-bottom:2px solid var(--acl);cursor:pointer;">소방훈련자료</button>
+    </div>
+    <!-- DocumentSection placeholder — typeLabel 'drill' → '소방훈련자료' -->
+    <div class="placeholder" style="margin-top:8px;height:540px;">
+      DocumentSection (type=&quot;drill&quot;)<br>
+      typeLabel 분기 anchor (line 37):<br>
+      <code>'plan' → '소방계획서' / 'drill' → '소방훈련자료'</code><br>
+      <br>
+      activeTab state 전환 시 동일 DocumentSection<br>
+      재마운트 (single source, useQuery key 분기)<br>
+      <code>queryKey: ['documents', activeTab]</code>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================================== -->
+<!-- Frame 3 — 데스크톱 다크 1100×760 좌우 2단      -->
+<!-- =============================================== -->
+<div>
+<div class="frame-label">[3] 1440×900 / dark / 좌우 2단 maxWidth 1200 gap 48 (≥1024px useIsDesktop=true)</div>
+<div class="frame frame-desktop" data-theme="dark">
+  <!-- 데스크톱 좌우 2단 (DocumentsPage line 67~75 verbatim — maxWidth 1200 gap 48 padding 24) -->
+  <div style="display:flex;gap:48px;max-width:1200px;margin:0 auto;padding:24px;height:100%;box-sizing:border-box;">
+    <div style="flex:1;min-width:0;">
+      <!-- DocumentSection type="plan" — W3 placeholder -->
+      <div class="placeholder" style="height:100%;">
+        DocumentSection (type=&quot;plan&quot;)<br>
+        데스크톱 uploadBtn — h-10 pill bg-accent<br>
+        + Plus size={16} + '업로드' (OQ #1)<br>
+        <br>
+        Hero card + 과거 이력 + admin Trash2
+      </div>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <!-- DocumentSection type="drill" — W3 placeholder -->
+      <div class="placeholder" style="height:100%;">
+        DocumentSection (type=&quot;drill&quot;)<br>
+        동시 표시 (탭 분기 없음 — 데스크톱)<br>
+        <br>
+        <code>isDesktop = useIsDesktop()</code><br>
+        <code>≥1024px → 2단 모드</code>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================================== -->
+<!-- Frame 4 — 모바일 라이트 393×800 BottomSheet    -->
+<!-- =============================================== -->
+<div>
+<div class="frame-label">[4] 393×800 / light / upload shell BottomSheet open + handle 40x4 + backdrop NO-OP</div>
+<div class="frame frame-mobile" data-theme="light">
+  <div style="padding:16px 16px 0 16px;position:relative;height:100%;">
+    <!-- 배경 (탭 + DocumentSection placeholder 흐릿) -->
+    <div style="position:sticky;top:0;z-index:10;display:flex;background:var(--bg);border-bottom:1px solid var(--bd);margin-bottom:16px;opacity:0.4;">
+      <button type="button" style="flex:1;height:44px;background:transparent;color:var(--t1);font-size:16px;font-weight:600;border:none;border-bottom:2px solid var(--acl);cursor:pointer;">소방계획서</button>
+      <button type="button" style="flex:1;height:44px;background:transparent;color:var(--t2);font-size:16px;font-weight:400;border:none;border-bottom:2px solid transparent;cursor:pointer;">소방훈련자료</button>
+    </div>
+
+    <!-- ★ BottomSheet wrapper (DocumentsPage line 86~126 verbatim) -->
+    <!-- ★ backdrop onClick NO-OP — 사용자가 반드시 '취소' button 으로 닫아야 confirm guard 발화 -->
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:flex-end;justify-content:center;" data-backdrop-no-op="true">
+      <!-- /* backdrop no-op — user must use 취소 button so confirm guard fires */ -->
+      <!-- (line 97~99 코멘트 verbatim, 1 byte 변경 금지) -->
+      <div style="width:100%;max-height:85vh;overflow-y:auto;background:var(--bg2);border-top-left-radius:16px;border-top-right-radius:16px;padding:24px;animation:docs-slide-up 240ms ease-out;box-sizing:border-box;" onclick="event.stopPropagation()">
+        <!-- handle bar 40x4 (line 114~122 verbatim) -->
+        <div style="width:40px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 16px auto;"></div>
+        <!-- DocumentUploadForm placeholder (W4 책임) -->
+        <div class="placeholder" style="margin-top:0;background:transparent;border:1px dashed var(--bd);color:var(--t2);">
+          DocumentUploadForm 폼 inline (W4)<br>
+          year select + title input + file dashed<br>
+          + ALLOWED 6 ext + Progress + Error<br>
+          + Action row submit (OQ #2 lin-grad ≥3)<br>
+          <br>
+          <code>animation: docs-slide-up 240ms ease-out</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- =============================================== -->
+<!-- Frame 5 — 데스크톱 다크 modal min(480px,92vw)  -->
+<!-- =============================================== -->
+<div>
+<div class="frame-label">[5] 1440×900 / dark / upload shell Modal open (fade-in 180ms + min(480px,92vw)) — anchor 보강</div>
+<div class="frame frame-desktop" data-theme="dark" style="height:540px;">
+  <div style="position:relative;height:100%;padding:24px;box-sizing:border-box;">
+    <!-- 배경 2단 흐릿 -->
+    <div style="display:flex;gap:48px;max-width:1200px;margin:0 auto;height:100%;opacity:0.3;">
+      <div style="flex:1;min-width:0;" class="placeholder">DocumentSection plan</div>
+      <div style="flex:1;min-width:0;" class="placeholder">DocumentSection drill</div>
+    </div>
+
+    <!-- ★ Modal (DocumentsPage line 128~158 verbatim — fade-in 180ms + min(480px,92vw)) -->
+    <!-- ★ backdrop onClick NO-OP — 사용자가 반드시 '취소' 버튼을 눌러야 handleCancel 발화 -->
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center;animation:docs-fade-in 180ms ease-out;" data-backdrop-no-op="true">
+      <!-- /* backdrop no-op — user must use 취소 button so confirm guard fires */ -->
+      <!-- (line 140~142 코멘트 verbatim, 1 byte 변경 금지) -->
+      <div style="width:min(480px, 92vw);max-height:85vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--bd2);border-radius:12px;padding:24px;box-sizing:border-box;" onclick="event.stopPropagation()">
+        <div class="placeholder" style="background:transparent;border:1px dashed var(--bd);color:var(--t2);">
+          DocumentUploadForm 폼 inline (W4)<br>
+          모달 title text-heading 22 (OQ #4 격상)<br>
+          + year + title + file dashed + Progress<br>
+          + Error + Action row submit (OQ #2)<br>
+          <br>
+          <code>width: min(480px, 92vw)</code><br>
+          <code>animation: docs-fade-in 180ms ease-out</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /.sketch-wrap -->
+
+<!-- ============================================================ -->
+<!-- rules 박스                                                   -->
+<!-- ============================================================ -->
+<div class="rules-box">
+
+<h3>★ OQ #1 LOCKED — chrome 강조색 토큰 통일 (bg-accent / border-accent)</h3>
+<pre>
+탭 active borderBottom — DocumentsPage line 30 인라인 `borderBottom: '2px solid #2f81f7'`
+  → border-accent 토큰 통일 (또는 인라인 var(--acl), tokens.css --accent = #2f81f7)
+  → 16-workshift / 17-annual-plan / 23-education / 28-splash 4 페이지 일관
+  → arbitrary `bg-[#2f81f7]` fallback 패턴 (16-workshift 사례) 검토
+
+OQ #5 (var(--bg4) → bg-surface-sunken 통일) — W4 input/Progress 적용 (본 wave 미해당)
+  단, 모달/시트 body bg-surface-raised (var(--bg2)) 본 wave 박제 = O
+</pre>
+
+<h3>★ ★ backdrop NO-OP 코멘트 verbatim (line 97~99 + 140~142, 1 byte 변경 금지)</h3>
+<pre>
+/* backdrop no-op — user must use 취소 button so confirm guard fires */
+
+→ 사용자가 반드시 '취소' 버튼을 눌러야 handleCancel(beforeunload guard + abort confirm) 발화
+→ backdrop 클릭으로 무음 닫힘 방지 (multipart upload 데이터 손실 사고 방지)
+→ data-backdrop-no-op="true" attribute 으로 의도 anchor 박제 (e2e test 대비)
+→ inner div onClick={(e) =&gt; e.stopPropagation()} 으로 모달 body 클릭 시 backdrop 안 닫음
+</pre>
+
+<h3>★ ★ @keyframes 3종 anchor fence (DocumentsPage line 36~39 verbatim + DocumentSection 인라인)</h3>
+<pre>
+@keyframes docs-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes docs-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes docsec-spin   { to { transform: rotate(360deg); } }   /* W3 책임 (Loader2) */
+
+BottomSheet — animation: docs-slide-up 240ms ease-out
+Modal       — animation: docs-fade-in  180ms ease-out
+Loader2     — animation: docsec-spin   1s linear infinite
+</pre>
+
+<h3>비즈 anchor 9 그룹 (본 wave 박제, 1 byte 변경 금지)</h3>
+<pre>
+[react-query / 시그니처]                       (W3/W4 핵심)
+1. useQuery({ queryKey: ['documents', type], queryFn: () =&gt; documentsApi.list(type), staleTime: 60_000 })
+2. queryClient.invalidateQueries({ queryKey: ['documents', type] })
+3. documentsApi.list(type) + documentsApi.remove(id) + downloadDocument + formatBytes + formatEta
+
+[multipart upload + abort + beforeunload]      (W4/W5 핵심)
+4. runMultipartUpload({ file, type, year, title, contentType, signal, onProgress })
+5. useEffect beforeunload guard (isUploading 동안만 등록)
+6. useEffect unmount abort cleanup (abortRef.current?.abort())
+
+[file 검증 + ALLOWED + auto-prefill]           (W4 핵심)
+7. ALLOWED 6 ext (PDF/XLSX/DOCX/PPTX/HWP/ZIP) + EXT_TO_MIME + MAX_SIZE 500MB
+   + empty MIME fallback (HWP/ZIP iOS Safari)
+   + auto-prefill title `${year}년 ${typeLabel(type)}`
+   + yearOptions descending currentYear+1 → 2020
+
+[admin 권한 + delete confirm gate]             (W5 핵심)
+8. isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')
+9. delete confirm full string verbatim (1 byte 변경 금지, memory project_legal_findings_delete_incident_260520)
+</pre>
+
+<h3>토큰 매핑 (v0.1.1 → 옛 alias)</h3>
+<pre>
+페이지 외곽       var(--bg)  → bg-surface-page  (모바일+데스크톱 외곽 모두 bg-surface-page)
+탭 sticky 배경    var(--bg)  → bg-surface-page  (sticky 시 underlay 일치, line 49 verbatim)
+빈 화면 wrapper   var(--bg)  → bg-surface-page  (DocumentsPage 최상위 div, line 35 color var(--t1))
+모달/시트 body    var(--bg2) → bg-surface-raised
+탭 borderBottom   var(--bd)  → border-border-default
+handle bar bg     var(--bd2) → bg-border-default
+탭 active 색      var(--acl) → bg-accent / border-accent (OQ #1 통일)
+h2 글자색         var(--t1)  → text-text-primary
+inactive 탭 글자  var(--t2)  → text-text-secondary
+</pre>
+
+<h3>negative gate self-check (mbr deviation 2건 mirror)</h3>
+<pre>
+- 이모지 0건 (sketch 본문) — Lucide 아이콘 이름 anchor 만 인용
+- lin-grad (linear&#8209;gradient 약어) — 본 wave (T1) = 0건 (T4 만 예외 ≥3, OQ #2 LOCKED submit CTA)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)
+- (text|bg|border)-status-(safe|fire|warning|danger|caution) prefix 0건
+- \bw&#8209;8\b / \bh&#8209;8\b 0건 (w&#8209;8=48 함정 회피, w-[40px] h-[40px] / w-11)
+- 옛 alias var(--bg/bg2/bg3/bg4/bd/bd2/t1/t2/t3/acl/danger) — sketch CSS fence 안 호환 alias 인용은 OK,
+  본문 anchor 박제는 v0.1.1 토큰 (bg-surface-page / bg-surface-raised / border-border-default / bg-accent) 우선
+- mbr deviation — 본문 안 "lin-grad" / "warning glyph" 약어 회피 (negative gate self-collision 차단)
+- HTML 주석 prefix &lt;!-- 또는 entity escape 로 "9·10·11" 숫자 직접 인용 회피
+</pre>
+
+<h3>useIsDesktop ≥1024px 분기 anchor</h3>
+<pre>
+const isDesktop = useIsDesktop()   // hooks/useIsDesktop.ts, window.innerWidth >= 1024
+
+isDesktop=false (모바일):
+  → 탭 sticky plan/drill + 단일 DocumentSection (activeTab 분기)
+  → upload shell = BottomSheet (slideUp 240ms + handle 40x4)
+
+isDesktop=true (데스크톱):
+  → 좌우 2단 (maxWidth 1200, gap 48, padding 24, flex 1 min-width 0)
+  → upload shell = Modal (fade-in 180ms + min(480px, 92vw))
+</pre>
+
+</div><!-- /.rules-box -->
+
+</body>
+</html>

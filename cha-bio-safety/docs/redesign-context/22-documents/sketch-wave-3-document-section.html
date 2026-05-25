@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<!--
+  sketch-wave-3-document-section.html — redesign/22-documents W3
+  작성: 2026-05-26 / quick 260526-85a
+  범위: DocumentSection.tsx 전체 (517 lines, 핵심 line 165~514) 시각화
+        - 헤더 행 (line 170~180) — h2 + uploadBtn 분기 (모바일 40x40 icon-only / 데스크톱 h-10 pill bg-accent)
+        - 4 state 매트릭스:
+          * loading (line 183~196) — 스켈레톤 96 + 56 + 56
+          * error   (line 199~233) — 카피 verbatim + 다시 시도 button bg-accent
+          * empty   (line 236~260) — FileText 48 + admin/non-admin 카피 분기
+          * data    (line 263~514) — Hero card 최신 + 과거 이력 list
+        - Hero card (line 263~394) — 최신 pill OQ #3 12 격상 + Year tile 64x64 + Meta + admin Trash2 32x32
+        - 과거 이력 list (line 397~514) — 연결 borderRadius isFirst rounded-t / isLast rounded-b
+        - @keyframes docsec-spin (line 167 verbatim)
+        4 frame (모바일 다크 loading / 모바일 다크 error / 모바일 라이트 empty admin / 데스크톱 다크 data) state 매트릭스
+  out of scope: DocumentsPage chrome (탭 + 2단 + shell — W2 책임) / DocumentUploadForm (W4 책임)
+                / delete confirm + abort + beforeunload + 403 + handleRetry (W5 책임)
+                / TSX 변환 (W6 책임) / src 3 파일 코드 수정 / utils/api
+  참조: wave-1-index.md §3 + §7 OQ #1/#2/#3/#4 verbatim, sketch-wave-2-chrome.html (chrome anchor)
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — uploadBtn 데스크톱 pill bg-accent + 다시 시도 button bg-accent + 최신 pill bg-accent
+                    (anchor ≥2, OQ #1 통일 chrome 강조색 토큰)
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — submit lin-grad (W4 scope) — 본 wave 미해당, T2 = 0건
+    OQ #3 LOCKED — 최신 pill 11 → 12 격상 + leading-none (text-caption font-bold leading-none)
+                    동시에 노안 마지노선 12 / 9·10·11 사용 금지
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #4 LOCKED — 빈 상태 FileText size={48} 유지 (오류 아이콘 추가 안 함, 본 페이지 이미 존재)
+                    Progress meta 14 → text-body-sm 유지 (W4 책임이나 anchor 일관)
+                    모달 title 22 (W4 책임)
+                    Error 카피 14 (W4/W5 책임)
+                    (본 wave 적용 = O — 빈 FileText 48 유지 ★ 핵심)
+    OQ #5 LOCKED — Year tile bg-surface-sunken (var(--bg3) → sunken 매핑)
+                    카드 색 bg-surface-raised 유지 (회색 통일 — 확장자별 색 X)
+                    (본 wave 적용 = O ★ 핵심)
+
+  ★ ★ admin Trash2 32x32 — w&#8209;8=48 함정 회피 (memory feedback_tailwind_w8_h8_is_48px):
+    w-[32px] h-[32px] arbitrary 또는 인라인 width:32px;height:32px
+    uploadBtn 모바일 40x40 = w-[40px] h-[40px]
+    Year tile 64x64 = w-16 h-16 (tailwind config spacing 16 = 64px)
+    h-10 pill 데스크톱 = h-10 (40px)
+
+  ★ ★ 카피 verbatim 5건 (memory feedback_sketch_realistic_data, 1 byte 변경 금지):
+    빈 제목: '아직 업로드된 문서가 없습니다' (line 252)
+    빈 보조 admin: '우측 상단 업로드 버튼으로 ${title}를 추가하세요.' (line 256)
+    빈 보조 non-admin: '관리자가 문서를 업로드하면 이곳에 표시됩니다.' (line 257)
+    오류: '문서 목록을 불러오지 못했습니다.' (line 213) + '다시 시도' button (line 230)
+    최신 pill: '최신' (line 300)
+    과거 이력 라벨: '과거 이력' (line 408)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_tailwind_token_class_pattern
+       → status- prefix 없음 + Lucide size prop (className w-N h-N 금지)
+       → text-danger (var(--danger)) — status- prefix 없음
+
+    2. feedback_tailwind_w8_h8_is_48px ★ 핵심
+       → w&#8209;8/h&#8209;8 = 48px (tailwind override). admin Trash2 32x32 = w-[32px] h-[32px] arbitrary
+       → uploadBtn 모바일 40x40 = w-[40px] h-[40px]
+
+    3. feedback_text_caption_leading_none ★ 핵심 (OQ #3)
+       → 최신 pill (h-fit, padding 4 8) text-caption(12) → leading-none 명시
+       → text-caption 12 leading-none 마지노선
+
+    4. feedback_design_sketch_first / feedback_sketch_realistic_data
+       → 표시 분기 + 카피 verbatim
+
+    5. feedback_planner_prompt_sketch_verbatim
+       → DocumentSection line 165~514 핵심 마크업 verbatim 인용
+
+    6. project_redesign_19_legal + project_redesign_21_legal_finding_detail
+       → multi-file 외부 의존 미수정 패턴
+
+  ==========================================================
+  비즈 anchor 9 그룹 (본 wave 박제, 1 byte 변경 금지)
+  ==========================================================
+
+    [react-query / 시그니처]                       ★ 본 wave 핵심
+    1. useQuery({ queryKey: ['documents', type], queryFn: () => documentsApi.list(type), staleTime: 60_000 })
+       — DocumentSection line 44~48 verbatim
+    2. queryClient.invalidateQueries({ queryKey: ['documents', type] })
+       — handleDelete 후 (line 99)
+    3. documentsApi.list(type) + documentsApi.remove(id) + downloadDocument + formatBytes + formatDate
+       — utils/api + utils/downloadBlob + utils/multipartUpload 시그니처 변경 금지
+
+    [admin 권한]                                   ★ 본 wave 핵심
+    8. isAdmin = useAuthStore((s) => s.staff?.role === 'admin')
+       — DocumentSection line 40 verbatim
+       — admin 만 uploadBtn + Trash2 표시. assistant = 다운로드/조회만
+
+    [downloadingIds / deletingIds Set state]      ★ 본 wave 부가
+       downloadingIds.has(item.id) → Loader2 docsec-spin
+       deletingIds.has(item.id)    → Trash2 disabled
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/22-documents — W3 DocumentSection + 4 state + Hero + 과거</title>
+<style>
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255, 255, 255, 0.14);
+  --border-strong:   rgba(255, 255, 255, 0.22);
+  --accent:          #2f81f7;
+  --status-danger-bar: #ef4444;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bg4: var(--surface-active);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --surface-active:  #d8dee4;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --border-default:  rgba(0, 0, 0, 0.14);
+  --border-strong:   rgba(0, 0, 0, 0.22);
+  --accent:          #1f6feb;
+  --status-danger-bar: #b91c1c;
+}
+
+body { font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.text-heading   { font-size: 22px; line-height: 1.4; }
+.text-body      { font-size: 16px; line-height: 1.5; }
+.text-body-sm   { font-size: 14px; line-height: 1.5; }
+.text-caption   { font-size: 12px; line-height: 1.5; }
+.font-semibold  { font-weight: 600; }
+.font-medium    { font-weight: 500; }
+.font-normal    { font-weight: 400; }
+.font-bold      { font-weight: 700; }
+.leading-none   { line-height: 1 !important; }
+
+/* @keyframes docsec-spin (DocumentSection line 167 verbatim, Loader2 1s linear infinite) */
+@keyframes docsec-spin { to { transform: rotate(360deg); } }
+
+body { margin: 0; padding: 24px; background: #0a0d12; color: #fff; }
+.sketch-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.frame {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.frame-label { font-size: 13px; color: #adb6c0; margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.frame-mobile  { width: 393px; height: 760px; }
+.frame-desktop { width: 1100px; height: 760px; }
+
+.rules-box {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  max-width: 1100px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+.rules-box h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 600; }
+.rules-box code, .rules-box pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--surface-sunken);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+.rules-box pre { padding: 12px; overflow-x: auto; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 24px 0;font-size:22px;font-weight:600;">redesign/22-documents — W3 DocumentSection (4 state + Hero + 과거 + admin Trash2 32x32)</h1>
+
+<div class="sketch-wrap">
+
+<!-- ============================================== -->
+<!-- Frame 1 — 모바일 다크 loading                  -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[1] 393×760 / dark / loading (스켈레톤 96+56+56) — admin uploadBtn 모바일 40x40 icon-only</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:16px;">
+    <!-- 헤더 행 (DocumentSection line 170~180 verbatim) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;margin-bottom:16px;">
+      <h2 class="text-body font-semibold text-text-primary" style="margin:0;font-size:16px;font-weight:600;color:var(--t1);">소방계획서</h2>
+      <!-- admin uploadBtn 모바일 — w-[40px] h-[40px] icon-only Plus size={20} (line 142~162 verbatim) -->
+      <button type="button" aria-label="소방계획서 업로드" style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--t1);border:1px solid var(--bd);border-radius:8px;cursor:pointer;">
+        <!-- Lucide Plus size={20} -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- loading 스켈레톤 96 + 56 + 56 (line 183~196 verbatim, bg-surface-raised) -->
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div style="height:96px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;animation:docsec-spin 0s;"></div>
+      <div style="height:56px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;"></div>
+      <div style="height:56px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;"></div>
+    </div>
+    <div style="margin-top:24px;color:var(--t3);font-size:12px;font-family:'JetBrains Mono', monospace;text-align:center;">
+      query.isLoading=true<br>
+      docsec-spin 1s linear infinite
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 2 — 모바일 다크 error                    -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[2] 393×760 / dark / error (다시 시도 button bg-accent OQ #1)</div>
+<div class="frame frame-mobile" data-theme="dark">
+  <div style="padding:16px;">
+    <!-- 동일 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;margin-bottom:16px;">
+      <h2 class="text-body font-semibold text-text-primary" style="margin:0;font-size:16px;font-weight:600;color:var(--t1);">소방계획서</h2>
+      <button type="button" aria-label="소방계획서 업로드" style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--t1);border:1px solid var(--bd);border-radius:8px;cursor:pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- error block (line 199~233 verbatim) -->
+    <div class="bg-surface-raised border border-border-default rounded-md" style="padding:24px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div class="text-danger font-semibold" style="color:var(--danger);font-size:16px;font-weight:600;text-align:center;">문서 목록을 불러오지 못했습니다.</div>
+      <button type="button" class="bg-accent text-text-on-accent text-body-sm font-semibold rounded-sm" style="height:40px;padding:0 16px;background:var(--acl);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;">다시 시도</button>
+    </div>
+    <div style="margin-top:24px;color:var(--t3);font-size:12px;font-family:'JetBrains Mono', monospace;text-align:center;">
+      query.error 발생 → useEffect toast.error<br>
+      &quot;문서 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.&quot;<br>
+      (line 56 verbatim — error block + toast 동시 발화)
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 3 — 모바일 라이트 empty (admin)          -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[3] 393×760 / light / empty (admin) — FileText 48 OQ #4 유지</div>
+<div class="frame frame-mobile" data-theme="light">
+  <div style="padding:16px;">
+    <!-- 동일 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;margin-bottom:16px;">
+      <h2 class="text-body font-semibold text-text-primary" style="margin:0;font-size:16px;font-weight:600;color:var(--t1);">소방계획서</h2>
+      <button type="button" aria-label="소방계획서 업로드" style="width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--t1);border:1px solid var(--bd);border-radius:8px;cursor:pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <!-- empty block (line 236~260 verbatim, FileText size={48} OQ #4 유지) -->
+    <div class="bg-surface-raised border border-border-default rounded-md" style="padding:48px 24px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;">
+      <!-- Lucide FileText size={48} color="var(--t3)" — OQ #4 LOCKED (오류 아이콘 추가 안 함, 빈 유지) -->
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--t3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <div class="text-body font-semibold text-text-primary" style="font-size:16px;font-weight:600;color:var(--t1);">아직 업로드된 문서가 없습니다</div>
+      <!-- admin 분기 카피 verbatim (line 256) -->
+      <div class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);">우측 상단 업로드 버튼으로 소방계획서를 추가하세요.</div>
+    </div>
+    <div style="margin-top:24px;color:var(--t3);font-size:12px;font-family:'JetBrains Mono', monospace;text-align:center;">
+      isAdmin=true 분기 (line 256)<br>
+      non-admin: &quot;관리자가 문서를 업로드하면 이곳에 표시됩니다.&quot;<br>
+      <code>isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')</code>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================== -->
+<!-- Frame 4 — 데스크톱 다크 data Hero + 과거 3건  -->
+<!-- ============================================== -->
+<div>
+<div class="frame-label">[4] 1100×760 / dark / data (Hero 최신 + Year tile 64x64 + 과거 3건 + admin Trash2 32x32)</div>
+<div class="frame frame-desktop" data-theme="dark">
+  <div style="padding:24px;max-width:600px;margin:0 auto;">
+    <!-- 데스크톱 헤더 (line 118~141 verbatim — h-10 pill bg-accent OQ #1) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;min-height:40px;margin-bottom:16px;">
+      <h2 class="text-body font-semibold text-text-primary" style="margin:0;font-size:16px;font-weight:600;color:var(--t1);">소방계획서</h2>
+      <!-- 데스크톱 uploadBtn (line 118~141 verbatim — h-10 pill bg-accent Plus size={16}) -->
+      <button type="button" aria-label="소방계획서 업로드" class="bg-accent text-text-on-accent text-body-sm font-semibold" style="height:40px;padding:0 16px;display:inline-flex;align-items:center;gap:6px;background:var(--acl);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:999px;cursor:pointer;">
+        <!-- Lucide Plus size={16} -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        업로드
+      </button>
+    </div>
+
+    <!-- Hero card (line 263~393 verbatim — Year tile 64x64 + 최신 pill OQ #3 12 격상 + admin Trash2 32x32) -->
+    <div role="button" tabindex="0" style="position:relative;width:100%;min-height:96px;padding:24px;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left;box-sizing:border-box;">
+      <!-- ★ 최신 pill (line 286~301 verbatim, OQ #3 11 → 12 격상 + leading-none) -->
+      <span class="text-caption font-bold leading-none" style="position:absolute;top:12px;right:12px;color:#fff;background:var(--acl);padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700;line-height:1;">최신</span>
+      <!-- Year tile 64x64 (line 304~326 verbatim, OQ #5 var(--bg3) → bg-surface-sunken) -->
+      <div class="bg-surface-sunken rounded-sm" style="width:64px;height:64px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span style="font-family:'JetBrains Mono', monospace;font-size:28px;font-weight:600;color:var(--t1);">2026</span>
+      </div>
+      <!-- Meta column (line 329~355 verbatim) -->
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;">
+        <div class="text-body font-semibold text-text-primary" style="font-size:16px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026년 소방계획서</div>
+        <div class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026년_소방계획서.pdf · 12.4 MB · 윤종엽 · 2026-05-23 14:30</div>
+      </div>
+      <!-- ★ admin Trash2 32x32 (line 364~392 verbatim — w-[32px] h-[32px] arbitrary, w&#8209;8 함정 회피) -->
+      <button type="button" aria-label="2026년 소방계획서 삭제" class="text-danger rounded-sm" style="position:absolute;bottom:12px;right:12px;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--danger);border:1px solid var(--bd);border-radius:8px;cursor:pointer;">
+        <!-- Lucide Trash2 size={16} -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+
+    <!-- 과거 이력 라벨 (line 399~409 verbatim) -->
+    <div class="text-body font-semibold text-text-primary" style="font-size:16px;font-weight:600;color:var(--t1);margin-top:12px;margin-bottom:12px;">과거 이력</div>
+
+    <!-- 과거 이력 list 3건 (line 411~511 verbatim — 연결 borderRadius isFirst rounded-t / isLast rounded-b) -->
+    <div style="display:flex;flex-direction:column;">
+      <!-- isFirst row (rounded-t) -->
+      <div role="button" tabindex="0" style="width:100%;min-height:56px;padding:16px;background:var(--bg2);border:1px solid var(--bd);border-top-left-radius:8px;border-top-right-radius:8px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;box-sizing:border-box;position:relative;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+          <div class="text-body-sm font-semibold text-text-primary" style="font-size:14px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2025년 · 2025년 소방계획서</div>
+          <div class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">8.2 MB · 윤종엽 · 2025-04-12</div>
+        </div>
+        <!-- admin Trash2 32x32 (동일 패턴) -->
+        <button type="button" aria-label="2025년 소방계획서 삭제" class="text-danger rounded-sm" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--danger);border:1px solid var(--bd);border-radius:8px;cursor:pointer;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      <!-- 중간 row (borderRadius 없음, border-top:none 연결) -->
+      <div role="button" tabindex="0" style="width:100%;min-height:56px;padding:16px;background:var(--bg2);border:1px solid var(--bd);border-top:none;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;box-sizing:border-box;position:relative;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+          <div class="text-body-sm font-semibold text-text-primary" style="font-size:14px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2024년 · 2024년 소방계획서</div>
+          <div class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">7.8 MB · 윤종엽 · 2024-03-22</div>
+        </div>
+        <button type="button" aria-label="2024년 소방계획서 삭제" class="text-danger rounded-sm" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--danger);border:1px solid var(--bd);border-radius:8px;cursor:pointer;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+      <!-- isLast row (rounded-b) -->
+      <div role="button" tabindex="0" style="width:100%;min-height:56px;padding:16px;background:var(--bg2);border:1px solid var(--bd);border-top:none;border-bottom-left-radius:8px;border-bottom-right-radius:8px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;box-sizing:border-box;position:relative;">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">
+          <div class="text-body-sm font-semibold text-text-primary" style="font-size:14px;font-weight:600;color:var(--t1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2023년 · 2023년 소방계획서</div>
+          <div class="text-body-sm font-normal text-text-secondary" style="font-size:14px;font-weight:400;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">7.4 MB · 윤종엽 · 2023-05-10</div>
+        </div>
+        <button type="button" aria-label="2023년 소방계획서 삭제" class="text-danger rounded-sm" style="width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:var(--danger);border:1px solid var(--bd);border-radius:8px;cursor:pointer;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;color:var(--t3);font-size:12px;font-family:'JetBrains Mono', monospace;">
+      data = query.data ?? [] / latest = data[0] / history = data.slice(1)<br>
+      <code>useQuery({ queryKey: ['documents', type], queryFn: () =&gt; documentsApi.list(type), staleTime: 60_000 })</code><br>
+      <code>handleDelete → documentsApi.remove → invalidateQueries documents</code>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /.sketch-wrap -->
+
+<!-- ============================================================ -->
+<!-- rules 박스                                                   -->
+<!-- ============================================================ -->
+<div class="rules-box">
+
+<h3>★ OQ #2 LOCKED — 회색 통일 안 (카드 색 bg-surface-raised + Year tile bg-surface-sunken + 최신 pill bg-accent)</h3>
+<pre>
+파일 카드 icon 회색 통일 (확장자 별 색 X) — Hero card + 과거 row 모두 bg-surface-raised
+Year tile        → bg-surface-sunken (var(--bg3) → sunken 매핑, OQ #5)
+최신 pill        → bg-accent (var(--acl) → accent solid, OQ #1)
+uploadBtn 데스크톱 → bg-accent
+다시 시도 button   → bg-accent
+</pre>
+
+<h3>★ OQ #3 LOCKED — 최신 pill 11 → 12 격상 + leading-none</h3>
+<pre>
+text-caption font-bold leading-none
+  font-size: 12px (text-caption)
+  font-weight: 700 (font-bold)
+  line-height: 1 (leading-none) ← 작은 컨테이너 (h-fit padding 4 8) 시각 패딩 제거
+padding: 4px 8px
+border-radius: 999px (rounded-full)
+background: var(--acl) — bg-accent (OQ #1)
+color: #fff — text-text-on-accent
+
+design-system §1.1 노안 마지노선 12 / 9·10·11 사용 금지 — memory feedback_text_caption_leading_none
+</pre>
+
+<h3>★ OQ #4 LOCKED — 빈 상태 FileText size={48} 유지 (오류 아이콘 추가 안 함)</h3>
+<pre>
+&lt;FileText size={48} color="var(--t3)" /&gt;   // text-text-tertiary
+
+(오류 아이콘 추가 안 함 — 본 페이지 이미 빈 FileText 존재, 23-education 빈 아이콘 추가와 다름)
+Progress meta 14 → text-body-sm 유지 (격상 안 함, W4 책임)
+모달 title 22 격상 (W4 책임)
+Error 카피 14 격상 (W4/W5 책임)
+</pre>
+
+<h3>★ admin Trash2 32x32 (w&#8209;8=48 함정 회피, memory feedback_tailwind_w8_h8_is_48px)</h3>
+<pre>
+&lt;button class="text-danger rounded-sm" style="width:32px;height:32px;..." /&gt;
+  또는 tailwind: w-[32px] h-[32px] arbitrary
+  ★ w&#8209;8 / h&#8209;8 className 0건 — tailwind config spacing override (w&#8209;8 = 48px, 기본 32 아님)
+
+uploadBtn 모바일 40x40 = w-[40px] h-[40px] (또는 인라인 width:40px;height:40px)
+uploadBtn 데스크톱 h-10 (40px) padding 0 16 inline-flex
+Year tile 64x64 = w-16 h-16 (tailwind config spacing 16 = 64px)
+</pre>
+
+<h3>비즈 anchor 9 그룹 (본 wave 박제)</h3>
+<pre>
+1. useQuery({ queryKey: ['documents', type], queryFn: () =&gt; documentsApi.list(type), staleTime: 60_000 })
+   — DocumentSection line 44~48 verbatim
+2. queryClient.invalidateQueries({ queryKey: ['documents', type] })
+   — handleDelete line 99 verbatim
+3. documentsApi.list(type) + documentsApi.remove(id)
+   — utils/api 시그니처 변경 금지
+8. isAdmin = useAuthStore((s) =&gt; s.staff?.role === 'admin')
+   — DocumentSection line 40 verbatim
+   — admin 만 uploadBtn + Trash2 표시
+
+부가:
+   downloadingIds.has(item.id) → Loader2 docsec-spin
+   deletingIds.has(item.id)    → Trash2 disabled
+   formatBytes(size) + formatDate(uploaded_at) — utils 시그니처 보존
+   @keyframes docsec-spin (line 167 verbatim) — Loader2 1s linear infinite
+</pre>
+
+<h3>카피 verbatim (memory feedback_sketch_realistic_data, 1 byte 변경 금지)</h3>
+<pre>
+빈 제목 (line 252)        : 아직 업로드된 문서가 없습니다
+빈 admin (line 256)       : 우측 상단 업로드 버튼으로 ${title}를 추가하세요.
+빈 non-admin (line 257)   : 관리자가 문서를 업로드하면 이곳에 표시됩니다.
+오류 (line 213)           : 문서 목록을 불러오지 못했습니다.
+다시 시도 (line 230)      : 다시 시도
+최신 pill (line 300)      : 최신
+과거 이력 라벨 (line 408) : 과거 이력
+Hero Meta (line 352~353)  : ${filename} · ${formatBytes(size)} · ${uploaded_by_name ?? '알 수 없음'} · ${formatDate(uploaded_at)}
+과거 row 1 (line 456)     : ${year}년 · ${title}
+과거 row 2 (line 468~469) : ${formatBytes(size)} · ${uploaded_by_name ?? '알 수 없음'} · ${formatDate(uploaded_at, 'date-only')}
+toast.success (line 98)   : 문서를 삭제했습니다
+toast.success (line 71)   : 다운로드를 시작했습니다 (duration 2000)
+toast.loading (line 67)   : 다운로드 중입니다…
+toast.error (line 74)     : 다운로드에 실패했습니다. 네트워크를 확인해주세요.
+toast.error (line 56)     : 문서 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+</pre>
+
+<h3>토큰 매핑 (v0.1.1 → 옛 alias)</h3>
+<pre>
+카드 외곽       var(--bg2) → bg-surface-raised   (Hero + 과거 row + loading 스켈레톤 + 빈/오류 wrapper)
+Year tile bg    var(--bg3) → bg-surface-sunken   (OQ #5)
+카드 border     var(--bd)  → border-border-default
+최신 pill bg    var(--acl) → bg-accent           (OQ #1)
+uploadBtn      var(--acl) → bg-accent            (데스크톱 pill, OQ #1)
+다시 시도 bg    var(--acl) → bg-accent           (OQ #1)
+Trash2 색      var(--danger) → text-danger      (status- prefix 없음, memory feedback_tailwind_token_class_pattern)
+Hero Title     var(--t1)  → text-text-primary
+Meta           var(--t2)  → text-text-secondary
+빈 FileText 색  var(--t3)  → text-text-tertiary  (OQ #4 size 48 유지)
+</pre>
+
+<h3>negative gate self-check (mbr deviation 2건 mirror)</h3>
+<pre>
+- 이모지 0건 (sketch 본문) — Lucide 아이콘 이름 (FileText / Plus / Loader2 / Trash2) anchor 만 인용
+- lin-grad (linear&#8209;gradient 약어) — 본 wave (T2) = 0건 (T4 만 예외 ≥3, OQ #2 LOCKED submit CTA)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선, OQ #3 LOCKED)
+- (text|bg|border)-status-(safe|fire|warning|danger|caution) prefix 0건
+- \bw&#8209;8\b / \bh&#8209;8\b 0건 (w&#8209;8=48 함정 회피, w-[32px] h-[32px] / w-[40px] h-[40px] / w-16 / h-10)
+- mbr deviation — 본문 안 "warning glyph" 약어 회피 (negative gate self-collision 차단)
+</pre>
+
+</div><!-- /.rules-box -->
+
+</body>
+</html>
