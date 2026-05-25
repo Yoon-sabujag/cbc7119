@@ -1,8 +1,14 @@
 // ── 업무수행기록표 페이지 ──────────────────────────────────────
+// redesign/18-worklog W7 TSX 변환 wave (quick 260525-uou)
+// 외곽 chrome 만 sketch class 적용 (W7 §3 verbatim) / 내부 WorkLogPortraitPreview
+// 캘리브 33 step + KEY + FINGER_OFFSET + WorkLogCalibMarker 0 byte 변경 (OQ #5 LOCKED).
+// OQ LOCKED 6 적용: #1 bg-safe-bar solid (lin-grad 폐기) / #2 readOnly opacity 0.5 /
+// #3 양호·불량 status 색 / #4 미래월 disabled + max / #5 캘리브 0 byte / #6 warning glyph → lucide AlertTriangle.
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft, ChevronRight, Save, Download, AlertTriangle } from 'lucide-react'
 import { workLogApi } from '../utils/api'
 import { generateWorkLogExcel } from '../utils/generateExcel'
 import { useAuthStore } from '../stores/authStore'
@@ -21,32 +27,7 @@ function addMonths(ym: string, n: number): string {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
 }
 
-// ── 스타일 상수 (DailyReportPage 미러링) ──────────────────
-const navBtn: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 7, border: '1px solid var(--bd)',
-  background: 'var(--bg3)', color: 'var(--t1)', fontSize: 16, fontWeight: 700,
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  lineHeight: '1',
-}
-
-const card: React.CSSProperties = {
-  background: 'var(--bg2)', borderRadius: 14, border: '1px solid var(--bd)',
-  padding: 14, marginBottom: 10,
-}
-
-const textareaStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box',
-  background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 9,
-  color: 'var(--t1)', fontSize: 12, fontFamily: 'inherit', fontWeight: 400,
-  padding: '10px 12px', resize: 'vertical', outline: 'none', lineHeight: 1.6,
-}
-
-const iconBtn: React.CSSProperties = {
-  width: 34, height: 34, borderRadius: 9, border: '1px solid var(--bd)',
-  background: 'var(--bg3)', color: 'var(--t2)',
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-}
-
+// ── skeleton (loading placeholder, components.css 미흡수, 인라인 보존) ──
 const skeletonStyle: React.CSSProperties = {
   background: 'var(--bg4)', borderRadius: 4, height: 12, width: '70%',
   animation: 'blink 2s ease-in-out infinite',
@@ -87,9 +68,6 @@ export default function WorkLogPage() {
 
   const loadedRef = useRef<WorkLogPayload | null>(null)
   const prevYmRef = useRef<string>('')
-
-  // 포커스 상태
-  const [focusedField, setFocusedField] = useState<string | null>(null)
 
   // 엑셀 생성 중
   const [generating, setGenerating] = useState(false)
@@ -305,438 +283,357 @@ export default function WorkLogPage() {
   const isLoading = savedQuery.isFetching || previewQuery.isFetching
   const isSaving  = saveMutation.isPending
 
-  const roStyle: React.CSSProperties = isAdmin ? {} : {
-    background: 'var(--bg2)', color: 'var(--t2)', cursor: 'default',
-  }
-
-  // ── 인라인 스타일 헬퍼 ──────────────────────────────────
-  function taStyle(field: string): React.CSSProperties {
-    return {
-      ...textareaStyle,
-      ...(focusedField === field && isAdmin ? { border: '1px solid var(--bd2)' } : {}),
-      ...(!isAdmin ? roStyle : {}),
-    }
-  }
-
-  function inputStyle(): React.CSSProperties {
-    return {
-      width: '100%', boxSizing: 'border-box' as const,
-      background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 9,
-      color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', fontWeight: 400,
-      padding: '9px 12px', outline: 'none',
-      ...(focusedField === 'managerName' && isAdmin ? { border: '1px solid var(--bd2)' } : {}),
-      ...(!isAdmin ? roStyle : {}),
-    }
-  }
-
   // ── 월 picker ref ──────────────────────────────────────
   const monthPickerRef = useRef<HTMLInputElement>(null)
 
-  // ── 공통 폼 컨텐츠 ──────────────────────────────────────
+  // ── OQ #4: 미래 월 차단 ───────────────────────────────
+  const thisYm = thisMonthKST()
+  const canGoNext = ym < thisYm  // 다음 월 이동 가능 (현재월 < 오늘월)
+
+  // ── 공통 폼 컨텐츠 (W3·W4 sketch class verbatim) ────────
+  const cardClass = isAdmin ? 'worklog-section-card' : 'worklog-section-card worklog-readonly'
+
   const formContent = (
     <>
-      {/* 기본 정보 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>기본 정보</div>
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>관리자</div>
+      {/* 기본 정보 카드 (line 339~354 → sketch W3 verbatim) */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">기본 정보</div>
+        <div className="worklog-field-label">관리자</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <input
               type="text"
+              className="worklog-input"
               value={managerName}
               onChange={e => isAdmin && setManagerName(e.target.value)}
               readOnly={!isAdmin}
               placeholder="관리자 이름을 입력하세요"
-              onFocus={() => setFocusedField('managerName')}
-              onBlur={() => setFocusedField(null)}
-              style={inputStyle()}
             />
         }
       </div>
 
-      {/* 소방시설 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>소방시설</div>
+      {/* 소방시설 카드 (line 358~419) — fire 2-state */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">소방시설</div>
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>확인내용</div>
+        <div className="worklog-field-label">확인내용</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={4}
+              className="worklog-textarea"
               value={fireContent}
               onChange={e => isAdmin && setFireContent(e.target.value)}
               readOnly={!isAdmin}
-              onFocus={() => setFocusedField('fireContent')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('fireContent')}
             />
         }
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        <div className="worklog-field-label worklog-field-label--mt">결과</div>
         {isLoading
           ? <div style={skeletonStyle} />
-          : <div style={{ display: 'flex', gap: 6 }}>
+          : <div className="worklog-toggle-row">
               <button
+                type="button"
                 onClick={() => isAdmin && setFireResult('ok')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(fireResult === 'ok'
-                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${fireResult === 'ok' ? 'worklog-result-toggle--ok' : 'worklog-result-toggle--unselected'}`}
               >양호</button>
               <button
+                type="button"
                 onClick={() => isAdmin && setFireResult('bad')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(fireResult === 'bad'
-                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${fireResult === 'bad' ? 'worklog-result-toggle--bad' : 'worklog-result-toggle--unselected'}`}
               >불량</button>
             </div>
         }
 
-        <div style={{ fontSize: 11, color: fireResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        <div className={`worklog-action-label ${fireResult === 'bad' ? 'worklog-action-label--bad' : ''}`}>조치내역</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={fireAction}
               onChange={e => isAdmin && setFireAction(e.target.value)}
               readOnly={!isAdmin}
               placeholder="조치 내역 없음"
-              onFocus={() => setFocusedField('fireAction')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('fireAction')}
             />
         }
       </div>
 
-      {/* 피난방화시설 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>피난방화시설</div>
+      {/* 피난방화시설 카드 (line 421~481) — escape 2-state */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">피난방화시설</div>
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>확인내용</div>
+        <div className="worklog-field-label">확인내용</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={escapeContent}
               onChange={e => isAdmin && setEscapeContent(e.target.value)}
               readOnly={!isAdmin}
-              onFocus={() => setFocusedField('escapeContent')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('escapeContent')}
             />
         }
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        <div className="worklog-field-label worklog-field-label--mt">결과</div>
         {isLoading
           ? <div style={skeletonStyle} />
-          : <div style={{ display: 'flex', gap: 6 }}>
+          : <div className="worklog-toggle-row">
               <button
+                type="button"
                 onClick={() => isAdmin && setEscapeResult('ok')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(escapeResult === 'ok'
-                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${escapeResult === 'ok' ? 'worklog-result-toggle--ok' : 'worklog-result-toggle--unselected'}`}
               >양호</button>
               <button
+                type="button"
                 onClick={() => isAdmin && setEscapeResult('bad')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(escapeResult === 'bad'
-                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${escapeResult === 'bad' ? 'worklog-result-toggle--bad' : 'worklog-result-toggle--unselected'}`}
               >불량</button>
             </div>
         }
 
-        <div style={{ fontSize: 11, color: escapeResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        <div className={`worklog-action-label ${escapeResult === 'bad' ? 'worklog-action-label--bad' : ''}`}>조치내역</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={escapeAction}
               onChange={e => isAdmin && setEscapeAction(e.target.value)}
               readOnly={!isAdmin}
               placeholder="조치 내역 없음"
-              onFocus={() => setFocusedField('escapeAction')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('escapeAction')}
             />
         }
       </div>
 
-      {/* 화기취급감독 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>화기취급감독</div>
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>확인내용</div>
+      {/* 화기취급감독 카드 (line 484~543) — gas 3-state (재클릭 unset) */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">화기취급감독</div>
+
+        <div className="worklog-field-label">확인내용</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={2}
+              className="worklog-textarea"
               value={gasContent}
               onChange={e => isAdmin && setGasContent(e.target.value)}
               readOnly={!isAdmin}
-              onFocus={() => setFocusedField('gasContent')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('gasContent')}
             />
         }
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        <div className="worklog-field-label worklog-field-label--mt">결과</div>
         {isLoading
           ? <div style={skeletonStyle} />
-          : <div style={{ display: 'flex', gap: 6 }}>
+          : <div className="worklog-toggle-row">
               <button
+                type="button"
                 onClick={() => isAdmin && setGasResult(gasResult === 'ok' ? '' : 'ok')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(gasResult === 'ok'
-                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${gasResult === 'ok' ? 'worklog-result-toggle--ok' : 'worklog-result-toggle--unselected'}`}
               >양호</button>
               <button
+                type="button"
                 onClick={() => isAdmin && setGasResult(gasResult === 'bad' ? '' : 'bad')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(gasResult === 'bad'
-                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${gasResult === 'bad' ? 'worklog-result-toggle--bad' : 'worklog-result-toggle--unselected'}`}
               >불량</button>
             </div>
         }
 
-        <div style={{ fontSize: 11, color: gasResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        <div className={`worklog-action-label ${gasResult === 'bad' ? 'worklog-action-label--bad' : ''}`}>조치내역</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={gasAction}
               onChange={e => isAdmin && setGasAction(e.target.value)}
               readOnly={!isAdmin}
               placeholder="조치 내역 없음"
-              onFocus={() => setFocusedField('gasAction')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('gasAction')}
             />
         }
       </div>
 
-      {/* 기타사항 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>기타사항</div>
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>확인내용</div>
+      {/* 기타사항 카드 (line 546~605) — etc 3-state */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">기타사항</div>
+
+        <div className="worklog-field-label">확인내용</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={etcContent}
               onChange={e => isAdmin && setEtcContent(e.target.value)}
               readOnly={!isAdmin}
-              onFocus={() => setFocusedField('etcContent')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('etcContent')}
             />
         }
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>결과</div>
+        <div className="worklog-field-label worklog-field-label--mt">결과</div>
         {isLoading
           ? <div style={skeletonStyle} />
-          : <div style={{ display: 'flex', gap: 6 }}>
+          : <div className="worklog-toggle-row">
               <button
+                type="button"
                 onClick={() => isAdmin && setEtcResult(etcResult === 'ok' ? '' : 'ok')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(etcResult === 'ok'
-                    ? { background: 'var(--safe)', border: '1px solid var(--safe)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${etcResult === 'ok' ? 'worklog-result-toggle--ok' : 'worklog-result-toggle--unselected'}`}
               >양호</button>
               <button
+                type="button"
                 onClick={() => isAdmin && setEtcResult(etcResult === 'bad' ? '' : 'bad')}
-                style={{
-                  padding: '5px 16px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                  cursor: isAdmin ? 'pointer' : 'default',
-                  opacity: isAdmin ? 1 : 0.5,
-                  ...(etcResult === 'bad'
-                    ? { background: 'var(--danger)', border: '1px solid var(--danger)', color: '#fff' }
-                    : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-                }}
+                className={`worklog-result-toggle ${etcResult === 'bad' ? 'worklog-result-toggle--bad' : 'worklog-result-toggle--unselected'}`}
               >불량</button>
             </div>
         }
 
-        <div style={{ fontSize: 11, color: etcResult === 'bad' ? 'var(--warn)' : 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치내역</div>
+        <div className={`worklog-action-label ${etcResult === 'bad' ? 'worklog-action-label--bad' : ''}`}>조치내역</div>
         {isLoading
           ? <div style={skeletonStyle} />
           : <textarea
               rows={3}
+              className="worklog-textarea"
               value={etcAction}
               onChange={e => isAdmin && setEtcAction(e.target.value)}
               readOnly={!isAdmin}
               placeholder="조치 내역 없음"
-              onFocus={() => setFocusedField('etcAction')}
-              onBlur={() => setFocusedField(null)}
-              style={taStyle('etcAction')}
             />
         }
       </div>
 
-      {/* 불량사항 개선보고 카드 */}
-      <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 8 }}>불량사항 개선보고</div>
+      {/* 불량사항 개선보고 카드 (line 608~663) — 보고일시 + 보고방법 + 조치방법 */}
+      <div className={cardClass}>
+        <div className="worklog-section-title">불량사항 개선보고</div>
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4 }}>보고일시</div>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <input type="text" value={reportYear} onChange={e => isAdmin && setReportYear(e.target.value)} readOnly={!isAdmin} placeholder="연" style={{ ...inputStyle(), width: 65, textAlign: 'center' }} />
-          <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
-          <input type="text" value={reportMonth} onChange={e => isAdmin && setReportMonth(e.target.value)} readOnly={!isAdmin} placeholder="월" style={{ ...inputStyle(), width: 40, textAlign: 'center' }} />
-          <span style={{ color: 'var(--t2)', fontSize: 12 }}>.</span>
-          <input type="text" value={reportDay} onChange={e => isAdmin && setReportDay(e.target.value)} readOnly={!isAdmin} placeholder="일" style={{ ...inputStyle(), width: 40, textAlign: 'center' }} />
+        <div className="worklog-field-label">보고일시</div>
+        <div className="worklog-report-date">
+          <input type="text" className="worklog-report-date-input worklog-report-date-input--year"  value={reportYear}  onChange={e => isAdmin && setReportYear(e.target.value)}  readOnly={!isAdmin} placeholder="연" />
+          <span className="worklog-report-dot">.</span>
+          <input type="text" className="worklog-report-date-input worklog-report-date-input--month" value={reportMonth} onChange={e => isAdmin && setReportMonth(e.target.value)} readOnly={!isAdmin} placeholder="월" />
+          <span className="worklog-report-dot">.</span>
+          <input type="text" className="worklog-report-date-input worklog-report-date-input--day"   value={reportDay}   onChange={e => isAdmin && setReportDay(e.target.value)}   readOnly={!isAdmin} placeholder="일" />
         </div>
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>보고방법</div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="worklog-field-label worklog-field-label--mt">보고방법</div>
+        <div className="worklog-method-row">
           {([['face', '대면'], ['written', '서면'], ['telecom', '정보통신']] as const).map(([val, label]) => (
-            <button key={val}
+            <button
+              key={val}
+              type="button"
               onClick={() => isAdmin && setReportMethod(reportMethod === val ? '' : val)}
-              style={{
-                padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                cursor: isAdmin ? 'pointer' : 'default', opacity: isAdmin ? 1 : 0.5,
-                ...(reportMethod === val
-                  ? { background: 'var(--acl)', border: '1px solid var(--acl)', color: '#fff' }
-                  : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-              }}
+              className={`worklog-method-btn ${reportMethod === val ? 'worklog-method-btn--selected' : ''}`}
             >{label}</button>
           ))}
         </div>
 
-        <div style={{ fontSize: 11, color: 'var(--t2)', marginBottom: 4, marginTop: 8 }}>조치방법</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div className="worklog-field-label worklog-field-label--mt">조치방법</div>
+        <div className="worklog-method-row worklog-method-row--wrap">
           {([['relocate', '이전'], ['remove', '제거'], ['repair', '수리·교체'], ['other', '기타']] as const).map(([val, label]) => (
-            <button key={val}
+            <button
+              key={val}
+              type="button"
               onClick={() => isAdmin && setFixMethod(fixMethod === val ? '' : val)}
-              style={{
-                padding: '5px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-                cursor: isAdmin ? 'pointer' : 'default', opacity: isAdmin ? 1 : 0.5,
-                ...(fixMethod === val
-                  ? { background: 'var(--acl)', border: '1px solid var(--acl)', color: '#fff' }
-                  : { background: 'var(--bg3)', border: '1px solid var(--bd)', color: 'var(--t2)' }),
-              }}
+              className={`worklog-method-btn ${fixMethod === val ? 'worklog-method-btn--selected' : ''}`}
             >{label}</button>
           ))}
         </div>
         {fixMethod === 'other' && (
           <input
             type="text"
+            className="worklog-fix-other-input"
             value={fixOtherText}
             onChange={e => isAdmin && setFixOtherText(e.target.value.slice(0, 10))}
             readOnly={!isAdmin}
             placeholder="기타 내용 입력"
             maxLength={10}
-            style={{ ...inputStyle(), marginTop: 8, width: 160 }}
           />
         )}
       </div>
     </>
   )
 
-  // ── 푸터 버튼 ──────────────────────────────────────────
+  // ── 푸터 버튼 (W5 sketch class verbatim) ──────────────
   const footerButtons = (
-    <div style={{ display: 'flex', gap: 8 }}>
-      {/* 저장 버튼 */}
+    <div className="worklog-footer">
+      {/* 저장 버튼 — OQ #1: bg-safe-bar solid (lin-grad 폐기) + Save lucide */}
       <button
+        type="button"
         onClick={() => isAdmin && !isSaving && saveMutation.mutate()}
         title={!isAdmin ? '관리자만 저장할 수 있습니다' : undefined}
-        style={{
-          flex: 1, padding: 11, borderRadius: 9, border: 'none',
-          fontSize: 13, fontWeight: 700, cursor: isAdmin && !isSaving ? 'pointer' : 'default',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0,
-          ...(isSaving || !isAdmin
-            ? { background: 'var(--bg3)', color: 'var(--t3)' }
-            : { background: 'linear-gradient(135deg,#1d4ed8,#2563eb)', color: '#fff' }),
-        }}
+        className={`worklog-footer-save ${(isSaving || !isAdmin) ? 'worklog-footer-save--disabled' : ''}`}
       >
         {isSaving ? '저장 중...' : (
           <>
-            저장
+            <Save size={14} />
+            <span style={{ marginLeft: 6 }}>저장</span>
             {isDirty && (
-              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--warn)', marginLeft: 6 }}>· 수정됨</span>
+              <span className="worklog-footer-save-dirty">· 수정됨</span>
             )}
           </>
         )}
       </button>
 
-      {/* 엑셀 출력 버튼 */}
+      {/* 엑셀 출력 버튼 — Download lucide */}
       <button
+        type="button"
         onClick={() => isAdmin && !generating && handleExport()}
         title={!isAdmin ? '관리자만 저장할 수 있습니다' : undefined}
-        style={{
-          flex: 1, padding: 11, borderRadius: 9, border: '1px solid var(--bd)',
-          fontSize: 13, fontWeight: 700, cursor: isAdmin && !generating ? 'pointer' : 'default',
-          ...(generating || !isAdmin
-            ? { background: 'var(--bg3)', color: 'var(--t3)' }
-            : { background: 'var(--bg2)', color: 'var(--t1)' }),
-        }}
+        className={`worklog-footer-export ${(generating || !isAdmin) ? 'worklog-footer-export--disabled' : ''}`}
       >
-        {generating ? '출력 중...' : '엑셀 출력'}
+        {generating ? '출력 중...' : (
+          <>
+            <Download size={14} />
+            <span style={{ marginLeft: 6 }}>엑셀 출력</span>
+          </>
+        )}
       </button>
     </div>
   )
 
-  // ── 월 네비게이터 (공통) ──────────────────────────────────
+  // ── 월 네비게이터 (공통, W2 sketch class verbatim) ───────
+  // OQ #4: 미래월 ‹/› disabled (canGoNext 가드) + monthPicker max="현재월"
   const monthNav = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <button style={navBtn} onClick={() => changeMonth(addMonths(ym, -1))}>‹</button>
-      <div style={{ position: 'relative' }}>
+    <div className="month-nav">
+      <button
+        type="button"
+        className="month-nav-btn"
+        onClick={() => changeMonth(addMonths(ym, -1))}
+        aria-label="이전 달"
+      ><ChevronLeft size={16} /></button>
+      <div className="month-picker-trigger">
         <button
+          type="button"
           onClick={() => monthPickerRef.current?.showPicker?.() ?? monthPickerRef.current?.click()}
-          style={{ minWidth: 90, fontSize: 15, fontWeight: 700, color: 'var(--t1)', textAlign: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}
-        >
-          {year}년 {month}월
-        </button>
+          className="month-display leading-none"
+        >{year}년 {month}월</button>
         <input
           ref={monthPickerRef}
           type="month"
           value={ym}
+          max={thisYm}
           onChange={e => e.target.value && changeMonth(e.target.value)}
-          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 1, height: 1, top: 0, left: 0 }}
+          className="month-picker-hidden"
+          aria-label="월 선택"
         />
       </div>
-      <button style={navBtn} onClick={() => changeMonth(addMonths(ym, 1))}>›</button>
+      <button
+        type="button"
+        className="month-nav-btn"
+        onClick={() => canGoNext && changeMonth(addMonths(ym, 1))}
+        disabled={!canGoNext}
+        title={!canGoNext ? '현재 월 이후로는 이동할 수 없습니다' : undefined}
+        aria-label="다음 달"
+      ><ChevronRight size={16} /></button>
     </div>
   )
 
   // ── 렌더 — 데스크톱 ────────────────────────────────────
   if (isDesktop) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'row', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+      <div className="worklog-desktop-layout">
         <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
         {/* 좌측 편집 패널 — 페이지 제목은 App.tsx 헤더에서 표시 */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
+        <div className="worklog-desktop-edit-panel">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 20 }}>
             {monthNav}
           </div>
@@ -748,23 +645,8 @@ export default function WorkLogPage() {
         </div>
 
         {/* 우측 A4 세로 미리보기 패널 */}
-        <div style={{
-          aspectRatio: '210 / 297',
-          height: '100%', flexShrink: 0,
-          borderLeft: '1px solid var(--bd)',
-          overflow: 'hidden',
-          background: 'var(--bg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          position: 'relative',
-        }}>
-          <div style={{
-            position: 'absolute', top: 8, left: 0, right: 0,
-            textAlign: 'center', fontSize: 11, color: 'var(--t2)',
-            fontWeight: 700, textTransform: 'uppercase',
-            pointerEvents: 'none', zIndex: 5,
-          }}>
-            인쇄 미리보기
-          </div>
+        <div className="worklog-desktop-preview-panel">
+          <div className="worklog-desktop-print-label leading-none">인쇄 미리보기</div>
           <WorkLogPortraitPreview
             yearMonth={ym}
             managerName={managerName}
@@ -797,32 +679,26 @@ export default function WorkLogPage() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}`}</style>
 
-      {/* 헤더 */}
-      <header style={{ flexShrink: 0, background: 'var(--bg2)', borderBottom: '1px solid var(--bd)', padding: '8px 12px 9px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={() => navigate(-1)} style={iconBtn} aria-label="뒤로 가기">
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
-          </svg>
-        </button>
-        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>업무 수행 기록표</span>
+      {/* 헤더 — 14-reports inherit chrome (page-header / back-btn / page-title) */}
+      <header className="page-header">
+        <button
+          type="button"
+          className="back-btn"
+          onClick={() => navigate(-1)}
+          aria-label="뒤로 가기"
+        ><ChevronLeft size={15} /></button>
+        <span className="page-title">업무 수행 기록표</span>
         {monthNav}
       </header>
 
       {/* 스크롤 본문 */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      <div className="page-body" style={{ flex: 1, overflowY: 'auto' }}>
         {formContent}
         <div style={{ height: 72 }} />
       </div>
 
-      {/* 고정 푸터 */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        padding: '10px 16px',
-        paddingBottom: 'calc(10px + var(--sab))',
-        background: 'var(--bg2)',
-        borderTop: '1px solid var(--bd)',
-        zIndex: 10,
-      }}>
+      {/* 고정 푸터 — iOS safe-area paddingBottom calc(10px + var(--sab)) */}
+      <div className="worklog-mobile-footer">
         {footerButtons}
       </div>
     </div>
@@ -1059,24 +935,14 @@ function WorkLogPortraitPreview({
   return (
     <div
       ref={containerRef}
-      style={{
-        width: '100%', height: '100%',
-        overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'var(--bg)', position: 'relative',
-      }}
+      className="worklog-portrait-wrapper"
     >
       <img
         ref={imgRef}
         src="/templates/preview/worklog-1.png"
         alt=""
         onLoad={measure}
-        style={{
-          maxWidth: '100%', maxHeight: '100%',
-          objectFit: 'contain',
-          boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
-          borderRadius: 4, background: '#fff',
-        }}
+        className="worklog-portrait-image"
       />
 
       {/* 오버레이 + 캘리브레이션 영역 */}
@@ -1170,19 +1036,14 @@ function WorkLogPortraitPreview({
         </div>
       )}
 
-      {/* 위치 설정 버튼 */}
+      {/* 위치 설정 버튼 — OQ #6: hasCalib=false 시 lucide AlertTriangle */}
       {!calibMode && (
         <button
+          type="button"
           onClick={() => { setCalibMode(true); setCalibStep(0); setCalibPoints([]); setActivePoint(null) }}
-          style={{
-            position: 'absolute', bottom: 12, right: 12,
-            background: hasCalib ? 'rgba(0,0,0,0.6)' : 'rgba(239,68,68,0.9)',
-            color: '#fff', border: 'none',
-            padding: '8px 16px', borderRadius: 8,
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', zIndex: 10,
-          }}
+          className={`worklog-portrait-setup-btn ${hasCalib ? '' : 'worklog-portrait-setup-btn--missing'}`}
         >
-          {hasCalib ? '위치 재설정' : '⚠ 위치 설정'}
+          {hasCalib ? '위치 재설정' : (<><AlertTriangle size={14} /> 위치 설정</>)}
         </button>
       )}
     </div>
