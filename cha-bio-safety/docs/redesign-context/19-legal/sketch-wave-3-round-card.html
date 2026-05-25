@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-round-card.html — redesign/19-legal W3
+  작성: 2026-05-23 / quick 260523-40p
+  범위: LegalPage.tsx accentColor (line 27~32) + ResultBadge (line 35~47) + TABS (line 54~58) + filterRounds (line 59~63)
+        + genYears (line 64~67) + roundList JSX (line 404~461) + 라운드 카드 데스크톱 (line 438~458, padding 10 + borderRadius 10 + selected 1.5→2)
+        + 라운드 카드 모바일 (line 552~567, padding 12 + borderRadius 12) 시각화
+        4 frame accentColor 4 임계치 매트릭스 (다크 모바일 pass / 다크 모바일 fail / 다크 데스크톱 conditional+selected / 라이트 모바일 null)
+  out of scope: 모바일 헤더 + 데스크톱 3분할 outline + 빈/로딩/오류 (W2 책임)
+                / FindingsPanel + FindingDetailPanel (W4 책임) / TSX 변환 (W5 checklist 책임) / LegalPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, 23-education/sketch-wave-3-staff-card.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 헤더 (W2 책임, 본 wave 사용만, 신규 적용 X)
+    OQ #2 LOCKED ★ — accentColor 4분기 borderLeft 색
+                      pass → border-l-[3px] border-safe-bar / fail → border-l-[3px] border-danger-bar
+                      conditional → border-l-[3px] border-warning-bar / null → border-l-[3px] border-border-strong
+                      ResultBadge map 4 라벨 — pass `bg-safe-bg text-safe '적합'` / fail `bg-danger-bg text-danger '부적합'`
+                                              conditional `bg-warning-bg text-warning '조건부적합'` / null `bg-transparent text-text-tertiary '결과 미입력'`
+                      임계치 + 라벨 + 매핑 1 byte 변경 금지 (memory `feedback_inspection_unresolved_color` 일반화)
+                      ★ status&#8209; prefix 없음 ★ (text&#8209;status&#8209;safe X 사용 시 W5 verify FAIL)
+                      (본 wave 적용 = O ★ 핵심)
+    OQ #3 LOCKED ★ — §1.1 9&#183;10&#183;11 → 12 격상 + leading-none
+                      ResultBadge 11 + 데스크톱 탭 11 모두 → `text-caption font-bold leading-none` (12px)
+                      OQ #3-selected — 데스크톱 선택 카드 `border-2 border-accent` (1.5 → 2, 모바일 미적용)
+                      (본 wave 적용 = O ★ 핵심)
+    OQ #4 LOCKED — 조치 완료 CTA 그라데이션 + 빈/오류 아이콘 무 (W4 책임, 본 wave 미해당)
+    OQ #5 LOCKED — Lucide ChevronLeft + Camera + Loader2 교체 + back 44x44 (W2/W4 책임, 본 wave 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md — sketch 시안 먼저 → 사용자 컨펌 → TSX 변환
+       -> 본 sketch 가 라운드 카드 + accentColor + ResultBadge + 탭 + 연도 select 컨펌용.
+
+    2. feedback_sketch_realistic_data.md — 표시 분기/라벨 룰 코드 그대로
+       -> 탭 라벨 verbatim '전체' / '진행 중' (key '미조치' mismatch) / '완료' (TABS line 54~58)
+          ResultBadge 라벨 verbatim '적합' / '부적합' / '조건부적합' / '결과 미입력' (line 37~44)
+          연도 옵션 verbatim `${y}년` (line 421, 532)
+          메타 verbatim — 데스크톱 '· 지적 N · 완료 N' ('건' 없음, line 455)
+                          모바일 '· 지적 N건 · 완료 N건' ('건' 있음 + endDate '~' 분기, line 564)
+
+    3. feedback_planner_prompt_sketch_verbatim.md — sketch CSS verbatim 인용
+       -> 데스크톱 카드 padding 10 + borderRadius 10 + selected border-2 / 모바일 padding 12 + borderRadius 12
+          탭 데스크톱 h 38 / 모바일 h 44 / 연도 select 데스크톱 padding '4px 8px' / 모바일 padding '6px 12px' 모두 W5 verbatim 인용 예정
+
+    4. feedback_tailwind_token_class_pattern.md — status&#8209; prefix 없음 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X)
+       -> 본 wave 의 핵심 룰. accentColor 4분기 + ResultBadge 4 라벨 모두 status&#8209; prefix 미사용.
+
+    5. feedback_tailwind_w8_h8_is_48px.md — w&#8209;8 / h&#8209;8 = 48px 함정
+       -> 본 wave 사용 0건. 카드 padding 10/12 / 배지 padding 2px 8px 모두 인라인 또는 arbitrary class.
+
+    6. feedback_text_caption_leading_none.md — 작은 컨테이너 안 text-caption(12) leading-none 명시
+       -> ResultBadge 11 → text-caption font-bold leading-none (12) / 데스크톱 탭 11 → text-caption font-bold leading-none / 메타 11 → text-caption leading-none
+          (OQ #3 LOCKED 일관 적용)
+
+    7. feedback_tsx_wave_emoji_dot_gap.md — sketch 이모지 0
+       -> 본 wave 사용 글리프 0건.
+
+    8. feedback_redesign_sketch_rule_enforcement.md — §6.2 negative rule (위험 임계치 아닌 카드 status 색 금지)
+       -> ★ 본 wave 의 예외 anchor ★ — accentColor + ResultBadge + finding 칩 결과 status 토큰은 룰 11 (feedback_inspection_unresolved_color) 우선
+          = 결과 status 자체가 임계치이므로 status 토큰 (safe/warning/danger) 사용은 의도된 디자인
+
+    9. feedback_inspection_unresolved_color.md (일반화) — accentColor + ResultBadge + finding 칩 결과 status 토큰 일반화
+       -> 본 wave 핵심 룰 (OQ #2 LOCKED). 4분기 pass/fail/conditional/null + 4 라벨 1 byte 변경 금지.
+
+   10. project_inspection_completion_rule.md (일반화) — filterRounds + sorted open-first source of truth
+       -> 본 wave 의 filterRounds 3분기 매트릭스 (미조치/완료/전체) 운영 룰 박제.
+
+   11. feedback_check_branch_before_edit.md — branch 확인 (redesign/19-legal ✓)
+
+   12. feedback_subagent_production_deploy_forbidden.md — 본 wave sketch 디자인만, wrangler 절대 X
+
+  ==========================================================
+  ★ 비즈 anchor 17건 (LegalPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-rounds', year], queryFn: () => legalApi.list(year), staleTime: 30_000 }) (line 386~390)
+    2. useQuery({ queryKey: ['legal-round', roundId], queryFn: () => legalApi.get(roundId), enabled: !!roundId }) (line 96~100)
+    3. useQuery({ queryKey: ['legal-findings', roundId], queryFn: () => legalApi.getFindings(roundId), enabled: !!roundId, staleTime: 30_000 }) (line 102~106)
+    4. useQuery({ queryKey: ['legal-finding', roundId, findingId], ...}) (line 241~245) + useMutation resolveMutation + 4 키 invalidate
+    5. legalApi 7종 — list / get / getFindings / updateResult / deleteFinding / getFinding / resolveFinding
+    6. accentColor 4분기 (line 27~32): pass var(--safe) / fail var(--danger) / conditional var(--warn) / null var(--bd2) (★ 본 wave 핵심 ★ 1 byte 변경 금지)
+    7. ResultBadge map 4 라벨 (line 35~47): '적합' (pass) / '부적합' (fail) / '조건부적합' (conditional) / '결과 미입력' (null)
+       + alpha 값 verbatim — pass rgba(34,197,94,.13) / fail rgba(239,68,68,.15) / conditional rgba(245,158,11,.15) (★ 본 wave 핵심 ★)
+    8. filterRounds 3분기 (line 59~63): 미조치 → findingCount > resolvedCount / 완료 → findingCount > 0 && findingCount === resolvedCount / 전체 → 그대로 (★ 본 wave 핵심 ★)
+    9. TABS key/label mismatch (line 54~58): [{key:'전체',label:'전체'},{key:'미조치',label:'진행 중'},{key:'완료',label:'완료'}] 의도된 디자인 (★ 본 wave 핵심 ★)
+   10. sorted findings (line 147~151): open 먼저 + createdAt desc (W4 책임, 본 wave 박제만)
+   11. handleRoundClick (line 394~401): isDesktop ? (setSelectedRoundId, ...) : navigate('/legal/' + round.id) (★ 본 wave 데스크톱 selected 분기 ★)
+   12. role admin 도구 분기 (W4 책임, 본 wave 박제만)
+   13. useMultiPhotoUpload + 5장 제한 (W4 책임, 본 wave 박제만)
+   14. buildMetaTxt + fflate ZIP + 파일명 패턴 (W4 책임, 본 wave 박제만)
+   15. @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} } (line 467, 505) — Education 1/0.4 와 다름 + @keyframes spin (W4 책임)
+   16. toast 카피 11종 (W4 책임, 본 wave 박제만)
+   17. 빈/오류/fallback 카피 (W2 책임, 본 wave 사용만)
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용 — 카드 + 탭 + 연도 select + accentColor + ResultBadge)
+  ==========================================================
+
+    카드 외곽 bg            : var(--bg3) -> bg-surface-sunken                (line 443 데스크톱 / 554 모바일)
+    카드 평시 border        : var(--bd)  -> border border-border-default     (line 444 / 554)
+    카드 selected border    : var(--acl) -> border-2 border-accent           (OQ #3-selected 1.5 → 2, 데스크톱만 line 444)
+    accentColor pass        : var(--safe)  -> border-l-[3px] border-safe-bar    (OQ #2 ★)
+    accentColor fail        : var(--danger)-> border-l-[3px] border-danger-bar  (OQ #2 ★)
+    accentColor conditional : var(--warn)  -> border-l-[3px] border-warning-bar (OQ #2 ★)
+    accentColor null        : var(--bd2)   -> border-l-[3px] border-border-strong (OQ #2 ★)
+    ResultBadge pass        : bg rgba(34,197,94,.13) + color var(--safe)   -> bg-safe-bg text-safe       '적합'      (OQ #2 ★)
+    ResultBadge fail        : bg rgba(239,68,68,.15) + color var(--danger) -> bg-danger-bg text-danger   '부적합'    (OQ #2 ★)
+    ResultBadge conditional : bg rgba(245,158,11,.15) + color var(--warn)  -> bg-warning-bg text-warning '조건부적합' (OQ #2 ★)
+    ResultBadge null        : bg transparent + color var(--t3)             -> bg-transparent text-text-tertiary '결과 미입력' (OQ #2 ★)
+    탭 활성 bg              : var(--bg4) -> bg-surface-active                (line 412 / 523)
+    탭 활성 color           : var(--t1)  -> text-text-primary
+    탭 비활성 color         : var(--t3)  -> text-text-tertiary
+    탭 borderBottom 활성    : var(--acl) -> border-b-2 border-accent
+    연도 select bg          : var(--bg3) -> bg-surface-sunken                (line 420 / 531)
+    연도 select border      : var(--bd2) -> border border-border-strong
+    연도 select color       : var(--t1)  -> text-text-primary
+    탭 폰트 (데스크톱)      : 11 → text-caption font-bold leading-none (12)  (OQ #3 ★)
+    탭 폰트 (모바일)        : 12 → text-label font-bold                       (OQ #3 그대로 12 OK)
+    ResultBadge 폰트        : 11 → text-caption font-bold leading-none (12)  (OQ #3 ★)
+    카드 title 폰트 (데)    : 13 → text-label font-bold
+    카드 title 폰트 (모)    : 14 → text-body-sm font-bold
+    카드 메타 폰트 (데)     : 11 → text-caption leading-none (12)            (OQ #3 ★)
+    카드 메타 폰트 (모)     : 12 → text-caption leading-none
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (본 sketch 사용 글리프 0)
+    - linear&#8209;gradient 0건 (W4 만 OQ #4 LOCKED 예외, 본 wave 본문 0건)
+    - 9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED text-caption 12 leading-none 마지노선)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건 (★ OQ #2 LOCKED 핵심 위반 시 W5 FAIL ★)
+    - w&#8209;8 / h&#8209;8 0건 (tailwind config w&#8209;8 = forty-eight px 함정)
+    - 옛 alias 토큰 (var(&#8209;&#8209;bg) / var(&#8209;&#8209;bg3) / var(&#8209;&#8209;bd) / var(&#8209;&#8209;t1) 등) sketch 본문 0건 (단 토큰 매핑 fence 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/19-legal — W3 round card + accentColor + ResultBadge</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (tokens.css verbatim)
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 (tokens.css verbatim)
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    /* ============================================================
+     * Typography
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .font-bold     { font-weight: 700; }
+    .leading-none  { line-height: 1; }
+
+    /* ============================================================
+     * @keyframes blink (LegalPage line 467, 505 verbatim, .6/.3, Education .4 와 다름)
+     * ============================================================ */
+    @keyframes blink {
+      0%, 100% { opacity: 0.6; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ============================================================
+     * Sketch 헬퍼
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1440px;
+      height: 900px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1900px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">19-legal sketch W3 — round card + accentColor 4 분기 + ResultBadge 4 라벨 + 탭 (key/label mismatch) + 연도 필터</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      모바일 393x800 2 frame + 데스크톱 1440x900 1 frame + 라이트 모바일 1 frame side-by-side.
+      LegalPage.tsx accentColor (line 27~32) + ResultBadge (line 35~47) + TABS (line 54~58) + filterRounds (line 59~63)
+      + roundList JSX (line 404~461) + 라운드 카드 데스크톱 (line 438~458) + 라운드 카드 모바일 (line 552~567) verbatim 매핑.
+      4 frame: 다크 모바일 pass / 다크 모바일 fail / 다크 데스크톱 conditional + selected (border-2 border-accent OQ #3-selected) / 라이트 모바일 null '결과 미입력'.
+      W1 OQ LOCKED 5건 중 OQ #2 (accentColor 4분기 + ResultBadge 4 라벨 status 토큰, status&#8209; prefix 없음) + OQ #3 (§1.1 9&#183;10&#183;11 → 12 격상 + leading-none) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — accentColor 4 임계치 매트릭스
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / pass safe — '적합'
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — pass safe — '적합'</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 모바일 헤더 (W2 책임, 본 wave 사용만) -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <!-- 필터 영역 (line 518~535 verbatim, bg-surface-raised + border-b border-border-default) -->
+        <div class="bg-surface-raised border-b border-border-default" style="flex-shrink:0;">
+          <!-- 모바일 탭 h 44 (TABS line 54~58, key '미조치' label '진행 중' mismatch verbatim) -->
+          <div style="display:flex;">
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;">전체</button>
+            <button class="bg-surface-active text-label font-bold text-text-primary" style="flex:1;height:44px;border:none;border-bottom:2px solid var(--accent);cursor:pointer;" data-key="미조치" data-label="진행 중">진행 중</button>
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;">완료</button>
+          </div>
+          <!-- 연도 select (line 530~534 verbatim, padding '6px 12px' + borderRadius 8 + fontSize 13 → text-label) -->
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;">
+            <select class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-sm" style="padding:6px 12px;appearance:none;-webkit-appearance:none;">
+              <option>2024년</option>
+              <option>2025년</option>
+              <option selected>2026년</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 카드 영역 (모바일 padding '12px 16px' + gap 8, line 538) -->
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+
+          <!-- ★ 모바일 카드 (pass safe, OQ #2): bg-surface-sunken + border-default + border-l-[3px] border-safe-bar + rounded-md (radius 12)
+               line 552~567 verbatim: padding 12 + gap 4 -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-safe-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <!-- 상단: title (14 → text-body-sm font-bold) + ResultBadge (OQ #3 격상 11 → text-caption font-bold leading-none) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026 상반기 종합정밀점검</span>
+              <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">적합</span>
+            </div>
+            <!-- 메타 (모바일 verbatim, '건' 있음 + endDate '~' 분기, line 564) -->
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2026.03.15 · 지적 5건 · 완료 5건</div>
+          </div>
+
+          <!-- 다른 pass 카드 (endDate 분기 데모) -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-safe-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2025 하반기 작동기능점검</span>
+              <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">적합</span>
+            </div>
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2025.09.10 ~ 2025.09.14 · 지적 3건 · 완료 3건</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 모바일 393x800 / fail danger — '부적합'
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 모드 (393x800) — fail danger — '부적합'</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="flex-shrink:0;">
+          <div style="display:flex;">
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;">전체</button>
+            <button class="bg-surface-active text-label font-bold text-text-primary" style="flex:1;height:44px;border:none;border-bottom:2px solid var(--accent);" data-key="미조치" data-label="진행 중">진행 중</button>
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;">완료</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;">
+            <select class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-sm" style="padding:6px 12px;appearance:none;">
+              <option>2024년</option>
+              <option>2025년</option>
+              <option selected>2026년</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+
+          <!-- ★ 모바일 카드 (fail danger, OQ #2): border-l-[3px] border-danger-bar + ResultBadge bg-danger-bg text-danger '부적합' -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-danger-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026 작동기능점검</span>
+              <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">부적합</span>
+            </div>
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2026.05.10 ~ 2026.05.15 · 지적 8건 · 완료 3건</div>
+          </div>
+
+          <!-- 또 다른 fail 카드 -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-danger-bar rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2024 하반기 종합정밀점검</span>
+              <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">부적합</span>
+            </div>
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2024.10.08 · 지적 12건 · 완료 6건</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 데스크톱 1440x900 / conditional warning + selected (OQ #3-selected)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (1440x900) — conditional warning + selected card border-2 border-accent (OQ #3-selected, 데스크톱만)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!-- 글로벌 AppHeader placeholder -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:56px;flex-shrink:0;display:flex;align-items:center;padding:0 24px;">
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;display:flex;height:100%;overflow:hidden;">
+
+          <!-- 좌측: 라운드 목록 (width 500 borderRight 1px) -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;">
+
+            <!-- 데스크톱 탭 h 38 (line 408~417 verbatim, OQ #3 격상 11 → text-caption font-bold leading-none 12) -->
+            <div style="display:flex;flex-shrink:0;">
+              <button class="text-caption font-bold leading-none text-text-tertiary" style="flex:1;height:38px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;">전체</button>
+              <button class="bg-surface-active text-caption font-bold leading-none text-text-primary" style="flex:1;height:38px;border:none;border-bottom:2px solid var(--accent);cursor:pointer;" data-key="미조치" data-label="진행 중">진행 중</button>
+              <button class="text-caption font-bold leading-none text-text-tertiary" style="flex:1;height:38px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;">완료</button>
+            </div>
+            <!-- 데스크톱 연도 select (line 419~422 verbatim, padding '4px 8px' + fontSize 12 → text-caption leading-none) -->
+            <div style="padding:6px 12px;flex-shrink:0;">
+              <select class="bg-surface-sunken border border-border-strong text-caption leading-none text-text-primary rounded-sm" style="padding:4px 8px;appearance:none;width:fit-content;">
+                <option>2024년</option>
+                <option>2025년</option>
+                <option selected>2026년</option>
+              </select>
+            </div>
+
+            <!-- 카드 영역 (데스크톱 padding '8px 12px' + gap 6) -->
+            <div style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:6px;">
+
+              <!-- ★ 데스크톱 카드 selected (OQ #2 conditional warning + OQ #3-selected border-2 border-accent, 1.5 → 2)
+                   line 438~458 verbatim: padding 10 + gap 3 + rounded-md (radius 10) -->
+              <div class="bg-surface-sunken border-2 border-accent border-l-[3px] border-warning-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026 상반기 종합정밀점검</span>
+                  <!-- ResultBadge conditional warning (OQ #2 ★ + OQ #3 격상) -->
+                  <span class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">조건부적합</span>
+                </div>
+                <!-- 데스크톱 메타 (line 454~456 verbatim '· 지적 N · 완료 N', '건' 없음, 11 → text-caption leading-none 12) -->
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2026.03.15 · 지적 5 · 완료 3</div>
+              </div>
+
+              <!-- 평시 데스크톱 카드 (conditional) -->
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-warning-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2025 상반기 종합정밀점검</span>
+                  <span class="bg-warning-bg text-warning text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">조건부적합</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2025.04.20 · 지적 6 · 완료 5</div>
+              </div>
+
+              <!-- 평시 데스크톱 카드 (pass) -->
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-safe-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2024 하반기 작동기능점검</span>
+                  <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">적합</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2024.09.18 · 지적 2 · 완료 2</div>
+              </div>
+
+              <!-- 평시 데스크톱 카드 (fail) -->
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-danger-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2024 상반기 종합정밀점검</span>
+                  <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">부적합</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2024.04.05 · 지적 9 · 완료 7</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 중앙: 지적사항 목록 placeholder (W4 책임) -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;">
+              <div class="text-label text-text-tertiary">(W4: FindingsPanel — 선택된 라운드의 지적사항 목록)</div>
+            </div>
+          </div>
+
+          <!-- 우측: 상세 placeholder (W4 책임) -->
+          <div style="flex:1;display:flex;flex-direction:column;">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px;">
+              <div class="text-label text-text-tertiary">(W4: FindingDetailPanel — 선택된 finding 의 상세)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / null '결과 미입력' (accentColor null, ResultBadge null)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#0f172a;">Frame 4 / 라이트 모드 (393x800) — null '결과 미입력' (accentColor null = border-border-strong, ResultBadge bg-transparent text-text-tertiary)</div>
+      <div data-theme="light" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-raised border-b border-border-default" style="flex-shrink:0;">
+          <div style="display:flex;">
+            <button class="bg-surface-active text-label font-bold text-text-primary" style="flex:1;height:44px;border:none;border-bottom:2px solid var(--accent);">전체</button>
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;" data-key="미조치" data-label="진행 중">진행 중</button>
+            <button class="text-label font-bold text-text-tertiary" style="flex:1;height:44px;background:transparent;border:none;border-bottom:2px solid transparent;">완료</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 16px;">
+            <select class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-sm" style="padding:6px 12px;appearance:none;">
+              <option>2024년</option>
+              <option>2025년</option>
+              <option selected>2026년</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
+
+          <!-- ★ 모바일 카드 (null '결과 미입력', OQ #2 ★ accentColor null = border-l-[3px] border-border-strong + ResultBadge bg-transparent text-text-tertiary) -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-border-strong rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026 정기점검 예정</span>
+              <!-- ResultBadge null verbatim '결과 미입력' (OQ #2 ★ bg-transparent text-text-tertiary) -->
+              <span class="bg-transparent text-text-tertiary text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">결과 미입력</span>
+            </div>
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2026.11.20 · 지적 0건 · 완료 0건</div>
+          </div>
+
+          <!-- 또 다른 null 카드 -->
+          <div class="bg-surface-sunken border border-border-default border-l-[3px] border-border-strong rounded-md" style="padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span class="text-body-sm font-bold text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">2026 작동기능점검 예정</span>
+              <span class="bg-transparent text-text-tertiary text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">결과 미입력</span>
+            </div>
+            <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">2026.10.15 · 지적 0건 · 완료 0건</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto" style="background:#0f1419;border:1px solid #1f2937;border-radius:12px;padding:20px;color:#cbd5e1;">
+    <h2 class="text-white font-bold" style="font-size:16px;margin-bottom:12px;">★ 본 wave Rules — OQ LOCKED + 비즈 anchor + negative gate</h2>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">OQ LOCKED (W1 §7 verbatim — 본 wave 적용분)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+OQ #2 LOCKED ★: accentColor 4분기 borderLeft 색 —
+  `border-l-[3px] border-safe-bar` (pass) / `border-l-[3px] border-danger-bar` (fail)
+  `border-l-[3px] border-warning-bar` (conditional) / `border-l-[3px] border-border-strong` (null).
+
+  ResultBadge map —
+  `bg-safe-bg text-safe` (pass '적합') / `bg-danger-bg text-danger` (fail '부적합')
+  `bg-warning-bg text-warning` (conditional '조건부적합') / `bg-transparent text-text-tertiary` (null '결과 미입력').
+
+  finding 칩 (W4 적용) —
+  `bg-danger-bg text-danger` (open '미조치') / `bg-safe-bg text-safe` (resolved '완료').
+
+  finding borderLeft (W4 적용) —
+  `border-l-[3px] border-danger-bar` (open) / `border-l-[3px] border-safe-bar` (resolved).
+
+  임계치 + 라벨 + 매핑 1 byte 변경 금지 (memory `feedback_inspection_unresolved_color` 일반화).
+  ★ status&#8209; prefix 없음 ★ (`text&#8209;status&#8209;safe` 같은 패턴 사용 시 W5 verify FAIL, memory `feedback_tailwind_token_class_pattern`).
+  alpha 0.13/0.15 vs tokens.css safe-bg 0.16 미세 차이는 executor 가 tokens.css 의 status 토큰 값 그대로 채택
+  (불일치 시 인라인 fallback `bg-[rgba(...)]` arbitrary).
+
+OQ #3 LOCKED ★: §1.1 9&#183;10&#183;11 fontSize 12 격상 + leading-none —
+  ResultBadge 11 + admin 도구 button 11 (W4) + 데스크톱 탭 11 + finding 칩 10 (W4) + finding 메타 10/11 (W4)
+  + 첨부 button 10 (W4) + 수정/삭제 button 10 (W4) 모두 → `text-caption font-bold leading-none` (12px).
+  격상 후 padding 미세 조정 (예: 배지/칩 padding `1px 6px` → `2px 8px` 시각 균형).
+  16 (모바일 타이틀 / 빈 제목 / 모바일 카드 title) + 15 (FindingsPanel/Panel 헤더) + 14 (모바일 오류) + 13 (모바일 탭 / 데스크톱 fallback / 라운드 카드 데스크톱 title) 모두 보존.
+  23-education + 16-workshift + 17-annual-plan OQ 일관 (§1.1 노안 룰 우선 정신).
+
+OQ #3-selected: selected card `border-2 border-accent` (1.5 → 2, 데스크톱만).
+  모바일 미적용 (모바일은 sub-route 진입, selected state 없음).
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">비즈 anchor 17건 (1 byte 변경 금지, W2~W5 박제)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+[react-query / 비즈 시그니처]
+ 1. useQuery({ queryKey: ['legal-rounds', year], queryFn: () =&gt; legalApi.list(year), staleTime: 30_000 }) (line 386~390) ★ 본 wave 적용
+ 2. useQuery({ queryKey: ['legal-round', roundId], ...}) (line 96~100) — W4 적용
+ 3. useQuery({ queryKey: ['legal-findings', roundId], ...}) (line 102~106) — W4 적용
+ 4. useQuery({ queryKey: ['legal-finding', roundId, findingId], ...}) + useMutation resolveMutation + 4 키 invalidate — W4 적용
+
+[utils/api.ts legalApi 7종]
+ 5. legalApi.list(year) / legalApi.get(roundId) / legalApi.getFindings(roundId)
+    / legalApi.updateResult(roundId, {result?, report_file_key?}) / legalApi.deleteFinding(roundId, fid)
+    / legalApi.getFinding(roundId, fid) / legalApi.resolveFinding(roundId, fid, {resolution_memo, resolution_photo_keys?})
+
+[비즈 로직 함수 + 분기]
+ 6. accentColor(result) (line 27~32) ★ 본 wave 핵심 ★: pass var(--safe) / fail var(--danger) / conditional var(--warn) / null var(--bd2) — 4분기 1 byte 변경 금지
+ 7. ResultBadge map (line 35~47) ★ 본 wave 핵심 ★: 4 라벨 verbatim + alpha 0.13/0.15
+ 8. filterRounds (line 59~63) ★ 본 wave 핵심 ★: 3분기 운영 룰 (memory `project_inspection_completion_rule` 일반화)
+ 9. TABS (line 54~58) ★ 본 wave 핵심 ★: key '미조치' label '진행 중' mismatch 의도된 디자인
+10. sorted findings (line 147~151) — W4 적용
+11. handleRoundClick (line 394~401) ★ 본 wave 데스크톱 selected 분기 ★: isDesktop ? setSelectedRoundId : navigate sub-route
+12. role admin 도구 분기 — W4 적용
+13. useMultiPhotoUpload + 5장 제한 — W4 적용
+14. buildMetaTxt + fflate ZIP + 파일명 패턴 — W4 적용
+15. @keyframes blink (.6/.3, line 467/505 — Education 1/0.4 와 다름) + spin — 본 wave + W4 적용
+16. toast 카피 11종 — W4 적용
+17. 빈/오류/fallback 카피 — W2 적용
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">토큰 매핑 (본 wave — 카드 + 탭 + 연도 + accentColor + ResultBadge)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+카드 외곽 bg          : var(--bg3) -&gt; bg-surface-sunken
+카드 평시 border      : var(--bd)  -&gt; border border-border-default
+카드 selected border  : var(--acl) -&gt; border-2 border-accent   (OQ #3-selected, 데스크톱만)
+accentColor pass      : -&gt; border-l-[3px] border-safe-bar      (OQ #2 ★)
+accentColor fail      : -&gt; border-l-[3px] border-danger-bar    (OQ #2 ★)
+accentColor conditional: -&gt; border-l-[3px] border-warning-bar  (OQ #2 ★)
+accentColor null      : -&gt; border-l-[3px] border-border-strong (OQ #2 ★)
+ResultBadge pass      : -&gt; bg-safe-bg text-safe '적합'         (OQ #2 ★)
+ResultBadge fail      : -&gt; bg-danger-bg text-danger '부적합'   (OQ #2 ★)
+ResultBadge conditional: -&gt; bg-warning-bg text-warning '조건부적합' (OQ #2 ★)
+ResultBadge null      : -&gt; bg-transparent text-text-tertiary '결과 미입력' (OQ #2 ★)
+탭 활성 bg            : var(--bg4) -&gt; bg-surface-active
+탭 활성 border-bottom : var(--acl) -&gt; border-b-2 border-accent
+탭 폰트 (데스크톱)    : 11 -&gt; text-caption font-bold leading-none  (OQ #3 ★)
+탭 폰트 (모바일)      : 12 -&gt; text-label font-bold                  (OQ #3 그대로)
+연도 select bg/border : var(--bg3) + var(--bd2) -&gt; bg-surface-sunken border border-border-strong
+ResultBadge 폰트      : 11 -&gt; text-caption font-bold leading-none  (OQ #3 ★)
+카드 메타 폰트 (데)   : 11 -&gt; text-caption leading-none            (OQ #3 ★)
+카드 메타 폰트 (모)   : 12 -&gt; text-caption leading-none
+    </pre>
+
+    <h3 style="color:#ef4444;font-size:13px;font-weight:700;margin-top:16px;">Negative gate (본 wave sketch 본문)</h3>
+    <ul style="font-size:12px;line-height:1.8;color:#fecaca;margin-left:1em;list-style:disc;">
+      <li>이모지 0건</li>
+      <li>linear&#8209;gradient 0건 (W4 만 OQ #4 LOCKED 예외)</li>
+      <li>9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED text-caption 12 leading-none 마지노선)</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건 ★ OQ #2 LOCKED 핵심 위반 시 FAIL ★ (bg&#8209;status&#8209;safe X 예시는 HTML entity 사용)</li>
+      <li>w&#8209;8 / h&#8209;8 0건 (tailwind w&#8209;8 = forty-eight px 함정)</li>
+      <li>옛 alias 토큰 (var(&#8209;&#8209;bg3) / var(&#8209;&#8209;bd) / var(&#8209;&#8209;t1) 등) sketch 본문 0건 (단 토큰 매핑 fence 예외)</li>
+    </ul>
+  </section>
+
+</body>
+</html>

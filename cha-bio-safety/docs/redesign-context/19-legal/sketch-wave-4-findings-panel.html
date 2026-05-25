@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-findings-panel.html — redesign/19-legal W4
+  작성: 2026-05-23 / quick 260523-40p
+  범위: LegalPage.tsx FindingsPanel (line 82~228, 데스크톱 중앙 — 헤더 + admin 도구 + sorted findings open-first
+        + finding 카드 + 수정/삭제 + FindingFormSheet)
+        + FindingDetailPanel (line 233~367, 데스크톱 우측 — 헤더 + admin 다운로드 + 지적 정보 KVRow 4 + 지적 사진 PhotoGrid
+        + 조치 입력 textarea + 사진 5장 + 조치 완료 button + 조치 결과 KVRow 3) 통합 시각화
+        4 frame (다크 데스크톱 admin 평시 open / 다크 데스크톱 assistant role / 다크 모바일 sub-route 위임 / 라이트 데스크톱 결과 입력 + resolved finding)
+  out of scope: 모바일 헤더 + 데스크톱 3분할 outline + 빈/로딩/오류 (W2 책임)
+                / 라운드 카드 + 탭 + accentColor + ResultBadge (W3 책임)
+                / TSX 변환 (W5 checklist 책임) / LegalPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, 23-education/sketch-wave-4-edit-modal.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 헤더 (W2 책임, 본 wave 사용만)
+    OQ #2 LOCKED — finding 칩 + borderLeft status 토큰 매핑
+                    open border-l-[3px] border-danger-bar + bg-danger-bg text-danger '미조치'
+                    resolved border-l-[3px] border-safe-bar + bg-safe-bg text-safe '완료'
+                    (본 wave 적용 = O, W3 와 일관)
+    OQ #3 LOCKED — admin 도구 button 11 + finding 칩 10 + 메타 10/11 + 첨부 button 10 + 수정/삭제 button 10
+                    모두 → text-caption font-bold leading-none (본 wave 적용 = O)
+    OQ #4 LOCKED ★★ — 조치 완료 button (line 346) 인라인 linear-gradient(135deg, #1d4ed8, #0ea5e9)
+                       W4 만 linear-gradient negative gate 예외 anchor ≥3 박제 (Frame 1/2/4 조치 완료 button)
+                       admin 작은 도구 button (저장/보고서/다운로드 h 28) + 다시 시도 button = solid bg-accent text-text-on-accent 유지
+                       disabled = bg-surface-sunken text-text-tertiary cursor-not-allowed
+                       빈/오류 아이콘 무 (현재 카피만)
+                       (본 wave 적용 = O ★★ 핵심)
+    OQ #5 LOCKED ★ — FindingDetailPanel 첨부 button '📷' (line 340) → Lucide <Camera size={18} /> 교체
+                      FindingDetailPanel 로딩 spinner div + @keyframes spin (line 291) → Lucide <Loader2 className="animate-spin" size={24} /> 교체
+                      옛 '📷' 이모지 + div spinner + @keyframes spin 모두 폐기
+                      (본 wave 적용 = O ★ 핵심)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       -> FindingsPanel + FindingDetailPanel 컨펌용. role admin/assistant + open/resolved + 사진 5장 + 조치 완료 CTA 모두 시각.
+
+    2. feedback_sketch_realistic_data.md
+       -> FindingsPanel 헤더 round?.title fallback '지적사항 목록' (line 157) — frame 에는 실제 title '2026 상반기 종합정밀점검'
+          admin select 4 옵션 verbatim '미입력' / '적합' / '부적합' / '조건부적합' (line 165~168)
+          admin button '저장' / '보고서 업로드' / '보고서' (열기) / '...' (uploadingReport)
+          finding 칩 verbatim '미조치' (open) / '완료' (resolved) (line 200)
+          finding 액션 '수정' / '삭제' / location fallback '위치 미지정'
+          FindingDetailPanel 헤더 '지적 상세' (line 298) / 다운로드 button '다운로드' / '...'
+          섹션 라벨 verbatim '지적 정보' / '지적 사진' / '조치 내용' / '조치 결과'
+          KVRow 라벨 (지적 정보 4) '지적 내용' / '위치' / '등록일' / '등록자'
+          KVRow 라벨 (조치 결과 3) '조치일시' / '조치자' / '조치 내용'
+          조치 textarea placeholder '조치 내용을 입력하세요' / 조치 사진 라벨 '조치 사진 (최대 5장)'
+          조치 완료 button '조치 완료' / '처리 중...'
+          첨부 button '첨부' / 사진 없음 '사진 없음'
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       -> 사진 슬롯 64x64 + ✕ 18x18 + 첨부 button 64x64 / textarea rows={3} + padding '10px 12px'
+          + KVRow 라벨 width 64 + gap 12 + 조치 완료 button h 44 + borderRadius 10 모두 W5 verbatim 인용 예정
+
+    4. feedback_tailwind_token_class_pattern.md — status&#8209; prefix 0건
+       -> finding 칩 + borderLeft 모두 prefix 없는 짧은 토큰 alias.
+
+    5. feedback_tailwind_w8_h8_is_48px.md — w&#8209;8/h&#8209;8 0건
+       -> 사진 슬롯 64x64 / 첨부 button 64x64 / ✕ 18x18 / 조치 완료 button h 44 모두 인라인 또는 arbitrary class.
+
+    6. feedback_text_caption_leading_none.md — OQ #3 핵심
+       -> admin select 11 + 저장 11 + 보고서/다운로드 11 + finding 칩 10 + 메타 10/11 + 첨부 10 + 수정/삭제 10 + KVRow 라벨 12
+          모두 → text-caption font-bold leading-none (12px).
+
+    7. feedback_tsx_wave_emoji_dot_gap.md — sketch 이모지 0
+       -> 본 wave 의 핵심. '📷' 이모지 사고 케이스 (OQ #5 Camera 교체) — sketch 본문 0건.
+
+    8. feedback_redesign_sketch_rule_enforcement.md — §6.2 negative rule (status 색은 룰 11 예외)
+       -> finding 칩 + borderLeft 결과 status 토큰은 룰 11 (feedback_inspection_unresolved_color) 우선.
+
+    9. feedback_inspection_unresolved_color.md — finding open 미조치 색 = danger (border-l-[3px] border-danger-bar + bg-danger-bg text-danger)
+       -> 본 wave 의 핵심 룰 (OQ #2 LOCKED 일관).
+
+   10. project_inspection_completion_rule.md — role admin 도구 분기 + sorted open-first source of truth
+       -> 본 wave 의 핵심 룰. FindingsPanel role === 'admin' (line 162) + FindingDetailPanel staff?.role === 'admin' (line 299) 분기.
+          sorted findings (line 147~151) open 먼저 + createdAt desc localeCompare.
+
+   11. feedback_check_branch_before_edit.md — branch 확인 (redesign/19-legal ✓)
+
+   12. feedback_subagent_production_deploy_forbidden.md — wrangler 절대 X (디자인 wave)
+
+  ==========================================================
+  ★ 비즈 anchor 17건 (LegalPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-rounds', year], ...}) (line 386~390) — W3 적용
+    2. useQuery({ queryKey: ['legal-round', roundId], queryFn: () => legalApi.get(roundId), enabled: !!roundId }) (line 96~100) ★ 본 wave 핵심 ★
+    3. useQuery({ queryKey: ['legal-findings', roundId], queryFn: () => legalApi.getFindings(roundId), enabled: !!roundId, staleTime: 30_000 }) (line 102~106) ★ 본 wave 핵심 ★
+    4. useQuery({ queryKey: ['legal-finding', roundId, findingId], queryFn: () => legalApi.getFinding(roundId, findingId), enabled: !!roundId && !!findingId }) (line 241~245)
+       + useMutation resolveMutation (line 247~265) + 4 키 invalidate (['legal-finding'..] / ['legal-findings'..] / ['legal-rounds'] / ['legal-round'..]) ★ 본 wave 핵심 ★
+    5. legalApi 7종 — list / get / getFindings / updateResult / deleteFinding / getFinding / resolveFinding (snake_case payload + camelCase props 혼용 보존)
+                     ★ 본 wave 핵심 ★: updateResult(roundId, {result?, report_file_key?}) / deleteFinding(roundId, fid) / getFinding(roundId, fid) / resolveFinding(roundId, fid, {resolution_memo, resolution_photo_keys?})
+    6. accentColor (W3 적용)
+    7. ResultBadge (W3 적용)
+    8. filterRounds (W3 적용)
+    9. TABS (W3 적용)
+   10. sorted findings (line 147~151) ★ 본 wave 핵심 ★: status 'open' 먼저 + 그 외 createdAt desc localeCompare
+   11. handleRoundClick (line 394~401) ★ 본 wave 모바일 sub-route 위임 ★: isDesktop ? (setSelectedRoundId, setSelectedFindingId(null)) : navigate('/legal/' + round.id)
+   12. role admin 도구 분기 ★ 본 wave 핵심 ★ — FindingsPanel role === 'admin' (line 162) → select+저장+보고서 / FindingDetailPanel staff?.role === 'admin' (line 299) → 다운로드 button
+   13. useMultiPhotoUpload ★ 본 wave 핵심 ★ — 5장 제한 (canAdd = slots.length < 5) + cameraRef + albumRef + slots + handleFiles + removeSlot + openPicker + closePicker + pickCamera + pickAlbum + isUploading + uploadAll
+   14. buildMetaTxt(finding) ★ 본 wave 핵심 ★ + fflate dynamic import('fflate').zipSync + ZIP 파일명 `지적사항_${(finding.location ?? '').replace(/[\/\\:*?"<>|]/g, '_')}.zip` + 사진 파일명 `지적사진-${j+1}.jpg` / `조치사진-${j+1}.jpg`
+   15. @keyframes blink (line 467, 505 .6/.3 — Education 1/0.4 와 다름) + @keyframes spin (line 291, OQ #5 LOCKED Loader2 교체로 spin 제거 예정)
+   16. toast 카피 11종 verbatim ★ 본 wave 핵심 ★:
+       success 5 — '점검 결과 저장' (line 116) / '보고서 업로드 완료' (line 132) / '삭제됨' (line 143) / '조치 완료' (line 260) / '다운로드 완료' (line 284)
+       error  6 — '저장 실패' (line 117) / '업로드 실패' (line 133) / err?.message ?? '삭제 실패' (line 144) / '조치 처리 실패' (line 264) / '다운로드 실패' (line 285) / '조치 내용을 입력하세요' (line 345)
+   17. 빈/오류/fallback 카피 (W2 적용, 본 wave 박제만)
+
+  ==========================================================
+  토큰 매핑 (본 wave — FindingsPanel + FindingDetailPanel)
+  ==========================================================
+
+    헤더 / 카드 bg          : var(--bg3) -> bg-surface-sunken
+    카드 평시 border        : var(--bd)  -> border border-border-default
+    카드 selected border    : var(--acl) -> border-2 border-accent          (OQ #3-selected)
+    finding borderLeft open : var(--danger) -> border-l-[3px] border-danger-bar    (OQ #2 ★)
+    finding borderLeft resolved: var(--safe) -> border-l-[3px] border-safe-bar     (OQ #2 ★)
+    finding 칩 open         : bg + color var(--danger) -> bg-danger-bg text-danger '미조치' (OQ #2 ★)
+    finding 칩 resolved     : bg + color var(--safe)   -> bg-safe-bg text-safe '완료'       (OQ #2 ★)
+    admin select bg/border  : var(--bg3) + var(--bd2) -> bg-surface-sunken border border-border-strong
+    admin 저장 button bg    : var(--acl) -> bg-accent text-text-on-accent solid (OQ #4 작은 도구 solid 유지)
+    admin 보고서/다운로드 bg: var(--bg3) + var(--bd2) -> bg-surface-sunken border border-border-strong
+    textarea bg/border      : var(--bg3) + var(--bd2) -> bg-surface-sunken border border-border-strong
+    첨부 button border      : var(--bd2) -> border border-dashed border-border-strong + bg-surface-sunken
+    ★ 조치 완료 button bg ★ : 인라인 linear-gradient(135deg, #1d4ed8, #0ea5e9) (OQ #4 LOCKED ★★ W4 예외)
+    조치 완료 disabled bg   : bg-surface-sunken text-text-tertiary cursor-not-allowed
+    KVRow 라벨 색           : var(--t3) -> text-text-tertiary text-caption leading-none
+    KVRow children 색       : var(--t1) -> text-text-primary text-label
+    섹션 라벨 (지적 정보 등): var(--t3) -> text-text-tertiary text-caption font-bold leading-none
+    헤더 (지적 상세, 15)    : var(--t1) -> text-body-sm font-bold text-text-primary
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 ('📷' OQ #5 Camera 교체 — sketch 본문 0건)
+    - linear&#8209;gradient — ★ W4 만 linear-gradient(135deg, #1d4ed8, #0ea5e9) ≥3 박제 (OQ #4 LOCKED 예외 anchor) ★
+                              그 외 0건. admin 작은 도구 button 은 solid bg-accent 유지 (그라데이션 X).
+    - 9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED)
+    - (text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 LOCKED)
+    - w&#8209;8 / h&#8209;8 0건 (tailwind w&#8209;8 = forty-eight px 함정)
+    - 옛 alias 토큰 sketch 본문 0건 (단 토큰 매핑 fence 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/19-legal — W4 findings panels (FindingsPanel + FindingDetailPanel)</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --accent:          #3b82f6;
+      --status-safe:     #4ade80;
+      --status-warning:  #fbbf24;
+      --status-danger:   #f87171;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-safe-bg:    rgba(34, 197, 94, 0.16);
+      --status-warning-bg: rgba(245, 158, 11, 0.16);
+      --status-danger-bg:  rgba(239, 68, 68, 0.16);
+    }
+
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --status-safe:     #166534;
+      --status-warning:  #854d0e;
+      --status-danger:   #991b1b;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-safe-bg:    #dcfce7;
+      --status-warning-bg: #fef3c7;
+      --status-danger-bg:  #fee2e2;
+    }
+
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .font-bold     { font-weight: 700; }
+    .leading-none  { line-height: 1; }
+
+    /* Loader2 animate-spin 시각 — OQ #5 LOCKED Lucide Loader2 자리 표시 */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-shell-desktop {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 12px;
+      overflow: hidden;
+      width: 1440px;
+      height: 900px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-on-accent':  'var(--text-on-accent)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe':            'var(--status-safe)',
+            'warning':         'var(--status-warning)',
+            'danger':          'var(--status-danger-bar)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'safe-bg':         'var(--status-safe-bg)',
+            'warning-bg':      'var(--status-warning-bg)',
+            'danger-bg':       'var(--status-danger-bg)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1900px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">19-legal sketch W4 — FindingsPanel + FindingDetailPanel 통합 (4 frame admin/assistant + open/resolved + 사진 5장 + ★ 조치 완료 CTA 그라데이션 ≥3 ★ + Lucide Camera + Loader2)</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      데스크톱 1440x900 3 frame + 모바일 393x800 1 frame side-by-side. LegalPage.tsx FindingsPanel (line 82~228) + FindingDetailPanel (line 233~367) 통합 시각.
+      4 frame: 다크 데스크톱 admin 평시 (open finding 상세 + 조치 입력) / 다크 데스크톱 assistant role (admin 도구 숨김 + 조치 입력)
+                / 다크 모바일 sub-route 위임 안내 (handleRoundClick !isDesktop 분기) / 라이트 데스크톱 admin 결과 입력 + 보고서 + resolved finding 상세.
+      W1 OQ LOCKED 5건 중 ★ OQ #4 (조치 완료 CTA 그라데이션 anchor ≥3, W4 만 linear-gradient negative gate 예외) ★
+      + OQ #5 (Lucide Camera size={18} + Loader2 animate-spin size={24} 교체) + OQ #2 (finding 칩 + borderLeft status 토큰) + OQ #3 (작은 글자 12 격상) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 데스크톱 1440x900 / admin role 평시 (open finding 상세 + 조치 입력)
+         ★ 조치 완료 CTA 그라데이션 anchor #1 (OQ #4 LOCKED) ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 데스크톱 (1440x900) — admin role 평시 + open finding 상세 + 조치 입력 (★ 조치 완료 CTA 그라데이션 anchor #1 ★)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <!-- 글로벌 AppHeader placeholder -->
+        <div class="bg-surface-raised border-b border-border-default" style="height:56px;flex-shrink:0;display:flex;align-items:center;padding:0 24px;">
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;display:flex;height:100%;overflow:hidden;">
+
+          <!-- 좌측: 라운드 목록 placeholder (W3 책임) -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;">
+            <div style="padding:8px 12px;flex:1;display:flex;align-items:center;justify-content:center;">
+              <div class="text-label text-text-tertiary">(W3: 라운드 목록 — '2026 상반기 종합정밀점검' 선택됨)</div>
+            </div>
+          </div>
+
+          <!-- ★★ 중앙: FindingsPanel (line 82~228) ★★ -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;height:100%;">
+
+            <!-- 헤더 (line 156~159 verbatim, padding '16px 16px 8px') -->
+            <div style="padding:16px 16px 8px;flex-shrink:0;">
+              <div class="text-body-sm font-bold text-text-primary">2026 상반기 종합정밀점검</div>
+              <div class="text-caption text-text-secondary" style="margin-top:2px;line-height:1.5;">2026.03.15</div>
+            </div>
+
+            <!-- ★ admin 도구 (role === 'admin' 분기 line 162, padding '0 16px 8px') ★
+                 OQ #3 격상: select 11 + 저장 11 + 보고서/업로드 11 → text-caption font-bold leading-none (12) -->
+            <div style="padding:0 16px 8px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
+              <!-- 결과 select (line 164~169 verbatim: '미입력' / '적합' / '부적합' / '조건부적합') -->
+              <select class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style="padding:4px 8px;appearance:none;-webkit-appearance:none;cursor:pointer;">
+                <option value="">미입력</option>
+                <option value="pass">적합</option>
+                <option value="fail">부적합</option>
+                <option value="conditional">조건부적합</option>
+              </select>
+              <!-- 저장 button (line 170 solid bg-accent, OQ #4 작은 도구 solid 유지) -->
+              <button class="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm" style="height:28px;padding:0 10px;border:none;cursor:pointer;">저장</button>
+              <!-- 보고서 업로드 button (line 175 verbatim '보고서 업로드' — reportFileKey 없을 때) -->
+              <button class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-secondary rounded-sm" style="height:28px;padding:0 10px;cursor:pointer;">보고서 업로드</button>
+            </div>
+
+            <!-- ★ sorted findings 목록 (line 181~215 verbatim, padding '0 16px 16px', gap 6, sorted line 147~151 open-first) ★ -->
+            <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:6px;">
+
+              <!-- open finding 1 (sorted 먼저, OQ #2 ★ borderLeft danger + 칩 '미조치') -->
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-danger-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">계단실 비상조명등 점등불량</span>
+                  <!-- 상태 칩 open (OQ #2 ★ bg-danger-bg text-danger '미조치' + OQ #3 격상 leading-none) -->
+                  <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">3F 비상계단실</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2026.03.15</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- open finding 2 (selected 표시 — OQ #3-selected border-2 border-accent + OQ #2 borderLeft danger) -->
+              <div class="bg-surface-sunken border-2 border-accent border-l-[3px] border-danger-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">소화기 충전기간 도과 (B동 2F)</span>
+                  <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">B동 2F 복도</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2026.03.15</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- resolved finding (sorted open 뒤 — OQ #2 ★ borderLeft safe + 칩 '완료') -->
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-safe-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">옥내소화전 호스 노후 교체</span>
+                  <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">A동 1F 주차장</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2026.03.10</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ★★ 우측: FindingDetailPanel (line 233~367) ★★ -->
+          <div style="flex:1;overflow-y:auto;padding:16px 20px;">
+
+            <!-- 헤더 (line 296~302) — admin 다운로드 button (staff?.role === 'admin' 분기) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span class="text-body-sm font-bold text-text-primary">지적 상세</span>
+              <button class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style="height:28px;padding:0 10px;cursor:pointer;">다운로드</button>
+            </div>
+
+            <!-- 지적 정보 (line 305~313) — KVRow 4 -->
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 정보</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">지적 내용</span>
+                  <span class="text-label text-text-primary" style="flex:1;line-height:1.5;">소화기 충전기간 도과 (마지막 충전 2024.05) — 즉시 교체 필요</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">위치</span>
+                  <span class="text-label text-text-primary" style="flex:1;">B동 2F 복도</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록일</span>
+                  <span class="text-label text-text-primary" style="flex:1;">2026.03.15 14:32</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록자</span>
+                  <span class="text-label text-text-primary" style="flex:1;">윤종엽</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 지적 사진 (line 316~319, PhotoGrid 3장 placeholder) -->
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 사진</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+              </div>
+            </div>
+
+            <!-- ★ 조치 입력 영역 (line 322~349 verbatim, open finding 만) ★ -->
+            <div class="border-t border-border-default" style="padding-top:16px;">
+              <!-- 조치 내용 라벨 (line 324 verbatim) -->
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">조치 내용</div>
+              <!-- textarea (line 325 verbatim placeholder '조치 내용을 입력하세요', rows={3}, padding '10px 12px', radius 9 → rounded-md, lh 1.5) -->
+              <textarea class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" rows="3" placeholder="조치 내용을 입력하세요" style="width:100%;padding:10px 12px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;"></textarea>
+
+              <div style="margin-top:10px;">
+                <!-- 조치 사진 라벨 (line 327 verbatim '조치 사진 (최대 5장)') -->
+                <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">조치 사진 (최대 5장)</div>
+
+                <!-- 사진 슬롯 + 첨부 button (line 332~342, useMultiPhotoUpload canAdd = slots.length < 5) -->
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <!-- 슬롯 3장 (64x64 + ✕ 18x18) -->
+                  <div style="position:relative;">
+                    <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:64px;height:64px;"></div>
+                    <button style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--status-danger-bar);border:none;color:#fff;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">x</button>
+                  </div>
+                  <div style="position:relative;">
+                    <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:64px;height:64px;"></div>
+                    <button style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--status-danger-bar);border:none;color:#fff;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">x</button>
+                  </div>
+                  <div style="position:relative;">
+                    <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:64px;height:64px;"></div>
+                    <button style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--status-danger-bar);border:none;color:#fff;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">x</button>
+                  </div>
+                  <!-- ★ canAdd 첨부 button (OQ #5 LOCKED: Lucide Camera size={18}, 옛 '📷' 이모지 폐기) ★ -->
+                  <button class="bg-surface-sunken text-text-tertiary rounded-sm" style="width:64px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:1px dashed var(--border-strong);" aria-label="Lucide Camera size={18} 첨부 button (OQ #5, 옛 이모지 폐기)">
+                    <!-- sketch: Lucide Camera 자리 표시 (TSX 변환 시 <Camera size={18} /> + import { Camera } from 'lucide-react') -->
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide Camera size={18}"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    <span class="text-caption leading-none font-bold">첨부</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- ★★★ 조치 완료 button (OQ #4 LOCKED 인라인 그라데이션 anchor #1 ★★★)
+                   line 346 verbatim: width 100% + h 40 (sketch 44 격상 OK) + bg linear-gradient(135deg, #1d4ed8, #0ea5e9) -->
+              <button class="text-text-on-accent text-label font-bold rounded-md" style="margin-top:12px;width:100%;height:44px;border:none;cursor:pointer;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 다크 데스크톱 1440x900 / assistant role (admin 도구 숨김)
+         ★ 조치 완료 CTA 그라데이션 anchor #2 (OQ #4 LOCKED) ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 다크 데스크톱 (1440x900) — assistant role — admin 도구 숨김 (FindingsPanel select+저장+보고서 미렌더 + FindingDetailPanel 다운로드 미렌더) + 조치 입력 (★ 조치 완료 CTA 그라데이션 anchor #2 ★)</div>
+      <div data-theme="dark" class="frame-shell-desktop">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:56px;flex-shrink:0;display:flex;align-items:center;padding:0 24px;">
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;display:flex;height:100%;overflow:hidden;">
+
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;">
+            <div style="padding:8px 12px;flex:1;display:flex;align-items:center;justify-content:center;">
+              <div class="text-label text-text-tertiary">(W3: 라운드 목록 — '2026 작동기능점검' 선택됨, fail)</div>
+            </div>
+          </div>
+
+          <!-- FindingsPanel (assistant role: role !== 'admin' → admin 도구 미렌더) -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;height:100%;">
+
+            <!-- 헤더만 (line 156~159) -->
+            <div style="padding:16px 16px 8px;flex-shrink:0;">
+              <div class="text-body-sm font-bold text-text-primary">2026 작동기능점검</div>
+              <div class="text-caption text-text-secondary" style="margin-top:2px;line-height:1.5;">2026.05.10 ~ 2026.05.15</div>
+            </div>
+
+            <!-- ★ admin 도구 영역 미렌더 (role === 'admin' 분기 line 162 false, assistant role 시각 표시) ★ -->
+            <div style="padding:0 16px 8px;flex-shrink:0;">
+              <div class="text-caption leading-none text-text-tertiary" style="font-style:italic;">(assistant role — admin 도구 숨김, role === 'admin' false 분기 line 162)</div>
+            </div>
+
+            <!-- sorted findings 목록 (open 먼저) -->
+            <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:6px;">
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-danger-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">자동확산소화기 미설치 (전기실)</span>
+                  <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">B동 B1F 전기실</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2026.05.12</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-surface-sunken border-2 border-accent border-l-[3px] border-danger-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">스프링클러 헤드 도장 도포 (페인트 흔적)</span>
+                  <span class="bg-danger-bg text-danger text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">미조치</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">A동 3F 사무실 천장</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2026.05.13</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FindingDetailPanel (assistant role: staff?.role !== 'admin' → 다운로드 button 미렌더) -->
+          <div style="flex:1;overflow-y:auto;padding:16px 20px;">
+            <!-- 헤더 (admin 다운로드 미렌더) -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span class="text-body-sm font-bold text-text-primary">지적 상세</span>
+              <span class="text-caption leading-none text-text-tertiary" style="font-style:italic;">(assistant role — 다운로드 button 숨김, staff?.role === 'admin' false 분기 line 299)</span>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 정보</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">지적 내용</span>
+                  <span class="text-label text-text-primary" style="flex:1;line-height:1.5;">스프링클러 헤드 도장 도포 (페인트 흔적 1개소 — 교체 필요)</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">위치</span>
+                  <span class="text-label text-text-primary" style="flex:1;">A동 3F 사무실 천장</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록일</span>
+                  <span class="text-label text-text-primary" style="flex:1;">2026.05.13 10:08</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록자</span>
+                  <span class="text-label text-text-primary" style="flex:1;">김재선</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 사진</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+              </div>
+            </div>
+
+            <!-- 조치 입력 (open finding) -->
+            <div class="border-t border-border-default" style="padding-top:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">조치 내용</div>
+              <textarea class="bg-surface-sunken border border-border-strong text-label text-text-primary rounded-md" rows="3" placeholder="조치 내용을 입력하세요" style="width:100%;padding:10px 12px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;font-family:inherit;"></textarea>
+
+              <div style="margin-top:10px;">
+                <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:6px;">조치 사진 (최대 5장)</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <div style="position:relative;">
+                    <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:64px;height:64px;"></div>
+                    <button style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--status-danger-bar);border:none;color:#fff;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">x</button>
+                  </div>
+                  <!-- canAdd 첨부 button (Lucide Camera) -->
+                  <button class="bg-surface-sunken text-text-tertiary rounded-sm" style="width:64px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;border:1px dashed var(--border-strong);" aria-label="Lucide Camera size={18}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Lucide Camera size={18}"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    <span class="text-caption leading-none font-bold">첨부</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- ★★★ 조치 완료 button (OQ #4 LOCKED 인라인 그라데이션 anchor #2 ★★★) -->
+              <button class="text-text-on-accent text-label font-bold rounded-md" style="margin-top:12px;width:100%;height:44px;border:none;cursor:pointer;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 모바일 393x800 / sub-route 위임 안내
+         ★ handleRoundClick !isDesktop 분기 (line 394~401 verbatim) ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모바일 (393x800) — sub-route 위임 안내 (handleRoundClick !isDesktop 분기, line 394~401)</div>
+      <div data-theme="dark" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+          <button class="text-text-primary" style="position:absolute;left:8px;width:44px;height:44px;background:none;border:none;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;overflow-y:auto;padding:60px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;">
+
+          <!-- 큰 아이콘 (Lucide ChevronRight) — 모바일은 별도 페이지로 진입 -->
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary);" aria-label="Lucide ChevronRight">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+
+          <div class="text-body font-bold text-text-primary">모바일에서는 카드를 탭하면 별도 페이지로 이동합니다</div>
+          <div class="text-caption leading-none text-text-secondary" style="line-height:1.6;">handleRoundClick → navigate('/legal/' + round.id) 분기 (line 394~401, isDesktop false)</div>
+          <div class="text-caption leading-none text-text-tertiary" style="line-height:1.6;">sub-route /legal/:id (LegalFindingsPage) + /legal/:id/finding/:fid (LegalFindingDetailPage)는 별도 wave 에서 다룸 (W4 = 데스크톱 패널 중심)</div>
+
+          <div style="margin-top:24px;padding:16px;background:var(--surface-sunken);border:1px solid var(--border-default);border-radius:12px;width:100%;text-align:left;">
+            <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:6px;">handleRoundClick 분기 (line 394~401 verbatim)</div>
+            <pre class="text-caption leading-none text-text-primary" style="font-family:'JetBrains Mono', monospace;line-height:1.6;overflow-x:auto;">function handleRoundClick(round: LegalRound) {
+  if (isDesktop) {
+    setSelectedRoundId(round.id)
+    setSelectedFindingId(null)
+  } else {
+    navigate('/legal/' + round.id)
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 데스크톱 1440x900 / admin 결과 입력 + 보고서 + resolved finding 상세 + Lucide Loader2 spinner
+         ★ 조치 완료 CTA 그라데이션 anchor #3 (OQ #4 LOCKED) ★
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#0f172a;">Frame 4 / 라이트 데스크톱 (1440x900) — admin 결과 입력 (fail 선택) + 보고서 열기 (reportFileKey 있음) + resolved finding 상세 + Lucide Loader2 spinner (★ 조치 완료 CTA 그라데이션 anchor #3 + Lucide Loader2 anchor ★)</div>
+      <div data-theme="light" class="frame-shell-desktop">
+
+        <div class="bg-surface-raised border-b border-border-default" style="height:56px;flex-shrink:0;display:flex;align-items:center;padding:0 24px;">
+          <span class="text-body font-bold text-text-primary">소방 점검 관리</span>
+        </div>
+
+        <div class="bg-surface-page" style="flex:1;display:flex;height:100%;overflow:hidden;">
+
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;">
+            <div style="padding:8px 12px;flex:1;display:flex;align-items:center;justify-content:center;">
+              <div class="text-label text-text-tertiary">(W3: 라운드 목록 — '2024 상반기 종합정밀점검' 선택됨)</div>
+            </div>
+          </div>
+
+          <!-- FindingsPanel (admin, fail 선택 + 보고서 있음) -->
+          <div class="border-r border-border-default" style="width:500px;flex-shrink:0;display:flex;flex-direction:column;height:100%;">
+
+            <div style="padding:16px 16px 8px;flex-shrink:0;">
+              <div class="text-body-sm font-bold text-text-primary">2024 상반기 종합정밀점검</div>
+              <div class="text-caption text-text-secondary" style="margin-top:2px;line-height:1.5;">2024.04.05</div>
+            </div>
+
+            <!-- admin 도구 (fail 선택 + 보고서 열기 — reportFileKey 있을 때 line 173) -->
+            <div style="padding:0 16px 8px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">
+              <select class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style="padding:4px 8px;appearance:none;cursor:pointer;">
+                <option value="">미입력</option>
+                <option value="pass">적합</option>
+                <option value="fail" selected>부적합</option>
+                <option value="conditional">조건부적합</option>
+              </select>
+              <button class="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm" style="height:28px;padding:0 10px;border:none;cursor:pointer;">저장</button>
+              <!-- 보고서 button (reportFileKey 있을 때, line 173 verbatim '보고서') -->
+              <button class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style="height:28px;padding:0 10px;cursor:pointer;">보고서</button>
+            </div>
+
+            <!-- sorted findings (resolved 위주 표시) -->
+            <div style="flex:1;overflow-y:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:6px;">
+              <div class="bg-surface-sunken border-2 border-accent border-l-[3px] border-safe-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">계단실 비상조명등 점등불량</span>
+                  <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">3F 비상계단실</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2024.04.10</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-surface-sunken border border-border-default border-l-[3px] border-safe-bar rounded-md" style="padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:2px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                  <span class="text-label text-text-primary" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">옥내소화전 노즐 마모</span>
+                  <span class="bg-safe-bg text-safe text-caption font-bold leading-none rounded-sm" style="padding:2px 8px;flex-shrink:0;">완료</span>
+                </div>
+                <div class="text-caption leading-none text-text-secondary" style="line-height:1.5;">A동 1F 주차장</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                  <span class="text-caption leading-none text-text-tertiary">2024.04.08</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">수정</button>
+                    <button class="text-caption leading-none text-text-tertiary" style="padding:1px 3px;background:none;border:none;cursor:pointer;">삭제</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FindingDetailPanel (resolved finding) -->
+          <div style="flex:1;overflow-y:auto;padding:16px 20px;">
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <span class="text-body-sm font-bold text-text-primary">지적 상세</span>
+              <button class="bg-surface-sunken border border-border-strong text-caption font-bold leading-none text-text-primary rounded-sm" style="height:28px;padding:0 10px;cursor:pointer;">다운로드</button>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 정보</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">지적 내용</span>
+                  <span class="text-label text-text-primary" style="flex:1;line-height:1.5;">계단실 비상조명등 점등불량 (전구 교체 필요)</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">위치</span>
+                  <span class="text-label text-text-primary" style="flex:1;">3F 비상계단실</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록일</span>
+                  <span class="text-label text-text-primary" style="flex:1;">2024.04.05 14:32</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">등록자</span>
+                  <span class="text-label text-text-primary" style="flex:1;">윤종엽</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">지적 사진</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+              </div>
+            </div>
+
+            <!-- ★ 조치 결과 영역 (resolved finding, line 352~364 verbatim) ★ -->
+            <div class="border-t border-border-default" style="padding-top:16px;">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">조치 결과</div>
+              <!-- KVRow 3 (line 355~359 verbatim '조치일시' / '조치자' / '조치 내용') -->
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">조치일시</span>
+                  <span class="text-label text-text-primary" style="flex:1;">2024.04.10 09:15</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">조치자</span>
+                  <span class="text-label text-text-primary" style="flex:1;">김재선</span>
+                </div>
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                  <span class="text-caption leading-none text-text-tertiary" style="width:64px;flex-shrink:0;line-height:1.5;">조치 내용</span>
+                  <span class="text-label text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">전구 교체 완료 (LED 12W 5개) — 점등 정상 확인</span>
+                </div>
+              </div>
+
+              <!-- 조치 사진 (PhotoGrid) -->
+              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+                <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:72px;height:72px;"></div>
+              </div>
+            </div>
+
+            <!-- ★ 또 다른 open finding 진입 시 — 조치 완료 button (OQ #4 LOCKED 인라인 그라데이션 anchor #3) ★ -->
+            <div style="margin-top:24px;padding-top:16px;border-top:1px dashed var(--border-default);">
+              <div class="text-caption leading-none font-bold text-text-tertiary" style="margin-bottom:8px;">(다른 open finding 진입 시 조치 완료 button 시각)</div>
+              <!-- ★★★ 조치 완료 button (OQ #4 LOCKED 인라인 그라데이션 anchor #3 ★★★) -->
+              <button class="text-text-on-accent text-label font-bold rounded-md" style="width:100%;height:44px;border:none;cursor:pointer;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료</button>
+            </div>
+
+            <!-- ★ Lucide Loader2 spinner anchor (OQ #5 LOCKED, line 291 div spinner + @keyframes spin 폐기) ★ -->
+            <div style="margin-top:24px;padding:24px;border-top:1px dashed var(--border-default);display:flex;align-items:center;justify-content:center;">
+              <span class="text-caption leading-none text-text-tertiary" style="margin-right:12px;">(다른 finding 로딩 시 Lucide Loader2 spinner)</span>
+              <!-- sketch: Lucide Loader2 animate-spin 자리 표시 (TSX 변환 시 <Loader2 className="animate-spin text-accent" size={24} /> + import { Loader2 } from 'lucide-react') -->
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin" style="color:var(--accent);" aria-label="Lucide Loader2 animate-spin size={24}">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       Rules 박스
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto" style="background:#0f1419;border:1px solid #1f2937;border-radius:12px;padding:20px;color:#cbd5e1;">
+    <h2 class="text-white font-bold" style="font-size:16px;margin-bottom:12px;">★ 본 wave Rules — OQ LOCKED + 비즈 anchor + ★★ OQ #4 W4 linear-gradient 예외 ★★</h2>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">OQ LOCKED (W1 §7 verbatim — 본 wave 적용분)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+OQ #4 LOCKED ★★ (본 wave 의 핵심):
+  FindingDetailPanel 조치 완료 button (line 346) = `style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}` 인라인 그라데이션
+  (디자인 강조용, design-system §6.4 CTA 룰 일관).
+  토큰 채택 X (linear-gradient negative gate 의 W4 만 예외 anchor).
+  admin 작은 도구 button (저장/보고서/다운로드 h 28) + 모바일 다시 시도 button + 데스크톱 재시도 button
+  = solid `bg-accent text-text-on-accent` 유지 (작은 도구 그라데이션 = 시각 잡음).
+  disabled = `bg-surface-sunken text-text-tertiary cursor-not-allowed`.
+  빈/오류 상태 = 아이콘 추가 X, 현재 카피 verbatim 유지 (Lucide `FolderOpen` 빈 / `AlertCircle` 오류 옵션 default 무).
+  W4 sketch + TSX 변환 양쪽 동일 적용.
+  본 wave 의 anchor ≥3 박제 (Frame 1/2/4 조치 완료 button).
+
+OQ #5 LOCKED ★:
+  FindingDetailPanel 첨부 button '📷' 이모지 (line 340) → Lucide `&lt;Camera size={18} /&gt;` 교체. 첨부 button 외곽 64x64 유지, 내부 아이콘만 교체.
+  FindingDetailPanel 로딩 spinner div + @keyframes spin (line 291) → Lucide `&lt;Loader2 className="animate-spin" size={24} /&gt;` 교체.
+  import 추가: `import { ChevronLeft, Camera, Loader2 } from 'lucide-react'`.
+
+OQ #2 LOCKED (본 wave 일관):
+  finding 칩 — `bg-danger-bg text-danger` (open '미조치') / `bg-safe-bg text-safe` (resolved '완료').
+  finding borderLeft — `border-l-[3px] border-danger-bar` (open) / `border-l-[3px] border-safe-bar` (resolved).
+  status&#8209; prefix 없음.
+
+OQ #3 LOCKED (본 wave 일관):
+  admin select 11 + 저장 11 + 보고서/다운로드 11 + finding 칩 10 + 메타 10/11 + 첨부 10 + 수정/삭제 10 + KVRow 라벨 12 + 섹션 라벨 12
+  모두 → `text-caption font-bold leading-none` (12px).
+
+role admin/assistant 분기 (memory `project_inspection_completion_rule` 일반화):
+  FindingsPanel role === 'admin' (line 162) → select + 저장 + 보고서/업로드 button 표시 (assistant 시 미렌더)
+  FindingDetailPanel staff?.role === 'admin' (line 299) → 다운로드 button 표시 (assistant 시 미렌더)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">비즈 anchor 17건 (1 byte 변경 금지)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+[react-query / 비즈 시그니처] (★ 본 wave 핵심)
+ 2. useQuery({ queryKey: ['legal-round', roundId], queryFn: () =&gt; legalApi.get(roundId), enabled: !!roundId }) (line 96~100)
+ 3. useQuery({ queryKey: ['legal-findings', roundId], queryFn: () =&gt; legalApi.getFindings(roundId), enabled: !!roundId, staleTime: 30_000 }) (line 102~106)
+ 4. useQuery({ queryKey: ['legal-finding', roundId, findingId], queryFn: () =&gt; legalApi.getFinding(roundId, findingId), enabled: !!roundId && !!findingId }) (line 241~245)
+    + useMutation resolveMutation (line 247~265): mutationFn → uploadAll() + legalApi.resolveFinding(roundId, findingId, {resolution_memo, resolution_photo_keys})
+    + onSuccess → invalidateQueries 4개 (['legal-finding'..] / ['legal-findings'..] / ['legal-rounds'] / ['legal-round'..]) + toast.success('조치 완료') + resPhotos.reset() + setMemo('')
+    + onError → toast.error('조치 처리 실패')
+
+[utils/api.ts legalApi 7종] (★ 본 wave 핵심 — 5종 사용)
+ 5. legalApi.get(roundId) / legalApi.getFindings(roundId) / legalApi.updateResult(roundId, {result?, report_file_key?})
+    / legalApi.deleteFinding(roundId, fid) / legalApi.getFinding(roundId, fid)
+    / legalApi.resolveFinding(roundId, fid, {resolution_memo, resolution_photo_keys?})
+
+[비즈 로직 함수 + 분기]
+10. sorted findings (line 147~151) ★ 본 wave 핵심 ★:
+    const sorted = [...(findings ?? [])].sort((a, b) =&gt; {
+      if (a.status === 'open' && b.status !== 'open') return -1
+      if (a.status !== 'open' && b.status === 'open') return 1
+      return b.createdAt.localeCompare(a.createdAt)
+    })
+11. handleRoundClick (line 394~401) ★ 본 wave 모바일 sub-route 위임 ★:
+    function handleRoundClick(round: LegalRound) {
+      if (isDesktop) { setSelectedRoundId(round.id); setSelectedFindingId(null) }
+      else { navigate('/legal/' + round.id) }
+    }
+12. role admin 도구 분기 ★ 본 wave 핵심 ★:
+    FindingsPanel: role === 'admin' (line 162) → select + 저장 + 보고서/업로드
+    FindingDetailPanel: staff?.role === 'admin' (line 299) → 다운로드 button
+
+[useMultiPhotoUpload + ZIP + animation + 카피] (★ 본 wave 핵심)
+13. useMultiPhotoUpload() — slots / canAdd = slots.length &lt; 5 / cameraRef / albumRef / showPicker / openPicker / closePicker
+    / pickCamera / pickAlbum / handleFiles / removeSlot / uploadAll / isUploading / reset
+14. buildMetaTxt(finding) + fflate dynamic import('fflate').zipSync
+    + ZIP 파일명 `지적사항_${(finding.location ?? '').replace(/[\/\\:*?"&lt;&gt;|]/g, '_')}.zip`
+    + 사진 파일명 `지적사진-${j+1}.jpg` / `조치사진-${j+1}.jpg`
+15. @keyframes spin (line 291) — OQ #5 LOCKED 시 Lucide Loader2 교체로 spin 제거 예정
+16. toast 카피 11종 verbatim ★ 본 wave 핵심 ★:
+    success 5 — '점검 결과 저장' (line 116) / '보고서 업로드 완료' (line 132) / '삭제됨' (line 143) / '조치 완료' (line 260) / '다운로드 완료' (line 284)
+    error  6 — '저장 실패' (line 117) / '업로드 실패' (line 133) / err?.message ?? '삭제 실패' (line 144) / '조치 처리 실패' (line 264) / '다운로드 실패' (line 285) / '조치 내용을 입력하세요' (line 345)
+    </pre>
+
+    <h3 style="color:#fbbf24;font-size:13px;font-weight:700;margin-top:16px;">토큰 매핑 (본 wave — FindingsPanel + FindingDetailPanel)</h3>
+    <pre style="background:#020617;padding:12px;border-radius:6px;font-size:12px;line-height:1.6;color:#e2e8f0;overflow-x:auto;white-space:pre-wrap;">
+헤더/카드 bg                : var(--bg3) -&gt; bg-surface-sunken
+카드 평시 border            : var(--bd)  -&gt; border border-border-default
+카드 selected border        : var(--acl) -&gt; border-2 border-accent           (OQ #3-selected)
+finding borderLeft open     : var(--danger) -&gt; border-l-[3px] border-danger-bar    (OQ #2 ★)
+finding borderLeft resolved : var(--safe)   -&gt; border-l-[3px] border-safe-bar     (OQ #2 ★)
+finding 칩 open             : bg + color var(--danger) -&gt; bg-danger-bg text-danger '미조치' (OQ #2 ★)
+finding 칩 resolved         : bg + color var(--safe)   -&gt; bg-safe-bg text-safe '완료'       (OQ #2 ★)
+admin select bg/border      : var(--bg3) + var(--bd2) -&gt; bg-surface-sunken border border-border-strong
+admin 저장 button           : var(--acl) -&gt; bg-accent text-text-on-accent solid (OQ #4 작은 도구 solid 유지)
+admin 보고서/다운로드 button: var(--bg3) + var(--bd2) -&gt; bg-surface-sunken border border-border-strong
+textarea                    : var(--bg3) + var(--bd2) -&gt; bg-surface-sunken border border-border-strong rounded-md
+첨부 button (dashed border) : var(--bd2) -&gt; border-dashed border-border-strong + bg-surface-sunken
+★ 조치 완료 button bg ★    : 인라인 linear-gradient(135deg, #1d4ed8, #0ea5e9)   (OQ #4 LOCKED ★★ W4 만 예외)
+조치 완료 disabled bg       : bg-surface-sunken text-text-tertiary cursor-not-allowed
+KVRow 라벨                  : var(--t3) -&gt; text-text-tertiary text-caption leading-none
+KVRow children              : var(--t1) -&gt; text-text-primary text-label
+섹션 라벨                   : var(--t3) -&gt; text-text-tertiary text-caption font-bold leading-none
+헤더 (지적 상세, 15)        : var(--t1) -&gt; text-body-sm font-bold text-text-primary
+    </pre>
+
+    <h3 style="color:#ef4444;font-size:13px;font-weight:700;margin-top:16px;">Negative gate (본 wave sketch 본문)</h3>
+    <ul style="font-size:12px;line-height:1.8;color:#fecaca;margin-left:1em;list-style:disc;">
+      <li>이모지 0건 (옛 '📷' OQ #5 Camera 교체 — sketch 본문 0건)</li>
+      <li><strong>linear&#8209;gradient ★ W4 만 linear-gradient(135deg, #1d4ed8, #0ea5e9) ≥3 박제 (OQ #4 LOCKED 예외 anchor) ★</strong></li>
+      <li>9 &#183; 10 &#183; 11 px fontSize 0건 (OQ #3 LOCKED)</li>
+      <li>(text|bg|border)&#8209;status&#8209; class prefix 0건 (OQ #2 LOCKED)</li>
+      <li>w&#8209;8 / h&#8209;8 0건 (tailwind w&#8209;8 = forty-eight px 함정)</li>
+      <li>옛 alias 토큰 sketch 본문 0건 (단 토큰 매핑 fence 예외)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
