@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-6-portrait-preview-wrapper.html — redesign/18-worklog W6
+  작성: 2026-05-25 / quick 260525-mbr
+  범위: WorkLogPortraitPreview wrapper (외곽만) — 캘리브 33 step + overlayItems 33건 + 좌표 시스템 100% 보존 (1 byte X)
+  out of scope: 모바일 헤더 + monthNav (W2) / 5 카드 (W3·W4) / footerButtons + layout (W5)
+  참조: wave-1-index.md §1.6 / §2.1 W6 행 verbatim,
+        WorkLogPage.tsx line 833~870 (WORKLOG_CALIB_STEPS 33 + KEY + FINGER_OFFSET) +
+                          line 876~881 (loadWorkLogCalib / saveWorkLogCalib) +
+                          line 884~1190 (WorkLogPortraitPreview 컴포넌트) +
+                          line 1071 (이미지 src "/templates/preview/worklog-1.png") +
+                          line 1140~1170 (캘리브 안내 바) +
+                          line 1174~1187 (위치 설정 button — line 1185 warning glyph) +
+                          line 1193~1216 (WorkLogCalibMarker) verbatim
+
+  W1 LOCKED 6건 매트릭스 (wave-1-index.md §7 OQ default verbatim):
+    OQ #1 ▶ default: 저장 button solid bg-safe-bar (W5 scope, W6 미해당)
+    OQ #2 ▶ default: admin readOnly opacity 0.5 (W3·W4 scope, W6 미해당)
+    OQ #3 ▶ default: 양호/불량/보고·조치 색 의미 분리 (W3·W4 scope, W6 미해당)
+    OQ #4 ▶ default: 미래 월 disabled (W2 scope, W6 미해당)
+    OQ #5 ▶ default: 캘리브 33 step + overlayItems 33건 + WorkLogCalibMarker 100% 보존 (본 W6 적용 = O)
+    OQ #6 ▶ default: line 1185 warning glyph → lucide AlertTriangle size=14 (본 W6 적용 = O)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug)
+  ==========================================================
+
+    1. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → 캘리브 33 step 내부 로직 1 byte 변경 X /
+         이미지 src "/templates/preview/worklog-1.png" 변경/이동 X /
+         "위치 재설정" / "위치 설정" / "인쇄 미리보기" / "확인" / "취소" 텍스트 verbatim.
+
+    2. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 정의 grep 추출 → W7 변환 wave 안 verbatim 인용.
+       → .worklog-portrait-wrapper / .worklog-portrait-image / .worklog-portrait-overlay-area /
+         .worklog-portrait-print-label / .worklog-portrait-calib-bar /
+         .worklog-portrait-calib-confirm / .worklog-portrait-calib-cancel /
+         .worklog-portrait-calib-marker / .worklog-portrait-setup-btn /
+         .worklog-portrait-setup-btn--missing 10 class 정의.
+
+    3. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0). OQ #6: line 1185 warning glyph → lucide AlertTriangle.
+       → 본 sketch 외곽 wrapper 안 warning 글리프 0건 / 캘리브 안내 바 정보 노출 UX 폰트 예외 (안내 바 안에서만 9·10·11 허용).
+
+    4. feedback_tailwind_w8_h8_is_48px.md
+       w-8=48 함정. 캘리브 마커 십자/원 size 모두 명시 px.
+       → 본 sketch 십자 40×2 + 2×40 / 원 active 20·non-active 16 모두 명시 px (Tailwind utility 0건).
+
+    5. feedback_text_caption_leading_none.md
+       text-caption 작은 컨테이너 안 leading-none.
+       → "인쇄 미리보기" 12 leading-none / 위치 설정 button 12 leading-none.
+
+    6. feedback_design_changes_ask_first.md
+       레이아웃 구조 변경 사전 컨펌.
+       → 내부 캘리브 좌표 시스템 / overlayItems 33건 / WORKLOG_CALIB_STEPS 33 / FINGER_OFFSET 60 — 1 byte 변경 0.
+
+    7. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave wrangler 금지.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18 업무 수행 기록표 — sketch W6 WorkLogPortraitPreview wrapper</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --accent:          #3b82f6;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --accent:          #1f6feb;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+    }
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .leading-none { line-height: 1; }
+    .page-bg-dark { background: #0a0d12; }
+    .variant-label {
+      font-size: 12px; color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em; padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * §2.1 W6 신규 정의 (외곽 wrapper 만 토큰화)
+     * ============================================================ */
+    .worklog-portrait-wrapper {
+      /* W5 우측 패널 inherit — aspectRatio 210/297 borderLeft */
+      aspect-ratio: 210 / 297;
+      height: 100%;
+      flex-shrink: 0;
+      overflow: hidden;
+      background: var(--surface-page);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .worklog-portrait-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border-radius: 4px;
+      background: #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .worklog-portrait-overlay-area {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; /* 캘리브 모드 진입 시 auto 로 분기 (소스 내부 로직) */
+    }
+    .worklog-portrait-print-label {
+      /* W5 inherit — fontSize 12 (text-caption, 노안 격상) */
+      position: absolute; top: 8px; left: 0; right: 0;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      color: var(--text-secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 5;
+    }
+    /* OQ #5 default: 캘리브 안내 바 내부 폰트 14·11·13·12 (line 1141~1170 verbatim) — 정보 노출 UX 예외 */
+    .worklog-portrait-calib-bar {
+      /* source line 1141~1148 verbatim — position absolute top 8 left 50% translateX */
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.9); color: #fff;
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 700;
+      display: flex; align-items: center; gap: 16px; z-index: 10;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      white-space: nowrap;
+    }
+    .worklog-portrait-calib-bar-step {
+      /* source line 1150~1155 verbatim — width 24 height 24 borderRadius 50% — fontSize 12 */
+      width: 24px; height: 24px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      color: #fff;
+    }
+    .worklog-portrait-calib-bar-coord {
+      /* source line 1157 verbatim — fontSize 11 color #aaa */
+      font-size: 11px; color: #aaa;
+    }
+    .worklog-portrait-calib-confirm {
+      /* source line 1161~1164 verbatim — bg #22c55e solid */
+      background: #22c55e; border: none; color: #fff;
+      padding: 6px 16px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 700;
+    }
+    .worklog-portrait-calib-cancel {
+      /* source line 1166~1169 verbatim — bg rgba(255,255,255,0.15) */
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer;
+      font-size: 12px;
+    }
+    .worklog-portrait-setup-btn {
+      /* source line 1174~1187 verbatim — fontSize 12 (text-caption 그대로 OK) */
+      position: absolute; bottom: 12px; right: 12px;
+      background: rgba(0,0,0,0.6); /* hasCalib=true default */
+      color: #fff; border: none;
+      padding: 8px 16px; border-radius: 8px;
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 10;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    /* OQ #6 default: hasCalib=false 시 미설정 강조 + lucide AlertTriangle size=14 */
+    .worklog-portrait-setup-btn--missing {
+      background: rgba(239,68,68,0.9); /* source line 1179 verbatim */
+    }
+    /* WorkLogCalibMarker — 외곽 wrapper 안 십자+원 (source line 1193~1216 verbatim) */
+    .worklog-portrait-calib-marker {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .worklog-portrait-calib-marker-h {
+      position: absolute; left: -20px; top: 0;
+      width: 40px; height: 2px;
+      opacity: 0.8;
+    }
+    .worklog-portrait-calib-marker-v {
+      position: absolute; top: -20px; left: 0;
+      width: 2px; height: 40px;
+      opacity: 0.8;
+    }
+    .worklog-portrait-calib-marker-dot {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; /* sketch 시각 — 소스는 10px 이지만 wrapper-only 시각화 frame 안에서만 */
+      font-weight: 900; color: #fff;
+      transform: translate(-50%, -50%);
+      position: absolute; left: 0; top: 0;
+    }
+    .worklog-portrait-calib-marker-dot--active {
+      width: 20px; height: 20px;
+    }
+
+    /* Frame */
+    .frame-preview {
+      background: var(--surface-page); color: var(--text-primary);
+      border: 1px solid var(--border-default); border-radius: 18px;
+      overflow: hidden;
+      width: 360px; height: 540px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'surface-page': 'var(--surface-page)',
+        'surface-raised': 'var(--surface-raised)',
+        'surface-sunken': 'var(--surface-sunken)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary': 'var(--text-tertiary)',
+        'border-default': 'var(--border-default)',
+        'accent': 'var(--accent)',
+        'safe-bar': 'var(--status-safe-bar)',
+        'warning-bar': 'var(--status-warning-bar)',
+        'danger-bar': 'var(--status-danger-bar)',
+      }}}
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">18-worklog sketch W6 — WorkLogPortraitPreview wrapper (외곽만)</h1>
+    <p class="text-label text-zinc-400">
+      A4 portrait 비율 (210×297) × hasCalib=true / hasCalib=false / 캘리브 모드 진입 안내 바 / 십자 마커 4 frame.
+      WorkLogPage.tsx line 833~870 (WORKLOG_CALIB_STEPS 33 + KEY + FINGER_OFFSET) + line 884~1190 (Preview 컴포넌트) +
+      line 1071 (이미지 src) + line 1140~1170 (안내 바) + line 1174~1187 (위치 설정 button) + line 1193~1216 (CalibMarker) verbatim.
+      OQ #5: 캘리브 33 step + overlayItems 33건 + WorkLogCalibMarker 100% 보존 (1 byte 변경 X).
+      OQ #6: line 1185 warning 글리프 → lucide AlertTriangle size=14 교체.
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / hasCalib=true / 위치 재설정 button (default) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / hasCalib=true / "위치 재설정" (lucide 없음)</div>
+      <div data-theme="dark" class="frame-preview">
+
+        <!-- WorkLogPortraitPreview wrapper (외곽만) -->
+        <div class="worklog-portrait-wrapper" style="width: 100%; height: 100%;">
+
+          <!-- "인쇄 미리보기" 라벨 (W5 inherit) -->
+          <div class="worklog-portrait-print-label leading-none">인쇄 미리보기</div>
+
+          <!-- A4 이미지 (source line 1071 verbatim — src 변경/이동 X) -->
+          <!-- src="/templates/preview/worklog-1.png" — sketch 안 placeholder 박스로 대체 (실제 PNG 미경유) -->
+          <div class="worklog-portrait-image" style="width: 75%; height: 90%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+            /templates/preview/worklog-1.png<br/>(A4 portrait — 210×297)
+          </div>
+
+          <!-- overlayItems 33건 placeholder (W6 내부 — 1 byte 변경 X) -->
+          <div class="worklog-portrait-overlay-area"></div>
+
+          <!-- 위치 재설정 button (hasCalib=true) -->
+          <button type="button" class="worklog-portrait-setup-btn">위치 재설정</button>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / hasCalib=false / 위치 설정 button + lucide AlertTriangle (OQ #6) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / hasCalib=false / lucide AlertTriangle 위치 설정 (OQ #6)</div>
+      <div data-theme="dark" class="frame-preview">
+
+        <div class="worklog-portrait-wrapper" style="width: 100%; height: 100%;">
+          <div class="worklog-portrait-print-label leading-none">인쇄 미리보기</div>
+
+          <div class="worklog-portrait-image" style="width: 75%; height: 90%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+            /templates/preview/worklog-1.png<br/>(A4 portrait — 210×297)
+          </div>
+
+          <div class="worklog-portrait-overlay-area"></div>
+
+          <!-- OQ #6 default: hasCalib=false 시 button 안 lucide AlertTriangle size=14 + "위치 설정" 텍스트 -->
+          <!-- 소스 line 1185 warning 글리프 폐기 → lucide 컴포넌트로 교체 (W7 변환 시 import { AlertTriangle } from 'lucide-react') -->
+          <button type="button" class="worklog-portrait-setup-btn worklog-portrait-setup-btn--missing">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+            위치 설정
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 다크 / 캘리브 모드 진입 시 안내 바 + 십자 마커 ─────
+         (안내 바 내부 폰트 14·11·13·12 — 소스 line 1145/1154/1157/1163/1168 그대로,
+          정보 노출 UX 예외 — 외곽 wrapper 는 fontSize 9·10·11 0건)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 다크 / 캘리브 모드 진입 (step 7/33) — 안내 바 + 활성 마커</div>
+      <div data-theme="dark" class="frame-preview">
+
+        <div class="worklog-portrait-wrapper" style="width: 100%; height: 100%;">
+
+          <div class="worklog-portrait-image" style="width: 75%; height: 90%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+            /templates/preview/worklog-1.png<br/>(A4 portrait)
+          </div>
+
+          <!-- overlayItems 캘리브 모드 진입 시 pointerEvents auto -->
+          <div class="worklog-portrait-overlay-area" style="pointer-events: auto;"></div>
+
+          <!-- 캘리브 안내 바 (source line 1141~1170 verbatim — 정보 노출 UX 폰트 예외) -->
+          <div class="worklog-portrait-calib-bar">
+            <span class="worklog-portrait-calib-bar-step" style="background: #22c55e;">7</span>
+            <span>소방시설 확인내용 (C10)</span>
+            <span class="worklog-portrait-calib-bar-coord">(42.3, 28.7)</span>
+            <button type="button" class="worklog-portrait-calib-confirm">확인</button>
+            <button type="button" class="worklog-portrait-calib-cancel">취소</button>
+          </div>
+
+          <!-- 십자 마커 (source line 1193~1216 verbatim — active 시 20×20) -->
+          <div class="worklog-portrait-calib-marker" style="left: 42.3%; top: 28.7%;">
+            <div class="worklog-portrait-calib-marker-h" style="background: #22c55e;"></div>
+            <div class="worklog-portrait-calib-marker-v" style="background: #22c55e;"></div>
+            <div class="worklog-portrait-calib-marker-dot worklog-portrait-calib-marker-dot--active" style="background: #22c55e;">7</div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / hasCalib=false / 위치 설정 button (OQ #6 라이트) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / hasCalib=false / lucide AlertTriangle 위치 설정</div>
+      <div data-theme="light" class="frame-preview">
+
+        <div class="worklog-portrait-wrapper" style="width: 100%; height: 100%;">
+          <div class="worklog-portrait-print-label leading-none">인쇄 미리보기</div>
+
+          <div class="worklog-portrait-image" style="width: 75%; height: 90%; display: flex; align-items: center; justify-content: center; color: #999; font-size: 13px;">
+            /templates/preview/worklog-1.png<br/>(A4 portrait — 210×297)
+          </div>
+
+          <div class="worklog-portrait-overlay-area"></div>
+
+          <button type="button" class="worklog-portrait-setup-btn worklog-portrait-setup-btn--missing">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+              <path d="M12 9v4"/>
+              <path d="M12 17h.01"/>
+            </svg>
+            위치 설정
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       비즈 anchor 박제 — OQ #5 default: 1 byte 변경 0 (시안 안 메타만)
+       ============================================================ -->
+  <footer class="max-w-[1400px] mx-auto mt-12 text-zinc-400" style="font-size: 12px; line-height: 1.7;">
+    <h2 class="text-title text-zinc-200 mb-2">OQ #5 default: 캘리브 시스템 100% 보존 (1 byte 변경 0)</h2>
+    <ul class="space-y-1">
+      <li>WORKLOG_CALIB_STEPS 33 key — WorkLogPage.tsx line 833~867 (perf 5 + manager 1 + fire/escape/gas/etc × 4 = 16 + rpt 3 + rptMethod 3 + fix 5)</li>
+      <li>WORKLOG_CALIB_KEY = 'calib_worklog' — line 869</li>
+      <li>FINGER_OFFSET = 60 — line 870</li>
+      <li>loadWorkLogCalib / saveWorkLogCalib — line 876~881 (localStorage IO try/catch JSON.parse)</li>
+      <li>WorkLogPortraitPreview 21 props — line 884~903 (yearMonth + 14 form values + reportYear/Month/Day + reportMethod + fixMethod + fixOtherText)</li>
+      <li>AREA_KEYS Set — line 1011 (6 영역 textarea isArea true; gasAction/etcAction 는 overlayItems 에서 isArea true 명시, AREA_KEYS Set 는 legacy — 분기 변경 X)</li>
+      <li>overlayItems 33건 conditional — line 1023~1057</li>
+      <li>WorkLogCalibMarker — line 1193~1216 (십자 40×2 horizontal + 2×40 vertical + 원 active 20·non-active 16)</li>
+      <li>이미지 src "/templates/preview/worklog-1.png" — line 1071 (변경/이동 금지)</li>
+      <li>캘리브 함수 6건 — onCalibTouchStart/Move/End/Click + clientToImgPct + advanceStep + confirmPoint</li>
+    </ul>
+
+    <h2 class="text-title text-zinc-200 mb-2 mt-6">OQ #6 default: line 1185 warning 글리프 → lucide AlertTriangle size=14</h2>
+    <ul class="space-y-1">
+      <li>소스 line 1185: <code>{hasCalib ? '위치 재설정' : '[warning] 위치 설정'}</code></li>
+      <li>W7 변환 후: <code>{hasCalib ? '위치 재설정' : (&lt;&gt;&lt;AlertTriangle size=&#123;14&#125; /&gt; 위치 설정&lt;/&gt;)}</code></li>
+      <li>import { AlertTriangle } from 'lucide-react' 추가 (W7 checklist)</li>
+      <li>memory feedback_tsx_wave_emoji_dot_gap — 글리프 0건 verify gate</li>
+    </ul>
+
+    <h2 class="text-title text-zinc-200 mb-2 mt-6">캘리브 안내 바 내부 폰트 예외 (외곽 wrapper 는 fontSize 9·10·11 0건)</h2>
+    <ul class="space-y-1">
+      <li>안내 바 외곽 폰트 14 / 700 — source line 1145 (정보 노출 UX, 예외)</li>
+      <li>안내 바 안 step 원 폰트 12 — source line 1154</li>
+      <li>안내 바 안 좌표 표시 폰트 11 — source line 1157 (예외 허용)</li>
+      <li>확인 button 폰트 13 — source line 1163</li>
+      <li>취소 button 폰트 12 — source line 1168</li>
+      <li>위치 설정 button 폰트 12 — source line 1182 (text-caption, OK)</li>
+    </ul>
+  </footer>
+
+</body>
+</html>
