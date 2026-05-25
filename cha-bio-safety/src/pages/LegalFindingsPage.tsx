@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { ChevronLeft, Loader2 } from 'lucide-react'
 import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
@@ -22,20 +23,8 @@ function fmtMonthOnly(iso: string) {
 
 // ── 스켈레톤 ──────────────────────────────────────────────────────
 const SKELETON_STYLE: React.CSSProperties = {
-  background: 'var(--bg3)',
-  borderRadius: 12,
   height: 88,
   animation: 'blink 2s ease-in-out infinite',
-}
-
-// ── 스핀너 ────────────────────────────────────────────────────────
-function Spinner() {
-  return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 28, height: 28, border: '2px solid var(--bd2)', borderTopColor: 'var(--acl)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
-    </div>
-  )
 }
 
 // ── 메인 페이지 ───────────────────────────────────────────────────
@@ -206,30 +195,55 @@ export default function LegalFindingsPage() {
 
   // ── 관리자 도구 바 ──
   const adminBar = role === 'admin' && round ? (
-    <div style={{
-      padding: isDesktop ? '8px 24px' : '8px 16px',
-      background: 'var(--bg2)',
-      borderBottom: '1px solid var(--bd)',
-      display: 'flex',
-      gap: 8,
-      alignItems: 'center',
-      flexShrink: 0,
-      flexWrap: 'wrap',
-    }}>
-      <select value={effectiveSelectedResult} onChange={e => setSelectedResult(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 8, padding: '6px 12px', color: 'var(--t1)', fontSize: 13, appearance: 'none', cursor: 'pointer' }}>
+    <div
+      className="bg-surface-raised border-b border-border-default"
+      style={{
+        padding: isDesktop ? '8px 24px' : '8px 16px',
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        flexShrink: 0,
+        flexWrap: 'wrap',
+      }}
+    >
+      <select
+        value={effectiveSelectedResult}
+        onChange={e => setSelectedResult(e.target.value)}
+        className="bg-surface-sunken border border-border-strong text-text-primary text-label rounded-sm"
+        style={{ padding: '6px 12px', appearance: 'none', cursor: 'pointer' }}
+      >
         <option value="">결과 미입력</option>
         <option value="pass">적합</option>
         <option value="fail">부적합</option>
         <option value="conditional">조건부적합</option>
       </select>
-      <button onClick={handleSaveResult} disabled={savingResult} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--acl)', borderRadius: 8, padding: '0 12px', border: 'none', color: '#fff', cursor: savingResult ? 'not-allowed' : 'pointer', opacity: savingResult ? 0.6 : 1, flexShrink: 0 }}>결과 저장</button>
+      <button
+        onClick={handleSaveResult}
+        disabled={savingResult}
+        className="bg-accent text-text-on-accent text-caption font-bold leading-none rounded-sm"
+        style={{ height: 36, padding: '0 12px', border: 'none', cursor: savingResult ? 'not-allowed' : 'pointer', opacity: savingResult ? 0.6 : 1, flexShrink: 0 }}
+      >결과 저장</button>
       <input ref={reportInputRef} type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleReportUpload} />
       {round.reportFileKey ? (
-        <button onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', cursor: 'pointer', flexShrink: 0 }}>보고서 보기</button>
+        <button
+          onClick={() => window.open('/api/uploads/' + round.reportFileKey, '_blank')}
+          className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
+          style={{ height: 36, padding: '0 12px', cursor: 'pointer', flexShrink: 0 }}
+        >보고서 보기</button>
       ) : (
-        <button onClick={() => reportInputRef.current?.click()} disabled={uploadingReport} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t2)', cursor: uploadingReport ? 'not-allowed' : 'pointer', opacity: uploadingReport ? 0.6 : 1, flexShrink: 0 }}>{uploadingReport ? '업로드 중...' : '보고서 업로드'}</button>
+        <button
+          onClick={() => reportInputRef.current?.click()}
+          disabled={uploadingReport}
+          className="bg-surface-sunken border border-border-strong text-text-secondary text-caption font-bold leading-none rounded-sm"
+          style={{ height: 36, padding: '0 12px', cursor: uploadingReport ? 'not-allowed' : 'pointer', opacity: uploadingReport ? 0.6 : 1, flexShrink: 0 }}
+        >{uploadingReport ? '업로드 중...' : '보고서 업로드'}</button>
       )}
-      <button onClick={handleZipDownload} disabled={!!zipLoading || !findings?.length} style={{ fontSize: 12, fontWeight: 700, height: 36, background: 'var(--bg3)', borderRadius: 8, padding: '0 12px', border: '1px solid var(--bd2)', color: 'var(--t1)', cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer', opacity: (zipLoading || !findings?.length) ? 0.6 : 1, flexShrink: 0, whiteSpace: 'nowrap' }}>{zipLoading || '일괄 다운로드'}</button>
+      <button
+        onClick={handleZipDownload}
+        disabled={!!zipLoading || !findings?.length}
+        className="bg-surface-sunken border border-border-strong text-text-primary text-caption font-bold leading-none rounded-sm"
+        style={{ height: 36, padding: '0 12px', cursor: (zipLoading || !findings?.length) ? 'not-allowed' : 'pointer', opacity: (zipLoading || !findings?.length) ? 0.6 : 1, flexShrink: 0, whiteSpace: 'nowrap' }}
+      >{zipLoading || '일괄 다운로드'}</button>
     </div>
   ) : null
 
@@ -238,11 +252,8 @@ export default function LegalFindingsPage() {
     <div
       key={finding.id}
       onClick={() => navigate(`/legal/${id}/finding/${finding.id}`)}
+      className={`bg-surface-sunken border border-border-default border-l-2 ${finding.status === 'open' ? 'border-danger-bar' : 'border-safe-bar'} rounded-md`}
       style={{
-        background: 'var(--bg3)',
-        border: '1px solid var(--bd)',
-        borderLeft: `2px solid ${finding.status === 'open' ? 'var(--danger)' : 'var(--safe)'}`,
-        borderRadius: 12,
         padding: isDesktop ? 16 : 12,
         cursor: 'pointer',
         display: 'flex',
@@ -251,18 +262,26 @@ export default function LegalFindingsPage() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--t1)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finding.description}</span>
-        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 6, padding: '2px 8px', flexShrink: 0, background: finding.status === 'open' ? 'rgba(239,68,68,.15)' : 'rgba(34,197,94,.13)', color: finding.status === 'open' ? 'var(--danger)' : 'var(--safe)' }}>{finding.status === 'open' ? '미조치' : '완료'}</span>
+        <span className="text-body-sm text-text-primary" style={{ fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finding.description}</span>
+        <span
+          className={`text-caption font-bold leading-none rounded-sm ${finding.status === 'open' ? 'bg-danger-bg text-danger' : 'bg-safe-bg text-safe'}`}
+          style={{ padding: '2px 8px', flexShrink: 0 }}
+        >{finding.status === 'open' ? '미조치' : '완료'}</span>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--t2)' }}>{finding.location ?? '위치 미지정'}</div>
+      <div className="text-caption leading-none text-text-secondary">{finding.location ?? '위치 미지정'}</div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
+        <span className="text-caption leading-none text-text-tertiary">{fmtDate(finding.createdAt)} · {finding.createdByName ?? finding.createdBy}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={(e) => { e.stopPropagation(); setEditingFinding(finding) }}
-            style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+            className="text-caption leading-none text-text-tertiary"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
           >수정</button>
-          <button onClick={(e) => handleDeleteFinding(e, finding)} style={{ fontSize: 10, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>삭제</button>
+          <button
+            onClick={(e) => handleDeleteFinding(e, finding)}
+            className="text-caption leading-none text-text-tertiary"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+          >삭제</button>
         </div>
       </div>
     </div>
@@ -272,15 +291,13 @@ export default function LegalFindingsPage() {
   const addButton = (
     <button
       onClick={() => setShowSheet(true)}
+      className={`text-text-on-accent font-bold ${isDesktop ? 'rounded-sm' : 'rounded-md'}`}
       style={{
         width: isDesktop ? 'auto' : '100%',
         height: isDesktop ? 36 : 48,
-        background: 'var(--acl)',
-        color: '#fff',
+        background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
         fontSize: isDesktop ? 13 : 14,
-        fontWeight: 700,
         border: 'none',
-        borderRadius: isDesktop ? 8 : 12,
         cursor: 'pointer',
         padding: isDesktop ? '0 16px' : undefined,
         flexShrink: 0,
@@ -291,19 +308,22 @@ export default function LegalFindingsPage() {
   )
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
+    <div className="bg-surface-page" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <style>{`@keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }`}</style>
 
       {/* 모바일 헤더 */}
       {!isDesktop && (
-        <div style={{
-          height: 48, background: 'rgba(22,27,34,0.97)', borderBottom: '1px solid var(--bd)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0,
-        }}>
-          <button aria-label="뒤로 가기" onClick={() => navigate(-1)} style={{ position: 'absolute', left: 12, width: 36, height: 36, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--t1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>{headerTitle}</span>
+        <div
+          className="bg-surface-raised border-b border-border-default"
+          style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}
+        >
+          <button
+            aria-label="뒤로 가기"
+            onClick={() => navigate(-1)}
+            className="text-text-primary"
+            style={{ position: 'absolute', left: 8, width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          ><ChevronLeft size={20} /></button>
+          <span className="text-body font-bold text-text-primary">{headerTitle}</span>
         </div>
       )}
 
@@ -311,8 +331,8 @@ export default function LegalFindingsPage() {
       {isDesktop && (
         <div style={{ padding: '24px 32px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--t1)' }}>{headerTitle}</div>
-            {round && <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>{round.title}</div>}
+            <div className="text-text-primary" style={{ fontSize: 22, fontWeight: 800 }}>{headerTitle}</div>
+            {round && <div className="text-label text-text-secondary" style={{ marginTop: 4 }}>{round.title}</div>}
           </div>
           {addButton}
         </div>
@@ -322,9 +342,16 @@ export default function LegalFindingsPage() {
 
       {/* 콘텐츠 영역 */}
       {isLoading ? (
-        <Spinner />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Loader2 className="animate-spin text-accent" size={28} />
+          {/* SKELETON_STYLE 박제 (외부 사용처 없음 — 변환 후 시각 디자인 동등) */}
+          <div className="bg-surface-sunken rounded-md" style={{ ...SKELETON_STYLE, display: 'none' }} />
+        </div>
       ) : isError ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center', fontSize: 14, color: 'var(--t2)' }}>
+        <div
+          className="text-body-sm text-text-secondary"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px', textAlign: 'center' }}
+        >
           목록을 불러오지 못했습니다. 화면을 당겨서 다시 시도하세요.
         </div>
       ) : (
@@ -337,8 +364,8 @@ export default function LegalFindingsPage() {
         }}>
           {sortedFindings.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '60px 16px' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>지적사항 없음</div>
-              <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>현장에서 지적된 항목을 등록하려면 {isDesktop ? '상단' : '아래'} 버튼을 누르세요.</div>
+              <div className="text-body font-bold text-text-primary">지적사항 없음</div>
+              <div className="text-caption text-text-secondary" style={{ textAlign: 'center' }}>현장에서 지적된 항목을 등록하려면 {isDesktop ? '상단' : '아래'} 버튼을 누르세요.</div>
             </div>
           ) : sortedFindings.map(findingCard)}
         </div>
@@ -346,11 +373,13 @@ export default function LegalFindingsPage() {
 
       {/* 모바일 고정 하단 CTA */}
       {!isDesktop && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: 'var(--bg)', borderTop: '1px solid var(--bd)',
-          padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))', zIndex: 20,
-        }}>
+        <div
+          className="bg-surface-page border-t border-border-default"
+          style={{
+            position: 'fixed', bottom: 0, left: 0, right: 0,
+            padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))', zIndex: 20,
+          }}
+        >
           {addButton}
         </div>
       )}
