@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-chrome.html — redesign/21-legal-finding-detail W2
+  작성: 2026-05-25 / quick 260525-4of
+  범위: LegalFindingDetailPage.tsx 모바일 자체 헤더 (line 149~165, OQ #1 + OQ #5)
+        + 데스크톱 타이틀 영역 (line 168~177, 글로벌 chrome 0 — App.tsx line 117 정규식
+          `!location.pathname.match(/^\/legal\/.+/)` → showNav=false)
+        + Spinner (line 41~48, OQ #5 Lucide Loader2 교체) + 에러 단일 문장 (line 183~187, 20-legal-findings 와 다름)
+        + 모바일 고정 하단 CTA placeholder (T3 sketch 에서 채움)
+        + 외곽 (line 146 flex 1 column overflow hidden) + 인라인 keyframes spin (line 147)
+        4 frame (다크 모바일 빈 / 다크 모바일 로딩 / 다크 데스크톱 빈 / 라이트 모바일 오류) state 매트릭스
+  out of scope: Section 1+2 KVRow + PhotoGrid (W3 책임) / Section 3+4 status open/resolved 분기 + 사진 5장 +
+                ZIP location 기반 + 모바일 고정 하단 CTA 그라데이션 채움 (W4 책임) /
+                TSX 변환 (W5 checklist 책임) / LegalFindingDetailPage.tsx 코드 수정 / App.tsx /
+                조부모 LegalPage / 부모 LegalFindingsPage 변경 0 byte
+  참조: wave-1-index.md §3 / §7 verbatim, 20-legal-findings/sketch-wave-2-chrome.html + 19-legal mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — LegalFindingDetailPage 모바일 자체 헤더 bg-surface-raised + border-b border-border-default
+                    (옛 rgba(22,27,34,0.97) raised 변형 alpha + 1px solid var(&#8209;&#8209;bd) 인라인 폐기)
+                    + 타이틀 '지적 상세' 정중앙 정적 (line 158 verbatim, 20-legal-findings 의 동적 분기와 다름)
+                    + back button 44x44 + admin 다운로드 button 44x44 격상 (본 wave 적용 = O ★ 핵심)
+    OQ #2 LOCKED — finding 상태 칩 본 페이지 없음 + KVRow value 좌측 강조 없음 (W3/W4 scope, 본 wave 미해당)
+    OQ #3 LOCKED — §1.1 9&#183;10&#183;11 → 12 격상 + leading-none (W4 scope 본격 적용, 본 wave 부분 — 헤더 타이틀 16/700 보존)
+    OQ #4 LOCKED — 조치 완료 CTA 인라인 그라데이션 (W4 scope, 본 wave T1 = linear&#8209;gradient 0건 — 모바일 고정 CTA placeholder 만)
+    OQ #5 LOCKED — Lucide ChevronLeft size={20} + Download size={18} + Loader2 size={24} 교체
+                    + back button 36x36 → 44x44 격상 (w-11 h-11 또는 w-[44px] h-[44px])
+                    + admin 다운로드 button 36x36 → 44x44 격상 (모바일 only)
+                    + Camera 교체 W4 scope (canAdd '+사진 첨부' line 237 fontSize 22 → Lucide Camera 22)
+                    (본 wave 적용 = O ★ 핵심 — back + admin 다운로드 + Loader2 3종)
+
+  ★ 글로벌 chrome 0건 anchor (App.tsx line 117 정규식 verbatim — 20-legal-findings 와 일치):
+    !location.pathname.match(/^\/legal\/.+/) → showNav=false
+    → 모바일 BottomNav + 데스크톱 사이드바 + 데스크톱 글로벌 AppHeader 모두 숨김
+    → 자체 헤더 (모바일 line 149~165) + 데스크톱 타이틀 영역 (line 168~177) 이 chrome 의 유일한 외곽
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       -> 본 sketch 가 LegalFindingDetailPage 모바일 헤더 + 데스크톱 타이틀 + Spinner/에러 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> headerTitle 정적 '지적 상세' verbatim (line 158, 170): 20-legal-findings 동적 분기와 다름.
+          / 모바일 admin 다운로드 button: Lucide Download size={18} icon only (staff?.role === 'admin' && finding 조건부 line 159)
+          / 데스크톱 admin 다운로드 button: '다운로드' / '다운로드 중...' (line 173 verbatim 텍스트형)
+          / 오류 단일 문장: '항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.' (line 185 verbatim,
+            20-legal-findings '화면을 당겨서 다시 시도하세요' 와 다름)
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (bg-surface-page / bg-surface-raised / border-b border-border-default /
+          text-text-primary/secondary / text-body font-bold / text-headline font-extrabold /
+          text-body-sm / bg-surface-sunken / border-border-strong / rounded-sm) 와
+          인라인 (height:48 모바일 헤더 / width:44 height:44 back+admin button / fontSize:22 데스크톱 타이틀 /
+          padding:'24px 32px 12px' 데스크톱 / maxWidth:700 데스크톱 콘텐츠) W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> Lucide ChevronLeft + Download + Loader2 사용 (OQ #5 LOCKED). status&#8209; prefix 사용 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> back/admin 다운로드 button 44x44 = style="width:44px;height:44px" 인라인 명시
+          (w-[44px] h-[44px] arbitrary 또는 w-11 h-11). spacing alias (w&#8209;8 = 48px) 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 모바일 헤더 안 짧은 한 줄 타이틀 = text-body font-bold (16, lh:1.7 그대로) leading-none 강제 X.
+          KVRow label / SectionHeader 12 leading-none = W3/W4 scope 본격 적용.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. SVG (Lucide ChevronLeft + Download + Loader2 자리 표시) + 텍스트만 사용.
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       빈/오류 상태 = neutral (위험 임계치 아님). status&#8209; prefix 색 사용 0건.
+       -> 오류 카피만 text-text-secondary (var(&#8209;&#8209;t2) → text-text-secondary) — danger 토큰 사용 X.
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/21-legal-finding-detail 확인 (worktree base 046c8ec).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> 콘텐츠 영역 안 빈/로딩/오류 분기 source of truth = isLoading + error + finding. 본 sketch frame 매핑 일치.
+          admin 다운로드 button 분기 = staff?.role === 'admin' && finding (selector 패턴, line 159 모바일 + line 171 데스크톱).
+
+   11. feedback_inspection_unresolved_color.md (일반화, W4 scope 본격 — finding 칩 없음 OQ #2 ★)
+       -> 본 페이지는 finding 상태 칩 없음 (단일 finding 상세 → status 표시는 화면 모드 자체로
+          finding.status === 'open' / 'resolved' 분기 mutually exclusive).
+
+   12. feedback_subagent_production_deploy_forbidden.md / feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 11건 (LegalFindingDetailPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery({ queryKey: ['legal-finding', id, fid], queryFn: () => legalApi.getFinding(id!, fid!),
+       enabled: !!id && !!fid }) (line 61~65)
+    2. useMutation({ mutationFn: async () => { const photoKeys = await resolutionPhotos.uploadAll();
+       return legalApi.resolveFinding(id!, fid!, { resolution_memo: memo.trim(),
+       resolution_photo_keys: photoKeys.length > 0 ? photoKeys : undefined }) }, ... })
+       (line 67~87 — uploadAll 선행 + photoKeys.length > 0 분기 + snake_case payload 변경 금지)
+    3. queryClient.invalidateQueries 4 키 onSuccess —
+       ['legal-finding', id, fid] + ['legal-findings', id] + ['legal-rounds'] + ['legal-round', id]
+       + toast.success '조치 완료' + resolutionPhotos.reset() + navigate(-1) (순서 보존)
+    4. legalApi 2종 — getFinding(roundId, findingId) + resolveFinding(roundId, findingId,
+       { resolution_memo?, resolution_photo_keys? }) (snake_case payload 변경 금지)
+    5. resolutionPhotos = useMultiPhotoUpload() (line 59) — 사진 5장 슬롯 풀 컨트롤
+       (slots / canAdd / openPicker / closePicker / pickCamera / pickAlbum / handleFiles /
+       removeSlot / uploadAll / reset / isUploading / cameraRef / albumRef / showPicker)
+       모두 직접 호출. 본 페이지가 훅 직접 사용 — FindingFormSheet 우회 X
+       (20-legal-findings 의 FindingFormSheet 우회 패턴과 다름)
+    6. handleResolve (line 132~138): memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' return /
+       아니면 resolveMutation.mutate() (validation 보존)
+    7. finding.status 분기 (line 218 open / line 253 resolved): mutually exclusive —
+       open 이면 Section 3 (textarea + 사진 5장 슬롯 + CTA) / resolved 이면 Section 4 (KVRow 3행 + PhotoGrid).
+       UI/시안에서 분기 변경 금지 (memory project_inspection_completion_rule 일반화)
+    8. admin 다운로드 button 조건부 — staff?.role === 'admin' && finding (line 159 모바일 + line 171 데스크톱).
+       staff = useAuthStore(s => s.staff) (line 58, selector 패턴 —
+       20-legal-findings 의 getState() 와 다름)
+    9. handleDownload (line 89~130): fflate dynamic import('fflate').zipSync + buildMetaTxt → 내용.txt always
+       + Promise.allSettled photoKeys/resolutionPhotoKeys + iOS PWA `<a download>` 패턴
+       (createElement + body.appendChild + click + removeChild + setTimeout(URL.revokeObjectURL, 3000)).
+       ZIP 파일명 `지적사항_${name}.zip` (line 119) —
+       name = (finding.location ?? '위치없음').replace(/[\/\\:*?"<>|]/g, '_') = location 안전화
+       (20-legal-findings 의 round.title 기반과 다름 + fid 기반 아님 — location 기반
+       + 19-legal LegalPage 의 FindingDetailPanel 단일 다운로드 패턴과 일치).
+       사진 파일명 `지적사진-${j+1}.jpg` / `조치사진-${j+1}.jpg`. 1 byte 변경 금지 (iOS 안정성 검증된 패턴)
+   10. @keyframes spin { to{transform:rotate(360deg)} } (line 45 Spinner 함수 + line 147 JSX 외곽 중복 정의)
+       — 두 곳 모두 동일 정의 보존 (OQ #5 LOCKED 시 Lucide Loader2 교체 + 양쪽 keyframes 폐기 가능)
+   11. toast 카피 5종 verbatim:
+       success 2 — '조치 완료' (line 80) / '다운로드 완료' (line 124)
+       error 3 — '조치 처리 실패' (line 85) / '조치 내용을 입력하세요' (line 134) / '다운로드 실패' (line 126)
+       추가 카피 — 모바일+데스크톱 헤더 타이틀 '지적 상세' (line 158, 170) /
+       오류 단일 문장 '항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.' (line 185, 20-legal-findings 와 다름) /
+       데스크톱 admin 다운로드 button '다운로드' / '다운로드 중...' (line 173)
+
+  ==========================================================
+  ★ 19/20-legal 차이 5건 (W2~W4 sketch + W5 checklist 모두 박제, 본 wave 시각 반영)
+  ==========================================================
+
+    1. 단일 finding 페이지 — 지적사항 1건의 상세 + 조치 처리 전용 (20-legal-findings LegalFindingsPage 다건 목록 +
+       19-legal LegalPage 마스터-디테일 우측 패널과 다름 — 본 페이지는 풀 페이지 단독).
+       본 wave 시각: 데스크톱 maxWidth 700 (20-legal-findings 800 보다 좁음, line 194 verbatim).
+    2. resolution form 풀 페이지 — 사진 5장 useMultiPhotoUpload 직접 사용 (W4 scope, 본 wave 미해당)
+    3. 조치 완료 button 풀폭 CTA 그라데이션 (W4 scope, 본 wave T1 = linear&#8209;gradient 0건 — 모바일 고정 CTA placeholder 만)
+    4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 (W4 scope handleDownload, 본 wave 헤더 button 만)
+    5. finding.status open/resolved 분기로 화면 모드 자체가 바뀜 (W3/W4 scope, 본 wave 미해당 — Section 1+2 는 공통)
+
+  ==========================================================
+  Tailwind cheatsheet (v0.1.1 토큰 → utility class 매핑, 본 wave 적용)
+  ==========================================================
+    var(--bg)         → bg-surface-page          (LegalFindingDetailPage 외곽 line 146 + 모바일 고정 CTA bg line 271)
+    var(--bg2)        → bg-surface-raised        (모바일 헤더 line 149, OQ #1 LOCKED ★)
+    var(--bg3)        → bg-surface-sunken        (데스크톱 admin 다운로드 button line 172)
+    var(--bd)         → border-border-default    (모바일 헤더 borderBottom line 152, OQ #1 LOCKED ★)
+    var(--bd2)        → border-border-strong     (Spinner border line 44 + 데스크톱 admin 다운로드 button border line 172)
+    var(--t1)         → text-text-primary        (헤더 타이틀 + 데스크톱 타이틀 + admin 다운로드 button color line 158/170/172)
+    var(--t2)         → text-text-secondary      (에러 단일 문장 line 184)
+    var(--acl)        → bg-accent                (Spinner border-top color line 44)
+    radius 8          → rounded-sm               (데스크톱 admin 다운로드 button line 172)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/21-legal-finding-detail — W2 chrome + Spinner + 에러 4 state</title>
+<style>
+/* ============================================================
+ * v0.1.1 tokens.css (dark + light) verbatim 인용
+ * ============================================================ */
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --surface-active:  #2c333d;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255,255,255,0.14);
+  --border-strong:   rgba(255,255,255,0.22);
+  --accent:          #3b82f6;
+  --status-danger:   #f87171;
+  --status-danger-bar: #ef4444;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(0,0,0,0.14);
+  --border-strong:   rgba(0,0,0,0.22);
+  --accent:          #1f6feb;
+  --status-danger:   #991b1b;
+  --status-danger-bar: #b91c1c;
+}
+/* typography (caption 12 / label 13 / body-sm 14 / body 16 / heading 22) verbatim */
+body { font-family: 'Pretendard Variable','Pretendard',system-ui,sans-serif; font-size:16px; line-height:1.7; background:#222; color:#ddd; margin:0; padding:24px; }
+.text-caption  { font-size:12px; line-height:1.5; font-weight:400; }
+.text-label    { font-size:13px; line-height:1.5; font-weight:400; }
+.text-body-sm  { font-size:14px; line-height:1.6; font-weight:400; }
+.text-body     { font-size:16px; line-height:1.7; font-weight:400; }
+.text-heading  { font-size:22px; line-height:1.3; font-weight:600; letter-spacing:-0.01em; }
+.font-semibold { font-weight:600; }
+.font-bold     { font-weight:700; }
+.font-extrabold{ font-weight:800; }
+.leading-none  { line-height:1; }
+/* Tailwind class → CSS 매핑 */
+.bg-surface-page      { background: var(--surface-page); }
+.bg-surface-raised    { background: var(--surface-raised); }
+.bg-surface-sunken    { background: var(--surface-sunken); }
+.text-text-primary    { color: var(--text-primary); }
+.text-text-secondary  { color: var(--text-secondary); }
+.text-text-tertiary   { color: var(--text-tertiary); }
+.text-text-on-accent  { color: var(--text-on-accent); }
+.text-accent          { color: var(--accent); }
+.border-border-default{ border-color: var(--border-default); }
+.border-border-strong { border-color: var(--border-strong); }
+.border-b             { border-bottom-width:1px; border-bottom-style:solid; }
+.rounded-sm           { border-radius:8px; }
+
+/* @keyframes spin — line 45 + line 147 중복 정의 verbatim 박제 (OQ #5 LOCKED 시 Lucide Loader2 교체 후 양쪽 폐기 가능) */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* frame layout */
+.frame-row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.frame-card { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.frame-label { font-size:12px; color:#888; font-family:monospace; }
+.viewport { border:1px dashed #444; box-sizing:border-box; }
+.viewport-mobile  { width:393px; height:800px; }
+.viewport-desktop { width:1100px; height:700px; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 16px; font-size:18px; color:#fff;">W2 chrome — 모바일 헤더 (OQ #1+#5) + 데스크톱 타이틀 (글로벌 chrome 0) + Spinner (OQ #5 Loader2) + 에러 단일 문장 (20-legal-findings 와 다름)</h1>
+<p style="margin:0 0 24px; color:#aaa; font-size:13px;">4 frame state 매트릭스 — finding.status === 'open' 한정 모바일 고정 CTA placeholder 만 (그라데이션 W4 scope, T1 = linear&#8209;gradient 0건)</p>
+
+<div class="frame-row">
+
+  <!-- ==========================================================
+       Frame 1: 다크 모바일 393x800 콘텐츠 빈 상태 (status open finding placeholder)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[1] dark mobile 393x800 — empty content + status open placeholder</span>
+    <div data-theme="dark" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 모바일 자체 헤더 (line 149~165, OQ #1 LOCKED bg-surface-raised + border-b border-border-default) -->
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+        <!-- back button (OQ #5 LOCKED: Lucide ChevronLeft size={20} + 44x44 격상, w-11 h-11) -->
+        <button class="text-text-primary" style="position:absolute;left:12px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}, back button 44x44 (w-11 h-11)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <!-- 타이틀 '지적 상세' verbatim 정중앙 정적 (line 158, 20-legal-findings 동적 분기와 다름) -->
+        <span class="text-body font-bold text-text-primary">지적 상세</span>
+        <!-- admin 다운로드 button (OQ #5 LOCKED: Lucide Download size={18} + 44x44 격상, staff?.role === 'admin' && finding 조건부 line 159) -->
+        <button class="text-text-primary" style="position:absolute;right:12px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide Download size={18}, admin 다운로드 button 44x44 (w-11 h-11)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+      </div>
+
+      <!-- 콘텐츠 영역 placeholder (Section 1+2 = W3, Section 3+4 = W4) -->
+      <div style="flex:1;overflow-y:auto;padding-bottom:calc(72px + var(--sab, 0px));">
+        <div style="padding:32px 16px;text-align:center;color:#666;font-size:12px;line-height:1.6;">
+          [Section 1: 지적 정보 KVRow 4행 — W3 scope]<br>
+          [Section 2: 지적 사진 PhotoGrid / 사진 없음 — W3 scope]<br>
+          [Section 3: 조치 내용 textarea + 사진 5장 슬롯 + 데스크톱 inline CTA — W4 scope, finding.status === 'open' 한정]
+        </div>
+      </div>
+
+      <!-- 모바일 고정 하단 CTA placeholder (status open 한정 — !isDesktop && !isLoading && !error && finding && finding.status === 'open' 조건부, line 270~275)
+           ★ T1 = linear&#8209;gradient 0건 (그라데이션 채움 W4 scope OQ #4 LOCKED) — solid bg-accent placeholder 만 -->
+      <div class="bg-surface-page border-b border-border-default" style="position:absolute;bottom:0;left:0;right:0;border-top-width:1px;border-top-style:solid;border-top-color:var(--bd);padding:12px 16px;padding-bottom:calc(12px + var(--sab, 0px));z-index:20;">
+        <button class="text-text-on-accent text-body-sm font-bold" style="width:100%;height:48px;border:none;border-radius:12px;cursor:pointer;background:var(--acl);">조치 완료 [W4 scope: 그라데이션 채움]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 2: 다크 모바일 393x800 로딩 상태 (OQ #5 Lucide Loader2 animate-spin size={24})
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[2] dark mobile 393x800 — loading (OQ #5 Lucide Loader2 animate-spin)</span>
+    <div data-theme="dark" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 모바일 자체 헤더 (admin 다운로드 button hidden — finding 미로딩이라 staff?.role === 'admin' && finding 조건 미충족) -->
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+        <button class="text-text-primary" style="position:absolute;left:12px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}, back button 44x44 (w-11 h-11)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="text-body font-bold text-text-primary">지적 상세</span>
+        <!-- admin 다운로드 button 숨김 (loading 상태, finding undefined) -->
+      </div>
+
+      <!-- Spinner (line 41~48 div + line 147 외곽 keyframes spin 중복 정의 →
+           OQ #5 LOCKED: Lucide Loader2 animate-spin size={24} 교체 + 양쪽 keyframes 폐기 가능) -->
+      <div style="display:flex;align-items:center;justify-content:center;flex:1;" aria-label="Lucide Loader2 animate-spin size={24}">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite;color:var(--acl);"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 3: 다크 데스크톱 1100x700 콘텐츠 빈 + 글로벌 chrome 0건 anchor
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[3] dark desktop 1100x700 — 글로벌 chrome 0건 (App.tsx line 117 정규식 ^\/legal\/.+ → showNav=false) + 데스크톱 타이틀 영역 (line 168~177)</span>
+    <div data-theme="dark" class="viewport viewport-desktop bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 글로벌 chrome 0건 anchor (App.tsx line 117 verbatim):
+           !location.pathname.match(/^\/legal\/.+/) → showNav=false
+           → 모바일 BottomNav + 데스크톱 사이드바 + 데스크톱 글로벌 AppHeader 모두 숨김
+           → 자체 타이틀 (line 168~177) 만 chrome 의 유일한 외곽 -->
+      <div style="padding:8px 16px;color:#555;font-size:12px;border-bottom:1px dashed #333;background:rgba(255,255,255,0.02);">
+        [App.tsx line 117 anchor — !location.pathname.match(/^\/legal\/.+/) → showNav=false → BottomNav + Sidebar + AppHeader 0건]
+      </div>
+
+      <!-- 데스크톱 타이틀 영역 (line 168~177, padding '24px 32px 12px' flex space-between flex-shrink 0) -->
+      <div style="padding:24px 32px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <!-- 좌측 타이틀 '지적 상세' 22/800 verbatim 정적 (line 170) -->
+        <span class="text-heading font-extrabold text-text-primary" style="font-size:22px;line-height:1.2;">지적 상세</span>
+        <!-- 우측 admin 다운로드 button 텍스트형 (line 171~175, 데스크톱 13/700 h 36, staff?.role === 'admin' && finding 조건부) -->
+        <button class="bg-surface-sunken border border-border-strong text-text-primary text-label font-bold rounded-sm" style="height:36px;padding:0 16px;cursor:pointer;flex-shrink:0;border-width:1px;border-style:solid;">다운로드</button>
+      </div>
+
+      <!-- 콘텐츠 영역 (maxWidth 700 데스크톱 중앙, line 194 — 20-legal-findings 800 보다 좁음 — 19/20 차이 1) -->
+      <div style="flex:1;overflow-y:auto;padding:20px 32px;max-width:700px;width:100%;">
+        <div style="padding:32px 0;text-align:center;color:#666;font-size:12px;line-height:1.6;">
+          [Section 1+2 KVRow + PhotoGrid — W3 scope]<br>
+          [Section 3 status open form + 데스크톱 inline CTA marginTop 16 그라데이션 — W4 scope]<br>
+          [Section 4 status resolved 결과 KVRow 3행 + PhotoGrid — W4 scope]
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 4: 라이트 모바일 393x800 오류 상태 (line 183~187 verbatim 단일 문장 — 20-legal-findings 와 다름)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[4] light mobile 393x800 — error single sentence (line 185 verbatim, 20-legal-findings '화면을 당겨서 다시 시도하세요' 와 다름)</span>
+    <div data-theme="light" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 모바일 자체 헤더 (admin 다운로드 button hidden — error 상태, finding undefined) -->
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;">
+        <button class="text-text-primary" style="position:absolute;left:12px;width:44px;height:44px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;" aria-label="Lucide ChevronLeft size={20}, back button 44x44 (w-11 h-11)">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="text-body font-bold text-text-primary">지적 상세</span>
+      </div>
+
+      <!-- 에러 단일 문장 (line 183~187 verbatim, 20-legal-findings 의 '화면을 당겨서 다시 시도하세요' 와 다름) -->
+      <div style="display:flex;align-items:center;justify-content:center;flex:1;padding:0 24px;text-align:center;">
+        <div class="text-body-sm text-text-secondary">항목을 불러오지 못했습니다. 뒤로 가서 다시 시도하세요.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==========================================================
+     rules 박스 (sketch 하단)
+     ========================================================== -->
+<div style="margin-top:32px;padding:20px;background:#1a1a1a;border-radius:8px;color:#ccc;font-size:13px;line-height:1.7;">
+
+<h2 style="margin:0 0 12px;font-size:15px;color:#fff;">★ rules — LOCKED 결정 + 비즈 anchor + 19/20 차이 + chrome 0 anchor</h2>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">OQ #1 LOCKED — 모바일 자체 헤더 (옛 인라인 alpha 토큰 폐기) + 타이틀 '지적 상세' 정중앙 정적</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+LegalFindingDetailPage 모바일 자체 헤더 (line 149~165) = `bg-surface-raised border-b border-border-default`.
+옛 `background: rgba(22,27,34,0.97)` (raised 변형 alpha) + `borderBottom: '1px solid var(--bd)'` 인라인 토큰 완전 폐기.
+height 48 + 타이틀 '지적 상세' (line 158 verbatim 정적 문자열, 20-legal-findings 동적 분기와 다름) 정중앙
++ back button 44x44 (OQ #5 격상) + admin 다운로드 button 44x44 (OQ #5 격상, staff?.role === 'admin' && finding 조건부)
++ position absolute left 12 / right 12.
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">OQ #5 LOCKED — Lucide ChevronLeft + Download + Loader2 + Camera 교체 + back/admin 44x44 격상</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+(1) 모바일 헤더 back button — 인라인 SVG ChevronLeft (line 156 path `M15 19l-7-7 7-7` strokeWidth 2 size 20)
+    → Lucide `&lt;ChevronLeft size={20} /&gt;` 교체 + 36x36 → 44x44 격상.
+    w-8 함정 회피 → `w-11 h-11` (44px tailwind 기본 spacing 11) 또는 `w-[44px] h-[44px]` arbitrary.
+(2) 모바일 헤더 admin 다운로드 button — 인라인 SVG Download (line 161 path `M12 5v14m0 0l-6-6m6 6l6-6M5 19h14` size 18)
+    → Lucide `&lt;Download size={18} /&gt;` 교체 + 36x36 → 44x44 격상.
+(3) Spinner div + @keyframes spin (line 41~48 + line 147 외곽 keyframes 중복 정의)
+    → Lucide `&lt;Loader2 className="animate-spin" size={24} /&gt;` 교체. Spinner 함수 line 41~48 폐기 + 외곽 keyframes 폐기 가능.
+(4) canAdd button '📷' 이모지 (line 237 fontSize 22) → Lucide `&lt;Camera size={22} /&gt;` 교체 (W4 scope, 본 wave 미해당).
+import 추가: `import { ChevronLeft, Download, Loader2, Camera } from 'lucide-react'`.
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 비즈 anchor 11건 (1 byte 변경 금지)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. useQuery(['legal-finding', id, fid], legalApi.getFinding(id!, fid!), enabled: !!id && !!fid) — line 61~65
+2. useMutation: uploadAll 선행 + legalApi.resolveFinding(id!, fid!, { resolution_memo, resolution_photo_keys }) — line 67~87
+3. queryClient.invalidateQueries 4 키 onSuccess + toast.success '조치 완료' + resolutionPhotos.reset() + navigate(-1)
+4. legalApi 2종 — getFinding(roundId, findingId) + resolveFinding(snake_case payload 변경 금지)
+5. resolutionPhotos = useMultiPhotoUpload() (line 59) — 사진 5장 슬롯 풀 컨트롤 본 페이지 직접 사용 (FindingFormSheet 우회 X)
+6. handleResolve (line 132~138): memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' validation
+7. finding.status 분기 (line 218 open / line 253 resolved): mutually exclusive — open form / resolved 결과
+8. admin 다운로드 button 조건부 — staff?.role === 'admin' && finding (line 159 모바일 + line 171 데스크톱)
+   staff = useAuthStore(s =&gt; s.staff) (line 58, selector 패턴 — 20-legal-findings getState() 와 다름)
+9. handleDownload (line 89~130): fflate zipSync + buildMetaTxt + Promise.allSettled + iOS PWA `&lt;a download&gt;`
+   + setTimeout(URL.revokeObjectURL, 3000) + 파일명 `지적사항_${name}.zip` (line 119, name = location 안전화)
+10. @keyframes spin (line 45 Spinner + line 147 JSX 외곽 중복 정의)
+11. toast 카피 5종 verbatim — '조치 완료' / '다운로드 완료' / '조치 처리 실패' / '조치 내용을 입력하세요' / '다운로드 실패'
+    + 추가 카피 verbatim — '지적 상세' (line 158/170) / 오류 단일 문장 (line 185) / '다운로드'/'다운로드 중...' (line 173)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 19/20-legal 차이 5건 (sketch 시각 반영)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. 단일 finding 페이지 — 지적사항 1건의 상세 + 조치 처리 전용 (LegalFindingsPage 다건 목록 + LegalPage 마스터-디테일 우측 패널과 다름)
+   본 wave 시각: 데스크톱 maxWidth 700 (20-legal-findings 800 보다 좁음 — 19/20 차이 1)
+2. resolution form 풀 페이지 — 사진 5장 useMultiPhotoUpload 직접 사용 (W4 scope, 본 wave 미해당)
+3. 조치 완료 button 풀폭 CTA 그라데이션 (W4 scope OQ #4 LOCKED, T1 본 wave = linear&#8209;gradient 0건)
+4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 (W4 scope handleDownload)
+5. finding.status open/resolved 분기로 화면 모드 자체 (W3/W4 scope)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ App.tsx line 117 정규식 anchor (글로벌 chrome 0건)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+App.tsx line 117 verbatim:
+  !location.pathname.match(/^\/legal\/.+/) → showNav=false
+→ 모바일 BottomNav + 데스크톱 사이드바 + 데스크톱 글로벌 AppHeader 모두 숨김
+→ 자체 헤더 (모바일 line 149~165) + 데스크톱 타이틀 영역 (line 168~177) 이 chrome 의 유일한 외곽
+→ 19-legal LegalPage `/legal` 본 페이지의 데스크톱 글로벌 AppHeader + 사이드바 표시 패턴과 결정적 다름
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">토큰 매핑</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+var(--bg)  → bg-surface-page    (외곽 line 146 + 모바일 고정 CTA bg line 271 placeholder)
+var(--bg2) → bg-surface-raised  (모바일 헤더 line 149 ★ OQ #1)
+var(--bg3) → bg-surface-sunken  (데스크톱 admin 다운로드 button line 172)
+var(--bd)  → border-border-default (모바일 헤더 borderBottom line 152 ★ OQ #1 + 데스크톱 모바일 고정 CTA borderTop line 271)
+var(--bd2) → border-border-strong (Spinner border line 44 + 데스크톱 admin 다운로드 button border line 172)
+var(--t1)  → text-text-primary    (헤더 타이틀 + 데스크톱 타이틀 + admin button color line 158/170/172)
+var(--t2)  → text-text-secondary  (에러 단일 문장 line 184)
+var(--acl) → bg-accent / text-accent (Spinner border-top color line 44 + 모바일 고정 CTA placeholder bg)
+radius 8   → rounded-sm           (데스크톱 admin 다운로드 button line 172)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ negative gate (본 wave 자체 검수)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+- 이모지 0건 (sketch 본문 — '📷' Camera W4 scope, 본 wave 사용 글리프 0)
+- linear&#8209;gradient 0건 (T3 만 예외 anchor ≥3 — W4 scope OQ #4 LOCKED 조치 완료 CTA 그라데이션)
+- 9·10·11px fontSize 0건 (text-caption 12 leading-none 마지노선)
+- (text|bg|border)-status- prefix 0건 (memory `feedback_tailwind_token_class_pattern`)
+- \b(w|h)-8\b 0건 (tailwind config w-8=48 함정, memory `feedback_tailwind_w8_h8_is_48px`)
+- 옛 alias 토큰 sketch 본문 안 0건 (tokens.css 정의 인용 fence 안 예외)
+</pre>
+
+</div>
+
+</body>
+</html>

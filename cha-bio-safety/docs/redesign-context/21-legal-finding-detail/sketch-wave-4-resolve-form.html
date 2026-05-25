@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-resolve-form.html — redesign/21-legal-finding-detail W4
+  작성: 2026-05-25 / quick 260525-4of
+  범위: LegalFindingDetailPage.tsx Section 3 status open 분기 (line 218~250 — textarea + 사진 5장 슬롯 + 데스크톱 inline CTA)
+        + Section 4 status resolved 분기 (line 253~265 — KVRow 3행 + PhotoGrid)
+        + 모바일 고정 하단 CTA (line 270~275, status open 한정 position fixed + paddingBottom calc iOS safe-area)
+        + handleDownload (line 89~130, fflate + iOS PWA `<a download>` + setTimeout 3000 + ZIP location 기반)
+        + handleResolve (line 132~138, memo.trim() validation)
+        + resolveMutation (line 67~87, uploadAll 선행 + 4 키 invalidate + navigate(-1))
+        + useMultiPhotoUpload (line 59, 직접 사용)
+        4 frame (다크 모바일 open form / 다크 데스크톱 open form + 데스크톱 inline CTA / 다크 모바일 resolved 결과 / 라이트 데스크톱 resolved + admin ZIP zipLoading)
+  out of scope: 모바일 헤더 + 데스크톱 타이틀 + Spinner + 에러 (W2 책임) / Section 1+2 KVRow 4행 + PhotoGrid (W3 책임) /
+                TSX 변환 (W5 checklist 책임) / LegalFindingDetailPage.tsx 코드 수정 / 10 src 파일 0 byte
+  참조: wave-1-index.md §3 / §7 verbatim, 20-legal-findings/sketch-wave-4-admin-tools.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 모바일 자체 헤더 (W2 scope, 본 wave 미해당 — Section 3+4 영역만 시각화)
+    OQ #2 LOCKED — finding 상태 chip 본 페이지 없음 + KVRow value 좌측 강조 없음
+                    Section 3 (open form) vs Section 4 (resolved 결과) mutually exclusive — 화면 모드 자체로 status 표현 ★ 핵심
+                    KVRow 3행 (Section 4) value 좌측 강조 (borderLeft 등) 없음 — 단순 패턴 유지
+    OQ #3 LOCKED — §1.1 9·10·11 → 12 격상 + leading-none ★ 핵심
+                    uploading overlay '업로드 중' 10 (line 232) → text-caption leading-none (12) 격상
+                    제거 button '✕' 11 (line 231) → text-caption font-bold leading-none (12) 격상
+                    canAdd '사진 첨부' 11 (line 237) → text-caption font-semibold leading-none (12) 격상
+                    조치 사진 라벨 12 (line 223 이미 12) — leading-none 명시
+                    14 (KVRow children + 에러 + CTA button) + 13 (textarea + 데스크톱 admin 다운로드 button) 보존
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #4 LOCKED — 조치 완료 CTA 인라인 그라데이션 `linear-gradient(135deg, #1d4ed8, #0ea5e9)` ★ 핵심
+                    ★ T3 만 linear-gradient negative gate 예외 anchor ≥3 박제:
+                       (1) 모바일 고정 하단 CTA (line 270~275, status open 한정)
+                       (2) 데스크톱 inline CTA (line 244~248, marginTop 16 width 100% h 48)
+                       (3) admin frame ZIP 다운로드 별도 anchor (≥3 충족)
+                    admin 다운로드 button = 작은 도구 solid `bg-surface-sunken border border-border-strong` 유지
+                    handleResolve memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' (line 134 verbatim) validation
+                    (본 wave 적용 = O ★ 핵심)
+    OQ #5 LOCKED — Lucide Camera size={22} 교체 ★ 핵심
+                    canAdd button '📷' 이모지 (line 237 fontSize 22) → Lucide `<Camera size={22} />` 교체
+                    (19-legal LegalPage FindingDetailPanel 안 '📷' 첨부 button 이모지와 일치 패턴)
+                    (본 wave 적용 = O ★ 핵심 — Camera 1종)
+
+  ★ 19/20-legal 차이 5건 (본 wave 시각 반영):
+    1. 단일 finding 페이지 (전 wave 전제)
+    2. resolution form 풀 페이지 — 사진 5장 useMultiPhotoUpload 직접 사용 ★ 본 wave 핵심
+       (line 59 resolutionPhotos = useMultiPhotoUpload() — 본 페이지가 훅 직접 사용,
+        FindingFormSheet 우회 X / 20-legal-findings 의 FindingFormSheet 우회 패턴과 다름)
+    3. 조치 완료 button 풀폭 CTA 그라데이션 ★ 본 wave 핵심 (OQ #4 LOCKED anchor ≥3)
+    4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 ★ 본 wave 핵심
+       handleDownload line 119: `지적사항_${name}.zip` where name = (finding.location ?? '위치없음').replace(/[\/\\:*?"<>|]/g, '_')
+       (20-legal-findings round.title 기반과 다름 + fid 기반 아님 — location 기반)
+    5. finding.status open/resolved 분기로 화면 모드 자체가 바뀜 ★ 본 wave 핵심
+       (Section 3 form / Section 4 결과 mutually exclusive — open && resolved 동시 렌더 불가)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       -> 본 sketch 가 Section 3 form + Section 4 결과 + CTA 그라데이션 + admin ZIP 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> SectionHeader verbatim: '조치 내용' (line 220) / '조치 결과' (line 255)
+          / textarea placeholder verbatim: '조치 내용을 입력하세요' (line 221)
+          / 조치 사진 라벨 verbatim: '조치 사진 (최대 5장)' (line 223)
+          / canAdd 카피 verbatim: '사진 첨부' (line 237, OQ #3 격상 11→12 + OQ #5 Camera 교체)
+          / 슬롯 제거 button verbatim: '✕' (line 231, OQ #3 격상 11→12)
+          / 슬롯 업로드 중 verbatim: '업로드 중' (line 232, OQ #3 격상 10→12)
+          / CTA button verbatim: '조치 완료' (line 246, 273) / '처리 중...' (isSubmitting)
+          / KVRow label 3행 (Section 4) verbatim: '조치일시' / '조치자' / '조치 내용' (line 256~260)
+          / KVRow value fallback verbatim: resolvedByName ?? resolvedBy ?? '-' /
+            resolutionMemo ?? '-' whiteSpace pre-wrap
+          / toast 5종 verbatim: '조치 완료' (line 80) / '다운로드 완료' (line 124) /
+            '조치 처리 실패' (line 85) / '조치 내용을 입력하세요' (line 134) / '다운로드 실패' (line 126)
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 본 sketch 의 Tailwind class (text-caption / text-label / text-body-sm / leading-none /
+          text-text-tertiary/primary/on-accent / bg-surface-page/sunken / border-border-default/strong /
+          rounded-sm / rounded-md / rounded-full / bg-danger / bg-black/40) 와
+          인라인 (sectionPad / textarea width 100% padding '10px 12px' / 슬롯 72x72 / 제거 button (-6,-6) 20x20 /
+          canAdd 72x72 + Camera 22 / CTA marginTop 16 width 100% h 48 / 모바일 고정 CTA position fixed + iOS safe-area)
+          W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg&#8209;safe&#8209;bg O / bg&#8209;status&#8209;safe X).
+       -> bg-danger / text-text-on-accent / bg-surface-sunken 사용. status&#8209; prefix 사용 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md
+       -> 슬롯 72x72 = style="width:72px;height:72px" 인라인 명시.
+          제거 button 20x20 = style="width:20px;height:20px" 인라인 명시.
+          CTA h 48 = style="height:48px" 인라인 명시. w&#8209;8 사용 0건.
+
+    6. feedback_text_caption_leading_none.md ★ 핵심
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 슬롯 제거 button 20x20 안 '✕' 12 / 슬롯 overlay '업로드 중' 12 / canAdd 72x72 안 '사진 첨부' 12
+          모두 text-caption + leading-none 명시. OQ #3 LOCKED 격상 후 미세 padding 적정성 보존.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> '📷' 이모지 (line 237) 폐기 → Lucide Camera size={22} 교체 (OQ #5 LOCKED).
+          본 wave 사용 글리프 0건 (SVG + 텍스트만).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       Section 3 = form (neutral 입력 영역). Section 4 = 결과 (neutral 표시 영역).
+       status&#8209; prefix 색 사용 0건 (OQ #2 LOCKED 위반 시 FAIL).
+       조치 완료 CTA = 메인 액션 단일 — addButton 류와 같은 §6.4 후보 → OQ #4 LOCKED 그라데이션 anchor ≥3.
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/21-legal-finding-detail 확인 (worktree base 046c8ec + T1+T2 commit).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> finding.status open/resolved 분기 = source of truth (mutually exclusive 화면 모드).
+          admin role selector 패턴 = staff?.role === 'admin' && finding (handleDownload + admin button 분기).
+
+   11. feedback_inspection_unresolved_color.md (일반화)
+       -> status 표시는 화면 모드 자체로 (Section 3 form vs Section 4 결과 mutually exclusive). KVRow value 좌측 강조 없음.
+
+   12. feedback_subagent_production_deploy_forbidden.md / feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+  ==========================================================
+  ★ 비즈 anchor 11건 (LegalFindingDetailPage) — 1 byte 변경 금지 (4 파일 W2~W5 모두 박제, 본 wave 박스)
+  ==========================================================
+
+    1. useQuery(['legal-finding', id, fid], legalApi.getFinding(id!, fid!)) — line 61~65 (Section 3+4 finding query 결과)
+    2. ★ useMutation: uploadAll 선행 + legalApi.resolveFinding(id!, fid!, { resolution_memo: memo.trim(),
+       resolution_photo_keys: photoKeys.length > 0 ? photoKeys : undefined }) — line 67~87 (snake_case payload 변경 금지)
+    3. ★ queryClient.invalidateQueries 4 키 onSuccess —
+       ['legal-finding', id, fid] + ['legal-findings', id] + ['legal-rounds'] + ['legal-round', id]
+       + toast.success '조치 완료' + resolutionPhotos.reset() + navigate(-1) (순서 보존)
+    4. legalApi 2종 — getFinding + resolveFinding (snake_case payload 변경 금지)
+    5. ★ resolutionPhotos = useMultiPhotoUpload() — line 59 (사진 5장 슬롯 풀 컨트롤 본 페이지 직접 사용 — FindingFormSheet 우회 X
+       — 19/20 차이 2 ★ 본 wave 핵심)
+    6. ★ handleResolve (line 132~138): memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' return /
+       아니면 resolveMutation.mutate() (validation 보존)
+    7. ★ finding.status 분기 — line 218 open / line 253 resolved: mutually exclusive — open form / resolved 결과
+       (19/20 차이 5 ★ 본 wave 핵심)
+    8. admin 다운로드 button 조건부 — staff?.role === 'admin' && finding (line 159 모바일 + line 171 데스크톱) +
+       staff = useAuthStore(s => s.staff) (line 58, selector 패턴 — 20-legal-findings getState() 와 다름)
+    9. ★ handleDownload (line 89~130): fflate dynamic `import('fflate').zipSync` + buildMetaTxt → 내용.txt always
+       + Promise.allSettled photoKeys/resolutionPhotoKeys + iOS PWA `<a download>` (createElement +
+       body.appendChild + click + removeChild + setTimeout(URL.revokeObjectURL, 3000)).
+       ZIP 파일명 `지적사항_${name}.zip` (line 119) —
+       name = (finding.location ?? '위치없음').replace(/[\/\\:*?"<>|]/g, '_') = location 안전화
+       (20-legal-findings round.title 기반과 다름 — 19/20 차이 4 ★ 본 wave 핵심).
+       사진 파일명 `지적사진-${j+1}.jpg` / `조치사진-${j+1}.jpg`. 1 byte 변경 금지 (iOS 안정성 검증된 패턴)
+   10. @keyframes spin (line 45/147, W2 Spinner scope — 본 wave 미해당)
+   11. ★ toast 카피 5종 verbatim (전부 본 wave 안 박제):
+       success 2 — '조치 완료' (line 80, resolveMutation onSuccess) / '다운로드 완료' (line 124, handleDownload)
+       error 3 — '조치 처리 실패' (line 85, resolveMutation onError) /
+                  '조치 내용을 입력하세요' (line 134, handleResolve validation) /
+                  '다운로드 실패' (line 126, handleDownload catch)
+
+  ==========================================================
+  Tailwind cheatsheet (v0.1.1 토큰 → utility class 매핑, 본 wave 적용)
+  ==========================================================
+    var(--bg)         → bg-surface-page          (모바일 고정 CTA bg line 271)
+    var(--bg3)        → bg-surface-sunken        (textarea bg line 221 + canAdd button bg line 234)
+    var(--bd)         → border-border-default    (Section 3+4 borderBottom + 슬롯 img border line 230 + 모바일 고정 CTA borderTop line 271)
+    var(--bd2)        → border-border-strong     (textarea border line 221 + canAdd button border-dashed line 234)
+    var(--t1)         → text-text-primary        (KVRow children + textarea color)
+    var(--t3)         → text-text-tertiary       (SectionHeader + KVRow label + canAdd color + 조치 사진 라벨)
+    var(--danger)     → bg-danger                (제거 button bg line 231)
+    bg-black/40       → 슬롯 uploading overlay   (rgba(0,0,0,0.4) line 232)
+    text-text-on-accent → CTA color (#fff)        (조치 완료 CTA color line 245/272)
+    ★ 인라인 `linear-gradient(135deg, #1d4ed8, #0ea5e9)` — 조치 완료 CTA 모바일 고정 + 데스크톱 inline + admin frame anchor (OQ #4 LOCKED T3 만 예외 ≥3)
+    radius 8/9/10     → rounded-sm               (textarea + canAdd button + 슬롯 img + 데스크톱 admin 다운로드 button)
+    radius 12         → rounded-md               (CTA button)
+    radius 50%        → rounded-full             (제거 button (-6,-6) 20x20)
+-->
+<head>
+<meta charset="utf-8">
+<title>redesign/21-legal-finding-detail — W4 resolve-form + status 분기 + 조치 완료 CTA 그라데이션</title>
+<style>
+:root, [data-theme="dark"] {
+  --surface-page:    #0a0d12;
+  --surface-raised:  #1a1f27;
+  --surface-sunken:  #232a33;
+  --text-primary:    #e6edf3;
+  --text-secondary:  #adb6c0;
+  --text-tertiary:   #8b949e;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(255,255,255,0.14);
+  --border-strong:   rgba(255,255,255,0.22);
+  --accent:          #3b82f6;
+  --status-danger:   #f87171;
+  --status-danger-bar: #ef4444;
+  --bg:  var(--surface-page);
+  --bg2: var(--surface-raised);
+  --bg3: var(--surface-sunken);
+  --bd:  var(--border-default);
+  --bd2: var(--border-strong);
+  --t1:  var(--text-primary);
+  --t2:  var(--text-secondary);
+  --t3:  var(--text-tertiary);
+  --acl: var(--accent);
+  --danger: var(--status-danger-bar);
+}
+[data-theme="light"] {
+  --surface-page:    #ffffff;
+  --surface-raised:  #f6f8fa;
+  --surface-sunken:  #ebeef1;
+  --text-primary:    #1f2328;
+  --text-secondary:  #4d5562;
+  --text-tertiary:   #656d76;
+  --text-on-accent:  #ffffff;
+  --border-default:  rgba(0,0,0,0.14);
+  --border-strong:   rgba(0,0,0,0.22);
+  --accent:          #1f6feb;
+  --status-danger:   #991b1b;
+  --status-danger-bar: #b91c1c;
+}
+body { font-family: 'Pretendard Variable','Pretendard',system-ui,sans-serif; font-size:16px; line-height:1.7; background:#222; color:#ddd; margin:0; padding:24px; }
+.text-caption  { font-size:12px; line-height:1.5; font-weight:400; }
+.text-label    { font-size:13px; line-height:1.5; font-weight:400; }
+.text-body-sm  { font-size:14px; line-height:1.6; font-weight:400; }
+.text-body     { font-size:16px; line-height:1.7; font-weight:400; }
+.font-semibold { font-weight:600; }
+.font-bold     { font-weight:700; }
+.leading-none  { line-height:1; }
+.bg-surface-page      { background: var(--surface-page); }
+.bg-surface-raised    { background: var(--surface-raised); }
+.bg-surface-sunken    { background: var(--surface-sunken); }
+.bg-danger            { background: var(--status-danger-bar); }
+.text-text-primary    { color: var(--text-primary); }
+.text-text-secondary  { color: var(--text-secondary); }
+.text-text-tertiary   { color: var(--text-tertiary); }
+.text-text-on-accent  { color: var(--text-on-accent); }
+.border-border-default{ border-color: var(--border-default); }
+.border-border-strong { border-color: var(--border-strong); }
+.border-b             { border-bottom-width:1px; border-bottom-style:solid; }
+.rounded-sm           { border-radius:8px; }
+.rounded-md           { border-radius:12px; }
+.rounded-full         { border-radius:9999px; }
+.bg-black-40          { background: rgba(0,0,0,0.4); }
+
+.frame-row { display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start; }
+.frame-card { display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+.frame-label { font-size:12px; color:#888; font-family:monospace; max-width:600px; }
+.viewport { border:1px dashed #444; box-sizing:border-box; }
+.viewport-mobile  { width:393px; height:820px; }
+.viewport-desktop { width:1100px; height:780px; }
+
+.photo-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
+.photo-cell { aspect-ratio:1; background:#444; border-radius:8px; border:1px solid var(--bd); display:flex; align-items:center; justify-content:center; color:#888; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1 style="margin:0 0 16px; font-size:18px; color:#fff;">W4 resolve-form — status open form + 사진 5장 useMultiPhotoUpload 직접 + ★ 조치 완료 CTA 그라데이션 ≥3 (OQ #4 LOCKED T3 만 예외)</h1>
+<p style="margin:0 0 24px; color:#aaa; font-size:13px;">4 frame status 분기 + admin 매트릭스 — finding.status open/resolved mutually exclusive (화면 모드 자체로 status 표현, OQ #2)</p>
+
+<div class="frame-row">
+
+  <!-- ==========================================================
+       Frame 1: 다크 모바일 393x820 status open form + 사진 슬롯 3종 + 모바일 고정 하단 CTA (OQ #4 LOCKED anchor 1번째)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[1] dark mobile 393x820 — status open form (textarea + 사진 슬롯 img+uploading+canAdd 3종) + 모바일 고정 하단 CTA 그라데이션 ★ OQ #4 LOCKED anchor 1번째</span>
+    <div data-theme="dark" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;position:relative;">
+      <!-- 모바일 자체 헤더 (W2 scope) -->
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#666;font-size:12px;">[W2 모바일 자체 헤더]</div>
+
+      <!-- 콘텐츠 영역 (paddingBottom 'calc(72px + var(--sab, 0px))' — open 모바일 한정) -->
+      <div style="flex:1;overflow-y:auto;padding-bottom:calc(72px + var(--sab, 0px));">
+        <!-- Section 1+2 placeholder (W3 scope) -->
+        <div class="border-b border-border-default" style="padding:20px 16px;color:#555;font-size:12px;">[Section 1+2 KVRow 4행 + PhotoGrid — W3 scope]</div>
+
+        <!-- Section 3: 조치 내용 (status open 분기, line 218~250) -->
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <!-- SectionHeader '조치 내용' (line 220 verbatim) -->
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">조치 내용</div>
+          <!-- textarea (line 221 verbatim, placeholder '조치 내용을 입력하세요' rows 3) -->
+          <textarea placeholder="조치 내용을 입력하세요" rows="3" class="bg-surface-sunken text-text-primary text-label rounded-sm" style="width:100%;padding:10px 12px;box-sizing:border-box;font-family:inherit;line-height:1.5;resize:vertical;outline:none;border:1px solid var(--bd2);"></textarea>
+
+          <!-- 조치 사진 영역 (line 223~242) -->
+          <div style="margin-top:12px;">
+            <!-- 조치 사진 라벨 (line 223 verbatim, 12 격상 OQ #3) -->
+            <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:6px;">조치 사진 (최대 5장)</div>
+            <!-- 슬롯 영역 (line 226~241) — flex gap 8 overflowX auto paddingBottom 4 -->
+            <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+              <!-- 슬롯 1: img filled (line 229) + 제거 button '✕' (line 230~231 verbatim, OQ #3 격상 11→12) -->
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+                <img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" />
+                <button aria-label="사진 제거" class="bg-danger text-caption font-bold leading-none rounded-full" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+              </div>
+              <!-- 슬롯 2: img + uploading overlay (line 232 verbatim, OQ #3 격상 10→12) -->
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+                <img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" />
+                <div class="bg-black-40 text-caption leading-none rounded-sm" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;">업로드 중</div>
+              </div>
+              <!-- 슬롯 3: canAdd (line 234~239 verbatim, OQ #3 격상 11→12 + OQ #5 Lucide Camera size={22} 교체) -->
+              <button class="bg-surface-sunken text-text-tertiary text-caption font-semibold leading-none rounded-sm" style="width:72px;height:72px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;border:1px dashed var(--bd2);" aria-label="Lucide Camera size={22}">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>사진 첨부</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 데스크톱 inline CTA hidden (!isDesktop) -->
+        </div>
+      </div>
+
+      <!-- ★ 모바일 고정 하단 CTA (line 270~275 verbatim, status open 한정 — !isDesktop && !isLoading && !error && finding && finding.status === 'open' 조건부) ★ OQ #4 LOCKED 인라인 그라데이션 anchor 1번째
+           TSX 실제 anchor verbatim: `style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--bd)', padding: '12px 16px', paddingBottom: 'calc(12px + var(--sab, 0px))' }}` (line 271)
+           본 sketch 안에서는 frame containment 위해 absolute 로 시각화 — 실제 prod = position:fixed (위 anchor 박제) -->
+      <div class="bg-surface-page" style="position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--bd);padding:12px 16px;padding-bottom:calc(12px + var(--sab, 0px));z-index:20;">
+        <button class="text-text-on-accent text-body-sm font-bold rounded-md" style="width:100%;height:48px;border:none;cursor:pointer;transition:opacity 0.15s;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 2: 다크 데스크톱 1100x780 status open + 사진 슬롯 5개 + ★ 데스크톱 inline CTA OQ #4 LOCKED anchor 2번째
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[2] dark desktop 1100x780 — status open form + 사진 슬롯 5개 + ★ 데스크톱 inline CTA marginTop 16 그라데이션 ★ OQ #4 LOCKED anchor 2번째 (line 244~248 verbatim)</span>
+    <div data-theme="dark" class="viewport viewport-desktop bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:24px 32px 12px;flex-shrink:0;color:#666;font-size:12px;">[W2 데스크톱 타이틀 영역]</div>
+
+      <!-- 콘텐츠 영역 maxWidth 700 데스크톱 (line 194, paddingBottom 24 — open 데스크톱) -->
+      <div style="flex:1;overflow-y:auto;max-width:700px;width:100%;padding-bottom:24px;">
+        <div class="border-b border-border-default" style="padding:20px 32px;color:#555;font-size:12px;">[Section 1+2 KVRow 4행 + PhotoGrid — W3 scope]</div>
+
+        <!-- Section 3: 조치 내용 (sectionPad '20px 32px' 데스크톱) -->
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">조치 내용</div>
+          <textarea placeholder="조치 내용을 입력하세요" rows="3" class="bg-surface-sunken text-text-primary text-label rounded-sm" style="width:100%;padding:10px 12px;box-sizing:border-box;font-family:inherit;line-height:1.5;resize:vertical;outline:none;border:1px solid var(--bd2);"></textarea>
+
+          <div style="margin-top:12px;">
+            <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:6px;">조치 사진 (최대 5장)</div>
+            <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+              <!-- 슬롯 5개 (img x4 + canAdd 1) -->
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;"><img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" /><button aria-label="사진 제거" class="bg-danger text-caption font-bold leading-none rounded-full" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button></div>
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;"><img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" /><button aria-label="사진 제거" class="bg-danger text-caption font-bold leading-none rounded-full" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button></div>
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;"><img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" /><button aria-label="사진 제거" class="bg-danger text-caption font-bold leading-none rounded-full" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button></div>
+              <div style="position:relative;width:72px;height:72px;flex-shrink:0;"><img alt="" class="rounded-sm" style="width:72px;height:72px;object-fit:cover;display:block;border:1px solid var(--bd);background:#555;" src="data:image/svg+xml;utf8,%3Csvg/%3E" /><button aria-label="사진 제거" class="bg-danger text-caption font-bold leading-none rounded-full" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button></div>
+              <!-- canAdd (5번째 슬롯) -->
+              <button class="bg-surface-sunken text-text-tertiary text-caption font-semibold leading-none rounded-sm" style="width:72px;height:72px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:4px;border:1px dashed var(--bd2);" aria-label="Lucide Camera size={22}">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>사진 첨부</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ★ 데스크톱 inline CTA (line 244~248 verbatim, isDesktop 조건 + OQ #4 LOCKED 인라인 그라데이션 anchor 2번째) -->
+          <button class="text-text-on-accent text-body-sm font-bold rounded-md" style="margin-top:16px;width:100%;height:48px;border:none;cursor:pointer;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 3: 다크 모바일 393x820 status resolved 결과 + 조치 사진 PhotoGrid (모바일 고정 CTA hidden — resolved)
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[3] dark mobile 393x820 — status resolved 결과 (Section 4 KVRow 3행 + PhotoGrid) + 모바일 고정 CTA hidden (finding.status === 'resolved')</span>
+    <div data-theme="dark" class="viewport viewport-mobile bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <div class="bg-surface-raised border-b border-border-default" style="height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#666;font-size:12px;">[W2 모바일 자체 헤더]</div>
+
+      <!-- 콘텐츠 영역 (paddingBottom 24 — resolved 양쪽) -->
+      <div style="flex:1;overflow-y:auto;padding-bottom:24px;">
+        <div class="border-b border-border-default" style="padding:20px 16px;color:#555;font-size:12px;">[Section 1+2 KVRow 4행 + PhotoGrid — W3 scope]</div>
+
+        <!-- Section 4: 조치 결과 (status resolved 분기, line 253~265) -->
+        <div class="border-b border-border-default" style="padding:20px 16px;">
+          <!-- SectionHeader '조치 결과' (line 255 verbatim) -->
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">조치 결과</div>
+          <!-- KVRow 3행 (line 256~260 verbatim, 내부 flex column gap 8) -->
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <!-- KVRow '조치일시' (line 257, fmtDate(resolvedAt) — 분까지 표시 verbatim) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치일시</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.18 10:15</span>
+            </div>
+            <!-- KVRow '조치자' (line 258, resolvedByName ?? resolvedBy ?? '-' fallback) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">김방재</span>
+            </div>
+            <!-- KVRow '조치 내용' (line 259, resolutionMemo ?? '-' whiteSpace pre-wrap) -->
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">비상조명등 LED 교체 완료</span>
+            </div>
+          </div>
+          <!-- 조치 사진 PhotoGrid (resolutionPhotoKeys length > 0 조건부, marginTop 12) -->
+          <div class="photo-grid">
+            <div class="photo-cell">[조치사진 1]</div>
+            <div class="photo-cell">[조치사진 2]</div>
+            <div class="photo-cell">[조치사진 3]</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================
+       Frame 4: 라이트 데스크톱 1100x780 status resolved + admin ZIP zipLoading + ★ OQ #4 LOCKED anchor 3번째
+       ========================================================== -->
+  <div class="frame-card">
+    <span class="frame-label">[4] light desktop 1100x780 — status resolved 결과 + admin ZIP zipLoading 단계 + ★ OQ #4 LOCKED anchor 3번째 (admin frame 별도 그라데이션 anchor — ≥3 충족용)</span>
+    <div data-theme="light" class="viewport viewport-desktop bg-surface-page" style="display:flex;flex-direction:column;overflow:hidden;">
+      <!-- 데스크톱 타이틀 + admin 다운로드 button (W2 scope, 본 frame 시각 — '다운로드 중...' 단계) -->
+      <div style="padding:24px 32px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <span class="text-text-primary" style="font-size:22px;font-weight:800;line-height:1.2;">지적 상세</span>
+        <!-- 데스크톱 admin 다운로드 button (solid bg-surface-sunken — 작은 도구, OQ #4 LOCKED 그라데이션 X) -->
+        <button class="bg-surface-sunken text-text-primary text-label font-bold rounded-sm" style="height:36px;padding:0 16px;cursor:not-allowed;flex-shrink:0;border:1px solid var(--bd2);opacity:0.5;">다운로드 중...</button>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;max-width:700px;width:100%;padding-bottom:24px;">
+        <div class="border-b border-border-default" style="padding:20px 32px;color:#888;font-size:12px;">[Section 1+2 KVRow 4행 + PhotoGrid — W3 scope]</div>
+
+        <!-- Section 4: 조치 결과 (status resolved 분기) -->
+        <div class="border-b border-border-default" style="padding:20px 32px;">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">조치 결과</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치일시</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">2026.03.20 14:50</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치자</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;">이방재</span>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <span class="text-caption font-bold leading-none text-text-tertiary" style="width:64px;flex-shrink:0;">조치 내용</span>
+              <span class="text-body-sm text-text-primary" style="flex:1;line-height:1.5;white-space:pre-wrap;">소화기 재충전 완료
+업체 점검 보고서 첨부</span>
+            </div>
+          </div>
+          <div class="photo-grid">
+            <div class="photo-cell">[조치사진 1]</div>
+            <div class="photo-cell">[조치사진 2]</div>
+          </div>
+        </div>
+
+        <!-- ★ OQ #4 LOCKED anchor 3번째 (≥3 충족용) — admin frame 안 별도 CTA 그라데이션 anchor
+             (재실행 button 또는 hover state preview frame 박제) -->
+        <div style="padding:20px 32px;border-top:1px dashed var(--bd2);">
+          <div class="text-caption font-bold leading-none text-text-tertiary" style="margin-bottom:10px;">★ OQ #4 LOCKED anchor 3번째 (admin frame 별도 그라데이션 anchor — ≥3 충족용 — handleDownload 재실행 CTA preview, T3 만 linear-gradient 예외)</div>
+          <button class="text-text-on-accent text-body-sm font-bold rounded-md" style="width:100%;height:48px;border:none;cursor:pointer;background:linear-gradient(135deg, #1d4ed8, #0ea5e9);">조치 완료 (admin frame anchor — OQ #4 LOCKED T3 만 예외)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ==========================================================
+     rules 박스
+     ========================================================== -->
+<div style="margin-top:32px;padding:20px;background:#1a1a1a;border-radius:8px;color:#ccc;font-size:13px;line-height:1.7;">
+
+<h2 style="margin:0 0 12px;font-size:15px;color:#fff;">★ rules — OQ #4 LOCKED + 비즈 anchor + handleDownload location 기반 + status 분기 + useMultiPhotoUpload 직접</h2>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ OQ #4 LOCKED — 조치 완료 CTA 인라인 그라데이션 (T3 만 linear-gradient negative gate 예외 anchor ≥3)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+조치 완료 CTA (모바일 고정 line 270~275 + 데스크톱 inline line 244~248) =
+  style={{ background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)' }}
+인라인 그라데이션 (디자인 강조용, design-system §6.4 CTA 룰 일관 — 메인 액션 단일).
+토큰 채택 X (linear-gradient negative gate 의 T3 만 예외 anchor ≥3):
+  (1) 모바일 고정 하단 CTA (line 270~275, status open 한정 — frame 1)
+  (2) 데스크톱 inline CTA (line 244~248, marginTop 16 width 100% h 48 — frame 2)
+  (3) admin frame 별도 CTA anchor (≥3 충족용 — frame 4)
+
+admin 다운로드 button (작은 도구, 모바일 36x36→44x44 icon + 데스크톱 텍스트 h 36) =
+  solid `bg-surface-sunken border border-border-strong text-text-primary` 유지 또는 icon 색만.
+  disabled = `opacity 0.5 cursor not-allowed`.
+
+handleResolve memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' (line 134 verbatim) validation 보존.
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 비즈 anchor 11건 (1 byte 변경 금지)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. useQuery(['legal-finding', id, fid], legalApi.getFinding(id!, fid!)) — line 61~65 (Section 3+4 finding query 결과)
+2. ★ useMutation: uploadAll 선행 + legalApi.resolveFinding(id!, fid!, { resolution_memo: memo.trim(),
+   resolution_photo_keys: photoKeys.length > 0 ? photoKeys : undefined }) — line 67~87 (snake_case payload 변경 금지)
+3. ★ queryClient.invalidateQueries 4 키 onSuccess —
+   ['legal-finding', id, fid] + ['legal-findings', id] + ['legal-rounds'] + ['legal-round', id]
+   + toast.success '조치 완료' + resolutionPhotos.reset() + navigate(-1) (순서 보존)
+4. legalApi 2종 — getFinding + resolveFinding (snake_case payload 변경 금지)
+5. ★ resolutionPhotos = useMultiPhotoUpload() — line 59 (사진 5장 직접 사용, FindingFormSheet 우회 X)
+6. ★ handleResolve (line 132~138): memo.trim() 빈 값 → toast.error '조치 내용을 입력하세요' validation
+7. ★ finding.status 분기 — line 218 open / line 253 resolved: mutually exclusive
+8. admin 다운로드 button 조건부 — staff?.role === 'admin' && finding (selector 패턴 line 58)
+9. ★ handleDownload (line 89~130): fflate zipSync + buildMetaTxt + Promise.allSettled + iOS PWA `&lt;a download&gt;`
+   + setTimeout(URL.revokeObjectURL, 3000)
+   ★ ZIP 파일명 `지적사항_${name}.zip` (line 119) — name = (finding.location ?? '위치없음').replace(/[\/\\:*?"&lt;&gt;|]/g, '_')
+   = location 안전화 (20-legal-findings round.title 기반과 다름)
+   사진 파일명 `지적사진-${j+1}.jpg` / `조치사진-${j+1}.jpg`
+10. @keyframes spin (W2 Spinner scope — 본 wave 미해당)
+11. ★ toast 카피 5종 verbatim:
+    success 2 — '조치 완료' (line 80) / '다운로드 완료' (line 124)
+    error 3 — '조치 처리 실패' (line 85) / '조치 내용을 입력하세요' (line 134) / '다운로드 실패' (line 126)
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ handleDownload anchor + iOS PWA `&lt;a download&gt;` + ZIP location 기반 (line 89~130 verbatim)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+async function handleDownload() {
+  if (!finding) return
+  setDownloading(true)
+  try {
+    const { zipSync } = await import('fflate')
+    const files: Record&lt;string, Uint8Array&gt; = {}
+    const encoder = new TextEncoder()
+    // ★ ZIP 파일명 (line 96, 119): name = (finding.location ?? '위치없음').replace(/[\/\\:*?"&lt;&gt;|]/g, '_') = location 안전화
+    //   → `지적사항_${name}.zip` (20-legal-findings round.title 기반과 다름 + fid 기반 아님)
+    const name = (finding.location ?? '위치없음').replace(/[\/\\:*?"&lt;&gt;|]/g, '_')
+
+    // 내용.txt always 포함 (buildMetaTxt)
+    files['내용.txt'] = encoder.encode(buildMetaTxt(finding))
+
+    // photoKeys → Promise.allSettled
+    const photoResults = await Promise.allSettled(
+      finding.photoKeys.map(k =&gt; fetch('/api/uploads/' + k).then(r =&gt; r.arrayBuffer()))
+    )
+    photoResults.forEach((r, j) =&gt; {
+      if (r.status === 'fulfilled') files[`지적사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+    })
+
+    // resolutionPhotoKeys → Promise.allSettled
+    const resResults = await Promise.allSettled(
+      finding.resolutionPhotoKeys.map(k =&gt; fetch('/api/uploads/' + k).then(r =&gt; r.arrayBuffer()))
+    )
+    resResults.forEach((r, j) =&gt; {
+      if (r.status === 'fulfilled') files[`조치사진-${j + 1}.jpg`] = new Uint8Array(r.value)
+    })
+
+    const zipped = zipSync(files, { level: 6 })
+    const blob = new Blob([zipped.buffer as ArrayBuffer], { type: 'application/zip' })
+    const url = URL.createObjectURL(blob)
+    // ★ iOS PWA `&lt;a download&gt;` 패턴 verbatim (1 byte 변경 금지 — iOS 안정성 검증된 패턴):
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `지적사항_${name}.zip`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() =&gt; URL.revokeObjectURL(url), 3000)
+    toast.success('다운로드 완료')
+  } catch {
+    toast.error('다운로드 실패')
+  } finally {
+    setDownloading(false)
+  }
+}
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ 19/20-legal 차이 5건 (sketch 시각 반영)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+1. 단일 finding 페이지 (전 wave 전제)
+2. resolution form 풀 페이지 — 사진 5장 useMultiPhotoUpload 직접 사용 ★ 본 wave 핵심
+   line 59 `resolutionPhotos = useMultiPhotoUpload()` 본 페이지가 훅 직접 호출.
+   20-legal-findings 가 FindingFormSheet 우회한 것과 다름.
+   slots / canAdd / pickCamera / pickAlbum / handleFiles / removeSlot / uploadAll / reset / isUploading /
+   cameraRef / albumRef / showPicker / closePicker 모두 직접 사용.
+3. 조치 완료 button 풀폭 CTA 그라데이션 ★ 본 wave 핵심
+   메인 액션 단일 (addButton 류와 같은 §6.4 후보 → OQ #4 LOCKED 그라데이션 ≥3).
+   모바일 고정 line 270~275 + 데스크톱 inline line 244~248 = 동일 스타일 (width 100% h 48), 위치만 다름.
+4. admin ZIP 다운로드 단일 finding 기반 — 파일명 location 기반 ★ 본 wave 핵심
+   line 119: `지적사항_${name}.zip` (name = location 안전화).
+   20-legal-findings round.title 기반과 다름 + fid 기반 아님 — name = location 안전화.
+   19-legal LegalPage FindingDetailPanel 단일 다운로드 패턴과 일치.
+5. finding.status open/resolved 분기로 화면 모드 자체가 바뀜 ★ 본 wave 핵심
+   line 218 open && Section 3 (form) / line 253 resolved && Section 4 (결과).
+   mutually exclusive — open && resolved 양쪽 동시 렌더 불가.
+   4 frame 매트릭스 (open 모바일/데스크톱 + resolved 모바일/데스크톱) 박제.
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">토큰 매핑</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+Section 3+4 padding sectionPad borderBottom var(--bd) → border-b border-border-default
+textarea bg var(--bg3) → bg-surface-sunken + border var(--bd2) → border-border-strong + color var(--t1) → text-text-primary
+슬롯 img border var(--bd) → border-border-default
+제거 button bg var(--danger) → bg-danger / color #fff
+uploading overlay bg rgba(0,0,0,0.4) → bg-black/40 (또는 bg-black-40 alias) / color #fff text-caption leading-none
+canAdd bg var(--bg3) → bg-surface-sunken + border var(--bd2) → border-border-strong border-dashed +
+  color var(--t3) → text-text-tertiary + text-caption font-semibold leading-none
+★ CTA button OQ #4 LOCKED 인라인 그라데이션 `linear-gradient(135deg, #1d4ed8, #0ea5e9)` — T3 만 예외
+모바일 고정 하단 CTA bg var(--bg) → bg-surface-page + borderTop var(--bd) → border-t border-border-default
+paddingBottom 분기: open 모바일 'calc(72px + var(--sab, 0px))' / open 데스크톱 24 / resolved 양쪽 24
+</pre>
+
+<h3 style="margin:16px 0 8px;font-size:14px;color:#fff;">★ negative gate (본 wave 자체 검수)</h3>
+<pre style="margin:0;padding:12px;background:#0a0d12;border-radius:6px;color:#adb6c0;font-family:monospace;font-size:12px;white-space:pre-wrap;">
+- 이모지 0건 (sketch 본문 — '📷' Camera 폐기, Lucide Camera 교체 OQ #5)
+- ★ linear-gradient(135deg, #1d4ed8, #0ea5e9) ≥3 박제 (OQ #4 LOCKED T3 만 예외 — 모바일 고정 + 데스크톱 inline + admin frame)
+- 9·10·11px fontSize 0건 (uploading overlay 10 + 제거 button 11 + canAdd 11 모두 격상 → 12)
+- (text|bg|border)-status- prefix 0건
+- \b(w|h)-8\b 0건
+- 옛 alias 토큰 sketch 본문 안 0건 (tokens.css 정의 인용 fence 안 예외)
+</pre>
+
+</div>
+
+</body>
+</html>
