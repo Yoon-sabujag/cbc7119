@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-defect-report.html — redesign/18-worklog W4
+  작성: 2026-05-25 / quick 260525-mbr
+  범위: 불량사항 개선보고 카드 (보고일시 3 input + 보고방법 3 토글 + 조치방법 4 토글 + 기타 input 인라인)
+  out of scope: 모바일 헤더 + monthNav (W2) / 기본정보 + 4 카테고리 카드 (W3) /
+                footerButtons + 모바일/데스크톱 layout (W5) / WorkLogPortraitPreview wrapper (W6)
+  참조: wave-1-index.md §1.3 / §2.1 W4 행 verbatim,
+        WorkLogPage.tsx line 607~662 (불량사항 개선보고 카드 — 보고일시 + 보고방법 + 조치방법) verbatim
+
+  W1 LOCKED 6건 매트릭스 (wave-1-index.md §7 OQ default verbatim):
+    OQ #1 ▶ default: 저장 button solid bg-safe-bar (본 W4 preview frame 안 적용 = O, 그라데이션 폐기)
+    OQ #2 ▶ default: admin readOnly opacity 0.5 (본 W4 적용 = O — 4 input + 7 토글)
+    OQ #3 ▶ default: 보고방법·조치방법 = status-accent (var(--acl)) — 양호/불량과 의미 분리 (본 W4 적용 = O)
+    OQ #4 ▶ default: 미래 월 disabled + max (W2 scope, W4 미해당)
+    OQ #5 ▶ default: 캘리브 33 step 100% 보존 (W6 scope, W4 미해당)
+    OQ #6 ▶ default: warning glyph → lucide AlertTriangle (W6 scope, W4 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug)
+  ==========================================================
+
+    1. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 본 sketch 보고일시 '.' span × 2 (line 614/616) fontSize 12 markup verbatim 보존.
+         이모지 글리프 0건.
+
+    2. feedback_text_caption_leading_none.md
+       text-caption (12px) 작은 컨테이너 안 시각 패딩. leading-none.
+       → 토글 안 "대면"/"서면"/"정보통신"/"이전"/"제거"/"수리·교체"/"기타" 12 leading-none.
+
+    3. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰 코드 그대로.
+       → 텍스트 verbatim: "불량사항 개선보고" / "보고일시" / "보고방법" / "조치방법" /
+         "대면" / "서면" / "정보통신" / "이전" / "제거" / "수리·교체" / "기타" / "연" / "월" / "일" /
+         "기타 내용 입력" placeholder + maxLength={10} 보존.
+
+    4. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 정의 grep 추출 → W7 변환 wave 안 verbatim 인용.
+       → .worklog-report-date / .worklog-report-date-input / .worklog-report-dot /
+         .worklog-method-btn / .worklog-method-btn--selected /
+         .worklog-fix-other-input / .worklog-save-preview 7 class 정의.
+
+    5. feedback_redesign_sketch_rule_enforcement.md (§6.3 일관성)
+       양호/불량 (W3) = status-safe/danger 색 vs 보고·조치 (W4) = status-accent — 의미 분리 명시.
+       → 본 W4 method-btn selected bg = var(--accent) 인라인 (status&#8209;prefix 미사용).
+
+    6. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave wrangler 금지.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18 업무 수행 기록표 — sketch W4 불량사항 개선보고</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-focus:    #3b82f6;
+      --accent:          #3b82f6;
+      --status-safe-bar:    #22c55e;
+      --status-danger-bar:  #ef4444;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-focus:    #1f6feb;
+      --accent:          #1f6feb;
+      --status-safe-bar:    #15803d;
+      --status-danger-bar:  #b91c1c;
+    }
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .leading-none { line-height: 1; }
+    .page-bg-dark { background: #0a0d12; }
+    .frame-shell {
+      background: var(--surface-page); color: var(--text-primary);
+      border: 1px solid var(--border-default); border-radius: 18px;
+      overflow: hidden; width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .variant-label {
+      font-size: 12px; color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em; padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* §2.1 W3 inherit */
+    .worklog-section-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    }
+    .worklog-section-title {
+      font-size: 18px; font-weight: 700;
+      color: var(--text-primary); line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .worklog-field-label {
+      font-size: 12px; line-height: 1.5;
+      color: var(--text-secondary); margin-bottom: 4px;
+    }
+    .worklog-field-label--mt { margin-top: 8px; }
+    .worklog-input {
+      box-sizing: border-box;
+      font-size: 14px; line-height: 1.6;
+      padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary); font-family: inherit;
+    }
+    .worklog-input:focus {
+      outline: none; border-color: var(--border-focus);
+    }
+
+    /* ============================================================
+     * §2.1 W4 신규 정의 (line 612~661 매핑)
+     * ============================================================ */
+    .worklog-report-date {
+      /* source line 612 flex gap 6 align center */
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .worklog-report-date-input {
+      /* source line 613/615/617 width 65/40/40 + textAlign center */
+      text-align: center;
+      box-sizing: border-box;
+      font-size: 14px; line-height: 1.6;
+      padding: 8px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+    .worklog-report-date-input--year  { width: 65px; }
+    .worklog-report-date-input--month { width: 40px; }
+    .worklog-report-date-input--day   { width: 40px; }
+    .worklog-report-dot {
+      /* source line 614/616 — color var(--t2) fontSize 12 "." 텍스트 */
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+    }
+    .worklog-method-btn {
+      /* source line 625~630 — padding 5/14 + radius 7 + fontSize 12 + 700 */
+      padding: 5px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+    }
+    /* OQ #3 default: 보고·조치방법 = status-accent (양호/불량 status-safe/danger 와 의미 분리) */
+    .worklog-method-btn--selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .worklog-method-row {
+      display: flex; gap: 6px;
+    }
+    .worklog-method-row--wrap {
+      flex-wrap: wrap;
+    }
+    .worklog-fix-other-input {
+      /* source line 651~661 — width 160, marginTop 8, maxLength 10 */
+      width: 160px;
+      margin-top: 8px;
+      box-sizing: border-box;
+      font-size: 14px; line-height: 1.6;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+    /* OQ #1 default preview: 저장 button solid bg-safe-bar (그라데이션 폐기) */
+    .worklog-save-preview {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 9px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--status-safe-bar); /* OQ #1: solid, not linear-gradient */
+      color: #fff;
+      margin-top: 14px;
+    }
+    .worklog-readonly { opacity: 0.5; cursor: default; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'surface-page': 'var(--surface-page)',
+        'surface-raised': 'var(--surface-raised)',
+        'surface-sunken': 'var(--surface-sunken)',
+        'text-primary': 'var(--text-primary)',
+        'text-secondary': 'var(--text-secondary)',
+        'text-tertiary': 'var(--text-tertiary)',
+        'border-default': 'var(--border-default)',
+        'accent': 'var(--accent)',
+        'safe-bar': 'var(--status-safe-bar)',
+        'danger-bar': 'var(--status-danger-bar)',
+      }}}
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">18-worklog sketch W4 — 불량사항 개선보고 카드 (18 특화)</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × default / 기타 선택 / unset / 저장 preview 4 frame.
+      WorkLogPage.tsx line 607~662 (불량사항 개선보고 카드 — 보고일시 3 input + 보고방법 3 토글 + 조치방법 4 토글 + 기타 input 인라인) verbatim 매핑.
+      OQ #1 default: 저장 button solid bg-safe-bar (그라데이션 폐기) / OQ #3: 보고·조치 = status-accent.
+      DailyReport 에 없는 18 특화 카드 — 보고일시 yyyy.mm.dd 분리 input + 조치방법 'other' 시 fixOtherText 인라인 확장.
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / default — 보고일시 + 보고방법(대면) + 조치방법(이전) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / 보고방법 대면 + 조치방법 이전</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <!-- 불량사항 개선보고 카드 (line 607~662 verbatim) -->
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">불량사항 개선보고</div>
+
+            <!-- 보고일시 — 3 input + dot span × 2 (line 611~618) -->
+            <div class="worklog-field-label">보고일시</div>
+            <div class="worklog-report-date">
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--year"  value="2026" placeholder="연" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--month" value="5"   placeholder="월" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--day"   value="22"  placeholder="일" />
+            </div>
+
+            <!-- 보고방법 — 3 토글 (line 620~634) -->
+            <div class="worklog-field-label worklog-field-label--mt">보고방법</div>
+            <div class="worklog-method-row">
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">대면</button>
+              <button type="button" class="worklog-method-btn">서면</button>
+              <button type="button" class="worklog-method-btn">정보통신</button>
+            </div>
+
+            <!-- 조치방법 — 4 토글 (line 636~650) -->
+            <div class="worklog-field-label worklog-field-label--mt">조치방법</div>
+            <div class="worklog-method-row worklog-method-row--wrap">
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">이전</button>
+              <button type="button" class="worklog-method-btn">제거</button>
+              <button type="button" class="worklog-method-btn">수리·교체</button>
+              <button type="button" class="worklog-method-btn">기타</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 조치방법 '기타' 선택 → fixOtherText 인라인 확장 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / 조치방법 '기타' → fixOtherText 인라인 (maxLength=10)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">불량사항 개선보고</div>
+
+            <div class="worklog-field-label">보고일시</div>
+            <div class="worklog-report-date">
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--year"  value="2026" placeholder="연" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--month" value="5"   placeholder="월" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--day"   value="22"  placeholder="일" />
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">보고방법</div>
+            <div class="worklog-method-row">
+              <button type="button" class="worklog-method-btn">대면</button>
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">서면</button>
+              <button type="button" class="worklog-method-btn">정보통신</button>
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">조치방법</div>
+            <div class="worklog-method-row worklog-method-row--wrap">
+              <button type="button" class="worklog-method-btn">이전</button>
+              <button type="button" class="worklog-method-btn">제거</button>
+              <button type="button" class="worklog-method-btn">수리·교체</button>
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">기타</button>
+            </div>
+            <!-- fixMethod === 'other' 시 인라인 확장 (line 651~661) — maxLength 10 / width 160 / marginTop 8 verbatim -->
+            <input type="text" class="worklog-fix-other-input" value="외주 의뢰" placeholder="기타 내용 입력" maxLength="10" />
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 다크 / unset (default empty — reportMethod='' + fixMethod='') ─────
+         (보고방법/조치방법 모두 미선택, readOnly 분기 OQ #2 적용)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 다크 / assistant readOnly (OQ #2) + 미선택 default</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <div class="worklog-section-card worklog-readonly">
+            <div class="worklog-section-title">불량사항 개선보고</div>
+
+            <div class="worklog-field-label">보고일시</div>
+            <div class="worklog-report-date">
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--year"  value="" placeholder="연" readonly />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--month" value="" placeholder="월" readonly />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--day"   value="" placeholder="일" readonly />
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">보고방법</div>
+            <div class="worklog-method-row">
+              <button type="button" class="worklog-method-btn" disabled>대면</button>
+              <button type="button" class="worklog-method-btn" disabled>서면</button>
+              <button type="button" class="worklog-method-btn" disabled>정보통신</button>
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">조치방법</div>
+            <div class="worklog-method-row worklog-method-row--wrap">
+              <button type="button" class="worklog-method-btn" disabled>이전</button>
+              <button type="button" class="worklog-method-btn" disabled>제거</button>
+              <button type="button" class="worklog-method-btn" disabled>수리·교체</button>
+              <button type="button" class="worklog-method-btn" disabled>기타</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 저장 button preview (OQ #1 solid) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / 저장 button preview (OQ #1 solid bg-safe-bar)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">불량사항 개선보고</div>
+
+            <div class="worklog-field-label">보고일시</div>
+            <div class="worklog-report-date">
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--year"  value="2026" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--month" value="5" />
+              <span class="worklog-report-dot">.</span>
+              <input type="text" class="worklog-report-date-input worklog-report-date-input--day"   value="22" />
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">보고방법</div>
+            <div class="worklog-method-row">
+              <button type="button" class="worklog-method-btn">대면</button>
+              <button type="button" class="worklog-method-btn">서면</button>
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">정보통신</button>
+            </div>
+
+            <div class="worklog-field-label worklog-field-label--mt">조치방법</div>
+            <div class="worklog-method-row worklog-method-row--wrap">
+              <button type="button" class="worklog-method-btn">이전</button>
+              <button type="button" class="worklog-method-btn">제거</button>
+              <button type="button" class="worklog-method-btn worklog-method-btn--selected">수리·교체</button>
+              <button type="button" class="worklog-method-btn">기타</button>
+            </div>
+          </div>
+
+          <!-- OQ #1 default preview — line 679 linear-gradient(135deg,#1d4ed8,#2563eb) → solid bg-safe-bar -->
+          <button type="button" class="worklog-save-preview">저장</button>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="max-w-[1400px] mx-auto mt-12 text-zinc-400" style="font-size: 12px; line-height: 1.7;">
+    <h2 class="text-title text-zinc-200 mb-2">W7 변환 시 보존 비즈 anchor (W4 특화)</h2>
+    <ul class="space-y-1">
+      <li>보고일시 3 input — WorkLogPage.tsx line 613/615/617 (year w65 / month w40 / day w40, textAlign center)</li>
+      <li>'.' span × 2 — line 614/616 (color var(--t2) fontSize 12) — memory feedback_tsx_wave_emoji_dot_gap</li>
+      <li>보고방법 3 토글 — line 622~633 verbatim: [['face','대면'],['written','서면'],['telecom','정보통신']]</li>
+      <li>보고방법 unset 토글 — onClick={() => setReportMethod(reportMethod === val ? '' : val)} 패턴 (재클릭 시 '')</li>
+      <li>조치방법 4 토글 — line 638~649 verbatim: [['relocate','이전'],['remove','제거'],['repair','수리·교체'],['other','기타']]</li>
+      <li>조치방법 unset 토글 — onClick={() => setFixMethod(fixMethod === val ? '' : val)} 패턴</li>
+      <li>fixMethod === 'other' 시 fixOtherText input 인라인 노출 — line 651~661, maxLength={10}, width:160, marginTop:8</li>
+      <li>readOnly={!isAdmin} 4건 — line 613/615/617/656</li>
+      <li>OQ #1 default: 저장 button bg = var(--status-safe-bar) solid — line 679 linear-gradient(135deg,#1d4ed8,#2563eb) 폐기</li>
+      <li>OQ #3 default: 보고방법/조치방법 selected bg = var(--accent) (line 629/645 var(--acl)) — 양호/불량 토글의 status-safe/danger 와 의미 분리</li>
+    </ul>
+  </footer>
+
+</body>
+</html>

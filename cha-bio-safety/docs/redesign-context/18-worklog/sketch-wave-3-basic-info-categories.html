@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-basic-info-categories.html — redesign/18-worklog W3
+  작성: 2026-05-25 / quick 260525-mbr
+  범위: 기본 정보 카드 + 4 카테고리 카드 (소방시설/피난방화/화기취급/기타 — 공통 WorkLogSection 패턴)
+  out of scope: 모바일 헤더 + monthNav (W2) / 불량사항 개선보고 카드 (W4) /
+                footerButtons + 모바일/데스크톱 layout (W5) / WorkLogPortraitPreview wrapper (W6)
+  참조: wave-1-index.md §1.3 / §2.1 W3 행 verbatim,
+        WorkLogPage.tsx line 32~42 (card / textareaStyle) +
+                          line 339~605 (5 카드 = 기본정보 1 + 카테고리 4) verbatim
+
+  W1 LOCKED 6건 매트릭스 (wave-1-index.md §7 OQ default verbatim):
+    OQ #1 ▶ default: 저장 button solid bg-safe-bar (W5 scope, W3 미해당)
+    OQ #2 ▶ default: admin readOnly opacity 0.5 (본 W3 적용 = O)
+    OQ #3 ▶ default: 양호 safe / 불량 danger (본 W3 적용 = O)
+    OQ #4 ▶ default: 미래 월 disabled + max (W2 scope, W3 미해당)
+    OQ #5 ▶ default: 캘리브 33 step 100% 보존 (W6 scope, W3 미해당)
+    OQ #6 ▶ default: warning glyph → lucide AlertTriangle (W6 scope, W3 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug)
+  ==========================================================
+
+    1. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰 코드 그대로 — 시각만 손봄.
+       → "양호" / "불량" 텍스트 verbatim (line 389/400) /
+         "기본 정보" / "소방시설" / "피난방화시설" / "화기취급감독" / "기타사항" 카드 제목 verbatim /
+         "관리자" / "확인내용" / "결과" / "조치내역" 필드 라벨 verbatim (line 341/361/375/404).
+
+    2. feedback_redesign_sketch_rule_enforcement.md (§6.2/§6.3 일관성)
+       양호/불량 토글 = status-safe / status-danger 색 (OQ #3 default) /
+       보고·조치방법 (W4) = status-accent — 의미 분리.
+       → 본 W3 안 양호 토글 bg = var(--status-safe-bar) / 불량 토글 bg = var(--status-danger-bar) /
+         unselected bg = var(--surface-sunken) color var(--text-secondary).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 정의 grep 추출 → W7 변환 wave 안 verbatim 인용.
+       → .worklog-section-card / .worklog-section-title / .worklog-field-label /
+         .worklog-textarea / .worklog-result-toggle / .worklog-result-toggle--ok /
+         .worklog-result-toggle--bad / .worklog-result-toggle--unselected /
+         .worklog-action-label / .worklog-action-label--bad / .worklog-readonly 11 class 정의.
+
+    4. feedback_text_caption_leading_none.md
+       text-caption (12px) 작은 컨테이너 안 시각 패딩. leading-none.
+       → 토글 안 "양호"/"불량" 12px leading-none / 필드 라벨 12 leading-1.5.
+
+    5. feedback_sketch_realistic_data.md (분기 보존)
+       fireResult/escapeResult 2-state vs gasResult/etcResult 3-state.
+       → 본 W3 frame 안 4 카테고리 토글 동일 markup, 변환 시 onClick 만 다름:
+         fire/escape: () => setX('ok'|'bad')      — 2-state, 재클릭 X
+         gas/etc:    () => setX(x===val ? '' : val) — 3-state, 재클릭 시 unset
+         markup 0 byte 차이, 비즈 로직만 차이 (W7 checklist 박제).
+
+    6. feedback_tailwind_token_class_pattern.md
+       text-fire-bar 패턴 (메모리 룰 — status&#8209;prefix 사용 X).
+       → 본 sketch class 본문 0건 (var() 인라인만 사용).
+
+    7. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave wrangler 금지. main push → cbc7119-preview 자동.
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18 업무 수행 기록표 — sketch W3 기본정보 + 4 카테고리</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-focus:    #3b82f6;
+      --accent:          #3b82f6;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-focus:    #1f6feb;
+      --accent:          #1f6feb;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+    }
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px; line-height: 1.7; -webkit-font-smoothing: antialiased;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body    { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .leading-none { line-height: 1; }
+
+    .page-bg-dark { background: #0a0d12; }
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .variant-label {
+      font-size: 12px; color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * §2.1 W3 신규 정의 (WorkLogPage line 32~42 + 339~605 매핑)
+     * card (line 32~35) → .worklog-section-card
+     * textareaStyle (line 37~42) → .worklog-textarea
+     * ============================================================ */
+    .worklog-section-card {
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .worklog-section-title {
+      /* source line 340 fontSize:13 → 18 (text-title, 노안 격상) */
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .worklog-field-label {
+      /* source line 341/361/375/404 fontSize:11 → 12 (text-caption, 노안 격상) */
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    .worklog-field-label--mt {
+      margin-top: 8px;
+    }
+    .worklog-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      /* source line 37~42 fontSize:12 → 14 (text-body-sm, 노안 격상) */
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      resize: vertical;
+      font-family: inherit;
+    }
+    .worklog-textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    .worklog-input {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-family: inherit;
+    }
+    .worklog-toggle-row {
+      display: flex;
+      gap: 6px;
+    }
+    .worklog-result-toggle {
+      padding: 5px 16px;
+      border-radius: 7px;
+      font-size: 12px;
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+    }
+    /* OQ #3 default: 양호 = status-safe / 불량 = status-danger */
+    .worklog-result-toggle--ok {
+      background: var(--status-safe-bar);
+      border-color: var(--status-safe-bar);
+      color: #fff;
+    }
+    .worklog-result-toggle--bad {
+      background: var(--status-danger-bar);
+      border-color: var(--status-danger-bar);
+      color: #fff;
+    }
+    .worklog-result-toggle--unselected {
+      /* unselected default markup */
+    }
+    .worklog-action-label {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+    .worklog-action-label--bad {
+      /* source line 404 if result === 'bad' → var(--warn) */
+      color: var(--status-warning-bar);
+    }
+    /* OQ #2 default: admin readOnly opacity 0.5 + cursor default */
+    .worklog-readonly {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .worklog-readonly .worklog-textarea,
+    .worklog-readonly .worklog-input {
+      cursor: default;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[1400px] mx-auto">
+    <h1 class="text-heading text-white mb-2">18-worklog sketch W3 — 기본 정보 + 4 카테고리 카드 (공통 WorkLogSection 패턴)</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × admin / readOnly / bad result / 4 카테고리 4 frame.
+      WorkLogPage.tsx line 32~42 (card / textareaStyle) + line 339~605 (5 카드 = 기본정보 1 + 카테고리 4) verbatim 매핑.
+      OQ #2 default: admin readOnly opacity 0.5 / OQ #3 default: 양호 safe / 불량 danger / 보고·조치 accent (W4).
+      fireResult/escapeResult 2-state vs gasResult/etcResult 3-state — markup 동일, 비즈 차이 W7 박제.
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / admin (default) — 기본정보 + 소방시설 카드 ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / admin 편집 가능 (기본정보 + 소방시설 양호)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <!-- 기본 정보 카드 (line 339~355 verbatim) -->
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">기본 정보</div>
+            <div class="worklog-field-label">관리자</div>
+            <input type="text" class="worklog-input" value="윤종엽" placeholder="관리자 이름을 입력하세요" />
+          </div>
+
+          <!-- 소방시설 카드 (line 357~418 verbatim, fireResult='ok') -->
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">소방시설</div>
+
+            <div class="worklog-field-label">확인내용</div>
+            <textarea class="worklog-textarea" rows="4">월 1회 옥내소화전 펌프 작동 시험 정상. 자동화재탐지설비 수신반 점검 완료. 스프링클러 압력 정상 범위 유지.</textarea>
+
+            <div class="worklog-field-label worklog-field-label--mt">결과</div>
+            <div class="worklog-toggle-row">
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--ok">양호</button>
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--unselected">불량</button>
+            </div>
+
+            <div class="worklog-action-label">조치내역</div>
+            <textarea class="worklog-textarea" rows="3" placeholder="조치 내역 없음"></textarea>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 불량 시 조치내역 라벨 색 변경 ─────
+         (피난방화시설 카드 — escapeResult='bad', 조치내역 라벨 var(--warn))
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / 불량 result → 조치내역 라벨 warning 색</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <!-- 피난방화시설 카드 (line 420~481 verbatim, escapeResult='bad') -->
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">피난방화시설</div>
+
+            <div class="worklog-field-label">확인내용</div>
+            <textarea class="worklog-textarea" rows="3">방화문 자폐 장치 일부 미작동 발견. 비상 유도등 점등 정상. 피난기구 외관 점검 완료.</textarea>
+
+            <div class="worklog-field-label worklog-field-label--mt">결과</div>
+            <div class="worklog-toggle-row">
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--unselected">양호</button>
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--bad">불량</button>
+            </div>
+
+            <!-- 조치내역 라벨 — escapeResult==='bad' 분기 (line 467) → warning 색 -->
+            <div class="worklog-action-label worklog-action-label--bad">조치내역</div>
+            <textarea class="worklog-textarea" rows="3">B1F 방화문 4번 자폐 장치 조정 완료. B2F 방화문 자폐 장치 부품 발주 (다음 점검 시 교체 예정).</textarea>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 다크 / admin readOnly (OQ #2) — 화기취급감독 카드 3-state ─────
+         (gasResult/etcResult 만 3-state — 같은 버튼 재클릭 시 unset)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 다크 / admin readOnly opacity 0.5 (OQ #2) + 3-state 토글 default</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <!-- 화기취급감독 카드 (line 483~543 verbatim, gasResult=''  → 3-state default) -->
+          <!-- OQ #2 default: admin readOnly 시 카드 전체 opacity 0.5 + 모든 input/textarea/button 비활성 시각 -->
+          <div class="worklog-section-card worklog-readonly">
+            <div class="worklog-section-title">화기취급감독</div>
+
+            <div class="worklog-field-label">확인내용</div>
+            <textarea class="worklog-textarea" rows="2" readonly>(미입력 — assistant 권한)</textarea>
+
+            <div class="worklog-field-label worklog-field-label--mt">결과</div>
+            <div class="worklog-toggle-row">
+              <!-- 3-state default: 양호/불량 모두 unselected (gasResult === '') -->
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--unselected">양호</button>
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--unselected">불량</button>
+            </div>
+
+            <div class="worklog-action-label">조치내역</div>
+            <textarea class="worklog-textarea" rows="3" readonly placeholder="조치 내역 없음"></textarea>
+          </div>
+
+          <!-- 비즈 차이 안내 (sketch 안 메타) -->
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.6; color: var(--text-tertiary);">
+            <b style="color: var(--text-secondary);">비즈 차이 (W7 박제):</b><br/>
+            소방시설/피난방화 = 2-state — setFireResult('ok'|'bad'), 재클릭 X (line 380/391)<br/>
+            화기취급/기타사항 = 3-state — setGasResult(gasResult === val ? '' : val), 재클릭 시 unset (line 505/516/567/578)
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 기타사항 카드 (4번째 카테고리 시각화) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / 기타사항 카드 (etcResult='ok', 3-state 선택)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <div style="background: var(--surface-page); padding: 12px 16px;">
+
+          <!-- 기타사항 카드 (line 545~605 verbatim) -->
+          <div class="worklog-section-card">
+            <div class="worklog-section-title">기타사항</div>
+
+            <div class="worklog-field-label">확인내용</div>
+            <textarea class="worklog-textarea" rows="3">소방용 펌프실 점검. 비상발전기 시운전 정상. 가스누설 경보기 1대 배터리 교체 대상 발견.</textarea>
+
+            <div class="worklog-field-label worklog-field-label--mt">결과</div>
+            <div class="worklog-toggle-row">
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--ok">양호</button>
+              <button type="button" class="worklog-result-toggle worklog-result-toggle--unselected">불량</button>
+            </div>
+
+            <div class="worklog-action-label">조치내역</div>
+            <textarea class="worklog-textarea" rows="3" placeholder="조치 내역 없음"></textarea>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       비즈 anchor 박제 (시안 안 메타, W7 변환 wave 참조용)
+       ============================================================ -->
+  <footer class="max-w-[1400px] mx-auto mt-12 text-zinc-400" style="font-size: 12px; line-height: 1.7;">
+    <h2 class="text-title text-zinc-200 mb-2">W7 변환 시 보존 비즈 anchor (5 카드 공통)</h2>
+    <ul class="space-y-1">
+      <li>card wrapper — WorkLogPage.tsx line 32~35 (bg-bg2 + border + radius 14 + padding 14 + marginBottom 10)</li>
+      <li>4 카테고리 동일 패턴 → 공통 WorkLogSection 추출 후보 (18-worklog.md §4 지시)</li>
+      <li>fireResult/escapeResult 2-state — line 69/72 ('ok'|'bad'), line 380/391 단방향 setX(val)</li>
+      <li>gasResult/etcResult 3-state — line 75/78 (''|'ok'|'bad'), line 505/516/567/578 setX(x===val ? '' : val) unset 토글</li>
+      <li>조치내역 라벨 color var(--warn) if result==='bad' — line 404/467/529/591 분기</li>
+      <li>readOnly={!isAdmin} 14건 — line 348/368/410/431/473/493/535/555/597 (admin = staff?.role==='admin' line 61 single source)</li>
+      <li>skeleton 폴백 — line 51 skeletonStyle, isLoading 분기 markup 보존</li>
+      <li>OQ #2 default: admin readOnly 시 input/textarea/토글 모두 opacity 0.5 + cursor default 시각</li>
+      <li>OQ #3 default: 양호 = var(--safe) / 불량 = var(--danger) / 보고·조치방법 (W4) = var(--acl) 의미 분리</li>
+      <li>WorkLogSection props (W7 추출 시): title, contentLabel, contentValue, onContentChange, resultValue, onResultChange, resultArity (2|3), actionValue, onActionChange, isLoading, readOnly</li>
+    </ul>
+  </footer>
+
+</body>
+</html>

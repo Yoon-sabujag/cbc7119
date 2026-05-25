@@ -494,6 +494,484 @@
        SW1 components.css 작성 대상 외 (sketch only). */
   }
 
+  /* ============================================================
+   * §13. 18-worklog (W2~W6, ~40 class) — TSX 변환 wave 260525-uou
+   * Source: sketch-wave-{2,3,4,5,6}-*.html `<style>` block verbatim
+   * 메모리 룰 inline (W7 §13 박제 — 12 unique slug):
+   * - feedback_planner_prompt_sketch_verbatim (sketch fence verbatim paste)
+   * - feedback_redesign_sketch_rule_enforcement (§6.2 양호/불량 status / 보고·조치 accent 의미 분리)
+   * - feedback_sketch_realistic_data (markup 변경 0, 비즈 분기 보존)
+   * - feedback_tsx_wave_emoji_dot_gap (warning glyph → lucide, 이모지 0)
+   * - feedback_tsx_wave_stat_card_drift (sketch class verbatim 강제)
+   * - feedback_text_caption_leading_none (12px 컨테이너 line-height: 1 동반)
+   * - feedback_tailwind_token_class_pattern (status- prefix 0, 토큰 var() 사용)
+   * - feedback_tailwind_w8_h8_is_48px (28/34 명시 px, w-N h-N 없이 정의)
+   * - feedback_cbc7119_design_never_wrangler (wrangler 0 / npm run deploy 0)
+   * - feedback_design_changes_ask_first (구조 변경 없음, 외곽 chrome 만)
+   * - feedback_check_branch_before_edit (redesign/18-worklog branch verify)
+   * - feedback_avoid_premature_confirmation (build 결과 위주)
+   * ============================================================ */
+
+  /* ── §13.1 W2 monthNav (5 class) ─────────────────── */
+  /* sketch-wave-2-mobile-header-month-nav.html line 197~244 verbatim */
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* source line 711 gap 8 → 4 (back-btn 옆 컴팩트) */
+  }
+  .month-nav-btn {
+    width: 28px;  /* source line 25 width:28 verbatim */
+    height: 28px;
+    border-radius: 6px; /* source navBtn radius 7 → 6 (sm-token 일관) */
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1; /* source line 27 lineHeight:'1' verbatim + memory feedback_text_caption_leading_none */
+  }
+  .month-nav-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed; /* OQ #4 default — 미래월 disabled */
+  }
+  .month-picker-trigger {
+    position: relative;
+  }
+  .month-display {
+    min-width: 90px; /* source line 716 minWidth:90 verbatim */
+    text-align: center;
+    font-size: 16px; /* source line 716 fontSize:15 → 16 (text-body, 노안 격상) */
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    white-space: nowrap;
+    padding: 4px 6px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .month-picker-hidden {
+    /* source line 720~726 verbatim — opacity 0 + pointerEvents none + width/height 1 */
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    top: 0; left: 0;
+  }
+
+  /* ── §13.2 W3 section card + 5 카드 공통 (14 class) ── */
+  /* sketch-wave-3-basic-info-categories.html line 135~238 verbatim */
+  .worklog-section-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .worklog-section-title {
+    /* source line 340 fontSize:13 → 18 (text-title, 노안 격상) */
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+  .worklog-field-label {
+    /* source line 341/361/375/404 fontSize:11 → 12 (text-caption, 노안 격상) */
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+  .worklog-field-label--mt {
+    margin-top: 8px;
+  }
+  .worklog-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    /* source line 37~42 fontSize:12 → 14 (text-body-sm, 노안 격상) */
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    resize: vertical;
+    font-family: inherit;
+    outline: none;
+  }
+  .worklog-textarea:focus {
+    border-color: var(--border-strong);
+  }
+  .worklog-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+  }
+  .worklog-input:focus {
+    border-color: var(--border-strong);
+  }
+  .worklog-toggle-row {
+    display: flex;
+    gap: 6px;
+  }
+  .worklog-result-toggle {
+    padding: 5px 16px;
+    border-radius: 7px;
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    font-family: inherit;
+  }
+  /* OQ #3 default: 양호 = status-safe / 불량 = status-danger */
+  .worklog-result-toggle--ok {
+    background: var(--status-safe-bar);
+    border-color: var(--status-safe-bar);
+    color: #fff;
+  }
+  .worklog-result-toggle--bad {
+    background: var(--status-danger-bar);
+    border-color: var(--status-danger-bar);
+    color: #fff;
+  }
+  .worklog-result-toggle--unselected {
+    /* unselected default markup (toggle base 상속) */
+  }
+  .worklog-action-label {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    margin-top: 8px;
+  }
+  .worklog-action-label--bad {
+    /* source line 404/467/529/591 if result === 'bad' → var(--warn) */
+    color: var(--status-warning-bar);
+  }
+  /* OQ #2 default: admin readOnly opacity 0.5 + cursor default */
+  .worklog-readonly {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .worklog-readonly .worklog-textarea,
+  .worklog-readonly .worklog-input,
+  .worklog-readonly .worklog-result-toggle,
+  .worklog-readonly .worklog-method-btn {
+    cursor: default;
+  }
+
+  /* ── §13.3 W4 불량사항 개선보고 (10 class) ────────── */
+  /* sketch-wave-4-defect-report.html line 141~217 verbatim */
+  .worklog-report-date {
+    /* source line 612 flex gap 6 align center */
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .worklog-report-date-input {
+    /* source line 613/615/617 width 65/40/40 + textAlign center */
+    text-align: center;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 8px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+  }
+  .worklog-report-date-input--year  { width: 65px; }
+  .worklog-report-date-input--month { width: 40px; }
+  .worklog-report-date-input--day   { width: 40px; }
+  .worklog-report-dot {
+    /* source line 614/616 — color var(--t2) fontSize 12 "." 텍스트 */
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+  }
+  .worklog-method-row {
+    display: flex;
+    gap: 6px;
+  }
+  .worklog-method-row--wrap {
+    flex-wrap: wrap;
+  }
+  .worklog-method-btn {
+    /* source line 625~630 — padding 5/14 + radius 7 + fontSize 12 + 700 */
+    padding: 5px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    font-family: inherit;
+  }
+  /* OQ #3 default: 보고·조치방법 = status-accent (양호/불량 status-safe/danger 와 의미 분리) */
+  .worklog-method-btn--selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .worklog-fix-other-input {
+    /* source line 651~661 — width 160, marginTop 8, maxLength 10 */
+    width: 160px;
+    margin-top: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border-default);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+    font-family: inherit;
+    outline: none;
+  }
+  .worklog-fix-other-input:focus {
+    border-color: var(--border-strong);
+  }
+
+  /* ── §13.4 W5 footer + 데스크톱 layout (11 class) ─── */
+  /* sketch-wave-5-footer-desktop-layout.html line 130~219 verbatim */
+  .worklog-footer {
+    display: flex;
+    gap: 8px; /* source line 668 gap 8 verbatim */
+  }
+  .worklog-footer-save {
+    flex: 1;
+    padding: 12px 16px; /* source line 674 padding 11 → 12 (button-height 44 인접) */
+    border-radius: 9px;
+    border: none;
+    font-size: 16px; /* source line 675 fontSize 13 → 16 (text-body, 노안 격상) */
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 0;
+    /* OQ #1 default: solid bg-safe-bar — "lin-grad" 폐기 */
+    background: var(--status-safe-bar);
+    color: #fff;
+    font-family: inherit;
+  }
+  .worklog-footer-save--disabled {
+    background: var(--surface-sunken);
+    color: var(--text-tertiary);
+    cursor: default;
+  }
+  .worklog-footer-save-dirty {
+    /* source line 686 fontSize 11 → 12 (text-caption, 노안 격상) */
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    font-weight: 400;
+    color: var(--status-warning-bar);
+    margin-left: 6px;
+  }
+  .worklog-footer-export {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 9px;
+    border: 1px solid var(--border-default);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+  .worklog-footer-export--disabled {
+    background: var(--surface-sunken);
+    color: var(--text-tertiary);
+    cursor: default;
+  }
+  .worklog-mobile-footer {
+    /* source line 818~825 verbatim — position fixed bottom 0, paddingBottom calc + safe-area */
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 10px 16px;
+    padding-bottom: calc(10px + var(--sab)); /* memory feedback_bottomnav_gap_style */
+    background: var(--surface-raised);
+    border-top: 1px solid var(--border-default);
+    z-index: 10;
+  }
+  .worklog-desktop-layout {
+    /* source line 735 verbatim — flex row height 100% overflow hidden */
+    display: flex; flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+    background: var(--surface-page);
+  }
+  .worklog-desktop-edit-panel {
+    /* source line 739 verbatim — flex 1 overflow auto padding '24px 32px' */
+    flex: 1;
+    overflow: auto;
+    padding: 24px 32px;
+  }
+  .worklog-desktop-preview-panel {
+    /* source line 751~759 verbatim — aspectRatio 210/297 borderLeft 1px */
+    aspect-ratio: 210 / 297;
+    height: 100%;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border-default);
+    overflow: hidden;
+    background: var(--surface-page);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .worklog-desktop-print-label {
+    /* source line 760~767 verbatim — fontSize 11 → 12 (text-caption, 노안 격상) */
+    position: absolute; top: 8px; left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── §13.5 W6 WorkLogPortraitPreview wrapper (16 class) ── */
+  /* sketch-wave-6-portrait-preview-wrapper.html line 110~232 verbatim
+     OQ #5 default: 캘리브 33 step + KEY + FINGER_OFFSET + Marker 내부 0 byte. 외곽 wrapper class 만 정의. */
+  .worklog-portrait-wrapper {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-page);
+    position: relative;
+  }
+  .worklog-portrait-image {
+    max-width: 100%; max-height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+    display: block;
+  }
+  .worklog-portrait-overlay-area {
+    position: absolute;
+    pointer-events: none; /* 캘리브 모드 진입 시 인라인 'auto' 분기 */
+  }
+  .worklog-portrait-print-label {
+    /* W5 inherit — fontSize 12 (text-caption, 노안 격상) */
+    position: absolute; top: 8px; left: 0; right: 0;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    color: var(--text-secondary);
+    font-weight: 700;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 5;
+  }
+  /* OQ #5 default: 캘리브 안내 바 내부 폰트 14·11·13·12 (line 1141~1170 verbatim) — 정보 노출 UX 예외 */
+  .worklog-portrait-calib-bar {
+    /* source line 1141~1148 verbatim — position absolute top 8 left 50% translateX */
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9); color: #fff;
+    padding: 10px 20px; border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+    display: flex; align-items: center; gap: 16px; z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+  }
+  .worklog-portrait-calib-bar-step {
+    /* source line 1150~1155 verbatim — width 24 height 24 borderRadius 50% — fontSize 12 */
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .worklog-portrait-calib-bar-coord {
+    /* source line 1157 verbatim — fontSize 11 color #aaa */
+    font-size: 11px; color: #aaa;
+  }
+  .worklog-portrait-calib-confirm {
+    /* source line 1161~1164 verbatim — bg #22c55e solid */
+    background: #22c55e; border: none; color: #fff;
+    padding: 6px 16px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 700;
+    font-family: inherit;
+  }
+  .worklog-portrait-calib-cancel {
+    /* source line 1166~1169 verbatim — bg rgba(255,255,255,0.15) */
+    background: rgba(255, 255, 255, 0.15); border: none; color: #fff;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .worklog-portrait-setup-btn {
+    /* source line 1174~1187 verbatim — fontSize 12 (text-caption 그대로 OK) */
+    position: absolute; bottom: 12px; right: 12px;
+    background: rgba(0, 0, 0, 0.6); /* hasCalib=true default */
+    color: #fff; border: none;
+    padding: 8px 16px; border-radius: 8px;
+    font-size: 12px;
+    line-height: 1; /* memory feedback_text_caption_leading_none */
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 10;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  /* OQ #6 default: hasCalib=false 시 미설정 강조 + lucide AlertTriangle size=14 */
+  .worklog-portrait-setup-btn--missing {
+    background: rgba(239, 68, 68, 0.9); /* source line 1179 verbatim */
+  }
+  /* WorkLogCalibMarker — 외곽 wrapper 안 십자+원 (source line 1193~1216 verbatim).
+     OQ #5: 컴포넌트 내부는 0 byte. 클래스는 wrapper 시각화 mirror 용. */
+  .worklog-portrait-calib-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .worklog-portrait-calib-marker-h {
+    position: absolute; left: -20px; top: 0;
+    width: 40px; height: 2px;
+    opacity: 0.8;
+  }
+  .worklog-portrait-calib-marker-v {
+    position: absolute; top: -20px; left: 0;
+    width: 2px; height: 40px;
+    opacity: 0.8;
+  }
+  .worklog-portrait-calib-marker-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    font-weight: 900; color: #fff;
+    transform: translate(-50%, -50%);
+    position: absolute; left: 0; top: 0;
+    line-height: 1;
+  }
+  .worklog-portrait-calib-marker-dot--active {
+    width: 20px; height: 20px;
+  }
+
 }
 
 /* ── §12. @keyframes blink (W3 .summary-card-skeleton 의존) ── */

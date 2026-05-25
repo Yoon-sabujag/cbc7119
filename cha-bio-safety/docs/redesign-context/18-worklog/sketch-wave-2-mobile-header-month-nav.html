@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-mobile-header-month-nav.html — redesign/18-worklog W2
+  작성: 2026-05-25 / quick 260525-mbr
+  범위: 모바일 자체 헤더 + monthNav (다크/라이트 × 현재월/미래월 = 4 frame 393px)
+  out of scope: 5 카드 (W3·W4) / footerButtons + 모바일/데스크톱 layout (W5) /
+                WorkLogPortraitPreview wrapper (W6) / TSX checklist (W7)
+  참조: wave-1-index.md §1.2 / §1.4 / §1.5 / §2.1 W2 행 verbatim,
+        WorkLogPage.tsx line 25~30 (navBtn) + 44~48 (iconBtn) +
+                          line 709~730 (monthNav 공통) +
+                          line 801~809 (모바일 자체 헤더) verbatim,
+        15-daily-report/sketch-wave-2-mobile-header-date-nav.html (quad-frame layout) mirror,
+        14-reports SW1 components.css line 23~25 (.page-header / .back-btn / .page-title) inherit
+
+  W1 LOCKED 6건 적용 매트릭스 (wave-1-index.md §7 OQ default verbatim):
+    OQ #1 ▶ default: 저장 button solid bg-safe-bar (W5 scope, W2 미해당)
+    OQ #2 ▶ default: admin readOnly opacity 0.5 (W3 scope, W2 미해당)
+    OQ #3 ▶ default: 양호 safe / 불량 danger / 보고·조치 accent (W3·W4 scope, W2 미해당)
+    OQ #4 ▶ default: 미래 월 ‹/› disabled + monthPicker max="현재월" (본 W2 적용 = O)
+    OQ #5 ▶ default: 캘리브 33 step 100% 보존 (W6 scope, W2 미해당)
+    OQ #6 ▶ default: line 1185 warning glyph → lucide AlertTriangle (W6 scope, W2 미해당)
+
+  ==========================================================
+  메모리 룰 박제 (wave-1-index.md §5 verbatim slug)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md
+       spacing/sizing 도 sketch 시안 먼저 보여주고 승인 받은 후 인라인 적용.
+       → 본 sketch W2 가 W3~W6 진입 전 모바일 헤더 + monthNav 패턴 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       → 헤더 타이틀 = "업무 수행 기록표" verbatim (line 807) /
+         monthNav 안 월 표시 = `${year}년 ${month}월` verbatim (line 718) /
+         monthPickerRef showPicker?.() ?? click() verbatim (line 715).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W7 변환 wave 에 그대로 인용.
+       → 본 sketch 의 .month-nav / .month-nav-btn / .month-display / .month-picker-trigger 4 class 정의 +
+         .page-header / .back-btn / .page-title 3 inherit comment 모두 W7 checklist 안 verbatim 인용.
+
+    4. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       메모리 룰 spacing alias 가 기본값(w-8=32)이 아니라 w-8=48 로 override.
+       → 본 sketch 는 source navBtn 28x28 (line 25~30) / iconBtn 34x34 (line 44~48)
+         모두 CSS 명시 px (width: 28px / 34px) 사용. Tailwind w-N h-N utility 본문 0건.
+
+    5. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩. leading-none 명시.
+       → .month-display + .month-nav-btn 모두 line-height: 1 명시 (source line 27 lineHeight:'1' verbatim).
+
+    6. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0) + dot span 추가 markup 도 verify.
+       → 본 sketch 안 ‹/› 글리프 텍스트 0건 / lucide ChevronLeft size=15 (back-btn) +
+         ChevronLeft size=16 (monthNav prev) + ChevronRight size=16 (monthNav next) inline SVG.
+         이모지 글리프 0건.
+
+    7. feedback_cbc7119_design_never_wrangler.md
+       디자인 wave 중 wrangler 명령 금지 (직원 도메인 보호).
+       → 본 wave 산출물은 sketch HTML 1개 + atomic commit 만.
+         main push 시 GitHub Actions 가 cbc7119-preview 자동 배포.
+
+    8. feedback_redesign_sketch_rule_enforcement.md (§6.2 일관성)
+       sketch 룰 강제. negative rule 박제.
+       → status&#8209;prefix tailwind class 본문 0건 (text-fire-bar pattern 만).
+  ==========================================================
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18 업무 수행 기록표 — sketch W2 모바일 헤더 + monthNav</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+      --accent:          #3b82f6;
+      --status-safe-bar:    #22c55e;
+      --status-warning-bar: #f59e0b;
+      --status-danger-bar:  #ef4444;
+      --status-fire-bar:    #f97316;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+      --accent:          #1f6feb;
+      --status-safe-bar:    #15803d;
+      --status-warning-bar: #b45309;
+      --status-danger-bar:  #b91c1c;
+      --status-fire-bar:    #c2410c;
+    }
+
+    /* Typography (typography.css verbatim subset) */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .text-caption { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label   { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body    { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .text-title   { font-size: 18px; line-height: 1.4; font-weight: 500; }
+    .text-heading { font-size: 22px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; }
+    .leading-none { line-height: 1; }
+
+    /* Sketch chrome 헬퍼 */
+    .page-bg-dark  { background: #0a0d12; }
+    .frame-shell {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .global-header-placeholder {
+      height: 48px;
+      background: rgba(0, 0, 0, 0.4);
+      color: #888;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border-default);
+    }
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+
+    /* ============================================================
+     * 자체 헤더 chrome — 14-reports SW1 inherit (components.css verbatim)
+     * ============================================================ */
+    .page-header {
+      flex-shrink: 0;
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      padding: 8px 12px 9px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .back-btn {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .page-title {
+      flex: 1;
+      font-size: 18px; /* source line 807 fontSize:14 → 18 노안 격상 */
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+     * §2.1 W2 monthNav 신규 정의 — WorkLogPage line 25~30 + 709~730 매핑
+     *   - .month-nav            (line 711 wrapper, gap 8)
+     *   - .month-nav-btn        (line 25~30 navBtn 28x28 → border-radius 7 → 6 sm-token 일관, leading-none)
+     *   - .month-display        (line 716 minWidth:90 + fontSize:15 → 16 검토, leading-none, button reset)
+     *   - .month-picker-trigger (line 713~727 wrapper relative + 숨김 input 안 button)
+     * w-8=48 함정 회피 (memory feedback_tailwind_w8_h8_is_48px) — 모두 명시 px.
+     * ============================================================ */
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 4px; /* source line 711 gap 8 → 4 (back-btn 옆 컴팩트, 노안 위해 ‹·› 자체는 28px 유지) */
+    }
+    .month-nav-btn {
+      width: 28px;  /* source line 25 width:28 verbatim */
+      height: 28px; /* source line 25 height:28 verbatim */
+      border-radius: 6px; /* source navBtn radius 7 → 6 (sm-token 일관) */
+      border: 1px solid var(--border-default);
+      background: var(--surface-sunken);
+      color: var(--text-primary);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1; /* source line 27 lineHeight:'1' verbatim + memory feedback_text_caption_leading_none */
+    }
+    .month-nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed; /* OQ #4 default — 미래월 disabled */
+    }
+    .month-picker-trigger {
+      position: relative;
+    }
+    .month-display {
+      min-width: 90px; /* source line 716 minWidth:90 verbatim */
+      text-align: center;
+      font-size: 16px; /* source line 716 fontSize:15 → 16 (text-body, 노안 격상) */
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1; /* memory feedback_text_caption_leading_none */
+      white-space: nowrap;
+      padding: 4px 6px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    .month-picker-hidden {
+      /* source line 720~726 verbatim — opacity 0 + pointerEvents none + width/height 1 */
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+      top: 0; left: 0;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'surface-active':  'var(--surface-active)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'text-disabled':   'var(--text-disabled)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'accent':          'var(--accent)',
+            'safe-bar':        'var(--status-safe-bar)',
+            'warning-bar':     'var(--status-warning-bar)',
+            'danger-bar':      'var(--status-danger-bar)',
+            'fire-bar':        'var(--status-fire-bar)',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <header class="mb-6 max-w-[900px] mx-auto">
+    <h1 class="text-heading text-white mb-2">18-worklog sketch W2 — 모바일 헤더 + monthNav</h1>
+    <p class="text-label text-zinc-400">
+      모바일 393px × 다크/라이트 × 현재월(2026-05) / 미래월(2026-06) 시도 후 4 frame.
+      14-reports W2 chrome 패턴 inherit (.page-header / .back-btn / .page-title) + 신규 monthNav 4 class 정의.
+      WorkLogPage.tsx line 709~730 (monthNav) + line 801~809 (모바일 헤더) + line 720~726 (숨김 input month picker) verbatim 매핑.
+      OQ #4 default: 미래 월 ‹/› disabled + monthPicker max="현재월".
+    </p>
+  </header>
+
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── F1: 다크 / 현재월 (2026-05, 미래월 진입 전, ‹/› 둘 다 enabled) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F1 — 다크 / 현재월 (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <!-- App.tsx GlobalHeader placeholder (/worklog 모바일 무노출, chrome 통일 룰) -->
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /worklog 자체 헤더 페이지 → 모바일 hide)</div>
+
+        <!-- ① 자체 헤더 — WorkLogPage.tsx line 801~809 verbatim -->
+        <header class="page-header">
+          <!-- 백 버튼 (line 802~806) — iconBtn 34x34 + lucide ChevronLeft size=15
+               (raw svg 폐기, design-system §7.1 / memory feedback_tsx_wave_emoji_dot_gap) -->
+          <button class="back-btn" aria-label="뒤로 가기" title="뒤로 가기 (navigate(-1))">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <!-- 페이지 타이틀 (line 807) — "업무 수행 기록표" verbatim + 노안 격상 14 → 18 -->
+          <span class="page-title">업무 수행 기록표</span>
+
+          <!-- ② monthNav (line 709~730 verbatim) -->
+          <div class="month-nav">
+            <!-- ‹ navBtn (line 712, changeMonth(addMonths(ym,-1))) → lucide ChevronLeft size=16 -->
+            <button class="month-nav-btn" aria-label="이전 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+
+            <!-- 월 표시 + 숨겨진 input picker (line 713~727 verbatim) -->
+            <div class="month-picker-trigger">
+              <button class="month-display leading-none" title="showPicker?.() ?? click()">2026년 5월</button>
+              <!-- OQ #4: input type='month' max="2026-05" — 현재월 = thisMonthKST() verbatim -->
+              <input type="month" class="month-picker-hidden" value="2026-05" max="2026-05" aria-label="월 선택" />
+            </div>
+
+            <!-- › navBtn (line 728) — 현재월 시 enabled -->
+            <button class="month-nav-btn" aria-label="다음 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 placeholder (W3~W6 책임) -->
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            W3~W4 책임 영역 — 기본정보 + 4 카테고리 + 불량사항 개선보고 카드 + footerButtons (본 W2 시안 범위 외)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F2: 다크 / 미래월 시도 후 (› disabled — OQ #4) ─────
+         (소스는 미래 월 가드 없음; OQ #4 default = 추가하기로 결정)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F2 — 다크 / 미래월 시도 → › disabled (393px 모바일)</div>
+      <div data-theme="dark" class="frame-shell">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /worklog 자체 헤더 페이지 → 모바일 hide)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">업무 수행 기록표</span>
+
+          <div class="month-nav">
+            <button class="month-nav-btn" aria-label="이전 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+
+            <div class="month-picker-trigger">
+              <button class="month-display leading-none">2026년 5월</button>
+              <!-- OQ #4: max="2026-05" 동일 — picker 도 미래 차단 -->
+              <input type="month" class="month-picker-hidden" value="2026-05" max="2026-05" aria-label="월 선택" />
+            </div>
+
+            <!-- OQ #4 default: 현재월 ≥ ym 인 경우 › disabled (opacity 0.4, cursor not-allowed) -->
+            <button class="month-nav-btn" aria-label="다음 달" disabled title="현재 월 이후로는 이동할 수 없습니다">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            미래월 진입 차단 — OQ #4 default: ‹/› button disabled + monthPicker max="현재월" 동시 가드
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F3: 라이트 / 현재월 (F1 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F3 — 라이트 / 현재월 (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /worklog 자체 헤더 페이지 → 모바일 hide)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">업무 수행 기록표</span>
+
+          <div class="month-nav">
+            <button class="month-nav-btn" aria-label="이전 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <div class="month-picker-trigger">
+              <button class="month-display leading-none">2026년 5월</button>
+              <input type="month" class="month-picker-hidden" value="2026-05" max="2026-05" aria-label="월 선택" />
+            </div>
+            <button class="month-nav-btn" aria-label="다음 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            라이트 토큰 자동 매핑 — 모든 색은 var(--*) 만 사용
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         ───── F4: 라이트 / 미래월 시도 후 (F2 mirror) ─────
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">F4 — 라이트 / 미래월 시도 → › disabled (393px 모바일)</div>
+      <div data-theme="light" class="frame-shell">
+
+        <div class="global-header-placeholder">App GlobalHeader (h-12, /worklog 자체 헤더 페이지 → 모바일 hide)</div>
+
+        <header class="page-header">
+          <button class="back-btn" aria-label="뒤로 가기">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+
+          <span class="page-title">업무 수행 기록표</span>
+
+          <div class="month-nav">
+            <button class="month-nav-btn" aria-label="이전 달">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            <div class="month-picker-trigger">
+              <button class="month-display leading-none">2026년 5월</button>
+              <input type="month" class="month-picker-hidden" value="2026-05" max="2026-05" aria-label="월 선택" />
+            </div>
+            <button class="month-nav-btn" aria-label="다음 달" disabled title="현재 월 이후로는 이동할 수 없습니다">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div style="padding: 12px 16px; min-height: 320px; background: var(--surface-page);">
+          <div style="border: 1px dashed var(--border-default); border-radius: 8px; padding: 14px; color: var(--text-tertiary); font-size: 12px; text-align: center; line-height: 1.6;">
+            라이트 / › disabled — opacity 0.4 + cursor not-allowed (OQ #4 default)
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       비즈 anchor 박제 (시안 안 메타, W7 변환 wave 참조용)
+       ============================================================ -->
+  <footer class="max-w-[900px] mx-auto mt-12 text-zinc-400" style="font-size: 12px; line-height: 1.7;">
+    <h2 class="text-title text-zinc-200 mb-2">W7 변환 시 보존 비즈 anchor</h2>
+    <ul class="space-y-1">
+      <li>useNavigate(-1) — WorkLogPage.tsx line 802 (back-btn onClick)</li>
+      <li>changeMonth — line 190~201 (prevYmRef/loadedRef 리셋 + 14 state 초기화 + setYm(newYm))</li>
+      <li>addMonths(ym, ±1) — line 18~22 (월 ±1 계산, KST 'YYYY-MM' 형식 유지)</li>
+      <li>monthPickerRef.current?.showPicker?.() ?? monthPickerRef.current?.click() — line 715 (iOS Safari fallback)</li>
+      <li>input type='month' 숨김 markup — line 720~726 (position absolute opacity 0 pointerEvents none width 1 height 1) verbatim</li>
+      <li>ym state 형식 'YYYY-MM' — line 63 (thisMonthKST())</li>
+      <li>OQ #4 default 적용: addMonths 호출 전 ym &lt; thisMonthKST() 가드 + ‹/› disabled 분기 추가 (소스에 없는 신규 가드)</li>
+      <li>monthPicker max="현재월" — input element 에 max 속성 추가 (소스 line 720~726 에 신규 prop)</li>
+    </ul>
+  </footer>
+
+</body>
+</html>
