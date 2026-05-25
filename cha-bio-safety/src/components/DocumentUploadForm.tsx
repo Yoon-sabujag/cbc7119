@@ -177,40 +177,19 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
   const label = typeLabel(type)
   const canSubmit = !isUploading && !!file && !!title.trim()
 
-  const inputBaseStyle: React.CSSProperties = {
-    width: '100%',
-    height: 44,
-    padding: '0 12px',
-    background: 'var(--bg4)',
-    color: 'var(--t1)',
-    border: '1px solid var(--bd)',
-    borderRadius: 8,
-    fontSize: 14,
-    outline: 'none',
-    boxSizing: 'border-box',
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 14,
-    fontWeight: 600,
-    color: 'var(--t1)',
-    marginBottom: 8,
-  }
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="docs-form">
       {/* Title */}
-      <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--t1)' }}>{label} 업로드</div>
+      <div className="docs-form-title">{label} 업로드</div>
 
       {/* Year */}
       <div>
-        <label style={labelStyle}>연도</label>
+        <label className="docs-input-label">연도</label>
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
           disabled={isUploading}
-          style={inputBaseStyle}
+          className="docs-input"
         >
           {yearOptions.map((y) => (
             <option key={y} value={y}>
@@ -222,20 +201,20 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
 
       {/* Title */}
       <div>
-        <label style={labelStyle}>제목</label>
+        <label className="docs-input-label">제목</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={`예: ${currentYear}년 ${label}`}
           disabled={isUploading}
-          style={inputBaseStyle}
+          className="docs-input"
         />
       </div>
 
       {/* File */}
       <div>
-        <label style={labelStyle}>파일</label>
+        <label className="docs-input-label">파일</label>
         <input
           ref={fileInputRef}
           type="file"
@@ -248,67 +227,28 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          style={{
-            width: '100%',
-            height: 44,
-            padding: '0 12px',
-            background: 'var(--bg3)',
-            color: file ? 'var(--t1)' : 'var(--t2)',
-            border: '1px dashed var(--bd2)',
-            borderRadius: 8,
-            fontSize: 14,
-            textAlign: 'left',
-            cursor: isUploading ? 'not-allowed' : 'pointer',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
+          className={file ? 'docs-file-btn docs-file-btn--filled' : 'docs-file-btn'}
         >
           {file ? `${file.name} · ${formatBytes(file.size)}` : '파일 선택'}
         </button>
-        <div style={{ fontSize: 12, fontWeight: 400, color: 'var(--t2)', marginTop: 8 }}>
-          PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB
-        </div>
+        <div className="docs-file-hint">PDF, XLSX, DOCX, PPTX, HWP, ZIP · 최대 500MB</div>
       </div>
 
       {/* Progress block */}
       {progress !== null && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="docs-progress-wrap">
           <div
             role="progressbar"
             aria-valuenow={Math.round(progress.percent)}
             aria-valuemin={0}
             aria-valuemax={100}
-            style={{
-              height: 8,
-              background: 'var(--bg4)',
-              borderRadius: 4,
-              overflow: 'hidden',
-            }}
+            className="docs-progress-bar"
           >
-            <div
-              style={{
-                width: `${progress.percent}%`,
-                height: '100%',
-                background: '#2f81f7',
-                borderRadius: 4,
-                transition: 'width 240ms linear',
-              }}
-            />
+            <div className="docs-progress-fill" style={{ width: `${progress.percent}%` }} />
           </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 12,
-              fontFamily: "'JetBrains Mono', monospace",
-            }}
-          >
-            <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--t1)' }}>
-              {Math.round(progress.percent)}%
-            </span>
-            <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--t2)', textAlign: 'right' }}>
+          <div className="docs-progress-meta">
+            <span className="docs-progress-percent">{Math.round(progress.percent)}%</span>
+            <span className="docs-progress-speed">
               {progress.speedBps < 100 * 1024
                 ? `${formatBytes(progress.loadedBytes)} / ${formatBytes(progress.totalBytes)} · 속도 계산 중…`
                 : `${formatBytes(progress.loadedBytes)} / ${formatBytes(progress.totalBytes)} · ${(
@@ -323,77 +263,25 @@ export default function DocumentUploadForm({ type, onClose }: Props) {
 
       {/* Error block */}
       {error && !isUploading && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-            padding: 12,
-            background: 'var(--bg3)',
-            border: '1px solid var(--bd)',
-            borderRadius: 8,
-          }}
-        >
-          <span style={{ color: 'var(--danger)', fontSize: 14, fontWeight: 500, flex: 1 }}>
-            {error}
-          </span>
-          <button
-            type="button"
-            onClick={handleRetry}
-            style={{
-              height: 36,
-              padding: '0 14px',
-              background: '#2f81f7',
-              color: '#ffffff',
-              fontSize: 14,
-              fontWeight: 600,
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-          >
+        <div className="docs-error-block">
+          <span className="docs-error-msg">{error}</span>
+          <button type="button" onClick={handleRetry} className="docs-error-retry">
             다시 시도
           </button>
         </div>
       )}
 
       {/* Action row */}
-      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+      <div className="docs-action-row">
         <button
           type="button"
           onClick={handleSubmit}
           disabled={!canSubmit}
-          style={{
-            flex: 1,
-            height: 44,
-            background: canSubmit ? '#2f81f7' : 'var(--bg3)',
-            color: canSubmit ? '#ffffff' : 'var(--t3)',
-            fontSize: 15,
-            fontWeight: 600,
-            border: 'none',
-            borderRadius: 8,
-            cursor: canSubmit ? 'pointer' : 'not-allowed',
-          }}
+          className="btn-primary-gradient"
         >
           {isUploading ? '업로드 중…' : '업로드'}
         </button>
-        <button
-          type="button"
-          onClick={handleCancel}
-          style={{
-            flex: 1,
-            height: 44,
-            background: 'transparent',
-            color: 'var(--t1)',
-            fontSize: 15,
-            fontWeight: 600,
-            border: '1px solid var(--bd)',
-            borderRadius: 8,
-            cursor: 'pointer',
-          }}
-        >
+        <button type="button" onClick={handleCancel} className="docs-cancel-btn">
           취소
         </button>
       </div>
