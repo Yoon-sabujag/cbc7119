@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-instructions-categories.html — redesign/25-qr-print W3
+  작성: 2026-05-26 / quick 260526-9yw
+  범위: QRPrintPage.tsx 안내 박스 (line 266~270) + 카테고리 목록 wrapper (line 274~275)
+        + CATEGORIES.map 카드 7건 (line 276~305) + 카드 타이틀 + 버튼 row placeholder (W4 책임)
+        4 frame (다크 7 카드 / 라이트 7 카드 / 다크 안내 박스 단독 / 라이트 카드 hover) state 매트릭스
+  out of scope: 외곽 wrapper + 자체 헤더 (W2 책임) / 다운로드 버튼 + PDF 생성 + 인쇄 모드 분기 (W4 책임)
+                / TSX 변환 (W5 별도 wave) / QRPrintPage.tsx 코드 수정 / App.tsx
+  참조: wave-1-index.md §3 / §7 verbatim, sketch-wave-2-chrome-header.html mirror
+
+  ★ W1 OQ LOCKED 5건 적용 매트릭스 (본 wave):
+    OQ #1 LOCKED — 다운로드 버튼 그라데이션 (W4 scope, 본 wave 미해당 — 버튼 row 만 placeholder)
+    OQ #2 LOCKED — 안내 박스 rgba(14,165,233,.08/.25) -> bg-status-info-bg + border-status-info-bar 치환
+                    color var(--t2) -> text-text-secondary / lineHeight 1.6 -> leading-relaxed (본 wave 적용 = O ★ 핵심)
+    OQ #3 LOCKED — 뒤로가기 Lucide ChevronLeft (W2 scope, 본 wave 미해당)
+    OQ #4 LOCKED — 카드 외곽 hex 토큰 치환 (--bg2 -> --surface-raised / --bd -> --border-default /
+                    --t1 -> --text-primary, line 280~281 카드 wrapper + 카드 타이틀) (본 wave 적용 = O ★ 핵심)
+    OQ #5 LOCKED — 비즈 anchor CATEGORIES 배열 7건 (line 17~25) + hasPublic 분기 + 카드 wrapper outline
+                    1 byte 변경 금지 fence 박제 (본 wave 적용 = O ★ 핵심)
+
+  ==========================================================
+  메모리 룰 박제 (W1 인덱스 §5 verbatim, 본 wave 작용 룰)
+  ==========================================================
+
+    1. feedback_design_sketch_first.md — 본 sketch 가 안내 박스 토큰 치환 + 카드 grid 컨펌용.
+
+    2. feedback_sketch_realistic_data.md
+       표시 분기/라벨 룰은 코드 그대로, 시각 디자인만 손봄.
+       -> 안내 카피 2줄 verbatim (line 268~269) / CATEGORIES 7건 verbatim (line 17~25, value/label/hasPublic 그대로)
+          / 카드 타이틀 = cat.label verbatim / hasPublic 분기 코드 그대로 (W4 책임).
+
+    3. feedback_planner_prompt_sketch_verbatim.md
+       sketch CSS 토큰/사이즈는 grep 으로 추출해 W5 checklist 안에 그대로 인용.
+       -> 안내 박스 (bg-status-info-bg / border border-status-info-bar / rounded-md / padding 10px 13px /
+          text-caption text-text-secondary leading-relaxed) + 안내 wrapper (padding 10px 14px 4px / flex-shrink 0)
+          + 카드 목록 wrapper (flex-1 / overflow-y-auto / padding 10px 14px 20px)
+          + 카드 column (flex column gap 10) + 카드 wrapper (bg-surface-raised / border border-border-default /
+          rounded-md / padding 13px 14px) + 카드 타이틀 (text-body-sm font-bold text-text-primary
+          leading-none marginBottom 10) 모두 W5 checklist 안에 verbatim 인용 예정.
+
+    4. feedback_tailwind_token_class_pattern.md
+       prefix 없는 짧은 토큰 alias 우선 (bg-safe-bg O / bg&#8209;status&#8209;safe X).
+       -> bg-status-info-bg / border-status-info-bar 는 status-info-bg/status-info-bar 가 단일 토큰명 (design-system §2.3 verbatim).
+          그 외 bg&#8209;status&#8209;safe / text&#8209;status&#8209;danger 등 prefix 0건.
+
+    5. feedback_tailwind_w8_h8_is_48px.md (tailwind spacing override 함정)
+       -> 본 wave 다운로드 버튼 미사용 (W4 책임) — w&#8209;8 / h&#8209;8 사용 0건.
+
+    6. feedback_text_caption_leading_none.md
+       text-caption lh:1.5 (18px) 가 작은 컨테이너 안 시각 패딩.
+       -> 안내 박스 text-caption + leading-relaxed (1.625) — 박스 안 안내 카피 2줄 자연 줄 간격
+          (안내는 작은 컨테이너 X, 박스가 stand-alone 영역이므로 leading-relaxed 유지).
+       -> 카드 타이틀 text-body-sm font-bold leading-none — marginBottom 10 으로 가독 공간 확보.
+
+    7. feedback_tsx_wave_emoji_dot_gap.md
+       sketch negative gate (이모지 0).
+       -> 본 wave 사용 글리프 0건. 안내 박스 <b>점검용</b>/<b>점검확인용</b> 강조만 사용 (이모지 X).
+
+    8. feedback_redesign_sketch_rule_enforcement.md
+       빈/오류 상태 = neutral (위험 임계치 아님). status- prefix 색 사용 0건.
+       -> 안내 박스 status-info-bg/bar 는 "정보 안내" (neutral info) 용도 — 위험 임계치 색 아님, design-system §6.2 verbatim 일치.
+
+    9. feedback_check_branch_before_edit.md
+       -> 본 sketch 작업 진입 전 branch redesign/25-qr-print 확인 (현재 ✓).
+
+   10. project_inspection_completion_rule.md (일반화)
+       -> CATEGORIES 7건 + hasPublic 분기 = source of truth. W5 TSX 변환에서도 1 byte 변경 금지.
+
+   11. feedback_cbc7119_design_never_wrangler.md
+       -> 본 wave 는 sketch 디자인만, cbc7119-preview 자동 배포 사이클만, wrangler 명령 절대 X.
+
+   12. project_redesign_15_daily_report_status.md (캘리브 좌표 시스템 보존 일반화)
+       -> 안내 카피 2줄 ('항목별 QR 코드를 PDF 파일로 다운로드합니다.' / '소화기는 <b>점검용</b>(3×3 cm)과 ...')
+          + CATEGORIES 7건 (소화기 hasPublic true + 6건 false) 모두 1 byte 변경 금지 fence 박제.
+
+  ==========================================================
+  ★ 비즈 anchor 박제 — CATEGORIES 7건 + 안내 박스 + 카드 wrapper (1 byte 변경 금지)
+  ==========================================================
+
+  CATEGORIES 배열 7건 (line 17~25 verbatim — 순서/value/label/hasPublic 1 byte 변경 금지, OQ #5 LOCKED):
+    const CATEGORIES = [
+      { value: '소화기',      label: '소화기',      hasPublic: true  },
+      { value: '소화전',      label: '소화전',      hasPublic: false },
+      { value: 'DIV',         label: 'DIV',         hasPublic: false },
+      { value: '청정소화약제', label: '청정소화약제', hasPublic: false },
+      { value: '완강기',      label: '완강기',      hasPublic: false },
+      { value: '전실제연댐퍼', label: '전실제연댐퍼', hasPublic: false },
+      { value: '방화셔터',    label: '방화셔터',    hasPublic: false },
+    ]
+
+  안내 박스 wrapper (line 266 verbatim — OQ #2 토큰 치환 대상):
+    <div style={{ padding: '10px 14px 4px', flexShrink: 0 }}>
+      <div style={{ background: 'rgba(14,165,233,.08)', border: '1px solid rgba(14,165,233,.25)', borderRadius: 10, padding: '10px 13px', fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
+        항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+        소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+      </div>
+    </div>
+
+  카테고리 목록 wrapper (line 274~275 verbatim):
+    <div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+  카드 wrapper (line 280~281 verbatim — OQ #4 토큰 치환 대상):
+    <div key={cat.value} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 13, padding: '13px 14px' }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 10 }}>{cat.label}</div>
+
+  버튼 row (line 282 verbatim — W4 책임 placeholder):
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      ... (inspect 버튼 + public 버튼 — cat.hasPublic 분기, W4 sketch 에서 채움)
+    </div>
+
+  ==========================================================
+  토큰 매핑 (본 wave 적용)
+  ==========================================================
+
+    OQ #2 LOCKED — 안내 박스:
+      - background rgba(14,165,233,.08) -> bg-status-info-bg (line 267)
+      - border 1px solid rgba(14,165,233,.25) -> border border-status-info-bar (line 267)
+      - color var(--t2) -> text-text-secondary (line 267)
+      - lineHeight 1.6 -> leading-relaxed (line 267)
+      - fontSize 12 -> text-caption (line 267)
+      - borderRadius 10 -> rounded-md (line 267)
+
+    OQ #4 LOCKED — 카드 wrapper + 타이틀:
+      - 카드 background var(--bg2) -> bg-surface-raised (line 280)
+      - 카드 border 1px solid var(--bd) -> border border-border-default (line 280)
+      - 카드 borderRadius 13 -> rounded-md (line 280)
+      - 카드 타이틀 color var(--t1) -> text-text-primary (line 281)
+      - 카드 타이틀 fontSize 14 fontWeight 700 -> text-body-sm font-bold (line 281)
+      - 카드 타이틀 leading-none + marginBottom 10 (가독 공간)
+
+  ==========================================================
+  Negative gate (sketch 본문)
+  ==========================================================
+
+    - 이모지 0건 (안내 박스 <b>점검용</b>/<b>점검확인용</b> 강조만)
+    - linear&#8209;gradient 0건 (W4 만 OQ #1 LOCKED 예외, 본 W3 0건)
+    - 9 / 10 / 11 px fontSize 0건 (text-caption 12 마지노선)
+    - (text|bg|border)-status- class prefix — bg-status-info-bg + border-status-info-bar 만 예외
+      (status-info-bg/status-info-bar 가 단일 토큰명, design-system §2.3 verbatim)
+    - w&#8209;8 / h&#8209;8 0건
+    - 옛 alias 토큰 (var(--bg2) / var(--bd) / var(--t1) / var(--t2)) sketch 본문 안 0건
+      (비즈 anchor fence 안 인용은 예외)
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>redesign/25-qr-print — W3 instructions + CATEGORIES 7 cards</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ============================================================
+     * 다크 모드 (기본값) — tokens.css verbatim 발췌
+     * ============================================================ */
+    :root,
+    [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      --status-info-bar: #0ea5e9;
+      --status-info-bg:  rgba(14, 165, 233, 0.16);
+    }
+
+    /* ============================================================
+     * 라이트 모드 — tokens.css verbatim 발췌
+     * ============================================================ */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --status-info-bar: #0369a1;
+      --status-info-bg:  #e0f2fe;
+    }
+
+    /* ============================================================
+     * Typography — typography.css verbatim 발췌
+     * ============================================================ */
+    body {
+      font-family: 'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .text-caption  { font-size: 12px; line-height: 1.5; font-weight: 400; }
+    .text-label    { font-size: 13px; line-height: 1.5; font-weight: 400; }
+    .text-body-sm  { font-size: 14px; line-height: 1.6; font-weight: 400; }
+    .text-body     { font-size: 16px; line-height: 1.7; font-weight: 400; }
+    .font-bold     { font-weight: 700; }
+    .leading-none  { line-height: 1; }
+    .leading-relaxed { line-height: 1.625; }
+
+    /* ============================================================
+     * Sketch 헬퍼 — frame chrome
+     * ============================================================ */
+    .page-bg-dark { background: #0a0d12; }
+
+    .frame-shell-mobile {
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: 18px;
+      overflow: hidden;
+      width: 393px;
+      height: 800px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .variant-label {
+      font-size: 12px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.05em;
+      padding: 6px 0 2px;
+      text-transform: uppercase;
+    }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'surface-page':    'var(--surface-page)',
+            'surface-raised':  'var(--surface-raised)',
+            'surface-sunken':  'var(--surface-sunken)',
+            'text-primary':    'var(--text-primary)',
+            'text-secondary':  'var(--text-secondary)',
+            'text-tertiary':   'var(--text-tertiary)',
+            'border-default':  'var(--border-default)',
+            'border-strong':   'var(--border-strong)',
+            'status-info-bar': 'var(--status-info-bar)',
+            'status-info-bg':  'var(--status-info-bg)',
+          },
+          borderRadius: {
+            'sm':   '8px',
+            'md':   '12px',
+            'lg':   '16px',
+            'pill': '99px',
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="page-bg-dark min-h-screen p-6">
+
+  <!-- ============================================================
+       헤더 (캡션)
+       ============================================================ -->
+  <header class="mb-6 max-w-[1700px] mx-auto">
+    <h1 class="text-white font-bold mb-2" style="font-size:22px;">25-qr-print sketch W3 — 안내 박스 + CATEGORIES 7건 카드 grid</h1>
+    <p class="text-zinc-400" style="font-size:13px;line-height:1.5;">
+      quick: 260526-9yw / branch: redesign/25-qr-print / 평면 배치: 25-qr-print/ 직속 (sketch/ 서브폴더 X).
+      QRPrintPage.tsx 안내 박스 (line 266~270, OQ #2 LOCKED status-info 알리아스 치환) +
+      카테고리 목록 wrapper (line 274~275) + CATEGORIES.map 카드 7건 (line 276~305, OQ #4 LOCKED 외곽 hex 치환)
+      + 카드 타이틀 (cat.label) + 버튼 row placeholder (W4 책임).
+      4 frame: 다크 7 카드 / 라이트 7 카드 / 다크 안내 박스 단독 강조 / 라이트 카드 hover (border-border-strong).
+      OQ #2 (안내 박스 status-info-bg/bar) + OQ #4 (카드 외곽 hex) + OQ #5 (CATEGORIES 7건 1 byte 변경 금지) 시각 적용.
+    </p>
+  </header>
+
+  <!-- ============================================================
+       4 frame side-by-side — 다크 7 카드 / 라이트 7 카드 / 다크 안내 단독 / 라이트 카드 hover
+       ============================================================ -->
+  <section class="flex gap-8 flex-wrap items-start justify-center mb-12">
+
+    <!-- ============================================================
+         ───── Frame 1 / 다크 모바일 393x800 / 7 카드 정상
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 1 / 다크 모드 (393x800) — CATEGORIES 7건 카드 정상</div>
+      <section data-theme="dark" class="frame-shell-mobile">
+
+        <!-- 헤더 placeholder (W2 sketch 참조) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <!-- 안내 박스 wrapper (line 266 verbatim: padding 10px 14px 4px / flex-shrink 0) -->
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <!-- 안내 박스 자체 (OQ #2 LOCKED ★: bg-status-info-bg + border border-status-info-bar + text-text-secondary leading-relaxed) -->
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            <!-- 안내 카피 1줄 verbatim (line 268) -->
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            <!-- 안내 카피 2줄 verbatim (line 269) — <b>점검용</b>/<b>점검확인용</b> 강조 위치 verbatim -->
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <!-- 카테고리 목록 wrapper (line 274 verbatim: flex 1 / overflow-y auto / padding 10px 14px 20px) -->
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <!-- 카테고리 column (line 275 verbatim: flex column gap 10) -->
+          <div style="display:flex;flex-direction:column;gap:10px;">
+
+            <!-- CATEGORIES 카드 #1 / 소화기 hasPublic=true (OQ #4 LOCKED ★: bg-surface-raised + border border-border-default) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button + public button (hasPublic=true)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #2 / 소화전 hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #3 / DIV hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">DIV</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #4 / 청정소화약제 hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">청정소화약제</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #5 / 완강기 hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">완강기</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #6 / 전실제연댐퍼 hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">전실제연댐퍼</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+            <!-- CATEGORIES 카드 #7 / 방화셔터 hasPublic=false -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">방화셔터</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect button (hasPublic=false)</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 2 / 라이트 모바일 393x800 / 7 카드 정상
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 2 / 라이트 모드 (393x800) — CATEGORIES 7건 카드 정상</div>
+      <section data-theme="light" class="frame-shell-mobile">
+
+        <!-- 헤더 placeholder (W2 sketch 참조) -->
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect + public</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">DIV</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">청정소화약제</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">완강기</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">전실제연댐퍼</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">방화셔터</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] inspect</div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 3 / 다크 모바일 393x800 / 안내 박스 단독 강조 — 색 대비 검증
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 3 / 다크 모드 (393x800) — 안내 박스 단독 강조 (색 대비 검증)</div>
+      <section data-theme="dark" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <!-- 안내 박스 단독 강조 — 시각 검수용 확대 -->
+        <div style="padding:24px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-body text-text-secondary leading-relaxed" style="padding:20px 24px;">
+            <div class="font-bold text-text-primary" style="margin-bottom:8px;">[색 대비 검증]</div>
+            <div class="text-caption leading-relaxed">
+              항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+              소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:24px;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:8px;">
+          <div class="text-body-sm text-text-tertiary">OQ #2 LOCKED — status-info-bg + status-info-bar 알리아스 치환 정상</div>
+          <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;">[다크 안내 박스 색 대비 = bg rgba(14,165,233,0.16) + border #0ea5e9]</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============================================================
+         ───── Frame 4 / 라이트 모바일 393x800 / 카드 hover (소화기 hover 상태 + border-border-strong)
+         ============================================================ -->
+    <div>
+      <div class="variant-label" style="color:#f6f8fa;">Frame 4 / 라이트 모드 (393x800) — 소화기 카드 hover 상태 (border-border-strong)</div>
+      <section data-theme="light" class="frame-shell-mobile">
+
+        <div class="bg-surface-raised border-b border-border-default" style="padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="bg-surface-sunken border border-border-default rounded-sm" style="width:34px;height:34px;"></div>
+          <span class="text-body font-bold text-text-primary leading-none">QR 코드 출력</span>
+          <span class="text-caption leading-none text-text-tertiary" style="margin-left:auto;font-family:'JetBrains Mono',monospace;">[W2]</span>
+        </div>
+
+        <div style="padding:10px 14px 4px;flex-shrink:0;">
+          <div class="bg-status-info-bg border border-status-info-bar rounded-md text-caption text-text-secondary leading-relaxed" style="padding:10px 13px;">
+            항목별 QR 코드를 PDF 파일로 다운로드합니다.<br/>
+            소화기는 <b>점검용</b>(3×3 cm)과 <b>점검확인용</b>(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+          </div>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;padding:10px 14px 20px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <!-- 소화기 카드 hover 시각 — border-border-strong + translateY -1px transform -->
+            <div class="bg-surface-raised border border-border-strong rounded-md" style="padding:13px 14px;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.08);">
+              <div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화기 <span class="text-caption text-text-tertiary" style="font-weight:400;">(hover)</span></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[W4 scope] hover = border-border-strong + translateY(-1px)</div>
+              </div>
+            </div>
+            <!-- 나머지 6 카드 = 일반 상태 (border-border-default 그대로) -->
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">소화전</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">DIV</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">청정소화약제</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">완강기</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">전실제연댐퍼</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+            <div class="bg-surface-raised border border-border-default rounded-md" style="padding:13px 14px;"><div class="text-body-sm font-bold text-text-primary leading-none" style="margin-bottom:10px;">방화셔터</div><div style="display:flex;gap:8px;flex-wrap:wrap;"><div class="text-caption leading-none text-text-tertiary" style="font-family:'JetBrains Mono',monospace;padding:9px 0;">[일반]</div></div></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </section>
+
+  <!-- ============================================================
+       하단 fence — 비즈 anchor + OQ 매트릭스 + negative gate 자체 검수
+       ============================================================ -->
+  <section class="max-w-[1700px] mx-auto mt-12 p-6 rounded-lg" style="background:#1a1f27;color:#e6edf3;border:1px solid rgba(255,255,255,0.14);">
+    <h2 class="font-bold mb-3" style="font-size:18px;">★ 비즈 anchor 박제 (QRPrintPage.tsx 1 byte 변경 금지 — W5 TSX 변환 verbatim 인용)</h2>
+
+    <h3 class="font-bold mb-2" style="font-size:14px;color:#adb6c0;">CATEGORIES 배열 7건 (line 17~25 verbatim — 순서/value/label/hasPublic 1 byte 변경 금지, OQ #5 LOCKED)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">const CATEGORIES = [
+  { value: '소화기',      label: '소화기',      hasPublic: true  },
+  { value: '소화전',      label: '소화전',      hasPublic: false },
+  { value: 'DIV',         label: 'DIV',         hasPublic: false },
+  { value: '청정소화약제', label: '청정소화약제', hasPublic: false },
+  { value: '완강기',      label: '완강기',      hasPublic: false },
+  { value: '전실제연댐퍼', label: '전실제연댐퍼', hasPublic: false },
+  { value: '방화셔터',    label: '방화셔터',    hasPublic: false },
+]</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">안내 박스 wrapper (line 266~270 verbatim — OQ #2 LOCKED 토큰 치환 대상)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">&lt;div style={{ padding: '10px 14px 4px', flexShrink: 0 }}&gt;
+  &lt;div style={{ background: 'rgba(14,165,233,.08)', border: '1px solid rgba(14,165,233,.25)', borderRadius: 10, padding: '10px 13px', fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}&gt;
+    항목별 QR 코드를 PDF 파일로 다운로드합니다.&lt;br/&gt;
+    소화기는 &lt;b&gt;점검용&lt;/b&gt;(3×3 cm)과 &lt;b&gt;점검확인용&lt;/b&gt;(7×9 cm)을 별도 파일로 다운로드할 수 있습니다.
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">카테고리 목록 wrapper (line 274~275 verbatim)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">&lt;div style={{ flex: 1, overflowY: 'auto', padding: '10px 14px 20px' }}&gt;
+  &lt;div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}&gt;</pre>
+
+    <h3 class="font-bold mb-2 mt-4" style="font-size:14px;color:#adb6c0;">카드 wrapper (line 280~281 verbatim — OQ #4 LOCKED 토큰 치환 대상)</h3>
+    <pre style="background:#0a0d12;padding:12px;border-radius:8px;font-size:12px;line-height:1.5;overflow-x:auto;color:#e6edf3;">&lt;div key={cat.value} style={{ background: 'var(--bg2)', border: '1px solid var(--bd)', borderRadius: 13, padding: '13px 14px' }}&gt;
+  &lt;div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginBottom: 10 }}&gt;{cat.label}&lt;/div&gt;
+  &lt;div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}&gt;
+    ... (inspect button + public button, cat.hasPublic 분기 — W4 책임)
+  &lt;/div&gt;
+&lt;/div&gt;</pre>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">OQ LOCKED 5건 매트릭스 (본 W3 적용 = OQ #2 + OQ #4 + OQ #5)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#232a33;">
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">OQ</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">LOCKED 답 (default a)</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">본 W3 적용</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">#1 다운로드 버튼 그라데이션</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">public 그라데이션 폐기 -> solid bg-status-safe-bar / inspect linear&#8209;gradient 유지</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">X (W4 책임 — 버튼 row 만 placeholder)</td>
+        </tr>
+        <tr style="background:rgba(34,197,94,0.08);">
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>#2 안내 박스 색</b></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">bg-status-info-bg + border-status-info-bar 알리아스 치환 + text-text-secondary + leading-relaxed</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>O (본 wave 핵심)</b></td>
+        </tr>
+        <tr>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">#3 뒤로가기 Lucide ChevronLeft</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">Lucide ChevronLeft size={16} 교체</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">X (W2 책임)</td>
+        </tr>
+        <tr style="background:rgba(34,197,94,0.08);">
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>#4 카드 외곽 hex 토큰</b></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">--bg2 -> --surface-raised / --bd -> --border-default / --t1 -> --text-primary 치환 (카드 wrapper + 카드 타이틀)</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>O (본 wave 핵심)</b></td>
+        </tr>
+        <tr style="background:rgba(34,197,94,0.08);">
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>#5 비즈 anchor 보존</b></td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">CATEGORIES 7건 + hasPublic 분기 1 byte 변경 금지</td>
+          <td style="padding:8px;border:1px solid rgba(255,255,255,0.14);"><b>O (본 wave 핵심 — CATEGORIES 박제 fence)</b></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">4 frame 요약표 (본 W3)</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#232a33;">
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">Frame</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">Theme</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">상태</th>
+          <th style="padding:8px;text-align:left;border:1px solid rgba(255,255,255,0.14);">시각 검증 포인트</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">1</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">dark</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">7 카드 정상</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">CATEGORIES 7건 순서 (소화기/소화전/DIV/청정소화약제/완강기/전실제연댐퍼/방화셔터) + 안내 박스 status-info 톤</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">2</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">light</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">7 카드 정상</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">라이트 분기 (status-info-bg #e0f2fe + status-info-bar #0369a1) 색 대비</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">3</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">dark</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">안내 박스 단독</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">안내 박스 색 대비 검수 — rgba(14,165,233,0.16) + #0ea5e9 border</td></tr>
+        <tr><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">4</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">light</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">소화기 카드 hover</td><td style="padding:8px;border:1px solid rgba(255,255,255,0.14);">hover = border-border-strong + translateY(-1px) (design-system §6.5 hover 룰)</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="font-bold mb-3 mt-6" style="font-size:18px;">Negative gate 자체 검수 (본 W3)</h2>
+    <ul style="font-size:13px;line-height:1.7;list-style:disc;padding-left:24px;">
+      <li>이모지 0건 (안내 박스 <code>&lt;b&gt;</code> 강조만 사용, 글리프 X)</li>
+      <li>linear&#8209;gradient 0건 (W4 만 OQ #1 LOCKED 예외, 본 W3 0건)</li>
+      <li>9 / 10 / 11 px fontSize 0건 (text-caption 12 마지노선)</li>
+      <li>(text|bg|border)-status- class prefix — bg-status-info-bg + border-status-info-bar 만 예외
+          (status-info-bg/status-info-bar 가 단일 토큰명, design-system §2.3 verbatim)</li>
+      <li>w&#8209;8 / h&#8209;8 0건 (본 wave 버튼 미사용, 카드 wrapper 인라인 padding 만)</li>
+      <li>옛 alias 토큰 (var(--bg2) / var(--bd) / var(--t1) / var(--t2)) sketch 본문 안 0건
+          (비즈 anchor fence 안 인용은 예외 — 카드 wrapper line 280~281 verbatim)</li>
+      <li>평면 배치 — 25-qr-print/ 직속 (sketch/ 서브폴더 X)</li>
+    </ul>
+  </section>
+
+</body>
+</html>
