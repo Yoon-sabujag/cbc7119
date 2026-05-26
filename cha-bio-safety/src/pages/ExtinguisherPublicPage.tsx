@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
+// redesign/29-extinguisher-public W3 — 종이 양식 모방 페이지 인라인 유지 default (W1 §1.3 비즈 anchor 27 / W2 5 CSS verbatim / OQ LOCKED 5)
+
 interface CheckRecord { id: string; result: string; memo?: string; checked_at: string; staff_name: string }
 interface CheckpointInfo { id: string; locationNo: string; location: string; floor: string; description?: string }
 interface ExtInfo { mgmtNo: string; type: string; approvalNo?: string; manufacturedAt?: string; manufacturer?: string; prefixCode?: string; sealNo?: string; serialNo?: string; note?: string; location?: string }
