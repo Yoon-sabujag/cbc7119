@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>31 SettingsPanel · v0.1.1 재디자인 시안 (W4 sub-wave)</title>
+  <!--
+    sketch-wave-4-settings-panel.html — redesign/31-chrome W4 sub-wave
+    작성: 2026-05-27 / quick 260527-5nj
+    범위: SettingsPanel.tsx (894 라인) 단일 컴포넌트 sketch
+          다크 + 라이트 2 변형 + 6~8 frame 매트릭스
+          (8 내부 컴포넌트 + JSZip 백업 + push prefs 6키 + 8 필드 ProfileEditForm + 6 collapsible 섹션)
+    out of scope:
+      - src/components/SettingsPanel.tsx 수정 (W7 책임 — 1 byte 변경 0 강제)
+      - App.tsx / tokens.css / typography.css / design-system.md / tailwind.config.js 1 byte 변경 0
+      - GlobalHeader / SideMenu / MenuSettingsSection sketch (W2/W3 완결 / W5 책임)
+      - 31-chrome/wave-1-index.md 갱신 (W1 완결됨)
+      - 31-chrome/ 7 스냅샷 + sketch-wave-2-global-header.html + sketch-wave-3-side-menu.html + 00-design-context/ 1 byte 변경 0
+      - wrangler 명령 / npm run deploy (CLAUDE.local.md + memory feedback_cbc7119_design_never_wrangler)
+    참조:
+      - 31-chrome/sketch-wave-3-side-menu.html (W3 동일 트랙 precedent — :root + [data-theme=light]
+        + .frame-mobile + .decision-summary 패턴 mirror)
+      - 31-chrome/sketch-wave-2-global-header.html (W2 동일 트랙 precedent)
+      - 30-not-found/sketch.html (다크/라이트 양쪽 precedent)
+      - design-system.md v0.1.1 §1.1/§1.2/§1.3/§6.4/§7.1
+      - tokens.css / typography.css / wave-1-index.md §7 OQ LOCKED 8건 + §1.3 [SettingsPanel.tsx] 박스
+
+    ==========================================================
+    [메타 박스] — 파일 / quick / branch / source / 작성 일자
+    ==========================================================
+
+      파일       : cha-bio-safety/docs/redesign-context/31-chrome/sketch-wave-4-settings-panel.html
+      quick_id   : 260527-5nj
+      branch     : redesign/31-chrome 의 W4 sub-wave
+      source     : cha-bio-safety/docs/redesign-context/31-chrome/SettingsPanel.tsx (894 라인)
+      작성일자   : 2026-05-27
+
+    ==========================================================
+    [OQ LOCKED 8건 매트릭스] — W4 직접 영향 6건 ★ 강조
+    ==========================================================
+
+      OQ #1 LOCKED  다크+라이트 양쪽 지원         → W4 적용 ★ (frame 5+ 라이트 변형 ≥2)
+      OQ #2 LOCKED  부분 격상 22건                → W4 적용 ★ (9·10·11 px → 11/12/13 격상)
+      OQ #3 LOCKED  SideMenu 그라데이션 유지       → W4 무관 (W3 완료, SideMenu 책임)
+      OQ #4 LOCKED  프로필 그라데이션 폐기         → W4 적용 ★ (line 677 linear-gradient → --accent-active solid)
+      OQ #5 LOCKED  인라인 svg 유지                → W4 적용 ★ (gear/ChevronRight/download/upload/arrow svg path 유지)
+      OQ #6 LOCKED  이모지 ⏳🔔 제거               → W4 적용 ★ (line 722 ⏳🔔 → Lucide Loader2 / Send + 텍스트)
+      OQ #7 LOCKED  panel width 88% maxWidth 320 보존 → W4 적용 ★ (Layout 인터페이스 verbatim 보존)
+      W3-OQ #A pattern (참고)                       → W4 mirror: ✕ 글리프 (line 669) → Lucide X 교체
+
+    ==========================================================
+    [비즈 anchor 박제] — SettingsPanel 30+ 식별자 (W7 변환 1 byte 변경 0 강제)
+    ==========================================================
+
+      Props interface (line 50~54) — 변경 금지
+        interface Props {
+          open: boolean
+          onClose: () => void
+          isDesktop?: boolean
+        }
+
+      ── 8 내부 컴포넌트 시그니처 verbatim ──
+
+      1. SectionHeader (line 5~27) — collapsible 토글, ChevronRight rotate 90
+         function SectionHeader({ label, collapsed, onToggle }: {
+           label: string; collapsed: boolean; onToggle: () => void
+         })
+         · uppercase letterSpacing '.08em' textTransform / aria-expanded={!collapsed}
+         · ChevronRight size 14 transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)' transition 0.15s
+
+      2. usePersistedCollapse (line 29~41) — localStorage 영속 hook
+         function usePersistedCollapse(key: string, defaultCollapsed = true):
+           [boolean, (v: boolean | ((c: boolean) => boolean)) => void]
+         · localStorage 키 6개: settings.notif.collapsed / settings.display.collapsed /
+           settings.account.collapsed / settings.db.collapsed / settings.appinfo.collapsed
+           (MenuSettingsSection 은 W5 책임 — 본 sketch 안 키 박제 안 함)
+
+      3. Toggle (line 57~77) — on/off switch
+         function Toggle({ on, onChange, disabled }: {
+           on: boolean; onChange?: (v: boolean) => void; disabled?: boolean
+         })
+         · width 38 height 21 borderRadius 11 — w-8/h-8 함정 무관 (memory feedback_tailwind_w8_h8_is_48px)
+         · background on=#2563eb → --accent-active / off=var(--bg4) → --surface-active
+         · 동그라미 width 17 height 17 transform translateX(17)/(0) transition 0.18s
+
+      4. PermBadge (line 80~93) — NotificationPermission 3 분기
+         function PermBadge({ perm }: { perm: NotificationPermission })
+         · granted: var(--safe, #22c55e) → --status-safe-bar
+         · denied:  var(--danger, #ef4444) → --status-danger-bar
+         · default: var(--t3, #6e7681) → --text-tertiary
+         · fontSize 10 → OQ #2 격상 12 (caption) / padding '2px 7px' / borderRadius 10
+
+      5. Row (line 96~106) — label + sub + children + onClick
+         function Row({ label, sub, children, onClick }: {
+           label: string; sub?: string; children?: React.ReactNode; onClick?: () => void
+         })
+         · padding '10px 12px' background var(--bg3) → --surface-sunken borderRadius 9
+         · label fontSize 12 fontWeight 500 (유지)
+         · sub fontSize 10 → OQ #2 격상 12 (caption)
+
+      6. ChangePasswordForm (line 109~145) — current / next / confirm + validation + mutation
+         function ChangePasswordForm({ onDone }: { onDone: () => void })
+         · authApi.changePassword({ currentPassword, newPassword }) mutation
+         · canSave = current.trim() !== '' && next.trim() !== '' && next === confirm && next.length >= 4
+         · sub-header fontSize 9 (line 124) → OQ #2 격상 11 (uppercase letterSpacing .08em 유지)
+         · danger 텍스트 fontSize 11 (line 133) → OQ #2 격상 13 (label) / --status-danger
+         · 취소 button background var(--bg4) → --surface-active color var(--t2) → --text-secondary
+         · 변경 button background var(--acl) → --accent color #fff → --text-on-accent
+
+      7. NameEditModal (line 148~180) — 이름 변경 modal
+         function NameEditModal({ currentName, onClose, onSave }: {
+           currentName: string; onClose: () => void; onSave: (name: string) => void
+         })
+         · authApi.updateProfile({ name: editName.trim() }) mutation
+         · maxLength 20 / canSave = trim !== '' && trim !== currentName && trim.length <= 20
+         · 모달 zIndex 300 background rgba(0,0,0,0.6) → --surface-overlay 진하게
+
+      8. ProfileEditForm (line 183~277) — 8 필드 폼
+         function ProfileEditForm({ onDone }: { onDone: () => void })
+         · authApi.updateProfile({ phone, email, birthDate: birthDate || null })
+         · qc.invalidateQueries({ queryKey: ['staff-list'] }) — 5분 staleTime cache 즉시 무효화
+         · useStaffList() — staffFull lookup
+         · sub-header fontSize 9 (line 225) → OQ #2 격상 11
+         · 8 필드 라벨 fontSize 10 → OQ #2 격상 12:
+             이름 (readonly, line 228)
+             사번 (readonly, line 232 — staff?.id)
+             직책 (readonly, line 236 — staff?.title ?? '-')
+             역할 (readonly, line 240 — admin '관리자' / assistant '보조자')
+             입사일 (readonly, line 244 — staff?.id 앞 8자리 YYYYMMDD → YYYY-MM-DD 변환,
+                       fallback staffFull?.appointedAt)
+             생년월일 (date input 활성, line 251)
+             연락처 (tel input 활성, placeholder '010-0000-0000', line 260)
+             이메일 (email input 활성, placeholder 'email@example.com', line 264)
+         · INPUT_STYLE: height 38 background var(--bg3) border 1px var(--bd) borderRadius 8
+           padding '0 12px' fontSize 12 color var(--t1) outline none
+         · READONLY_STYLE: ...INPUT_STYLE + color var(--t3) background var(--bg)
+
+      ── SettingsPanel 메인 export (line 280) ──
+
+      export function SettingsPanel({ open, onClose, isDesktop = false }: Props)
+
+      ── 6 collapsible 섹션 + state 매트릭스 ──
+
+      const [showPwChange, setShowPwChange] = useState(false)
+      const [showProfileEdit, setShowProfileEdit] = useState(false)
+      const [notifCollapsed, setNotifCollapsed]     = usePersistedCollapse('settings.notif.collapsed', true)
+      const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
+      const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
+      const [dbCollapsed, setDbCollapsed]           = usePersistedCollapse('settings.db.collapsed', true)
+      const [appInfoCollapsed, setAppInfoCollapsed] = usePersistedCollapse('settings.appinfo.collapsed', true)
+
+      ── Push notification 비즈 (line 304~407) ──
+
+      const [permState, setPermState] = useState<NotificationPermission>(
+        typeof Notification !== 'undefined' ? Notification.permission : 'denied'
+      )
+      const [subscribed, setSubscribed] = useState(false)
+      const [prefs, setPrefs] = useState<NotificationPreferences>({
+        daily_schedule: true, incomplete_schedule: true,
+        unresolved_issue: true, education_reminder: true,
+        event_15min: true, event_5min: true,
+      })
+
+      4 push 핸들러 verbatim (W7 변환 시 1 byte 변경 0):
+        async function handleSubscribe()    // line 332 — pushApi.getVapidKey + pushManager.subscribe
+        async function handleUnsubscribe()  // line 361 — pushManager.unsubscribe + 서버 알림
+        async function handleTestPush()     // line 376 — POST /api/push/test (admin only)
+        async function handlePrefToggle(key: keyof NotificationPreferences)  // line 398
+
+      6 prefs 키 (NotificationPreferences):
+        1. daily_schedule       (금일 점검 일정, 매일 08:45)
+        2. incomplete_schedule  (전일 미완료 점검, 매일 08:45)
+        3. unresolved_issue     (미조치 항목, 매일 08:45)
+        4. event_15min          (행사 15분 전 알림)
+        5. event_5min           (행사 5분 전 알림)
+        6. education_reminder   (교육 D-60 알림, 교육일 60일 전)
+
+      ── JSZip 백업 비즈 (안전 직결 — line 444~625) ──
+
+      import JSZip from 'jszip'  // line 3
+
+      async function handleDbBackup()    // line 444 — fetch /database/backup → .sql 다운로드
+      async function handleDbRestore()   // line 467 — input file .sql → POST /database/restore
+      async function handleR2Backup()    // line 497 — r2-list / r2-download / JSZip / cronZips + deltaKeys 분기
+                                              · zip = new JSZip() (line 548)
+                                              · r2BackupProgress 라이브 텍스트 ("신규 파일 다운로드 (3/8)...")
+      async function handleR2Restore()   // line 584 — JSZip.loadAsync(file) (line 596) + 10개 batch upload
+
+      ── Account / Display 정보 ──
+
+      async function handleClearCache()  // line 420 — caches.delete + serviceWorker.unregister
+      function handleLogout()            // line 627 — logout() + navigate('/login') + onClose()
+      function handleNameSaved(newName)  // line 633 — updateStaff({ name }) + toast.success
+
+      const displayName  = staff?.name ?? ''
+      const displayRole  = staff?.role === 'admin' ? '관리자' : '보조자'
+      const displayTitle = staff?.title ?? ''
+      const avatarChar   = displayName ? displayName.charAt(0) : '?'
+      __APP_VERSION__ / __BUILD_TIME__ (line 864)
+
+      ── Layout (line 638~893) ──
+
+      Backdrop: position fixed inset 0 zIndex 190 rgba(0,0,0,0.65) → --surface-overlay
+                opacity open?1:0 pointerEvents open?'all':'none'
+                transition 'opacity 0.28s'
+
+      Panel:    id="settings-panel" position fixed
+                top:    isDesktop ? 0 : 'var(--sat, 0px)'
+                bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 0px) - var(--sat, 0px))'
+                right 0 zIndex 200
+                width '88%' maxWidth 320           ← OQ #7 LOCKED 보존
+                background var(--bg2) → --surface-raised
+                transform open?translateX(0):translateX(100%)
+                transition 'transform 0.3s cubic-bezier(.4,0,.2,1)'
+                overflowY 'auto'
+                borderRadius '16px 0 0 16px'
+
+      헤더 (line 663~670): padding '12px 15px' borderBottom 1px var(--bd) → --border-default
+                            gear svg 16x16 (OQ #5 인라인 svg 유지)
+                            '설정' fontSize 13.5 fontWeight 700
+                            ✕ 텍스트 글리프 (line 669) → W3-OQ #A pattern: Lucide X
+                                28x28 borderRadius 7 var(--bg3) → --surface-sunken
+                                var(--t2) → --text-secondary
+
+      프로필 (line 673~688): padding '14px 13px 8px'
+                              avatar 44x44 borderRadius 50%
+                              background linear-gradient(135deg,#2563eb,#7c3aed) (line 677)
+                                → OQ #4 LOCKED 폐기: var(--accent-active) solid
+                              avatarChar fontSize 18 fontWeight 700 color #fff → --text-on-accent
+                              displayName fontSize 14 fontWeight 700 color var(--t1) → --text-primary
+                              displayTitle · displayRole fontSize 10 → 12 / var(--t3) → --text-tertiary
+
+      알림 섹션 (line 691~750): padding '12px 13px 5px'
+                                  SectionHeader '알림'
+                                  Row '푸시 알림' + PermBadge + Toggle
+                                  admin 전용 테스트 푸시 button (line 710~723):
+                                    '⏳ 전송 중...' : '🔔 테스트 푸시 보내기' (line 722)
+                                    → OQ #6 LOCKED 이모지 제거 + Lucide Loader2 / Send 교체
+                                    fontSize 11 → 13 (label)
+                                  6 prefs Row × Toggle (점검 3 / 일정 3)
+                                  '점검' sub-header fontSize 9 (line 726) → 11
+                                  '일정' sub-header fontSize 9 (line 738) → 11
+
+      메뉴 설정 (line 753):     <MenuSettingsSection />  — W5 책임 (sketch placeholder)
+
+      화면 섹션 (line 756~771): SectionHeader '화면'
+                                  Row '테마' + select fontSize 11 (line 760) → 13 (label)
+                                  Row '주간 현황 기준' + select fontSize 11 (line 765) → 13 (label)
+                                  Row '결과 즉시 저장' + Toggle on=true
+
+      계정 섹션 (line 774~790): 분기 showPwChange ? ChangePasswordForm
+                                       : showProfileEdit ? ProfileEditForm
+                                       : 메뉴 Row 2 + ChevronRight svg 13x13
+                                  Row '개인정보 수정' sub '연락처, 이메일, 생년월일'
+                                  Row '비밀번호 변경'
+
+      DB 섹션 (line 793~857) — admin only:
+                                  SectionHeader '데이터베이스'
+                                  DB sub fontSize 10 (line 797) → 12
+                                    'DB (점검기록, 직원, 설정 등)'
+                                  DB 백업 button + DB 업로드 button (40 height, download/upload svg 14x14)
+                                  파일 sub fontSize 10 (line 826) → 12
+                                    '파일 (점검 사진 등)'
+                                  R2 백업 button (라이브 텍스트 r2BackupProgress)
+                                  R2 업로드 button
+
+      앱 정보 섹션 (line 860~875): SectionHeader '앱 정보'
+                                     Row '버전' sub=`v${__APP_VERSION__} (${__BUILD_TIME__})`
+                                     Row '캐시 초기화' sub='최신 리소스로 새로고침'
+                                     Row '차바이오컴플렉스 방재' sub='경기도 성남시 분당구 판교로 335'
+
+      로그아웃 (line 878~889): padding '12px 13px'
+                                  button width 100% height 40
+                                  background rgba(220,38,38,0.12) → --status-danger-bg
+                                  color #dc2626 → --status-danger
+                                  border 1px rgba(220,38,38,0.25) → --status-danger 25% alpha
+                                  fontSize 12 fontWeight 700 borderRadius 9
+
+    ==========================================================
+    [노안 격상 표] — OQ #2 LOCKED 22건 위반 매핑 (source 실측 line 박제)
+    ==========================================================
+
+      [fontSize 9 위반 5건 — 모두 sub-header uppercase, letterSpacing .08em 유지]
+        line 17  SectionHeader span              9 → 11 (또는 12) ★ — sketch 결정: 11
+        line 124 ChangePasswordForm sub-header   9 → 11
+        line 225 ProfileEditForm sub-header      9 → 11
+        line 726 push prefs '점검' sub-header     9 → 11
+        line 738 push prefs '일정' sub-header     9 → 11
+
+      [fontSize 10 위반 13건 — 본문 sub / 폼 라벨]
+        line 89  PermBadge text                  10 → 12 (caption)
+        line 101 Row sub                          10 → 12 (caption)
+        line 228 ProfileEditForm 이름 라벨        10 → 12
+        line 232 사번 라벨                        10 → 12
+        line 236 직책 라벨                        10 → 12
+        line 240 역할 라벨                        10 → 12
+        line 244 입사일 라벨                      10 → 12
+        line 251 생년월일 라벨                    10 → 12
+        line 260 연락처 라벨                      10 → 12
+        line 264 이메일 라벨                      10 → 12
+        line 685 displayTitle · displayRole       10 → 12 (caption)
+        line 797 DB sub 'DB (점검기록, 직원, 설정 등)' 10 → 12
+        line 826 파일 sub '파일 (점검 사진 등)'    10 → 12
+
+      [fontSize 11 위반 4건 — 폼 검증 텍스트 / button / select]
+        line 133 ChangePasswordForm danger       11 → 13 (label) — 색 = --status-danger
+        line 717 admin 테스트 푸시 button         11 → 13 (label)
+        line 760 select '테마'                   11 → 13 (label)
+        line 765 select '주간 현황 기준'          11 → 13 (label)
+
+      합계 22건 (5 + 13 + 4) — sketch 자체 grep 실측과 일치 (grep -nE 'fontSize: (9|10|11)[^0-9]')
+
+      격상 결정 메모: SectionHeader 9 → 11 (W3 divider 11 와 일관). 본문 sub 10 → 12.
+      폼 라벨 10 → 12. button + select 11 → 13. PermBadge 10 → 12 (caption).
+      sketch 결과 본 후 사용자 결정 — 12 vs 11 (sub-header) / 14 vs 13 (button) sub-OQ 가능.
+
+    ==========================================================
+    [토큰 매핑 표] — legacy alias → v0.1.1 semantic 토큰
+    ==========================================================
+
+      source (alias / raw)                       ->   sketch (v0.1.1 의미 토큰)
+      --------------------------------------          ---------------------------------
+      var(--bg)                                 ->   var(--surface-page)
+      var(--bg2)  (Panel background)             ->   var(--surface-raised)
+      var(--bg3)  (Row / input / ✕ button bg)    ->   var(--surface-sunken)
+      var(--bg4)  (Toggle off / 취소 button)     ->   var(--surface-active)
+      var(--bd)   (헤더 분리선 / input border)   ->   var(--border-default)
+      var(--bd2)  (admin button / select border) ->   var(--border-strong)
+      var(--t1)   (displayName / 입력값)         ->   var(--text-primary)
+      var(--t2)   (✕ button / 취소 button color) ->   var(--text-secondary)
+      var(--t3)   (SectionHeader / sub / 라벨)   ->   var(--text-tertiary)
+      var(--acl)  (변경/저장 button bg)          ->   var(--accent) — alternative --accent-active
+      var(--safe, #22c55e) (PermBadge granted)   ->   var(--status-safe-bar)
+      var(--danger, #ef4444) (PermBadge denied / 검증) -> var(--status-danger-bar)
+      raw rgba(0,0,0,0.65) (Backdrop)            ->   var(--surface-overlay)
+      raw #2563eb (Toggle on)                    ->   var(--accent-active)
+      raw '#fff' (Toggle 동그라미)                ->   #fff (raw 보존 — 토큰 미정의)
+                                                   주: avatar 글자 / button 글자는 --text-on-accent
+      raw 'linear-gradient(135deg, #2563eb, #7c3aed)' (avatar)
+                                                  ->   var(--accent-active) solid — OQ #4 LOCKED 폐기
+      raw '#fff' (avatarChar)                    ->   var(--text-on-accent)
+      raw '#fff' (변경/저장 button color)         ->   var(--text-on-accent)
+      raw rgba(220,38,38,0.12) (로그아웃 bg)      ->   var(--status-danger-bg)
+      raw #dc2626 (로그아웃 color)                ->   var(--status-danger)
+      raw rgba(220,38,38,0.25) (로그아웃 border)  ->   var(--status-danger) 25% alpha
+                                                       (sketch 안 var 표현 안 됨 → currentColor opacity 또는
+                                                        raw 보존 + 정의 블록 안 alias —
+                                                        본 sketch 는 정의 블록 안 --logout-border 로 추출)
+      borderRadius 7 (✕ button) / 8 (input/button) / 9 (Row/DB button/logout) / 11 (Toggle) / 14 (NameModal) / 16 (Panel)
+                                                  ->   var(--radius-sm) 8 (input/button/✕)
+                                                       var(--radius-md) 12 (Row/DB button)
+                                                       var(--radius-lg) 16 (Panel borderRadius '16px 0 0 16px')
+                                                       raw 11 (Toggle pill) 보존
+                                                       raw 14 (NameModal) → 12 후보
+
+      legacy alias --bg/--bg2/--bg3/--bg4/--bd/--bd2/--t1/--t2/--t3/--acl/--safe/--danger 는
+      :root + [data-theme="light"] 정의 블록 안에서만 허용 — body markup 안 0건 강제.
+
+    ==========================================================
+    [Negative gate 박스] — sketch body markup grep verify 항목
+    ==========================================================
+
+      1. fontSize: (9|10|11)[^0-9] body markup 안 0
+         (단 머리 주석 박스 안 인용 — '/* line 9 → 11 격상 */' 같은 doc context — 예외)
+      2. linear-gradient body markup 안 0 (OQ #4 LOCKED 폐기 — 1건 제거)
+      3. 이모지 (⏳🔔) body markup 안 0 (OQ #6 LOCKED 제거)
+      4. ✕ 텍스트 글리프 body markup 안 0 (W3-OQ #A pattern, Lucide X svg 교체)
+      5. status-* className prefix class 안 0 (memory feedback_tailwind_token_class_pattern —
+         var(--status-...) CSS 변수는 OK / className 의 status- prefix 는 X)
+      6. legacy alias --bg/--bg2/--bg3/--bg4/--bd/--bd2/--t1/--t2/--t3/--acl/--danger/--safe/
+         --warn/--info/--fire body markup 안 0 — 모두 v0.1.1 명 교체
+      7. raw hex body markup 안 0 — 단 :root + [data-theme="light"] 정의 블록 안 +
+         머리 주석 박스 안 인용은 예외
+      8. MENU 상수 import 변경 0 (MenuSettingsSection W5 의존 — sketch placeholder 만 표기)
+
+    ==========================================================
+    [메모리 룰 박스] — 12 unique slug verbatim 인용 (sketch 작성 시 직접 영향)
+    ==========================================================
+
+       1. feedback_design_sketch_first
+            sketch HTML 먼저, TSX 변환 W7 에서. 본 W4 = sketch only.
+       2. feedback_redesign_sketch_rule_enforcement
+            §6.2 negative rule (위험 임계치 아닌 카드는 status 색 금지)
+            + §6.3/§7.1 일관성 verify gate.
+            SettingsPanel PermBadge granted/denied/default 3 분기 = status semantic 일관 적용 OK.
+       3. feedback_sketch_realistic_data
+            표시 분기/라벨 룰은 코드 그대로. 시각 디자인만 손볼 것.
+       4. feedback_tsx_wave_stat_card_drift
+            sketch 의 새 패턴 + source 의 비즈 anchor 양쪽 머리 주석 verbatim 인용 필수.
+       5. feedback_planner_prompt_sketch_verbatim
+            sketch 작성 시 grep 으로 source 시그니처 추출해 verbatim 인용 (추측 0).
+       6. feedback_tailwind_token_class_pattern
+            status-* prefix 없음 (text-fire-bar O / text-status-fire-bar X).
+       7. feedback_tailwind_w8_h8_is_48px
+            w-8/h-8 = 48px 함정. SettingsPanel 의 width 38 / height 21 (Toggle) /
+            28x28 (✕) / 44x44 (avatar) 다 임의 size 라 함정 영향 0 — 단, 의식적 박제.
+       8. feedback_tsx_wave_emoji_dot_gap
+            이모지 negative gate 강제 (⏳🔔 OQ #6 LOCKED 제거).
+       9. feedback_avoid_premature_confirmation
+            sketch 결과는 사용자가 본 후 판단. 'approved 주세요' 자제.
+      10. project_cbc7119_design_repo
+            cbc7119 = 디자인 격리 리포. 원본 PWA 영향 0.
+      11. feedback_cbc7119_design_never_wrangler
+            디자인 작업은 wrangler 명령 자체 금지. main push 만 cbc7119-preview 자동.
+      12. project_redesign_workflow
+            redesign/NN 브랜치 + 즉시 푸시. /gsd:quick 으로 진행 (본 plan).
+  -->
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+    /* ──────────────────────────────────────────────────────────────
+       :root — design-system v0.1.1 §2 verbatim (다크 기본)
+       tokens.css line 16~69 + line 121~146 + line 167~172 + line 174~197 mirror.
+       :root 정의 블록 + body / sketch chrome 의 raw hex 만 예외.
+       카드 내부 마크업에는 var(--...) 만 사용
+       (10-cctv-info / 30-not-found / W2 / W3 sketch precedent verify gate mirror).
+       ────────────────────────────────────────────────────────────── */
+    :root,
+    [data-theme="dark"] {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;   /* Panel bg */
+      --surface-sunken:  #232a33;   /* Row / input / ✕ button / DB button bg */
+      --surface-active:  #2c333d;   /* Toggle off / 취소 button / select bg */
+      --surface-overlay: rgba(0, 0, 0, 0.65);   /* Backdrop dimmer (source 와 동일 0.65) */
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-on-accent:  #ffffff;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);
+
+      /* Accent */
+      --accent:          #3b82f6;
+      --accent-hover:    #60a5fa;
+      --accent-active:   #2563eb;   /* Toggle on + 프로필 avatar solid (OQ #4 LOCKED) */
+
+      /* Status — bar (배경/foreground 일관 사용) */
+      --status-safe:        #4ade80;
+      --status-safe-bar:    #22c55e;   /* PermBadge granted */
+      --status-danger:      #f87171;
+      --status-danger-bar:  #ef4444;   /* PermBadge denied / 검증 텍스트 */
+      --status-danger-bg:   rgba(239, 68, 68, 0.16);
+      /* 로그아웃 button — source 가 #dc2626 사용. 토큰 정의 안 함 → status-danger-bar 진하게 */
+      --logout-bg:          rgba(220, 38, 38, 0.12);
+      --logout-border:      rgba(220, 38, 38, 0.25);
+      --logout-fg:          #dc2626;
+
+      /* Radius */
+      --radius-sm:       8px;    /* input / 일반 button / ✕ button (7 → 8) */
+      --radius-md:       12px;   /* Row / DB button / logout (9 → 12) / NameModal (14 → 12) */
+      --radius-lg:       16px;   /* Panel borderRadius '16px 0 0 16px' */
+      --radius-pill:     99px;
+
+      /* Toggle pill — source 11 px borderRadius (raw 보존) */
+      --toggle-radius:   11px;
+
+      /* Spacing */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+
+      /* Font */
+      --font-sans:       'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono:       'JetBrains Mono', ui-monospace, monospace;
+
+      /* ── tokens.css line 175~197 호환 alias (정의 블록만, body markup 안 0건) ── */
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --safe:   var(--status-safe-bar);
+      --danger: var(--status-danger-bar);
+    }
+
+    /* 라이트 모드 — design-system v0.1.1 §2 verbatim (OQ #1 LOCKED) */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);   /* 라이트 오버레이 약함 */
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --accent-hover:    #218bff;
+      --accent-active:   #0a52c4;
+
+      --status-safe:        #166534;
+      --status-safe-bar:    #15803d;
+      --status-danger:      #991b1b;
+      --status-danger-bar:  #b91c1c;
+      --status-danger-bg:   #fee2e2;
+      --logout-bg:          #fee2e2;
+      --logout-border:      rgba(185, 28, 28, 0.35);
+      --logout-fg:          #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 760px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 32px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 16px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    /* ── 다크/라이트 frame 좌우 배치 row ──────────────────── */
+    .row-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .row-flex > div {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .caption {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+    .caption code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── frame-mobile / frame-mobile-tall (모바일 시뮬레이션) ────────── */
+    .frame-mobile {
+      width: 420px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .frame-mobile-tall {
+      width: 420px;
+      height: 820px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .frame-bottomnav {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+    .frame-page-backdrop {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 54px;
+      padding: 16px;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .frame-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    /* ── SettingsPanel 내부 마크업 (W7 가 TSX 로 변환할 대상) ────────── */
+
+    /* Backdrop — source 는 position fixed; frame 안에서는 absolute */
+    .set-backdrop {
+      position: absolute;
+      inset: 0;
+      z-index: 190;
+      background: var(--surface-overlay);
+      transition: opacity 0.28s;
+      opacity: 1;
+      pointer-events: all;
+    }
+    .set-backdrop--closed {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Panel — id="settings-panel" 일관 / OQ #7 LOCKED width 88% maxWidth 320 */
+    .set-panel {
+      position: absolute;
+      top: 0; bottom: 54px; right: 0;
+      z-index: 200;
+      width: 88%;
+      max-width: 320px;
+      background: var(--surface-raised);
+      transform: translateX(0);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      border-radius: 16px 0 0 16px;
+      overflow-y: auto;
+    }
+    .set-panel--closed { transform: translateX(100%); }
+
+    /* 헤더 — gear svg + '설정' + ✕ Lucide X */
+    .set-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .set-header-title {
+      font-size: 13.5px;    /* source verbatim 13.5 — label 마지노선 (헤더 타이틀) */
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .set-close-btn {
+      margin-left: auto;
+      width: 28px; height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .set-close-btn:hover { background: var(--surface-active); }
+
+    /* 프로필 — avatar 44 + name 14 + sub 12(격상) */
+    .set-profile {
+      padding: 14px 13px 8px;
+    }
+    .set-profile-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .set-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--accent-active);  /* OQ #4 LOCKED 폐기 — solid */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-on-accent);
+      line-height: 1;
+    }
+    .set-avatar-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+    .set-avatar-meta {
+      font-size: 12px;     /* 10 → 12 격상 (caption + leading-none) */
+      line-height: 1;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* SectionHeader — collapsible 헤더 */
+    .set-section-wrap {
+      padding: 12px 13px 5px;
+    }
+    .set-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+    }
+    .set-section-label {
+      font-size: 11px;     /* 9 → 11 격상 (uppercase letterSpacing 유지) */
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+    .set-section-chevron {
+      color: var(--text-tertiary);
+      transition: transform 0.15s;
+    }
+    .set-section-chevron--open {
+      transform: rotate(90deg);
+    }
+
+    /* Row — label + sub + children */
+    .set-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: var(--surface-sunken);
+      border-radius: var(--radius-md);
+      margin-bottom: 5px;
+    }
+    .set-row--clickable { cursor: pointer; }
+    .set-row-label {
+      font-size: 12px;     /* source verbatim — label 마지노선 */
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+    .set-row-sub {
+      font-size: 12px;     /* 10 → 12 격상 (caption) */
+      color: var(--text-tertiary);
+      margin-top: 1px;
+      line-height: 1.4;
+    }
+
+    /* PermBadge — 3 분기 */
+    .perm-badge {
+      font-size: 12px;     /* 10 → 12 격상 (caption + leading-none) */
+      line-height: 1;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: var(--radius-pill);
+    }
+    .perm-badge--granted {
+      background: rgba(34, 197, 94, 0.16);
+      color: var(--status-safe-bar);
+    }
+    .perm-badge--denied {
+      background: rgba(239, 68, 68, 0.16);
+      color: var(--status-danger-bar);
+    }
+    .perm-badge--default {
+      background: rgba(139, 148, 158, 0.16);
+      color: var(--text-tertiary);
+    }
+    [data-theme="light"] .perm-badge--granted {
+      background: rgba(21, 128, 61, 0.12);
+      color: var(--status-safe-bar);
+    }
+    [data-theme="light"] .perm-badge--denied {
+      background: rgba(185, 28, 28, 0.12);
+      color: var(--status-danger-bar);
+    }
+    [data-theme="light"] .perm-badge--default {
+      background: rgba(101, 109, 118, 0.12);
+      color: var(--text-tertiary);
+    }
+
+    /* Toggle — switch 38x21 */
+    .toggle {
+      width: 38px;
+      height: 21px;
+      border-radius: var(--toggle-radius);
+      border: none;
+      cursor: pointer;
+      background: var(--surface-active);
+      position: relative;
+      transition: background 0.18s;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .toggle--on {
+      background: var(--accent-active);
+    }
+    .toggle--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .toggle-dot {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #fff;   /* Toggle 동그라미는 raw 보존 (토큰 미정의 — design-system §6.4 매치 OK) */
+      transition: transform 0.18s;
+      transform: translateX(0);
+      display: block;
+    }
+    .toggle--on .toggle-dot {
+      transform: translateX(17px);
+    }
+
+    /* admin 테스트 푸시 button — OQ #6 LOCKED 이모지 제거 + Lucide Send/Loader2 */
+    .set-test-push-btn {
+      width: 100%;
+      margin-bottom: 8px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 13px;     /* 11 → 13 격상 (label) */
+      line-height: 1;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .set-test-push-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .lucide-loader2 {
+      animation: spin 1s linear infinite;
+    }
+
+    /* sub-header (점검 / 일정 / 비밀번호 변경 / 개인정보 수정) */
+    .set-sub-header {
+      font-size: 11px;     /* 9 → 11 격상 (uppercase letterSpacing 유지) */
+      line-height: 1;
+      color: var(--text-tertiary);
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .set-sub-header--pref {
+      margin-bottom: 4px;
+    }
+    .set-sub-header--pref-second {
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+    /* prefs 박스 (notif expanded 영역) */
+    .set-prefs-box {
+      margin-top: 8px;
+      padding: 10px 12px 6px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+    }
+
+    /* MenuSettingsSection placeholder (W5 책임) */
+    .menu-settings-placeholder {
+      margin: 0 13px;
+      padding: 16px;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      color: var(--text-tertiary);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    /* select (화면 — 테마 / 주간 기준) */
+    .set-select {
+      background: var(--surface-active);
+      border: 1px solid var(--border-strong);
+      color: var(--text-primary);
+      font-size: 13px;     /* 11 → 13 격상 (label) */
+      line-height: 1;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      font-family: inherit;
+    }
+
+    /* ChevronRight inline svg (Row 우측) */
+    .row-chev {
+      color: var(--text-tertiary);
+    }
+
+    /* 폼 입력 (ChangePasswordForm / ProfileEditForm / NameEditModal) */
+    .form-wrap {
+      padding: 12px 13px;
+    }
+    .form-input {
+      height: 40px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .form-input--invalid {
+      border-color: var(--status-danger-bar);
+    }
+    .form-input-small {
+      height: 38px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--text-primary);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .form-input-readonly {
+      height: 38px;
+      background: var(--surface-page);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .form-label {
+      font-size: 12px;     /* 10 → 12 격상 (8 필드 라벨) */
+      color: var(--text-tertiary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+    .form-error {
+      font-size: 13px;     /* 11 → 13 격상 (label) */
+      line-height: 1.3;
+      color: var(--status-danger-bar);
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .form-button-cancel {
+      flex: 1;
+      height: 38px;
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .form-button-primary {
+      flex: 1;
+      height: 38px;
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .form-button-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* DB / R2 백업 button (40 height, download/upload svg 14x14) */
+    .db-button {
+      flex: 1;
+      height: 40px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .db-button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .db-button-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    /* 로그아웃 — destructive */
+    .logout-wrap {
+      padding: 12px 13px;
+    }
+    .logout-button {
+      width: 100%;
+      height: 40px;
+      background: var(--logout-bg);
+      color: var(--logout-fg);
+      border: 1px solid var(--logout-border);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* zoom container — Frame 별 변형 시연 */
+    .zoom-container {
+      width: 360px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .zoom-container[data-theme="light"] {
+      background: var(--surface-raised);
+      color: var(--text-primary);
+    }
+    .zoom-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    /* ── decision-summary / biz-anchors / negative-gate / upgrade-table ─── */
+    .decision-summary,
+    .biz-anchors,
+    .negative-gate {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .decision-summary ul,
+    .biz-anchors ul,
+    .negative-gate ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .decision-summary li,
+    .biz-anchors li,
+    .negative-gate li {
+      font-size: 14px;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .decision-summary li strong,
+    .biz-anchors li strong,
+    .negative-gate li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .decision-summary code,
+    .biz-anchors code,
+    .negative-gate code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .upgrade-table {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .upgrade-table table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+    .upgrade-table th,
+    .upgrade-table td {
+      padding: 6px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-default);
+      vertical-align: top;
+    }
+    .upgrade-table th {
+      color: var(--text-primary);
+      font-weight: 600;
+      background: var(--surface-sunken);
+    }
+    .upgrade-table td code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* NameEditModal 시각화 — modal dimmer + center */
+    .modal-dimmer {
+      position: absolute;
+      inset: 0;
+      z-index: 300;
+      background: var(--surface-overlay);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-box {
+      background: var(--surface-raised);
+      border-radius: var(--radius-md);
+      padding: 20px 18px;
+      width: 280px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .modal-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>31 SettingsPanel · v0.1.1 재디자인 시안 (W4 sub-wave)</h1>
+  <p>
+    redesign/31-chrome W4 sub-wave · SettingsPanel.tsx (894 라인) 단일 컴포넌트 sketch ·
+    design-system v0.1.1 의미 토큰 + 노안 룰 §1.1 부분 격상 22건 + 다크/라이트 양쪽 시연
+    (OQ #1 LOCKED) + 8 OQ LOCKED 결정 + W3-OQ #A pattern (<code>&#x2715;</code> → Lucide X) 시각화.
+    8 내부 컴포넌트 + JSZip 백업 + push prefs 6키 + 8 필드 ProfileEditForm + 6 collapsible
+    섹션 모두 시연. SettingsPanel.tsx 변경 0 (W7 책임).
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 1 — 다크 / 전체 패널 (메인 시연 — 알림 expanded)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 1 — 다크 / 전체 패널 (메인 시연 — 알림 expanded + 프로필 solid + Lucide X)</h2>
+  <p class="vp-desc frame-label">
+    OQ #1 LOCKED 다크 변형 · OQ #4 LOCKED 프로필 그라데이션 폐기 → <code>var(--accent-active)</code> solid ·
+    OQ #5 LOCKED gear svg 유지 · W3-OQ #A pattern <code>&#x2715;</code> 글리프 (line 669) → Lucide X 교체 ·
+    OQ #7 LOCKED panel <code>width 88%</code> <code>max-width 320</code> <code>border-radius 16px 0 0 16px</code> 보존 ·
+    OQ #2 LOCKED SectionHeader 11px / Row sub 12px / PermBadge 12px 격상 적용.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="frame-mobile-tall" style="background: var(--surface-page); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="frame-page-backdrop">
+          (뒤쪽 page content — 오버레이 dimmer 로 가려짐)
+        </div>
+        <div class="set-backdrop"></div>
+        <div class="set-panel" id="settings-panel">
+
+          <!-- header: gear svg + '설정' + Lucide X (text glyph deprecated) -->
+          <div class="set-header" style="background: var(--surface-raised); color: var(--text-primary); border-bottom: 1px solid var(--border-default);">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="set-header-title">설정</span>
+            <button class="set-close-btn" aria-label="설정 닫기">
+              <svg class="lucide lucide-x" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 프로필 — avatar solid (OQ #4) + name 14 + sub 12 격상 -->
+          <div class="set-profile" style="background: var(--surface-raised); color: var(--text-primary);">
+            <div class="set-profile-row">
+              <div class="set-avatar">윤</div>
+              <div style="flex:1; min-width:0;">
+                <span class="set-avatar-name">윤종엽</span>
+                <div class="set-avatar-meta">팀원 · 보조자</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 알림 섹션 (expanded) -->
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="true">
+              <span class="set-section-label">알림</span>
+              <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+
+            <div class="set-row" style="margin-top: 6px;">
+              <div>
+                <div class="set-row-label">푸시 알림</div>
+                <div class="set-row-sub">구독 중</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="perm-badge perm-badge--granted">허용됨</span>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+            </div>
+
+            <div class="set-prefs-box" style="background: var(--surface-sunken); border: 1px solid var(--border-strong); border-radius: var(--radius-md);">
+              <!-- admin 테스트 푸시 button — OQ #6 LOCKED 이모지 제거 + Lucide Send -->
+              <button class="set-test-push-btn">
+                <svg class="lucide lucide-send" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/>
+                  <path d="m21.854 2.147-10.94 10.939"/>
+                </svg>
+                <span>테스트 푸시 보내기</span>
+              </button>
+
+              <!-- 점검 그룹 -->
+              <div class="set-sub-header set-sub-header--pref">점검</div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">금일 점검 일정</div>
+                  <div class="set-row-sub">매일 08:45</div>
+                </div>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">전일 미완료 점검</div>
+                  <div class="set-row-sub">매일 08:45</div>
+                </div>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">미조치 항목</div>
+                  <div class="set-row-sub">매일 08:45</div>
+                </div>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+
+              <!-- 일정 그룹 -->
+              <div class="set-sub-header set-sub-header--pref-second">일정</div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">행사 15분 전 알림</div>
+                  <div class="set-row-sub">행사 시작 15분 전</div>
+                </div>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">행사 5분 전 알림</div>
+                  <div class="set-row-sub">행사 시작 5분 전</div>
+                </div>
+                <button class="toggle" aria-pressed="false">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+
+              <div class="set-row" style="margin-bottom: 4px;">
+                <div>
+                  <div class="set-row-label">교육 D-60 알림</div>
+                  <div class="set-row-sub">교육일 60일 전</div>
+                </div>
+                <button class="toggle toggle--on" aria-pressed="true">
+                  <span class="toggle-dot"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 메뉴 설정 — W5 책임 placeholder -->
+          <div class="menu-settings-placeholder">
+            <strong>MenuSettingsSection</strong> — W5 책임 sketch 별도 진행<br>
+            (source line 753: <code>&lt;MenuSettingsSection /&gt;</code> import 시그니처 박제)
+          </div>
+
+          <!-- 화면 섹션 (collapsed) -->
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">화면</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 계정 섹션 (collapsed) -->
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">계정</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 데이터베이스 (admin, collapsed) -->
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">데이터베이스</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 앱 정보 (collapsed) -->
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">앱 정보</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 로그아웃 — destructive -->
+          <div class="logout-wrap" style="background: var(--surface-raised);">
+            <button class="logout-button" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger);">로그아웃</button>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        다크 / 전체 패널 (algorithm = SectionHeader 5종 중 알림만 expanded, 나머지 collapsed).
+        프로필 아바타 <code>var(--accent-active)</code> solid (#2563eb / 라이트 #0a52c4)
+        — OQ #4 LOCKED 그라데이션 폐기. 헤더 <code>&#x2715;</code> Lucide X size 16 (W3-OQ #A).
+        Panel <code>width: 88%</code> <code>max-width: 320</code>
+        <code>border-radius: 16px 0 0 16px</code> — OQ #7 LOCKED.
+      </p>
+    </div>
+
+    <!-- Frame 1 옆 — Toggle 8 분기 + PermBadge 3 분기 매트릭스 (zoom) -->
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">Toggle — 4 분기 (다크)</div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="toggle" aria-pressed="false"><span class="toggle-dot"></span></button>
+          <span class="set-row-label" style="font-size:12px;">off</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="toggle toggle--on" aria-pressed="true"><span class="toggle-dot"></span></button>
+          <span class="set-row-label" style="font-size:12px;">on</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="toggle toggle--disabled" aria-pressed="false" disabled><span class="toggle-dot"></span></button>
+          <span class="set-row-sub" style="font-size:12px;">off · disabled</span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="toggle toggle--on toggle--disabled" aria-pressed="true" disabled><span class="toggle-dot"></span></button>
+          <span class="set-row-sub" style="font-size:12px;">on · disabled</span>
+        </div>
+
+        <div class="zoom-label" style="margin-top:8px;">PermBadge — 3 분기 (NotificationPermission)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <span class="perm-badge perm-badge--granted">허용됨</span>
+          <span class="perm-badge perm-badge--denied">차단됨</span>
+          <span class="perm-badge perm-badge--default">권한 미설정</span>
+        </div>
+        <p class="caption" style="margin-top:6px;">
+          OQ #2 격상 — fontSize 10 → 12 caption. background = color 16% alpha
+          (source line 90 verbatim — <code>${color}22</code>).
+          granted · denied · default 각각 --status-safe-bar · --status-danger-bar · --text-tertiary.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 2 — 다크 / 알림 권한 시연 (admin 테스트 푸시 button 2 변형)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 2 — 다크 / admin 테스트 푸시 button (OQ #6 이모지 폐기 → Lucide Send/Loader2)</h2>
+  <p class="vp-desc frame-label">
+    OQ #6 LOCKED 이모지 <code>&#x23F3;&#x1F514;</code> 제거 — Lucide <code>Send</code> (정적) / <code>Loader2</code> (sending, spin)
+    교체. fontSize 11 → 13 격상 (label). source line 717 <code>padding '7px 10px'</code>
+    → <code>padding '9px 12px'</code> (격상 후 spacing 비례 조정). PermBadge 3 분기 가로 비교.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">테스트 푸시 button — 정적 (Send)</div>
+        <button class="set-test-push-btn">
+          <svg class="lucide lucide-send" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/>
+            <path d="m21.854 2.147-10.94 10.939"/>
+          </svg>
+          <span>테스트 푸시 보내기</span>
+        </button>
+
+        <div class="zoom-label" style="margin-top:8px;">테스트 푸시 button — sending (Loader2 spin)</div>
+        <button class="set-test-push-btn" disabled aria-busy="true">
+          <svg class="lucide lucide-loader2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          <span>전송 중...</span>
+        </button>
+        <p class="caption" style="margin-top:6px;">
+          OQ #6 LOCKED — source line 722 <code>'&#x23F3; 전송 중...' : '&#x1F514; 테스트 푸시 보내기'</code>
+          → Lucide <code>Loader2</code> (spin animation 1s) / <code>Send</code> + 텍스트 정적.
+          button background <code>--surface-active</code> border <code>--border-strong</code>
+          color <code>--text-primary</code>. fontSize 13 (격상 — 11 → 13 label).
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">PermBadge — granted 시연</div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">푸시 알림</div>
+            <div class="set-row-sub">구독 중</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="perm-badge perm-badge--granted">허용됨</span>
+            <button class="toggle toggle--on" aria-pressed="true"><span class="toggle-dot"></span></button>
+          </div>
+        </div>
+
+        <div class="zoom-label">PermBadge — denied 시연</div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">푸시 알림</div>
+            <div class="set-row-sub">브라우저 설정에서 알림을 허용해주세요</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="perm-badge perm-badge--denied">차단됨</span>
+            <button class="toggle toggle--disabled" aria-pressed="false" disabled><span class="toggle-dot"></span></button>
+          </div>
+        </div>
+
+        <div class="zoom-label">PermBadge — default 시연</div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">푸시 알림</div>
+            <div class="set-row-sub">구독하려면 토글을 켜세요</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="perm-badge perm-badge--default">권한 미설정</span>
+            <button class="toggle" aria-pressed="false"><span class="toggle-dot"></span></button>
+          </div>
+        </div>
+        <p class="caption" style="margin-top:6px;">
+          source line 80~93 verbatim 3 분기 — granted/denied/default.
+          fontSize 10 → 12 격상 (caption). disabled 토글 (denied) opacity 0.5.
+          sub 텍스트도 fontSize 12 격상.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 3 — 다크 / Push prefs 6 토글 시연 (점검 3 + 일정 3)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 3 — 다크 / Push prefs 6 토글 (NotificationPreferences 전체 시연)</h2>
+  <p class="vp-desc frame-label">
+    source line 308~311 verbatim 6 키 시연 —
+    <code>daily_schedule / incomplete_schedule / unresolved_issue</code> (점검) +
+    <code>event_15min / event_5min / education_reminder</code> (일정).
+    sub-header '점검' / '일정' fontSize 9 → 11 격상 (uppercase letterSpacing .08em 유지).
+    Row sub fontSize 10 → 12 격상 (caption). Toggle on/off/disabled 변형 모두 시연.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">점검 그룹 (3 prefs)</div>
+        <div class="set-sub-header set-sub-header--pref">점검</div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">금일 점검 일정</div>
+            <div class="set-row-sub">매일 08:45</div>
+          </div>
+          <button class="toggle toggle--on" aria-pressed="true" aria-label="daily_schedule">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">전일 미완료 점검</div>
+            <div class="set-row-sub">매일 08:45</div>
+          </div>
+          <button class="toggle toggle--on" aria-pressed="true" aria-label="incomplete_schedule">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">미조치 항목</div>
+            <div class="set-row-sub">매일 08:45</div>
+          </div>
+          <button class="toggle toggle--on" aria-pressed="true" aria-label="unresolved_issue">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">일정 그룹 (3 prefs)</div>
+        <div class="set-sub-header set-sub-header--pref">일정</div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">행사 15분 전 알림</div>
+            <div class="set-row-sub">행사 시작 15분 전</div>
+          </div>
+          <button class="toggle toggle--on" aria-pressed="true" aria-label="event_15min">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">행사 5분 전 알림</div>
+            <div class="set-row-sub">행사 시작 5분 전</div>
+          </div>
+          <button class="toggle" aria-pressed="false" aria-label="event_5min">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">교육 D-60 알림</div>
+            <div class="set-row-sub">교육일 60일 전</div>
+          </div>
+          <button class="toggle toggle--on" aria-pressed="true" aria-label="education_reminder">
+            <span class="toggle-dot"></span>
+          </button>
+        </div>
+      </div>
+      <p class="caption">
+        <strong>handlePrefToggle(key)</strong> — source line 398 verbatim.
+        새 변경 시 즉시 <code>pushApi.updatePrefs</code> 호출 + optimistic <code>setPrefs</code>.
+        denied 또는 unsubscribed 시 모든 토글 disabled (opacity 0.5).
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 4 — 다크 / 데이터베이스 백업 (DB + R2 — admin only)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 4 — 다크 / DB + R2 백업 카드 시연 (admin only, JSZip 비즈 anchor)</h2>
+  <p class="vp-desc frame-label">
+    source line 793~857 verbatim — DB 백업/업로드 + R2 백업/업로드 (4 버튼).
+    DB sub / 파일 sub fontSize 10 → 12 격상 (caption). 버튼 4 모두 height 40 / borderRadius 9 (md).
+    OQ #5 LOCKED 인라인 svg download/upload 4 아이콘 유지.
+    handleR2Backup 라이브 텍스트 시연 — <code>r2BackupProgress</code> '신규 파일 다운로드 (3/8)...'
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">데이터베이스 섹션 (admin only, expanded)</div>
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="true" style="margin-bottom: 6px;">
+            <span class="set-section-label">데이터베이스</span>
+            <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="set-row-sub" style="margin-bottom: 6px;">DB (점검기록, 직원, 설정 등)</div>
+        <div class="db-button-row">
+          <button class="db-button">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            </svg>
+            <span>백업</span>
+          </button>
+          <button class="db-button">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <span>업로드</span>
+          </button>
+        </div>
+
+        <div class="set-row-sub" style="margin-bottom: 6px;">파일 (점검 사진 등)</div>
+        <div class="db-button-row" style="margin-bottom: 0;">
+          <button class="db-button" aria-busy="true">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <span>신규 파일 다운로드 (3/8)...</span>
+          </button>
+          <button class="db-button">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <span>업로드</span>
+          </button>
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          R2 백업 라이브 텍스트 — <code>r2BackupProgress</code> source line 294 state +
+          <code>handleR2Backup</code> line 497 (r2-list / r2-download / JSZip cronZips + deltaKeys).
+          <code>handleR2Restore</code> line 584 — JSZip.loadAsync + 10개 batch upload.
+          버튼 모두 height 40 / borderRadius 12 (md, 9 → 12 격상) / fontSize 12 fontWeight 700.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">DB 4 핸들러 시그니처 (JSZip 비즈 anchor)</div>
+        <div class="set-row-sub" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.6;">
+          <code>async handleDbBackup()</code><br>
+          fetch /database/backup → .sql 다운로드<br>
+          (source line 444)
+        </div>
+        <div class="set-row-sub" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.6;">
+          <code>async handleDbRestore()</code><br>
+          input file .sql → POST /database/restore<br>
+          (source line 467)
+        </div>
+        <div class="set-row-sub" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.6;">
+          <code>async handleR2Backup()</code><br>
+          r2-list / r2-download / new JSZip() / cronZips + deltaKeys<br>
+          (source line 497, JSZip new line 548)
+        </div>
+        <div class="set-row-sub" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.6;">
+          <code>async handleR2Restore()</code><br>
+          JSZip.loadAsync(file) + 10개 batch upload<br>
+          (source line 584, JSZip.loadAsync line 596)
+        </div>
+        <p class="caption">
+          안전 직결 — W7 변환 시 4 핸들러 body 1 byte 변경 0 강제.
+          JSZip <code>import JSZip from 'jszip'</code> (line 3) 보존.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 5 — 라이트 / 전체 패널 (OQ #1 LOCKED 라이트 변형)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 5 — 라이트 / 전체 패널 (OQ #1 LOCKED — data-theme="light")</h2>
+  <p class="vp-desc frame-label">
+    Frame 1 의 markup 동일, frame container 에 <code>data-theme="light"</code> 부착만.
+    surface / text / border / status / accent 모두 라이트 토큰 자동 적용.
+    avatar <code>var(--accent-active)</code> = <code>#0a52c4</code> (다크 #2563eb 보다 진한 톤).
+    Backdrop 오버레이 <code>rgba(0,0,0,0.5)</code> (다크 0.65 보다 약함).
+    PermBadge granted bg <code>rgba(21,128,61,0.12)</code>.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="frame-mobile-tall" data-theme="light" style="background: var(--surface-page); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="frame-page-backdrop">
+          (뒤쪽 page content — 라이트 모드 page 영역)
+        </div>
+        <div class="set-backdrop"></div>
+        <div class="set-panel">
+
+          <div class="set-header" style="background: var(--surface-raised); color: var(--text-primary); border-bottom: 1px solid var(--border-default);">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="set-header-title">설정</span>
+            <button class="set-close-btn" aria-label="설정 닫기">
+              <svg class="lucide lucide-x" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="set-profile" style="background: var(--surface-raised); color: var(--text-primary);">
+            <div class="set-profile-row">
+              <div class="set-avatar">윤</div>
+              <div style="flex:1; min-width:0;">
+                <span class="set-avatar-name">윤종엽</span>
+                <div class="set-avatar-meta">팀원 · 보조자</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="true">
+              <span class="set-section-label">알림</span>
+              <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+
+            <div class="set-row" style="margin-top: 6px;">
+              <div>
+                <div class="set-row-label">푸시 알림</div>
+                <div class="set-row-sub">구독 중</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="perm-badge perm-badge--granted">허용됨</span>
+                <button class="toggle toggle--on" aria-pressed="true"><span class="toggle-dot"></span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="menu-settings-placeholder">
+            <strong>MenuSettingsSection</strong> — W5 책임 placeholder
+          </div>
+
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">화면</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">계정</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">데이터베이스</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="set-section-wrap" style="background: var(--surface-raised); padding-block: var(--space-3); border-top: 1px solid var(--border-default);">
+            <button class="set-section-header" aria-expanded="false">
+              <span class="set-section-label">앱 정보</span>
+              <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="logout-wrap" style="background: var(--surface-raised);">
+            <button class="logout-button" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger);">로그아웃</button>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        라이트 모드 — OQ #1 LOCKED. 라이트 토큰 hex 검수용:
+        <code>#f6f8fa</code> raised · <code>#ebeef1</code> sunken · <code>#1f2328</code> primary ·
+        <code>#0a52c4</code> avatar accent · 오버레이 <code>rgba(0,0,0,0.5)</code> ·
+        로그아웃 <code>#b91c1c</code> destructive.
+      </p>
+    </div>
+
+    <div>
+      <div class="zoom-container" data-theme="light">
+        <div class="zoom-label">라이트 / 화면 섹션 expanded</div>
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="true">
+            <span class="set-section-label">화면</span>
+            <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="set-row" style="margin-top: 6px;">
+          <div class="set-row-label">테마</div>
+          <select class="set-select">
+            <option>다크</option><option>라이트</option><option selected>시스템</option>
+          </select>
+        </div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div class="set-row-label">주간 현황 기준</div>
+          <select class="set-select">
+            <option selected>이번 주</option><option>최근 7일</option>
+          </select>
+        </div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div class="set-row-label">결과 즉시 저장</div>
+          <button class="toggle toggle--on" aria-pressed="true"><span class="toggle-dot"></span></button>
+        </div>
+        <p class="caption">
+          select fontSize 11 → 13 격상 (label) — source line 760 / 765.
+          select bg <code>--surface-active</code> border <code>--border-strong</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 6 — 라이트 / 비밀번호 변경 폼 시연 (ChangePasswordForm)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 6 — 라이트 / 비밀번호 변경 폼 (ChangePasswordForm — validation 시연)</h2>
+  <p class="vp-desc frame-label">
+    source line 109~145 verbatim — current / next / confirm 3 input + validation +
+    mutation. confirm 불일치 상태 시연 — danger 메시지 fontSize 11 → 13 격상 (label).
+    sub-header '비밀번호 변경' fontSize 9 → 11 격상 (uppercase letterSpacing 유지).
+    취소 / 변경 button 36 height. <code>authApi.changePassword</code> mutation.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" data-theme="light">
+        <div class="zoom-label">계정 — ChangePasswordForm (불일치 상태)</div>
+        <div class="form-wrap" style="padding: 0;">
+          <div class="set-sub-header">비밀번호 변경</div>
+          <div class="form-row">
+            <input type="password" class="form-input" placeholder="현재 비밀번호" value="••••••" readonly />
+            <input type="password" class="form-input" placeholder="새 비밀번호 (4자 이상)" value="••••••••" readonly />
+            <input type="password" class="form-input form-input--invalid" placeholder="새 비밀번호 확인" value="•••••••" readonly />
+            <div class="form-error">비밀번호가 일치하지 않습니다</div>
+            <div class="form-button-row">
+              <button class="form-button-cancel">취소</button>
+              <button class="form-button-primary" disabled>변경</button>
+            </div>
+          </div>
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          <strong>canSave</strong> = <code>current.trim() !== '' && next.trim() !== '' &&
+          next === confirm && next.length >= 4</code> (source line 120 verbatim).
+          불일치 시 confirm input border <code>--status-danger-bar</code> + 변경 button disabled
+          (opacity 0.4).
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">계정 — ChangePasswordForm (다크, 정상 상태)</div>
+        <div class="form-wrap" style="padding: 0;">
+          <div class="set-sub-header">비밀번호 변경</div>
+          <div class="form-row">
+            <input type="password" class="form-input" placeholder="현재 비밀번호" />
+            <input type="password" class="form-input" placeholder="새 비밀번호 (4자 이상)" />
+            <input type="password" class="form-input" placeholder="새 비밀번호 확인" />
+            <div class="form-button-row">
+              <button class="form-button-cancel">취소</button>
+              <button class="form-button-primary">변경</button>
+            </div>
+          </div>
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          정상 상태 다크 변형 — 변경 button 활성. input height 40 / borderRadius 8 (sm) /
+          fontSize 13 / background <code>--surface-sunken</code> / border <code>--border-default</code>.
+          취소 button background <code>--surface-active</code> / 변경 button background <code>--accent</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 7 — 라이트 / 개인정보 수정 폼 (ProfileEditForm — 8 필드 전체)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 7 — 라이트 / 개인정보 수정 폼 (ProfileEditForm — 8 필드 전체 시연)</h2>
+  <p class="vp-desc frame-label">
+    source line 183~277 verbatim — 8 필드 폼 (이름 / 사번 / 직책 / 역할 / 입사일 readonly +
+    생년월일 / 연락처 / 이메일 활성). 8 라벨 모두 fontSize 10 → 12 격상.
+    sub-header '개인정보 수정' fontSize 9 → 11 격상. READONLY_STYLE bg <code>--surface-page</code>
+    + color <code>--text-tertiary</code> / INPUT_STYLE bg <code>--surface-sunken</code>.
+    <code>authApi.updateProfile({ phone, email, birthDate })</code> mutation.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" data-theme="light" style="width: 400px;">
+        <div class="zoom-label">계정 — ProfileEditForm (8 필드 전체)</div>
+        <div class="form-wrap" style="padding: 0;">
+          <div class="set-sub-header">개인정보 수정</div>
+          <div class="form-row" style="gap: 6px;">
+            <div>
+              <div class="form-label">이름</div>
+              <input class="form-input-readonly" value="윤종엽" readonly />
+            </div>
+            <div>
+              <div class="form-label">사번</div>
+              <input class="form-input-readonly" value="20220510" readonly />
+            </div>
+            <div>
+              <div class="form-label">직책</div>
+              <input class="form-input-readonly" value="팀원" readonly />
+            </div>
+            <div>
+              <div class="form-label">역할</div>
+              <input class="form-input-readonly" value="보조자" readonly />
+            </div>
+            <div>
+              <div class="form-label">입사일</div>
+              <input class="form-input-readonly" value="2022-05-10" readonly />
+            </div>
+            <div>
+              <div class="form-label">생년월일</div>
+              <input class="form-input-small" type="date" value="1990-01-15" />
+            </div>
+            <div>
+              <div class="form-label">연락처</div>
+              <input class="form-input-small" type="tel" placeholder="010-0000-0000" />
+            </div>
+            <div>
+              <div class="form-label">이메일</div>
+              <input class="form-input-small" type="email" placeholder="email@example.com" />
+            </div>
+            <div class="form-button-row">
+              <button class="form-button-cancel">취소</button>
+              <button class="form-button-primary">저장</button>
+            </div>
+          </div>
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          source line 217~221 — INPUT_STYLE height 38 / fontSize 12 / borderRadius 8 (sm).
+          READONLY_STYLE color <code>--text-tertiary</code> background <code>--surface-page</code>.
+          입사일 자동 계산: <code>staff.id</code> 앞 8자리 YYYYMMDD → YYYY-MM-DD (source line 245~248)
+          fallback <code>staffFull?.appointedAt</code>.
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">8 필드 검증 매트릭스</div>
+        <div class="set-row-sub" style="font-family: var(--font-mono); font-size: 12px; line-height: 1.6;">
+          <code>이름</code>: readonly (NameEditModal 별도 진행 — source line 148~180)<br>
+          <code>사번</code>: readonly (staff.id)<br>
+          <code>직책</code>: readonly (staff.title ?? '-')<br>
+          <code>역할</code>: readonly (admin '관리자' / assistant '보조자')<br>
+          <code>입사일</code>: readonly (staff.id 앞 8자리 또는 staffFull.appointedAt)<br>
+          <code>생년월일</code>: <code>input type="date"</code> 활성<br>
+          <code>연락처</code>: <code>input type="tel"</code> 활성<br>
+          <code>이메일</code>: <code>input type="email"</code> 활성
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          <strong>mutation.onSuccess</strong> — <code>updateStaff({ name: data.name })</code> +
+          <code>qc.invalidateQueries({ queryKey: ['staff-list'] })</code> +
+          <code>toast.success('개인정보가 수정되었습니다')</code> + <code>onDone()</code>.
+          5분 staleTime cache 즉시 무효화 (source line 206~210).
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 8 — 다크 / SectionHeader collapse/expand 4 상태 매트릭스 (옵션)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 8 — 다크 / SectionHeader collapse/expand 매트릭스 + 계정 메뉴 + 로그아웃 시연</h2>
+  <p class="vp-desc frame-label">
+    SectionHeader collapse(false) / expand(true) ChevronRight rotate 0 / 90 시연.
+    계정 섹션 메뉴 Row 2 (개인정보 수정 / 비밀번호 변경 + ChevronRight 13x13 우측 svg).
+    로그아웃 button — <code>--status-danger-bg</code> / <code>--status-danger</code> /
+    <code>--status-danger</code> 25% alpha border. NameEditModal 시각화 — zIndex 300 위로 띄움.
+  </p>
+
+  <div class="row-flex">
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">SectionHeader 4 상태 — 알림 / 화면 / 계정 / 데이터베이스</div>
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="false">
+            <span class="set-section-label">알림</span>
+            <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="true">
+            <span class="set-section-label">화면</span>
+            <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="false">
+            <span class="set-section-label">계정</span>
+            <svg class="set-section-chevron lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="set-section-wrap" style="padding: 0;">
+          <button class="set-section-header" aria-expanded="true">
+            <span class="set-section-label">데이터베이스</span>
+            <svg class="set-section-chevron set-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="zoom-label" style="margin-top:8px;">계정 — 메뉴 Row 2 (ChevronRight 13x13 우측)</div>
+        <div class="set-row set-row--clickable">
+          <div>
+            <div class="set-row-label">개인정보 수정</div>
+            <div class="set-row-sub">연락처, 이메일, 생년월일</div>
+          </div>
+          <svg class="row-chev" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+        <div class="set-row set-row--clickable">
+          <div class="set-row-label">비밀번호 변경</div>
+          <svg class="row-chev" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+        <div class="zoom-label" style="margin-top:8px;">앱 정보 — 버전 / 캐시 / 위치 Row 3</div>
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">버전</div>
+            <div class="set-row-sub">v1.0.0 (2026-05-27)</div>
+          </div>
+        </div>
+
+        <div class="set-row set-row--clickable">
+          <div>
+            <div class="set-row-label">캐시 초기화</div>
+            <div class="set-row-sub">최신 리소스로 새로고침</div>
+          </div>
+          <svg class="row-chev" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </div>
+
+        <div class="set-row" style="background: var(--surface-sunken); color: var(--text-primary); border-radius: var(--radius-md);">
+          <div>
+            <div class="set-row-label">차바이오컴플렉스 방재</div>
+            <div class="set-row-sub">경기도 성남시 분당구 판교로 335</div>
+          </div>
+        </div>
+
+        <div class="zoom-label" style="margin-top:8px;">로그아웃 — destructive (status-danger)</div>
+        <button class="logout-button" style="background: var(--status-danger-bg); color: var(--status-danger); border-color: var(--status-danger);">로그아웃</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="zoom-container" style="background: var(--surface-raised); color: var(--text-primary); border-color: var(--border-default);">
+        <div class="zoom-label">NameEditModal (zIndex 300 — line 148~180)</div>
+        <div style="position: relative; height: 280px; background: var(--surface-page); border: 1px solid var(--border-default); border-radius: var(--radius-md); overflow: hidden;">
+          <div class="modal-dimmer">
+            <div class="modal-box">
+              <div class="modal-title">이름 변경</div>
+              <input type="text" class="form-input" value="윤종엽" maxlength="20" placeholder="이름 입력 (최대 20자)" />
+              <div class="form-button-row" style="margin-top: 12px;">
+                <button class="form-button-cancel">취소</button>
+                <button class="form-button-primary">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption" style="margin-top:8px;">
+          NameEditModal — width 280 / borderRadius 12 (14 → 12 격상) /
+          padding '20px 18px'. <code>maxLength={20}</code> +
+          <code>canSave = trim !== '' && trim !== currentName && trim.length <= 20</code>.
+          <code>authApi.updateProfile({ name: editName.trim() })</code> mutation +
+          <code>qc.invalidateQueries({ queryKey: ['staff-list'] })</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Decision summary / Biz anchors / Negative gate / Upgrade table
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>디자인 결정 요약 (decision-summary)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li><strong>OQ #1 LOCKED 다크+라이트</strong> — 본 W4 sketch frame 1~4 다크 / 5~7 라이트.
+        라이트 토큰 자동 적용 (<code>[data-theme="light"]</code> selector).</li>
+      <li><strong>OQ #2 LOCKED 부분 격상 22건</strong> —
+        SectionHeader 9 → 11 (5건) · Row sub 10 → 12 (13건) ·
+        button + select 11 → 13 (4건). 사용자 결정 — 12 vs 11 sub-header / 14 vs 13 button sub-OQ 가능.</li>
+      <li><strong>OQ #4 LOCKED 프로필 그라데이션 폐기</strong> — source line 677
+        <code>linear&#x2011;gradient(135deg, #2563eb, #7c3aed)</code> → <code>var(--accent-active)</code> solid.
+        라이트 모드 <code>#0a52c4</code> 자동 적용.</li>
+      <li><strong>OQ #5 LOCKED 인라인 svg 유지</strong> — gear (헤더, line 664) /
+        ChevronRight (SectionHeader rotate, line 20-25) / ChevronRight (Row 우측, line 783/786/870) /
+        download / upload (DB R2 4 button) 모두 인라인 svg path 보존.</li>
+      <li><strong>OQ #6 LOCKED 이모지 제거</strong> — source line 722
+        <code>'&#x23F3; 전송 중...' : '&#x1F514; 테스트 푸시 보내기'</code> →
+        Lucide <code>Loader2</code> (spin) / <code>Send</code> + 텍스트.</li>
+      <li><strong>OQ #7 LOCKED panel width 보존</strong> — Layout 인터페이스 verbatim:
+        <code>width '88%'</code> <code>maxWidth 320</code> <code>borderRadius '16px 0 0 16px'</code> /
+        <code>top var(--sat, 0px)</code> <code>bottom calc(54px + var(--sab, 0px) - var(--sat, 0px))</code> /
+        <code>transform translateX(0/100%)</code> <code>transition 0.3s cubic-bezier(.4,0,.2,1)</code>.</li>
+      <li><strong>W3-OQ #A pattern</strong> — <code>&#x2715;</code> 텍스트 글리프 (source line 669) → Lucide <code>X</code>
+        size 16. <code>aria-label="설정 닫기"</code> 보존. 28×28 borderRadius 8 (sm) /
+        <code>--surface-sunken</code> bg / <code>--text-secondary</code> color.</li>
+    </ul>
+  </div>
+
+  <h2>비즈 anchor 30+ 박제 (biz-anchors) — W7 TSX 변환 1 byte 변경 0 강제</h2>
+  <div class="biz-anchors">
+    <ul>
+      <li><strong>Props interface</strong> — <code>{ open: boolean; onClose: () =&gt; void; isDesktop?: boolean }</code></li>
+      <li><strong>SectionHeader</strong> — <code>{ label, collapsed, onToggle }</code> + ChevronRight rotate 90 + aria-expanded</li>
+      <li><strong>usePersistedCollapse</strong> — localStorage 영속 hook + 6 키
+        (<code>settings.notif.collapsed</code> · <code>settings.display.collapsed</code> ·
+        <code>settings.account.collapsed</code> · <code>settings.db.collapsed</code> ·
+        <code>settings.appinfo.collapsed</code>)</li>
+      <li><strong>Toggle</strong> — 38×21 / 동그라미 17 / on=<code>--accent-active</code> /
+        off=<code>--surface-active</code> / transition 0.18s</li>
+      <li><strong>PermBadge</strong> — granted/denied/default 3 분기 (NotificationPermission)</li>
+      <li><strong>Row</strong> — label + sub + children + onClick / fontSize 12 + 12 (격상)</li>
+      <li><strong>ChangePasswordForm</strong> — 3 input + validation + <code>authApi.changePassword</code></li>
+      <li><strong>NameEditModal</strong> — <code>currentName, onClose, onSave</code> + maxLength 20 + <code>authApi.updateProfile({ name })</code></li>
+      <li><strong>ProfileEditForm</strong> — 8 필드 + INPUT_STYLE / READONLY_STYLE + <code>authApi.updateProfile({ phone, email, birthDate })</code></li>
+      <li><strong>NotificationPreferences</strong> — 6 prefs 키 (daily_schedule / incomplete_schedule /
+        unresolved_issue / event_15min / event_5min / education_reminder)</li>
+      <li><strong>handleSubscribe / handleUnsubscribe / handleTestPush / handlePrefToggle</strong> —
+        line 332 / 361 / 376 / 398 verbatim</li>
+      <li><strong>JSZip 백업</strong> — <code>import JSZip from 'jszip'</code> (line 3) +
+        <code>handleDbBackup</code> / <code>handleDbRestore</code> /
+        <code>handleR2Backup</code> (new JSZip line 548) /
+        <code>handleR2Restore</code> (JSZip.loadAsync line 596)</li>
+      <li><strong>handleClearCache</strong> — line 420 (caches.delete + serviceWorker.unregister)</li>
+      <li><strong>handleLogout</strong> — line 627 (logout + navigate('/login') + onClose)</li>
+      <li><strong>handleNameSaved</strong> — line 633 (updateStaff({ name }) + toast.success)</li>
+      <li><strong>useStaffList</strong> — staffFull lookup for ProfileEditForm</li>
+      <li><strong>useAuthStore</strong> — <code>{ staff, logout, updateStaff }</code></li>
+      <li><strong>useNavigate</strong> — handleLogout 의 <code>navigate('/login')</code></li>
+      <li><strong>react-query useMutation / useQueryClient</strong> — 3 mutation
+        (ChangePassword / Name / Profile) + <code>['staff-list']</code> invalidate</li>
+      <li><strong>Layout</strong> — Backdrop zIndex 190 / Panel zIndex 200 / id="settings-panel" /
+        OQ #7 width 88% maxWidth 320 / borderRadius '16px 0 0 16px' /
+        transition 0.3s cubic-bezier(.4,0,.2,1) / Backdrop transition 0.28s /
+        isDesktop 분기 top/bottom</li>
+      <li><strong>__APP_VERSION__ / __BUILD_TIME__</strong> — vite define build-time
+        (line 864) — 변경 금지</li>
+      <li><strong>MenuSettingsSection import</strong> — line 48 <code>import { MenuSettingsSection } from './MenuSettingsSection'</code> +
+        line 753 render. W5 책임 sketch 별도.</li>
+    </ul>
+  </div>
+
+  <h2>Negative gate (negative-gate) — sketch body markup 안 grep verify</h2>
+  <div class="negative-gate">
+    <ul>
+      <li><strong>fontSize 9/10/11 markup 안 0</strong> — 단 머리 주석 박스 안 인용은 예외.
+        모든 위반 22건 격상 적용.</li>
+      <li><strong><code>linear&#x2011;gradient</code> body markup 안 0</strong> — OQ #4 LOCKED 폐기 (source line 677 1건 제거).</li>
+      <li><strong>이모지 (<code>&#x23F3;&#x1F514;</code>) body markup 안 0</strong> — OQ #6 LOCKED 제거.
+        Lucide Loader2 / Send 인라인 svg 교체.</li>
+      <li><strong><code>&#x2715;</code> 텍스트 글리프 body markup 안 0</strong> — W3-OQ #A pattern.
+        Lucide X svg path 교체.</li>
+      <li><strong>status-* className prefix 안 0</strong> — memory <code>feedback_tailwind_token_class_pattern</code>.
+        <code>var(--status-...)</code> CSS 변수는 OK / className 의 <code>status-</code> prefix 는 X.</li>
+      <li><strong>legacy alias body markup 안 0</strong> —
+        <code>--bg / --bg2 / --bg3 / --bg4 / --bd / --bd2 / --t1 / --t2 / --t3 / --acl /
+        --safe / --danger / --warn / --info / --fire / --c-*</code> 모두 v0.1.1 의미 토큰 교체.
+        :root + [data-theme="light"] + 호환 alias 정의 블록 안만 허용.</li>
+      <li><strong>raw hex body markup 안 0</strong> — 단 :root + [data-theme="light"] 정의 +
+        머리 주석 인용 + Toggle 동그라미 <code>#fff</code> (토큰 미정의 보존) 예외.</li>
+      <li><strong>MENU 상수 import 변경 0</strong> — MenuSettingsSection W5 의존 — placeholder 표기만.</li>
+    </ul>
+  </div>
+
+  <h2>노안 격상 표 (upgrade-table) — OQ #2 LOCKED 22건 (source 실측 line 박제)</h2>
+  <div class="upgrade-table">
+    <table>
+      <thead>
+        <tr>
+          <th>source (line)</th>
+          <th>fontSize (px)</th>
+          <th>→</th>
+          <th>sketch (px)</th>
+          <th>역할</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>line 17 SectionHeader span</td><td><code>9</code></td><td>→</td><td><code>11</code></td><td>섹션 헤더 uppercase letterSpacing .08em 유지</td></tr>
+        <tr><td>line 124 ChangePasswordForm sub</td><td><code>9</code></td><td>→</td><td><code>11</code></td><td>폼 sub-header '비밀번호 변경'</td></tr>
+        <tr><td>line 225 ProfileEditForm sub</td><td><code>9</code></td><td>→</td><td><code>11</code></td><td>폼 sub-header '개인정보 수정'</td></tr>
+        <tr><td>line 726 push prefs '점검'</td><td><code>9</code></td><td>→</td><td><code>11</code></td><td>prefs 그룹 헤더 '점검'</td></tr>
+        <tr><td>line 738 push prefs '일정'</td><td><code>9</code></td><td>→</td><td><code>11</code></td><td>prefs 그룹 헤더 '일정'</td></tr>
+        <tr><td>line 89 PermBadge</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>알림 권한 배지 (caption + leading-none)</td></tr>
+        <tr><td>line 101 Row sub</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>Row 보조 텍스트</td></tr>
+        <tr><td>line 228 이름 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 232 사번 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 236 직책 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 240 역할 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 244 입사일 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 251 생년월일 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 260 연락처 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 264 이메일 라벨</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>ProfileEditForm 필드 라벨</td></tr>
+        <tr><td>line 685 displayTitle · displayRole</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>프로필 부제 (caption)</td></tr>
+        <tr><td>line 797 DB sub</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>'DB (점검기록, 직원, 설정 등)'</td></tr>
+        <tr><td>line 826 파일 sub</td><td><code>10</code></td><td>→</td><td><code>12</code></td><td>'파일 (점검 사진 등)'</td></tr>
+        <tr><td>line 133 ChangePassword danger</td><td><code>11</code></td><td>→</td><td><code>13</code></td><td>'비밀번호가 일치하지 않습니다' (label)</td></tr>
+        <tr><td>line 717 admin 테스트 푸시</td><td><code>11</code></td><td>→</td><td><code>13</code></td><td>button 텍스트 (label)</td></tr>
+        <tr><td>line 760 select '테마'</td><td><code>11</code></td><td>→</td><td><code>13</code></td><td>화면 섹션 select (label)</td></tr>
+        <tr><td>line 765 select '주간 현황 기준'</td><td><code>11</code></td><td>→</td><td><code>13</code></td><td>화면 섹션 select (label)</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 12px; font-size: 13px; color: var(--text-tertiary);">
+      합계 22건 (9 px 5건 + 10 px 13건 + 11 px 4건). sketch 결과 본 후 사용자 결정 —
+      sub-header 12 vs 11 / button 13 vs 14 sub-OQ 가능. 모든 SectionHeader 11 격상은
+      W3 divider 11 와 일관성 우선.
+    </p>
+  </div>
+
+  <h2>토큰 매핑 표 (alias → v0.1.1 semantic)</h2>
+  <div class="upgrade-table">
+    <table>
+      <thead>
+        <tr>
+          <th>source (alias / raw)</th>
+          <th>→</th>
+          <th>sketch (v0.1.1)</th>
+          <th>역할</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>--bg</code></td><td>→</td><td><code>--surface-page</code></td><td>READONLY input bg</td></tr>
+        <tr><td><code>--bg2</code> (Panel)</td><td>→</td><td><code>--surface-raised</code></td><td>Panel 배경</td></tr>
+        <tr><td><code>--bg3</code> (Row/input/<code>&#x2715;</code> btn/DB btn)</td><td>→</td><td><code>--surface-sunken</code></td><td>Row / input / <code>&#x2715;</code> button / DB button bg</td></tr>
+        <tr><td><code>--bg4</code> (Toggle off/취소)</td><td>→</td><td><code>--surface-active</code></td><td>Toggle off / 취소 button / select bg</td></tr>
+        <tr><td><code>--bd</code></td><td>→</td><td><code>--border-default</code></td><td>헤더 분리선 / input border</td></tr>
+        <tr><td><code>--bd2</code></td><td>→</td><td><code>--border-strong</code></td><td>admin button / select border</td></tr>
+        <tr><td><code>--t1</code></td><td>→</td><td><code>--text-primary</code></td><td>displayName / 입력값 / 헤더 타이틀</td></tr>
+        <tr><td><code>--t2</code></td><td>→</td><td><code>--text-secondary</code></td><td><code>&#x2715;</code> button / 취소 button color</td></tr>
+        <tr><td><code>--t3</code></td><td>→</td><td><code>--text-tertiary</code></td><td>SectionHeader / sub / 라벨</td></tr>
+        <tr><td><code>--acl</code></td><td>→</td><td><code>--accent</code></td><td>변경/저장 button bg</td></tr>
+        <tr><td><code>--safe</code> (PermBadge granted)</td><td>→</td><td><code>--status-safe-bar</code></td><td>granted 텍스트 + bg 16%</td></tr>
+        <tr><td><code>--danger</code> (PermBadge denied / 검증)</td><td>→</td><td><code>--status-danger-bar</code></td><td>denied 텍스트 + 검증 메시지</td></tr>
+        <tr><td><code>rgba(0,0,0,0.65)</code> (Backdrop)</td><td>→</td><td><code>--surface-overlay</code></td><td>다크 0.65 / 라이트 0.5</td></tr>
+        <tr><td><code>#2563eb</code> (Toggle on)</td><td>→</td><td><code>--accent-active</code></td><td>Toggle on bg + avatar solid</td></tr>
+        <tr><td><code>linear&#x2011;gradient(135deg, #2563eb, #7c3aed)</code> (avatar)</td><td>→</td><td><code>--accent-active</code> solid</td><td>OQ #4 LOCKED 폐기</td></tr>
+        <tr><td><code>#fff</code> (avatarChar / button)</td><td>→</td><td><code>--text-on-accent</code></td><td>avatar 글자 / button 글자</td></tr>
+        <tr><td><code>#fff</code> (Toggle 동그라미)</td><td>→</td><td><code>#fff</code> raw 보존</td><td>토큰 미정의 — design-system §6.4 매치 OK</td></tr>
+        <tr><td><code>rgba(220,38,38,0.12)</code> (로그아웃 bg)</td><td>→</td><td><code>--logout-bg</code></td><td>:root 정의 alias (--status-danger-bg 대안)</td></tr>
+        <tr><td><code>#dc2626</code> (로그아웃 color)</td><td>→</td><td><code>--logout-fg</code></td><td>:root 정의 alias (--status-danger 대안)</td></tr>
+        <tr><td><code>rgba(220,38,38,0.25)</code> (로그아웃 border)</td><td>→</td><td><code>--logout-border</code></td><td>:root 정의 alias</td></tr>
+        <tr><td><code>borderRadius 7</code> (<code>&#x2715;</code> button)</td><td>→</td><td><code>--radius-sm</code> (8)</td><td>tokens.css §radius 일관</td></tr>
+        <tr><td><code>borderRadius 8</code> (input / 일반 button)</td><td>→</td><td><code>--radius-sm</code> (8)</td><td>tokens.css §radius 일관</td></tr>
+        <tr><td><code>borderRadius 9</code> (Row / DB button / logout)</td><td>→</td><td><code>--radius-md</code> (12)</td><td>tokens.css §radius 일관 (9 → 12 격상)</td></tr>
+        <tr><td><code>borderRadius 11</code> (Toggle pill)</td><td>→</td><td><code>--toggle-radius</code> (11)</td><td>Toggle pill raw 보존</td></tr>
+        <tr><td><code>borderRadius 14</code> (NameModal)</td><td>→</td><td><code>--radius-md</code> (12)</td><td>tokens.css §radius 일관 (14 → 12)</td></tr>
+        <tr><td><code>borderRadius '16px 0 0 16px'</code> (Panel)</td><td>→</td><td>raw 16 보존</td><td>OQ #7 LOCKED — Panel 핵심 형태</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>다음 wave 후보 (footer)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li><strong>W5 — MenuSettingsSection sketch</strong> (별도 quick)<br>
+        본 sketch 안 <code>&lt;MenuSettingsSection /&gt;</code> placeholder 영역. MenuSettingsSection.tsx
+        (390 라인 추정 — wave-1-index.md 박스 참조) 단일 컴포넌트 sketch 작성.
+        useQuery <code>queryKey: ['menu-config']</code> + settingsApi.getMenu / saveMenu 비즈 anchor 박제.</li>
+      <li><strong>W6 — chrome 4 컴포넌트 통합 sketch</strong> (옵션)<br>
+        GlobalHeader + SideMenu + SettingsPanel + MenuSettingsSection 4 컴포넌트 동시 시연
+        (한 frame 안 mount 상태). 또는 W2~W5 분할 sketch 만으로 충분 시 W6 skip 가능.</li>
+      <li><strong>W7 — TSX 변환 wave</strong> (별도 quick, 4 분할 — OQ #8 LOCKED)<br>
+        본 W4 sketch 의 비즈 anchor 30+ + 노안 격상 표 22건 + 토큰 매핑 표 →
+        src/components/SettingsPanel.tsx 1 byte 변경 0 강제. 4 분할:
+        (1) GlobalHeader / (2) SideMenu / (3) SettingsPanel / (4) MenuSettingsSection.</li>
+      <li><strong>auto-push hook 가동</strong> (memory <code>feedback_push_proactive</code>) —
+        main push 시 cbc7119-preview 자동 배포. <code>wrangler</code> 명령 절대 X
+        (CLAUDE.local.md + memory <code>feedback_cbc7119_design_never_wrangler</code>).</li>
+    </ul>
+  </div>
+
+  <p class="caption" style="margin-top: 24px;">
+    sketch-wave-4-settings-panel.html — redesign/31-chrome W4 sub-wave 완결.<br>
+    8 OQ LOCKED (W4 직접 6건 + W3-OQ #A pattern) + 비즈 anchor 30+ + 노안 격상 22건 +
+    토큰 매핑 + negative gate + 메모리 룰 12 slug 모두 박제.<br>
+    Frame 8개 (다크 5 + 라이트 3) — SettingsPanel.tsx 894 라인 source 단일 sketch.
+  </p>
+</body>
+</html>
