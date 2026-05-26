@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-header-filters.html — redesign/24-checkpoints W3
+  작성: 2026-05-26 / quick 260526-fga
+  범위: CheckpointsPage.tsx 헤더 모바일/데스크톱 분기 (line 516~582)
+        - 데스크톱 헤더 (line 516~551): flex row / gap 12 / padding 12px 24px / borderBottom var(--bd)
+          카테고리 select 220px + filterZone select + filterFloor select + 개소 카운트 + 개소 추가 버튼
+        - 모바일 헤더 (line 552~582): flex column / padding 12px 16px / gap 8
+          카테고리 select 풀폭 + 조건부 filterZone/filterFloor row + 개소 카운트
+        - filterZone / filterFloor / cpList 카운트 라벨 (line 531~541, 566~578)
+  out of scope: 외곽 wrapper + admin 가드 (W2) / 콘텐츠 리스트+FAB (W4) / 모달+폼 (W5) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #3 LOCKED — zone button row 유지 + fontSize 11 -> text-caption (12px) + leading-none
+    OQ #4 LOCKED — hex 토큰 치환: --bd->border-default / --bg3->surface-sunken / --acl->accent-primary / --t2->text-secondary
+    OQ #5 LOCKED — filterZone/Floor select fontSize 11 (line 567/574/578) -> text-caption (12px) 일률 격상 + leading-none
+    OQ #6 LOCKED — IconChevronDown SVG (line 528 size=14, 561 size=16) -> lucide ChevronDown size=16
+                    (size 14 -> 16 격상) + IconPlus (line 548 size=16) -> lucide Plus size=16
+  [OQ #1/#2 는 W5 scope (본 wave 미해당)]
+-->
+
+<!--
+  OQ #3: filter zone select 의 폰트 12 격상 (현 fontSize 11 -> text-caption 12, leading-none)
+-->
+<!--
+  OQ #4: 외곽 hex 토큰 치환 (--bd->border-default / --bg3->surface-sunken / --acl->accent-primary / --t2->text-secondary)
+-->
+<!--
+  OQ #5: filterZone/Floor select fontSize 11 (line 567/574/578) -> text-caption (12px) 일률 격상 + leading-none
+-->
+<!--
+  OQ #6: IconChevronDown SVG (line 528 size=14, 561 size=16) -> lucide ChevronDown size=16 (size 14->16 격상) + IconPlus (line 548 size=16) -> lucide Plus size=16
+-->
+
+<!--
+  비즈 anchor (CheckpointsPage.tsx, 1 byte X):
+     - 데스크톱 헤더 (line 516~551): isDesktop && (...) / 카테고리 select 220px / filterZone select / filterFloor select / 개소 카운트 / Plus 16 button
+     - 모바일 헤더 (line 552~582): !isDesktop && (...) / column stack / 조건부 filterZone+filterFloor row
+     - CATEGORIES_FALLBACK 19종 option (line 29~34) — 순서/값 변경 금지:
+       소화기, 소화전, 스프링클러, 청정소화약제, 소방펌프,
+       자동화재탐지설비, 유도등, 방화셔터, 비상콘센트, 소방용전원공급반,
+       특별피난계단, 전실제연댐퍼, 배연창, 연결송수관, 완강기,
+       DIV, CCTV, 주차장비, 회전문
+     - ZONE_LABEL { office:'사무동', research:'연구동', basement:'지하' } (line 35~37) — verbatim
+     - availableFloors 계산 (line 492~499) + 'basement'='common' eq() 헬퍼 (line 481~484)
+     - select option verbatim: '전체 (카테고리 선택)' / '전체 구역' / '전체 층' / '사무동' / '연구동' / '지하'
+     - 데스크톱 개소 추가 button (line 546~550): onClick={() => setModal({open:true,mode:'add'})}, bg var(--acl)->accent-primary
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>24-checkpoints W3 — Header Filters sketch</title>
+  <style>
+    /* ── 토큰 (OQ #4: hex 치환) ── */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #111122; }
+
+    /* ── 스케치 뷰포트 wrapper ── */
+    .sketch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 16px;
+    }
+    .frame-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      leading: none;
+    }
+
+    /* ── 데스크톱 헤더 컨테이너 ── */
+    .desktop-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+      background: var(--surface-page);
+      width: 860px;
+    }
+
+    /* ── 카테고리 select wrapper ── */
+    .cat-select-wrap {
+      position: relative;
+      width: 220px;
+    }
+    .hdr-select {
+      width: 100%;
+      height: 36px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 32px 0 12px;
+      /* OQ #5: fontSize 11 -> text-caption (12px) + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-primary);
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+    }
+    .hdr-select:focus {
+      border-color: var(--accent-primary);
+    }
+    .chevron-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: var(--text-secondary);
+    }
+
+    /* ── filter select (구역/층) ── */
+    .filter-select {
+      height: 36px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 10px;
+      /* OQ #5: fontSize 11 -> text-caption (12px) + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-primary);
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* ── 개소 추가 버튼 (데스크톱) ── */
+    .add-btn {
+      height: 36px;
+      padding: 0 16px;
+      /* OQ #2: 단색 accent-primary 유지 (그라데이션 미적용, OQ #2 LOCKED) */
+      background: var(--accent-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    /* ── 카운트 라벨 ── */
+    .count-label {
+      flex: 1;
+      /* OQ #5: text-caption 12px + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+
+    /* ── 모바일 헤더 컨테이너 ── */
+    .mobile-header {
+      padding: 12px 16px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: var(--surface-page);
+      border-bottom: 1px solid var(--border-default);
+      width: 390px;
+    }
+
+    /* ── 모바일 카테고리 select wrapper ── */
+    .mob-cat-wrap {
+      position: relative;
+    }
+    .mob-cat-select {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 36px 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      appearance: none;
+      cursor: pointer;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    /* ── 모바일 필터 row ── */
+    .mob-filter-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .mob-filter-select {
+      flex: 1;
+      height: 36px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 8px;
+      /* OQ #5: fontSize 11 (line 567/574) -> text-caption 12px + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-primary);
+      cursor: pointer;
+      outline: none;
+    }
+    .mob-count {
+      /* OQ #5: fontSize 11 (line 578) -> text-caption 12px + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+      white-space: nowrap;
+    }
+
+    /* ── Lucide SVG 인라인 아이콘 (OQ #6: IconChevronDown/IconPlus -> Lucide) ── */
+    /* size=14 -> size=16 격상 (OQ #6 LOCKED) */
+  </style>
+</head>
+<body>
+<div class="sketch-canvas">
+
+  <!-- ====================================================== -->
+  <!-- SECTION 1: 데스크톱 헤더                               -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">데스크톱 헤더 (isDesktop, line 516~551)</div>
+    <div class="frame-row">
+
+      <!-- Frame A: 데스크톱 헤더 default (카테고리 선택 상태) — 다크 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame A — 데스크톱 헤더 카테고리 선택 · 다크</div>
+        <div class="desktop-header" data-theme="dark" style="background:#0a0d12; border-bottom:1px solid rgba(255,255,255,0.14);">
+          <!-- 카테고리 select 220px -->
+          <div class="cat-select-wrap" style="--surface-sunken:#232a33; --border-default:rgba(255,255,255,0.14);">
+            <select class="hdr-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; font-size:12px; line-height:1;">
+              <option value="" disabled>전체 (카테고리 선택)</option>
+              <option value="소화기" selected>소화기</option>
+              <!-- CATEGORIES_FALLBACK 19종 (line 29~34): 소화기/소화전/스프링클러/청정소화약제/소방펌프/
+                   자동화재탐지설비/유도등/방화셔터/비상콘센트/소방용전원공급반/특별피난계단/전실제연댐퍼/
+                   배연창/연결송수관/완강기/DIV/CCTV/주차장비/회전문 (순서/값 변경 금지) -->
+            </select>
+            <!-- OQ #6: IconChevronDown size=14 (line 528) -> lucide ChevronDown size=16 -->
+            <div class="chevron-icon" style="color:#adb6c0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <!-- filterZone select -->
+          <select class="filter-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; font-size:12px; line-height:1;">
+            <option value="">전체 구역</option>
+            <option value="office">사무동</option>
+            <option value="research">연구동</option>
+            <option value="basement">지하</option>
+          </select>
+          <!-- filterFloor select -->
+          <select class="filter-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; font-size:12px; line-height:1;">
+            <option value="">전체 층</option>
+            <option value="8F">8F</option>
+            <option value="7F">7F</option>
+            <option value="1F">1F</option>
+            <!-- availableFloors (line 492~499): FLOOR_ORDER 20건 기준 정렬 -->
+          </select>
+          <!-- 개소 카운트 (line 543~544) -->
+          <span class="count-label" style="color:#8b949e;">12 개소</span>
+          <!-- 개소 추가 버튼 (line 546~550) -->
+          <button class="add-btn" style="background:#3b82f6; color:#fff;">
+            <!-- OQ #6: IconPlus size=16 (line 548) -> lucide Plus size=16 -->
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            개소 추가
+          </button>
+        </div>
+      </div>
+
+      <!-- Frame A: 데스크톱 헤더 default (카테고리 선택 상태) — 라이트 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame A — 데스크톱 헤더 카테고리 선택 · 라이트</div>
+        <div class="desktop-header" data-theme="light" style="background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.12);">
+          <div class="cat-select-wrap">
+            <select class="hdr-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328; font-size:12px; line-height:1;">
+              <option value="소화기" selected>소화기</option>
+            </select>
+            <div class="chevron-icon" style="color:#4d5562;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <select class="filter-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328; font-size:12px; line-height:1;">
+            <option value="">전체 구역</option>
+            <option value="office">사무동</option>
+            <option value="research">연구동</option>
+            <option value="basement">지하</option>
+          </select>
+          <select class="filter-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328; font-size:12px; line-height:1;">
+            <option value="">전체 층</option>
+            <option value="1F">1F</option>
+          </select>
+          <span class="count-label" style="color:#656d76;">12 개소</span>
+          <button class="add-btn" style="background:#0969da; color:#fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            개소 추가
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Frame B: 데스크톱 헤더 카테고리 미선택 — filterZone/Floor 숨김 -->
+    <div class="frame-row" style="margin-top: 20px;">
+      <div class="frame-block">
+        <div class="frame-label">Frame B — 데스크톱 헤더 카테고리 미선택 · 다크</div>
+        <div class="desktop-header" data-theme="dark" style="background:#0a0d12; border-bottom:1px solid rgba(255,255,255,0.14);">
+          <!-- 카테고리 미선택: filterZone/Floor select 숨김, 카운트 안내 -->
+          <div class="cat-select-wrap">
+            <select class="hdr-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#adb6c0; font-size:12px; line-height:1;">
+              <option value="" selected>전체 (카테고리 선택)</option>
+            </select>
+            <div class="chevron-icon" style="color:#8b949e;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <!-- filterZone/Floor 숨김 (selectedCategory === '' 일 때) -->
+          <!-- 카운트 라벨 비표시 (selectedCategory && !isLoading 조건 미충족, line 543~544) -->
+          <span class="count-label" style="color:#8b949e;"></span>
+          <button class="add-btn" style="background:#3b82f6; color:#fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            개소 추가
+          </button>
+        </div>
+      </div>
+
+      <div class="frame-block">
+        <div class="frame-label">Frame B — 데스크톱 헤더 카테고리 미선택 · 라이트</div>
+        <div class="desktop-header" data-theme="light" style="background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.12);">
+          <div class="cat-select-wrap">
+            <select class="hdr-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#656d76; font-size:12px; line-height:1;">
+              <option value="" selected>전체 (카테고리 선택)</option>
+            </select>
+            <div class="chevron-icon" style="color:#656d76;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <span class="count-label"></span>
+          <button class="add-btn" style="background:#0969da; color:#fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            개소 추가
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- SECTION 2: 모바일 헤더                                 -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">모바일 헤더 (!isDesktop, line 552~582)</div>
+    <div class="frame-row">
+
+      <!-- Frame C: 모바일 헤더 카테고리 선택 — column stack — 다크 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame C — 모바일 헤더 카테고리 선택 · 다크</div>
+        <div class="mobile-header" data-theme="dark" style="background:#0a0d12; border-bottom:1px solid rgba(255,255,255,0.14);">
+          <!-- 카테고리 select 풀폭 (line 554~562) -->
+          <div class="mob-cat-wrap">
+            <select class="mob-cat-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;">
+              <option value="" disabled>전체 (카테고리 선택)</option>
+              <!-- CATEGORIES_FALLBACK 19종 -->
+              <option value="소화기" selected>소화기</option>
+              <option value="소화전">소화전</option>
+              <option value="스프링클러">스프링클러</option>
+              <option value="청정소화약제">청정소화약제</option>
+              <option value="소방펌프">소방펌프</option>
+              <option value="자동화재탐지설비">자동화재탐지설비</option>
+              <option value="유도등">유도등</option>
+              <option value="방화셔터">방화셔터</option>
+              <option value="비상콘센트">비상콘센트</option>
+              <option value="소방용전원공급반">소방용전원공급반</option>
+              <option value="특별피난계단">특별피난계단</option>
+              <option value="전실제연댐퍼">전실제연댐퍼</option>
+              <option value="배연창">배연창</option>
+              <option value="연결송수관">연결송수관</option>
+              <option value="완강기">완강기</option>
+              <option value="DIV">DIV</option>
+              <option value="CCTV">CCTV</option>
+              <option value="주차장비">주차장비</option>
+              <option value="회전문">회전문</option>
+            </select>
+            <!-- OQ #6: IconChevronDown size=16 (line 561) -> lucide ChevronDown size=16 (변경 없음) -->
+            <div style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:#adb6c0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <!-- 조건부 filterZone + filterFloor row (selectedCategory 채워졌을 때만, line 564~579) -->
+          <div class="mob-filter-row">
+            <!-- OQ #5: fontSize 11 (line 567) -> text-caption 12px + leading-none -->
+            <select class="mob-filter-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; font-size:12px; line-height:1;">
+              <option value="">전체 구역</option>
+              <option value="office">사무동</option>
+              <option value="research">연구동</option>
+              <option value="basement">지하</option>
+            </select>
+            <!-- OQ #5: fontSize 11 (line 574) -> text-caption 12px + leading-none -->
+            <select class="mob-filter-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; font-size:12px; line-height:1;">
+              <option value="">전체 층</option>
+              <option value="8F">8F</option>
+              <option value="1F">1F</option>
+            </select>
+            <!-- OQ #5: fontSize 11 (line 578) -> text-caption 12px + leading-none -->
+            <span class="mob-count" style="color:#8b949e; font-size:12px; line-height:1;">12개</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame C: 모바일 헤더 카테고리 선택 — 라이트 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame C — 모바일 헤더 카테고리 선택 · 라이트</div>
+        <div class="mobile-header" data-theme="light" style="background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.12);">
+          <div class="mob-cat-wrap">
+            <select class="mob-cat-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328;">
+              <option value="소화기" selected>소화기</option>
+              <!-- CATEGORIES_FALLBACK 19종 -->
+            </select>
+            <div style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:#4d5562;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <div class="mob-filter-row">
+            <select class="mob-filter-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328; font-size:12px; line-height:1;">
+              <option value="">전체 구역</option>
+              <option value="office">사무동</option>
+              <option value="research">연구동</option>
+              <option value="basement">지하</option>
+            </select>
+            <select class="mob-filter-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#1f2328; font-size:12px; line-height:1;">
+              <option value="">전체 층</option>
+              <option value="1F">1F</option>
+            </select>
+            <span class="mob-count" style="color:#656d76; font-size:12px; line-height:1;">8개</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Frame D: 모바일 헤더 카테고리 미선택 — 카테고리 select만 표시 -->
+    <div class="frame-row" style="margin-top: 20px;">
+      <div class="frame-block">
+        <div class="frame-label">Frame D — 모바일 헤더 카테고리 미선택 · 다크</div>
+        <div class="mobile-header" data-theme="dark" style="background:#0a0d12; border-bottom:1px solid rgba(255,255,255,0.14);">
+          <!-- 카테고리 미선택: filterZone/filterFloor row 미표시 (selectedCategory === '' 조건, line 564) -->
+          <div class="mob-cat-wrap">
+            <select class="mob-cat-select" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;">
+              <option value="" selected>전체 (카테고리 선택)</option>
+              <!-- CATEGORIES_FALLBACK 19종 -->
+            </select>
+            <div style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:#8b949e;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+          <!-- filterZone/filterFloor row 미표시 -->
+        </div>
+      </div>
+
+      <div class="frame-block">
+        <div class="frame-label">Frame D — 모바일 헤더 카테고리 미선택 · 라이트</div>
+        <div class="mobile-header" data-theme="light" style="background:#ffffff; border-bottom:1px solid rgba(0,0,0,0.12);">
+          <div class="mob-cat-wrap">
+            <select class="mob-cat-select" style="background:#ebeef1; border-color:rgba(0,0,0,0.12); color:#656d76;">
+              <option value="" selected>전체 (카테고리 선택)</option>
+            </select>
+            <div style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:#656d76;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- SECTION 3: OQ 적용 요약 (토큰 치환 시각 확인)         -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">OQ 적용 요약</div>
+    <div style="display:flex; flex-direction:column; gap:8px; padding:16px; background:#1a1f27; border-radius:12px; border:1px solid rgba(255,255,255,0.14); font-size:12px; color:#adb6c0; line-height:1.6;">
+      <div style="font-weight:700; color:#e6edf3;">OQ #3 — zone button row fontSize 11 -> text-caption (12) + leading-none</div>
+      <div style="color:#8b949e;">등록 폼 zone button row (line 279 fontSize 11) -> 12px (W5 scope, 본 wave 헤더 내 zone 없음)</div>
+      <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
+      <div style="font-weight:700; color:#e6edf3;">OQ #4 — hex 토큰 치환 (본 wave 적용 영역)</div>
+      <div>--bd -> --border-default (헤더 borderBottom / select border)</div>
+      <div>--bg3 -> --surface-sunken (select background)</div>
+      <div>--acl -> --accent-primary (개소 추가 버튼 bg, focus ring)</div>
+      <div>--t2 -> --text-secondary (카운트 라벨, 아이콘 색)</div>
+      <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
+      <div style="font-weight:700; color:#e6edf3;">OQ #5 — filterZone/Floor select fontSize 11 -> 12 (text-caption) + leading-none</div>
+      <div>line 567 filterZone fontSize 11 -> 12 / line 574 filterFloor fontSize 11 -> 12 / line 578 카운트 fontSize 11 -> 12</div>
+      <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
+      <div style="font-weight:700; color:#e6edf3;">OQ #6 — Lucide IconChevronDown / IconPlus SVG 치환</div>
+      <div>IconChevronDown size=14 (line 528) -> ChevronDown size=16 (size 14->16 격상)</div>
+      <div>IconChevronDown size=16 (line 561) -> ChevronDown size=16 (변경 없음)</div>
+      <div>IconPlus size=16 (line 548) -> Plus size=16 (변경 없음)</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
