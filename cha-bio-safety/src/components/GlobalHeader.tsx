@@ -7,39 +7,24 @@ interface GlobalHeaderProps {
 
 export function GlobalHeader({ title, onMenuOpen, rightSlot, leftSlot }: GlobalHeaderProps) {
   return (
-    <header style={{
-      display: 'flex',
-      alignItems: 'center',
-      height: 48,
-      padding: '0 12px',
-      background: 'var(--bg2)',
-      borderBottom: '1px solid var(--bd)',
-      flexShrink: 0,
-    }}>
+    <header className="flex items-center h-12 px-3 bg-surface-raised border-b border-border-default shrink-0">
       {leftSlot ?? (
         <button
           onClick={onMenuOpen}
           aria-label="메뉴 열기"
-          style={{
-            width: 32, height: 32, borderRadius: 7,
-            background: 'var(--bg3)', border: 'none',
-            color: 'var(--t2)', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
+          className="w-12 h-12 rounded-sm bg-surface-sunken text-text-secondary border-none cursor-pointer flex items-center justify-center shrink-0"
         >
-          <svg width={15} height={15} fill="none" viewBox="0 0 24 24" stroke="var(--t2)" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
       )}
-      <span style={{
-        flex: 1, textAlign: rightSlot ? 'left' : 'center',
-        fontSize: 13, fontWeight: 700, color: 'var(--t1)',
-        marginLeft: rightSlot ? 8 : 0,
-      }}>
+      <span
+        className={`flex-1 text-title font-semibold text-text-primary ${rightSlot ? 'text-left ml-2' : 'text-center'}`}
+      >
         {title}
       </span>
-      {rightSlot || <div style={{ width: 32 }} />}
+      {rightSlot || <div className="w-12 shrink-0" />}
     </header>
   )
 }
