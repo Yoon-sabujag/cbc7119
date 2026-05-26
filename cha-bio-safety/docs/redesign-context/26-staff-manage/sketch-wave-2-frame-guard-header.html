@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-frame-guard-header.html — redesign/26-staff-manage W2
+  작성: 2026-05-26 / quick 260526-n10
+  범위: StaffManagePage.tsx 외곽 wrapper (line 389~390) + admin 가드 visual placeholder (line 371~373 / 385)
+        + <style> keyframes blink + slideUp + input/select focus border-color (line 391~395)
+        + 데스크톱 헤더 (line 398~408): '직원 관리' + '{N}명' + '직원 추가' button (height 36, bg --accent-primary, UserPlus size=16)
+        + 모바일 헤더 (line 409~413): 카운트 only ('{N}명', fontSize 12, --text-tertiary)
+  5 frame: A 데스크톱 헤더 default / B 모바일 헤더 default / C admin 가드 발동 / D keyframes 시각화 / E 라이트/다크 토글
+  out of scope: 콘텐츠 리스트+FAB (W3) / 모달+폼 (W4) / TSX 변환 (W5) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #4 LOCKED — 외곽 hex 토큰 치환
+      --bg  -> --surface-page
+      --bg2 -> --surface-raised
+      --bg3 -> --surface-sunken
+      --bd  -> --border-default
+      --t1  -> --text-primary
+      --t3  -> --text-tertiary
+      --acl -> --accent-primary
+
+    OQ #5 LOCKED — fontSize 격상
+      데스크톱 헤더 카운트 fontSize 12 (line 401) / 모바일 헤더 카운트 fontSize 12 (line 411)
+      §1.1 마지노선 12px OK. 작은 영역 leading-none 명시.
+
+    OQ #6 LOCKED — IconUserPlus SVG (line 11~20 + 헤더 line 405 size=16) → Lucide <UserPlus size={16} />
+      §7.1 사이즈 룰 16/20/24 — 데스크톱 헤더 size=16 적용 (UserPlus SVG path inline)
+-->
+
+<!--
+  OQ #4: 외곽 hex 토큰 치환 (--bg→--surface-page / --bg2→--surface-raised / --bg3→--surface-sunken / --bd→--border-default / --t1/--t3→--text-primary/--text-tertiary / --acl→--accent-primary)
+-->
+<!--
+  OQ #5: 데스크톱 헤더 카운트 fontSize 12 (line 401) / 모바일 헤더 카운트 fontSize 12 (line 411) 보존 OK (§1.1 마지노선). 작은 영역 leading-none 명시.
+-->
+<!--
+  OQ #6: IconUserPlus SVG (line 11~20 + 헤더 line 405 size=16) → Lucide <UserPlus size={16} /> (§7.1 사이즈 룰 16/20/24)
+-->
+
+<!--
+  비즈 anchor (StaffManagePage.tsx, 1 byte X):
+     - admin 가드 useEffect (line 371~373): useEffect(() => { if (me?.role !== 'admin') navigate('/dashboard', { replace: true }) }, [me, navigate])
+     - early return (line 385): if (me?.role !== 'admin') return null
+     - 외곽 wrapper (line 389~390): style={{ display:'flex', flexDirection:'column', background:'var(--bg)', height:'100%', overflow:'hidden' }}
+     - keyframes (line 391~395): @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} } + @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} } + input:focus { border-color: var(--acl) !important; }
+     - 데스크톱 헤더 (line 398~408): isDesktop && <div style={{ display:'flex', alignItems:'center', padding:'12px 24px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}> + '직원 관리' + `{staffList.length}명` + onClick={() => setModal({ open: true, mode: 'add' })} + Plus 16
+     - 모바일 헤더 (line 409~413): !isDesktop && <div style={{ display:'flex', alignItems:'center', padding:'8px 16px', flexShrink:0 }}> + `{staffList.length}명` only
+     - 카피 verbatim: '직원 관리' / '{N}명' / '직원 추가'
+     - ModalWrapper = isDesktop ? DesktopModal : BottomSheet (line 387) — useIsDesktop 훅 분기
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>26-staff-manage W2 — Frame Guard Header sketch</title>
+  <style>
+    /* ── 토큰 (OQ #4: hex 치환) ── */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;
+      --safe-bar:        #22c55e;
+      --danger-fg:       #f87171;
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+      --safe-bar:        #16a34a;
+      --danger-fg:       #ef4444;
+    }
+
+    /* ── 키프레임 (line 391~395 verbatim, OQ #4 토큰 치환) ── */
+    /* blink: skeleton pulse (SKELETON_STYLE animation, W3에서 사용) */
+    @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
+    /* slideUp: BottomSheet 진입 animation (W4에서 사용) */
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    /* focus border-color: input/select focus ring (OQ #4: --acl → --accent-primary) */
+    input:focus { border-color: var(--accent-primary) !important; }
+    select:focus { border-color: var(--accent-primary) !important; outline: none; }
+
+    /* ── 공통 리셋 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: #0d0d1f;
+    }
+
+    /* ── 캔버스 레이아웃 ── */
+    .sketch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+    }
+    .frame-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      line-height: 1;
+    }
+
+    /* ── 데스크톱 컨테이너 ── */
+    .desktop-frame {
+      width: 860px;
+      background: var(--surface-page);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-default);
+    }
+
+    /* ── 데스크톱 헤더 (line 398~408) ── */
+    .desktop-header {
+      /* display:flex / alignItems center / padding 12px 24px / borderBottom var(--bd) */
+      display: flex;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+      background: var(--surface-page);
+    }
+    .desktop-header-title {
+      flex: 1;
+      /* fontSize 14 fontWeight 700 color var(--t1) */
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .desktop-header-count {
+      /* OQ #5: fontSize 12 + leading-none (§1.1 마지노선 12 OK) */
+      /* line 401: fontSize 12, fontWeight 400, color var(--t3), marginLeft 8 */
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    /* OQ #6: IconUserPlus SVG → Lucide <UserPlus size={16} />
+       UserPlus SVG path verbatim (lucide-react, viewBox 0 0 24 24, stroke, size=16) */
+    .icon-user-plus {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .desktop-add-btn {
+      /* line 404~407: height 36 / padding 0 16px / bg var(--acl) → --accent-primary / color #fff / border none / borderRadius 8 / fontSize 13 / fontWeight 700 / display flex alignItems center gap 6 */
+      /* OQ #2 LOCKED: 단색 --accent-primary solid (그라데이션 미적용) */
+      height: 36px;
+      padding: 0 16px;
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      line-height: 1;
+    }
+    .desktop-add-btn:hover {
+      /* §6.5: background 한 단계 진하게 (raised → sunken) 대신 accent hover */
+      filter: brightness(1.1);
+    }
+
+    /* ── 모바일 헤더 (line 409~413) ── */
+    .phone-frame {
+      width: 390px;
+      background: var(--surface-page);
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+    }
+    .mobile-header {
+      /* display:flex / alignItems center / padding 8px 16px / flexShrink 0 */
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      flex-shrink: 0;
+      background: var(--surface-page);
+    }
+    .mobile-header-count {
+      /* line 411: fontSize 12, color var(--t3) */
+      /* OQ #5: 12 보존 OK (§1.1 마지노선) + leading-none */
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    .mobile-content-placeholder {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .skeleton-bar {
+      /* SKELETON_STYLE 미리보기 (W3 담당, 여기서는 참고용) */
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      height: 64px;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    /* ── Frame C: admin 가드 발동 ── */
+    .guard-frame {
+      width: 390px;
+      background: var(--surface-page);
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      padding: 32px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 160px;
+    }
+    .guard-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(239,68,68,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .guard-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .guard-desc {
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+    .guard-code {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      background: var(--surface-sunken);
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: 100%;
+    }
+
+    /* ── Frame D: keyframes 시각화 ── */
+    .keyframe-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+      background: var(--surface-raised);
+      border-radius: 12px;
+      border: 1px solid var(--border-default);
+      width: 360px;
+    }
+    .kf-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .kf-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    .kf-demo-blink {
+      height: 48px;
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      animation: blink 2s ease-in-out infinite;
+    }
+    .kf-demo-slideup {
+      height: 60px;
+      background: var(--surface-raised);
+      border-radius: 16px 16px 0 0;
+      border: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: slideUp 0.28s ease-out both;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    .kf-demo-focus {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      outline: none;
+      width: 100%;
+    }
+    .kf-demo-focus:focus {
+      border-color: var(--accent-primary) !important;
+    }
+
+    /* ── Frame E: 라이트/다크 비교 ── */
+    .theme-compare {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .theme-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .theme-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="sketch-canvas">
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION A: 데스크톱 헤더 default
+         StaffManagePage.tsx line 398~408 — isDesktop 분기 헤더
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">A — 데스크톱 헤더 (line 398~408, isDesktop=true)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">A-1 다크 / 직원 4명</div>
+          <div class="desktop-frame" data-theme="dark">
+            <div class="desktop-header">
+              <span class="desktop-header-title">
+                직원 관리
+                <span class="desktop-header-count">4명</span>
+              </span>
+              <!-- OQ #6: UserPlus SVG path inline (Lucide, size=16) -->
+              <button class="desktop-add-btn">
+                <svg class="icon-user-plus" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="frame-block">
+          <div class="frame-label">A-2 다크 / 직원 0명</div>
+          <div class="desktop-frame" data-theme="dark">
+            <div class="desktop-header">
+              <span class="desktop-header-title">
+                직원 관리
+                <span class="desktop-header-count">0명</span>
+              </span>
+              <button class="desktop-add-btn">
+                <svg class="icon-user-plus" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION B: 모바일 헤더 default
+         StaffManagePage.tsx line 409~413 — !isDesktop 분기 헤더
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">B — 모바일 헤더 (line 409~413, isDesktop=false)</div>
+      <!-- 모바일 헤더: 카운트 only — '직원 추가' button 없음 (FAB 가 W3에 있음) -->
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">B-1 다크 / 카운트 only</div>
+          <div class="phone-frame" data-theme="dark">
+            <div class="mobile-header">
+              <span class="mobile-header-count">4명</span>
+            </div>
+            <div class="mobile-content-placeholder">
+              <div class="skeleton-bar"></div>
+              <div class="skeleton-bar" style="opacity:0.7"></div>
+              <div class="skeleton-bar" style="opacity:0.4"></div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-block">
+          <div class="frame-label">B-2 다크 / 카운트 0명</div>
+          <div class="phone-frame" data-theme="dark">
+            <div class="mobile-header">
+              <span class="mobile-header-count">0명</span>
+            </div>
+            <div style="padding: 40px 16px; text-align: center; font-size: 14px; color: var(--text-tertiary);">
+              등록된 직원이 없습니다
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION C: admin 가드 발동
+         StaffManagePage.tsx line 371~373 + 385
+         me?.role !== 'admin' → navigate('/dashboard', { replace: true }) + return null
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">C — admin 가드 발동 (line 371~373 + 385, me?.role !== 'admin')</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">C-1 비관리자 진입 시 redirect</div>
+          <div class="guard-frame" data-theme="dark">
+            <div class="guard-icon">
+              <!-- Lock SVG (Lucide, 접근 거부 시각) -->
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="#f87171" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <div class="guard-title">관리자 전용 페이지</div>
+            <div class="guard-desc">admin 권한이 없으면 이 화면은 렌더되지 않습니다</div>
+            <div class="guard-code">
+              // line 371~373 비즈 가드 (1 byte X)<br/>
+              if (me?.role !== 'admin')<br/>
+              &nbsp;&nbsp;navigate('/dashboard', { replace: true })<br/>
+              <br/>
+              // line 385 early return (1 byte X)<br/>
+              if (me?.role !== 'admin') return null
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION D: keyframes 시각화
+         line 391~395: blink + slideUp + input:focus border-color
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">D — keyframes 시각화 (line 391~395)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">D-1 blink (skeleton pulse, W3 적용)</div>
+          <div class="keyframe-demo" data-theme="dark">
+            <div class="kf-row">
+              <div class="kf-label">@keyframes blink — 0%,100%{'{opacity:.6}'} 50%{'{opacity:.3}'}</div>
+              <div class="kf-demo-blink"></div>
+              <div class="kf-demo-blink" style="width:60%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-block">
+          <div class="frame-label">D-2 slideUp (BottomSheet, W4 적용)</div>
+          <div class="keyframe-demo" data-theme="dark">
+            <div class="kf-row">
+              <div class="kf-label">@keyframes slideUp — from translateY(100%) → to translateY(0)</div>
+              <div class="kf-demo-slideup">BottomSheet panel (0.28s ease-out)</div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-block">
+          <div class="frame-label">D-3 focus ring (input:focus border-color)</div>
+          <div class="keyframe-demo" data-theme="dark">
+            <div class="kf-row">
+              <div class="kf-label">input:focus → border-color: var(--accent-primary) (OQ #4 치환)</div>
+              <input
+                class="kf-demo-focus"
+                placeholder="포커스 시 파란 보더 (클릭해보세요)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION E: 라이트/다크 토글
+         동일 헤더 양쪽 테마 비교
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">E — 라이트/다크 토글 비교</div>
+      <div class="theme-compare">
+        <div class="theme-block">
+          <div class="theme-tag">다크 모드 (기본)</div>
+          <div class="desktop-frame" data-theme="dark" style="min-width:600px">
+            <div class="desktop-header">
+              <span class="desktop-header-title">
+                직원 관리
+                <span class="desktop-header-count">4명</span>
+              </span>
+              <button class="desktop-add-btn">
+                <svg class="icon-user-plus" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+            <div style="padding:12px 24px; font-size:13px; color:var(--text-tertiary);">
+              (콘텐츠 영역 — W3에서 정의)
+            </div>
+          </div>
+        </div>
+        <div class="theme-block">
+          <div class="theme-tag">라이트 모드</div>
+          <div class="desktop-frame" data-theme="light" style="min-width:600px">
+            <div class="desktop-header">
+              <span class="desktop-header-title">
+                직원 관리
+                <span class="desktop-header-count">4명</span>
+              </span>
+              <button class="desktop-add-btn">
+                <svg class="icon-user-plus" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+            <div style="padding:12px 24px; font-size:13px; color:var(--text-tertiary);">
+              (콘텐츠 영역 — W3에서 정의)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sketch-canvas -->
+</body>
+</html>

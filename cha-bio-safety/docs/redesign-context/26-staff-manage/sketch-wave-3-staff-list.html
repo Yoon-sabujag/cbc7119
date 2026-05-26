@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-3-staff-list.html — redesign/26-staff-manage W3
+  작성: 2026-05-26 / quick 260526-n10
+  범위: StaffManagePage.tsx 콘텐츠 (line 416~501)
+        + StaffCard 모바일 카드 컴포넌트 (line 318~339)
+        + SKELETON_STYLE (line 342~345)
+        + 모바일 FAB (line 505~513)
+  5 frame: A 데스크톱 테이블 default / B 데스크톱 4 상태 / C 모바일 카드 리스트 / D 모바일 카드 empty+FAB / E 비활성 카드
+  out of scope: 외곽 wrapper+가드+헤더 (W2) / 모달+폼 (W4) / TSX 변환 (W5) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #4 LOCKED — 외곽 hex 토큰 치환
+      --bg3 -> --surface-sunken  (SKELETON_STYLE, StaffCard bg, 테이블 hover)
+      --bg2 -> --surface-raised
+      --t1/--t2/--t3 -> --text-primary/--secondary/--tertiary
+      --safe -> [safe-bar token]  (활성 dot + '활성' 라벨)
+      --acl -> --accent-primary  (FAB + '수정' 링크)
+      --bd -> --border-default  (테이블 border)
+
+    OQ #5 LOCKED — fontSize 격상 (§1.1 위반 9·10·11 → 12)
+      StaffCard role 배지 fontSize 9 (line 327) → text-caption 12px + leading-none
+      테이블 role 배지 fontSize 10 (line 461) → text-caption 12px + leading-none
+      테이블 상태 dot 라벨 fontSize 11 (line 471) → text-caption 12px + leading-none
+
+    OQ #6 LOCKED — IconUserPlus SVG (FAB line 509 size=18) → Lucide <UserPlus size={18} /> (size 18 보존)
+      duty 토큰 색 카드 신규 도입 미적용 (별도 task)
+-->
+
+<!--
+  OQ #4: 외곽 hex 토큰 치환 (--bg2→--surface-raised / --bg3→--surface-sunken / --t1/t2/t3→--text-primary/secondary/tertiary / --safe→[safe-bar] / --acl→--accent-primary / --bd→--border-default)
+-->
+<!--
+  OQ #5: 카드 role 배지 fontSize 9 (line 327) / 테이블 role 배지 10 (line 461) / 테이블 상태 dot 라벨 11 (line 471) → text-caption (12px) 일률 격상 + 작은 영역 leading-none
+-->
+<!--
+  OQ #6: IconUserPlus SVG (FAB line 509 size=18) → Lucide <UserPlus size={18} /> (size 18 보존, §7.1 사이즈 룰 16/20/24 중 인접 16 또는 20 격상 검토 — default 18 보존) + duty 토큰 색 카드 신규 도입 미적용 (별도 task)
+-->
+
+<!--
+  비즈 anchor (StaffManagePage.tsx, 1 byte X):
+     - 콘텐츠 wrapper (line 416): style={{ flex:1, overflow:'auto', minHeight:0 }}
+     - 4 상태 분기: isLoading skeleton 3개 (417~423, SKELETON_STYLE bg var(--bg3) radius 12 height 64 blink 2s) / isError && !isLoading error (424~428) / staffList.map data / staffList.length === 0 empty
+     - 데스크톱 테이블 7 컬럼 (431~486): th '이름/사번/직책/역할/연락처/상태/액션' + row hover e.currentTarget.style.background='var(--bg3)' (453~454) → hover:bg-surface-sunken
+     - role 배지 (459~467): s.role === 'admin' ? '관리자' (bg rgba(59,130,246,.13) color var(--acl)) : '보조자' (bg rgba(110,118,129,.15) color var(--t2)), fontSize 10 → 12 (OQ #5)
+     - 상태 dot 라벨 (469~476): s.active !== 0 ? '활성' (dot var(--safe)) : '비활성' (dot var(--t3)), fontSize 11 → 12 (OQ #5)
+     - StaffCard (line 318~339): onClick edit / 8x8 dot bg var(--safe) (active===1) / var(--t3) (active===0 opacity 0.5) / name 16 fontWeight 600 / title 12 var(--t3) / role 배지 9 → 12 (OQ #5) / 사번 12 JetBrains Mono var(--t3) / borderRadius 12 / bg var(--bg3) → --surface-sunken
+     - SKELETON_STYLE (line 342~345): bg var(--bg3) / borderRadius 12 / height 64 / animation 'blink 2s ease-in-out infinite'
+     - 모바일 FAB (line 505~513): position sticky / bottom 0 / bg var(--acl) / Plus 18 / '직원 추가' / paddingBottom 'calc(16px + var(--sab))' (iOS safe-area) / height 52
+     - 사번 폰트 JetBrains Mono (테이블 + StaffCard, source preserve)
+     - rankOfTitle 정렬 (line 347~354) — 대리=0/주임=1/기사=2/기타=3, sort 후 id 오름차 (변경 X)
+     - 카피 verbatim: '등록된 직원이 없습니다' (447, 493) / '직원 추가 버튼을 눌러 첫 번째 직원을 등록하세요' (494) / '데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요' (426) / '활성' / '비활성' (475) / '관리자' / '보조자' (line 462) / '수정 ▸' (336) / '수정' (테이블 479) / '직원 추가' (FAB 510)
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>26-staff-manage W3 — Staff List sketch</title>
+  <style>
+    /* ── 토큰 (OQ #4: hex 치환) ── */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;
+      --safe-bar:        #22c55e;  /* --safe → [safe-bar] token OQ #4 */
+      --danger-fg:       #f87171;
+      --info-bg:         rgba(59,130,246,0.13);   /* role 배지 admin bg */
+      --neutral-bg:      rgba(110,118,129,0.15);  /* role 배지 assistant bg */
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+      --safe-bar:        #16a34a;
+      --danger-fg:       #ef4444;
+      --info-bg:         rgba(9,105,218,0.13);
+      --neutral-bg:      rgba(110,118,129,0.15);
+    }
+
+    /* ── 키프레임 ── */
+    /* blink (SKELETON_STYLE, line 342~345) */
+    @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
+
+    /* ── 공통 리셋 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: #0d0d1f;
+    }
+
+    /* ── 캔버스 레이아웃 ── */
+    .sketch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+    }
+    .frame-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      line-height: 1;
+    }
+
+    /* ── 데스크톱 컨테이너 ── */
+    .desktop-content {
+      width: 900px;
+      background: var(--surface-page);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-default);
+    }
+
+    /* ── 데스크톱 헤더 (참고, W2 scope) ── */
+    .desktop-header-ref {
+      display: flex;
+      align-items: center;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .desktop-header-title-ref {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-count-ref {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+
+    /* ── 데스크톱 테이블 (line 431~486) ── */
+    .table-wrap {
+      padding: 0 24px 24px;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      padding: 10px 8px;
+      font-weight: 700;
+      /* OQ #5: fontSize 12 (기존 12 보존 OK) */
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-secondary);
+      text-align: left;
+      border-bottom: 2px solid var(--border-default);
+    }
+    .data-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid var(--border-default);
+      transition: background 0.1s;
+    }
+    /* §6.5: row hover — background 한 단계 진하게 (raised → sunken)
+       line 453~454: e.currentTarget.style.background='var(--bg3)' → hover:bg-surface-sunken */
+    .data-table tr:hover td {
+      background: var(--surface-sunken);
+    }
+    .name-cell {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+    .id-cell {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1;
+    }
+    .title-cell {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    /* role 배지 — OQ #5: fontSize 9/10 → 12 text-caption + leading-none */
+    .role-badge {
+      display: inline-block;
+      font-size: 12px;   /* OQ #5: 10 (line 461) → 12 격상 */
+      line-height: 1;    /* leading-none (memory feedback_text_caption_leading_none) */
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .role-badge.admin {
+      background: var(--info-bg);   /* rgba(59,130,246,.13) → OQ #4 info-bg 알리아스 */
+      color: var(--accent-primary); /* var(--acl) → --accent-primary OQ #4 */
+    }
+    .role-badge.assistant {
+      background: var(--neutral-bg); /* rgba(110,118,129,.15) */
+      color: var(--text-secondary);  /* var(--t2) → --text-secondary OQ #4 */
+    }
+    .phone-cell {
+      color: var(--text-secondary);
+      font-size: 12px;
+    }
+    /* 상태 cell — OQ #5: fontSize 11 (line 471) → 12 text-caption + leading-none */
+    .status-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;   /* OQ #5: 11 → 12 격상 */
+      line-height: 1;    /* leading-none */
+      font-weight: 600;
+    }
+    /* 상태 dot — memory feedback_tailwind_w8_h8_is_48px: w-[6px] h-[6px] arbitrary */
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-active { color: var(--safe-bar); }   /* --safe → [safe-bar] token OQ #4 */
+    .status-inactive { color: var(--text-tertiary); }
+    .action-cell {
+      color: var(--accent-primary);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .row-inactive td {
+      opacity: 0.5;
+    }
+
+    /* ── 4 상태 공통 ── */
+    .state-error {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .state-empty {
+      text-align: center;
+      padding: 40px 16px;
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+
+    /* ── 스켈레톤 (SKELETON_STYLE line 342~345) ── */
+    .skeleton-wrap {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .skeleton-bar {
+      /* bg var(--bg3)→--surface-sunken / borderRadius 12 / height 64 / blink 2s ease-in-out */
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      height: 64px;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    /* ── 모바일 카드 ── */
+    .phone-frame {
+      width: 390px;
+      background: var(--surface-page);
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* 모바일 헤더 참조 (W2 scope) */
+    .mobile-header-ref {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border-default);
+    }
+    .mobile-count-ref {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    /* 카드 리스트 wrapper (line 489~501) */
+    .card-list {
+      flex: 1;
+      overflow: auto;
+      min-height: 0;
+      padding: 8px 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    /* StaffCard (line 318~339) */
+    .staff-card {
+      /* bg var(--bg3)→--surface-sunken / borderRadius 12 / padding 12px 16px / minHeight 56 */
+      background: var(--surface-sunken);
+      border-radius: 12px;
+      padding: 12px 16px;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .staff-card.inactive {
+      /* s.active === 0 → opacity 0.5 */
+      opacity: 0.5;
+    }
+    /* 카드 dot (line 321) — memory feedback_tailwind_w8_h8_is_48px: w-[8px] h-[8px] arbitrary */
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .card-dot.active { background: var(--safe-bar); }     /* var(--safe) → [safe-bar] token */
+    .card-dot.inactive { background: var(--text-tertiary); } /* var(--t3) → --text-tertiary */
+    .card-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .card-name {
+      /* line 324: fontSize 16 fontWeight 700 color var(--t1) */
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .card-title-text {
+      /* line 325: fontSize 12 color var(--t2) */
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1;
+    }
+    /* 카드 role 배지 (line 327) — OQ #5: fontSize 9 → 12 + leading-none */
+    .card-role-badge {
+      font-size: 12px;   /* OQ #5: 9 (line 327) → 12 격상 */
+      line-height: 1;    /* leading-none */
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .card-role-badge.admin {
+      background: var(--info-bg);
+      color: var(--accent-primary);
+    }
+    .card-role-badge.assistant {
+      background: var(--neutral-bg);
+      color: var(--text-secondary);
+    }
+    .card-id {
+      /* line 334: fontSize 12 fontFamily JetBrains Mono color var(--t3) */
+      font-size: 12px;
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      color: var(--text-tertiary);
+      line-height: 1;
+    }
+    .card-action {
+      /* line 336: '수정 ▸' color var(--acl) fontSize 12 fontWeight 700 */
+      color: var(--accent-primary);
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    /* ── 모바일 FAB (line 505~513) ── */
+    .mobile-fab-wrap {
+      /* position sticky / bottom 0 / padding 0 16px / paddingBottom calc(16+sab) */
+      position: sticky;
+      bottom: 0;
+      padding: 0 16px;
+      padding-bottom: calc(16px + 0px); /* var(--sab) = 0 in browser, iOS PWA 에서 safe-area-inset-bottom */
+      background: var(--surface-page);
+    }
+    .mobile-fab {
+      /* width 100% / height 52 / bg var(--acl) solid OQ #2 / color #fff / borderRadius 12 / fontSize 14 fontWeight 700 */
+      width: 100%;
+      height: 52px;
+      /* OQ #2 LOCKED: CTA 단색 --accent-primary (그라데이션 미적용, §6.4) */
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      line-height: 1;
+    }
+    .icon-user-plus-18 {
+      /* OQ #6: UserPlus size=18 보존 (FAB line 509) */
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ── 모바일 empty ── */
+    .mobile-empty {
+      /* line 491~495: padding 60px 16px / flex column center center gap 8 */
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 60px 16px;
+    }
+    .empty-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .empty-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="sketch-canvas">
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION A: 데스크톱 테이블 default
+         StaffManagePage.tsx line 431~486 — 데스크톱 7 컬럼 테이블
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">A — 데스크톱 테이블 default (line 431~486, isDesktop=true)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">A-1 다크 / 데이터 있음 (직급 정렬: 대리→주임→기사→기타 rankOfTitle)</div>
+          <div class="desktop-content" data-theme="dark">
+            <!-- 헤더 참조 (W2 scope) -->
+            <div class="desktop-header-ref">
+              <span class="desktop-header-title-ref">
+                직원 관리 <span class="header-count-ref">4명</span>
+              </span>
+            </div>
+            <!-- 테이블 (7 컬럼: 이름/사번/직책/역할/연락처/상태/액션) -->
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>사번</th>
+                    <th>직책</th>
+                    <th>역할</th>
+                    <th>연락처</th>
+                    <th>상태</th>
+                    <th style="width:60px">액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- rankOfTitle 정렬 예시: 대리=0 → 주임=1 → 기사=2 → 기타=3 -->
+                  <tr>
+                    <td class="name-cell">박OO</td>
+                    <td class="id-cell">2019010001</td>
+                    <td class="title-cell">소방안전관리대리</td>
+                    <td><span class="role-badge admin">관리자</span></td>
+                    <td class="phone-cell">010-1234-5678</td>
+                    <td>
+                      <span class="status-cell status-active">
+                        <span class="status-dot" style="background:var(--safe-bar)"></span>
+                        활성
+                      </span>
+                    </td>
+                    <td class="action-cell">수정</td>
+                  </tr>
+                  <tr>
+                    <td class="name-cell">윤OO</td>
+                    <td class="id-cell">2022051052</td>
+                    <td class="title-cell">소방안전관리주임</td>
+                    <td><span class="role-badge assistant">보조자</span></td>
+                    <td class="phone-cell">010-9876-5432</td>
+                    <td>
+                      <span class="status-cell status-active">
+                        <span class="status-dot" style="background:var(--safe-bar)"></span>
+                        활성
+                      </span>
+                    </td>
+                    <td class="action-cell">수정</td>
+                  </tr>
+                  <tr>
+                    <td class="name-cell">김OO</td>
+                    <td class="id-cell">2020030010</td>
+                    <td class="title-cell">소방안전관리기사</td>
+                    <td><span class="role-badge assistant">보조자</span></td>
+                    <td class="phone-cell">-</td>
+                    <td>
+                      <span class="status-cell status-active">
+                        <span class="status-dot" style="background:var(--safe-bar)"></span>
+                        활성
+                      </span>
+                    </td>
+                    <td class="action-cell">수정</td>
+                  </tr>
+                  <!-- 비활성 row (s.active === 0, opacity 0.5) -->
+                  <tr class="row-inactive">
+                    <td class="name-cell">이OO</td>
+                    <td class="id-cell">2018070099</td>
+                    <td class="title-cell">-</td>
+                    <td><span class="role-badge assistant">보조자</span></td>
+                    <td class="phone-cell">-</td>
+                    <td>
+                      <span class="status-cell status-inactive">
+                        <span class="status-dot" style="background:var(--text-tertiary)"></span>
+                        비활성
+                      </span>
+                    </td>
+                    <td class="action-cell">수정</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION B: 데스크톱 4 상태
+         skeleton / error / empty / 비활성 row
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">B — 데스크톱 4 상태 (skeleton/error/empty/비활성)</div>
+      <div class="frame-row">
+
+        <!-- B-1: skeleton 3개 (isLoading=true) -->
+        <div class="frame-block">
+          <div class="frame-label">B-1 skeleton (isLoading=true)</div>
+          <div class="desktop-content" data-theme="dark" style="width:500px">
+            <div class="desktop-header-ref">
+              <span class="desktop-header-title-ref">직원 관리 <span class="header-count-ref">-명</span></span>
+            </div>
+            <!-- SKELETON_STYLE: bg --surface-sunken / radius 12 / height 64 / blink 2s -->
+            <div class="skeleton-wrap">
+              <div class="skeleton-bar"></div>
+              <div class="skeleton-bar"></div>
+              <div class="skeleton-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- B-2: 에러 (isError && !isLoading) -->
+        <div class="frame-block">
+          <div class="frame-label">B-2 에러 (isError=true)</div>
+          <div class="desktop-content" data-theme="dark" style="width:500px">
+            <div class="desktop-header-ref">
+              <span class="desktop-header-title-ref">직원 관리</span>
+            </div>
+            <div class="state-error">
+              데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요
+            </div>
+          </div>
+        </div>
+
+        <!-- B-3: 데이터 empty (staffList.length === 0) -->
+        <div class="frame-block">
+          <div class="frame-label">B-3 empty (staffList.length === 0)</div>
+          <div class="desktop-content" data-theme="dark" style="width:500px">
+            <div class="desktop-header-ref">
+              <span class="desktop-header-title-ref">직원 관리 <span class="header-count-ref">0명</span></span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>이름</th><th>사번</th><th>직책</th><th>역할</th><th>연락처</th><th>상태</th><th>액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- line 446~448: colSpan 7 empty -->
+                  <tr>
+                    <td colspan="7" class="state-empty">등록된 직원이 없습니다</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION C: 모바일 카드 리스트 default
+         StaffCard (line 318~339) + 모바일 카드 리스트 (489~501)
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">C — 모바일 카드 리스트 default (line 489~501, isDesktop=false)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">C-1 다크 / 직원 4명 (rankOfTitle 정렬)</div>
+          <div class="phone-frame" data-theme="dark">
+            <div class="mobile-header-ref">
+              <span class="mobile-count-ref">4명</span>
+            </div>
+            <div class="card-list">
+              <!-- StaffCard 1: 대리 (rankOfTitle=0), admin, 활성 -->
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">박OO</span>
+                    <span class="card-title-text">소방안전관리대리</span>
+                    <span class="card-role-badge admin">관리자</span>
+                  </div>
+                  <span class="card-id">2019010001</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+              <!-- StaffCard 2: 주임 (rankOfTitle=1), assistant, 활성 -->
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">윤OO</span>
+                    <span class="card-title-text">소방안전관리주임</span>
+                    <span class="card-role-badge assistant">보조자</span>
+                  </div>
+                  <span class="card-id">2022051052</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+              <!-- StaffCard 3: 기사 (rankOfTitle=2), assistant, 활성 -->
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">김OO</span>
+                    <span class="card-title-text">소방안전관리기사</span>
+                    <span class="card-role-badge assistant">보조자</span>
+                  </div>
+                  <span class="card-id">2020030010</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- C-2: 라이트 모드 -->
+        <div class="frame-block">
+          <div class="frame-label">C-2 라이트 / 직원 3명</div>
+          <div class="phone-frame" data-theme="light">
+            <div class="mobile-header-ref" style="border-bottom:1px solid var(--border-default)">
+              <span class="mobile-count-ref" style="color:var(--text-tertiary)">3명</span>
+            </div>
+            <div class="card-list">
+              <div class="staff-card" style="background:var(--surface-sunken)">
+                <span class="card-dot active" style="background:var(--safe-bar)"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name" style="color:var(--text-primary)">박OO</span>
+                    <span class="card-title-text" style="color:var(--text-secondary)">소방안전관리대리</span>
+                    <span class="card-role-badge admin">관리자</span>
+                  </div>
+                  <span class="card-id" style="color:var(--text-tertiary)">2019010001</span>
+                </div>
+                <span class="card-action" style="color:var(--accent-primary)">수정 ▸</span>
+              </div>
+              <div class="staff-card" style="background:var(--surface-sunken)">
+                <span class="card-dot active" style="background:var(--safe-bar)"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name" style="color:var(--text-primary)">윤OO</span>
+                    <span class="card-title-text" style="color:var(--text-secondary)">소방안전관리주임</span>
+                    <span class="card-role-badge assistant">보조자</span>
+                  </div>
+                  <span class="card-id" style="color:var(--text-tertiary)">2022051052</span>
+                </div>
+                <span class="card-action" style="color:var(--accent-primary)">수정 ▸</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION D: 모바일 카드 empty + FAB
+         line 491~495 (empty) + 505~513 (FAB)
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">D — 모바일 카드 empty + FAB (line 491~495 + 505~513)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">D-1 다크 / 직원 없음 + FAB (sticky bottom + sab)</div>
+          <div class="phone-frame" data-theme="dark" style="height:580px; position:relative; overflow:visible">
+            <div class="mobile-header-ref">
+              <span class="mobile-count-ref">0명</span>
+            </div>
+            <!-- empty (line 491~495) -->
+            <div class="mobile-empty">
+              <div class="empty-title">등록된 직원이 없습니다</div>
+              <div class="empty-desc">직원 추가 버튼을 눌러 첫 번째 직원을 등록하세요</div>
+            </div>
+            <!-- FAB (line 505~513): sticky bottom + bg --accent-primary + UserPlus size=18 + sab -->
+            <div class="mobile-fab-wrap">
+              <!-- OQ #2 LOCKED: 단색 --accent-primary (그라데이션 미적용) -->
+              <button class="mobile-fab">
+                <!-- OQ #6: UserPlus SVG path inline (Lucide, size=18 보존) -->
+                <svg class="icon-user-plus-18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- D-2: 카드 있음 + FAB -->
+        <div class="frame-block">
+          <div class="frame-label">D-2 다크 / 직원 2명 + FAB</div>
+          <div class="phone-frame" data-theme="dark" style="height:580px">
+            <div class="mobile-header-ref">
+              <span class="mobile-count-ref">2명</span>
+            </div>
+            <div class="card-list" style="padding-bottom:0">
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">박OO</span>
+                    <span class="card-title-text">소방안전관리대리</span>
+                    <span class="card-role-badge admin">관리자</span>
+                  </div>
+                  <span class="card-id">2019010001</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">윤OO</span>
+                    <span class="card-title-text">소방안전관리주임</span>
+                    <span class="card-role-badge assistant">보조자</span>
+                  </div>
+                  <span class="card-id">2022051052</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+            </div>
+            <div class="mobile-fab-wrap">
+              <button class="mobile-fab">
+                <svg class="icon-user-plus-18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/>
+                  <line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                직원 추가
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION E: 비활성 StaffCard (s.active === 0)
+         opacity 0.5 / dot bg --text-tertiary
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">E — 비활성 StaffCard (s.active === 0, opacity 0.5)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">E-1 다크 / 활성+비활성 혼합</div>
+          <div class="phone-frame" data-theme="dark">
+            <div class="mobile-header-ref">
+              <span class="mobile-count-ref">3명</span>
+            </div>
+            <div class="card-list" style="padding-bottom:8px">
+              <!-- 활성 카드 -->
+              <div class="staff-card">
+                <span class="card-dot active"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">박OO</span>
+                    <span class="card-title-text">소방안전관리대리</span>
+                    <span class="card-role-badge admin">관리자</span>
+                  </div>
+                  <span class="card-id">2019010001</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+              <!-- 비활성 카드 (s.active === 0, opacity 0.5, dot bg --text-tertiary) -->
+              <div class="staff-card inactive">
+                <span class="card-dot inactive"></span>
+                <div class="card-content">
+                  <div class="card-top">
+                    <span class="card-name">이OO</span>
+                    <span class="card-title-text">-</span>
+                    <span class="card-role-badge assistant">보조자</span>
+                  </div>
+                  <span class="card-id">2018070099</span>
+                </div>
+                <span class="card-action">수정 ▸</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sketch-canvas -->
+</body>
+</html>
