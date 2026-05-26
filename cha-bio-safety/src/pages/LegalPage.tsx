@@ -9,7 +9,7 @@ import { useAuthStore } from '../stores/authStore'
 import { useMultiPhotoUpload } from '../hooks/useMultiPhotoUpload'
 import { PhotoGrid } from '../components/PhotoGrid'
 import { PhotoSourceModal } from '../components/PhotoSourceModal'
-import { FindingFormSheet } from '../components/FindingFormSheet'
+import { FindingEditModal } from '../components/FindingEditModal'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalRound, LegalInspectionResult, LegalFinding } from '../types'
 
@@ -211,11 +211,10 @@ function FindingsPanel({ roundId, onSelectFinding, selectedFindingId }: {
         ))}
       </div>
 
-      {/* 수정 모달 (FindingFormSheet 가 자체로 fixed/inset:0 오버레이) */}
+      {/* 수정 모달 — FindingEditModal 이 조치 완료 메모/사진 편집 capability 보유 (260520-x4q) */}
       {editingFinding && (
-        <FindingFormSheet
+        <FindingEditModal
           scheduleItemId={roundId}
-          mode="edit"
           finding={editingFinding}
           onClose={() => setEditingFinding(null)}
         />

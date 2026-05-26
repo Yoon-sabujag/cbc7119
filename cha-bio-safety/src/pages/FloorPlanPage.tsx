@@ -55,6 +55,12 @@ const SPRINKLER_MARKER_TYPES: { key: SprinklerType; label: [string, string] }[] 
   { key: 'test_valve',   label: ['시험', '밸브']      },
 ]
 
+// ── planType 별 증상 옵션 (InspectionPage 5종 패턴 중 도면점검에 노출되는 것만) ─────
+const SYMPTOM_OPTIONS_BY_PLAN: Record<string, string[]> = {
+  guidelamp:    ['점등 이상', '예비전원 이상', '직접 입력'],
+  extinguisher: ['받침 파손', '연한 만료', '직접 입력'],
+}
+
 // ── 소화기·소화전 마커 타입 ──────────────────────────────
 type ExtinguisherType = 'fire_extinguisher' | 'ext_powder20' | 'ext_halogen' | 'ext_kitchen_k' | 'indoor_hydrant' | 'descending_lifeline' | 'div_marker'
 // 마커 타입 enum (기존 데이터 + 렌더링 분기용 — 7종 그대로 유지)
@@ -1256,7 +1262,8 @@ export default function FloorPlanPage() {
         }
 
         const openInspectModal = () => {
-          setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
+          const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
+          setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
           inspectPhoto.reset(); setInspectExtDetail(null)
           setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
           if (planType === 'extinguisher' && selected?.check_point_id) {
@@ -1699,7 +1706,8 @@ export default function FloorPlanPage() {
                 const wasCompleted = revisitPopup.variant === 'completed'
                 setRevisitPopup(null)
                 if (wasCompleted && selected) {
-                  setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick('점등 이상'); setInspectSymptomCustom('')
+                  const defaultSymptom = SYMPTOM_OPTIONS_BY_PLAN[planType]?.[0] ?? '점등 이상'
+                  setInspectResult('normal'); setInspectMemo(''); setInspectSymptomPick(defaultSymptom); setInspectSymptomCustom('')
                   inspectPhoto.reset(); setInspectExtDetail(null)
                   setInspectBcResult('normal'); setInspectBcMemo(''); inspectBcPhoto.reset()
                   if (planType === 'extinguisher' && selected.check_point_id) {
@@ -1721,7 +1729,9 @@ export default function FloorPlanPage() {
           room_corridor:'room_passage', hallway_corridor:'corridor_passage', stair_corridor:'stair_passage',
         }
         const glType = planType === 'guidelamp' ? (MARKER_TO_GL[selected.marker_type ?? ''] ?? '') : ''
-        const needSymptom = planType === 'guidelamp' && inspectResult !== 'normal' && glType !== 'audience_passage' && glType !== ''
+        const symptomOptions = SYMPTOM_OPTIONS_BY_PLAN[planType] ?? null
+        const guidelampGate = planType !== 'guidelamp' || (glType !== 'audience_passage' && glType !== '')
+        const needSymptom = !!symptomOptions && inspectResult !== 'normal' && guidelampGate
         // Bug J: 마커 description 에 '접근불가' 포함 시 AccessBlockedPopup 오버레이 노출.
         // InspectionPage InspectionModal 과 동일한 UX. FloorPlanPage 는 단일 마커 기반
         // 이라 확인 = 모달 닫기 (다음 마커 네비게이션 없음).
@@ -1822,7 +1832,7 @@ export default function FloorPlanPage() {
               <>
                 <div className="text-caption font-semibold text-text-tertiary mb-1.5 tracking-wider">증상</div>
                 <div className="flex gap-1.5 mb-2.5">
-                  {['점등 이상','예비전원 이상','직접 입력'].map(s => {
+                  {symptomOptions!.map(s => {
                     const sel = inspectSymptomPick === s
                     return (
                       <button

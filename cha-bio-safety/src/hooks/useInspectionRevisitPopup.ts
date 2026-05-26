@@ -2,6 +2,18 @@ import { useEffect, useState, useCallback } from 'react'
 import type { ScheduleItem } from '../types'
 import type { RevisitVariant } from '../components/InspectionRevisitPopup'
 
+// 월 2 cycle 카테고리 — completed 판정 시 현재 반쪽 윈도우(1~15 / 16~말) 안 record 만 인정.
+// pending(주의/불량 open) 은 cycle 무관하게 띄움 (기간 아닌 조치 경고이기 때문 — 기존 정책 보존).
+const CYCLE_CATEGORIES = new Set(['DIV', '컴프레셔'])
+function getCycleHalfRange(today: string): [string, string] {
+  const ym = today.slice(0, 7)
+  const day = Number(today.slice(8, 10))
+  const [y, m] = today.split('-').map(Number)
+  const lastDay = new Date(y, m, 0).getDate()
+  const monthEnd = `${ym}-${String(lastDay).padStart(2, '0')}`
+  return day <= 15 ? [`${ym}-01`, `${ym}-15`] : [`${ym}-16`, monthEnd]
+}
+
 // ── 재진입 팝업 상태 ─────────────────────────────────────
 export interface RevisitPopupState {
   show:          boolean
@@ -115,6 +127,14 @@ export function useInspectionRevisitPopup(args: UseRevisitArgs): {
       return todayYmd >= start && todayYmd <= end
     })
     if (!activeMatch) return null
+
+    // DIV/컴프레셔: 월 2 cycle 분기 — entry.checkedAt 이 현재 반쪽 윈도우 밖이면 completed 판정 X.
+    // (다른 cycle 안에서는 미점검 상태로 봐서 점검 진행 허용)
+    if (category && CYCLE_CATEGORIES.has(category) && meta.checkedAt) {
+      const [s, e] = getCycleHalfRange(todayYmd)
+      const checkedDay = meta.checkedAt.slice(0, 10)
+      if (checkedDay < s || checkedDay > e) return null
+    }
 
     // normal / resolved → completed
     return {

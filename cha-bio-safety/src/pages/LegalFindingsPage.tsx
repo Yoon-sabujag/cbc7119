@@ -7,6 +7,7 @@ import { legalApi } from '../utils/api'
 import { useAuthStore } from '../stores/authStore'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import { FindingFormSheet } from '../components/FindingFormSheet'
+import { FindingEditModal } from '../components/FindingEditModal'
 import { buildMetaTxt } from '../utils/findingDownload'
 import type { LegalFinding } from '../types'
 
@@ -395,9 +396,8 @@ export default function LegalFindingsPage() {
 
       {/* 수정 시트/모달 */}
       {editingFinding && id && (
-        <FindingFormSheet
+        <FindingEditModal
           scheduleItemId={id}
-          mode="edit"
           finding={editingFinding}
           onClose={() => setEditingFinding(null)}
         />

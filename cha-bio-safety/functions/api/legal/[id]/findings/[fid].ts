@@ -110,6 +110,17 @@ export const onRequestPut: PagesFunction<Env> = async ({ request, env, params })
       sets.push('photo_keys = ?')
       binds.push(JSON.stringify(body.photo_keys))
     }
+    if (body.resolution_memo !== undefined) {
+      sets.push('resolution_memo = ?')
+      binds.push(body.resolution_memo ?? null)
+    }
+    if (body.resolution_photo_keys !== undefined) {
+      if (!Array.isArray(body.resolution_photo_keys) || body.resolution_photo_keys.length > 5) {
+        return Response.json({ success: false, error: 'resolution_photo_keys는 0-5개 배열이어야 합니다' }, { status: 400 })
+      }
+      sets.push('resolution_photo_keys = ?')
+      binds.push(JSON.stringify(body.resolution_photo_keys))
+    }
 
     if (sets.length === 0) {
       return Response.json({ success: false, error: '수정할 필드가 없습니다' }, { status: 400 })
