@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>W5 — MenuSettingsSection sketch</title>
+  <!--
+    sketch-wave-5-menu-settings-section.html — redesign/31-chrome W5 sub-wave
+    작성: 2026-05-27 / quick 260527-6o0
+    범위: MenuSettingsSection.tsx (418 라인) 단일 컴포넌트 sketch
+          다크 + 라이트 2 변형 + 6 frame 매트릭스
+          (4 sub 컴포넌트 ArrowButton/ToggleSmall/DividerTitleInput/DeleteConfirmInline +
+           5 state draft/editingDividerIdx/confirmDeleteIdx/confirmReset/collapsed +
+           Phase 21 migrateLegacyMenuConfig forward-merge anchor)
+    out of scope:
+      - cha-bio-safety/src/components/MenuSettingsSection.tsx 수정 (W7 책임 — 1 byte 변경 0 강제)
+      - App.tsx / tokens.css / typography.css / design-system.md / tailwind.config.js 1 byte 변경 0
+      - GlobalHeader / SideMenu / SettingsPanel sketch (W2/W3/W4 완결 — 본 sketch 변경 X)
+      - 31-chrome/wave-1-index.md 갱신 (W1 완결됨)
+      - 31-chrome/ 기존 11 파일 (4 snapshot + W1 index + W2/W3/W4 sketch + tokens.css + typography.css +
+        design-system.md) + 00-design-context/ 1 byte 변경 0
+      - wrangler 명령 / npm run deploy (CLAUDE.local.md + memory feedback_cbc7119_design_never_wrangler)
+
+    참조:
+      - 31-chrome/sketch-wave-4-settings-panel.html (W4 동일 트랙 precedent — :root + [data-theme=light]
+        + .frame-mobile + row-flex + decision-summary 패턴 mirror, MenuSettingsSection placeholder
+        시연한 W4 의 빈자리 채우는 sketch)
+      - 31-chrome/sketch-wave-3-side-menu.html (W3 동일 트랙 precedent — uppercase divider section
+        header 11px 격상, ✕ 글리프 → Lucide X 교체 W3-OQ #A pattern)
+      - 31-chrome/sketch-wave-2-global-header.html (W2 동일 트랙 precedent)
+      - 30-not-found/sketch.html (다크/라이트 양쪽 precedent)
+      - design-system.md v0.1.1 §1.1/§1.2/§6.4/§7.1
+      - tokens.css / typography.css / wave-1-index.md §7 OQ LOCKED 8건 + §1.3 [MenuSettingsSection.tsx]
+
+    ==========================================================
+    [메타 박스] — 파일 / quick / branch / source / 작성 일자
+    ==========================================================
+
+      파일         : cha-bio-safety/docs/redesign-context/31-chrome/sketch-wave-5-menu-settings-section.html
+      quick_id     : 260527-6o0
+      branch       : redesign/31-chrome 의 W5 sub-wave (sketch 트랙 종결)
+      source       : cha-bio-safety/docs/redesign-context/31-chrome/MenuSettingsSection.tsx (418 라인)
+      live_source  : cha-bio-safety/src/components/MenuSettingsSection.tsx (W7 변환 대상)
+      mount point  : SettingsPanel.tsx line 753 (`<MenuSettingsSection />`)
+      작성일자     : 2026-05-27
+
+    ==========================================================
+    [OQ LOCKED 매트릭스] — wave-1-index §7 8건 + W5 sub-OQ 1건
+    ==========================================================
+
+      OQ #1 LOCKED  다크+라이트 양쪽 지원              → W5 적용 ★ (frame 5+6 라이트 변형 ≥2)
+      OQ #2 LOCKED  부분 격상 — W5 본 컴포넌트 8건     → W5 적용 ★ (9·10 → 12 격상, 아래 표 참조)
+      OQ #3 LOCKED  SideMenu 그라데이션 유지            → W5 무관 (N/A — MenuSettingsSection 그라데이션 0건)
+      OQ #4 LOCKED  프로필 그라데이션 폐기              → W5 무관 (N/A — MenuSettingsSection 그라데이션 0건)
+      OQ #5 LOCKED  인라인 svg 유지                     → W5 적용 ★ (Lucide ChevronUp / ChevronDown /
+                                                                    ChevronRight / Trash2 4종 인라인 svg path 유지)
+      OQ #6 LOCKED  이모지 제거                         → W5 무관 (이모지 0건 — '+' 글리프는 텍스트 character)
+      OQ #7 LOCKED  panel width 88% maxWidth 320 보존  → W5 무관 (N/A — SettingsPanel column 안 렌더, W4 책임)
+      W3-OQ #A pattern (참고)                            → W5 무관 (N/A — ✕ 글리프 0건, Trash2 는 이미 Lucide)
+      W5-OQ #B LOCKED  Toggle accent = --accent-active  → W5 적용 ★ (W4 mirror — raw #2563eb → --accent-active /
+                                                                    knob raw #fff → --text-on-accent)
+
+      ── W5 직접 영향 4건 ★ : OQ #1 / OQ #2 / OQ #5 / W5-OQ #B ──
+
+    ==========================================================
+    [노안 격상 표] — OQ #2 LOCKED 8건 위반 매핑 (source 실측 line 박제)
+    ==========================================================
+
+      | Source line | Original size | Context                              | New size            | Rationale                                                         |
+      |-------------|---------------|--------------------------------------|---------------------|-------------------------------------------------------------------|
+      | L173        | 9             | "메뉴 설정" SectionHeader uppercase  | 12 (text-caption)   | uppercase smallcap; matches W3 SideMenu divider 11→12 후속 일관 |
+      | L214        | 9             | divider title uppercase              | 12                   | 동일 family (L173 와 짝) — uppercase letter-spacing .08em 유지   |
+      | L263        | 9             | "숨김" 라벨 (item hidden)            | 12                   | inline meta 라벨 — 노안 마지노선 12 (leading-none 적용)            |
+      | L294        | 10            | "기본 배치로 되돌릴까요?" prompt       | 12                   | inline confirm row — 단일 라인 본문                                |
+      | L297        | 10            | 취소 button (reset)                  | 12                   | inline confirm action — 짧은 단어 button                          |
+      | L301        | 10            | 초기화 button (reset danger)          | 12                   | inline confirm action — 짧은 단어 button (danger)                  |
+      | L307        | 10            | "기본값으로 초기화" 링크 button         | 12                   | tertiary link button — 노안 마지노선                              |
+      | L407        | 10            | "삭제할까요?" prompt                  | 12                   | inline confirm row — 단일 라인 본문                                |
+
+      합계 8건 (fontSize 9 × 3 + fontSize 10 × 5) — sketch 자체 grep 실측과 일치
+        grep -nE 'fontSize: (9|10)[^0-9]' cha-bio-safety/docs/redesign-context/31-chrome/MenuSettingsSection.tsx
+
+      격상 결정 메모: W5 컴포넌트의 fontSize 11 위반은 0 — 본문 fontSize 12 가 마지노선.
+      모두 12 (text-caption) 격상으로 통일. 11px 격상은 W3/W4 의 uppercase sub-header 와
+      MenuSettingsSection 본 컴포넌트의 uppercase 라벨 사이 0px 격차 발생할 가능성 → 12 로 통일하여
+      MenuSettingsSection 안 모든 uppercase 라벨이 동일 크기 (12) 가 되도록 결정.
+
+    ==========================================================
+    [비즈 anchor 박제] — MenuSettingsSection 25+ 식별자 (W7 변환 1 byte 변경 0 강제)
+    ==========================================================
+
+      ── Imports + 모듈 레벨 (line 1~48) ──
+
+       1. import { useState, useEffect, useMemo, useRef } from 'react'   (line 1)
+       2. import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'  (line 2)
+       3. import toast from 'react-hot-toast'                              (line 3)
+       4. import { ChevronUp, ChevronDown, ChevronRight, Trash2 } from 'lucide-react'  (line 4)
+       5. import {                                                          (line 5~10)
+            settingsApi,
+            type SideMenuEntry,
+            type MenuConfig,
+            DEFAULT_SIDE_MENU,
+          } from '../utils/api'
+       6. import { MENU } from './SideMenu'        (line 11)
+            * circular-safe direction: SideMenu does NOT import MenuSettingsSection
+              (verified in snapshot — SideMenu.tsx 안 'MenuSettingsSection' 0 occurrences)
+       7. import { useAuthStore } from '../stores/authStore'  (line 12)
+
+       8. const PATH_LABEL: Record<string, string> = (() => {              (line 15~19)
+            const m: Record<string, string> = {}
+            MENU.forEach(s => s.items.forEach(i => { m[i.path] = i.label }))
+            return m
+          })()
+       9. const DESKTOP_ONLY_PATHS = new Set(                              (line 22~24)
+            MENU.flatMap(s => s.items).filter(i => i.desktopOnly).map(i => i.path),
+          )
+      10. const ADMIN_PATHS = new Set(                                      (line 27~29)
+            MENU.flatMap(s => s.items).filter(i => i.role === 'admin').map(i => i.path)
+          )
+      11. function newDividerId(): string {                                  (line 32~34)
+            return `d-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`
+          }
+      12. function entriesEqual(a: SideMenuEntry[], b: SideMenuEntry[]): boolean  (line 36~48)
+            · type / path / visible / id / title 4 필드 deep compare
+            · length 다르면 false / 짝 타입 다르면 false
+
+      ── Main export + 5 state + 3 derived (line 50~95) ──
+
+      13. export function MenuSettingsSection()                              (line 50)
+      14. const qc = useQueryClient()                                        (line 51)
+      15. const staff = useAuthStore(s => s.staff)                           (line 52)
+      16. const isAdmin = staff?.role === 'admin'                            (line 53)
+      17. useQuery<MenuConfig>({                                              (line 54~58)
+            queryKey: ['menu-config'],
+            queryFn: () => settingsApi.getMenu(),
+            staleTime: 300_000,
+          })
+
+      18. const [draft, setDraft] = useState<SideMenuEntry[]>([])            (line 61)
+      19. const [editingDividerIdx, setEditingDividerIdx] = useState<number | null>(null)  (line 62)
+      20. const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null)    (line 63)
+      21. const [confirmReset, setConfirmReset] = useState(false)            (line 64)
+      22. const confirmTimerRef = useRef<number | null>(null)                (line 65)
+      23. const [collapsed, setCollapsed] = useState<boolean>(() => {        (line 66~68)
+            try { return localStorage.getItem('menuSettings.collapsed') !== 'false' } catch { return true }
+          })
+            * localStorage 키 verbatim: 'menuSettings.collapsed'
+            * 기본값 true (collapsed) — 값 'false' 일 때만 expanded
+            * persist useEffect (line 69~71)
+
+      24. useEffect 서버 응답 → draft 초기화 (line 74~80)
+            · serverConfig?.sideMenu → setDraft(serverConfig.sideMenu.map(e => ({ ...e })))
+            · serverConfig === null OR !serverConfig.sideMenu → setDraft(DEFAULT_SIDE_MENU.map(e => ({ ...e })))
+
+      25. const dirty = useMemo(...)                                         (line 82~85)
+            · !serverConfig?.sideMenu → draft.length > 0
+            · 아니면 → !entriesEqual(draft, serverConfig.sideMenu)
+
+      26. const saveMutation = useMutation({                                  (line 87~94)
+            mutationFn: () => settingsApi.saveMenu({ sideMenu: draft }),
+            onSuccess: () => {
+              toast.success('메뉴 설정이 저장되었습니다')
+              qc.invalidateQueries({ queryKey: ['menu-config'] })
+            },
+            onError: () => toast.error('저장에 실패했습니다. 다시 시도해주세요.'),
+          })
+
+      ── Mutators (line 97~149) ──
+
+      27. function moveUp(idx)         (line 97~104)   — 인접 swap, 경계에서 no-op
+      28. function moveDown(idx)       (line 105~112)  — 인접 swap, 경계에서 no-op
+      29. function toggleVisible(idx)  (line 113~118)  — item.visible 토글, 비-item 은 skip
+      30. function renameDivider(idx, title)  (line 119~131)
+            · const trimmed = title.trim().slice(0, 20)
+            · empty → setEditingDividerIdx(null) silent revert (do not commit)
+            · 비-divider 는 skip
+      31. function deleteDivider(idx)  (line 132~136)  — filter + clearTimeout
+      32. function addDivider()        (line 137~145)
+            · const newEntry: SideMenuEntry = { type: 'divider', id: newDividerId(), title: '새 구분선' }
+            · setTimeout(() => setEditingDividerIdx(next.length - 1), 0)
+      33. function resetToDefaults()   (line 146~149)
+            · setDraft(DEFAULT_SIDE_MENU.map(e => ({ ...e })))
+            · setConfirmReset(false)
+
+      ── Effects (line 152~159) ──
+
+      34. useEffect 5s auto-dismiss on confirmDeleteIdx
+            · confirmTimerRef.current = window.setTimeout(() => setConfirmDeleteIdx(null), 5000)
+            · cleanup: clearTimeout
+
+      ── Render 분기 ──
+
+      35. Root <div style={{ padding: '12px 13px 5px' }}>                    (line 163)  ★ verbatim padding
+      36. SectionHeader button (line 164~181)
+            · aria-expanded={!collapsed}
+            · "메뉴 설정" span — fontSize 9 → 12 격상 (L173)
+            · ChevronRight size 14 transform rotate(0deg) / rotate(90deg) transition 0.15s
+      37. Entry list flex column gap 5 (line 186)
+      38. draft.map admin filter (line 188~189)
+            · !isAdmin && entry.type === 'item' && ADMIN_PATHS.has(entry.path) → null
+      39. divider branch (line 195~245) — isEditing → DividerTitleInput; isConfirmingDelete → DeleteConfirmInline; default → ArrowButton up + down + Trash2
+      40. item branch (line 247~275)
+            · if (!(entry.path in PATH_LABEL)) return null
+            · if (DESKTOP_ONLY_PATHS.has(entry.path)) return null
+            · opacity entry.visible ? 1 : 0.4
+            · '숨김' span fontSize 9 → 12 (L263) — only when hidden
+
+      41. "+ 구분선 추가" button (line 279~288)
+            · marginTop 10 width 100% height 36 border 1px dashed var(--bd2) → var(--border-strong)
+            · radius 8 fontSize 12 fontWeight 400 — '+' 는 literal character (이모지 아님)
+      42. confirmReset 분기 (line 292~311)
+            · "기본 배치로 되돌릴까요?" fontSize 10 → 12 (L294)
+            · 취소 button bg var(--bg4) → var(--surface-active) fontSize 10 → 12 (L297)
+            · 초기화 button bg var(--danger) → var(--status-danger) fontSize 10 → 12 (L301)
+            · "기본값으로 초기화" link button fontSize 10 → 12 (L307)
+
+      43. "설정 저장" button (line 314~327)
+            · marginTop 8 width 100% height 40
+            · bg var(--acl) → var(--accent) color #fff → var(--text-on-accent) radius 9
+            · fontSize 12 fontWeight 700 — verbatim
+            · opacity dirty && !pending ? 1 : 0.4
+            · cursor dirty && !pending ? pointer : not-allowed
+            · 라벨: saveMutation.isPending ? '저장 중…' : '설정 저장'   ★ U+2026 single ellipsis
+
+      ── Sub 컴포넌트 4종 (line 334~418) — 정확 dimension 박제 ──
+
+      44. ArrowButton({ dir, disabled, onClick })                            (line 336~354)
+            · Props: dir: 'up'|'down', disabled: boolean, onClick: () => void
+            · Icon = dir === 'up' ? ChevronUp : ChevronDown
+            · aria-label: dir === 'up' ? '위로 이동' : '아래로 이동'
+            · width 32 height 32 display flex center
+            · background none border none cursor disabled ? default : pointer
+            · color var(--t2) → var(--text-secondary)
+            · opacity disabled ? 0.25 : 1
+            · pointerEvents disabled ? 'none' : 'auto'
+            · Icon size 14
+
+      45. ToggleSmall({ on, onChange, ariaLabel })                            (line 356~376)
+            · Props: on: boolean, onChange: () => void, ariaLabel: string
+            · aria-label={ariaLabel}  /  aria-pressed={on}
+            · width 38 height 21 borderRadius 11 border none cursor pointer
+            · background on ? '#2563eb' : var(--bg4)
+              → W5-OQ #B LOCKED: on → var(--accent-active) / off → var(--surface-active)
+            · position relative transition background 0.18s flex-shrink 0
+            · knob: position absolute top 2 left 2 width 17 height 17 borderRadius 50%
+            · knob background '#fff' → var(--text-on-accent)
+            · knob transition transform 0.18s
+            · knob transform on ? 'translateX(17px)' : 'translateX(0)'
+            · ariaLabel template literal source: `${label} 표시`
+
+      46. DividerTitleInput({ initial, onCommit })                            (line 378~402)
+            · Props: initial: string, onCommit: (value: string) => void
+            · const [value, setValue] = useState(initial)
+            · ref.current?.focus(); ref.current?.select()  on mount
+            · maxLength={20}                              ★ verbatim
+            · onBlur={() => onCommit(value)}
+            · onKeyDown: Enter → e.currentTarget.blur() / Escape → setValue(initial); setTimeout(() => onCommit(initial), 0)
+            · aria-label="구분선 제목"                    ★ verbatim
+            · height 40 width 100% boxSizing border-box
+            · background var(--bg3) → var(--surface-sunken)
+            · border 1px solid var(--acl) → 1px solid var(--accent)
+            · borderRadius 8 padding '0 12px' fontSize 13 color var(--t1) → var(--text-primary)
+            · outline none
+
+      47. DeleteConfirmInline({ onCancel, onConfirm })                        (line 404~418)
+            · display flex alignItems center gap 6
+            · "삭제할까요?" span fontSize 10 → 12 (L407) color var(--t2) → var(--text-secondary)
+            · 취소 button: bg var(--bg4) → var(--surface-active), color var(--t2) → var(--text-secondary)
+              border none radius 6 padding '4px 8px' fontSize 12 fontWeight 700 cursor pointer
+            · 삭제 button: bg var(--danger) → var(--status-danger), color '#fff' → var(--text-on-accent)
+              border none radius 6 padding '4px 8px' fontSize 12 fontWeight 700 cursor pointer
+
+      ── Phase 21 forward-merge anchor [Phase 21 forward-merge] ──
+
+      48. migrateLegacyMenuConfig (cha-bio-safety/src/utils/api.ts L449)
+            · MenuConfig 가 비어있거나 sideMenu 가 누락된 raw 응답을 받으면
+              DEFAULT_SIDE_MENU 의 항목을 자동 forward-merge 한다.
+            · 신규 메뉴 (예: /documents — 일지 출력) 가 추가되면 서버에 저장된 사용자 config 가
+              구버전이라도 forward-merge 로 클라이언트에 새 메뉴가 노출된다.
+            · W7 TSX 변환 시 이 의존성 보존 — DEFAULT_SIDE_MENU import (line 9) 를
+              hand-rolled 상수로 치환 금지.
+            · W7 변환 후 verify: grep -q 'DEFAULT_SIDE_MENU' src/components/MenuSettingsSection.tsx
+
+      W7 TSX 변환 시 이 블록의 모든 anchor (1~47 + Phase 21 #48) 는 1 byte 변경 0.
+
+    ==========================================================
+    [Verbatim Korean copy 리스트 — 17 엔트리]
+    ==========================================================
+
+       1. '메뉴 설정'                                  (SectionHeader 라벨, L174)
+       2. '구분선 삭제'                                (aria-label, L236)
+       3. '위로 이동'                                  (ArrowButton aria-label up, L342)
+       4. '아래로 이동'                                (ArrowButton aria-label down, L342)
+       5. '+ 구분선 추가'                              (button text, L287 — '+' 는 literal character)
+       6. '기본 배치로 되돌릴까요?'                     (reset confirm prompt, L294)
+       7. '취소'                                       (reset / delete confirm 취소 button, L298 / L411)
+       8. '초기화'                                     (reset confirm 초기화 button, L302)
+       9. '기본값으로 초기화'                          (reset default link button, L309)
+      10. '저장 중…'                                   (save pending label, L326 — U+2026 single ellipsis)
+      11. '설정 저장'                                  (save default label, L326)
+      12. '삭제할까요?'                                (delete confirm prompt, L407)
+      13. '삭제'                                       (delete confirm 삭제 button, L415)
+      14. '숨김'                                       (item hidden meta, L263)
+      15. '새 구분선'                                  (addDivider default title, L138)
+      16. '구분선 제목'                                (DividerTitleInput aria-label, L394)
+      17. `${label} 표시`                              (ToggleSmall aria-label template literal, L271)
+
+      + 추가 toast 메시지 (verbatim) :
+        '메뉴 설정이 저장되었습니다'                  (toast.success, L90)
+        '저장에 실패했습니다. 다시 시도해주세요.'      (toast.error, L93)
+
+    ==========================================================
+    [토큰 매핑 표] — legacy alias → v0.1.1 semantic 토큰
+    ==========================================================
+
+      | Source raw / alias                  | W5 sketch 토큰                           |
+      |-------------------------------------|------------------------------------------|
+      | var(--t1)                           | var(--text-primary)                      |
+      | var(--t2)                           | var(--text-secondary)                    |
+      | var(--t3)                           | var(--text-tertiary)                     |
+      | var(--bg3)                          | var(--surface-sunken)                    |
+      | var(--bg4)                          | var(--surface-active)                    |
+      | var(--bd2)                          | var(--border-strong)                     |
+      | var(--danger)                       | var(--status-danger)                     |
+      | var(--acl) (input border + save bg) | var(--accent)                            |
+      | raw '#2563eb' (Toggle on)           | var(--accent-active)  ★ W5-OQ #B LOCKED |
+      | raw '#fff' (knob + button text)     | var(--text-on-accent)                    |
+      | Toggle outer radius 11              | var(--radius-pill) (preferred, 99px)     |
+      | radius 6 (confirm button)           | raw 6 (between-value 유지)               |
+      | radius 8 (입력/추가 button)         | var(--radius-sm) (8)                     |
+      | radius 9 (Row / Save button)        | raw 9 (between-value 유지)               |
+
+      legacy alias --t1/--t2/--t3/--bg3/--bg4/--bd2/--danger/--acl 와 raw hex (#2563eb/#fff) 는
+      :root + [data-theme="light"] 정의 블록 안에서만 허용 — body markup 안 0건 강제.
+
+    ==========================================================
+    [Negative gate 박스] — sketch body markup grep verify 항목
+    ==========================================================
+
+      1. font-size:\s*(9|10|11)px         body markup 안 0
+         (단 머리 주석 박스 안 인용 — '/* L294 10 → 12 격상 */' 같은 doc context 는 예외)
+      2. linear-gradient                  body markup 안 0  (MenuSettingsSection 은 그라데이션 0건)
+      3. 이모지 [\u{1F300}-\u{1FAFF}] [\u{2600}-\u{27BF}]   body markup 안 0
+         ('+' 는 ASCII 0x2B literal character — 예외 OK)
+      4. ✕ (U+2715) 텍스트 글리프         body markup 안 0  (W3-OQ #A pattern mirror — Trash2 는 이미 Lucide)
+      5. status-(safe|warning|danger|info|fire)(?!-) className body markup 안 0
+         (memory feedback_tailwind_token_class_pattern — var(--status-...) CSS 변수는 OK / className 의 status- prefix 는 X)
+      6. legacy alias --t1/--t2/--t3/--bg3/--bg4/--bd2/--danger/--acl body markup 안 0
+         — 모두 v0.1.1 의미 토큰 교체
+      7. raw hex body markup 안 0 — 단 :root + [data-theme="light"] 정의 블록 안 +
+         머리 주석 박스 안 인용은 예외
+      8. MENU 상수 import 경로 / 시그니처 변경 0 (W7 TSX 변환 시 verify; sketch 는 의존성만 documenting)
+      9. DEFAULT_SIDE_MENU + SideMenuEntry + migrateLegacyMenuConfig (Phase 21) anchor 보존
+
+    ==========================================================
+    [메모리 룰 박스] — 12 unique slug verbatim (sketch 작성 시 직접 영향)
+    ==========================================================
+
+       // [memory:feedback_design_changes_ask_first]
+       //    버그 수정이라도 레이아웃 구조/표시 방식 변경은 사용자와 상의 후 진행.
+       //    본 sketch 는 시각 lock 만 — 비즈 로직/표시 분기 0 byte 변경.
+
+       // [memory:feedback_redesign_sketch_rule_enforcement]
+       //    §6.2 negative rule (위험 임계치 아닌 카드는 status 색 금지) +
+       //    §6.3/§7.1 일관성. 본 W5 의 reset/delete confirm 의 status-danger 사용은
+       //    "삭제/초기화 = 위험 액션" 의미상 일치 OK (negative rule 위반 0).
+
+       // [memory:feedback_sketch_realistic_data]
+       //    표시 분기/라벨 룰 (없음/N개/X-Y/완료) 은 코드 그대로.
+       //    sketch 의 8 entry seed 는 실제 DEFAULT_SIDE_MENU 항목 그대로 사용 (가짜 데이터 0).
+
+       // [memory:feedback_design_sketch_first]
+       //    spacing/sizing 도 sketch HTML 로 시안 보여주고 승인 받은 후 인라인 적용.
+       //    본 W5 = sketch only, TSX 변환은 W7 분리.
+
+       // [memory:feedback_planner_prompt_sketch_verbatim]
+       //    sketch 작성 시 grep 으로 source 시그니처 추출해 verbatim 인용 (추측 0).
+       //    위 비즈 anchor 25+ 는 MenuSettingsSection.tsx 실측 line 박제.
+
+       // [memory:feedback_tsx_wave_emoji_dot_gap]
+       //    이모지 negative gate 강제. MenuSettingsSection 은 이모지 0건이지만,
+       //    '+' 글리프는 ASCII 0x2B literal — 이모지 아님 (verbatim 유지).
+
+       // [memory:feedback_tsx_wave_stat_card_drift]
+       //    sketch 의 새 패턴 + source 의 비즈 anchor 양쪽 머리 주석 verbatim 인용 필수.
+       //    본 W5 머리 주석 47 anchor + 17 Korean copy + 8 노안 격상 표 + 8 토큰 매핑 모두 박제.
+
+       // [memory:feedback_tailwind_token_class_pattern]
+       //    status-* prefix 없음 (text-fire-bar O / text-status-fire-bar X).
+       //    var(--status-danger) CSS 변수는 OK / className "status-danger" 는 X.
+
+       // [memory:feedback_text_caption_leading_none]
+       //    text-caption lh:1.5 (18px) 가 h-8 (32px) 컨테이너 안에서도 시각적 패딩.
+       //    본 W5 의 '숨김' 라벨 (h:21 / 32 row 안) + ArrowButton 안 텍스트 라벨 모두 leading-none 명시.
+
+       // [memory:feedback_cbc7119_design_never_wrangler]
+       //    디자인 작업은 wrangler 명령 자체 금지. main push 만 cbc7119-preview 자동.
+       //    본 W5 의 1 atomic commit 후 사용자가 main 머지 → cbc7119-preview 자동 배포.
+
+       // [memory:project_cbc7119_design_repo]
+       //    cbc7119 = 디자인 격리 리포. 원본 PWA (cha-bio-safety) 영향 0.
+
+       // [memory:feedback_check_branch_before_edit]
+       //    main 단일-trunk 운영. 본 sketch 는 redesign/31-chrome 의 W5 sub-wave,
+       //    main 머지 후 사용자 컨펌 받고 진행.
+
+    ==========================================================
+    [W7 변환 노트] — Hand-off to TSX 변환 wave
+    ==========================================================
+
+      · 이 sketch 는 디자인 lock 만 정의한다.
+        변환 시 source `cha-bio-safety/src/components/MenuSettingsSection.tsx` (418 lines) 의
+        비즈 로직 (5 state / 8 mutators / 1 effect / queryKey ['menu-config'] / toast 문구) 은
+        1 byte 변경 0.
+
+      · Phase 21 forward-merge — `migrateLegacyMenuConfig` (src/utils/api.ts L449) 의존성 보존.
+        DEFAULT_SIDE_MENU import (line 9) 를 hand-rolled 상수로 치환 금지.
+
+      · circular import 주의 — `MenuSettingsSection` → `SideMenu.MENU`.
+        `SideMenu` 는 `MenuSettingsSection` 을 import 하지 않는다 (verified in snapshot at
+        cha-bio-safety/docs/redesign-context/31-chrome/SideMenu.tsx).
+
+      · 8 노안 격상은 inline style 의 fontSize 9 → 12 / fontSize 10 → 12 단순 치환만 적용.
+        다른 속성 (line-height / fontWeight / letterSpacing / textTransform) 1 byte 변경 0.
+
+      · W5-OQ #B LOCKED Toggle accent: 본 sketch 의 raw '#2563eb' → var(--accent-active),
+        knob raw '#fff' → var(--text-on-accent). 토큰 정의는 이미 tokens.css v0.1.0 에 존재.
+
+      · TSX 변환 시 React component 시그니처 / Props 인터페이스 / sub component 시그니처
+        (ArrowButton / ToggleSmall / DividerTitleInput / DeleteConfirmInline) 4종 1 byte 변경 0.
+  -->
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+    /* ──────────────────────────────────────────────────────────────
+       :root — design-system v0.1.1 §2 verbatim (다크 기본)
+       tokens.css mirror — body markup 안 raw hex 0건 강제.
+       legacy alias --t1/--t2/--t3/--bg3/--bg4/--bd2/--danger/--acl 는
+       정의 블록 안에서만 허용 (호환 alias bridge — body markup 안 0건).
+       ────────────────────────────────────────────────────────────── */
+    :root,
+    [data-theme="dark"] {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;   /* divider/item row bg + DividerTitleInput bg */
+      --surface-active:  #2c333d;   /* Toggle off + 취소 button bg */
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-on-accent:  #ffffff;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+      --border-strong:   rgba(255, 255, 255, 0.22);  /* divider borderLeft + '+ 구분선 추가' dashed */
+
+      /* Accent */
+      --accent:          #3b82f6;   /* DividerTitleInput border + 설정 저장 button bg */
+      --accent-active:   #2563eb;   /* Toggle ON (W5-OQ #B LOCKED) */
+
+      /* Status */
+      --status-danger:   #f87171;   /* Trash2 icon + 초기화 / 삭제 button bg */
+      --status-danger-bar: #ef4444;
+
+      /* Radius */
+      --radius-sm:       8px;
+      --radius-md:       12px;
+      --radius-lg:       16px;
+      --radius-pill:     99px;      /* Toggle outer pill */
+
+      /* Spacing */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+
+      /* Font */
+      --font-sans:       'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+      --font-mono:       'JetBrains Mono', ui-monospace, monospace;
+
+      /* ── tokens.css 호환 alias (정의 블록만, body markup 안 0건) ── */
+      --bg:     var(--surface-page);
+      --bg2:    var(--surface-raised);
+      --bg3:    var(--surface-sunken);
+      --bg4:    var(--surface-active);
+      --bd:     var(--border-default);
+      --bd2:    var(--border-strong);
+      --t1:     var(--text-primary);
+      --t2:     var(--text-secondary);
+      --t3:     var(--text-tertiary);
+      --acl:    var(--accent);
+      --danger: var(--status-danger);
+    }
+
+    /* 라이트 모드 — design-system v0.1.1 §2 verbatim (OQ #1 LOCKED) */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-on-accent:  #ffffff;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+      --border-strong:   rgba(0, 0, 0, 0.22);
+
+      --accent:          #1f6feb;
+      --accent-active:   #0a52c4;
+
+      --status-danger:        #991b1b;
+      --status-danger-bar:    #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      font-size: 16px;
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 760px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 32px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 16px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+    .frame-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: .04em;
+      margin-bottom: 6px;
+    }
+
+    /* ── 다크/라이트 frame 좌우 배치 row ──────────────────── */
+    .row-flex {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .row-flex > div {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .caption {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+    .caption code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── frame (MenuSettingsSection 단일 컬럼 시뮬레이션) ──
+       SettingsPanel 안에서 312px content width 로 렌더 — 본 frame 도 동일 ──── */
+    .frame {
+      width: 356px;             /* 312 content + 24 padding × 2 (양옆 SettingsPanel 패딩 보존) */
+      background: var(--surface-raised);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .frame-inner {
+      padding: 12px 13px 5px;   /* MenuSettingsSection root verbatim padding (line 163) */
+    }
+
+    /* ── Inline class helpers (typography.css mirror) ────────── */
+    .text-caption {
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+    .text-body-sm {
+      font-size: 14px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+    .text-body {
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .text-title {
+      font-size: 18px;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* ── MenuSettingsSection 내부 마크업 (W7 TSX 변환 대상) ─── */
+
+    /* SectionHeader button — "메뉴 설정" + ChevronRight rotate */
+    .ms-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      margin-bottom: 6px;
+    }
+    .ms-section-header--collapsed {
+      margin-bottom: 0;
+    }
+    .ms-section-label {
+      font-size: 12px;          /* L173 9 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .ms-section-chevron {
+      color: var(--text-tertiary);
+      transition: transform 0.15s;
+    }
+    .ms-section-chevron--open {
+      transform: rotate(90deg);
+    }
+
+    /* Entry list */
+    .ms-entry-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    /* Divider row */
+    .ms-divider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--surface-sunken);
+      border-radius: 9px;
+      border-left: 2px solid var(--border-strong);
+    }
+    .ms-divider-spacer {
+      width: 16px;
+      flex-shrink: 0;
+    }
+    .ms-divider-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .ms-divider-title {
+      font-size: 12px;          /* L214 9 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text-secondary);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Item row */
+    .ms-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: var(--surface-sunken);
+      border-radius: 9px;
+      opacity: 1;
+    }
+    .ms-item--hidden {
+      opacity: 0.4;
+    }
+    .ms-item-body {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ms-item-label {
+      font-size: 12px;          /* source verbatim — label 마지노선 */
+      line-height: 1.4;
+      font-weight: 400;
+      color: var(--text-primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .ms-item-hidden-tag {
+      font-size: 12px;          /* L263 9 → 12 격상 (OQ #2 LOCKED, leading-none 적용) */
+      line-height: 1;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* ArrowButton — 32×32 */
+    .ms-arrow {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-secondary);
+      opacity: 1;
+      pointer-events: auto;
+      padding: 0;
+      flex-shrink: 0;
+    }
+    .ms-arrow--disabled {
+      opacity: 0.25;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    /* Trash button — 32×32 */
+    .ms-trash {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--status-danger);
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    /* ToggleSmall — 38×21 outer / 17×17 knob (W5-OQ #B LOCKED accent-active) */
+    .ms-toggle {
+      width: 38px;
+      height: 21px;
+      border-radius: var(--radius-pill);   /* W5 결정: --radius-pill (정확 11 = half-height 와 시각 일치) */
+      border: none;
+      cursor: pointer;
+      background: var(--surface-active);
+      position: relative;
+      transition: background 0.18s;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .ms-toggle--on {
+      background: var(--accent-active);    /* W5-OQ #B LOCKED — raw #2563eb 폐기 */
+    }
+    .ms-toggle--disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .ms-toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: var(--text-on-accent);   /* knob — raw #fff 폐기 */
+      transition: transform 0.18s;
+      transform: translateX(0);
+      display: block;
+    }
+    .ms-toggle--on .ms-toggle-knob {
+      transform: translateX(17px);
+    }
+
+    /* DividerTitleInput — height 40, maxLength 20 */
+    .ms-divider-input {
+      height: 40px;
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--surface-sunken);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      font-family: inherit;
+    }
+
+    /* DeleteConfirmInline */
+    .ms-delete-confirm {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ms-delete-prompt {
+      font-size: 12px;          /* L407 10 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      color: var(--text-secondary);
+    }
+    .ms-delete-cancel {
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;          /* delete confirm 취소 — source 도 12 (L410) */
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ms-delete-confirm-btn {
+      background: var(--status-danger);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;          /* delete confirm 삭제 — source 도 12 (L414) */
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* + 구분선 추가 button */
+    .ms-add-divider {
+      margin-top: 10px;
+      width: 100%;
+      height: 36px;
+      border: 1px dashed var(--border-strong);
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 400;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* Reset confirm row */
+    .ms-reset-wrap {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .ms-reset-confirm {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ms-reset-prompt {
+      font-size: 12px;          /* L294 10 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      color: var(--text-secondary);
+    }
+    .ms-reset-cancel {
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;          /* L297 10 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ms-reset-confirm-btn {
+      background: var(--status-danger);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;          /* L301 10 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ms-reset-link {
+      background: none;
+      border: none;
+      color: var(--text-tertiary);
+      font-size: 12px;          /* L307 10 → 12 격상 (OQ #2 LOCKED) */
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+
+    /* Save button */
+    .ms-save {
+      margin-top: 8px;
+      width: 100%;
+      height: 40px;
+      background: var(--accent);
+      color: var(--text-on-accent);
+      border: none;
+      border-radius: 9px;
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      cursor: pointer;
+      opacity: 1;
+      font-family: inherit;
+    }
+    .ms-save--disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    /* Toggle/Arrow showcase row (Frame 6) */
+    .ms-showcase-grid {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--surface-sunken);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .ms-showcase-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .ms-showcase-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .ms-showcase-cap {
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+
+    /* Decision summary block */
+    .decision-summary {
+      max-width: 760px;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .decision-summary ul { margin: 6px 0 0 18px; padding: 0; }
+    .decision-summary li { margin: 2px 0; }
+    .decision-summary code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .biz-anchor-block {
+      max-width: 1100px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>31 MenuSettingsSection · v0.1.1 재디자인 시안 (W5 sub-wave)</h1>
+  <p>
+    redesign/31-chrome W5 sub-wave · MenuSettingsSection.tsx (418 라인) 단일 컴포넌트 sketch ·
+    design-system v0.1.1 의미 토큰 + 노안 룰 §1.1 부분 격상 8건 + 다크/라이트 양쪽 시연
+    (OQ #1 LOCKED) + W5-OQ #B LOCKED (Toggle accent = <code>var(--accent-active)</code>) 시각화.
+    4 sub 컴포넌트 + 5 state + 8 mutators + Phase 21 <code>migrateLegacyMenuConfig</code>
+    forward-merge anchor 모두 시연. MenuSettingsSection.tsx 변경 0 (W7 책임).
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 1 — 다크 / Expanded default (collapsed === false)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 1 — 다크 / Expanded default (collapsed === false, 8 entries)</h2>
+  <p class="vp-desc frame-label">
+    OQ #1 LOCKED 다크 변형 · OQ #2 LOCKED 8건 격상 적용 (L173/L214/L263 9→12 + L294/L297/L301/L307/L407 10→12) ·
+    OQ #5 LOCKED Lucide 인라인 svg 4종 (ChevronUp / ChevronDown / ChevronRight / Trash2) ·
+    W5-OQ #B LOCKED Toggle ON = <code>var(--accent-active)</code> · 첫 행 위 화살표 disabled · 마지막 행 아래 화살표 disabled.
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="dark">
+        <div class="frame-inner">
+
+          <!-- SectionHeader button -->
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <!-- Entry list (8 entries) -->
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" (id d-seed-a) — 첫 행: 위 화살표 disabled -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="위로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. item /dashboard "대시보드" visible:true -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection "일반 점검" visible:true -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 4. divider "시설 관리" (id d-seed-b) -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">시설 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 5. item /div "DIV 압력 관리" visible:true -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">DIV 압력 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="DIV 압력 관리 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 6. item /floorplan "소방 시설 도면" visible:false (hidden — opacity 0.4 + 숨김 label + toggle off) -->
+            <div class="ms-item ms-item--hidden">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">소방 시설 도면</span>
+                <span class="ms-item-hidden-tag">숨김</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle" aria-pressed="false" aria-label="소방 시설 도면 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 7. divider "문서 관리" (id d-seed-c) -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">문서 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 8. item /daily-report "일일 업무 일지" visible:true — 마지막 행: 아래 화살표 disabled -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일일 업무 일지</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="아래로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일일 업무 일지 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- + 구분선 추가 button -->
+          <button class="ms-add-divider">+ 구분선 추가</button>
+
+          <!-- Reset link (default — confirmReset === false) -->
+          <div class="ms-reset-wrap">
+            <button class="ms-reset-link">기본값으로 초기화</button>
+          </div>
+
+          <!-- 설정 저장 button (dirty + !pending — full opacity) -->
+          <button class="ms-save">설정 저장</button>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 1 시연 포인트:<br />
+        · 8 entry list (3 divider + 5 item) — 첫 행 위 화살표 / 마지막 행 아래 화살표 disabled<br />
+        · 6번 item (소방 시설 도면) <code>visible:false</code> — opacity 0.4 + 숨김 라벨 + Toggle OFF<br />
+        · ChevronRight 90deg rotate = expanded<br />
+        · "메뉴 설정" uppercase 12px (L173 9→12 격상)<br />
+        · divider title uppercase 12px (L214 9→12 격상)<br />
+        · "숨김" 라벨 12px leading-none (L263 9→12 격상)<br />
+        · "+ 구분선 추가" dashed 1px border-strong height 36 fontSize 12<br />
+        · "기본값으로 초기화" 링크 button fontSize 12 (L307 10→12 격상)<br />
+        · "설정 저장" height 40 var(--accent) bg fontWeight 700 fontSize 12 (dirty 상태 시연)
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 2 — 다크 / Divider editing mode (editingDividerIdx === 3)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 2 — 다크 / 구분선 편집 (editingDividerIdx === 3, focus + select on mount)</h2>
+  <p class="vp-desc frame-label">
+    <code>editingDividerIdx === 3</code> 의 "시설 관리" divider 가 <code>DividerTitleInput</code> 으로 swap.
+    height 40 width 100% padding 0 12 border 1px solid <code>var(--accent)</code> radius 8 fontSize 13.
+    <code>maxLength={20}</code> · aria-label "구분선 제목" · onBlur 시 commit / Enter 시 blur (commit) /
+    Escape 시 setValue(initial) + setTimeout(onCommit(initial), 0) 으로 silent revert.
+    isEditing branch 일 때 up/down/Trash2 trio 는 그대로 옆에 표시 (source line 225~242).
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="dark">
+        <div class="frame-inner">
+
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="위로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. item /dashboard -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 4. divider "시설 관리" — isEditing (DividerTitleInput swap) -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <input
+                  type="text"
+                  value="시설 관리"
+                  maxlength="20"
+                  aria-label="구분선 제목"
+                  class="ms-divider-input"
+                  autofocus
+                />
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 5. item /div -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">DIV 압력 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="DIV 압력 관리 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 6. item /floorplan visible:false -->
+            <div class="ms-item ms-item--hidden">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">소방 시설 도면</span>
+                <span class="ms-item-hidden-tag">숨김</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle" aria-pressed="false" aria-label="소방 시설 도면 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <button class="ms-add-divider">+ 구분선 추가</button>
+
+          <div class="ms-reset-wrap">
+            <button class="ms-reset-link">기본값으로 초기화</button>
+          </div>
+
+          <button class="ms-save">설정 저장</button>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 2 시연 포인트:<br />
+        · 4번 divider "시설 관리" 가 <code>DividerTitleInput</code> 으로 swap<br />
+        · input height 40 fontSize 13 background <code>var(--surface-sunken)</code><br />
+        · border 1px solid <code>var(--accent)</code> radius 8 padding 0 12<br />
+        · maxLength=20 / aria-label="구분선 제목" / autofocus (실제 source 는 useEffect focus+select)<br />
+        · onCommit 동작: trim().slice(0, 20) — empty → silent revert<br />
+        · Enter → blur (commit) · Escape → setValue(initial); setTimeout(onCommit(initial), 0)<br />
+        · isEditing 일 때도 up/down/Trash2 trio 우측 유지 (source line 225~242 verbatim)
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 3 — 다크 / Delete confirm inline (confirmDeleteIdx === 0, 5s timer)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 3 — 다크 / Delete confirm inline (confirmDeleteIdx === 0, 5초 자동 취소)</h2>
+  <p class="vp-desc frame-label">
+    <code>confirmDeleteIdx === 0</code> 의 "주요 기능" divider 의 up/down/Trash2 trio 가 <code>DeleteConfirmInline</code>
+    으로 swap. "삭제할까요?" prompt fontSize 12 (L407 10→12 격상) + 취소 button (<code>var(--surface-active)</code>)
+    + 삭제 button (<code>var(--status-danger)</code>). 5초 timer 는 <code>confirmTimerRef</code> useRef →
+    <code>useEffect</code> (line 152~159) 으로 관리. sketch 안에서는 caption 으로만 annotation.
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="dark">
+        <div class="frame-inner">
+
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" — confirmDeleteIdx === 0 (DeleteConfirmInline swap) -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <div class="ms-delete-confirm">
+                <span class="ms-delete-prompt">삭제할까요?</span>
+                <button class="ms-delete-cancel">취소</button>
+                <button class="ms-delete-confirm-btn">삭제</button>
+              </div>
+            </div>
+
+            <!-- 2. item /dashboard -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 4. divider "시설 관리" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">시설 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 5. item /div -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">DIV 압력 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="DIV 압력 관리 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <button class="ms-add-divider">+ 구분선 추가</button>
+
+          <div class="ms-reset-wrap">
+            <button class="ms-reset-link">기본값으로 초기화</button>
+          </div>
+
+          <button class="ms-save">설정 저장</button>
+
+          <!-- sketch annotation: 5초 자동 취소 -->
+          <div class="ms-showcase-cap" style="margin-top: 8px; text-align: right;">5초 후 자동 취소 (sketch annotation)</div>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 3 시연 포인트:<br />
+        · 1번 divider "주요 기능" 의 up/down/Trash2 trio → <code>DeleteConfirmInline</code> swap<br />
+        · "삭제할까요?" fontSize 12 (L407 10→12 격상) color <code>var(--text-secondary)</code><br />
+        · 취소 button: bg <code>var(--surface-active)</code> color <code>var(--text-secondary)</code><br />
+        · 삭제 button: bg <code>var(--status-danger)</code> color <code>var(--text-on-accent)</code><br />
+        · radius 6 padding 4 8 fontSize 12 fontWeight 700<br />
+        · 5초 timer = <code>confirmTimerRef</code> useRef + useEffect (line 152~159)<br />
+        · onConfirm 시 <code>deleteDivider(idx)</code> + clearTimeout (line 132~136)
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 4 — 다크 / Reset confirm inline (confirmReset === true)
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 4 — 다크 / Reset confirm inline (confirmReset === true)</h2>
+  <p class="vp-desc frame-label">
+    <code>confirmReset === true</code> 시 "기본값으로 초기화" 링크 button 이 inline confirm row 로 swap.
+    "기본 배치로 되돌릴까요?" prompt fontSize 12 (L294 10→12 격상) + 취소 fontSize 12 (L297 10→12 격상)
+    + 초기화 button fontSize 12 (L301 10→12 격상). onConfirm 시 <code>resetToDefaults()</code> 호출:
+    <code>setDraft(DEFAULT_SIDE_MENU.map(e => ({ ...e })))</code> + <code>setConfirmReset(false)</code>.
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="dark">
+        <div class="frame-inner">
+
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="위로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. item /dashboard -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="아래로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <button class="ms-add-divider">+ 구분선 추가</button>
+
+          <!-- Reset confirm inline (confirmReset === true) -->
+          <div class="ms-reset-wrap">
+            <div class="ms-reset-confirm">
+              <span class="ms-reset-prompt">기본 배치로 되돌릴까요?</span>
+              <button class="ms-reset-cancel">취소</button>
+              <button class="ms-reset-confirm-btn">초기화</button>
+            </div>
+          </div>
+
+          <button class="ms-save">설정 저장</button>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 4 시연 포인트:<br />
+        · "기본값으로 초기화" 링크 button → inline confirm row 로 swap<br />
+        · "기본 배치로 되돌릴까요?" fontSize 12 (L294 10→12 격상) <code>var(--text-secondary)</code><br />
+        · 취소 button: bg <code>var(--surface-active)</code> fontSize 12 (L297 10→12 격상)<br />
+        · 초기화 button: bg <code>var(--status-danger)</code> color <code>var(--text-on-accent)</code> fontSize 12 (L301 10→12 격상)<br />
+        · onConfirm 시 <code>resetToDefaults()</code>: setDraft(DEFAULT_SIDE_MENU.map(...)) + setConfirmReset(false)<br />
+        · Phase 21 <code>migrateLegacyMenuConfig</code> 의존성: DEFAULT_SIDE_MENU import 보존 (line 9)
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 5 — 라이트 / Expanded default (data-theme="light")
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 5 — 라이트 / Expanded default (OQ #1 LOCKED — data-theme="light")</h2>
+  <p class="vp-desc frame-label">
+    Frame 1 markup 동일 · frame container 에 <code>data-theme="light"</code> 부착만.
+    라이트 토큰 자동 적용 — <code>var(--surface-sunken)</code> #ebeef1 / <code>var(--text-primary)</code> #1f2328 /
+    <code>var(--accent)</code> #1f6feb / <code>var(--accent-active)</code> #0a52c4 / <code>var(--status-danger)</code> #991b1b.
+    토큰 mapping 의 cross-theme 변환이 sketch markup 변경 0 byte 로 가능함을 verify.
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="light">
+        <div class="frame-inner">
+
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="위로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. item /dashboard visible:true -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection visible:true -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 4. divider "시설 관리" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">시설 관리</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 5. item /floorplan visible:false (hidden) -->
+            <div class="ms-item ms-item--hidden">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">소방 시설 도면</span>
+                <span class="ms-item-hidden-tag">숨김</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="아래로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle" aria-pressed="false" aria-label="소방 시설 도면 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <button class="ms-add-divider">+ 구분선 추가</button>
+
+          <div class="ms-reset-wrap">
+            <button class="ms-reset-link">기본값으로 초기화</button>
+          </div>
+
+          <button class="ms-save">설정 저장</button>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 5 시연 포인트:<br />
+        · OQ #1 LOCKED 라이트 변형 시연 (<code>data-theme="light"</code> 부착만, markup 변경 0)<br />
+        · 라이트 token: surface-sunken #ebeef1 / text-primary #1f2328 / accent #1f6feb<br />
+        · accent-active #0a52c4 (Toggle ON 라이트 톤) / status-danger #991b1b (Trash2 라이트 톤)<br />
+        · "숨김" 라벨 텍스트가 라이트 배경에서 충분한 대비를 가지는지 검사<br />
+        · disabled arrow opacity 0.25 — 라이트 배경에서도 시각적 차이 인지 가능
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Frame 6 — 라이트 / visible OFF + Toggle / Arrow state showcase
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>Frame 6 — 라이트 / visible/hidden 대비 + Toggle / Arrow 4 state showcase</h2>
+  <p class="vp-desc frame-label">
+    visible:true (Toggle ON) / visible:false (opacity 0.4 + 숨김 라벨 + Toggle OFF) 대비 시연.
+    아래 showcase 영역에 Toggle 4 state (ON 활성, OFF 활성, ON 비활성, OFF 비활성) +
+    Arrow 2 state (활성, 비활성 opacity 0.25 pointer-events none) 시연. W5-OQ #B LOCKED 가
+    라이트 mode 에서도 정상 동작 검증.
+  </p>
+  <div class="row-flex">
+    <div>
+      <div class="frame" data-theme="light">
+        <div class="frame-inner">
+
+          <button class="ms-section-header" aria-expanded="true">
+            <span class="ms-section-label">메뉴 설정</span>
+            <svg class="ms-section-chevron ms-section-chevron--open lucide lucide-chevron-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
+          <div class="ms-entry-list">
+
+            <!-- 1. divider "주요 기능" -->
+            <div class="ms-divider">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-divider-body">
+                <span class="ms-divider-title">주요 기능</span>
+              </div>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="위로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-trash" aria-label="구분선 삭제">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                  <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- 2. item /dashboard visible:true (Toggle ON) -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">대시보드</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="대시보드 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 3. item /inspection visible:false (Toggle OFF, opacity 0.4, "숨김") -->
+            <div class="ms-item ms-item--hidden">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">일반 점검</span>
+                <span class="ms-item-hidden-tag">숨김</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow" aria-label="아래로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle" aria-pressed="false" aria-label="일반 점검 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+            <!-- 4. item /floorplan visible:true (Toggle ON) -->
+            <div class="ms-item">
+              <div class="ms-divider-spacer"></div>
+              <div class="ms-item-body">
+                <span class="ms-item-label">소방 시설 도면</span>
+              </div>
+              <button class="ms-arrow" aria-label="위로 이동">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+              </button>
+              <button class="ms-arrow ms-arrow--disabled" aria-label="아래로 이동" aria-disabled="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+              <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="소방 시설 도면 표시">
+                <span class="ms-toggle-knob"></span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Toggle / Arrow state showcase -->
+          <div class="ms-showcase-grid">
+
+            <div class="ms-showcase-row">
+              <div class="ms-showcase-cell">
+                <button class="ms-toggle ms-toggle--on" aria-pressed="true" aria-label="Toggle ON 활성">
+                  <span class="ms-toggle-knob"></span>
+                </button>
+                <span class="ms-showcase-cap">ON 활성</span>
+              </div>
+              <div class="ms-showcase-cell">
+                <button class="ms-toggle" aria-pressed="false" aria-label="Toggle OFF 활성">
+                  <span class="ms-toggle-knob"></span>
+                </button>
+                <span class="ms-showcase-cap">OFF 활성</span>
+              </div>
+              <div class="ms-showcase-cell">
+                <button class="ms-toggle ms-toggle--on ms-toggle--disabled" aria-pressed="true" aria-disabled="true" aria-label="Toggle ON 비활성">
+                  <span class="ms-toggle-knob"></span>
+                </button>
+                <span class="ms-showcase-cap">ON 비활성</span>
+              </div>
+              <div class="ms-showcase-cell">
+                <button class="ms-toggle ms-toggle--disabled" aria-pressed="false" aria-disabled="true" aria-label="Toggle OFF 비활성">
+                  <span class="ms-toggle-knob"></span>
+                </button>
+                <span class="ms-showcase-cap">OFF 비활성</span>
+              </div>
+            </div>
+
+            <div class="ms-showcase-row">
+              <div class="ms-showcase-cell">
+                <button class="ms-arrow" aria-label="화살표 활성">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                </button>
+                <span class="ms-showcase-cap">Arrow 활성</span>
+              </div>
+              <div class="ms-showcase-cell">
+                <button class="ms-arrow ms-arrow--disabled" aria-label="화살표 비활성" aria-disabled="true">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="18 15 12 9 6 15" />
+                  </svg>
+                </button>
+                <span class="ms-showcase-cap">Arrow 비활성 (0.25 + none)</span>
+              </div>
+              <div class="ms-showcase-cell">
+                <button class="ms-trash" aria-label="삭제 활성">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                    <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+                <span class="ms-showcase-cap">Trash 활성 (status-danger)</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div>
+      <p class="caption">
+        Frame 6 시연 포인트:<br />
+        · visible:true (Toggle ON, opacity 1) vs visible:false (Toggle OFF, opacity 0.4 + 숨김 라벨) 대비<br />
+        · ToggleSmall 4 state: ON 활성 / OFF 활성 / ON 비활성 (disabled 0.25) / OFF 비활성<br />
+        · ArrowButton 2 state: 활성 (color text-secondary, opacity 1) / 비활성 (opacity 0.25, pointer-events none)<br />
+        · Trash2 button: color <code>var(--status-danger)</code> width 32 height 32 (라이트 #991b1b)<br />
+        · W5-OQ #B LOCKED 검증: 라이트 모드에서도 Toggle ON bg = <code>var(--accent-active)</code> (#0a52c4) 정확 적용<br />
+        · 노안 룰 검증: "숨김" 라벨 12px leading-none, 작은 컨테이너에서도 시각적 패딩 0 (memory feedback_text_caption_leading_none)
+      </p>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       Decision summary + footer
+       ════════════════════════════════════════════════════════════════════ -->
+  <h2>디자인 결정 요약 (decision-summary)</h2>
+  <div class="decision-summary">
+    <strong>W5 sub-wave 결정 요약 (총 9건)</strong>
+    <ul>
+      <li><strong>OQ #1 LOCKED — 다크/라이트 양쪽 지원.</strong> Frame 5 + Frame 6 에 <code>data-theme="light"</code> 부착,
+        라이트 토큰 자동 적용 (<code>[data-theme="light"]</code> selector).</li>
+      <li><strong>OQ #2 LOCKED — 부분 격상 8건.</strong> fontSize 9·10 → 12 (text-caption) 통일.
+        모든 uppercase 라벨이 동일 12px 로 정렬.</li>
+      <li><strong>OQ #3 / #4 — N/A.</strong> MenuSettingsSection 은 그라데이션 0건.</li>
+      <li><strong>OQ #5 LOCKED — Lucide 인라인 svg 4종 유지.</strong> ChevronUp / ChevronDown / ChevronRight / Trash2
+        canonical path 인라인 (size 14).</li>
+      <li><strong>OQ #6 — N/A.</strong> 이모지 0건. "+" 은 ASCII 0x2B literal character (이모지 아님).</li>
+      <li><strong>OQ #7 — N/A.</strong> SettingsPanel column 안 렌더, panel width 보존은 W4 책임.</li>
+      <li><strong>W3-OQ #A pattern — N/A.</strong> <code>&#x2715;</code> 글리프 0건. Trash2 는 이미 Lucide.</li>
+      <li><strong>W5-OQ #B LOCKED — Toggle accent = <code>var(--accent-active)</code>.</strong>
+        raw <code>&#35;2563eb</code> 폐기, knob raw <code>&#35;fff</code> &rarr; <code>var(--text-on-accent)</code>.</li>
+      <li><strong>Phase 21 forward-merge — <code>migrateLegacyMenuConfig</code> 의존성 보존.</strong>
+        DEFAULT_SIDE_MENU import 보존 (line 9). W7 변환 시 hand-rolled 상수 치환 금지.</li>
+    </ul>
+  </div>
+
+  <h2>비즈 anchor 박제 요약 (head comment 47 + Phase 21 #48)</h2>
+  <div class="decision-summary">
+    상세 47 anchor + Phase 21 forward-merge anchor #48 는 본 파일 머리 주석 박스 안 verbatim 박제.
+    grep 으로 추출 가능: <code>grep -n "MenuSettingsSection\|migrateLegacyMenuConfig\|DEFAULT_SIDE_MENU\|SideMenuEntry\|circular" sketch-wave-5-menu-settings-section.html</code>.
+    W7 TSX 변환 시 1 byte 변경 0 강제.
+  </div>
+
+  <h2>Negative gate 박스 (sketch body markup grep verify 항목)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li><code>font-size:\s*(9|10|11)px</code> body markup 안 0 (8건 격상 모두 12로 통일)</li>
+      <li><code>linear&#45;gradient</code> body markup 안 0 (MenuSettingsSection 그라데이션 0건)</li>
+      <li>이모지 (<code>[\u{1F300}-\u{1FAFF}]</code> / <code>[\u{2600}-\u{27BF}]</code>) body markup 안 0</li>
+      <li><code>&#x2715;</code> (U+2715) 텍스트 글리프 body markup 안 0</li>
+      <li>className <code>status-(safe|warning|danger|info|fire)(?!-)</code> body markup 안 0</li>
+      <li>legacy alias <code>--t1/--t2/--t3/--bg3/--bg4/--bd2/--danger/--acl</code> body markup 안 0 —
+        <code>:root</code> + <code>[data-theme="light"]</code> + 호환 alias 정의 블록 안만 허용</li>
+      <li>raw hex body markup 안 0 — 단 <code>:root</code> + <code>[data-theme="light"]</code> 정의 +
+        머리 주석 박스 안 인용은 예외 (sketch 외곽 chrome body 의 #0f1218 도 정의 블록 외 예외 — 라벨 영역만)</li>
+    </ul>
+  </div>
+
+  <h2>토큰 매핑 표 (alias → v0.1.1 semantic)</h2>
+  <div class="decision-summary">
+    상세 매핑은 본 파일 머리 주석 박스 안 박제. 핵심:
+    <code>--t1/--t2/--t3 → --text-primary/secondary/tertiary</code> ·
+    <code>--bg3/--bg4 → --surface-sunken/active</code> ·
+    <code>--bd2 → --border-strong</code> ·
+    <code>--acl → --accent</code> ·
+    <code>--danger → --status-danger</code> ·
+    raw <code>&#35;2563eb &rarr; --accent-active</code> (W5-OQ #B) ·
+    raw <code>&#35;fff &rarr; --text-on-accent</code> (knob + 버튼 텍스트).
+  </div>
+
+  <h2>다음 wave 후보 (footer)</h2>
+  <div class="decision-summary">
+    <strong>redesign/31-chrome 의 sketch 트랙 종결.</strong>
+    <ul>
+      <li><strong>W6 — TSX 변환 verify checklist (markdown)</strong>: W2~W5 sketch + 4 컴포넌트 비즈 anchor +
+        Tailwind cheatsheet + circular import (MenuSettingsSection ↔ SideMenu MENU) 주의 +
+        JSZip / Notification API / pushManager 보존 룰 + Phase 21 forward-merge 보존 룰.</li>
+      <li><strong>W7 — TSX 변환 atomic 단일 wave</strong>: 4 컴포넌트 (GlobalHeader 45 + SideMenu 201 +
+        SettingsPanel 894 + MenuSettingsSection 418 = 총 1558 라인) 한꺼번에 atomic 변환.
+        본 W5 sketch 의 47 anchor + Phase 21 #48 anchor 1 byte 변경 0 강제.</li>
+      <li>본 W5 sketch 가 sketch 트랙의 마지막 산출물. W7 변환 후 cbc7119-preview 자동 배포.</li>
+    </ul>
+  </div>
+
+</body>
+</html>
+
