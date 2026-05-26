@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-2-frame-guard.html — redesign/24-checkpoints W2
+  작성: 2026-05-26 / quick 260526-fga
+  범위: CheckpointsPage.tsx 외곽 wrapper (line 507) + admin 가드 visual placeholder (line 438~440 / 501)
+        + <style> keyframes blink + slideUp + input/select focus border-color (line 508~513)
+  4 frame: A 외곽 wrapper default / B admin 가드 발동 / C keyframes 시각화 / D focus ring
+  out of scope: 헤더 select (W3) / 카드 리스트+FAB (W4) / 모달+폼 (W5) / TSX 변환 (W6) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #4 LOCKED — 외곽 hex 토큰 치환
+      --bg  -> --surface-page
+      --bg2 -> --surface-raised
+      --bg3 -> --surface-sunken
+      --bd  -> --border-default
+      --t1  -> --text-primary
+      --acl -> --accent-primary (= --border-focus fallback)
+
+  [OQ #1/#2/#3/#5/#6 는 W3~W5 scope (본 wave 미해당)]
+-->
+
+<!--
+  OQ #4: 외곽 hex 토큰 치환 (design-system.md §4.1 마이그레이션 표)
+  - surface: --bg -> surface-page / --bg2 -> surface-raised / --bg3 -> surface-sunken / --bg4 -> surface-active
+  - border:  --bd -> border-default / --bd2 -> border-strong
+  - text:    --t1 -> text-primary / --t2 -> text-secondary / --t3 -> text-tertiary
+  - accent:  --acl -> accent-primary
+  - safe:    --safe -> [safe-bar token] (dot, '활성' 라벨)
+  - danger:  --danger -> [danger token] (비활성화 버튼)
+  본 wave 적용 = 외곽 wrapper bg var(--surface-page) + focus ring var(--accent-primary)
+-->
+
+<!--
+  비즈 anchor (CheckpointsPage.tsx, 1 byte X):
+     - admin 가드 useEffect (line 438~440): if (me?.role !== 'admin') navigate('/dashboard', { replace: true })
+     - early return (line 501): if (me?.role !== 'admin') return null
+     - 외곽 wrapper (line 507): style={{ display:'flex', flexDirection:'column', background:'var(--bg)', height:'100%', overflow:'hidden' }}
+     - keyframes (line 508~513): blink + slideUp + input/select focus border-color var(--acl)
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>24-checkpoints W2 — Frame &amp; Guard sketch</title>
+  <style>
+    /* ── 토큰 (다크 기본값, 라이트 data-theme="light" 오버라이드) ── */
+    /* OQ #4: --bg/bg2/bg3/bg4/bd/bd2/t1/t2/t3/acl/safe/danger -> new semantic tokens */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;
+      --safe-bar:        #22c55e;  /* --safe -> safe-bar token */
+      --danger-fg:       #f87171;  /* --danger -> danger token */
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+      --safe-bar:        #16a34a;
+      --danger-fg:       #ef4444;
+    }
+
+    /* ── 키프레임 (line 508~513 verbatim, OQ #4 토큰 치환) ── */
+    @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    input:focus { border-color: var(--accent-primary) !important; }
+    select:focus { border-color: var(--accent-primary) !important; outline: none; }
+
+    /* ── 공통 리셋 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', system-ui, sans-serif; }
+
+    /* ── 뷰포트 wrapper ── */
+    .viewport-row {
+      display: flex;
+      gap: 32px;
+      padding: 24px;
+      background: #1a1a2e;
+      min-height: 100vh;
+      flex-wrap: wrap;
+    }
+    .viewport-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── 모바일 폰 외곽 ── */
+    .phone {
+      width: 390px;
+      height: 700px;
+      border-radius: 20px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      position: relative;
+    }
+    /* ── 데스크톱 윈도우 외곽 ── */
+    .desktop {
+      width: 900px;
+      height: 640px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── 페이지 외곽 wrapper (line 507 — OQ #4 치환) ── */
+    .page-wrapper {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface-page);
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── admin 가드 발동 frame ── */
+    .guard-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background: var(--surface-page);
+      gap: 12px;
+      padding: 24px;
+    }
+    .guard-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--surface-raised);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.5px solid var(--border-default);
+    }
+    .guard-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .guard-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-align: center;
+      line-height: 1.5;
+    }
+    .guard-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 99px;
+      background: var(--surface-sunken);
+      color: var(--text-secondary);
+    }
+
+    /* ── keyframe 시각화 frame ── */
+    .keyframe-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px 16px;
+      height: 100%;
+      background: var(--surface-page);
+    }
+    .kf-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .skeleton-bar {
+      height: 64px;
+      border-radius: 12px;
+      background: var(--surface-sunken);
+      animation: blink 2s ease-in-out infinite;
+    }
+    .sheet-preview {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface-raised);
+      border-radius: 16px 16px 0 0;
+      animation: slideUp 0.28s ease-out both;
+      height: 280px;
+      padding: 12px 16px;
+    }
+    .handle-bar {
+      width: 32px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+    .sheet-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    /* ── focus ring 시각화 ── */
+    .focus-demo {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px 16px;
+      background: var(--surface-page);
+      height: 100%;
+    }
+    .focus-input {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      outline: none;
+    }
+    .focus-input.focused {
+      border-color: var(--accent-primary) !important;
+    }
+    .focus-select {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    .focus-select.focused {
+      border-color: var(--accent-primary) !important;
+      outline: none;
+    }
+
+    /* ── 상단 placeholder 채움 (content 없을 때) ── */
+    .content-placeholder {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+<div class="viewport-row">
+
+  <!-- ── Frame A: 외곽 wrapper default (다크 모바일) ── -->
+  <div class="viewport-block">
+    <div class="label">Frame A — 외곽 wrapper · 다크 모바일</div>
+    <div class="phone">
+      <div class="page-wrapper" data-theme="dark" style="background: var(--surface-page);">
+        <!-- 외곽 wrapper: display:flex / flexDirection:column / background:var(--surface-page) / height:100% / overflow:hidden -->
+        <!-- OQ #4: var(--bg) → var(--surface-page) -->
+        <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-default); flex-shrink: 0;">
+          <div style="height: 36px; background: var(--surface-sunken); border-radius: 8px; border: 1px solid var(--border-default);"></div>
+        </div>
+        <div class="content-placeholder" style="color: var(--text-tertiary); font-size: 12px;">
+          (헤더 select → W3 / 리스트 → W4)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Frame A: 외곽 wrapper default (라이트 모바일) ── -->
+  <div class="viewport-block">
+    <div class="label">Frame A — 외곽 wrapper · 라이트 모바일</div>
+    <div class="phone">
+      <div class="page-wrapper" data-theme="light" style="background: #ffffff;">
+        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.12); flex-shrink: 0;">
+          <div style="height: 36px; background: #ebeef1; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12);"></div>
+        </div>
+        <div class="content-placeholder" style="color: #656d76; font-size: 12px; background: #ffffff;">
+          (헤더 select → W3 / 리스트 → W4)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Frame A: 외곽 wrapper default (다크 데스크톱) ── -->
+  <div class="viewport-block">
+    <div class="label">Frame A — 외곽 wrapper · 다크 데스크톱</div>
+    <div class="desktop" style="border-color: rgba(255,255,255,0.15);">
+      <div style="display:flex; flex-direction:column; background:#0a0d12; height:100%; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:12px; padding: 12px 24px; border-bottom: 1px solid rgba(255,255,255,0.14); flex-shrink:0;">
+          <div style="width:220px; height:36px; background:#232a33; border-radius:8px; border:1px solid rgba(255,255,255,0.14);"></div>
+          <div style="width:100px; height:36px; background:#232a33; border-radius:8px; border:1px solid rgba(255,255,255,0.14);"></div>
+          <div style="width:100px; height:36px; background:#232a33; border-radius:8px; border:1px solid rgba(255,255,255,0.14);"></div>
+          <span style="flex:1;"></span>
+          <div style="height:36px; padding:0 16px; background:#3b82f6; border-radius:8px; display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:#fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            개소 추가
+          </div>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; color:#8b949e; font-size:12px;">
+          (테이블 → W4)
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="viewport-row" style="background: #0a0a1a;">
+
+  <!-- ── Frame B: admin 가드 발동 (다크 모바일) ── -->
+  <div class="viewport-block">
+    <div class="label">Frame B — admin 가드 발동 · 다크 모바일</div>
+    <div class="phone">
+      <div data-theme="dark" style="display:flex; flex-direction:column; background:#0a0d12; height:100%; overflow:hidden;">
+        <!--
+          admin 가드 visual placeholder:
+          - useEffect (line 438~440): if (me?.role !== 'admin') navigate('/dashboard', { replace: true })
+          - early return (line 501): if (me?.role !== 'admin') return null
+          → assistant 로그인 시 렌더 결과 = null (빈 화면 + navigate redirect)
+        -->
+        <div class="guard-overlay" data-theme="dark" style="background:#0a0d12;">
+          <div class="guard-icon" style="background:#1a1f27; border-color:rgba(255,255,255,0.14);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div class="guard-title" style="color:#e6edf3;">admin 전용 페이지</div>
+          <div class="guard-meta" style="color:#8b949e;">
+            이 페이지는 관리자(admin)만 접근 가능합니다.<br/>
+            dashboard 로 이동합니다.
+          </div>
+          <div class="guard-badge" style="background:#232a33; color:#adb6c0;">
+            <!-- navigate('/dashboard', { replace: true }) -->
+            redirect → /dashboard
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Frame B: admin 가드 발동 (라이트 모바일) ── -->
+  <div class="viewport-block">
+    <div class="label">Frame B — admin 가드 발동 · 라이트 모바일</div>
+    <div class="phone">
+      <div data-theme="light" style="display:flex; flex-direction:column; background:#ffffff; height:100%; overflow:hidden;">
+        <div class="guard-overlay" data-theme="light" style="background:#ffffff; gap:12px; padding:24px;">
+          <div class="guard-icon" style="background:#f6f8fa; border-color:rgba(0,0,0,0.12);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#656d76" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div style="font-size:16px; font-weight:700; color:#1f2328;">admin 전용 페이지</div>
+          <div style="font-size:12px; color:#656d76; text-align:center; line-height:1.5;">
+            이 페이지는 관리자(admin)만 접근 가능합니다.<br/>
+            dashboard 로 이동합니다.
+          </div>
+          <div style="font-size:12px; font-weight:700; padding:4px 10px; border-radius:99px; background:#ebeef1; color:#4d5562;">
+            redirect → /dashboard
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="viewport-row" style="background: #0f0f1f;">
+
+  <!-- ── Frame C: keyframes 시각화 — blink (skeleton) — 다크 모바일 ── -->
+  <div class="viewport-block">
+    <div class="label">Frame C — keyframes blink (skeleton) · 다크 모바일</div>
+    <div class="phone">
+      <div data-theme="dark" style="background:#0a0d12; height:100%; overflow:hidden; position:relative;">
+        <div class="keyframe-demo" data-theme="dark">
+          <div class="kf-label" style="color:#adb6c0;">blink 2s ease-in-out infinite (line 509)</div>
+          <!--
+            SKELETON_STYLE (line 422~425):
+              background: var(--bg3) → var(--surface-sunken)
+              borderRadius: 12
+              height: 64
+              animation: 'blink 2s ease-in-out infinite'
+          -->
+          <div class="skeleton-bar" style="background:#232a33; animation:blink 2s ease-in-out infinite;"></div>
+          <div class="skeleton-bar" style="background:#232a33; animation:blink 2s ease-in-out infinite; animation-delay:0.3s;"></div>
+          <div class="skeleton-bar" style="background:#232a33; animation:blink 2s ease-in-out infinite; animation-delay:0.6s;"></div>
+
+          <div class="kf-label" style="color:#adb6c0; margin-top:8px;">slideUp 0.28s ease-out (BottomSheet 진입, line 510)</div>
+          <div style="position:relative; height:200px; overflow:hidden; border-radius:12px; border:1px solid rgba(255,255,255,0.14); background:#232a33;">
+            <div style="position:absolute; bottom:0; left:0; right:0; background:#1a1f27; border-radius:16px 16px 0 0; animation:slideUp 0.28s ease-out both; height:160px; padding:12px 16px;">
+              <div class="handle-bar" style="background:rgba(255,255,255,0.22);"></div>
+              <div class="sheet-title" style="color:#e6edf3; border-color:rgba(255,255,255,0.14); font-size:16px; font-weight:700;">개소 추가</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Frame C: keyframes 시각화 — blink (skeleton) — 라이트 모바일 ── -->
+  <div class="viewport-block">
+    <div class="label">Frame C — keyframes blink (skeleton) · 라이트 모바일</div>
+    <div class="phone">
+      <div data-theme="light" style="background:#ffffff; height:100%; overflow:hidden;">
+        <div style="display:flex; flex-direction:column; gap:12px; padding:20px 16px; background:#ffffff; height:100%;">
+          <div style="font-size:12px; font-weight:700; color:#4d5562; text-transform:uppercase; letter-spacing:0.04em;">blink 2s ease-in-out infinite</div>
+          <div style="height:64px; border-radius:12px; background:#ebeef1; animation:blink 2s ease-in-out infinite;"></div>
+          <div style="height:64px; border-radius:12px; background:#ebeef1; animation:blink 2s ease-in-out infinite; animation-delay:0.3s;"></div>
+          <div style="height:64px; border-radius:12px; background:#ebeef1; animation:blink 2s ease-in-out infinite; animation-delay:0.6s;"></div>
+
+          <div style="font-size:12px; font-weight:700; color:#4d5562; text-transform:uppercase; letter-spacing:0.04em; margin-top:8px;">slideUp 0.28s ease-out</div>
+          <div style="position:relative; height:160px; overflow:hidden; border-radius:12px; border:1px solid rgba(0,0,0,0.12); background:#ebeef1;">
+            <div style="position:absolute; bottom:0; left:0; right:0; background:#f6f8fa; border-radius:16px 16px 0 0; animation:slideUp 0.28s ease-out both; height:130px; padding:12px 16px;">
+              <div style="width:32px; height:4px; background:rgba(0,0,0,0.22); border-radius:2px; margin:0 auto 12px;"></div>
+              <div style="font-size:16px; font-weight:700; color:#1f2328; padding-bottom:12px; border-bottom:1px solid rgba(0,0,0,0.12);">개소 추가</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Frame D: focus border-color var(--accent-primary) — 다크 ── -->
+  <div class="viewport-block">
+    <div class="label">Frame D — focus ring · 다크 모바일</div>
+    <div class="phone">
+      <div data-theme="dark" style="background:#0a0d12; height:100%; overflow:hidden; display:flex; flex-direction:column; gap:16px; padding:20px 16px;">
+        <!--
+          input/select:focus { border-color: var(--acl) !important; } (line 511~512)
+          OQ #4: var(--acl) → var(--accent-primary) = #3b82f6 (다크) / #0969da (라이트)
+        -->
+        <div style="font-size:12px; font-weight:700; color:#adb6c0; text-transform:uppercase; letter-spacing:0.04em;">input focus ring (line 511)</div>
+        <div style="font-size:12px; color:#8b949e; leading-none;">blur 상태 (border-default)</div>
+        <input class="focus-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;" placeholder="카테고리 선택..." readonly />
+
+        <div style="font-size:12px; color:#adb6c0; leading-none;">focus 상태 (accent-primary = #3b82f6)</div>
+        <input class="focus-input focused" style="background:#232a33; border-color:#3b82f6; color:#e6edf3; box-shadow:0 0 0 2px rgba(59,130,246,0.2);" placeholder="카테고리 선택..." readonly />
+
+        <div style="font-size:12px; color:#8b949e; leading-none;">select focus 상태 (OQ #4: var(--acl) → --accent-primary)</div>
+        <select class="focus-select focused" style="background:#232a33; border-color:#3b82f6; color:#e6edf3;">
+          <option>전체 (카테고리 선택)</option>
+          <option>소화기</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
