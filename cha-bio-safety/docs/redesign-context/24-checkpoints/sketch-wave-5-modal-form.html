@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-5-modal-form.html — redesign/24-checkpoints W5
+  작성: 2026-05-26 / quick 260526-fga
+  범위: CheckpointsPage.tsx
+        - BottomSheet 함수 (line 40~57): overlay rgba(0,0,0,0.6) + bg var(--bg2) + radius 16/16/0/0 + slideUp 0.28s + maxHeight 90vh + handle bar 32x4
+        - DesktopModal 함수 (line 60~74): overlay rgba(0,0,0,0.5) + bg var(--bg2) + radius 12 + width 440 + maxHeight 85vh + boxShadow
+        - 모달 호출 wrapper (line 685~690): modal.open && <ModalWrapper title={mode==='add'?'개소 추가':'개소 수정'}>
+        - INPUT_STYLE + LABEL_STYLE 상수 (line 77~84): height 44 / bg var(--bg3) / radius 8 / padding 0 12 / fontSize 14
+        - 폼 필드 6건: 카테고리 select (268~273) / zone button row (275~284) / 층 select (285~295) / 개소명 input (348~351) / 위치번호 input (352~357) / 설명 input (358~363)
+        - 소화기 (isExtCategory) 분기 추가 폼 7 필드 (296~347): 종류 select + 6 input + placeholder verbatim
+        - 액션 row (366~395): 취소 / 저장 button (canSave + isBusy) + edit 시 비활성화 + confirmDeactivate 안내
+  5 frames: A BottomSheet 등록 폼 / B DesktopModal 등록 폼 / C 소화기 분기 폼 / D edit+비활성화 confirm / E 저장 disabled
+  out of scope: 외곽 wrapper (W2) / 헤더 (W3) / 리스트+FAB (W4) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #1 LOCKED — BottomSheet/DesktopModal 인라인 보존 (StaffManagePage 공통화는 별도 task, 이 wave 박제만)
+    OQ #2 LOCKED — 저장 button + 비활성화 button 단색 (저장=accent-primary, 비활성화=danger, 그라데이션 미적용)
+    OQ #4 LOCKED — 모달 hex 토큰 치환: --bg2->surface-raised / --bg3->surface-sunken / --bg4->surface-active / --bd2->border-strong / --t1->text-primary / --acl->accent-primary / --danger->danger token
+    OQ #5 LOCKED — zone button fontSize 11 (line 282) -> text-caption 12px + leading-none
+    OQ #6 LOCKED — 모달 안 inline SVG 없음 (Plus/ChevronDown 외). 단, action button 라벨 텍스트만
+-->
+
+<!--
+  OQ #1: BottomSheet/DesktopModal 인라인 보존 (StaffManagePage 공통화는 별도 task, 이 wave 박제만)
+-->
+<!--
+  OQ #2: 저장 button + 비활성화 button 단색 (저장=--accent-primary, 비활성화=--status-danger, §6.4 그라데이션 미적용)
+-->
+<!--
+  OQ #4: 모달 hex 토큰 치환 (--bg2->surface-raised / --bg3->surface-sunken / --bg4->surface-active / --bd2->border-strong / --t1->text-primary / --acl->accent-primary / --danger->danger token / overlay rgba 직접 유지 OK)
+-->
+<!--
+  OQ #5: zone button fontSize 11 (line 282) / 카테고리 select 14 / textarea 14 -> text-caption (12) 격상 (zone button) + 나머지 text-body 또는 text-body-sm 유지
+-->
+<!--
+  OQ #6: 모달 안 inline SVG 없음 (Plus/ChevronDown 외 — 변경 없음). action button 라벨 텍스트만 (lucide 추가 없음)
+-->
+
+<!--
+  비즈 anchor (CheckpointsPage.tsx, 1 byte X):
+     - BottomSheet (line 40~57): overlay position fixed inset 0 / bg rgba(0,0,0,0.6) / zIndex 50 / flex column / justifyContent flex-end / panel bg var(--bg2) borderRadius 16/16/0/0 / animation 'slideUp 0.28s ease-out both' / maxHeight 90vh / handle bar 32x4 paddingTop 12 / title 16/700/var(--t1) padding '12px 16px 0' / backdrop click close (e.target === e.currentTarget)
+     - DesktopModal (line 60~74): overlay bg rgba(0,0,0,0.5) / panel borderRadius 12 / width 440 / maxHeight 85vh / boxShadow '0 8px 32px rgba(0,0,0,.18)' / title padding '20px 24px 0'
+     - ModalWrapper = isDesktop ? DesktopModal : BottomSheet (line 503) — useIsDesktop 훅 분기
+     - INPUT_STYLE (line 77~83): width 100% / height 44 / padding '0 12px' / fontSize 14 / bg var(--bg3) / border 1px solid var(--bd) / borderRadius 8 / color var(--t1) / boxSizing border-box / outline none
+     - 폼 필드 6 (line 268~363): category select (CATEGORIES_FALLBACK 19종) / zone button row 'office'|'research'|'basement' (line 277, height 36 fontSize 11->12 OQ #3) / floor select (ZONE_FLOORS 분기) / location input '1층 로비 소화기' / locationNo '001 (선택)' / description '메모 (선택)'
+     - 소화기 (isExtCategory = form.category === '소화기') 분기 (line 296~347): 종류 select '분말 20kg'/'분말 3.3kg'/'할로겐'/'K급' (304~307) + 6 input placeholder verbatim '예: 한울방재' / '예: 2024-04 (YYYY-MM)' / '예: 수소10-19-11' / '예: BEQV' / '예: 72605' / '예: 68605'
+     - canSave (line 249~252): form.location.trim() !== '' && form.category !== '' && (!isExtCategory || (extForm.type !== '' && form.zone !== '' && form.floor !== ''))
+     - isBusy = createMutation.isPending || updateMutation.isPending
+     - createMutation (165~200): isExtCategory ? extinguisherApi.create + zoneMap {research:'연',office:'사',common:'공'} : checkPointApi.create + id='cp_'+Date.now() + qrCode='QR-'+id / toast '소화기 등록 완료 ({mgmtNo})' or '개소가 추가되었습니다' / onError '저장에 실패했습니다. 입력값을 확인해 주세요'
+     - updateMutation (206~227): isMarker = cp.id.startsWith('FPM-') ? floorPlanMarkerApi.update({label,description,zone}) : checkPointApi.update / toast '개소 정보가 수정되었습니다'
+     - deactivateMutation (229~247): isMarker ? floorPlanMarkerApi.delete : checkPointApi.update({isActive:0}) / toast '마커가 삭제되었습니다' or '개소가 비활성화되었습니다' / onError '비활성화에 실패했습니다'
+     - 액션 row (366~395): '저장' / '취소' / '비활성화' button + '이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.' confirmDeactivate 안내
+     - 폼 자동 채우기 useEffect (138~160): catCheckPoints filter + lastNo +1 nextNo + '{floor} {category} {N+1}번' 패턴 — 1 byte X
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>24-checkpoints W5 — Modal Form sketch</title>
+  <style>
+    /* ── 토큰 (OQ #4: hex 치환) ── */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;   /* --bg2 -> surface-raised */
+      --surface-sunken:  #232a33;   /* --bg3 -> surface-sunken */
+      --surface-active:  #2c333d;   /* --bg4 -> surface-active */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);  /* --bd2 -> border-strong */
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;   /* --acl -> accent-primary */
+      --danger-fg:       #f87171;   /* --danger -> danger token */
+      --danger-bg:       rgba(239,68,68,0.08);
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+      --danger-fg:       #ef4444;
+      --danger-bg:       rgba(239,68,68,0.08);
+    }
+
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', system-ui, sans-serif; background: #0a0a1a; }
+
+    .sketch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 16px;
+    }
+    .frame-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+    }
+
+    /* ── BottomSheet 외곽 (line 40~57) ── */
+    .sheet-overlay {
+      position: relative;
+      width: 390px;
+      height: 700px;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .sheet-panel {
+      background: var(--surface-raised);
+      border-radius: 16px 16px 0 0;
+      animation: slideUp 0.28s ease-out both;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .sheet-handle-row {
+      display: flex;
+      justify-content: center;
+      padding-top: 12px;
+    }
+    .sheet-handle {
+      /* handle bar 32x4 (line 50) */
+      width: 32px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 2px;
+    }
+    .sheet-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 12px 16px 0;
+    }
+
+    /* ── DesktopModal 외곽 (line 60~74) ── */
+    .modal-overlay {
+      position: relative;
+      width: 600px;
+      height: 700px;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.1);
+    }
+    .modal-panel {
+      background: var(--surface-raised);
+      border-radius: 12px;
+      width: 440px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 20px 24px 0;
+    }
+
+    /* ── 폼 공통 ── */
+    .form-body {
+      padding: 16px 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-body-desktop {
+      padding: 16px 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-label {
+      /* LABEL_STYLE (line 82~84): fontSize 12 fontWeight 700 color var(--t2) marginBottom 6 */
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .required-star {
+      color: var(--danger-fg);
+    }
+    /* INPUT_STYLE (line 77~83): height 44 / bg surface-sunken / border 1px border-default / radius 8 / padding 0 12px / fontSize 14 / color text-primary */
+    .form-input {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+      appearance: none;
+    }
+    .form-input:focus {
+      border-color: var(--accent-primary);
+    }
+
+    /* ── zone button row (line 275~284, OQ #3/#5) ── */
+    .zone-row {
+      display: flex;
+      gap: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-default);
+    }
+    .zone-btn {
+      flex: 1;
+      height: 36px;
+      border: none;
+      cursor: pointer;
+      /* OQ #5: fontSize 11 (line 279) -> text-caption 12px + leading-none */
+      font-size: 12px;
+      line-height: 1;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .zone-btn.active {
+      background: var(--accent-primary);
+      color: #fff;
+    }
+    .zone-btn.inactive {
+      background: var(--surface-active);
+      color: var(--text-tertiary);
+    }
+
+    /* ── 액션 row ── */
+    .action-row {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-cancel {
+      flex: 1;
+      height: 44px;
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-save {
+      flex: 1;
+      height: 44px;
+      /* OQ #2: 단색 accent-primary (그라데이션 미적용) */
+      background: var(--accent-primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-save.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-deactivate {
+      width: 100%;
+      height: 40px;
+      background: var(--danger-bg);
+      color: var(--danger-fg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .deactivate-confirm-box {
+      background: var(--danger-bg);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .btn-deactivate-confirm {
+      flex: 1;
+      height: 44px;
+      /* OQ #2: 단색 danger token (그라데이션 미적용) */
+      background: var(--danger-fg);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="sketch-canvas">
+
+  <!-- ====================================================== -->
+  <!-- SECTION 1: BottomSheet (모바일) — 등록 폼 default      -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">BottomSheet (모바일, line 40~57) — 등록 폼 default</div>
+    <div class="frame-row">
+
+      <!-- Frame A: BottomSheet + 등록 폼 (기본 6 필드) — 다크 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame A — BottomSheet 등록 폼 · 다크</div>
+        <div class="sheet-overlay" data-theme="dark">
+          <!-- 배경 페이지 hint -->
+          <div style="position:absolute; top:20px; left:20px; font-size:12px; color:rgba(255,255,255,0.3);">개소 리스트 (배경)</div>
+          <!-- BottomSheet panel -->
+          <div class="sheet-panel" data-theme="dark" style="background:#1a1f27;">
+            <div class="sheet-handle-row">
+              <div class="sheet-handle" style="background:rgba(255,255,255,0.22);"></div>
+            </div>
+            <!-- title: modal.mode==='add' ? '개소 추가' : '개소 수정' (line 687) -->
+            <div class="sheet-title" style="color:#e6edf3;">개소 추가</div>
+            <!-- 폼 필드 6건 -->
+            <div class="form-body">
+              <!-- 필드 1: 카테고리 select (line 268~273) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">카테고리 <span class="required-star" style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e; cursor:pointer;">
+                  <option value="">카테고리 선택</option>
+                  <!-- CATEGORIES_FALLBACK 19종 (순서/값 변경 금지) -->
+                  <option>소화기</option>
+                  <option>소화전</option>
+                  <option>스프링클러</option>
+                  <option>청정소화약제</option>
+                  <option>소방펌프</option>
+                  <option>자동화재탐지설비</option>
+                  <option>유도등</option>
+                  <option>방화셔터</option>
+                  <option>비상콘센트</option>
+                  <option>소방용전원공급반</option>
+                  <option>특별피난계단</option>
+                  <option>전실제연댐퍼</option>
+                  <option>배연창</option>
+                  <option>연결송수관</option>
+                  <option>완강기</option>
+                  <option>DIV</option>
+                  <option>CCTV</option>
+                  <option>주차장비</option>
+                  <option>회전문</option>
+                </select>
+              </div>
+              <!-- 필드 2: 구역 zone button row (line 275~284, OQ #3: height 36 fontSize 11->12) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">구역</label>
+                <div class="zone-row" style="border-color:rgba(255,255,255,0.14);">
+                  <!-- ZONE_LABEL (line 35~37): office:'사무동', research:'연구동', basement:'지하' -->
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">사무동</button>
+                  <button class="zone-btn active" style="background:#3b82f6; color:#fff;">연구동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">지하</button>
+                </div>
+              </div>
+              <!-- 필드 3: 층 select (line 285~295, form.zone 채워졌을 때만) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">층</label>
+                <!-- ZONE_FLOORS (line 94~98): research: ['8-1F','8F','7F','6F','5F','3F','2F','1F'] -->
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="">층 선택</option>
+                  <option value="8-1F">8-1F</option>
+                  <option value="8F">8F</option>
+                  <option value="7F">7F</option>
+                  <option value="6F">6F</option>
+                  <option value="5F">5F</option>
+                  <option value="3F">3F</option>
+                  <option value="2F">2F</option>
+                  <option value="1F" selected>1F</option>
+                </select>
+              </div>
+              <!-- 필드 4: 개소명 input (line 348~351) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span class="required-star" style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:#3b82f6; color:#e6edf3;"
+                  placeholder="1층 로비 소화기" value="1F 소화전 1번" />
+              </div>
+              <!-- 필드 5: 위치번호 input (line 352~357, !isExtCategory) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">위치번호</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;"
+                  placeholder="001 (선택)" value="1F-001" />
+              </div>
+              <!-- 필드 6: 설명 input (line 358~363, !isExtCategory) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">설명</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;"
+                  placeholder="메모 (선택)" />
+              </div>
+            </div>
+            <!-- 액션 row — add 모드 (취소/저장, 비활성화 없음) -->
+            <div class="action-row">
+              <div class="action-btns">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <button class="btn-save" style="background:#3b82f6; color:#fff;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame A: BottomSheet + 등록 폼 — 라이트 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame A — BottomSheet 등록 폼 · 라이트</div>
+        <div class="sheet-overlay" data-theme="light" style="background:rgba(0,0,0,0.5);">
+          <div style="position:absolute; top:20px; left:20px; font-size:12px; color:rgba(0,0,0,0.3);">개소 리스트 (배경)</div>
+          <div style="background:#f6f8fa; border-radius:16px 16px 0 0; animation:slideUp 0.28s ease-out both; max-height:90vh; overflow-y:auto;">
+            <div class="sheet-handle-row">
+              <div style="width:32px; height:4px; background:rgba(0,0,0,0.22); border-radius:2px;"></div>
+            </div>
+            <div style="font-size:16px; font-weight:700; color:#1f2328; padding:12px 16px 0;">개소 추가</div>
+            <div class="form-body">
+              <div>
+                <label style="font-size:12px; font-weight:700; color:#4d5562; margin-bottom:6px; display:block;">카테고리 <span style="color:#ef4444;">*</span></label>
+                <select style="height:44px; background:#ebeef1; border:1px solid rgba(0,0,0,0.12); border-radius:8px; padding:0 12px; font-size:14px; color:#1f2328; width:100%; outline:none; appearance:none; cursor:pointer;">
+                  <option value="소화전">소화전</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:700; color:#4d5562; margin-bottom:6px; display:block;">구역</label>
+                <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid rgba(0,0,0,0.12);">
+                  <button style="flex:1; height:36px; border:none; cursor:pointer; font-size:12px; line-height:1; font-weight:700; background:#0969da; color:#fff;">사무동</button>
+                  <button style="flex:1; height:36px; border:none; cursor:pointer; font-size:12px; line-height:1; font-weight:700; background:#d8dee4; color:#656d76;">연구동</button>
+                  <button style="flex:1; height:36px; border:none; cursor:pointer; font-size:12px; line-height:1; font-weight:700; background:#d8dee4; color:#656d76;">지하</button>
+                </div>
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:700; color:#4d5562; margin-bottom:6px; display:block;">개소명 <span style="color:#ef4444;">*</span></label>
+                <input style="height:44px; background:#ebeef1; border:1px solid #0969da; border-radius:8px; padding:0 12px; font-size:14px; color:#1f2328; width:100%; outline:none;" value="1F 소화전 1번" />
+              </div>
+            </div>
+            <div class="action-row">
+              <div class="action-btns">
+                <button style="flex:1; height:44px; background:#d8dee4; color:#4d5562; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700;">취소</button>
+                <button style="flex:1; height:44px; background:#0969da; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:14px; font-weight:700;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- SECTION 2: DesktopModal (데스크톱) — 등록 폼            -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">DesktopModal (데스크톱, line 60~74) — 등록 폼</div>
+    <div class="frame-row">
+
+      <!-- Frame B: DesktopModal + 등록 폼 — 다크 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame B — DesktopModal 등록 폼 · 다크</div>
+        <div class="modal-overlay" data-theme="dark">
+          <div style="position:absolute; top:20px; left:20px; font-size:12px; color:rgba(255,255,255,0.3);">테이블 배경</div>
+          <div class="modal-panel" data-theme="dark" style="background:#1a1f27;">
+            <div class="modal-title" style="color:#e6edf3;">개소 추가</div>
+            <div class="form-body-desktop">
+              <div>
+                <label class="form-label" style="color:#adb6c0;">카테고리 <span style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option>소화전</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">구역</label>
+                <div class="zone-row" style="border-color:rgba(255,255,255,0.14);">
+                  <button class="zone-btn active" style="background:#3b82f6; color:#fff;">사무동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">연구동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">지하</button>
+                </div>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">층</label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="1F">1F</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:#3b82f6; color:#e6edf3;" value="1F 소화전 1번" />
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">위치번호</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;" placeholder="001 (선택)" value="1F-001" />
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">설명</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="메모 (선택)" />
+              </div>
+            </div>
+            <div style="padding:16px 24px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; gap:8px;">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <button class="btn-save" style="background:#3b82f6; color:#fff;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- SECTION 3: 소화기 분기 폼 (isExtCategory)              -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">소화기 분기 폼 (isExtCategory = form.category === '소화기', line 296~347)</div>
+    <div class="frame-row">
+
+      <!-- Frame C: BottomSheet + 소화기 7 필드 — 다크 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame C — 소화기 isExtCategory 폼 · 다크</div>
+        <div class="sheet-overlay" data-theme="dark">
+          <div class="sheet-panel" data-theme="dark" style="background:#1a1f27; max-height:95%;">
+            <div class="sheet-handle-row">
+              <div class="sheet-handle" style="background:rgba(255,255,255,0.22);"></div>
+            </div>
+            <div class="sheet-title" style="color:#e6edf3;">개소 추가</div>
+            <div class="form-body">
+              <!-- 카테고리: 소화기 선택 -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">카테고리 <span style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="소화기" selected>소화기</option>
+                </select>
+              </div>
+              <!-- 구역 + 층 -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">구역</label>
+                <div class="zone-row" style="border-color:rgba(255,255,255,0.14);">
+                  <button class="zone-btn active" style="background:#3b82f6; color:#fff;">사무동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">연구동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">지하</button>
+                </div>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">층</label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="1F" selected>1F</option>
+                </select>
+              </div>
+              <!-- 소화기 추가 필드 7건 (line 296~347) -->
+              <!-- 필드 E1: 종류 select (line 300~308) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">종류 <span style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="">종류 선택</option>
+                  <!-- verbatim (line 304~307) -->
+                  <option value="분말 20kg" selected>분말 20kg</option>
+                  <option value="분말 3.3kg">분말 3.3kg</option>
+                  <option value="할로겐">할로겐</option>
+                  <option value="K급">K급</option>
+                </select>
+              </div>
+              <!-- 필드 E2: 제조업체 (placeholder verbatim line 314) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">제조업체</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: 한울방재" />
+              </div>
+              <!-- 필드 E3: 제조년월 (placeholder verbatim line 320) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">제조년월</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: 2024-04 (YYYY-MM)" />
+              </div>
+              <!-- 필드 E4: 형식승인번호 (placeholder verbatim line 326) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">형식승인번호</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: 수소10-19-11" />
+              </div>
+              <!-- 필드 E5: 접두문자 (placeholder verbatim line 332) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">접두문자</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: BEQV" />
+              </div>
+              <!-- 필드 E6: 증지번호 (placeholder verbatim line 338) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">증지번호</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: 72605" />
+              </div>
+              <!-- 필드 E7: 제조번호 (placeholder verbatim line 344) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">제조번호</label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="예: 68605" />
+              </div>
+              <!-- 개소명 (소화기 분기에서도 필수) -->
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="1층 로비 소화기" />
+              </div>
+              <!-- 위치번호/설명 숨김 (isExtCategory=true, line 352~363) -->
+            </div>
+            <div class="action-row">
+              <div class="action-btns">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <!-- canSave: location.trim()!=='' && category!=='' && (!isExt || (type!=='' && zone!=='' && floor!=='')) -->
+                <button class="btn-save" style="background:#3b82f6; color:#fff;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- SECTION 4: edit 모드 + 비활성화 confirm               -->
+  <!-- ====================================================== -->
+  <div>
+    <div class="section-title">edit 모드 + 비활성화 confirm (line 366~395)</div>
+    <div class="frame-row">
+
+      <!-- Frame D: edit 모드 — 비활성화 버튼 표시 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame D — edit 모드 + 비활성화 버튼 · 다크</div>
+        <div class="sheet-overlay" data-theme="dark">
+          <div class="sheet-panel" data-theme="dark" style="background:#1a1f27;">
+            <div class="sheet-handle-row">
+              <div class="sheet-handle" style="background:rgba(255,255,255,0.22);"></div>
+            </div>
+            <div class="sheet-title" style="color:#e6edf3;">개소 수정</div>
+            <div class="form-body">
+              <div>
+                <label class="form-label" style="color:#adb6c0;">카테고리 <span style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3; cursor:pointer;">
+                  <option value="소화전" selected>소화전</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">구역</label>
+                <div class="zone-row" style="border-color:rgba(255,255,255,0.14);">
+                  <button class="zone-btn active" style="background:#3b82f6; color:#fff;">사무동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">연구동</button>
+                  <button class="zone-btn inactive" style="background:#2c333d; color:#8b949e;">지하</button>
+                </div>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;" value="1F 소화전 1번" />
+              </div>
+            </div>
+            <!-- 액션 row: edit 모드 — 비활성화 버튼 추가 (line 375~380, cp.isActive !== 0) -->
+            <div class="action-row">
+              <div class="action-btns">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <button class="btn-save" style="background:#3b82f6; color:#fff;">저장</button>
+              </div>
+              <!-- 비활성화 버튼 (mode==='edit' && cp.isActive !== 0) -->
+              <button class="btn-deactivate" style="background:rgba(239,68,68,0.08); color:#f87171;">비활성화</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame D2: confirmDeactivate=true — 빨간 안내 박스 + 비활성화 버튼 -->
+      <div class="frame-block">
+        <div class="frame-label">Frame D2 — confirmDeactivate=true · 다크</div>
+        <div class="sheet-overlay" data-theme="dark">
+          <div class="sheet-panel" data-theme="dark" style="background:#1a1f27;">
+            <div class="sheet-handle-row">
+              <div class="sheet-handle" style="background:rgba(255,255,255,0.22);"></div>
+            </div>
+            <div class="sheet-title" style="color:#e6edf3;">개소 수정</div>
+            <div class="form-body">
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#e6edf3;" value="1F 소화전 1번" />
+              </div>
+            </div>
+            <!-- confirmDeactivate=true 액션 row (line 382~394) -->
+            <div class="action-row">
+              <!-- 비활성화 안내 박스: 카피 verbatim (line 385) -->
+              <div class="deactivate-confirm-box" style="background:rgba(239,68,68,0.08); color:#adb6c0;">
+                이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.
+              </div>
+              <div class="action-btns">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <!-- OQ #2: 비활성화 버튼 단색 danger (그라데이션 미적용) -->
+                <button class="btn-deactivate-confirm" style="background:#f87171; color:#fff;">비활성화</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame E: canSave=false — 저장 버튼 disabled state -->
+      <div class="frame-block">
+        <div class="frame-label">Frame E — 저장 disabled (canSave=false) · 다크</div>
+        <div class="sheet-overlay" data-theme="dark">
+          <div class="sheet-panel" data-theme="dark" style="background:#1a1f27;">
+            <div class="sheet-handle-row">
+              <div class="sheet-handle" style="background:rgba(255,255,255,0.22);"></div>
+            </div>
+            <div class="sheet-title" style="color:#e6edf3;">개소 추가</div>
+            <div class="form-body">
+              <div>
+                <label class="form-label" style="color:#adb6c0;">카테고리 <span style="color:#f87171;">*</span></label>
+                <select class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e; cursor:pointer;">
+                  <option value="" selected>카테고리 선택</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label" style="color:#adb6c0;">개소명 <span style="color:#f87171;">*</span></label>
+                <input class="form-input" style="background:#232a33; border-color:rgba(255,255,255,0.14); color:#8b949e;" placeholder="1층 로비 소화기" />
+              </div>
+            </div>
+            <!-- canSave=false: 저장 버튼 opacity 0.4 + cursor not-allowed (line 370~372) -->
+            <div class="action-row">
+              <div class="action-btns">
+                <button class="btn-cancel" style="background:#2c333d; color:#adb6c0;">취소</button>
+                <button class="btn-save disabled" style="background:#3b82f6; color:#fff; opacity:0.4; cursor:not-allowed;">저장</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
