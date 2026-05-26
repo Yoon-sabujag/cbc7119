@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>31 SideMenu · v0.1.1 재디자인 시안 (W3 sub-wave)</title>
+  <!--
+    sketch-wave-3-side-menu.html — redesign/31-chrome W3 sub-wave
+    작성: 2026-05-27 / quick 260527-3qi
+    범위: SideMenu.tsx (201 라인) 단일 컴포넌트 sketch
+          다크 + 라이트 2 변형 + 패널 닫힘/열림/사용자 카드 zoom/badge 시연 = 4~6 frame 매트릭스
+    out of scope:
+      - src/components/SideMenu.tsx 수정 (W7 책임 — 1 byte 변경 0 강제)
+      - App.tsx / tokens.css / typography.css / design-system.md / tailwind.config.js 1 byte 변경 0
+      - GlobalHeader / SettingsPanel / MenuSettingsSection sketch (W2 완결 / W4/W5 책임)
+      - 31-chrome/wave-1-index.md 갱신 (W1 완결됨)
+      - 31-chrome/ 7 스냅샷 / sketch-wave-2-global-header.html / 00-design-context/ 1 byte 변경 0
+      - wrangler 명령 / npm run deploy (CLAUDE.local.md + memory feedback_cbc7119_design_never_wrangler)
+    참조: 31-chrome/sketch-wave-2-global-header.html (W2 동일 트랙 precedent — :root + [data-theme=light]
+                                                      + .frame-mobile + .decision-summary 4 박스 패턴 mirror)
+          30-not-found/sketch.html (다크/라이트 양쪽 precedent)
+          design-system.md v0.1.1 §1.1/§1.2/§1.3/§6.4/§7.1
+          tokens.css / typography.css / wave-1-index.md §7 OQ LOCKED 8건 + §1.3 [SideMenu.tsx] 박스
+
+    ==========================================================
+    비즈 anchor 22건 (SideMenu) — W7 TSX 변환 wave 1 byte 변경 0 강제
+    ==========================================================
+
+      1. Props interface { open: boolean; onClose: () => void; unresolvedCount?: number } (line 11~15)
+         - open: boolean / onClose: () => void / unresolvedCount?: number = 0
+
+      2. NAV_H = 'calc(54px + var(--sab, 0px))' 상수 (line 9)
+         - BottomNav (54) + iOS safe-area-bottom 위 panel bottom 계산
+
+      3. MENU 상수 5섹션 17 아이템 verbatim (line 19~54) — label/path/badge/soon/role/desktopOnly,
+         MenuSettingsSection.tsx line 11 에서 import — 변경 시 양방향 깨짐
+         - 주요 기능 5: 대시보드 /dashboard, 일반 점검 /inspection, QR 스캔 /inspection/qr,
+           조치 관리 /remediation, 승강기 관리 /elevator
+         - 시설 관리 6: DIV 압력 관리 /div, 소화기 관리 /extinguishers desktopOnly,
+           CCTV 현황 /cctv desktopOnly, 소방 시설 도면 /floorplan, 소방 점검 관리 /legal,
+           소방 시설 추가 /checkpoints role: 'admin'
+         - 문서 관리 8: 일일 업무 일지 /daily-report, 업무 수행 기록표 /worklog role: 'admin',
+           월간 점검 계획 /schedule, 월간 출근부 /workshift, 연간 업무 추진 계획 /annual-plan,
+           소방계획서/훈련자료 /documents, 점검 일지 출력 /reports, QR 코드 출력 /qr-print
+         - 근무·복지 2: 연차 및 식사 /staff-service, 보수교육 /education
+         - 시스템 1: 직원 관리 /staff-manage role: 'admin'
+
+         ── MENU 상수 verbatim 박제 (line 19~54 source 1:1 — W7 변환 시 1 byte 변경 0) ──
+
+         export const MENU: { section: string; items: MenuItem[] }[] = [
+           { section: '주요 기능', items: [
+             { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
+             { label: '일반 점검',   path: '/inspection',     badge: 0, soon: false },
+             { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0, soon: false },
+             { label: '조치 관리',   path: '/remediation',    badge: 0, soon: false },
+             { label: '승강기 관리', path: '/elevator',       badge: 0, soon: false },
+           ]},
+           { section: '시설 관리', items: [
+             { label: 'DIV 압력 관리',   path: '/div',           badge: 0, soon: false },
+             { label: '소화기 관리',      path: '/extinguishers', badge: 0, soon: false, desktopOnly: true },
+             { label: 'CCTV 현황',       path: '/cctv',          badge: 0, soon: false, desktopOnly: true },
+             { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
+             { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
+             { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
+           ]},
+           { section: '문서 관리', items: [
+             { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
+             { label: '업무 수행 기록표', path: '/worklog', badge: 0, soon: false, role: 'admin' },
+             { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
+             { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
+             { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0, soon: false },
+             { label: '소방계획서/훈련자료', path: '/documents', badge: 0, soon: false },
+             { label: '점검 일지 출력', path: '/reports',        badge: 0, soon: false },
+             { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0, soon: false },
+           ]},
+           { section: '근무·복지', items: [
+             { label: '연차 및 식사', path: '/staff-service',  badge: 0, soon: false },
+             { label: '보수교육',    path: '/education',      badge: 0, soon: false },
+           ]},
+           { section: '시스템', items: [
+             { label: '직원 관리', path: '/staff-manage', badge: 0, soon: false, role: 'admin' },
+           ]},
+         ]
+
+      4. ITEM_META: Record<string, MenuItem> (line 56~57) — MENU.forEach 평면 path lookup
+
+      5. export type MenuItem = { label / path / badge / soon / role? / desktopOnly? } (line 17)
+
+      6. useNavigate / useAuthStore / useStaffList / useQuery import (line 1~7) — 변경 금지
+
+      7. useQuery({ queryKey: ['menu-config'], queryFn: settingsApi.getMenu, staleTime: 300_000 })
+         (line 63) — MenuSettingsSection 와 동일 queryKey 공유
+
+      8. appliedEntries: SideMenuEntry[] useMemo (line 66~70) — cfg?.sideMenu ?? []
+
+      9. RAW_TO_LABEL: { '당':'당직', '비':'비번', '주':'주간', '휴':'연차' } (line 72)
+
+      10. todayShiftLabel state default 'default 평일주간고정' (line 73)
+
+      11. todayShiftLabel useEffect (line 74~86) — getMonthlySchedule(year, month, staffForCalc),
+          8:30am 분기 (now.getHours() < 8 || (==8 && minutes < 30) → 어제 ref)
+
+      12. body scroll lock useEffect (line 89~103) —
+          document.body.style.overflow = 'hidden' + touchmove preventDefault,
+          panel = document.getElementById('side-menu-panel') 외부만 차단,
+          cleanup return — overflow 복원 + removeEventListener
+          (memory feedback_body_scroll_lock_safe_area — body position:fixed 안 함)
+
+      13. go(path) handler (line 105) — navigate(path); onClose()
+
+      14. 오버레이: position fixed inset 0 zIndex 190 background rgba(0,0,0,0.65)
+          opacity open ? 1 : 0 pointerEvents open ? 'all' : 'none'
+          transition 'opacity 0.28s' (line 110~118)
+
+      15. panel id="side-menu-panel" (line 123) — touchmove 차단 hook 식별자
+
+      16. panel position fixed top var(--sat, 0px) bottom calc(54px + var(--sab, 0px) - var(--sat, 0px))
+          left 0 zIndex 200, width 82% maxWidth 300, background var(--bg2)
+          transform open ? translateX(0) : translateX(-100%)
+          transition 'transform 0.3s cubic-bezier(.4,0,.2,1)'
+          display flex flexDirection column overflow hidden
+          borderRadius '0 16px 16px 0' (line 121~133) — OQ #7 LOCKED 보존
+
+      17. 헤더: padding '12px 15px' borderBottom 1px var(--bd) flexShrink 0,
+          로고 /icons/icon-192.png 30x30 radius 8,
+          타이틀 "차바이오컴플렉스" fontSize 13 fontWeight 700,
+          부제 "소방안전 통합관리" fontSize 9.5 var(--t3) marginTop 1 (위반 → 격상),
+          ✕ 닫기 28x28 radius 7 var(--bg3) var(--t2) fontSize 15 (line 135~142)
+
+      18. divider render: padding '9px 13px 2px' fontSize 9 fontWeight 700 var(--t3)
+          letterSpacing '.08em' textTransform uppercase (line 149) — 위반 → 격상
+
+      19. item render: padding '9px 13px' margin '1px 7px' borderRadius 8 fontSize 12.5 fontWeight 500
+          color var(--t1) hover bg var(--bg4) transition 'background 0.13s' (line 163/175)
+
+      20. soon 배지: opacity 0.5 cursor default pointerEvents none,
+          label 12.5, 배지 fontSize 10 var(--t3) var(--bg3) radius 6 padding '2px 7px' "준비중" (line 164)
+
+      21. badgeCount = path === '/remediation' ? unresolvedCount : meta.badge,
+          badgeCount > 0 → bg var(--danger) color #fff fontSize 11 fontWeight 700
+          fontFamily 'JetBrains Mono' padding '2px 4px' borderRadius 9 minWidth 16 textAlign center,
+          99+ cap (line 176~180) — W3 추가 OQ #B: --danger → --status-fire-bar (default)
+
+      22. 사용자 카드 (line 187~197):
+          padding '9px 11px' borderTop 1px var(--bd) flexShrink 0,
+          안쪽 row padding '8px 10px' bg var(--bg3) borderRadius 9 gap 9,
+          아바타 28x28 radius 50% background 'linear-gradient(135deg,#1d4ed8,#0ea5e9)'
+          fontSize 11 fontWeight 700 color #fff,
+          이름 fontSize 11.5 fontWeight 700 — fallback {staff?.name?.[0] ?? '?'},
+          직책+shift "{staff?.title} · {todayShiftLabel}" fontSize 9.5 var(--t3) — 모두 위반 → 격상
+
+    ==========================================================
+    OQ LOCKED 8건 매트릭스 (wave-1-index.md §7) + W3 추가 OQ 2건
+    ==========================================================
+
+      OQ #1: 다크 + 라이트 양쪽 지원
+        - default 답: 다크 단일 유지
+        - LOCKED 답: 다크 + 라이트 양쪽 지원
+        - 본 W3 적용: :root 다크 + [data-theme="light"] 라이트 둘 다 정의.
+                      4~6 frame 중 최소 2 frame data-theme="light" 부착.
+
+      OQ #2: 9·10·11 위반 — 일괄 12 격상 vs 부분 절충
+        - default 답: 부분 절충
+        - LOCKED 답: 부분 절충 (SideMenu 의 노안 마지노선 16 격상은 본 W3 핵심)
+        - 본 W3 적용 격상 표 7건:
+            부제 9.5 → 12 (caption + leading-none)
+            divider 9 → 11 (uppercase letterSpacing 유지)
+            soon 10 → 12 (caption + leading-none)
+            item 12.5 → 16 (text-body, 노안 마지노선)
+            badge 11 → 13 (label) — sketch 채택 (14 / 16 대안은 panel overflow 검수 필요)
+            사용자 이름 11.5 → 14 (body-sm)
+            사용자 부제 9.5 → 12 (caption + leading-none)
+            ✕ 닫기 fontSize 15 → Lucide X size 16 (W3-OQ #A default)
+          panel 세로 overflow 발생 시 dense layout 회귀 sub-OQ 가능 — sketch 결과 본 후
+          사용자 결정.
+
+      OQ #3: SideMenu 사용자 카드 아바타 그라데이션 유지
+        - default 답: 유지
+        - LOCKED 답: 유지 (§6.4 매치 OK — 저장/CTA 색 #1d4ed8 → #0ea5e9 정확 매치)
+        - 본 W3 적용: 사용자 아바타 28x28 background linear-gradient(135deg, #1d4ed8, #0ea5e9)
+                      verbatim 보존. body markup 안 1건 (sketch negative gate
+                      "linear-gradient 0건" 예외).
+
+      OQ #4: SettingsPanel 프로필 그라데이션 폐기
+        - LOCKED 답: 폐기 → bg-accent solid
+        - 본 W3 무관 (SettingsPanel W4 책임)
+
+      OQ #5: 인라인 svg ↔ Lucide 일관성
+        - LOCKED 답: 인라인 svg 유지 (header 햄버거 / back / settings cog)
+        - 본 W3 부분 적용 — SideMenu 의 ✕ U+2715 글리프는 svg 아님 (텍스트 글리프) →
+          W3 추가 OQ A (아래) 별도 결정.
+
+      OQ #6: admin 테스트 푸시 이모지 제거
+        - LOCKED 답: 제거 → Lucide Send + Loader2
+        - 본 W3 무관 (SettingsPanel W4 책임)
+
+      OQ #7: 햄버거 panel width 300 + SettingsPanel width 320 보존
+        - LOCKED 답: 보존
+        - 본 W3 적용: panel width 82% maxWidth 300 + borderRadius '0 16px 16px 0' 변경 0.
+
+      OQ #8: W7 TSX 변환 4 분할 (sub-wave)
+        - LOCKED 답: 4 분할
+        - 본 W3 적용: SideMenu 단일 sketch 가 W7 의 두 번째 sub-wave 대상.
+
+      ────────────────────────────────────────────
+      W3 추가 OQ 2건 (sketch 머리 주석 명시 + default 답)
+      ────────────────────────────────────────────
+
+      W3-OQ #A: ✕ 텍스트 글리프 (U+2715, line 141) → Lucide X 교체 vs 유지?
+        - default 답: Lucide X 교체 (size 16, var(--text-secondary))
+        - 근거:
+            • memory feedback_tsx_wave_emoji_dot_gap — 글리프도 negative 룰
+            • design-system §7.1 Lucide 사용, 28-splash/27-login/SettingsPanel 닫기 패턴 mirror
+            • aria-label "메뉴 닫기" 보존 강제
+        - 대안: 콘텐츠 글리프 (U+2715) 유지 — OQ #5 인라인 svg 유지 룰과 align
+        - ★ LOCKED placeholder — 사용자 결정. 본 sketch 는 Lucide X 가정으로 시각화.
+
+      W3-OQ #B: 미조치 badge 색 — var(--danger) (line 177) → --status-danger-bar vs --status-fire-bar?
+        - default 답: --status-fire-bar (주황 #f97316 다크 / #c2410c 라이트)
+        - 근거:
+            • memory feedback_inspection_unresolved_color — "미조치 색 = status-fire (주황).
+              사용자 인지 = 칩의 fire."
+            • 메인 칩이 fire 인데 SideMenu badge 만 danger 면 inconsistent
+        - 대안: --status-danger-bar (빨강 #ef4444 다크 / #b91c1c 라이트) — 현 source verbatim 호환
+          단 SideMenu badge 는 minWidth 16 작은 영역 — fire(주황) vs danger(빨강) 시각 차이
+          검수 필요. 두 대안 모두 동일 frame 안 ★ side-by-side 시연 권장.
+        - ★ LOCKED placeholder — 사용자 결정. 본 sketch 는 --status-fire-bar 기본 +
+          --status-danger-bar 보조 frame.
+
+    ==========================================================
+    노안 룰 §1.1 격상 표 (본 W3 적용)
+    ==========================================================
+
+      source (SideMenu.tsx)                      ->  sketch (W3)               비고
+      ---------------------------------------       ----------------------    ----------------------------
+      부제 "소방안전 통합관리" fontSize 9.5       ->  12 (text-caption)         caption + leading-none — 헤더 부제
+      ✕ 닫기 fontSize 15 (U+2715)                ->  Lucide X size 16          W3-OQ #A default
+      divider fontSize 9                          ->  11 (uppercase 유지)        section 헤더 — letterSpacing .08em 유지
+      divider letterSpacing '.08em'               ->  유지                        uppercase 시각 유지
+      item fontSize 12.5                          ->  16 (text-body)             ★ 노안 마지노선 — 메뉴 라벨
+      item fontWeight 500                         ->  500 (유지)                  medium 유지
+      soon 배지 fontSize 10                        ->  12 (text-caption)         배지 작은 컨테이너 leading-none 명시
+      soon 배지 padding '2px 7px'                  ->  '4px 8px' (8pt 그리드)
+      badge fontSize 11 monospace                 ->  13 (text-label) — sketch   숫자 — 14/16 대안 panel overflow 검수 후
+      badge 99+ cap                                ->  유지                        '99+' 텍스트 그대로
+      사용자 이름 fontSize 11.5                    ->  14 (text-body-sm)          14 vs 16 sub-OQ — 14 채택
+      사용자 직책+shift fontSize 9.5              ->  12 (text-caption)         caption + leading-none
+      panel width 82% maxWidth 300                 ->  유지                        OQ #7 LOCKED
+      panel borderRadius '0 16px 16px 0'           ->  유지                        OQ #7 LOCKED
+      오버레이 rgba(0,0,0,0.65)                    ->  var(--surface-overlay)    토큰 매핑 (다크 0.6 / 라이트 0.5 자동)
+      panel bg var(--bg2)                          ->  var(--surface-raised)     토큰 매핑
+      hover bg var(--bg4)                          ->  var(--surface-active)     토큰 매핑
+      divider/soon/부제 color var(--t3)             ->  var(--text-tertiary)      토큰 매핑
+      닫기 color var(--t2)                          ->  var(--text-secondary)     토큰 매핑
+      item color var(--t1)                          ->  var(--text-primary)       토큰 매핑
+      badge bg var(--danger)                        ->  var(--status-fire-bar)    W3-OQ #B default
+      badge color #fff                              ->  var(--text-on-accent)     토큰 매핑
+      사용자 아바타 그라데이션                       ->  유지 (OQ #3 LOCKED)        §6.4 매치
+      사용자 아바타 color #fff                       ->  var(--text-on-accent)     토큰 매핑
+      borderRadius 7 (닫기) / 8 (로고) / 8 (item)   ->  var(--radius-sm) (8)      tokens.css §radius 일관
+      borderRadius 9 (사용자 row + badge)           ->  var(--radius-md) (12)     사용자 row — sketch 12 채택
+      사용자 카드 bg var(--bg3)                      ->  var(--surface-sunken)     토큰 매핑
+      borderTop 1px var(--bd)                       ->  1px var(--border-default)  토큰 매핑
+
+    ==========================================================
+    토큰 매핑 (legacy alias → v0.1.1 의미 토큰)
+    ==========================================================
+
+      source (legacy alias)        ->   sketch (v0.1.1 의미 토큰)
+      -------------------------       ------------------------------
+      background var(--bg2)        ->   var(--surface-raised)
+      background var(--bg3)        ->   var(--surface-sunken)
+      hover background var(--bg4)  ->   var(--surface-active)
+      오버레이 rgba(0,0,0,0.65)     ->   var(--surface-overlay)
+      borderTop var(--bd)          ->   var(--border-default)
+      borderBottom var(--bd)       ->   var(--border-default)
+      color var(--t1)              ->   var(--text-primary)
+      color var(--t2)              ->   var(--text-secondary)
+      color var(--t3)              ->   var(--text-tertiary)
+      color #fff (아바타 / badge)   ->   var(--text-on-accent)
+      background var(--danger)     ->   var(--status-fire-bar)     (W3-OQ #B default)
+                                        / --status-danger-bar       (alternative)
+      borderRadius 7 / 8           ->   var(--radius-sm)            (8px)
+      borderRadius 9 (사용자 row)   ->   var(--radius-md)            (12px)
+      borderRadius '0 16px 16px 0'  ->   유지 (raw 16 px 보존)        — panel 핵심 형태
+      height/width 28              ->   inline 28px (w-8 함정 회피 — w-8 = 48px)
+
+      legacy alias --bg/--bg2/--bg3/--bg4/--bd/--t1/--t2/--t3/--danger 는
+      :root + [data-theme="light"] 정의 블록 안에서만 허용
+      (tokens.css line 175~197 의 호환 alias 와 동일 패턴).
+      body markup 안에서는 0건 — verify gate 강제.
+
+    ==========================================================
+    Negative gate (sketch 본문 — W7 변환 시 의식할 룰)
+    ==========================================================
+
+      - 9 / 10 / 11 / 11.5 / 12.5 / 9.5 px fontSize body markup 안 0건
+        (단 :root 정의 + 비즈 anchor 박스 + 격상 표 + 토큰 매핑 표 doc context 안 인용은 예외)
+      - linear-gradient body markup 안 1건만 (사용자 아바타 OQ #3 보존, line 189 verbatim)
+      - 이모지 body markup 안 0건 (U+2715 텍스트 글리프도 negative — Lucide X 교체 default)
+      - status-* className prefix body markup 안 0건 (memory feedback_tailwind_token_class_pattern —
+        var(--status-...) CSS 변수 이름은 OK / className 의 status- prefix 는 X)
+      - legacy alias --bg/--bg2/--bg3/--bg4/--bd/--t1/--t2/--t3/--danger body markup 안 0건
+        (단 :root + [data-theme="light"] + 호환 alias 정의 블록 안만 허용)
+      - raw hex body markup 안 0건 (단 :root + [data-theme="light"] + 호환 alias 정의 블록 안 +
+        OQ #3 그라데이션 보존 예외)
+      - MENU 상수 17 items label/path 변경 0 (sketch 안 박제 시 verbatim, MenuSettingsSection 의 source)
+      - w-8/h-8 함정 의식 (memory feedback_tailwind_w8_h8_is_48px — w-8=48px, 32 아님)
+        → 28x28 = w-7 h-7 (= 32) 잘못 / inline 28px 정확
+      - panel width 82% maxWidth 300 변경 0 (OQ #7 LOCKED)
+      - panel borderRadius '0 16px 16px 0' 변경 0 (OQ #7 LOCKED)
+      - svg path / NAV_H / queryKey / RAW_TO_LABEL / ITEM_META / id="side-menu-panel" /
+        오버레이 0.28s / panel 0.3s cubic-bezier(.4,0,.2,1) 변경 0
+      - 보호 파일 1 byte 변경 0 —
+        src/components/SideMenu.tsx + App.tsx + tokens.css + typography.css +
+        design-system.md + tailwind.config.js + 31-chrome/wave-1-index.md +
+        31-chrome 7 스냅샷 + 31-chrome/sketch-wave-2-global-header.html + 00-design-context/
+      - wrangler 명령 호출 0 (CLAUDE.local.md + memory feedback_cbc7119_design_never_wrangler)
+      - npm run deploy 호출 0
+  -->
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+    /* ──────────────────────────────────────────────────────────────
+       :root — design-system v0.1.1 §2 verbatim (다크 기본)
+       tokens.css line 16~69 + line 121~146 + line 167~172 + line 174~197 mirror.
+       :root 정의 블록 + body / sketch chrome 의 raw hex 만 예외.
+       카드 내부 마크업에는 var(--...) 만 사용
+       (10-cctv-info / 30-not-found / W2 GlobalHeader sketch precedent verify gate mirror).
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;   /* panel bg */
+      --surface-sunken:  #232a33;   /* 닫기 btn / 사용자 카드 bg / soon 배지 bg */
+      --surface-active:  #2c333d;   /* item hover bg */
+      --surface-overlay: rgba(0, 0, 0, 0.6);   /* 모달 dimmer */
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-on-accent:  #ffffff;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+
+      /* Accent (h2 박스용) */
+      --accent:          #3b82f6;
+
+      /* Status — W3-OQ #B */
+      --status-fire-bar:   #f97316;   /* default (사용자 인지 = 칩의 fire) */
+      --status-danger-bar: #ef4444;   /* alternative */
+
+      /* Radius */
+      --radius-sm:       8px;    /* 닫기 / 로고 / item / soon */
+      --radius-md:       12px;   /* 사용자 row */
+      --radius-lg:       16px;   /* panel borderRadius '0 16px 16px 0' */
+
+      /* Spacing */
+      --space-3:         12px;
+      --space-4:         16px;
+
+      /* Font */
+      --font-sans:       'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+
+      /* ── tokens.css line 175~197 호환 alias (정의 블록만, body markup 안 0건) ── */
+      --bg2: var(--surface-raised);
+      --bg3: var(--surface-sunken);
+      --bg4: var(--surface-active);
+      --bd:  var(--border-default);
+      --t1:  var(--text-primary);
+      --t2:  var(--text-secondary);
+      --t3:  var(--text-tertiary);
+      --danger: var(--status-danger-bar);
+    }
+
+    /* 라이트 모드 — design-system v0.1.1 §2 verbatim (OQ #1 LOCKED) */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --surface-overlay: rgba(0, 0, 0, 0.5);   /* 라이트 오버레이도 어두운 색 유지 */
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+
+      --accent:          #1f6feb;
+
+      --status-fire-bar:   #c2410c;   /* 라이트 fire 채도 진한 톤 */
+      --status-danger-bar: #b91c1c;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 32px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 16px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    /* ── 다크/라이트 frame 좌우 배치 row ──────────────────── */
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .row > div {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .caption {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+    .caption code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── frame-mobile / frame-mobile-tall (모바일 시뮬레이션) ────────── */
+    .frame-mobile {
+      width: 480px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    .frame-mobile-tall {
+      width: 480px;
+      height: 720px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+      position: relative;
+    }
+    /* 가상의 BottomNav 자리 — panel 의 bottom 54 를 시각화 (sketch chrome 만) */
+    .frame-bottomnav {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 54px;
+      background: var(--surface-raised);
+      border-top: 1px solid var(--border-default);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+    /* 가상의 page content backdrop — overlay 가렸을 때 살짝 보이는 페이지 영역 */
+    .frame-page-backdrop {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 54px;
+      padding: 16px;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── SideMenu 내부 마크업 (W7 가 TSX 로 변환할 대상) ────────── */
+
+    /* 오버레이 (overlay) — 실제 source 는 position fixed; sketch frame 안에서는 absolute */
+    .side-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 190;
+      background: var(--surface-overlay);
+      transition: opacity 0.28s;
+      opacity: 1;
+      pointer-events: all;
+    }
+    .side-overlay--closed {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* panel — id="side-menu-panel" 일관 */
+    .side-panel {
+      position: absolute;
+      top: 0; bottom: 54px; left: 0;
+      z-index: 200;
+      width: 82%;
+      max-width: 300px;
+      background: var(--surface-raised);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: 0 16px 16px 0;
+      transform: translateX(0);
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    }
+    .side-panel--closed { transform: translateX(-100%); }
+
+    /* 헤더 (로고 + 타이틀 + ✕ 닫기) */
+    .side-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 15px;
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .side-header-logo {
+      width: 30px; height: 30px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      background: var(--surface-active);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      /* sketch demo — 실제는 <img src="/icons/icon-192.png"/> */
+    }
+    .side-header-title {
+      font-size: 13px;      /* 13 = label 마지노선 유지 — 브랜드명 */
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+    .side-header-sub {
+      font-size: 12px;      /* 9.5 -> 12 격상 (caption + leading-none) */
+      line-height: 1;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+    .side-close-btn {
+      margin-left: auto;
+      width: 28px; height: 28px;     /* w-8/h-8 함정 회피 — inline 28 */
+      border-radius: var(--radius-sm);
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .side-close-btn:hover { background: var(--surface-active); }
+
+    /* 메뉴 리스트 영역 */
+    .side-list {
+      overflow-y: auto;
+      flex: 1;
+      padding: 5px 0;
+    }
+
+    /* divider (섹션 헤더) */
+    .side-divider {
+      padding: 12px 13px 4px;
+      font-size: 11px;          /* 9 -> 11 격상 */
+      font-weight: 700;
+      color: var(--text-tertiary);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    /* item */
+    .side-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 13px;
+      margin: 1px 7px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background 0.13s;
+    }
+    .side-item:hover { background: var(--surface-active); }
+    .side-item-label {
+      font-size: 16px;          /* 12.5 -> 16 격상 ★ 노안 마지노선 */
+      font-weight: 500;
+      flex: 1;
+      line-height: 1.4;
+    }
+
+    /* soon 배지 */
+    .side-item--soon {
+      opacity: 0.5;
+      cursor: default;
+      pointer-events: none;
+      color: var(--text-tertiary);
+    }
+    .side-soon-badge {
+      font-size: 12px;          /* 10 -> 12 격상 */
+      line-height: 1;
+      color: var(--text-tertiary);
+      background: var(--surface-sunken);
+      border-radius: var(--radius-sm);
+      padding: 4px 8px;
+    }
+
+    /* badge (미조치 카운트) */
+    .side-badge {
+      background: var(--status-fire-bar);   /* W3-OQ #B default */
+      color: var(--text-on-accent);
+      font-size: 13px;                      /* 11 -> 13 격상 */
+      line-height: 1;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      padding: 3px 6px;
+      border-radius: 9px;
+      min-width: 20px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .side-badge--danger {
+      background: var(--status-danger-bar); /* W3-OQ #B alternative */
+    }
+
+    /* 사용자 카드 */
+    .side-user-area {
+      padding: 11px 11px;
+      border-top: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+    .side-user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface-sunken);
+      border-radius: var(--radius-md);   /* 9 -> 12 */
+    }
+    .side-user-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);  /* OQ #3 LOCKED — raw hex 예외 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;          /* 11 -> 14 */
+      font-weight: 700;
+      color: var(--text-on-accent);
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .side-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .side-user-name {
+      font-size: 14px;          /* 11.5 -> 14 (body-sm) */
+      font-weight: 700;
+      line-height: 1.4;
+      color: var(--text-primary);
+    }
+    .side-user-meta {
+      font-size: 12px;          /* 9.5 -> 12 (caption + leading-none) */
+      line-height: 1;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    /* zoom container (Frame 2 사용자 카드 + 4 분기 단독 시연) */
+    .zoom-container {
+      width: 360px;
+      background: var(--surface-raised);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .zoom-label {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      font-weight: 700;
+    }
+
+    /* ── 디자인 결정 요약 / 비즈 anchor / negative gate / 격상 표 박스 ─── */
+    .decision-summary,
+    .biz-anchors,
+    .negative-gate {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .decision-summary ul,
+    .biz-anchors ul,
+    .negative-gate ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .decision-summary li,
+    .biz-anchors li,
+    .negative-gate li {
+      font-size: 14px;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .decision-summary li strong,
+    .biz-anchors li strong,
+    .negative-gate li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .decision-summary code,
+    .biz-anchors code,
+    .negative-gate code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .upgrade-table {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .upgrade-table table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+    .upgrade-table th,
+    .upgrade-table td {
+      padding: 6px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-default);
+      vertical-align: top;
+    }
+    .upgrade-table th {
+      color: var(--text-primary);
+      font-weight: 600;
+      background: var(--surface-sunken);
+    }
+    .upgrade-table td code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>31 SideMenu · v0.1.1 재디자인 시안 (W3 sub-wave)</h1>
+  <p>
+    redesign/31-chrome W3 sub-wave · SideMenu.tsx (201 라인) 단일 컴포넌트 sketch ·
+    design-system v0.1.1 의미 토큰 + 노안 룰 §1.1 부분 격상 7건 + 다크/라이트 양쪽 시연
+    (OQ #1 LOCKED) + W3 추가 OQ 2건 (#A ✕→Lucide X / #B badge fire-bar) default 답 시각화.
+    SideMenu.tsx 변경 0 (W7 책임).
+  </p>
+
+  <h2>1. 다크 / 패널 열림 + 오버레이 (Frame 1) — 메뉴 라벨 16 노안 마지노선 + badge fire-bar</h2>
+  <p class="vp-desc">
+    다크 모드 · 메뉴 패널 열림 상태 · 오버레이 dimmer (<code>var(--surface-overlay)</code> = rgba(0,0,0,0.6)) +
+    panel 좌측 슬라이드 (<code>transform: translateX(0)</code>) +
+    BottomNav (54px) 위까지만 panel 차지 — <code>bottom: 54px</code>
+    (실제 source 는 <code>bottom: calc(54px + var(--sab, 0px) - var(--sat, 0px))</code>).
+  </p>
+
+  <div class="row">
+    <div>
+      <div class="frame-mobile-tall">
+        <div class="frame-page-backdrop">
+          (뒤쪽 page content — 오버레이 dimmer 로 가려짐)
+        </div>
+        <div class="side-overlay"></div>
+        <div class="side-panel" id="side-menu-panel">
+          <!-- 헤더 -->
+          <div class="side-header">
+            <div class="side-header-logo">CBC</div>
+            <div>
+              <div class="side-header-title">차바이오컴플렉스</div>
+              <div class="side-header-sub">소방안전 통합관리</div>
+            </div>
+            <button class="side-close-btn" aria-label="메뉴 닫기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 메뉴 리스트 -->
+          <div class="side-list">
+            <!-- 주요 기능 -->
+            <div class="side-divider">주요 기능</div>
+            <div class="side-item">
+              <span class="side-item-label">대시보드</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">일반 점검</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">QR 스캔</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">조치 관리</span>
+              <span class="side-badge">12</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">승강기 관리</span>
+            </div>
+
+            <!-- 시설 관리 (모바일 노출만 — 소화기/CCTV 제외) -->
+            <div class="side-divider">시설 관리</div>
+            <div class="side-item">
+              <span class="side-item-label">DIV 압력 관리</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">소방 시설 도면</span>
+            </div>
+            <div class="side-item">
+              <span class="side-item-label">소방 점검 관리</span>
+            </div>
+          </div>
+
+          <!-- 사용자 카드 -->
+          <div class="side-user-area">
+            <div class="side-user-card">
+              <div class="side-user-avatar">윤</div>
+              <div class="side-user-info">
+                <div class="side-user-name">윤종엽</div>
+                <div class="side-user-meta">팀원 · 주간</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        다크 / 패널 열림. 오버레이 <code>var(--surface-overlay)</code> 와 panel 슬라이드 표시.
+        메뉴 라벨 <code>16px</code> 노안 마지노선. 조치 관리 badge <code>12</code> fire-bar 주황 (#f97316).
+        panel <code>width: 82%</code> <code>max-width: 300</code> <code>border-radius: 0 16px 16px 0</code>
+        — OQ #7 LOCKED 보존. BottomNav 54 위까지만 panel.
+      </p>
+    </div>
+
+    <!-- ─── Frame 2 — 사용자 카드 zoom + divider/item/soon/badge 4 분기 시연 ─── -->
+    <div>
+      <div class="zoom-container">
+        <div class="zoom-label">divider — section 헤더 11px uppercase</div>
+        <div class="side-divider">주요 기능</div>
+
+        <div class="zoom-label">item — normal (메뉴 라벨 16px)</div>
+        <div class="side-item">
+          <span class="side-item-label">대시보드</span>
+        </div>
+
+        <div class="zoom-label">item + soon — 준비중 배지 (12px caption)</div>
+        <div class="side-item side-item--soon">
+          <span class="side-item-label">소방계획서/훈련자료</span>
+          <span class="side-soon-badge">준비중</span>
+        </div>
+
+        <div class="zoom-label">item + badge — fire-bar 주황 (13px monospace)</div>
+        <div class="side-item">
+          <span class="side-item-label">조치 관리</span>
+          <span class="side-badge">12</span>
+        </div>
+
+        <div class="zoom-label">item + badge — 99+ cap 시연</div>
+        <div class="side-item">
+          <span class="side-item-label">조치 관리</span>
+          <span class="side-badge">99+</span>
+        </div>
+
+        <div class="zoom-label">사용자 카드 zoom — 이름 14 / 직책+shift 12</div>
+        <div class="side-user-area" style="border-top:none; padding:0;">
+          <div class="side-user-card">
+            <div class="side-user-avatar">윤</div>
+            <div class="side-user-info">
+              <div class="side-user-name">윤종엽</div>
+              <div class="side-user-meta">팀원 · 주간</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="caption">
+        사용자 카드 zoom + 4 분기 시연. divider <code>11px</code> uppercase letterSpacing .08em.
+        item label <code>16px</code> medium. soon 배지 <code>12px</code> caption.
+        badge <code>13px</code> JetBrains Mono fire-bar. 사용자 이름 <code>14px</code> bold.
+        직책+shift <code>12px</code> caption leading-none.
+        아바타 <code>28×28</code> linear-gradient(135deg, #1d4ed8, #0ea5e9) — OQ #3 LOCKED 보존.
+      </p>
+    </div>
+  </div>
+
+  <h2>2. 라이트 / 패널 열림 + 오버레이 (Frame 3) — OQ #1 LOCKED 라이트 변형</h2>
+  <p class="vp-desc">
+    Frame 1 의 markup 동일, frame container 에 <code>data-theme="light"</code> 부착만.
+    surface / text / border / status 모두 라이트 토큰 자동 적용.
+    오버레이 <code>rgba(0,0,0,0.5)</code> (다크 0.6 보다 약함). badge fire-bar <code>#c2410c</code>
+    (다크 <code>#f97316</code> 보다 채도 진한 톤).
+  </p>
+
+  <div class="row">
+    <div>
+      <div class="frame-mobile-tall" data-theme="light">
+        <div class="frame-page-backdrop">
+          (뒤쪽 page content — 라이트 모드 page 영역)
+        </div>
+        <div class="side-overlay"></div>
+        <div class="side-panel">
+          <div class="side-header">
+            <div class="side-header-logo">CBC</div>
+            <div>
+              <div class="side-header-title">차바이오컴플렉스</div>
+              <div class="side-header-sub">소방안전 통합관리</div>
+            </div>
+            <button class="side-close-btn" aria-label="메뉴 닫기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="side-list">
+            <div class="side-divider">주요 기능</div>
+            <div class="side-item"><span class="side-item-label">대시보드</span></div>
+            <div class="side-item"><span class="side-item-label">일반 점검</span></div>
+            <div class="side-item"><span class="side-item-label">QR 스캔</span></div>
+            <div class="side-item">
+              <span class="side-item-label">조치 관리</span>
+              <span class="side-badge">12</span>
+            </div>
+            <div class="side-item"><span class="side-item-label">승강기 관리</span></div>
+
+            <div class="side-divider">시설 관리</div>
+            <div class="side-item"><span class="side-item-label">DIV 압력 관리</span></div>
+            <div class="side-item"><span class="side-item-label">소방 시설 도면</span></div>
+            <div class="side-item"><span class="side-item-label">소방 점검 관리</span></div>
+          </div>
+
+          <div class="side-user-area">
+            <div class="side-user-card">
+              <div class="side-user-avatar">윤</div>
+              <div class="side-user-info">
+                <div class="side-user-name">윤종엽</div>
+                <div class="side-user-meta">팀원 · 주간</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        라이트 · OQ #1 LOCKED 사용자 명시 변경 반영 ·
+        라이트 토큰 hex 검수용 (<code>#f6f8fa</code> raised · <code>#ebeef1</code> sunken ·
+        <code>#1f2328</code> primary · <code>#4d5562</code> secondary · 오버레이 <code>rgba(0,0,0,0.5)</code>).
+        아바타 그라데이션은 라이트에서도 동일 (#1d4ed8 → #0ea5e9 — §6.4 매치 + OQ #3 LOCKED).
+      </p>
+    </div>
+
+    <!-- ─── Frame 4 — 라이트 badge fire-bar vs danger-bar 비교 시연 (W3-OQ #B) ─── -->
+    <div>
+      <div data-theme="light" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="zoom-container">
+          <div class="zoom-label">W3-OQ #B default — fire-bar (주황 #c2410c)</div>
+          <div class="side-item">
+            <span class="side-item-label">조치 관리</span>
+            <span class="side-badge">12</span>
+          </div>
+          <div class="side-item">
+            <span class="side-item-label">조치 관리</span>
+            <span class="side-badge">99+</span>
+          </div>
+        </div>
+        <div class="zoom-container">
+          <div class="zoom-label">W3-OQ #B alternative — danger-bar (빨강 #b91c1c)</div>
+          <div class="side-item">
+            <span class="side-item-label">조치 관리</span>
+            <span class="side-badge side-badge--danger">12</span>
+          </div>
+          <div class="side-item">
+            <span class="side-item-label">조치 관리</span>
+            <span class="side-badge side-badge--danger">99+</span>
+          </div>
+        </div>
+      </div>
+      <p class="caption">
+        <strong>W3-OQ #B 시각 비교</strong>. fire-bar (#c2410c 라이트 / #f97316 다크) vs
+        danger-bar (#b91c1c 라이트 / #ef4444 다크). 사용자 결정 — default 답 = fire-bar
+        (memory <code>feedback_inspection_unresolved_color</code>: 메인 칩이 fire 인데
+        SideMenu badge 만 danger 면 inconsistent).
+      </p>
+    </div>
+  </div>
+
+  <h2>3. 다크 / 패널 닫힘 transition (Frame 5) — slide-out 시각화</h2>
+  <p class="vp-desc">
+    <code>transform: translateX(-100%)</code> + <code>transition: transform 0.3s cubic-bezier(.4,0,.2,1)</code>.
+    오버레이 <code>opacity: 0</code> + <code>pointer-events: none</code>
+    (transition <code>opacity 0.28s</code>). panel 이 왼쪽으로 슬라이드 — frame 안에서는
+    왼쪽 절반 잘림.
+  </p>
+
+  <div class="row">
+    <div>
+      <div class="frame-mobile-tall">
+        <div class="frame-page-backdrop">
+          page content (오버레이 사라진 상태)
+        </div>
+        <div class="side-overlay side-overlay--closed"></div>
+        <div class="side-panel side-panel--closed">
+          <div class="side-header">
+            <div class="side-header-logo">CBC</div>
+            <div>
+              <div class="side-header-title">차바이오컴플렉스</div>
+              <div class="side-header-sub">소방안전 통합관리</div>
+            </div>
+            <button class="side-close-btn" aria-label="메뉴 닫기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="side-list">
+            <div class="side-divider">주요 기능</div>
+            <div class="side-item"><span class="side-item-label">대시보드</span></div>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        패널 닫힘 — <code>translateX(-100%)</code> 으로 왼쪽으로 슬라이드. 오버레이 opacity 0.
+        실제 source 는 <code>transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)'</code>
+        + <code>'opacity 0.28s'</code> — W7 TSX 변환 시 verbatim 보존.
+      </p>
+    </div>
+
+    <!-- ─── Frame 6 — admin 사용자 메뉴 (직원 관리 / 소방 시설 추가 / 업무 수행 기록표 노출) ─── -->
+    <div>
+      <div class="frame-mobile-tall">
+        <div class="side-overlay"></div>
+        <div class="side-panel">
+          <div class="side-header">
+            <div class="side-header-logo">CBC</div>
+            <div>
+              <div class="side-header-title">차바이오컴플렉스</div>
+              <div class="side-header-sub">소방안전 통합관리</div>
+            </div>
+            <button class="side-close-btn" aria-label="메뉴 닫기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="side-list">
+            <div class="side-divider">시설 관리</div>
+            <div class="side-item"><span class="side-item-label">DIV 압력 관리</span></div>
+            <div class="side-item"><span class="side-item-label">소방 시설 도면</span></div>
+            <div class="side-item"><span class="side-item-label">소방 점검 관리</span></div>
+            <div class="side-item"><span class="side-item-label">소방 시설 추가</span></div>
+
+            <div class="side-divider">문서 관리</div>
+            <div class="side-item"><span class="side-item-label">일일 업무 일지</span></div>
+            <div class="side-item"><span class="side-item-label">업무 수행 기록표</span></div>
+            <div class="side-item"><span class="side-item-label">점검 일지 출력</span></div>
+
+            <div class="side-divider">시스템</div>
+            <div class="side-item"><span class="side-item-label">직원 관리</span></div>
+          </div>
+
+          <div class="side-user-area">
+            <div class="side-user-card">
+              <div class="side-user-avatar">관</div>
+              <div class="side-user-info">
+                <div class="side-user-name">관리자</div>
+                <div class="side-user-meta">팀장 · 당직</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-bottomnav">BottomNav (54)</div>
+      </div>
+      <p class="caption">
+        admin role 사용자 view — <code>staff.role === 'admin'</code> 분기로 노출
+        (line 158: <code>if (meta.role &amp;&amp; staff?.role !== meta.role) return null</code>).
+        admin 전용 3 메뉴 노출: <code>소방 시설 추가</code> (/checkpoints) /
+        <code>업무 수행 기록표</code> (/worklog) / <code>직원 관리</code> (/staff-manage).
+        assistant 사용자는 3 메뉴 모두 숨김.
+      </p>
+    </div>
+  </div>
+
+  <h2>4. 비즈 anchor 22건 (W7 TSX 변환 wave 1 byte 변경 0 강제)</h2>
+  <div class="biz-anchors">
+    <ul>
+      <li>
+        <strong>1. <code>Props</code> interface</strong> —
+        <code>{ open: boolean; onClose: () =&gt; void; unresolvedCount?: number }</code> (line 11~15).
+        <code>unresolvedCount</code> default 0 (line 59 destructuring).
+      </li>
+      <li>
+        <strong>2. <code>NAV_H</code> 상수</strong> —
+        <code>'calc(54px + var(--sab, 0px))'</code> (line 9). BottomNav 54 + iOS safe-area-bottom 위
+        panel <code>bottom</code> 계산용.
+      </li>
+      <li>
+        <strong>3. MENU 상수 5섹션 17 아이템 verbatim</strong> — line 19~54.
+        <code>label</code>/<code>path</code>/<code>badge</code>/<code>soon</code>/<code>role</code>/<code>desktopOnly</code>
+        — MenuSettingsSection.tsx line 11 에서 import 하는 source. 변경 시 양방향 깨짐.
+        주요 기능 5 / 시설 관리 6 / 문서 관리 8 / 근무·복지 2 / 시스템 1.
+      </li>
+      <li>
+        <strong>4. <code>ITEM_META</code></strong> —
+        <code>Record&lt;string, MenuItem&gt;</code> (line 56~57). MENU.forEach 평면 path lookup.
+      </li>
+      <li>
+        <strong>5. <code>export type MenuItem</code></strong> —
+        <code>{ label / path / badge / soon / role? / desktopOnly? }</code> (line 17).
+        외부 (MenuSettingsSection) 에서 import.
+      </li>
+      <li>
+        <strong>6. import 7건</strong> —
+        <code>useEffect, useMemo, useState</code> from 'react' /
+        <code>useNavigate</code> from 'react-router-dom' /
+        <code>useQuery</code> from '@tanstack/react-query' /
+        <code>useAuthStore</code> /
+        <code>getMonthlySchedule</code> /
+        <code>useStaffList</code> /
+        <code>settingsApi, type SideMenuEntry, type MenuConfig</code> (line 1~7).
+        변경 금지.
+      </li>
+      <li>
+        <strong>7. <code>useQuery({ queryKey: ['menu-config'], queryFn: settingsApi.getMenu, staleTime: 300_000 })</code></strong>
+        (line 63) — MenuSettingsSection 와 동일 queryKey 공유 → <code>qc.invalidateQueries</code> 동기화.
+      </li>
+      <li>
+        <strong>8. <code>appliedEntries: SideMenuEntry[] useMemo</code></strong> —
+        line 66~70. <code>cfg?.sideMenu ?? []</code> — Phase 18 D-05 평면 SideMenuEntry[] 기반 렌더.
+      </li>
+      <li>
+        <strong>9. <code>RAW_TO_LABEL</code></strong> —
+        <code>{ '당':'당직', '비':'비번', '주':'주간', '휴':'연차' }</code> (line 72).
+      </li>
+      <li>
+        <strong>10. <code>todayShiftLabel</code> state</strong> —
+        default <code>'평일주간고정'</code> (line 73).
+      </li>
+      <li>
+        <strong>11. <code>todayShiftLabel</code> useEffect</strong> —
+        line 74~86. <code>getMonthlySchedule(year, month, staffForCalc)</code> 의존,
+        <strong>8:30am 분기</strong> (<code>now.getHours() &lt; 8 || (==8 &amp;&amp; minutes &lt; 30)</code>
+        → 어제 ref).
+      </li>
+      <li>
+        <strong>12. body scroll lock useEffect</strong> —
+        line 89~103. <code>document.body.style.overflow = 'hidden'</code> +
+        <code>touchmove preventDefault</code>,
+        <code>panel = document.getElementById('side-menu-panel')</code> 외부만 차단,
+        cleanup return — overflow 복원 + removeEventListener.
+        (memory <code>feedback_body_scroll_lock_safe_area</code> — body position:fixed 안 함)
+      </li>
+      <li>
+        <strong>13. <code>go(path)</code> handler</strong> —
+        line 105. <code>navigate(path); onClose()</code>.
+      </li>
+      <li>
+        <strong>14. 오버레이</strong> —
+        position fixed inset 0 zIndex 190 background <code>rgba(0,0,0,0.65)</code>
+        opacity <code>open ? 1 : 0</code> pointerEvents <code>open ? 'all' : 'none'</code>
+        transition <code>'opacity 0.28s'</code> (line 110~118).
+      </li>
+      <li>
+        <strong>15. panel <code>id="side-menu-panel"</code></strong> (line 123) —
+        touchmove 차단 hook 식별자.
+      </li>
+      <li>
+        <strong>16. panel style verbatim</strong> —
+        position fixed / top <code>var(--sat, 0px)</code> /
+        bottom <code>calc(54px + var(--sab, 0px) - var(--sat, 0px))</code> / left 0 / zIndex 200,
+        width <code>'82%'</code> maxWidth <code>300</code> background <code>var(--bg2)</code>,
+        transform <code>open ? translateX(0) : translateX(-100%)</code>,
+        transition <code>'transform 0.3s cubic-bezier(.4,0,.2,1)'</code>,
+        display flex flexDirection column overflow hidden,
+        <strong>borderRadius <code>'0 16px 16px 0'</code></strong> (line 121~133) — OQ #7 LOCKED.
+      </li>
+      <li>
+        <strong>17. 헤더</strong> —
+        padding <code>'12px 15px'</code> borderBottom <code>'1px solid var(--bd)'</code> flexShrink 0,
+        로고 <code>/icons/icon-192.png</code> 30×30 radius 8,
+        타이틀 "차바이오컴플렉스" fontSize 13 fontWeight 700,
+        부제 "소방안전 통합관리" fontSize 9.5 var(--t3) marginTop 1 (위반 → 격상),
+        ✕ 닫기 28×28 radius 7 var(--bg3) var(--t2) fontSize 15 (line 135~142).
+      </li>
+      <li>
+        <strong>18. divider render</strong> —
+        padding <code>'9px 13px 2px'</code> fontSize 9 fontWeight 700 var(--t3)
+        letterSpacing <code>'.08em'</code> textTransform <code>uppercase</code> (line 149).
+        위반 → 격상.
+      </li>
+      <li>
+        <strong>19. item render</strong> —
+        padding <code>'9px 13px'</code> margin <code>'1px 7px'</code> borderRadius 8
+        fontSize 12.5 fontWeight 500 color var(--t1) hover bg var(--bg4)
+        transition <code>'background 0.13s'</code> (line 163, 175). 위반 → 격상.
+      </li>
+      <li>
+        <strong>20. soon 배지</strong> —
+        opacity 0.5 cursor default pointerEvents none,
+        label 12.5, 배지 fontSize 10 var(--t3) var(--bg3) radius 6 padding <code>'2px 7px'</code>
+        "준비중" (line 164).
+      </li>
+      <li>
+        <strong>21. badgeCount + 99+ cap</strong> —
+        <code>badgeCount = meta.path === '/remediation' ? unresolvedCount : meta.badge</code>,
+        <code>badgeCount &gt; 0</code> → bg var(--danger) color #fff fontSize 11 fontWeight 700
+        fontFamily <code>'JetBrains Mono'</code> padding <code>'2px 4px'</code> borderRadius 9
+        minWidth 16 textAlign center, <code>badgeCount &gt; 99 ? '99+' : badgeCount</code>
+        (line 176~180). W3-OQ #B default: <code>var(--danger)</code> → <code>var(--status-fire-bar)</code>.
+      </li>
+      <li>
+        <strong>22. 사용자 카드</strong> (line 187~197) —
+        padding <code>'9px 11px'</code> borderTop <code>'1px solid var(--bd)'</code> flexShrink 0,
+        안쪽 row padding <code>'8px 10px'</code> bg var(--bg3) borderRadius 9 gap 9,
+        아바타 28×28 radius <code>'50%'</code>
+        background <code>'linear-gradient(135deg,#1d4ed8,#0ea5e9)'</code>
+        fontSize 11 fontWeight 700 color #fff,
+        이름 fontSize 11.5 fontWeight 700 — fallback <code>{staff?.name?.[0] ?? '?'}</code>,
+        직책+shift <code>"{staff?.title} · {todayShiftLabel}"</code> fontSize 9.5 var(--t3).
+      </li>
+    </ul>
+  </div>
+
+  <h2>5. OQ LOCKED 8건 + W3 추가 OQ 2건 매트릭스</h2>
+  <div class="decision-summary">
+    <ul>
+      <li>
+        <strong>OQ #1 — 다크/라이트 양쪽 지원</strong>: default <code>다크 단일</code> →
+        <strong>LOCKED <code>다크 + 라이트 양쪽 지원</code></strong>.
+        본 W3 적용: <code>:root</code> + <code>[data-theme="light"]</code> 둘 다 정의 +
+        4~6 frame 매트릭스 + 최소 2 frame data-theme="light" 부착.
+      </li>
+      <li>
+        <strong>OQ #2 — §1.1 9·10·11 위반 부분 격상</strong>:
+        <strong>LOCKED <code>부분 절충</code></strong>.
+        본 W3 적용 격상 7건: 부제 12 / divider 11 / item 16 / badge 13 / 사용자 이름 14 /
+        사용자 부제 12 / Lucide X size 16. panel 세로 overflow 발생 시 dense layout 회귀
+        sub-OQ 가능 — sketch 결과 본 후 사용자 결정.
+      </li>
+      <li>
+        <strong>OQ #3 — SideMenu 아바타 그라데이션 유지</strong>: LOCKED <code>유지</code>.
+        본 W3 적용: <code>linear-gradient(135deg, #1d4ed8, #0ea5e9)</code> verbatim 보존
+        — body markup 안 1건 예외 (negative gate "linear-gradient 0건" 의 단 1건 예외).
+      </li>
+      <li>
+        <strong>OQ #4 — SettingsPanel 프로필 그라데이션 폐기</strong>: LOCKED <code>폐기</code> →
+        <code>bg-accent</code> solid. 본 W3 무관 (W4 책임).
+      </li>
+      <li>
+        <strong>OQ #5 — 인라인 svg ↔ Lucide</strong>: LOCKED <code>인라인 svg 유지</code>
+        (header 햄버거 / back / settings cog). 본 W3 부분 적용 — SideMenu 의 ✕ U+2715 글리프는
+        svg 아님 → <strong>W3-OQ #A</strong> 별도 결정 (default = Lucide X 교체).
+      </li>
+      <li>
+        <strong>OQ #6 — admin 테스트 푸시 이모지 제거</strong>: LOCKED <code>제거</code> →
+        Lucide Send + Loader2. 본 W3 무관 (W4 책임).
+      </li>
+      <li>
+        <strong>OQ #7 — panel width 보존</strong>: LOCKED <code>보존</code>.
+        본 W3 적용: panel <code>width: 82%</code> <code>max-width: 300</code> +
+        <code>border-radius: '0 16px 16px 0'</code> 변경 0.
+      </li>
+      <li>
+        <strong>OQ #8 — W7 TSX 변환 분할</strong>: LOCKED <code>4 분할 (sub-wave)</code>.
+        본 W3 적용: SideMenu 단일 sketch 가 W7 의 두 번째 sub-wave 대상.
+      </li>
+      <li>
+        <strong>W3-OQ #A — ✕ U+2715 → Lucide X 교체</strong>:
+        <strong>default 답 = Lucide X 교체</strong> (size 16, var(--text-secondary)).
+        근거: memory <code>feedback_tsx_wave_emoji_dot_gap</code> 글리프도 negative /
+        design-system §7.1 Lucide 사용 / 28-splash·27-login·SettingsPanel 닫기 패턴 mirror /
+        aria-label "메뉴 닫기" 보존. 대안: U+2715 글리프 유지 (OQ #5 인라인 svg 유지 룰과 align).
+        <strong>★ LOCKED placeholder — 사용자 결정 대기.</strong>
+      </li>
+      <li>
+        <strong>W3-OQ #B — 미조치 badge 색</strong>: source <code>var(--danger)</code> →
+        <strong>default 답 = <code>--status-fire-bar</code></strong> (주황 #f97316 다크 / #c2410c 라이트).
+        근거: memory <code>feedback_inspection_unresolved_color</code> "미조치 색 = status-fire (주황)
+        사용자 인지 = 칩의 fire". 대안: <code>--status-danger-bar</code> 빨강.
+        Frame 4 에서 좌우 side-by-side 시연. <strong>★ LOCKED placeholder — 사용자 결정 대기.</strong>
+      </li>
+    </ul>
+  </div>
+
+  <h2>6. 노안 룰 §1.1 격상 표 (본 W3 적용)</h2>
+  <div class="upgrade-table">
+    <table>
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>source (SideMenu.tsx)</th>
+          <th>sketch (W3 격상)</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>부제 "소방안전 통합관리"</td>
+          <td><code>fontSize: 9.5</code> (line 139)</td>
+          <td><code>12</code> (text-caption)</td>
+          <td>caption + leading-none — 헤더 부제</td>
+        </tr>
+        <tr>
+          <td>✕ 닫기 글리프</td>
+          <td><code>U+2715 fontSize: 15</code> (line 141)</td>
+          <td>Lucide <code>X</code> size <code>16</code></td>
+          <td>W3-OQ #A default — 글리프 → 아이콘</td>
+        </tr>
+        <tr>
+          <td>divider</td>
+          <td><code>fontSize: 9</code> (line 149)</td>
+          <td><code>11</code> (uppercase letterSpacing 유지)</td>
+          <td>section 헤더 — letterSpacing .08em 유지</td>
+        </tr>
+        <tr>
+          <td>item label</td>
+          <td><code>fontSize: 12.5</code> (line 163, 175)</td>
+          <td><code>16</code> (text-body)</td>
+          <td>★ 노안 마지노선 — 메뉴 라벨</td>
+        </tr>
+        <tr>
+          <td>item fontWeight</td>
+          <td><code>500</code></td>
+          <td><code>500</code> (유지)</td>
+          <td>medium 유지</td>
+        </tr>
+        <tr>
+          <td>soon 배지</td>
+          <td><code>fontSize: 10</code> (line 164)</td>
+          <td><code>12</code> (text-caption)</td>
+          <td>작은 컨테이너 leading-none 명시</td>
+        </tr>
+        <tr>
+          <td>soon 배지 padding</td>
+          <td><code>'2px 7px'</code></td>
+          <td><code>'4px 8px'</code></td>
+          <td>8pt 그리드 정렬</td>
+        </tr>
+        <tr>
+          <td>badge (미조치)</td>
+          <td><code>fontSize: 11 monospace</code> (line 177)</td>
+          <td><code>13</code> (text-label) — sketch 채택</td>
+          <td>숫자 — 14/16 대안 panel overflow 검수 후 결정</td>
+        </tr>
+        <tr>
+          <td>badge 99+ cap</td>
+          <td><code>'99+'</code></td>
+          <td>유지</td>
+          <td>cap 텍스트 그대로</td>
+        </tr>
+        <tr>
+          <td>사용자 이름</td>
+          <td><code>fontSize: 11.5</code> (line 193)</td>
+          <td><code>14</code> (text-body-sm)</td>
+          <td>14 vs 16 sub-OQ — 14 채택</td>
+        </tr>
+        <tr>
+          <td>사용자 직책+shift</td>
+          <td><code>fontSize: 9.5</code> (line 194)</td>
+          <td><code>12</code> (text-caption)</td>
+          <td>caption + leading-none</td>
+        </tr>
+        <tr>
+          <td>panel width</td>
+          <td><code>'82%' maxWidth 300</code></td>
+          <td>유지</td>
+          <td>OQ #7 LOCKED</td>
+        </tr>
+        <tr>
+          <td>panel borderRadius</td>
+          <td><code>'0 16px 16px 0'</code></td>
+          <td>유지</td>
+          <td>OQ #7 LOCKED — 핵심 형태</td>
+        </tr>
+        <tr>
+          <td>오버레이 background</td>
+          <td><code>rgba(0,0,0,0.65)</code></td>
+          <td><code>var(--surface-overlay)</code></td>
+          <td>다크 0.6 / 라이트 0.5 자동</td>
+        </tr>
+        <tr>
+          <td>panel bg</td>
+          <td><code>var(--bg2)</code></td>
+          <td><code>var(--surface-raised)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>hover bg</td>
+          <td><code>var(--bg4)</code></td>
+          <td><code>var(--surface-active)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>divider/soon/부제 color</td>
+          <td><code>var(--t3)</code></td>
+          <td><code>var(--text-tertiary)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>닫기 color</td>
+          <td><code>var(--t2)</code></td>
+          <td><code>var(--text-secondary)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>item color</td>
+          <td><code>var(--t1)</code></td>
+          <td><code>var(--text-primary)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>badge bg</td>
+          <td><code>var(--danger)</code></td>
+          <td><code>var(--status-fire-bar)</code></td>
+          <td>W3-OQ #B default</td>
+        </tr>
+        <tr>
+          <td>badge color</td>
+          <td><code>#fff</code></td>
+          <td><code>var(--text-on-accent)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>아바타 그라데이션</td>
+          <td><code>linear-gradient(135deg,#1d4ed8,#0ea5e9)</code></td>
+          <td>유지 (raw hex 예외)</td>
+          <td>OQ #3 LOCKED — §6.4 매치</td>
+        </tr>
+        <tr>
+          <td>아바타 color</td>
+          <td><code>#fff</code></td>
+          <td><code>var(--text-on-accent)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>borderRadius 7/8 (닫기/로고/item)</td>
+          <td>raw 7 / 8</td>
+          <td><code>var(--radius-sm)</code> (8)</td>
+          <td>tokens.css §radius 일관</td>
+        </tr>
+        <tr>
+          <td>borderRadius 9 (사용자 row)</td>
+          <td>raw 9</td>
+          <td><code>var(--radius-md)</code> (12)</td>
+          <td>8 또는 12 — sketch 12 채택</td>
+        </tr>
+        <tr>
+          <td>사용자 카드 bg</td>
+          <td><code>var(--bg3)</code></td>
+          <td><code>var(--surface-sunken)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+        <tr>
+          <td>borderTop/borderBottom</td>
+          <td><code>1px var(--bd)</code></td>
+          <td><code>1px var(--border-default)</code></td>
+          <td>토큰 매핑</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>7. 토큰 매핑 (legacy alias → v0.1.1 의미 토큰)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li><code>background var(&#45;&#45;bg2)</code> → <code>var(--surface-raised)</code> (panel bg)</li>
+      <li><code>background var(&#45;&#45;bg3)</code> → <code>var(--surface-sunken)</code> (닫기 btn / 사용자 카드 / soon 배지)</li>
+      <li>hover <code>background var(&#45;&#45;bg4)</code> → <code>var(--surface-active)</code> (item hover)</li>
+      <li>오버레이 <code>rgba(0,0,0,0.65)</code> → <code>var(--surface-overlay)</code> (다크 0.6 / 라이트 0.5)</li>
+      <li><code>borderTop / borderBottom var(&#45;&#45;bd)</code> → <code>var(--border-default)</code></li>
+      <li><code>color var(&#45;&#45;t1)</code> → <code>var(--text-primary)</code> (item label / 헤더 / 사용자 이름)</li>
+      <li><code>color var(&#45;&#45;t2)</code> → <code>var(--text-secondary)</code> (닫기 btn / Lucide X 색)</li>
+      <li><code>color var(&#45;&#45;t3)</code> → <code>var(--text-tertiary)</code> (divider / soon / 부제 / 사용자 직책+shift)</li>
+      <li><code>color #fff (아바타 / badge)</code> → <code>var(--text-on-accent)</code></li>
+      <li>
+        <code>background var(&#45;&#45;danger)</code> → <code>var(--status-fire-bar)</code>
+        (W3-OQ #B default) / <code>var(--status-danger-bar)</code> (alternative)
+      </li>
+      <li><code>borderRadius 7 / 8</code> → <code>var(--radius-sm)</code> (8px)</li>
+      <li><code>borderRadius 9 (사용자 row)</code> → <code>var(--radius-md)</code> (12px)</li>
+      <li>
+        <code>borderRadius '0 16px 16px 0'</code> → 유지 (raw 16px 보존) — panel 핵심 형태 OQ #7 LOCKED
+      </li>
+      <li>
+        <strong>legacy alias 정책</strong> —
+        <code>--bg/--bg2/--bg3/--bg4/--bd/--t1/--t2/--t3/--danger</code> 는
+        <code>:root</code> + <code>[data-theme]</code> 정의 블록 안에서만 허용
+        (tokens.css line 175~197 의 호환 alias 와 동일 패턴). body markup 안에서는 0건
+        — verify gate 강제.
+      </li>
+    </ul>
+  </div>
+
+  <h2>8. Negative gate (sketch 본문 — W7 변환 시 의식할 룰)</h2>
+  <div class="negative-gate">
+    <ul>
+      <li>
+        <code>font-size: 9 / 10 / 11 / 9.5 / 11.5 / 12.5 px</code> body markup 안 0건
+        (단 :root 정의 + 비즈 anchor 박스 + 격상 표 + 토큰 매핑 표 doc context 안 인용은 예외)
+      </li>
+      <li>
+        <code>linear&#8209;gradient(...)</code> body markup 안 1건만 (사용자 아바타 OQ #3 보존,
+        line 189 verbatim)
+      </li>
+      <li>
+        이모지 body markup 안 0건 (U+2715 텍스트 글리프도 negative — Lucide X 교체 default)
+      </li>
+      <li>
+        className <code>status-*</code> prefix body markup 안 0건
+        (memory <code>feedback_tailwind_token_class_pattern</code> —
+        <code>var(--status-...)</code> CSS 변수 이름은 OK)
+      </li>
+      <li>
+        legacy alias <code>--bg/--bg2/--bg3/--bg4/--bd/--t1/--t2/--t3/--danger</code>
+        body markup 안 0건 (정의 블록 안만 허용)
+      </li>
+      <li>
+        MENU 상수 17 items label/path 변경 0 (sketch 안 박제 시 verbatim,
+        MenuSettingsSection 의 source)
+      </li>
+      <li>
+        w-8/h-8 함정 의식 (memory <code>feedback_tailwind_w8_h8_is_48px</code> —
+        w-8=48px, 32 아님) → 28×28 = inline <code>w-[28px] h-[28px]</code> 정확,
+        <code>w-7 h-7</code> 는 32 가 아닌 28
+      </li>
+      <li>
+        panel <code>width: 82%</code> <code>max-width: 300</code> 변경 0 (OQ #7 LOCKED)
+      </li>
+      <li>
+        panel <code>border-radius: '0 16px 16px 0'</code> 변경 0 (OQ #7 LOCKED)
+      </li>
+      <li>
+        svg path "M18 6 6 18M6 6l12 12" (Lucide X) /
+        <code>NAV_H = 'calc(54px + var(--sab, 0px))'</code> /
+        <code>queryKey: ['menu-config']</code> / <code>RAW_TO_LABEL</code> / <code>ITEM_META</code> /
+        <code>id="side-menu-panel"</code> / 오버레이 <code>transition: 'opacity 0.28s'</code> /
+        panel <code>transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)'</code> — 변경 0
+      </li>
+      <li>
+        보호 파일 1 byte 변경 0 —
+        <code>src/components/SideMenu.tsx</code> + <code>App.tsx</code> +
+        <code>tokens.css</code> + <code>typography.css</code> +
+        <code>design-system.md</code> + <code>tailwind.config.js</code> +
+        <code>31-chrome/wave-1-index.md</code> + 31-chrome/ 7 스냅샷 (SideMenu.tsx +
+        GlobalHeader.tsx + SettingsPanel.tsx + MenuSettingsSection.tsx + design-system.md +
+        tokens.css + typography.css) +
+        <code>31-chrome/sketch-wave-2-global-header.html</code> + 00-design-context/
+      </li>
+      <li>
+        wrangler 명령 호출 0 (CLAUDE.local.md +
+        memory <code>feedback_cbc7119_design_never_wrangler</code>)
+      </li>
+      <li>
+        <code>npm run deploy</code> 호출 0
+      </li>
+    </ul>
+  </div>
+</body>
+</html>
