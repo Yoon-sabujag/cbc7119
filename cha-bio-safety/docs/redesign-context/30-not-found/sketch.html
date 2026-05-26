@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>30 NotFoundPage · v0.1.1 재디자인 시안</title>
+  <!--
+    sketch.html — redesign/30-not-found W1
+    작성: 2026-05-26 / quick 260526-ucq
+    범위: NotFoundPage.tsx (11 라인, wildcard route `*`) 단일 sketch
+          다크 + 라이트 2 변형 (모바일 폭 480 컨테이너 시뮬레이션) 매트릭스
+    out of scope: NotFoundPage.tsx 코드 수정 (W2 책임)
+                  App.tsx / tokens.css / typography.css / design-system.md / 30-not-found.md 1 byte 변경 0
+                  W1 인덱스 markdown / W5 checklist markdown (페이지 단순성으로 생략 — 10-cctv-info 평면 precedent mirror)
+    참조: 28-splash/sketch-wave-2-splash.html / 10-cctv-info/sketch/cctv-info-sketch.html / design-system.md v0.1.1
+
+    ==========================================================
+    비즈 anchor 5건 (NotFoundPage) — W2 TSX 변환 wave 1 byte 변경 금지
+    ==========================================================
+
+      1. useNavigate() hook (line 1 import, line 3 호출)
+      2. navigate('/dashboard') 라우팅 (line 8 onClick)
+      3. "404" 텍스트 (line 6 <p> 내용)
+      4. "페이지를 찾을 수 없습니다" 텍스트 (line 7 <p> 내용)
+      5. "대시보드로 이동" 버튼 카피 (line 8 <button> 내용)
+
+    ==========================================================
+    토큰 매핑 (본 wave 적용 — design-system v0.1.1 §2)
+    ==========================================================
+
+      - 페이지 배경 var(--bg)        -> var(--surface-page)
+      - 본문 색 var(--t1)            -> var(--text-primary)
+      - 404 큰 텍스트 색 var(--bg4)  -> var(--text-tertiary) (정보 없음 의미)
+      - 버튼 배경 raw #2563eb        -> var(--accent-active)
+      - 버튼 텍스트 raw #fff         -> var(--text-on-accent)
+      - gap 16                       -> var(--space-4)
+      - borderRadius 12              -> var(--radius-md)
+      - 버튼 height (인라인 없음)    -> var(--button-height) (44 모바일)
+
+    ==========================================================
+    Negative gate (sketch 본문 — W2 가 의식할 룰)
+    ==========================================================
+
+      - 9 / 10 / 11 px fontSize 0건 (노안 마지노선 16 룰)
+      - status-danger / status-fire 색 사용 0건 (404 는 에러가 아니라 정보 없음)
+      - 이모지 0건 (feedback_tsx_wave_emoji_dot_gap.md)
+      - linear-gradient 0건 (28-splash OQ #2 LOCKED 패턴 mirror — 단색 solid 만)
+      - style={...} 인라인 → W2 TSX 에서 Tailwind class 로 교체 (30-not-found.md §4 요구사항)
+  -->
+
+  <!-- Pretendard CDN (typography.css line 11 mirror) — 외부 리소스 1건만 허용 -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+    /* ──────────────────────────────────────────────────────────────
+       :root — design-system v0.1.1 §2 verbatim (다크 기본)
+       :root 정의 블록 + body / frame chrome 의 raw hex 만 예외.
+       카드 내부 마크업에는 var(--...) 만 사용 (10-cctv-info precedent verify gate mirror).
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-active:  #2c333d;
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --text-disabled:   #5d646e;
+      --text-on-accent:  #ffffff;
+
+      /* Accent */
+      --accent:          #3b82f6;
+      --accent-active:   #2563eb;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+
+      /* Radius */
+      --radius-md:       12px;
+      --radius-lg:       16px;
+
+      /* Spacing */
+      --space-4:         16px;
+
+      /* Component */
+      --button-height:   44px;
+
+      /* Font */
+      --font-sans:       'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+    }
+
+    /* 라이트 모드 — design-system v0.1.1 §2 verbatim */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --text-disabled:   #afb8c1;
+      --text-on-accent:  #ffffff;
+
+      --accent:          #1f6feb;
+      --accent-active:   #0a52c4;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 32px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 16px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    /* ── 다크/라이트 frame 좌우 배치 row ──────────────────── */
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .row > div {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .caption {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    /* ── frame-mobile (모바일 480 컨테이너 시뮬레이션) ─────── */
+    .frame-mobile {
+      width: 480px;
+      min-height: 720px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-4);
+      font-family: var(--font-sans);
+    }
+
+    /* ── NotFoundPage 내부 마크업 (W2 가 TSX 로 변환할 대상) ── */
+    .not-found-display {
+      font-size: 96px;
+      font-weight: 900;
+      color: var(--text-tertiary);
+      letter-spacing: -0.02em;
+      margin: 0;
+      line-height: 1.0;
+    }
+    .not-found-message {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.4;
+    }
+    .not-found-button {
+      height: var(--button-height);
+      padding: 0 28px;
+      border-radius: var(--radius-md);
+      background: var(--accent-active);
+      border: none;
+      color: var(--text-on-accent);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 120ms ease-out;
+    }
+    .not-found-button:hover {
+      background: var(--accent);
+    }
+
+    /* ── 디자인 결정 요약 / 비즈 anchor 박스 ────────────────── */
+    .decision-summary,
+    .biz-anchors {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .decision-summary ul,
+    .biz-anchors ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .decision-summary li,
+    .biz-anchors li {
+      font-size: 14px;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .decision-summary li strong,
+    .biz-anchors li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .decision-summary code,
+    .biz-anchors code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* ── Negative gate 박스 ────────────────────────────────── */
+    .negative-gate {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .negative-gate ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .negative-gate li {
+      font-size: 14px;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <h1>30 NotFoundPage · v0.1.1 재디자인 시안</h1>
+  <p>
+    redesign/30-not-found W1 · 11 라인 페이지 단일 sketch · design-system v0.1.1 토큰 적용 ·
+    NotFoundPage.tsx 변경 0 (W2 책임)
+  </p>
+
+  <h2>1. 다크 + 라이트 2 변형</h2>
+  <p class="vp-desc">
+    동일 페이지를 다크 (기본) 와 라이트 모드로 시연. 모바일 폭 480 컨테이너 시뮬레이션.
+    모바일/데스크톱 폰트 동일 (노안 룰).
+  </p>
+
+  <div class="row">
+    <!-- 다크 (data-theme 미부착 = :root 기본) -->
+    <div>
+      <div class="frame-mobile">
+        <p class="not-found-display">404</p>
+        <p class="not-found-message">페이지를 찾을 수 없습니다</p>
+        <button class="not-found-button"
+                onclick="alert('sketch: navigate(/dashboard) 동작 시각화');">
+          대시보드로 이동
+        </button>
+      </div>
+      <p class="caption">
+        다크 · 404 색 <code>var(--text-tertiary)</code> #8b949e ·
+        버튼 <code>var(--accent-active)</code> #2563eb ·
+        <code>useNavigate</code> + <code>navigate('/dashboard')</code> 라우팅
+      </p>
+    </div>
+
+    <!-- 라이트 (data-theme="light") -->
+    <div>
+      <div class="frame-mobile" data-theme="light">
+        <p class="not-found-display">404</p>
+        <p class="not-found-message">페이지를 찾을 수 없습니다</p>
+        <button class="not-found-button"
+                onclick="alert('sketch: navigate(/dashboard) 동작 시각화');">
+          대시보드로 이동
+        </button>
+      </div>
+      <p class="caption">
+        라이트 · 404 색 <code>var(--text-tertiary)</code> #656d76 ·
+        버튼 <code>var(--accent-active)</code> #0a52c4 ·
+        <code>useNavigate</code> + <code>/dashboard</code> 라우팅
+      </p>
+    </div>
+  </div>
+
+  <h2>2. 비즈 anchor 5건 (W2 TSX 변환 wave 1 byte 변경 0 보존)</h2>
+  <div class="biz-anchors">
+    <ul>
+      <li>
+        <strong><code>useNavigate()</code> hook</strong> —
+        <code>react-router-dom</code> import line 1 + line 3 호출.
+        W2 TSX 변환 wave 에서 import 와 hook 호출 모두 1 byte 변경 0.
+      </li>
+      <li>
+        <strong><code>navigate('/dashboard')</code> 라우팅</strong> —
+        line 8 button onClick. 인자 문자열 <code>'/dashboard'</code> 1 byte 변경 0.
+      </li>
+      <li>
+        <strong>"404" 텍스트</strong> — line 6 <code>&lt;p&gt;</code> 내용.
+        텍스트 자체 변경 금지 (시각만 토큰 교체).
+      </li>
+      <li>
+        <strong>"페이지를 찾을 수 없습니다" 텍스트</strong> — line 7 <code>&lt;p&gt;</code> 내용.
+        텍스트 자체 변경 금지.
+      </li>
+      <li>
+        <strong>"대시보드로 이동" 버튼 카피</strong> — line 8 <code>&lt;button&gt;</code> 내용.
+        텍스트 자체 변경 금지.
+      </li>
+    </ul>
+  </div>
+
+  <h2>3. 디자인 결정 요약</h2>
+  <div class="decision-summary">
+    <ul>
+      <li>
+        <strong>사용 토큰</strong> —
+        <code>--surface-page</code> (배경),
+        <code>--text-primary</code> (본문),
+        <code>--text-tertiary</code> (404 큰 텍스트),
+        <code>--accent-active</code> (버튼 배경),
+        <code>--text-on-accent</code> (버튼 텍스트),
+        <code>--radius-md</code> (12, 버튼),
+        <code>--space-4</code> (16, gap),
+        <code>--button-height</code> (44, 모바일)
+      </li>
+      <li>
+        <strong>404 색 결정</strong> —
+        <code>var(--text-tertiary)</code> (정보 없음 의미).
+        <code>status-danger</code> 색 사용 금지: 404 는 에러가 아니라 정보 없음 성격이며,
+        design-system §1.4 상태 색 의미 우선 룰을 따른다.
+      </li>
+      <li>
+        <strong>버튼 변형</strong> — accent solid (<code>var(--accent-active)</code>).
+        hover 시 <code>var(--accent)</code> 로 톤업.
+      </li>
+      <li>
+        <strong>폰트</strong> —
+        404: 96px / weight 900 / lineHeight 1.0 (text-display 28px 초과 인라인 허용, 30-not-found.md §4 권장).
+        안내 문구: 18px / weight 600 (text-title) — 본문 마지노선 16px 초과 ✓.
+        버튼: 16px / weight 700 (text-body) — 본문 마지노선 16px 초과 ✓.
+      </li>
+      <li>
+        <strong>Spacing</strong> — gap <code>var(--space-4)</code> = 16.
+        모바일/데스크톱 동일 (정적 컨테이너 센터링이라 분기 불필요).
+      </li>
+      <li>
+        <strong>Radius</strong> — 버튼 <code>var(--radius-md)</code> = 12.
+      </li>
+      <li>
+        <strong>모바일/데스크톱</strong> — 폰트 동일, spacing 동일,
+        컨테이너 max-width 480 (모바일 시뮬레이션). 데스크톱도 동일 센터링.
+      </li>
+      <li>
+        <strong>alias 처리 옵션</strong> (W2 사용자 컨펌 단계에서 선택) —
+        <code>A</code>. 풀-마이그레이션 (<code>--bg</code>/<code>--t1</code>/<code>--bg4</code> 모두 새 semantic 으로 교체) /
+        <code>B</code>. alias 유지 (변경 최소화) /
+        <code>C</code>. 하이브리드 (배경/텍스트 alias 유지 + 버튼 raw hex <code>#2563eb</code>/<code>#fff</code> 만 토큰 교체).
+      </li>
+    </ul>
+  </div>
+
+  <h2>4. Negative gate (W2 변환 wave 가 의식할 룰)</h2>
+  <div class="negative-gate">
+    <ul>
+      <li>9 / 10 / 11 px fontSize 0건 (노안 마지노선 16 룰)</li>
+      <li>
+        의미상 위험 색 (red-bar 류) 사용 0건 — 404 는 에러가 아니라 정보 없음.
+        본 sketch 의 자체 검수에서도 위험 임계치 색 anchor 사용 0건 확인.
+      </li>
+      <li>이모지 0건 (feedback_tsx_wave_emoji_dot_gap.md)</li>
+      <li>linear-gradient 0건 (28-splash OQ #2 LOCKED 패턴 mirror — 단색 solid 만)</li>
+      <li>
+        <code>style={...}</code> 인라인 → W2 TSX 에서 Tailwind class 로 교체
+        (30-not-found.md §4 요구사항).
+      </li>
+    </ul>
+  </div>
+</body>
+</html>
