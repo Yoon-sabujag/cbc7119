@@ -160,30 +160,25 @@ export function MenuSettingsSection() {
 
   // ── Render ────────────────────────────────────────
   return (
-    <div style={{ padding: '12px 13px 5px' }}>
+    <div className="pt-3 px-[13px] pb-[5px]">
       <button
         onClick={() => setCollapsed(c => !c)}
         aria-expanded={!collapsed}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', marginBottom: collapsed ? 0 : 6,
-          padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-        }}
+        className={`flex items-center justify-between w-full p-0 bg-transparent border-none cursor-pointer ${collapsed ? '' : 'mb-1.5'}`}
       >
-        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+        <span className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase">
           메뉴 설정
         </span>
         <ChevronRight
           size={14}
-          color="var(--t3)"
-          style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+          className={`text-text-tertiary transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}
         />
       </button>
 
       {!collapsed && <>
 
       {/* Entry list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div className="flex flex-col gap-[5px]">
         {draft.map((entry, idx) => {
           // admin 전용 항목은 일반 사용자에게 숨김
           if (!isAdmin && entry.type === 'item' && ADMIN_PATHS.has(entry.path)) return null
@@ -195,13 +190,12 @@ export function MenuSettingsSection() {
           if (entry.type === 'divider') {
             const isEditing = editingDividerIdx === idx
             return (
-              <div key={`d-${entry.id}`} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 12px', background: 'var(--bg3)', borderRadius: 9,
-                borderLeft: '2px solid var(--bd2)',
-              }}>
-                <div style={{ width: 16, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                key={`d-${entry.id}`}
+                className="flex items-center gap-2 py-2.5 px-3 bg-surface-sunken rounded-[9px] border-l-2 border-border-strong"
+              >
+                <div className="w-4 shrink-0" />
+                <div className="flex-1 min-w-0">
                   {isEditing ? (
                     <DividerTitleInput
                       initial={entry.title}
@@ -210,12 +204,7 @@ export function MenuSettingsSection() {
                   ) : (
                     <span
                       onClick={() => setEditingDividerIdx(idx)}
-                      style={{
-                        fontSize: 9, fontWeight: 700, color: 'var(--t2)',
-                        letterSpacing: '.08em', textTransform: 'uppercase',
-                        cursor: 'pointer', display: 'block',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}
+                      className="text-caption leading-none font-bold text-text-secondary tracking-[.08em] uppercase cursor-pointer block overflow-hidden text-ellipsis whitespace-nowrap"
                     >
                       {entry.title}
                     </span>
@@ -234,7 +223,7 @@ export function MenuSettingsSection() {
                     <button
                       onClick={() => setConfirmDeleteIdx(idx)}
                       aria-label="구분선 삭제"
-                      style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)' }}
+                      className="w-7 h-7 flex items-center justify-center bg-transparent border-none cursor-pointer text-danger shrink-0 p-0"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -249,18 +238,17 @@ export function MenuSettingsSection() {
           if (DESKTOP_ONLY_PATHS.has(entry.path)) return null
           const label = PATH_LABEL[entry.path]
           return (
-            <div key={`i-${entry.path}`} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 12px', background: 'var(--bg3)', borderRadius: 9,
-              opacity: entry.visible ? 1 : 0.4,
-            }}>
-              <div style={{ width: 16, flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div
+              key={`i-${entry.path}`}
+              className={`flex items-center gap-2 py-2.5 px-3 bg-surface-sunken rounded-[9px] ${entry.visible ? '' : 'opacity-40'}`}
+            >
+              <div className="w-4 shrink-0" />
+              <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                <span className="text-caption font-normal text-text-primary overflow-hidden text-ellipsis whitespace-nowrap">
                   {label}
                 </span>
                 {!entry.visible && (
-                  <span style={{ fontSize: 9, color: 'var(--t3)', flexShrink: 0 }}>숨김</span>
+                  <span className="text-caption leading-none text-text-tertiary shrink-0">숨김</span>
                 )}
               </div>
               <ArrowButton dir="up"   disabled={isFirst} onClick={() => moveUp(idx)} />
@@ -278,33 +266,29 @@ export function MenuSettingsSection() {
       {/* Add divider button */}
       <button
         onClick={addDivider}
-        style={{
-          marginTop: 10, width: '100%', height: 36,
-          border: '1px dashed var(--bd2)', background: 'transparent',
-          color: 'var(--t2)', borderRadius: 8, fontSize: 12, fontWeight: 400, cursor: 'pointer',
-        }}
+        className="mt-2.5 w-full h-9 border border-dashed border-border-strong bg-transparent text-text-secondary rounded-sm text-caption leading-none font-normal cursor-pointer"
       >
         + 구분선 추가
       </button>
 
       {/* Reset to defaults */}
-      <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+      <div className="mt-2 flex justify-end">
         {confirmReset ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10, color: 'var(--t2)' }}>기본 배치로 되돌릴까요?</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-caption leading-none text-text-secondary">기본 배치로 되돌릴까요?</span>
             <button
               onClick={() => setConfirmReset(false)}
-              style={{ background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+              className="bg-surface-active text-text-secondary border-none rounded-[6px] px-2 py-1 text-caption leading-none font-bold cursor-pointer"
             >취소</button>
             <button
               onClick={resetToDefaults}
-              style={{ background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
+              className="bg-danger text-text-on-accent border-none rounded-[6px] px-2 py-1 text-caption leading-none font-bold cursor-pointer"
             >초기화</button>
           </div>
         ) : (
           <button
             onClick={() => setConfirmReset(true)}
-            style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 10, cursor: 'pointer', padding: 0 }}
+            className="bg-transparent border-none text-text-tertiary text-caption leading-none cursor-pointer p-0"
           >
             기본값으로 초기화
           </button>
@@ -315,13 +299,7 @@ export function MenuSettingsSection() {
       <button
         onClick={() => saveMutation.mutate()}
         disabled={!dirty || saveMutation.isPending}
-        style={{
-          marginTop: 8, width: '100%', height: 40,
-          background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 9,
-          fontSize: 12, fontWeight: 700,
-          cursor: dirty && !saveMutation.isPending ? 'pointer' : 'not-allowed',
-          opacity: dirty && !saveMutation.isPending ? 1 : 0.4,
-        }}
+        className={`mt-2 w-full h-10 bg-accent text-text-on-accent border-none rounded-[9px] text-caption leading-none font-bold ${dirty && !saveMutation.isPending ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-40'}`}
       >
         {saveMutation.isPending ? '저장 중…' : '설정 저장'}
       </button>
@@ -340,13 +318,7 @@ function ArrowButton({ dir, disabled, onClick }: { dir: 'up' | 'down'; disabled:
       onClick={onClick}
       disabled={disabled}
       aria-label={dir === 'up' ? '위로 이동' : '아래로 이동'}
-      style={{
-        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'none', border: 'none', cursor: disabled ? 'default' : 'pointer',
-        color: 'var(--t2)',
-        opacity: disabled ? 0.25 : 1,
-        pointerEvents: disabled ? 'none' : 'auto',
-      }}
+      className={`w-7 h-7 flex items-center justify-center bg-transparent border-none text-text-secondary shrink-0 p-0 ${disabled ? 'opacity-25 pointer-events-none cursor-default' : 'opacity-100 cursor-pointer'}`}
     >
       <Icon size={14} />
     </button>
@@ -359,18 +331,11 @@ function ToggleSmall({ on, onChange, ariaLabel }: { on: boolean; onChange: () =>
       onClick={onChange}
       aria-label={ariaLabel}
       aria-pressed={on}
-      style={{
-        width: 38, height: 21, borderRadius: 11, border: 'none', cursor: 'pointer',
-        background: on ? '#2563eb' : 'var(--bg4)',
-        position: 'relative', transition: 'background 0.18s', flexShrink: 0,
-      }}
+      className={`relative w-[38px] h-[21px] rounded-full border-none cursor-pointer shrink-0 p-0 transition-colors duration-200 ${on ? 'bg-accent-active' : 'bg-surface-active'}`}
     >
-      <span style={{
-        position: 'absolute', top: 2, left: 2, width: 17, height: 17, borderRadius: '50%',
-        background: '#fff', transition: 'transform 0.18s',
-        transform: on ? 'translateX(17px)' : 'translateX(0)',
-        display: 'block',
-      }} />
+      <span
+        className={`absolute top-0.5 left-0.5 w-[17px] h-[17px] rounded-full bg-text-on-accent block transition-transform duration-200 ${on ? 'translate-x-[17px]' : 'translate-x-0'}`}
+      />
     </button>
   )
 }
@@ -392,26 +357,22 @@ function DividerTitleInput({ initial, onCommit }: { initial: string; onCommit: (
         if (e.key === 'Escape') { setValue(initial); setTimeout(() => onCommit(initial), 0) }
       }}
       aria-label="구분선 제목"
-      style={{
-        height: 40, width: '100%', boxSizing: 'border-box',
-        background: 'var(--bg3)', border: '1px solid var(--acl)', borderRadius: 8,
-        padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none',
-      }}
+      className="h-10 w-full box-border bg-surface-sunken border border-accent rounded-sm px-3 text-label text-text-primary outline-none"
     />
   )
 }
 
 function DeleteConfirmInline({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: 10, color: 'var(--t2)' }}>삭제할까요?</span>
+    <div className="flex items-center gap-1.5">
+      <span className="text-caption leading-none text-text-secondary">삭제할까요?</span>
       <button
         onClick={onCancel}
-        style={{ background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+        className="bg-surface-active text-text-secondary border-none rounded-[6px] px-2 py-1 text-caption leading-none font-bold cursor-pointer"
       >취소</button>
       <button
         onClick={onConfirm}
-        style={{ background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 8px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+        className="bg-danger text-text-on-accent border-none rounded-[6px] px-2 py-1 text-caption leading-none font-bold cursor-pointer"
       >삭제</button>
     </div>
   )
