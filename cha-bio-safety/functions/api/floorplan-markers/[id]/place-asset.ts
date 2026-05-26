@@ -123,12 +123,20 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, params, env }
       seqNo = maxExtSeq + 1
     }
 
-    await env.DB.prepare(
-      `UPDATE extinguishers
-       SET check_point_id = ?, seq_no = ?, zone = ?, floor = ?, mgmt_no = ?, location = ?,
-           updated_at = datetime('now','+9 hours')
-       WHERE id = ? AND status='active'`
-    ).bind(cpId, seqNo, extZone, extFloor, mgmtNo, cpLocation, body.extinguisher_id).run()
+    // cp.location_no 도 mgmt_no 와 동기화 — PDF/QR 라벨 큰 글씨가 location_no 를 보기 때문에
+    // 일반 create.ts 패턴(location_no = mgmt_no) 과 맞춰야 PDF 에 '지-B1-NN' 형식 노출.
+    // (cp 신규 생성 분기에선 location 으로 INSERT 됐고, 재사용 분기에선 기존값 그대로라 둘 다 갱신.)
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE extinguishers
+         SET check_point_id = ?, seq_no = ?, zone = ?, floor = ?, mgmt_no = ?, location = ?,
+             updated_at = datetime('now','+9 hours')
+         WHERE id = ? AND status='active'`
+      ).bind(cpId, seqNo, extZone, extFloor, mgmtNo, cpLocation, body.extinguisher_id),
+      env.DB.prepare(
+        `UPDATE check_points SET location_no = ? WHERE id = ?`
+      ).bind(mgmtNo, cpId),
+    ])
 
     return Response.json({ success: true, data: { check_point_id: cpId, mgmt_no: mgmtNo } })
   } catch (e: any) {
