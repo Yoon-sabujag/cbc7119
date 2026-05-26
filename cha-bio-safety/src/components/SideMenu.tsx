@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore'
 import { getMonthlySchedule } from '../utils/shiftCalc'
 import { useStaffList } from '../hooks/useStaffList'
 import { settingsApi, type SideMenuEntry, type MenuConfig } from '../utils/api'
+import { X } from 'lucide-react' // W3-OQ #A LOCKED — close icon migrated to Lucide X
 
 const NAV_H = 'calc(54px + var(--sab, 0px))'
 
@@ -109,44 +110,51 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
       {/* 오버레이 */}
       <div
         onClick={onClose}
+        className="fixed inset-0 z-[190] bg-black/65 transition-opacity duration-[280ms]"
         style={{
-          position: 'fixed', inset: 0, zIndex: 190,
-          background: 'rgba(0,0,0,0.65)',
+          // 동적 분기 — open prop 따라 변경. Tailwind class dynamic value 한계로 인라인 유지
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'all' : 'none',
-          transition: 'opacity 0.28s',
         }}
       />
 
       {/* 패널 */}
       <div
         id="side-menu-panel"
+        className="fixed left-0 z-[200] w-[82%] max-w-[300px] bg-surface-raised flex flex-col overflow-hidden rounded-r-[16px]"
         style={{
-          position: 'fixed', top: 'var(--sat, 0px)', bottom: 'calc(54px + var(--sab, 0px) - var(--sat, 0px))', left: 0, zIndex: 200,
-          width: '82%', maxWidth: 300,
-          background: 'var(--bg2)',
+          // 동적 분기 (open) + safe-area css var + cubic-bezier transition — Tailwind class 한계로 인라인 유지
+          top: 'var(--sat, 0px)',
+          bottom: `calc(${NAV_H} - var(--sat, 0px))`,
           transform: open ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
-          borderRadius: '0 16px 16px 0',
         }}
       >
         {/* 헤더 */}
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 15px', borderBottom:'1px solid var(--bd)', flexShrink:0 }}>
-          <img src="/icons/icon-192.png" alt="" style={{ width:30, height:30, borderRadius:8, flexShrink:0 }} />
+        <div className="flex items-center gap-2.5 px-[15px] py-3 border-b border-border-default shrink-0">
+          <img src="/icons/icon-192.png" alt="" className="w-[30px] h-[30px] rounded-[8px] shrink-0" />
           <div>
-            <div style={{ fontSize:13, fontWeight:700 }}>차바이오컴플렉스</div>
-            <div style={{ fontSize:9.5, color:'var(--t3)', marginTop:1 }}>소방안전 통합관리</div>
+            <div className="text-[13px] font-bold text-text-primary">차바이오컴플렉스</div>
+            <div className="text-caption text-text-tertiary mt-px">소방안전 통합관리</div>
           </div>
-          <button onClick={onClose} style={{ marginLeft:'auto', width:28, height:28, borderRadius:7, background:'var(--bg3)', border:'none', color:'var(--t2)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15 }}>✕</button>
+          <button
+            onClick={onClose}
+            aria-label="메뉴 닫기"
+            className="ml-auto w-7 h-7 rounded-[7px] bg-surface-sunken border-none text-text-secondary cursor-pointer flex items-center justify-center"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         {/* 메뉴 목록 — 평면 리스트, divider = 섹션 헤더 */}
-        <div style={{ overflowY:'auto', flex:1, padding:'5px 0' }}>
+        <div className="overflow-y-auto flex-1 py-[5px]">
           {appliedEntries.map((entry, idx) => {
             if (entry.type === 'divider') {
               return (
-                <div key={`d-${entry.id}-${idx}`} style={{ padding:'9px 13px 2px', fontSize:9, fontWeight:700, color:'var(--t3)', letterSpacing:'.08em', textTransform:'uppercase' }}>
+                <div
+                  key={`d-${entry.id}-${idx}`}
+                  className="px-[13px] pt-[9px] pb-[2px] text-[11px] font-bold text-text-tertiary tracking-[.08em] uppercase leading-none"
+                >
                   {entry.title}
                 </div>
               )
@@ -159,22 +167,25 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
             if (meta.desktopOnly) return null
             if (meta.soon) {
               return (
-                <div key={`i-${entry.path}-${idx}`} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 13px', margin:'1px 7px', borderRadius:8, color:'var(--t3)', opacity:0.5, cursor:'default', pointerEvents:'none' }}>
-                  <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{meta.label}</span>
-                  <span style={{ fontSize:10, color:'var(--t3)', background:'var(--bg3)', borderRadius:6, padding:'2px 7px' }}>준비중</span>
+                <div
+                  key={`i-${entry.path}-${idx}`}
+                  className="flex items-center gap-2.5 px-[13px] py-[9px] mx-[7px] my-px rounded-[8px] text-text-tertiary opacity-50 cursor-default pointer-events-none"
+                >
+                  <span className="text-body font-medium flex-1">{meta.label}</span>
+                  <span className="text-caption text-text-tertiary bg-surface-sunken rounded-[6px] px-[7px] py-[2px]">준비중</span>
                 </div>
               )
             }
             const badgeCount = meta.path === '/remediation' ? unresolvedCount : meta.badge
             return (
-              <div key={`i-${entry.path}-${idx}`} onClick={() => go(meta.path)}
-                style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 13px', margin:'1px 7px', borderRadius:8, cursor:'pointer', color:'var(--t1)', transition:'background 0.13s' }}
-                onMouseEnter={e => (e.currentTarget.style.background='var(--bg4)')}
-                onMouseLeave={e => (e.currentTarget.style.background='transparent')}
+              <div
+                key={`i-${entry.path}-${idx}`}
+                onClick={() => go(meta.path)}
+                className="flex items-center gap-2.5 px-[13px] py-[9px] mx-[7px] my-px rounded-[8px] cursor-pointer text-text-primary transition-colors duration-150 hover:bg-surface-active"
               >
-                <span style={{ fontSize:12.5, fontWeight:500, flex:1 }}>{meta.label}</span>
+                <span className="text-body font-medium flex-1">{meta.label}</span>
                 {badgeCount > 0 && (
-                  <span style={{ background:'var(--danger)', color:'#fff', fontSize:11, fontWeight:700, fontFamily:'JetBrains Mono', padding:'2px 4px', borderRadius:9, minWidth:16, textAlign:'center' }}>
+                  <span className="bg-fire-bar text-white text-label font-bold font-mono px-1 py-[2px] rounded-[9px] min-w-[16px] text-center">
                     {badgeCount > 99 ? '99+' : badgeCount}
                   </span>
                 )}
@@ -184,14 +195,20 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
         </div>
 
         {/* 로그인 사용자 */}
-        <div style={{ padding:'9px 11px', borderTop:'1px solid var(--bd)', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:9, padding:'8px 10px', background:'var(--bg3)', borderRadius:9 }}>
-            <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#1d4ed8,#0ea5e9)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#fff', flexShrink:0 }}>
+        <div className="px-[11px] py-[9px] border-t border-border-default shrink-0">
+          <div className="flex items-center gap-[9px] px-2.5 py-2 bg-surface-sunken rounded-[9px]">
+            <div
+              className="w-[28px] h-[28px] rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+              style={{
+                // OQ #3 LOCKED §6.4 매치 — 아바타 그라데이션 보존 (Tailwind 토큰 없음, 인라인 유지)
+                background: 'linear-gradient(135deg,#1d4ed8,#0ea5e9)',
+              }}
+            >
               {staff?.name?.[0] ?? '?'}
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:11.5, fontWeight:700 }}>{staff?.name}</div>
-              <div style={{ fontSize:9.5, color:'var(--t3)' }}>{staff?.title} · {todayShiftLabel}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-body-sm font-bold text-text-primary">{staff?.name}</div>
+              <div className="text-caption text-text-tertiary">{staff?.title} · {todayShiftLabel}</div>
             </div>
           </div>
         </div>
