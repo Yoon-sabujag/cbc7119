@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>31 GlobalHeader · v0.1.1 재디자인 시안 (W2 sub-wave)</title>
+  <!--
+    sketch-wave-2-global-header.html — redesign/31-chrome W2 sub-wave
+    작성: 2026-05-27 / quick 260527-37t
+    범위: GlobalHeader.tsx (45 라인) 단일 컴포넌트 sketch
+          다크 + 라이트 2 변형 + 햄버거/back+gear 슬롯 변형 = 4 frame 매트릭스
+    out of scope:
+      - src/components/GlobalHeader.tsx 수정 (W7 책임 — 1 byte 변경 0 강제)
+      - App.tsx / tokens.css / typography.css / design-system.md / tailwind.config.js 1 byte 변경 0
+      - SideMenu / SettingsPanel / MenuSettingsSection sketch (W3/W4/W5 책임)
+      - 31-chrome/wave-1-index.md 갱신 (W1 완결됨)
+      - 31-chrome/ 7 스냅샷 / 00-design-context/ 1 byte 변경 0
+    참조: 30-not-found/sketch.html (다크/라이트 양쪽 precedent)
+          28-splash/sketch-wave-2-splash-static-light.html (단일 컴포넌트 atomic precedent)
+          10-cctv-info/sketch/cctv-info-sketch.html (작은 page atomic precedent)
+          design-system.md v0.1.1 / tokens.css / typography.css / wave-1-index.md §7 OQ LOCKED
+
+    ==========================================================
+    비즈 anchor 7건 (GlobalHeader) — W7 TSX 변환 wave 1 byte 변경 0 강제
+    ==========================================================
+
+      1. GlobalHeaderProps interface { title, onMenuOpen, rightSlot, leftSlot } (line 1~6)
+         - title: string
+         - onMenuOpen: () => void
+         - rightSlot?: React.ReactNode
+         - leftSlot?: React.ReactNode
+
+      2. export function GlobalHeader({ title, onMenuOpen, rightSlot, leftSlot }: ...) 시그니처 (line 8)
+
+      3. <header> + display:flex + alignItems:center + flex-shrink:0 (line 10~18)
+         - 스크롤 안 됨 (flex-shrink:0 = 0)
+         - height 48 (h-12 Tailwind = 48 매치 OK)
+         - padding '0 12px' (px-3 매치 OK)
+
+      4. leftSlot ?? <button onClick={onMenuOpen} aria-label="메뉴 열기"> JSX 분기 (line 19~33)
+         - 옵셔널 fallback ?? (||  와 다름 — 0/false/'' 도 leftSlot 으로 인정)
+
+      5. svg path "M4 6h16M4 12h16M4 18h16" verbatim 보존 (line 30~32)
+         - viewBox "0 0 24 24" / strokeWidth 2 / strokeLinecap/Linejoin "round"
+         - W2 sketch 에서 Lucide Menu 교체 X (OQ #5 LOCKED — 인라인 svg 유지)
+
+      6. title <span> + flex:1 + textAlign 분기 + marginLeft 분기 (line 35~41)
+         - textAlign rightSlot ? 'left' : 'center'
+         - marginLeft rightSlot ? 8 : 0
+
+      7. rightSlot || <div style={{ width: 32 }} /> 옵셔널 fallback (line 42)
+         - || 사용 (?? 아님) — placeholder 로 symmetry 보존 의도
+
+    ==========================================================
+    OQ LOCKED 8건 매트릭스 (wave-1-index.md §7 사용자 답변 반영)
+    ==========================================================
+
+      OQ #1: 다크 + 라이트 양쪽 지원
+        - default 답: 다크 단일 유지
+        - LOCKED 답: 다크 + 라이트 양쪽 지원 (사용자 명시 변경)
+        - 본 W2 적용: sketch HTML 에 :root 다크 + [data-theme="light"] 라이트 둘 다 정의.
+                      4 frame 중 2 frame data-theme="light" 부착.
+
+      OQ #2: §1.1 9·10·11 위반 — 일괄 12 격상 vs 부분 절충
+        - default 답: 부분 절충
+        - LOCKED 답: 부분 절충 (GlobalHeader 의 fontSize 13 → 노안 룰 마지노선 16 격상 필요)
+        - 본 W2 적용: title fontSize 13 → 18 (text-title — 페이지 헤더 제목)
+                      햄버거 button 32×32 → 48×48 (h-12 w-12 = 48 = touch target 룰 — w-8 함정 회피)
+                      svg 15×15 → 20 (Lucide size 표준)
+                      right placeholder <div width:32> → <div width:48> (symmetry 보존)
+
+      OQ #3: SideMenu 사용자 카드 아바타 그라데이션 유지
+        - LOCKED 답: 유지 (§6.4 매치 OK)
+        - 본 W2 무관 (SideMenu 는 W3 책임)
+
+      OQ #4: SettingsPanel 프로필 그라데이션 폐기
+        - LOCKED 답: 폐기 → bg-accent solid
+        - 본 W2 무관 (SettingsPanel 은 W4 책임)
+
+      OQ #5: 인라인 svg ↔ Lucide 일관성
+        - LOCKED 답: 인라인 svg 유지 (path "M4 6h16M4 12h16M4 18h16" verbatim)
+        - 본 W2 적용: 햄버거 svg verbatim 보존. Lucide Menu 교체 X.
+
+      OQ #6: admin 테스트 푸시 이모지 제거
+        - LOCKED 답: 제거 → Lucide Send + Loader2
+        - 본 W2 무관 (SettingsPanel 책임)
+
+      OQ #7: 햄버거 panel width 300 + SettingsPanel width 320 보존
+        - LOCKED 답: 보존
+        - 본 W2 무관 (panel 은 W3/W4 책임)
+
+      OQ #8: W7 TSX 변환 4 분할 (sub-wave)
+        - LOCKED 답: 4 분할 (atomic 단일 변환 X)
+        - 본 W2 적용: GlobalHeader 단일 sketch 가 W7 의 첫 sub-wave 대상.
+
+    ==========================================================
+    노안 룰 §1.1 격상 표 (본 W2 적용)
+    ==========================================================
+
+      source (GlobalHeader.tsx)              ->  sketch (W2)              비고
+      -----------------------------------       ----------------------   ----------------------------
+      title fontSize 13                      ->  18 (text-title)          페이지 헤더 = 카드 제목급
+      title fontWeight 700                   ->  600 (font-semibold)      v0.1.1 룰 (700 무거움)
+      햄버거 button 32x32                     ->  48x48 (h-12 w-12)        터치 타겟 44 마지노선 + 8pt
+      햄버거 button borderRadius 7            ->  8 (var(--radius-sm))     v0.1.1 §radius (8/12/16/99)
+      svg 15x15                              ->  20 (size 20)             Lucide 표준 / 인라인 path 유지
+      svg strokeWidth 2                      ->  2 (유지)                  굵기 동일
+      right placeholder <div width:32>       ->  <div width:48>           symmetry 보존 — 햄버거와 동일
+      header height 48                       ->  48 (h-12)                현 source 부합 — 유지
+      header padding '0 12px'                ->  px-3 (12px)              유지
+      legacy alias --bg2 / --bg3 / --bd /    ->  v0.1.1 의미 토큰         §6 토큰 매핑 박스 참조
+      --t1 / --t2 (다크 hex)
+
+    ==========================================================
+    토큰 매핑 (본 W2 적용 — design-system v0.1.1 §2)
+    ==========================================================
+
+      source (legacy alias)        ->   sketch (v0.1.1 의미 토큰)
+      -------------------------       ------------------------------
+      background var(--bg2)        ->   var(--surface-raised)
+      borderBottom var(--bd)       ->   var(--border-default)
+      햄버거 background var(--bg3)  ->   var(--surface-sunken)
+      햄버거 color var(--t2)        ->   var(--text-secondary)
+      svg stroke var(--t2)         ->   var(--text-secondary)
+      title color var(--t1)        ->   var(--text-primary)
+      borderRadius 7               ->   var(--radius-sm) (8px)
+      height 48                    ->   var(--space-8) (48 — 매치)
+      padding '0 12px'             ->   var(--space-3) horizontal
+
+      legacy alias --bg/--bg2/--bg3/--bd/--t1/--t2 는 :root/[data-theme] 정의 블록 안에서만 허용
+      (tokens.css line 175~197 의 호환 alias 와 동일 패턴).
+      body markup 안에서는 0건 — verify gate 강제.
+
+    ==========================================================
+    Negative gate (sketch 본문 — W7 변환 시 의식할 룰)
+    ==========================================================
+
+      - 9 / 10 / 11 px fontSize 0건 (노안 §1.1 마지노선 16 룰)
+      - linear-gradient 0건 (§6.4 매치 X — GlobalHeader 는 그라데이션 사용 X)
+      - 이모지 0건 (memory feedback_tsx_wave_emoji_dot_gap)
+      - status-* 색 0건 (chrome 은 status 아님 — accent / surface / text 만)
+      - legacy alias --bg/--bg2/--bg3/--bd/--t1/--t2 body markup 안 0건
+        (단 :root + [data-theme="light"] + 기존 코드 호환 alias 정의 블록 안만 허용)
+      - svg path "M4 6h16M4 12h16M4 18h16" verbatim 보존 (Lucide Menu 교체 X)
+  -->
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+
+    /* ──────────────────────────────────────────────────────────────
+       :root — design-system v0.1.1 §2 verbatim (다크 기본)
+       :root 정의 블록 + body / sketch chrome 의 raw hex 만 예외.
+       카드 내부 마크업에는 var(--...) 만 사용
+       (10-cctv-info / 30-not-found precedent verify gate mirror).
+       ────────────────────────────────────────────────────────────── */
+    :root {
+      /* Surface */
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;
+      --surface-sunken:  #232a33;
+      --surface-active:  #2c333d;
+
+      /* Text */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+
+      /* Accent (h2 박스용) */
+      --accent:          #3b82f6;
+
+      /* Border */
+      --border-default:  rgba(255, 255, 255, 0.14);
+
+      /* Radius */
+      --radius-sm:       8px;
+      --radius-md:       12px;
+      --radius-lg:       16px;
+
+      /* Spacing */
+      --space-3:         12px;
+      --space-8:         48px;
+
+      /* Font */
+      --font-sans:       'Pretendard Variable', 'Pretendard', system-ui, -apple-system, sans-serif;
+    }
+
+    /* 라이트 모드 — design-system v0.1.1 §2 verbatim */
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+
+      --border-default:  rgba(0, 0, 0, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ── sketch 외곽 chrome (이 블록 raw hex 는 예외) ───────────── */
+    body {
+      margin: 0;
+      padding: 32px;
+      background: #0f1218;
+      color: var(--text-secondary);
+      font-family: var(--font-sans);
+      line-height: 1.55;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 4px 0;
+      color: var(--text-primary);
+    }
+    h1 + p {
+      margin: 0 0 24px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      max-width: 720px;
+    }
+    h2 {
+      font-size: 14px;
+      margin: 32px 0 6px 0;
+      color: var(--text-primary);
+      padding: 8px 12px;
+      background: rgba(59, 130, 246, 0.10);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+    }
+    .vp-desc {
+      margin: 0 0 16px 0;
+      padding: 0 12px;
+      color: var(--text-tertiary);
+      font-size: 12px;
+    }
+
+    /* ── 다크/라이트 frame 좌우 배치 row ──────────────────── */
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 32px;
+      align-items: flex-start;
+    }
+    .row > div {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .caption {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+    .caption code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── frame-mobile (모바일 480 컨테이너 시뮬레이션) ─────── */
+    .frame-mobile {
+      width: 480px;
+      background: var(--surface-page);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      font-family: var(--font-sans);
+    }
+
+    /* ── GlobalHeader 내부 마크업 (W7 가 TSX 로 변환할 대상) ── */
+    .global-header {
+      display: flex;
+      align-items: center;
+      height: 48px;             /* h-12 — source 부합 */
+      padding: 0 var(--space-3);
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border-default);
+      /* flex-shrink: 0 의도 — frame 안에서는 컨테이너가 컬럼 1개라 생략 가능 */
+    }
+
+    .gh-icon-btn {
+      width: 48px; height: 48px;            /* 32->48 격상 */
+      border-radius: var(--radius-sm);      /* 7->8 */
+      background: var(--surface-sunken);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .gh-icon-btn:hover { background: var(--surface-active); }
+    .gh-icon-btn:active { background: var(--surface-active); }
+
+    .gh-title {
+      flex: 1;
+      font-size: 18px;          /* 13->18 (text-title) */
+      font-weight: 600;         /* 700->600 */
+      line-height: 1.4;
+      color: var(--text-primary);
+      /* textAlign / marginLeft 분기는 modifier 로 표현 */
+    }
+    .gh-title--center { text-align: center; margin-left: 0; }
+    .gh-title--left   { text-align: left;   margin-left: 8px; }
+
+    .gh-right-spacer {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }   /* placeholder symmetry — source 의 <div width:32> 와 동치 */
+
+    /* frame body 데모용 (chrome 아래 빈 컨테이너 — 헤더 시각 확인용) */
+    .frame-body {
+      min-height: 96px;
+      padding: 16px var(--space-3);
+      color: var(--text-tertiary);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── 디자인 결정 요약 / 비즈 anchor / negative gate 박스 ────────────────── */
+    .decision-summary,
+    .biz-anchors,
+    .negative-gate {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .decision-summary ul,
+    .biz-anchors ul,
+    .negative-gate ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+    .decision-summary li,
+    .biz-anchors li,
+    .negative-gate li {
+      font-size: 14px;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+    .decision-summary li strong,
+    .biz-anchors li strong,
+    .negative-gate li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .decision-summary code,
+    .biz-anchors code,
+    .negative-gate code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    /* ── 격상 표 ────────────────────────────────────────────── */
+    .upgrade-table {
+      background: var(--surface-raised);
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+      max-width: 960px;
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: auto;
+    }
+    .upgrade-table table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+    }
+    .upgrade-table th,
+    .upgrade-table td {
+      padding: 6px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-default);
+      vertical-align: top;
+    }
+    .upgrade-table th {
+      color: var(--text-primary);
+      font-weight: 600;
+      background: var(--surface-sunken);
+    }
+    .upgrade-table td code {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 12px;
+      background: var(--surface-active);
+      color: var(--text-primary);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>31 GlobalHeader · v0.1.1 재디자인 시안 (W2 sub-wave)</h1>
+  <p>
+    redesign/31-chrome W2 sub-wave · GlobalHeader.tsx (45 라인) 단일 컴포넌트 sketch ·
+    design-system v0.1.1 의미 토큰 + 노안 룰 §1.1 격상 · 다크 + 라이트 양쪽 시연
+    (OQ #1 LOCKED — 사용자 명시 변경 반영). GlobalHeader.tsx 변경 0 (W7 책임).
+  </p>
+
+  <h2>1. 다크 + 라이트 4 frame 매트릭스 (햄버거 default + leftSlot/rightSlot 변형)</h2>
+  <p class="vp-desc">
+    동일 GlobalHeader 컴포넌트를 다크 (기본) 와 라이트 모드로 시연 (OQ #1 LOCKED).
+    햄버거 default (rightSlot 없음 -> title center) 와 leftSlot=backBtn + rightSlot=settingsGearBtn 변형
+    (App.tsx line 199~213 의 isExtinguishers / isCctv 케이스). 모바일 폭 480 컨테이너 시뮬레이션.
+  </p>
+
+  <div class="row">
+    <!-- ─── Frame 1: 다크 / 햄버거 default (rightSlot 없음 -> title center) ─── -->
+    <div>
+      <div class="frame-mobile">
+        <header class="global-header">
+          <button class="gh-icon-btn" aria-label="메뉴 열기">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="gh-title gh-title--center">대시보드</span>
+          <div class="gh-right-spacer"></div>
+        </header>
+        <div class="frame-body">page content (생략)</div>
+      </div>
+      <p class="caption">
+        다크 · 햄버거 default · title <code>대시보드</code> · rightSlot 없음 ->
+        <code>textAlign: 'center'</code> + <code>marginLeft: 0</code> + placeholder
+        <code>&lt;div width:48&gt;</code> symmetry
+      </p>
+    </div>
+
+    <!-- ─── Frame 2: 다크 / leftSlot=back + rightSlot=settings (title left) ─── -->
+    <div>
+      <div class="frame-mobile">
+        <header class="global-header">
+          <button class="gh-icon-btn" aria-label="뒤로가기">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span class="gh-title gh-title--left">소화기 점검</span>
+          <button class="gh-icon-btn" aria-label="설정">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </header>
+        <div class="frame-body">page content (생략)</div>
+      </div>
+      <p class="caption">
+        다크 · leftSlot=뒤로가기 (App.tsx line 146 <code>backBtn</code>) +
+        rightSlot=설정 (line 159 <code>settingsGearBtn</code>) ->
+        <code>textAlign: 'left'</code> + <code>marginLeft: 8</code>
+      </p>
+    </div>
+
+    <!-- ─── Frame 3: 라이트 / 햄버거 default (Frame 1 mirror + data-theme="light") ─── -->
+    <div>
+      <div class="frame-mobile" data-theme="light">
+        <header class="global-header">
+          <button class="gh-icon-btn" aria-label="메뉴 열기">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="gh-title gh-title--center">대시보드</span>
+          <div class="gh-right-spacer"></div>
+        </header>
+        <div class="frame-body">page content (생략)</div>
+      </div>
+      <p class="caption">
+        라이트 · 햄버거 default · OQ #1 LOCKED 사용자 명시 변경 반영 ·
+        라이트 토큰 hex 검수용 (<code>#f6f8fa</code> raised · <code>#ebeef1</code> sunken ·
+        <code>#1f2328</code> primary · <code>#4d5562</code> secondary)
+      </p>
+    </div>
+
+    <!-- ─── Frame 4: 라이트 / leftSlot+rightSlot (Frame 2 mirror + data-theme="light") ─── -->
+    <div>
+      <div class="frame-mobile" data-theme="light">
+        <header class="global-header">
+          <button class="gh-icon-btn" aria-label="뒤로가기">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+          </button>
+          <span class="gh-title gh-title--left">소화기 점검</span>
+          <button class="gh-icon-btn" aria-label="설정">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </header>
+        <div class="frame-body">page content (생략)</div>
+      </div>
+      <p class="caption">
+        라이트 · leftSlot+rightSlot · 라이트 모드에서 leftSlot/rightSlot 변형의 시각 일관성 검수 ·
+        OQ #1 + #2 + #5 LOCKED 동시 반영
+      </p>
+    </div>
+  </div>
+
+  <h2>2. 비즈 anchor 7건 (W7 TSX 변환 wave 1 byte 변경 0 강제)</h2>
+  <div class="biz-anchors">
+    <ul>
+      <li>
+        <strong>1. <code>GlobalHeaderProps</code> interface</strong> —
+        <code>{ title, onMenuOpen, rightSlot, leftSlot }</code> (line 1~6).
+        title: string / onMenuOpen: () =&gt; void / rightSlot?: ReactNode / leftSlot?: ReactNode.
+      </li>
+      <li>
+        <strong>2. <code>export function GlobalHeader(...)</code> 시그니처</strong> —
+        line 8. props destructuring 순서 + 함수명 1 byte 변경 0.
+      </li>
+      <li>
+        <strong>3. <code>&lt;header&gt;</code> + flex-shrink:0</strong> —
+        line 10~18. 스크롤 안 됨 (<code>flex-shrink: 0</code>) ·
+        <code>height 48</code> (h-12 매치) · <code>padding '0 12px'</code> (px-3 매치).
+      </li>
+      <li>
+        <strong>4. <code>leftSlot ??</code> &lt;button onClick={onMenuOpen} aria-label="메뉴 열기"&gt;</strong> —
+        line 19~33. <code>??</code> 사용 (<code>||</code> 와 다름 — 0/false/'' 도 leftSlot 으로 인정).
+      </li>
+      <li>
+        <strong>5. svg path <code>"M4 6h16M4 12h16M4 18h16"</code> verbatim</strong> —
+        line 30~32. viewBox <code>"0 0 24 24"</code> · strokeWidth 2 · strokeLinecap/Linejoin "round".
+        OQ #5 LOCKED — Lucide Menu 교체 X.
+      </li>
+      <li>
+        <strong>6. title &lt;span&gt; + flex:1 + textAlign 분기 + marginLeft 분기</strong> —
+        line 35~41. <code>textAlign: rightSlot ? 'left' : 'center'</code> ·
+        <code>marginLeft: rightSlot ? 8 : 0</code>.
+      </li>
+      <li>
+        <strong>7. <code>rightSlot ||</code> &lt;div style={{ width: 32 }} /&gt; placeholder</strong> —
+        line 42. <code>||</code> 사용 (<code>??</code> 와 다름) — placeholder 로 symmetry 보존 의도.
+        W2 sketch 에서는 격상하여 <code>width: 48</code> 으로 표시 (햄버거 button 과 동일 크기).
+      </li>
+    </ul>
+  </div>
+
+  <h2>3. OQ LOCKED 8건 매트릭스 (wave-1-index.md §7 사용자 답변 반영)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li>
+        <strong>OQ #1 — 다크/라이트 양쪽 지원</strong>: default <code>다크 단일</code> ->
+        <strong>LOCKED <code>다크 + 라이트 양쪽 지원</code></strong> (사용자 명시 변경).
+        본 W2 적용: <code>:root</code> + <code>[data-theme="light"]</code> 둘 다 정의 + 4 frame 매트릭스.
+      </li>
+      <li>
+        <strong>OQ #2 — §1.1 9·10·11 위반 격상</strong>: default <code>부분 절충</code> ->
+        <strong>LOCKED <code>부분 절충</code></strong>.
+        본 W2 적용: title fontSize 13 -&gt; 18 / 햄버거 32x32 -&gt; 48x48 /
+        svg 15 -&gt; 20 / placeholder 32 -&gt; 48 (symmetry).
+      </li>
+      <li>
+        <strong>OQ #3 — SideMenu 아바타 그라데이션 유지</strong>: LOCKED <code>유지</code>.
+        본 W2 무관 (W3 책임).
+      </li>
+      <li>
+        <strong>OQ #4 — SettingsPanel 프로필 그라데이션 폐기</strong>: LOCKED <code>폐기</code> ->
+        <code>bg-accent</code> solid. 본 W2 무관 (W4 책임).
+      </li>
+      <li>
+        <strong>OQ #5 — 인라인 svg ↔ Lucide</strong>: LOCKED <code>인라인 svg 유지</code>.
+        본 W2 적용: 햄버거 svg path verbatim 보존. Lucide Menu 교체 X.
+      </li>
+      <li>
+        <strong>OQ #6 — admin 테스트 푸시 이모지 제거</strong>: LOCKED <code>제거</code> ->
+        Lucide Send + Loader2. 본 W2 무관 (W4 책임).
+      </li>
+      <li>
+        <strong>OQ #7 — panel width 보존</strong>: LOCKED <code>보존</code>.
+        본 W2 무관 (W3/W4 책임).
+      </li>
+      <li>
+        <strong>OQ #8 — W7 TSX 변환 분할</strong>: LOCKED <code>4 분할 (sub-wave)</code>.
+        본 W2 적용: GlobalHeader 단일 sketch 가 W7 의 첫 sub-wave 대상.
+      </li>
+    </ul>
+  </div>
+
+  <h2>4. 노안 룰 §1.1 격상 표 (본 W2 적용)</h2>
+  <div class="upgrade-table">
+    <table>
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>source (GlobalHeader.tsx)</th>
+          <th>sketch (W2 격상)</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>title fontSize</td>
+          <td><code>13</code></td>
+          <td><code>18</code> (text-title)</td>
+          <td>페이지 헤더 = 카드 제목급</td>
+        </tr>
+        <tr>
+          <td>title fontWeight</td>
+          <td><code>700</code></td>
+          <td><code>600</code> (font-semibold)</td>
+          <td>v0.1.1 룰 (700 무거움)</td>
+        </tr>
+        <tr>
+          <td>햄버거 button 크기</td>
+          <td><code>32 x 32</code></td>
+          <td><code>48 x 48</code> (h-12 w-12)</td>
+          <td>터치 타겟 44 마지노선 + 8pt</td>
+        </tr>
+        <tr>
+          <td>햄버거 button borderRadius</td>
+          <td><code>7</code></td>
+          <td><code>8</code> (<code>var(--radius-sm)</code>)</td>
+          <td>v0.1.1 §radius (8/12/16/99)</td>
+        </tr>
+        <tr>
+          <td>svg 크기</td>
+          <td><code>15 x 15</code></td>
+          <td><code>20</code> (size 20)</td>
+          <td>Lucide 표준 / 인라인 path 유지</td>
+        </tr>
+        <tr>
+          <td>svg strokeWidth</td>
+          <td><code>2</code></td>
+          <td><code>2</code> (유지)</td>
+          <td>굵기 동일</td>
+        </tr>
+        <tr>
+          <td>right placeholder width</td>
+          <td><code>32</code></td>
+          <td><code>48</code></td>
+          <td>symmetry — 햄버거와 동일</td>
+        </tr>
+        <tr>
+          <td>header height</td>
+          <td><code>48</code></td>
+          <td><code>48</code> (h-12)</td>
+          <td>현 source 부합 — 유지</td>
+        </tr>
+        <tr>
+          <td>header padding</td>
+          <td><code>'0 12px'</code></td>
+          <td><code>px-3</code> (12px)</td>
+          <td>유지</td>
+        </tr>
+        <tr>
+          <td>legacy alias 토큰</td>
+          <td><code>--bg2</code>/<code>--bg3</code>/<code>--bd</code>/<code>--t1</code>/<code>--t2</code></td>
+          <td>v0.1.1 의미 토큰</td>
+          <td>§5 토큰 매핑 박스 참조</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>5. 토큰 매핑 (design-system v0.1.1 §2)</h2>
+  <div class="decision-summary">
+    <ul>
+      <li><code>background var(&#45;&#45;bg2)</code> -&gt; <code>var(--surface-raised)</code></li>
+      <li><code>borderBottom var(&#45;&#45;bd)</code> -&gt; <code>var(--border-default)</code></li>
+      <li>햄버거 <code>background var(&#45;&#45;bg3)</code> -&gt; <code>var(--surface-sunken)</code></li>
+      <li>햄버거 <code>color var(&#45;&#45;t2)</code> -&gt; <code>var(--text-secondary)</code></li>
+      <li>svg <code>stroke var(&#45;&#45;t2)</code> -&gt; <code>var(--text-secondary)</code> (또는 <code>currentColor</code>)</li>
+      <li>title <code>color var(&#45;&#45;t1)</code> -&gt; <code>var(--text-primary)</code></li>
+      <li><code>borderRadius 7</code> -&gt; <code>var(--radius-sm)</code> (8px)</li>
+      <li><code>height 48</code> -&gt; <code>var(--space-8)</code> (48 — 매치)</li>
+      <li><code>padding '0 12px'</code> -&gt; <code>var(--space-3)</code> horizontal</li>
+      <li>
+        <strong>legacy alias 정책</strong> — <code>--bg/--bg2/--bg3/--bd/--t1/--t2</code> 는
+        <code>:root</code> + <code>[data-theme]</code> 정의 블록 안에서만 허용
+        (tokens.css line 175~197 의 호환 alias 와 동일 패턴).
+        body markup 안에서는 0건 — verify gate 강제.
+      </li>
+    </ul>
+  </div>
+
+  <h2>6. Negative gate (sketch 본문 — W7 변환 시 의식할 룰)</h2>
+  <div class="negative-gate">
+    <ul>
+      <li>9 / 10 / 11 px fontSize 0건 (노안 §1.1 마지노선 16 룰 — title 18 / svg 20 / spacer 48)</li>
+      <li>linear gradient (CSS <code>linear&#8209;gradient()</code>) 0건 — GlobalHeader 는 §6.4 매치 X (그라데이션 사용 X)</li>
+      <li>이모지 0건 (memory <code>feedback_tsx_wave_emoji_dot_gap</code>)</li>
+      <li>status-* 색 0건 (chrome 은 status 아님 — accent / surface / text 만)</li>
+      <li>
+        legacy alias <code>--bg</code>/<code>--bg2</code>/<code>--bg3</code>/<code>--bd</code>/<code>--t1</code>/<code>--t2</code>
+        body markup 안 0건 (정의 블록 안만 허용)
+      </li>
+      <li>svg path <code>"M4 6h16M4 12h16M4 18h16"</code> verbatim 보존 (Lucide Menu 교체 X)</li>
+      <li>
+        보호 파일 1 byte 변경 0 — <code>src/components/GlobalHeader.tsx</code> +
+        <code>App.tsx</code> + <code>tokens.css</code> + <code>typography.css</code> +
+        <code>design-system.md</code> + <code>tailwind.config.js</code> +
+        <code>31-chrome/wave-1-index.md</code> + 31-chrome/ 7 스냅샷 + 00-design-context/
+      </li>
+    </ul>
+  </div>
+</body>
+</html>
