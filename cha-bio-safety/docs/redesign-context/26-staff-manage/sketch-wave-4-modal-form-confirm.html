@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<!--
+  sketch-wave-4-modal-form-confirm.html — redesign/26-staff-manage W4
+  작성: 2026-05-26 / quick 260526-n10
+  범위: StaffManagePage.tsx
+        - BottomSheet 함수 (line 22~40): overlay rgba(0,0,0,0.6) + bg var(--bg2) + radius 16/16/0/0 + slideUp 0.28s + maxHeight 90vh + handle bar 32x4
+        - DesktopModal 함수 (line 42~57): overlay rgba(0,0,0,0.5) + bg var(--bg2) + radius 12 + width 440 + maxHeight 85vh + boxShadow
+        - 모달 호출 wrapper (line 516~527): modal.open + replaceModal.open
+        - INPUT_STYLE + LABEL_STYLE 상수 (line 60~67): height 44 / bg var(--bg3) / radius 8 / fontSize 14
+        - 폼 필드 8건 (207~253): 이름/사번/연락처/이메일/입사일/생년월일/직책/역할 toggle
+        - confirmReset (255~274): 비밀번호 초기화 confirm inline box
+        - 액션 row (277~312): 취소/저장 + edit 시 비활성화/교체 + confirmDeactivate
+        - ReplaceModalContent (81~149): 교체 모달 인라인 박제
+  7 frame: A BottomSheet 등록 / B DesktopModal 등록 / C edit 수정 / D confirmReset / E confirmDeactivate / F ReplaceModal / G canSave=false + role height
+  out of scope: 외곽 wrapper+가드+헤더 (W2) / 콘텐츠 리스트+FAB (W3) / TSX 변환 (W5) / src/** 수정 0
+
+  [OQ LOCKED 적용 (본 wave)]
+    OQ #1 LOCKED — BottomSheet/DesktopModal 인라인 보존 (CheckpointsPage 24 공통화는 별도 task, 이 wave 박제만)
+
+    OQ #2 LOCKED — 저장 button + 직원 추가 button + 비활성화 button + 교체 button 모두 단색
+      저장/추가 = --accent-primary / 비활성화 = --status-danger → [danger] / 교체 = warning-bar
+      §6.4 그라데이션 미적용
+
+    OQ #3 LOCKED — shiftOffset / shiftFixed 폼 UI 미노출 유지 (ReplaceModal staffApi.update 만)
+      + role toggle button row height 36 → 40 (데스크톱) / 44 (모바일) 격상 (§1.1 모바일 44px 룰)
+
+    OQ #4 LOCKED — 모달 hex 토큰 치환
+      --bg2→--surface-raised / --bg3→--surface-sunken / --bg4→--surface-active
+      --bd/--bd2→--border-default/--border-strong
+      --t1/t2/t3→--text-primary/--secondary/--tertiary
+      --acl→--accent-primary / --danger→[danger] / --warn→[warning-bar]
+      overlay rgba 직접 유지 OK
+
+    OQ #5 LOCKED — 보조 라벨 fontSize 격상
+      입사일 보조 라벨 fontSize 10 (line 224) → 12 text-caption + leading-none
+      생년월일 보조 라벨 fontSize 10 (line 236) → 12 text-caption + leading-none
+      ReplaceModal info 박스 보조 라벨 fontSize 11 (line 121) → 12 text-caption + leading-none
+      모달 title fontSize 16 → text-body 보존 (text-title 격상 검토 OQ)
+
+    OQ #6 LOCKED — 모달 close는 backdrop click only (e.target === e.currentTarget)
+      BottomSheet/DesktopModal 안 명시적 X close icon 없음 (현재 backdrop only)
+      UserPlus 는 W2/W3 에서 처리. 모달 안 inline SVG 없음.
+-->
+
+<!--
+  OQ #1: BottomSheet/DesktopModal 인라인 보존 (CheckpointsPage 24 공통화는 별도 task, 이 wave 박제만 — line 22~57 verbatim)
+-->
+<!--
+  OQ #2: 저장 button + 직원 추가 button + 비활성화 button + 교체 button 모두 단색 (저장/추가=--accent-primary, 비활성화=[danger], 교체=[warning-bar], §6.4 그라데이션 미적용)
+-->
+<!--
+  OQ #3: shiftOffset / shiftFixed 폼 UI 미노출 유지 (EMPTY_STAFF_FORM 에 데이터만 유지, ReplaceModal 의 staffApi.update 시퀀스에서만 변경) + role toggle button row height 36 → 40 (데스크톱) / 44 (모바일) 격상 (§1.1 모바일 44px 룰 준수)
+-->
+<!--
+  OQ #4: 외곽 hex 토큰 치환 (--bg2→--surface-raised / --bg3→--surface-sunken / --bg4→--surface-active / --bd/--bd2→--border-default/strong / --t1/t2/t3→--text-primary/secondary/tertiary / --acl→--accent-primary / --danger→[danger token] / --warn→[warning-bar] / --safe→[safe-bar] / overlay rgba 직접 유지 OK)
+-->
+<!--
+  OQ #5: 보조 라벨 fontSize 10 (입사일 line 224 + 생년월일 line 236) / ReplaceModal info 박스 보조 라벨 11 (line 121) → text-caption (12px) 일률 격상 + leading-none. 모달 title 16 → text-body 또는 text-title 격상 검토.
+-->
+<!--
+  OQ #6: 모달 close 버튼 (BottomSheet/DesktopModal 의 backdrop click close — e.target === e.currentTarget) 외 inline SVG 없음. UserPlus 는 W2/W3 에서 처리. 모달 안 명시적 X close icon 추가 검토 (현재 backdrop only).
+-->
+
+<!--
+  비즈 anchor (StaffManagePage.tsx, 1 byte X):
+     - BottomSheet (line 22~40): overlay position fixed inset 0 / bg rgba(0,0,0,0.6) / zIndex 50 / flex column / justifyContent flex-end / panel bg var(--bg2) borderRadius 16/16/0/0 / animation 'slideUp 0.28s ease-out both' / maxHeight 90vh / handle bar 32x4 paddingTop 12 / title 16/700/var(--t1) padding '12px 16px 0' / backdrop click close (e.target === e.currentTarget)
+     - DesktopModal (line 42~57): overlay bg rgba(0,0,0,0.5) / panel borderRadius 12 / width 440 / maxHeight 85vh / boxShadow '0 8px 32px rgba(0,0,0,.18)' / title padding '20px 24px 0'
+     - ModalWrapper = isDesktop ? DesktopModal : BottomSheet (line 387) — useIsDesktop 훅 분기
+     - INPUT_STYLE (line 60~67): width 100% / height 44 / padding '0 12px' / fontSize 14 / bg var(--bg3) / border 1px solid var(--bd) / borderRadius 8 / color var(--t1) / boxSizing border-box / outline none
+     - 폼 필드 8 (line 207~253): name input '홍길동' required + 빨간 * / id input '0000000000' JetBrains Mono inputMode numeric edit 시 disabled / phone input '010-0000-0000' type tel / email input 'email@example.com' type email / appointedAt input readonly opacity 0.5 + 보조 라벨 '(사번 앞 8자리에서 자동)' / birthDate input type date + 보조 라벨 '(휴가신청서 자동 채움)' / title input '소방안전관리자' / role toggle button row (['admin','assistant'] as Role[]) verbatim '관리자' / '보조자'
+     - confirmReset (line 255~274, edit only): 토글 링크 '비밀번호 초기화' var(--warn) underline → 안내 박스 rgba(245,158,11,.08) + '사번 뒷 4자리로 비밀번호를 초기화합니다. 계속하시겠습니까?' + 취소/초기화 height 32
+     - 액션 row (line 277~312): 취소 / 저장 button canSave (form.name.trim() !== '' && form.id.trim() !== '') / isBusy disabled / edit 시 교체 button row 'rgba(245,158,11,.1)' + '#d97706' / confirmDeactivate=true 안내 박스 'rgba(239,68,68,.08)' + '이 직원을 비활성화합니다. 점검 기록은 보존됩니다.' + 빨간 '비활성화' 버튼
+     - ReplaceModalContent (line 81~149): candidates = allStaff.filter(s => s.active === 1 && s.id !== oldStaff.id && s.shiftOffset === null && s.shiftFixed === null) / shiftLabel '평일 주간 고정' | `3교대 (오프셋 ${N})` | '미설정' / 2× await staffApi.update 시퀀스 (1) selectedId set shiftOffset+shiftFixed (2) oldStaff.id active=0 phone='' email='' shiftOffset=null shiftFixed=null / invalidate ['staff-list'] / toast.success `${oldStaff.name} → ${newStaff.name} 교체 완료` / toast.error e.message || '교체 실패'
+     - 모달 호출 wrapper (line 516~527): {modal.open && <ModalWrapper title={mode==='add'?'직원 추가':'직원 수정'}>} + {replaceModal.open && replaceModal.target && <ModalWrapper title='직원 교체'>}
+     - 사번 10자리 정규식 (line 194, 1 byte X): /^\d{10}$/.test(form.id) — 시안에서는 * 표시 시각만
+     - appointedAt 자동 채움 (line 224~233, 1 byte X): p = (form.id ?? '').slice(0, 8) / /^[0-9]{8}$/.test(p) 시 YYYY-MM-DD / readonly opacity 0.5
+     - shiftOffset 0~3 + shiftFixed 'day'/null 폼 UI 미노출 — EMPTY_STAFF_FORM (line 76~78) + 초기화 (line 157) 만 (memory project_div_compressor_pair + project_meal_calc_rules)
+     - window.__openReplaceModal 훅 (line 365~368, 1 byte X) — 시안은 비주얼만
+     - 카피 verbatim: '직원 추가' / '직원 수정' / '직원 교체' / '저장' / '취소' / '비활성화' / '교체' / '관리자' / '보조자' / '비밀번호 초기화' / '초기화' / '이 직원을 비활성화합니다. 점검 기록은 보존됩니다.' / '사번 뒷 4자리로 비밀번호를 초기화합니다. 계속하시겠습니까?' / '(사번 앞 8자리에서 자동)' / '(휴가신청서 자동 채움)' / '근무 패턴을 이전합니다.' / '근무 패턴:' / '기존 점검 기록은 보존되며, 개인정보(연락처/이메일)는 삭제됩니다.' / '교체할 직원 선택' / '교체 가능한 직원이 없습니다. 먼저 "직원 추가"로 신규 직원을 등록해주세요.' / '평일 주간 고정' / '3교대 (오프셋 N)' / '미설정' / '처리 중...'
+     - placeholder verbatim 7건: '홍길동' / '0000000000' / '010-0000-0000' / 'email@example.com' / '사번 입력 시 자동 채워짐' / '소방안전관리자' / '선택하세요'
+     - toast 카피 verbatim: '직원이 추가되었습니다' / '직원 정보가 수정되었습니다' / '저장에 실패했습니다. 입력값을 확인해 주세요' / '비밀번호가 초기화되었습니다 (사번 뒷 4자리)' / '비밀번호 초기화에 실패했습니다' / '직원이 비활성화되었습니다' / '비활성화에 실패했습니다' / '사번은 10자리 숫자여야 합니다'
+-->
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>26-staff-manage W4 — Modal Form Confirm sketch</title>
+  <style>
+    /* ── 토큰 (OQ #4: hex 치환) ── */
+    :root, [data-theme="dark"] {
+      --surface-page:    #0a0d12;
+      --surface-raised:  #1a1f27;   /* --bg2 → surface-raised */
+      --surface-sunken:  #232a33;   /* --bg3 → surface-sunken */
+      --surface-active:  #2c333d;   /* --bg4 → surface-active */
+      --text-primary:    #e6edf3;
+      --text-secondary:  #adb6c0;
+      --text-tertiary:   #8b949e;
+      --border-default:  rgba(255,255,255,0.14);
+      --border-strong:   rgba(255,255,255,0.22);   /* --bd2 → border-strong */
+      --border-focus:    #3b82f6;
+      --accent-primary:  #3b82f6;   /* --acl → accent-primary */
+      --danger-fg:       #f87171;   /* --danger → [danger fg] */
+      --danger-bg:       rgba(239,68,68,0.08);    /* confirmDeactivate 안내 박스 */
+      --warning-bar:     #f59e0b;   /* --warn → [warning-bar] */
+      --warning-bg:      rgba(245,158,11,0.08);   /* confirmReset 안내 박스 */
+      --info-bg:         rgba(59,130,246,0.08);   /* ReplaceModal info 박스 */
+      --replace-btn-bg:  rgba(245,158,11,0.10);   /* 교체 버튼 bg */
+      --replace-btn-fg:  #d97706;                  /* 교체 버튼 color */
+    }
+    [data-theme="light"] {
+      --surface-page:    #ffffff;
+      --surface-raised:  #f6f8fa;
+      --surface-sunken:  #ebeef1;
+      --surface-active:  #d8dee4;
+      --text-primary:    #1f2328;
+      --text-secondary:  #4d5562;
+      --text-tertiary:   #656d76;
+      --border-default:  rgba(0,0,0,0.12);
+      --border-strong:   rgba(0,0,0,0.22);
+      --border-focus:    #0969da;
+      --accent-primary:  #0969da;
+      --danger-fg:       #ef4444;
+      --danger-bg:       rgba(239,68,68,0.08);
+      --warning-bar:     #b45309;
+      --warning-bg:      rgba(180,83,9,0.08);
+      --info-bg:         rgba(9,105,218,0.08);
+      --replace-btn-bg:  rgba(180,83,9,0.10);
+      --replace-btn-fg:  #b45309;
+    }
+
+    /* ── 키프레임 ── */
+    @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+    input:focus { border-color: var(--accent-primary) !important; }
+    select:focus { border-color: var(--accent-primary) !important; outline: none; }
+
+    /* ── 공통 리셋 ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+      background: #0a0a1a;
+    }
+
+    /* ── 캔버스 레이아웃 ── */
+    .sketch-canvas {
+      display: flex;
+      flex-direction: column;
+      gap: 56px;
+      padding: 32px 24px;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #adb6c0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 20px;
+    }
+    .frame-row {
+      display: flex;
+      gap: 32px;
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .frame-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8b949e;
+      line-height: 1;
+    }
+
+    /* ── BottomSheet 외곽 (line 22~40) ── */
+    /* OQ #1: 인라인 보존 verbatim */
+    .sheet-overlay {
+      /* position fixed / inset 0 / bg rgba(0,0,0,0.6) / zIndex 50 / flex column / justifyContent flex-end */
+      position: relative;
+      width: 390px;
+      height: 700px;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .sheet-panel {
+      /* bg var(--bg2)→--surface-raised / borderRadius 16/16/0/0 / animation slideUp 0.28s / maxHeight 90vh / overflowY auto */
+      background: var(--surface-raised);
+      border-radius: 16px 16px 0 0;
+      animation: slideUp 0.28s ease-out both;
+      overflow-y: auto;
+    }
+    .sheet-handle-row {
+      /* paddingTop 12 / display flex / justifyContent center */
+      display: flex;
+      justify-content: center;
+      padding-top: 12px;
+    }
+    .sheet-handle {
+      /* width 32 / height 4 / bg var(--bd2)→--border-strong / radius 2
+         memory feedback_tailwind_w8_h8_is_48px: w-[32px] h-[4px] arbitrary (w-8=48px 함정) */
+      width: 32px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 2px;
+    }
+    .sheet-title {
+      /* fontSize 16 / fontWeight 700 / color var(--t1)→--text-primary / padding '12px 16px 0' */
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 12px 16px 0;
+    }
+
+    /* ── DesktopModal 외곽 (line 42~57) ── */
+    /* OQ #1: 인라인 보존 verbatim */
+    .modal-overlay {
+      /* position fixed / inset 0 / bg rgba(0,0,0,0.5) / zIndex 50 / flex / alignItems center / justifyContent center */
+      position: relative;
+      width: 560px;
+      height: 640px;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.15);
+    }
+    .modal-panel {
+      /* bg var(--bg2)→--surface-raised / borderRadius 12 / width 440 / maxHeight 85vh / overflowY auto / boxShadow '0 8px 32px rgba(0,0,0,.18)' */
+      background: var(--surface-raised);
+      border-radius: 12px;
+      width: 440px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .modal-title {
+      /* fontSize 16 / fontWeight 700 / color var(--t1)→--text-primary / padding '20px 24px 0' */
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      padding: 20px 24px 0;
+    }
+
+    /* ── 폼 공통 스타일 (INPUT_STYLE + LABEL_STYLE, line 60~67) ── */
+    .form-body {
+      padding: 16px 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-body-wide {
+      /* 데스크톱 모달용 패딩 */
+      padding: 16px 24px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .form-label {
+      /* LABEL_STYLE: fontSize 12 fontWeight 700 color var(--t2) marginBottom 6 */
+      /* OQ #5: 기존 12 OK + leading-none (memory feedback_text_caption_leading_none) */
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      line-height: 1;
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .form-required {
+      color: var(--danger-fg);
+    }
+    .form-sub-label {
+      /* OQ #5: 입사일/생년월일 보조 라벨 fontSize 10 (line 224, 236) → 12 text-caption + leading-none */
+      font-size: 12px;   /* OQ #5: 10 → 12 격상 */
+      font-weight: 400;
+      color: var(--text-tertiary);
+      line-height: 1;    /* leading-none */
+    }
+    .form-input {
+      /* INPUT_STYLE: height 44 / bg var(--bg3)→--surface-sunken / border 1px solid var(--bd) / borderRadius 8 / padding 0 12 / fontSize 14 / color var(--t1) / width 100% / boxSizing border-box / outline none */
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      box-sizing: border-box;
+      outline: none;
+      font-family: 'Noto Sans KR', system-ui, sans-serif;
+    }
+    .form-input::placeholder {
+      color: var(--text-tertiary);
+    }
+    .form-input.mono {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+    }
+    .form-input.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── 역할 toggle button row (line 243~253) ── */
+    /* OQ #3: height 36 → 40 (데스크톱) / 44 (모바일) 격상 (§1.1 모바일 44px 룰) */
+    .role-toggle {
+      display: flex;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-default);
+    }
+    .role-btn {
+      flex: 1;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.15s;
+    }
+    .role-btn.mobile { height: 44px; } /* OQ #3: 모바일 44px */
+    .role-btn.desktop { height: 40px; } /* OQ #3: 데스크톱 40px */
+    .role-btn.selected {
+      background: var(--accent-primary);
+      color: #ffffff;
+    }
+    .role-btn.unselected {
+      background: var(--surface-active);
+      color: var(--text-tertiary);
+    }
+
+    /* ── confirmReset 박스 (line 255~274) ── */
+    .confirm-reset-box {
+      /* bg rgba(245,158,11,.08) → --warning-bg / borderRadius 8 / padding 10px 12px */
+      background: var(--warning-bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--text-secondary);
+    }
+    .confirm-reset-text {
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .confirm-reset-link {
+      /* '비밀번호 초기화' — var(--warn)→[warning-bar] underline */
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--warning-bar);
+      text-decoration: underline;
+      padding: 0;
+      line-height: 1;
+    }
+    .small-btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .small-btn {
+      flex: 1;
+      height: 32px;    /* confirmReset 버튼 height 32 */
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .small-btn.cancel {
+      background: var(--surface-active);
+      color: var(--text-secondary);
+    }
+    .small-btn.confirm-init {
+      /* OQ #2: [warning-bar] 단색 (그라데이션 미적용) */
+      background: var(--warning-bar);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* ── 액션 row (line 277~312) ── */
+    .action-row {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-cancel {
+      flex: 1;
+      height: 44px;
+      background: var(--surface-active);
+      color: var(--text-secondary);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-save {
+      flex: 1;
+      height: 44px;
+      /* OQ #2: --accent-primary 단색 (그라데이션 미적용) */
+      background: var(--accent-primary);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-save.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-deactivate {
+      flex: 1;
+      height: 40px;
+      background: rgba(239,68,68,0.08);
+      color: var(--danger-fg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .btn-replace {
+      flex: 1;
+      height: 40px;
+      /* 교체 버튼: rgba(245,158,11,.1) + #d97706 → [warning-bar] 톤 */
+      background: var(--replace-btn-bg);
+      color: var(--replace-btn-fg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* ── confirmDeactivate 안내 박스 (line 301~311) ── */
+    .confirm-deactivate-box {
+      /* bg rgba(239,68,68,.08) → --danger-bg / borderRadius 8 / padding 12 */
+      background: var(--danger-bg);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .btn-deactivate-confirm {
+      flex: 1;
+      height: 44px;
+      /* OQ #2: [danger] 단색 (그라데이션 미적용) */
+      background: var(--danger-fg);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    /* ── ReplaceModalContent (line 81~149) ── */
+    .replace-info-box {
+      /* rgba(59,130,246,.08) → --info-bg / borderRadius 8 / padding 10px 12px */
+      background: var(--info-bg);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .replace-info-sub {
+      /* OQ #5: fontSize 11 (line 121) → 12 + leading-none */
+      font-size: 12px;   /* OQ #5: 11 → 12 격상 */
+      line-height: 1;
+      color: var(--text-tertiary);
+    }
+    .replace-select {
+      height: 44px;
+      background: var(--surface-sunken);
+      border: 1px solid var(--border-default);
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text-primary);
+      width: 100%;
+      cursor: pointer;
+    }
+    .replace-no-candidates {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      padding: 12px;
+      background: var(--surface-sunken);
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+    .btn-replace-confirm {
+      flex: 1;
+      height: 44px;
+      /* OQ #2: [warning-bar] 단색 (그라데이션 미적용) */
+      background: var(--warning-bar);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .btn-replace-confirm.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="sketch-canvas">
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION A: BottomSheet (모바일) — mode='add' 등록 폼
+         StaffManagePage.tsx line 22~40 + 151~316
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">A — BottomSheet (모바일) mode=add (line 22~40 + 207~253, slideUp 0.28s)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">A-1 다크 / 등록 폼 (canSave=true, 이름+사번 입력됨)</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row">
+                <div class="sheet-handle"></div>
+              </div>
+              <div class="sheet-title">직원 추가</div>
+              <!-- 폼 필드 8건 (line 207~253) -->
+              <div class="form-body">
+                <!-- 1. 이름 (required) -->
+                <div class="form-field">
+                  <div class="form-label">이름 <span class="form-required">*</span></div>
+                  <input class="form-input" value="윤종엽" placeholder="홍길동" />
+                </div>
+                <!-- 2. 사번 (required, JetBrains Mono, inputMode numeric) -->
+                <div class="form-field">
+                  <div class="form-label">사번 <span class="form-required">*</span></div>
+                  <input class="form-input mono" value="2022051052" placeholder="0000000000" inputmode="numeric" />
+                </div>
+                <!-- 3. 연락처 (optional, type tel) -->
+                <div class="form-field">
+                  <div class="form-label">연락처</div>
+                  <input class="form-input" value="010-0000-0000" placeholder="010-0000-0000" type="tel" />
+                </div>
+                <!-- 4. 이메일 (optional, type email) -->
+                <div class="form-field">
+                  <div class="form-label">이메일</div>
+                  <input class="form-input" value="" placeholder="email@example.com" type="email" />
+                </div>
+                <!-- 5. 입사일 (사번 앞 8자리 자동 채움, readonly, opacity 0.5) -->
+                <div class="form-field">
+                  <div class="form-label">
+                    입사일
+                    <!-- OQ #5: 보조 라벨 fontSize 10 → 12 + leading-none -->
+                    <span class="form-sub-label">(사번 앞 8자리에서 자동)</span>
+                  </div>
+                  <!-- appointedAt 자동 채움: p = (form.id ?? '').slice(0, 8) / YYYY-MM-DD / readonly opacity 0.5 -->
+                  <input class="form-input disabled" value="2022-05-10" placeholder="사번 입력 시 자동 채워짐" readonly />
+                </div>
+                <!-- 6. 생년월일 (optional, type date) -->
+                <div class="form-field">
+                  <div class="form-label">
+                    생년월일
+                    <span class="form-sub-label">(휴가신청서 자동 채움)</span>
+                  </div>
+                  <input class="form-input" type="date" value="" />
+                </div>
+                <!-- 7. 직책 (optional) -->
+                <div class="form-field">
+                  <div class="form-label">직책</div>
+                  <input class="form-input" value="" placeholder="소방안전관리자" />
+                </div>
+                <!-- 8. 역할 toggle button row (line 243~253) -->
+                <!-- OQ #3: height 36 → 44 (모바일) 격상 -->
+                <div class="form-field">
+                  <div class="form-label">역할</div>
+                  <div class="role-toggle">
+                    <button class="role-btn mobile selected">관리자</button>
+                    <button class="role-btn mobile unselected">보조자</button>
+                  </div>
+                </div>
+              </div>
+              <!-- 액션 row: 취소 / 저장 (canSave=true) -->
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <button class="btn-save">저장</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- A-2: 라이트 모드 -->
+        <div class="frame-block">
+          <div class="frame-label">A-2 라이트 / 등록 폼 (canSave=false, 이름 미입력)</div>
+          <div class="sheet-overlay" data-theme="light" style="background:rgba(0,0,0,0.5)">
+            <div class="sheet-panel" style="background:var(--surface-raised)">
+              <div class="sheet-handle-row">
+                <div class="sheet-handle" style="background:var(--border-strong)"></div>
+              </div>
+              <div class="sheet-title" style="color:var(--text-primary)">직원 추가</div>
+              <div class="form-body">
+                <div class="form-field">
+                  <div class="form-label" style="color:var(--text-secondary)">이름 <span class="form-required" style="color:var(--danger-fg)">*</span></div>
+                  <input class="form-input" placeholder="홍길동" style="background:var(--surface-sunken); border-color:var(--border-default); color:var(--text-primary)" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label" style="color:var(--text-secondary)">사번 <span class="form-required" style="color:var(--danger-fg)">*</span></div>
+                  <input class="form-input mono" placeholder="0000000000" style="background:var(--surface-sunken); color:var(--text-primary)" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label" style="color:var(--text-secondary)">역할</div>
+                  <div class="role-toggle" style="border-color:var(--border-default)">
+                    <button class="role-btn mobile unselected" style="background:var(--surface-active); color:var(--text-tertiary)">관리자</button>
+                    <button class="role-btn mobile selected" style="background:var(--accent-primary); color:#fff">보조자</button>
+                  </div>
+                </div>
+              </div>
+              <!-- canSave=false: 저장 버튼 disabled (opacity 0.4) -->
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel" style="background:var(--surface-active); color:var(--text-secondary)">취소</button>
+                  <button class="btn-save disabled">저장</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION B: DesktopModal (데스크톱) — mode='add' 등록 폼
+         StaffManagePage.tsx line 42~57 + 207~253
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">B — DesktopModal (데스크톱) mode=add (line 42~57, width=440, radius=12)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">B-1 다크 / DesktopModal 등록 폼</div>
+          <div class="modal-overlay" data-theme="dark">
+            <div class="modal-panel">
+              <div class="modal-title">직원 추가</div>
+              <div class="form-body-wide">
+                <div class="form-field">
+                  <div class="form-label">이름 <span class="form-required">*</span></div>
+                  <input class="form-input" placeholder="홍길동" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">사번 <span class="form-required">*</span></div>
+                  <input class="form-input mono" placeholder="0000000000" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">연락처</div>
+                  <input class="form-input" placeholder="010-0000-0000" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">이메일</div>
+                  <input class="form-input" placeholder="email@example.com" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">입사일 <span class="form-sub-label">(사번 앞 8자리에서 자동)</span></div>
+                  <input class="form-input disabled" placeholder="사번 입력 시 자동 채워짐" readonly />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">생년월일 <span class="form-sub-label">(휴가신청서 자동 채움)</span></div>
+                  <input class="form-input" type="date" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">직책</div>
+                  <input class="form-input" placeholder="소방안전관리자" />
+                </div>
+                <!-- role toggle: 데스크톱 height 40 (OQ #3) -->
+                <div class="form-field">
+                  <div class="form-label">역할</div>
+                  <div class="role-toggle">
+                    <button class="role-btn desktop unselected">관리자</button>
+                    <button class="role-btn desktop selected">보조자</button>
+                  </div>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <button class="btn-save disabled">저장</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION C: mode='edit' — 직원 수정 모달
+         사번 disabled + confirmReset 링크 + 비활성화/교체 버튼 row
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">C — mode=edit 직원 수정 (line 151~312, 사번 disabled + confirmReset 링크)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">C-1 다크 / 수정 폼 (confirmReset=false)</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 수정</div>
+              <div class="form-body">
+                <div class="form-field">
+                  <div class="form-label">이름 <span class="form-required">*</span></div>
+                  <input class="form-input" value="윤종엽" placeholder="홍길동" />
+                </div>
+                <!-- 사번 edit 시 disabled (opacity 0.5, cursor not-allowed) -->
+                <div class="form-field">
+                  <div class="form-label">사번 <span class="form-required">*</span></div>
+                  <input class="form-input mono disabled" value="2022051052" disabled />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">연락처</div>
+                  <input class="form-input" value="010-9876-5432" placeholder="010-0000-0000" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">직책</div>
+                  <input class="form-input" value="소방안전관리주임" placeholder="소방안전관리자" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">역할</div>
+                  <div class="role-toggle">
+                    <button class="role-btn mobile unselected">관리자</button>
+                    <button class="role-btn mobile selected">보조자</button>
+                  </div>
+                </div>
+                <!-- edit 모드 only: confirmReset 링크 (line 257~259, 초기 상태 토글 링크만) -->
+                <div>
+                  <button class="confirm-reset-link">비밀번호 초기화</button>
+                </div>
+              </div>
+              <!-- 액션 row: 취소/저장 + 비활성화/교체 버튼 row (line 286~296) -->
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <button class="btn-save">저장</button>
+                </div>
+                <!-- edit 시 추가 버튼 row (line 287~295) -->
+                <div class="btn-row">
+                  <button class="btn-deactivate">비활성화</button>
+                  <button class="btn-replace">교체</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION D: confirmReset=true 토글 펼친 상태
+         line 260~274: 안내 박스 + 취소/초기화 버튼 height 32
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">D — confirmReset=true (line 260~274, [warning-bg] 안내 박스)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">D-1 다크 / 비밀번호 초기화 confirm 펼침</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 수정</div>
+              <div class="form-body">
+                <div class="form-field">
+                  <div class="form-label">이름 <span class="form-required">*</span></div>
+                  <input class="form-input" value="윤종엽" />
+                </div>
+                <div class="form-field">
+                  <div class="form-label">직책</div>
+                  <input class="form-input" value="소방안전관리주임" />
+                </div>
+                <!-- confirmReset=true: 안내 박스 펼침 -->
+                <div class="confirm-reset-box">
+                  <div class="confirm-reset-text">
+                    사번 뒷 4자리로 비밀번호를 초기화합니다. 계속하시겠습니까?
+                  </div>
+                  <div class="small-btn-row">
+                    <button class="small-btn cancel">취소</button>
+                    <button class="small-btn confirm-init">초기화</button>
+                  </div>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <button class="btn-save">저장</button>
+                </div>
+                <div class="btn-row">
+                  <button class="btn-deactivate">비활성화</button>
+                  <button class="btn-replace">교체</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION E: confirmDeactivate=true
+         line 300~312: [danger-bg] 안내 박스 + 빨간 '비활성화' 버튼
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">E — confirmDeactivate=true (line 300~312, [danger-bg] 안내 박스)</div>
+      <div class="frame-row">
+        <div class="frame-block">
+          <div class="frame-label">E-1 다크 / 비활성화 confirm 상태</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 수정</div>
+              <div class="form-body">
+                <div class="form-field">
+                  <div class="form-label">이름 <span class="form-required">*</span></div>
+                  <input class="form-input" value="윤종엽" />
+                </div>
+              </div>
+              <!-- confirmDeactivate=true (line 300~312) -->
+              <div class="action-row">
+                <!-- 안내 박스 (line 301~303) -->
+                <div class="confirm-deactivate-box">
+                  이 직원을 비활성화합니다. 점검 기록은 보존됩니다.
+                </div>
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <!-- OQ #2: [danger] 단색 비활성화 버튼 -->
+                  <button class="btn-deactivate-confirm">비활성화</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="frame-block">
+          <div class="frame-label">E-2 라이트 / 비활성화 confirm</div>
+          <div class="sheet-overlay" data-theme="light" style="background:rgba(0,0,0,0.5)">
+            <div class="sheet-panel" style="background:var(--surface-raised)">
+              <div class="sheet-handle-row"><div class="sheet-handle" style="background:var(--border-strong)"></div></div>
+              <div class="sheet-title" style="color:var(--text-primary)">직원 수정</div>
+              <div class="form-body">
+                <div class="form-field">
+                  <div class="form-label" style="color:var(--text-secondary)">이름</div>
+                  <input class="form-input" value="윤종엽" style="background:var(--surface-sunken); color:var(--text-primary)" />
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="confirm-deactivate-box" style="background:var(--danger-bg); color:var(--text-secondary)">
+                  이 직원을 비활성화합니다. 점검 기록은 보존됩니다.
+                </div>
+                <div class="btn-row">
+                  <button class="btn-cancel" style="background:var(--surface-active); color:var(--text-secondary)">취소</button>
+                  <button class="btn-deactivate-confirm" style="background:var(--danger-fg)">비활성화</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION F: ReplaceModalContent (line 81~149) 인라인 박제
+         title '직원 교체' + info 박스 + select + 취소/교체
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">F — ReplaceModalContent (line 81~149, 교체 모달 인라인 박제)</div>
+      <div class="frame-row">
+        <!-- F-1: 후보 있음 (candidates 2명) -->
+        <div class="frame-block">
+          <div class="frame-label">F-1 다크 / 후보 있음 (candidates 2명, selectedId 선택됨)</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 교체</div>
+              <div class="form-body">
+                <!-- info 박스 (line 118~122) -->
+                <div class="replace-info-box">
+                  <strong>김OO</strong> (소방안전관리기사)의 근무 패턴을 이전합니다.<br/>
+                  근무 패턴: <strong>3교대 (오프셋 1)</strong><br/>
+                  <!-- OQ #5: fontSize 11 (line 121) → 12 text-caption + leading-none -->
+                  <span class="replace-info-sub">기존 점검 기록은 보존되며, 개인정보(연락처/이메일)는 삭제됩니다.</span>
+                </div>
+                <!-- candidates filter: active===1 && shiftOffset===null && shiftFixed===null (line 88) -->
+                <div class="form-field">
+                  <div class="form-label">교체할 직원 선택</div>
+                  <select class="replace-select">
+                    <option value="">선택하세요</option>
+                    <option value="2024010001">신OO (소방안전관리주임) — 2024010001</option>
+                    <option value="2023050020">박신규 (소방안전관리기사) — 2023050020</option>
+                  </select>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <!-- OQ #2: [warning-bar] 단색 교체 버튼 -->
+                  <button class="btn-replace-confirm">교체</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- F-2: 후보 없음 (no candidates) -->
+        <div class="frame-block">
+          <div class="frame-label">F-2 다크 / 후보 없음 (candidates.length === 0)</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 교체</div>
+              <div class="form-body">
+                <div class="replace-info-box">
+                  <strong>박OO</strong> (소방안전관리대리)의 근무 패턴을 이전합니다.<br/>
+                  근무 패턴: <strong>평일 주간 고정</strong><br/>
+                  <span class="replace-info-sub">기존 점검 기록은 보존되며, 개인정보(연락처/이메일)는 삭제됩니다.</span>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">교체할 직원 선택</div>
+                  <!-- no candidates (line 127~129) -->
+                  <div class="replace-no-candidates">
+                    교체 가능한 직원이 없습니다. 먼저 &quot;직원 추가&quot;로 신규 직원을 등록해주세요.
+                  </div>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <button class="btn-replace-confirm disabled">교체</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- F-3: '처리 중...' busy state -->
+        <div class="frame-block">
+          <div class="frame-label">F-3 다크 / submitting=true '처리 중...'</div>
+          <div class="sheet-overlay" data-theme="dark">
+            <div class="sheet-panel">
+              <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
+              <div class="sheet-title">직원 교체</div>
+              <div class="form-body">
+                <div class="replace-info-box">
+                  <strong>김OO</strong>의 근무 패턴을 이전합니다.<br/>
+                  근무 패턴: <strong>미설정</strong><br/>
+                  <span class="replace-info-sub">기존 점검 기록은 보존되며, 개인정보(연락처/이메일)는 삭제됩니다.</span>
+                </div>
+                <div class="form-field">
+                  <div class="form-label">교체할 직원 선택</div>
+                  <select class="replace-select">
+                    <option>신OO (소방안전관리주임) — 2024010001</option>
+                  </select>
+                </div>
+              </div>
+              <div class="action-row">
+                <div class="btn-row">
+                  <button class="btn-cancel">취소</button>
+                  <!-- submitting=true: '처리 중...' (line 145) + disabled -->
+                  <button class="btn-replace-confirm disabled">처리 중...</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION G: canSave=false + role toggle height 비교
+         저장 버튼 disabled state + OQ #3 role height 격상
+    ══════════════════════════════════════════════════════ -->
+    <div>
+      <div class="section-title">G — canSave=false / role toggle height 격상 (OQ #3)</div>
+      <div class="frame-row">
+        <!-- G-1: 모바일 role toggle height 44 -->
+        <div class="frame-block">
+          <div class="frame-label">G-1 다크 / role toggle height=44 (모바일 §1.1 44px)</div>
+          <div style="padding:20px; background:var(--surface-raised); border-radius:12px; width:360px; display:flex; flex-direction:column; gap:12px;" data-theme="dark">
+            <div class="form-field">
+              <div class="form-label" style="color:var(--text-secondary)">역할</div>
+              <div class="role-toggle">
+                <!-- OQ #3: 모바일 height 44 (§1.1 준수) -->
+                <button class="role-btn mobile selected">관리자</button>
+                <button class="role-btn mobile unselected">보조자</button>
+              </div>
+              <div style="font-size:12px; color:var(--text-tertiary); line-height:1; margin-top:4px;">
+                OQ #3: 모바일 role btn height 44px (§1.1 터치 타겟 44px 룰)
+              </div>
+            </div>
+            <div class="form-field">
+              <div class="form-label" style="color:var(--text-secondary)">역할 (데스크톱 height=40)</div>
+              <div class="role-toggle">
+                <!-- OQ #3: 데스크톱 height 40 -->
+                <button class="role-btn desktop unselected">관리자</button>
+                <button class="role-btn desktop selected">보조자</button>
+              </div>
+              <div style="font-size:12px; color:var(--text-tertiary); line-height:1; margin-top:4px;">
+                OQ #3: 데스크톱 role btn height 40px
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- G-2: canSave=false + isBusy disabled -->
+        <div class="frame-block">
+          <div class="frame-label">G-2 다크 / 저장 버튼 disabled (canSave=false)</div>
+          <div style="padding:20px; background:var(--surface-raised); border-radius:12px; width:360px; display:flex; flex-direction:column; gap:12px;" data-theme="dark">
+            <div style="font-size:12px; color:var(--text-tertiary); line-height:1.5;">
+              canSave = form.name.trim() !== '' &amp;&amp; form.id.trim() !== ''<br/>
+              (line 190, 변경 금지)
+            </div>
+            <div class="btn-row">
+              <button class="btn-cancel">취소</button>
+              <!-- disabled: opacity 0.4 cursor not-allowed -->
+              <button class="btn-save disabled">저장</button>
+            </div>
+            <div style="font-size:12px; color:var(--text-tertiary); line-height:1.5;">
+              isBusy = createMutation.isPending || updateMutation.isPending<br/>
+              (line 202, 변경 금지)
+            </div>
+            <div class="btn-row">
+              <button class="btn-cancel">취소</button>
+              <!-- isBusy=true: 저장 중... + disabled -->
+              <button class="btn-save disabled" style="opacity:0.4">저장 중...</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /sketch-canvas -->
+</body>
+</html>
