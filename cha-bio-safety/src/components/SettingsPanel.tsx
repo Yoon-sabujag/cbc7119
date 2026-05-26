@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, X, Send, Loader2 } from 'lucide-react'
 import JSZip from 'jszip'
 
 // ── Collapsible section header ────────────────────────
@@ -8,19 +8,15 @@ function SectionHeader({ label, collapsed, onToggle }: { label: string; collapse
     <button
       onClick={onToggle}
       aria-expanded={!collapsed}
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        width: '100%', marginBottom: collapsed ? 0 : 6,
-        padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-      }}
+      className={`flex items-center justify-between w-full p-0 bg-transparent border-none cursor-pointer ${collapsed ? '' : 'mb-1.5'}`}
     >
-      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase' }}>
+      {/* W6 §7 #12 — 9 → 12 격상 (caption leading-none uppercase) */}
+      <span className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase">
         {label}
       </span>
       <ChevronRight
         size={14}
-        color="var(--t3)"
-        style={{ transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.15s' }}
+        className={`text-text-tertiary transition-transform duration-150 ${collapsed ? '' : 'rotate-90'}`}
       />
     </button>
   )
@@ -58,47 +54,56 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange?: (v: boolea
   return (
     <button
       onClick={() => !disabled && onChange?.(!on)}
-      style={{
-        width: 38, height: 21, borderRadius: 11, border: 'none',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        background: on ? '#2563eb' : 'var(--bg4)',
-        position: 'relative', transition: 'background 0.18s', flexShrink: 0,
-        opacity: disabled ? 0.5 : 1,
-      }}
+      disabled={disabled}
+      // W5 OQ #5-A LOCKED — Toggle on raw #2563eb → bg-accent-active
+      className={`relative w-[38px] h-[21px] rounded-full border-none shrink-0 p-0 transition-colors duration-200 ${
+        on ? 'bg-accent-active' : 'bg-surface-active'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer opacity-100'}`}
     >
-      <span style={{
-        position: 'absolute', top: 2, left: 2, width: 17, height: 17, borderRadius: '50%',
-        background: '#fff', transition: 'transform 0.18s',
-        transform: on ? 'translateX(17px)' : 'translateX(0)',
-        display: 'block',
-      }} />
+      <span
+        className={`absolute top-0.5 left-0.5 w-[17px] h-[17px] rounded-full bg-white block transition-transform duration-200 ${
+          on ? 'translate-x-[17px]' : 'translate-x-0'
+        }`}
+      />
     </button>
   )
 }
 
 // ── 알림 권한 상태 배지 ───────────────────────────────
 function PermBadge({ perm }: { perm: NotificationPermission }) {
-  const map: Record<string, { text: string; color: string }> = {
-    granted: { text: '허용됨', color: 'var(--safe, #22c55e)' },
-    denied:  { text: '차단됨', color: 'var(--danger, #ef4444)' },
-    default: { text: '권한 미설정', color: 'var(--t3, #6e7681)' },
+  // sketch §6.3 매트릭스 — 3 분기 (text 토큰 class + bg 는 16% alpha 인라인 합성)
+  const map: Record<string, { text: string; textClass: string; bg: string }> = {
+    granted: { text: '허용됨',      textClass: 'text-safe',          bg: 'rgba(34, 197, 94, 0.16)' },
+    denied:  { text: '차단됨',      textClass: 'text-danger',        bg: 'rgba(239, 68, 68, 0.16)' },
+    default: { text: '권한 미설정', textClass: 'text-text-tertiary', bg: 'rgba(139, 148, 158, 0.16)' },
   }
-  const { text, color } = map[perm] || map.default
+  const { text, textClass, bg } = map[perm] || map.default
   return (
-    <span style={{
-      fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 10,
-      background: `${color}22`, color,
-    }}>{text}</span>
+    <span
+      // W6 §7 #14 — 10 → 12 격상 (caption + leading-none + font-semibold)
+      className={`text-caption leading-none font-semibold px-[7px] py-[2px] rounded-[10px] ${textClass}`}
+      // 동적 색상 16% alpha 합성 — Tailwind class 한계로 인라인 유지 (W6 §9.3 화이트리스트)
+      style={{ background: bg }}
+    >
+      {text}
+    </span>
   )
 }
 
 // ── Row ──────────────────────────────────────────────
 function Row({ label, sub, children, onClick }: { label: string; sub?: string; children?: React.ReactNode; onClick?: () => void }) {
   return (
-    <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--bg3)', borderRadius: 9, marginBottom: 5, cursor: onClick ? 'pointer' : 'default' }}>
+    <div
+      onClick={onClick}
+      className={`flex items-center justify-between px-3 py-2.5 bg-surface-sunken rounded-[9px] mb-[5px] ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
+    >
       <div>
-        <div style={{ fontSize: 12, fontWeight: 500 }}>{label}</div>
-        {sub && <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>{sub}</div>}
+        {/* W6 §7 #15 — 12 → 13 격상 (label) */}
+        <div className="text-label font-medium text-text-primary">{label}</div>
+        {sub && (
+          /* W6 §7 #16 — 10 → 12 격상 (caption) */
+          <div className="text-caption text-text-tertiary mt-px">{sub}</div>
+        )}
       </div>
       {children}
     </div>
@@ -120,22 +125,42 @@ function ChangePasswordForm({ onDone }: { onDone: () => void }) {
   const canSave = current.trim() !== '' && next.trim() !== '' && next === confirm && next.length >= 4
 
   return (
-    <div style={{ padding: '12px 13px' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>비밀번호 변경</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <input type="password" placeholder="현재 비밀번호" value={current} onChange={e => setCurrent(e.target.value)}
-          style={{ height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-        <input type="password" placeholder="새 비밀번호 (4자 이상)" value={next} onChange={e => setNext(e.target.value)}
-          style={{ height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
-        <input type="password" placeholder="새 비밀번호 확인" value={confirm} onChange={e => setConfirm(e.target.value)}
-          style={{ height: 40, background: 'var(--bg3)', border: `1px solid ${confirm && next !== confirm ? 'var(--danger)' : 'var(--bd)'}`, borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+    <div className="px-[13px] py-3">
+      {/* W6 §7 #17 — 9 → 12 격상 (caption leading-none uppercase) */}
+      <div className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase mb-2">비밀번호 변경</div>
+      <div className="flex flex-col gap-2">
+        <input
+          type="password" placeholder="현재 비밀번호" value={current} onChange={e => setCurrent(e.target.value)}
+          className="h-10 w-full box-border bg-surface-sunken border border-border-default rounded-sm px-3 text-label text-text-primary outline-none"
+        />
+        <input
+          type="password" placeholder="새 비밀번호 (4자 이상)" value={next} onChange={e => setNext(e.target.value)}
+          className="h-10 w-full box-border bg-surface-sunken border border-border-default rounded-sm px-3 text-label text-text-primary outline-none"
+        />
+        <input
+          type="password" placeholder="새 비밀번호 확인" value={confirm} onChange={e => setConfirm(e.target.value)}
+          className={`h-10 w-full box-border bg-surface-sunken border rounded-sm px-3 text-label text-text-primary outline-none ${
+            confirm && next !== confirm ? 'border-danger' : 'border-border-default'
+          }`}
+        />
         {confirm && next !== confirm && (
-          <div style={{ fontSize: 11, color: 'var(--danger)' }}>비밀번호가 일치하지 않습니다</div>
+          /* W6 §7 #19 — 11 → 12 격상 (caption text-danger) */
+          <div className="text-caption text-danger">비밀번호가 일치하지 않습니다</div>
         )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onDone} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
-          <button onClick={() => mutation.mutate()} disabled={!canSave || mutation.isPending}
-            style={{ flex: 1, height: 36, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !mutation.isPending ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: canSave && !mutation.isPending ? 1 : 0.4 }}>
+        <div className="flex gap-2">
+          <button
+            onClick={onDone}
+            className="flex-1 h-9 bg-surface-active text-text-secondary border-none rounded-sm cursor-pointer text-label font-bold"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={!canSave || mutation.isPending}
+            className={`flex-1 h-9 bg-accent text-text-on-accent border-none rounded-sm text-label font-bold ${
+              canSave && !mutation.isPending ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-40'
+            }`}
+          >
             변경
           </button>
         </div>
@@ -161,16 +186,29 @@ function NameEditModal({ currentName, onClose, onSave }: { currentName: string; 
   const canSave = editName.trim() !== '' && editName.trim() !== currentName && editName.trim().length <= 20
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' }}>
-      <div style={{ background: 'var(--bg2)', borderRadius: 14, padding: '20px 18px', width: 280, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>이름 변경</div>
-        <input type="text" value={editName} onChange={e => setEditName(e.target.value)} maxLength={20}
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60">
+      <div className="bg-surface-raised rounded-[14px] px-[18px] py-[20px] w-[280px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        {/* W6 §7 #21 — 13 → 16 격상 (text-body font-bold) */}
+        <div className="text-body font-bold mb-[14px] text-text-primary">이름 변경</div>
+        <input
+          type="text" value={editName} onChange={e => setEditName(e.target.value)} maxLength={20}
           placeholder="이름 입력 (최대 20자)" autoFocus
-          style={{ height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8, padding: '0 12px', fontSize: 13, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box', marginBottom: 12 }} />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={onClose} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
-          <button onClick={() => mutation.mutate()} disabled={!canSave || mutation.isPending}
-            style={{ flex: 1, height: 36, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !mutation.isPending ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: canSave && !mutation.isPending ? 1 : 0.4 }}>
+          className="h-10 w-full box-border bg-surface-sunken border border-border-default rounded-sm px-3 text-label text-text-primary outline-none mb-3"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 h-9 bg-surface-active text-text-secondary border-none rounded-sm cursor-pointer text-label font-bold"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={!canSave || mutation.isPending}
+            className={`flex-1 h-9 bg-accent text-text-on-accent border-none rounded-sm text-label font-bold ${
+              canSave && !mutation.isPending ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-40'
+            }`}
+          >
             저장
           </button>
         </div>
@@ -214,60 +252,72 @@ function ProfileEditForm({ onDone }: { onDone: () => void }) {
 
   const canSave = true
 
-  const INPUT_STYLE: React.CSSProperties = {
-    height: 38, background: 'var(--bg3)', border: '1px solid var(--bd)', borderRadius: 8,
-    padding: '0 12px', fontSize: 12, color: 'var(--t1)', outline: 'none', width: '100%', boxSizing: 'border-box' as const,
-  }
-  const READONLY_STYLE: React.CSSProperties = { ...INPUT_STYLE, color: 'var(--t3)', background: 'var(--bg)' }
+  const INPUT_CLS = "h-[38px] w-full box-border bg-surface-sunken border border-border-default rounded-sm px-3 text-caption text-text-primary outline-none"
+  const READONLY_CLS = "h-[38px] w-full box-border bg-surface-page border border-border-default rounded-sm px-3 text-caption text-text-tertiary outline-none"
 
   return (
-    <div style={{ padding: '12px 13px' }}>
-      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--t3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>개인정보 수정</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="px-[13px] py-3">
+      {/* W6 §7 #23 — 9 → 12 격상 (caption leading-none uppercase) */}
+      <div className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase mb-2">개인정보 수정</div>
+      <div className="flex flex-col gap-1.5">
+        {/* W6 §7 #24 — 8 필드 라벨 10 → 12 격상 */}
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이름</div>
-          <input value={name} readOnly style={READONLY_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">이름</div>
+          <input value={name} readOnly className={READONLY_CLS} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>사번</div>
-          <input value={staff?.id ?? ''} readOnly style={READONLY_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">사번</div>
+          <input value={staff?.id ?? ''} readOnly className={READONLY_CLS} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>직책</div>
-          <input value={staff?.title ?? '-'} readOnly style={READONLY_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">직책</div>
+          <input value={staff?.title ?? '-'} readOnly className={READONLY_CLS} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>역할</div>
-          <input value={staff?.role === 'admin' ? '관리자' : '보조자'} readOnly style={READONLY_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">역할</div>
+          <input value={staff?.role === 'admin' ? '관리자' : '보조자'} readOnly className={READONLY_CLS} />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>입사일</div>
-          <input value={(() => {
-            const p = (staff?.id ?? '').slice(0, 8)
-            return /^[0-9]{8}$/.test(p) ? `${p.slice(0,4)}-${p.slice(4,6)}-${p.slice(6,8)}` : (staffFull?.appointedAt ?? '-')
-          })()} readOnly style={READONLY_STYLE} />
-        </div>
-        <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>생년월일</div>
+          <div className="text-caption text-text-tertiary mb-0.5">입사일</div>
           <input
-            type="date"
-            value={birthDate}
-            onChange={e => setBirthDate(e.target.value)}
-            style={{ ...INPUT_STYLE, WebkitAppearance: 'none', appearance: 'none', minWidth: 0, textAlign: 'left' }}
+            value={(() => {
+              const p = (staff?.id ?? '').slice(0, 8)
+              return /^[0-9]{8}$/.test(p) ? `${p.slice(0,4)}-${p.slice(4,6)}-${p.slice(6,8)}` : (staffFull?.appointedAt ?? '-')
+            })()}
+            readOnly className={READONLY_CLS}
           />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>연락처</div>
-          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" style={INPUT_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">생년월일</div>
+          <input
+            type="date" value={birthDate} onChange={e => setBirthDate(e.target.value)}
+            className={INPUT_CLS}
+            // type=date 의 native widget 정렬 보정 — Tailwind class 한계로 인라인 유지 (W6 §9.3 화이트리스트)
+            style={{ WebkitAppearance: 'none', appearance: 'none', minWidth: 0, textAlign: 'left' }}
+          />
         </div>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 2 }}>이메일</div>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={INPUT_STYLE} />
+          <div className="text-caption text-text-tertiary mb-0.5">연락처</div>
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="010-0000-0000" className={INPUT_CLS} />
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button onClick={onDone} style={{ flex: 1, height: 36, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>취소</button>
-          <button onClick={() => mutation.mutate()} disabled={!canSave || mutation.isPending}
-            style={{ flex: 1, height: 36, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !mutation.isPending ? 'pointer' : 'not-allowed', fontSize: 12, fontWeight: 700, opacity: canSave && !mutation.isPending ? 1 : 0.4 }}>
+        <div>
+          <div className="text-caption text-text-tertiary mb-0.5">이메일</div>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" className={INPUT_CLS} />
+        </div>
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={onDone}
+            className="flex-1 h-9 bg-surface-active text-text-secondary border-none rounded-sm cursor-pointer text-label font-bold"
+          >
+            취소
+          </button>
+          <button
+            onClick={() => mutation.mutate()}
+            disabled={!canSave || mutation.isPending}
+            className={`flex-1 h-9 bg-accent text-text-on-accent border-none rounded-sm text-label font-bold ${
+              canSave && !mutation.isPending ? 'cursor-pointer opacity-100' : 'cursor-not-allowed opacity-40'
+            }`}
+          >
             저장
           </button>
         </div>
@@ -639,61 +689,66 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
     <>
       <div
         onClick={onClose}
+        className="fixed inset-0 z-[190] bg-black/65 transition-opacity duration-[280ms]"
         style={{
-          position: 'fixed', inset: 0, zIndex: 190,
-          background: 'rgba(0,0,0,0.65)',
+          // 동적 분기 — open prop 따라 opacity/pointerEvents 변경. Tailwind class dynamic value 한계로 인라인 유지 (W6 §9.3 화이트리스트)
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'all' : 'none',
-          transition: 'opacity 0.28s',
         }}
       />
       <div
         id="settings-panel"
+        className="fixed right-0 z-[200] w-[88%] max-w-[320px] bg-surface-raised overflow-y-auto rounded-l-[16px]"
         style={{
-          position: 'fixed', top: isDesktop ? 0 : 'var(--sat, 0px)', bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 0px) - var(--sat, 0px))', right: 0, zIndex: 200,
-          width: '88%', maxWidth: 320,
-          background: 'var(--bg2)',
+          // isDesktop 분기 + safe-area css var + cubic-bezier transition — Tailwind class 한계로 인라인 유지 (W6 §9.3 화이트리스트)
+          top: isDesktop ? 0 : 'var(--sat, 0px)',
+          bottom: isDesktop ? 0 : 'calc(54px + var(--sab, 0px) - var(--sat, 0px))',
           transform: open ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.3s cubic-bezier(.4,0,.2,1)',
-          overflowY: 'auto',
-          borderRadius: '16px 0 0 16px',
         }}
       >
         {/* 헤더 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 15px', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
+        <div className="flex items-center gap-2.5 px-[15px] py-3 border-b border-border-default shrink-0">
+          {/* OQ #5 LOCKED — gear svg path verbatim 인라인 유지 (Lucide 교체 X) */}
           <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span style={{ fontSize: 13.5, fontWeight: 700 }}>설정</span>
-          <button onClick={onClose} style={{ marginLeft: 'auto', width: 28, height: 28, borderRadius: 7, background: 'var(--bg3)', border: 'none', color: 'var(--t2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>✕</button>
+          {/* W6 §7 #25 — 13.5 → 18 격상 (text-title font-bold) */}
+          <span className="text-title font-bold text-text-primary">설정</span>
+          {/* W3-OQ #A LOCKED — close glyph 텍스트 → Lucide X (size 14, w-7 h-7 = 32px) */}
+          <button
+            onClick={onClose}
+            aria-label="설정 닫기"
+            className="ml-auto w-7 h-7 rounded-[7px] bg-surface-sunken border-none text-text-secondary cursor-pointer flex items-center justify-center"
+          >
+            <X size={14} />
+          </button>
         </div>
 
         {/* 프로필 */}
-        <div style={{ padding: '14px 13px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 700, color: '#fff',
-            }}>
+        <div className="px-[13px] pt-3.5 pb-2">
+          <div className="flex items-center gap-3 mb-2.5">
+            {/* OQ #4 LOCKED — 프로필 아바타 그라데이션 (raw blue→purple 135deg) 폐기 → bg-accent-active solid */}
+            <div className="w-11 h-11 rounded-full shrink-0 bg-accent-active flex items-center justify-center text-[18px] font-bold text-text-on-accent">
               {avatarChar}
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{displayName}</span>
-              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 1 }}>{displayTitle} · {displayRole}</div>
+            <div className="flex-1 min-w-0">
+              {/* W6 §7 #28 — 14 → 16 격상 (text-body font-bold) */}
+              <span className="text-body font-bold text-text-primary">{displayName}</span>
+              {/* W6 §7 #29 — 10 → 12 격상 (caption leading-none) */}
+              <div className="text-caption leading-none text-text-tertiary mt-px">{displayTitle} · {displayRole}</div>
             </div>
           </div>
         </div>
 
         {/* 알림 */}
-        <div style={{ padding: '12px 13px 5px' }}>
+        <div className="px-[13px] pt-3 pb-1.5">
           <SectionHeader label="알림" collapsed={notifCollapsed} onToggle={() => setNotifCollapsed(c => !c)} />
 
           {/* 권한 상태 + 구독 토글 (항상 표시) */}
           <Row label="푸시 알림" sub={permState === 'denied' ? '브라우저 설정에서 알림을 허용해주세요' : subscribed ? '구독 중' : '구독하려면 토글을 켜세요'}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="flex items-center gap-2">
               <PermBadge perm={permState} />
               <Toggle
                 on={subscribed}
@@ -704,26 +759,31 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           </Row>
 
           {!notifCollapsed && (
-            <div style={{ marginTop: 8, padding: '8px 10px 4px', background: 'var(--bg3)', border: '1px solid var(--bd2)', borderRadius: 9 }}>
-              {/* admin 전용 테스트 푸시 버튼 */}
+            <div className="mt-2 pt-2 px-2.5 pb-1 bg-surface-sunken border border-border-strong rounded-[9px]">
+              {/* admin 전용 테스트 푸시 버튼 — OQ #6 LOCKED 이모지 제거 + Lucide Send/Loader2 */}
               {staff?.role === 'admin' && subscribed && permState === 'granted' && (
                 <button
                   onClick={handleTestPush}
                   disabled={testSending}
-                  style={{
-                    width: '100%', marginBottom: 8,
-                    background: 'var(--bg4)', color: 'var(--t1)',
-                    border: '1px solid var(--bd2)', borderRadius: 8,
-                    padding: '7px 10px', fontSize: 11, fontWeight: 600,
-                    cursor: testSending ? 'not-allowed' : 'pointer',
-                    opacity: testSending ? 0.6 : 1,
-                  }}
+                  className={`w-full mb-2 bg-surface-active text-text-primary border border-border-strong rounded-sm px-2.5 py-[7px] text-label font-semibold flex items-center justify-center gap-2 ${
+                    testSending ? 'cursor-not-allowed opacity-60' : 'cursor-pointer opacity-100'
+                  }`}
                 >
-                  {testSending ? '⏳ 전송 중...' : '🔔 테스트 푸시 보내기'}
+                  {testSending ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>전송 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={14} />
+                      <span>테스트 푸시 보내기</span>
+                    </>
+                  )}
                 </button>
               )}
-              {/* 점검 그룹 */}
-              <div style={{ fontSize: 9, color: 'var(--t3)', marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>점검</div>
+              {/* 점검 그룹 (W6 §7 #31 — 9 → 12 격상) */}
+              <div className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase mb-1">점검</div>
               <Row label="금일 점검 일정" sub="매일 08:45">
                 <Toggle on={prefs.daily_schedule} onChange={() => handlePrefToggle('daily_schedule')} disabled={!subscribed || permState === 'denied'} />
               </Row>
@@ -735,7 +795,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
               </Row>
 
               {/* 일정 그룹 */}
-              <div style={{ fontSize: 9, color: 'var(--t3)', marginTop: 10, marginBottom: 4, fontWeight: 700, letterSpacing: '.08em' }}>일정</div>
+              <div className="text-caption leading-none font-bold text-text-tertiary tracking-[.08em] uppercase mt-2.5 mb-1">일정</div>
               <Row label="행사 15분 전 알림" sub="행사 시작 15분 전">
                 <Toggle on={prefs.event_15min} onChange={() => handlePrefToggle('event_15min')} disabled={!subscribed || permState === 'denied'} />
               </Row>
@@ -749,20 +809,20 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           )}
         </div>
 
-        {/* 메뉴 설정 (Phase 18) */}
+        {/* 메뉴 설정 (Phase 18) — W10 변환됨 */}
         <MenuSettingsSection />
 
         {/* 화면 */}
-        <div style={{ padding: '12px 13px 5px' }}>
+        <div className="px-[13px] pt-3 pb-1.5">
           <SectionHeader label="화면" collapsed={displayCollapsed} onToggle={() => setDisplayCollapsed(c => !c)} />
           {!displayCollapsed && <>
             <Row label="테마">
-              <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
+              <select className="bg-surface-active border border-border-strong text-text-primary text-label leading-none px-2.5 py-1.5 rounded-sm outline-none">
                 <option>다크</option><option>라이트</option><option>시스템</option>
               </select>
             </Row>
             <Row label="주간 현황 기준">
-              <select style={{ background: 'var(--bg4)', border: '1px solid var(--bd2)', color: 'var(--t1)', fontSize: 11, padding: '4px 7px', borderRadius: 7, outline: 'none' }}>
+              <select className="bg-surface-active border border-border-strong text-text-primary text-label leading-none px-2.5 py-1.5 rounded-sm outline-none">
                 <option>이번 주</option><option>최근 7일</option>
               </select>
             </Row>
@@ -776,14 +836,14 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         ) : showProfileEdit ? (
           <ProfileEditForm onDone={() => setShowProfileEdit(false)} />
         ) : (
-          <div style={{ padding: '12px 13px 5px' }}>
+          <div className="px-[13px] pt-3 pb-1.5">
             <SectionHeader label="계정" collapsed={accountCollapsed} onToggle={() => setAccountCollapsed(c => !c)} />
             {!accountCollapsed && (<>
               <Row label="개인정보 수정" sub="연락처, 이메일, 생년월일" onClick={() => setShowProfileEdit(true)}>
-                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                <ChevronRight size={13} className="text-text-tertiary" />
               </Row>
               <Row label="비밀번호 변경" onClick={() => setShowPwChange(true)}>
-                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                <ChevronRight size={13} className="text-text-tertiary" />
               </Row>
             </>)}
           </div>
@@ -791,63 +851,56 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
 
         {/* 데이터베이스 */}
         {staff?.role === 'admin' && (
-          <div style={{ padding: '12px 13px 5px' }}>
+          <div className="px-[13px] pt-3 pb-1.5">
             <SectionHeader label="데이터베이스" collapsed={dbCollapsed} onToggle={() => setDbCollapsed(c => !c)} />
             {!dbCollapsed && (<>
-              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 4 }}>DB (점검기록, 직원, 설정 등)</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+              {/* W6 §7 #33 — 10 → 12 격상 (caption) */}
+              <div className="text-caption text-text-tertiary mb-1">DB (점검기록, 직원, 설정 등)</div>
+              <div className="flex gap-2 mb-2.5">
                 <button
                   onClick={handleDbBackup}
                   disabled={dbBackingUp}
-                  style={{
-                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
-                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: dbBackingUp ? 'default' : 'pointer',
-                    color: 'var(--t1)', opacity: dbBackingUp ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
+                  className={`flex-1 h-10 bg-surface-sunken border border-border-default rounded-[9px] text-label font-bold text-text-primary flex items-center justify-center gap-1.5 ${
+                    dbBackingUp ? 'cursor-default opacity-50' : 'cursor-pointer opacity-100'
+                  }`}
                 >
+                  {/* OQ #5 LOCKED 확장 — DB 백업 svg path verbatim 인라인 유지 */}
                   <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
                   {dbBackingUp ? '백업 중...' : '백업'}
                 </button>
                 <button
                   onClick={handleDbRestore}
                   disabled={dbRestoring}
-                  style={{
-                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
-                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: dbRestoring ? 'default' : 'pointer',
-                    color: 'var(--t1)', opacity: dbRestoring ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
+                  className={`flex-1 h-10 bg-surface-sunken border border-border-default rounded-[9px] text-label font-bold text-text-primary flex items-center justify-center gap-1.5 ${
+                    dbRestoring ? 'cursor-default opacity-50' : 'cursor-pointer opacity-100'
+                  }`}
                 >
+                  {/* OQ #5 LOCKED 확장 — DB 복원 svg path verbatim 인라인 유지 */}
                   <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                   {dbRestoring ? '복원 중...' : '업로드'}
                 </button>
               </div>
-              <div style={{ fontSize: 10, color: 'var(--t3)', marginBottom: 4 }}>파일 (점검 사진 등)</div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="text-caption text-text-tertiary mb-1">파일 (점검 사진 등)</div>
+              <div className="flex gap-2">
                 <button
                   onClick={handleR2Backup}
                   disabled={r2BackingUp}
-                  style={{
-                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
-                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: r2BackingUp ? 'default' : 'pointer',
-                    color: 'var(--t1)', opacity: r2BackingUp ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
+                  className={`flex-1 h-10 bg-surface-sunken border border-border-default rounded-[9px] text-label font-bold text-text-primary flex items-center justify-center gap-1.5 ${
+                    r2BackingUp ? 'cursor-default opacity-50' : 'cursor-pointer opacity-100'
+                  }`}
                 >
+                  {/* OQ #5 LOCKED 확장 — R2 백업 svg path verbatim 인라인 유지 */}
                   <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                   {r2BackingUp ? (r2BackupProgress || '백업 중...') : '백업'}
                 </button>
                 <button
                   onClick={handleR2Restore}
                   disabled={r2Restoring}
-                  style={{
-                    flex: 1, height: 40, background: 'var(--bg3)', border: '1px solid var(--bd)',
-                    borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: r2Restoring ? 'default' : 'pointer',
-                    color: 'var(--t1)', opacity: r2Restoring ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}
+                  className={`flex-1 h-10 bg-surface-sunken border border-border-default rounded-[9px] text-label font-bold text-text-primary flex items-center justify-center gap-1.5 ${
+                    r2Restoring ? 'cursor-default opacity-50' : 'cursor-pointer opacity-100'
+                  }`}
                 >
+                  {/* OQ #5 LOCKED 확장 — R2 복원 svg path verbatim 인라인 유지 */}
                   <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                   {r2Restoring ? '복원 중...' : '업로드'}
                 </button>
@@ -857,7 +910,7 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
         )}
 
         {/* 앱 정보 */}
-        <div style={{ padding: '12px 13px 5px' }}>
+        <div className="px-[13px] pt-3 pb-1.5">
           <SectionHeader label="앱 정보" collapsed={appInfoCollapsed} onToggle={() => setAppInfoCollapsed(c => !c)} />
           {!appInfoCollapsed && (
             <>
@@ -867,22 +920,18 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
                 sub="최신 리소스로 새로고침"
                 onClick={cacheClearing ? undefined : handleClearCache}
               >
-                <svg width={13} height={13} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
+                <ChevronRight size={13} className="text-text-tertiary" />
               </Row>
               <Row label="차바이오컴플렉스 방재" sub="경기도 성남시 분당구 판교로 335" />
             </>
           )}
         </div>
 
-        {/* 로그아웃 */}
-        <div style={{ padding: '12px 13px' }}>
+        {/* 로그아웃 — W6 §10 cheatsheet — raw #dc2626 / rgba(220,38,38,...) → token (bg-danger/text-danger) */}
+        <div className="px-[13px] py-3">
           <button
             onClick={handleLogout}
-            style={{
-              width: '100%', height: 40, background: 'rgba(220,38,38,0.12)', color: '#dc2626',
-              border: '1px solid rgba(220,38,38,0.25)', borderRadius: 9,
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            }}
+            className="w-full h-10 bg-danger/10 text-danger border border-danger/25 rounded-[9px] text-label font-bold cursor-pointer"
           >
             로그아웃
           </button>
