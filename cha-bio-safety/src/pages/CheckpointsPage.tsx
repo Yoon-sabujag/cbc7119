@@ -6,23 +6,7 @@ import { useAuthStore } from '../stores/authStore'
 import { checkPointApi, floorPlanMarkerApi, extinguisherApi } from '../utils/api'
 import { useIsDesktop } from '../hooks/useIsDesktop'
 import type { CheckPointFull, CheckPointUpdatePayload, BuildingZone } from '../types'
-
-// ── SVG ──────────────────────────────────────────────────
-function IconPlus({ size = 18, color = 'currentColor' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  )
-}
-function IconChevronDown({ size = 16, color = 'currentColor' }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  )
-}
+import { Plus, ChevronDown } from 'lucide-react'
 
 // ── 상수 ────────────────────────────────────────────────────
 // 카테고리는 DB에서 동적으로 가져옴 (하드코딩 폴백)
@@ -263,9 +247,9 @@ function CheckPointModalContent({
 
   return (
     <>
-      <div style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="form-body" style={{ padding: '16px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
-          <label style={LABEL_STYLE}>카테고리 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <label style={LABEL_STYLE}>카테고리 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
           <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }} value={form.category} onChange={handleCategoryChange}>
             <option value="">카테고리 선택</option>
             {CATEGORIES_FALLBACK.map(c => <option key={c} value={c}>{c}</option>)}
@@ -273,11 +257,13 @@ function CheckPointModalContent({
         </div>
         <div>
           <label style={LABEL_STYLE}>구역</label>
-          <div style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--bd)' }}>
+          <div className="zone-row" style={{ display: 'flex', gap: 0, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-default)' }}>
             {(['office', 'research', 'basement'] as const).map(z => (
               <button key={z} onClick={() => setForm(f => ({ ...f, zone: f.zone === z ? '' : z, floor: '' }))}
-                style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, transition: 'all 0.15s', background: form.zone === z ? 'var(--acl)' : 'var(--bg4)', color: form.zone === z ? '#fff' : 'var(--t3)' }}>
-                {ZONE_LABEL[z] ?? z}
+                className={form.zone === z ? 'zone-btn active' : 'zone-btn inactive'}
+                style={{ flex: 1, height: 36, border: 'none', cursor: 'pointer', transition: 'all 0.15s', background: form.zone === z ? 'var(--accent)' : 'var(--surface-active)', color: form.zone === z ? '#fff' : 'var(--text-tertiary)' }}
+              >
+                <span className="text-caption font-bold">{ZONE_LABEL[z] ?? z}</span>
               </button>
             ))}
           </div>
@@ -296,7 +282,7 @@ function CheckPointModalContent({
         {isExtCategory && (
           <>
             <div>
-              <label style={LABEL_STYLE}>종류 <span style={{ color: 'var(--danger)' }}>*</span></label>
+              <label style={LABEL_STYLE}>종류 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
               <select style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer' }}
                 value={extForm.type}
                 onChange={e => setExtForm(p => ({ ...p, type: e.target.value }))}>
@@ -346,7 +332,7 @@ function CheckPointModalContent({
           </>
         )}
         <div>
-          <label style={LABEL_STYLE}>개소명 <span style={{ color: 'var(--danger)' }}>*</span></label>
+          <label style={LABEL_STYLE}>개소명 <span className="required-star" style={{ color: 'var(--status-danger)' }}>*</span></label>
           <input style={INPUT_STYLE} value={form.location} onChange={setField('location')} placeholder="1층 로비 소화기" />
         </div>
         {!isExtCategory && (
@@ -364,31 +350,42 @@ function CheckPointModalContent({
       </div>
 
       {!confirmDeactivate ? (
-        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={onClose} style={{ flex: 1, height: 44, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>취소</button>
+        <div className="action-row" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="action-btns" style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onClose}
+              className="btn-cancel"
+              style={{ flex: 1, height: 44, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              <span className="text-body-sm font-bold">취소</span>
+            </button>
             <button onClick={handleSave} disabled={!canSave || isBusy}
-              style={{ flex: 1, height: 44, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !isBusy ? 'pointer' : 'not-allowed', fontSize: 14, fontWeight: 700, opacity: canSave && !isBusy ? 1 : 0.4 }}>
-              저장
+              className={canSave && !isBusy ? 'btn-save' : 'btn-save disabled'}
+              style={{ flex: 1, height: 44, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, cursor: canSave && !isBusy ? 'pointer' : 'not-allowed', opacity: canSave && !isBusy ? 1 : 0.4 }}>
+              <span className="text-body-sm font-bold">저장</span>
             </button>
           </div>
           {mode === 'edit' && cp?.isActive !== 0 && (
             <button onClick={() => setConfirmDeactivate(true)}
-              style={{ width: '100%', height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--danger)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}>
-              비활성화
+              className="btn-deactivate"
+              style={{ width: '100%', height: 40, background: 'rgba(239,68,68,.08)', color: 'var(--status-danger)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              <span className="text-caption">비활성화</span>
             </button>
           )}
         </div>
       ) : (
-        <div style={{ padding: 16 }}>
-          <div style={{ background: 'rgba(239,68,68,.08)', borderRadius: 8, padding: '12px', fontSize: 12, color: 'var(--t2)', marginBottom: 8 }}>
-            이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.
+        <div className="deactivate-confirm-box" style={{ padding: 16 }}>
+          <div style={{ background: 'rgba(239,68,68,.08)', borderRadius: 8, padding: '12px', color: 'var(--text-secondary)', marginBottom: 8 }}>
+            <span className="text-caption">이 개소를 비활성화합니다. 기존 점검 기록은 보존됩니다.</span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setConfirmDeactivate(false)} style={{ flex: 1, height: 44, background: 'var(--bg4)', color: 'var(--t2)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>취소</button>
+          <div className="action-btns" style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setConfirmDeactivate(false)}
+              className="btn-cancel"
+              style={{ flex: 1, height: 44, background: 'var(--surface-active)', color: 'var(--text-secondary)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              <span className="text-body-sm">취소</span>
+            </button>
             <button onClick={() => deactivateMutation.mutate()} disabled={deactivateMutation.isPending}
-              style={{ flex: 1, height: 44, background: 'var(--danger)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, opacity: deactivateMutation.isPending ? 0.6 : 1 }}>
-              비활성화
+              className="btn-deactivate-confirm"
+              style={{ flex: 1, height: 44, background: 'var(--status-danger)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: deactivateMutation.isPending ? 0.6 : 1 }}>
+              <span className="text-body-sm font-bold">비활성화</span>
             </button>
           </div>
         </div>
@@ -400,20 +397,22 @@ function CheckPointModalContent({
 // ── CheckPoint Card (Mobile) ────────────────────────────
 function CheckPointCard({ cp, onEdit }: { cp: CheckPointFull; onEdit: () => void }) {
   return (
-    <div onClick={onEdit} style={{ background: 'var(--bg3)', borderRadius: 12, padding: '12px 16px', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, opacity: cp.isActive === 0 ? 0.45 : 1, cursor: 'pointer' }}>
-      <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)' }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</span>
-          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--acl)', flexShrink: 0 }}>
+    <div onClick={onEdit}
+      className={cp.isActive === 0 ? 'cp-card inactive' : 'cp-card'}
+      style={{ background: 'var(--surface-sunken)', borderRadius: 12, padding: '12px 16px', minHeight: 48, display: 'flex', alignItems: 'center', gap: 10, opacity: cp.isActive === 0 ? 0.45 : 1, cursor: 'pointer' }}>
+      <span className="cp-dot w-[8px] h-[8px] rounded-full" style={{ flexShrink: 0, background: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }} />
+      <div className="cp-content" style={{ flex: 1, minWidth: 0 }}>
+        <div className="cp-top" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+          <span className="cp-location text-body-sm font-bold" style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</span>
+          <span className="cp-cat-badge text-caption leading-none" style={{ padding: '2px 5px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--accent)', flexShrink: 0 }}>
             {cp.category}
           </span>
         </div>
-        <span style={{ fontSize: 12, color: 'var(--t2)' }}>
+        <span className="cp-meta text-caption leading-none" style={{ color: 'var(--text-secondary)' }}>
           {ZONE_LABEL[cp.zone] ?? cp.zone} · {cp.floor}
         </span>
       </div>
-      <span style={{ color: 'var(--acl)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>수정 ▸</span>
+      <span className="cp-action text-caption leading-none" style={{ color: 'var(--accent)', fontWeight: 700, flexShrink: 0 }}>수정 ▸</span>
     </div>
   )
 }
@@ -504,7 +503,7 @@ export default function CheckpointsPage() {
   const categoryOptions = categories.length > 0 ? categories : CATEGORIES_FALLBACK
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg)', height: '100%', overflow: 'hidden' }}>
+    <div className="page-wrapper flex flex-col h-full overflow-hidden bg-surface-page">
       <style>{`
         @keyframes blink { 0%,100%{opacity:.6} 50%{opacity:.3} }
         @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
@@ -514,154 +513,157 @@ export default function CheckpointsPage() {
 
       {/* 헤더 */}
       {isDesktop ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 24px', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
-          <div style={{ position: 'relative', width: 220 }}>
+        <div className="desktop-header hidden lg:flex items-center gap-3 px-6 py-3 border-b border-border-default" style={{ flexShrink: 0 }}>
+          <div className="cat-select-wrap" style={{ position: 'relative', width: 220 }}>
             <select
+              className="hdr-select"
               value={selectedCategory}
               onChange={e => setSelectedCategory(e.target.value)}
-              style={{ ...INPUT_STYLE, height: 36, fontSize: 13, appearance: 'none', cursor: 'pointer', paddingRight: 32 }}
+              style={{ ...INPUT_STYLE, height: 36, appearance: 'none', cursor: 'pointer', paddingRight: 32 }}
             >
               <option value="">전체 (카테고리 선택)</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <IconChevronDown size={14} color="var(--t2)" />
+            <div className="chevron-icon" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <ChevronDown size={16} color="var(--text-secondary)" />
             </div>
           </div>
-          <select value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
-            style={{ height: 36, fontSize: 12, padding: '0 10px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer', appearance: 'none' as any }}>
+          <select className="filter-select" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
+            style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer', appearance: 'none' as any }}>
             <option value="">전체 구역</option>
             <option value="office">사무동</option>
             <option value="research">연구동</option>
             <option value="basement">지하</option>
           </select>
-          <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
-            style={{ height: 36, fontSize: 12, padding: '0 10px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer', appearance: 'none' as any }}>
+          <select className="filter-select" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
+            style={{ height: 36, padding: '0 10px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer', appearance: 'none' as any }}>
             <option value="">전체 층</option>
             {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
-          <span style={{ flex: 1, fontSize: 12, color: 'var(--t3)' }}>
+          <span className="count-label text-caption" style={{ flex: 1, color: 'var(--text-tertiary)' }}>
             {selectedCategory && !isLoading ? `${cpList.length}개 개소` : ''}
           </span>
-          <button onClick={() => setModal({ open: true, mode: 'add' })}
-            style={{ height: 36, padding: '0 16px', background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <IconPlus size={16} color="#fff" />
+          <button className="add-btn flex items-center gap-2 px-3 py-2 rounded-lg bg-accent text-white text-label font-bold"
+            onClick={() => setModal({ open: true, mode: 'add' })}
+            style={{ height: 36, border: 'none', cursor: 'pointer' }}>
+            <Plus size={16} color="#fff" />
             개소 추가
           </button>
         </div>
       ) : (
-        <div style={{ padding: '12px 16px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ position: 'relative' }}>
-            <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
+        <div className="mobile-header flex flex-col lg:hidden px-4 py-3 gap-2" style={{ flexShrink: 0 }}>
+          <div className="mob-cat-wrap" style={{ position: 'relative' }}>
+            <select className="mob-cat-select" value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}
               style={{ ...INPUT_STYLE, appearance: 'none', cursor: 'pointer', paddingRight: 36 }}>
               <option value="">전체 (카테고리 선택)</option>
               {categoryOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
-            <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-              <IconChevronDown size={16} color="var(--t2)" />
+            <div className="chevron-icon" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <ChevronDown size={16} color="var(--text-secondary)" />
             </div>
           </div>
           {selectedCategory && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <select value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
-                style={{ flex: 1, height: 36, fontSize: 11, padding: '0 8px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer' }}>
+            <div className="mob-filter-row" style={{ display: 'flex', gap: 6 }}>
+              <select className="mob-filter-select text-caption" value={filterZone} onChange={e => { setFilterZone(e.target.value); setFilterFloor('') }}
+                style={{ flex: 1, height: 36, padding: '0 8px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer' }}>
                 <option value="">전체 구역</option>
                 <option value="office">사무동</option>
                 <option value="research">연구동</option>
                 <option value="basement">지하</option>
               </select>
-              <select value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
-                style={{ flex: 1, height: 36, fontSize: 11, padding: '0 8px', borderRadius: 8, border: '1px solid var(--bd)', background: 'var(--bg3)', color: 'var(--t1)', cursor: 'pointer' }}>
+              <select className="mob-filter-select text-caption" value={filterFloor} onChange={e => setFilterFloor(e.target.value)}
+                style={{ flex: 1, height: 36, padding: '0 8px', borderRadius: 8, border: '1px solid var(--border-default)', background: 'var(--surface-sunken)', color: 'var(--text-primary)', cursor: 'pointer' }}>
                 <option value="">전체 층</option>
                 {availableFloors.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
-              <span style={{ fontSize: 11, color: 'var(--t3)', alignSelf: 'center', whiteSpace: 'nowrap' }}>{cpList.length}개</span>
+              <span className="mob-count text-caption leading-none" style={{ color: 'var(--text-tertiary)', alignSelf: 'center', whiteSpace: 'nowrap' }}>{cpList.length}개</span>
             </div>
           )}
         </div>
       )}
 
       {/* 콘텐츠 */}
-      <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+      <div className="flex-1 overflow-auto min-h-0">
         {selectedCategory === '' && (
-          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t3)', fontSize: 14 }}>
+          <div className="state-empty flex items-center justify-center h-full text-text-secondary text-body-sm">
             카테고리를 선택하면 개소 목록이 표시됩니다
           </div>
         )}
         {selectedCategory !== '' && isLoading && (
-          <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={SKELETON_STYLE} />
-            <div style={SKELETON_STYLE} />
-            <div style={SKELETON_STYLE} />
+          <div className="skeleton-wrap" style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="skeleton-bar" style={SKELETON_STYLE} />
+            <div className="skeleton-bar" style={SKELETON_STYLE} />
+            <div className="skeleton-bar" style={SKELETON_STYLE} />
           </div>
         )}
         {selectedCategory !== '' && isError && !isLoading && (
-          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t2)', fontSize: 14 }}>
+          <div className="state-error flex items-center justify-center h-full text-text-secondary text-body-sm">
             데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요
           </div>
         )}
 
         {/* 데스크톱: 테이블 */}
         {isDesktop && selectedCategory !== '' && !isLoading && !isError && (
-          <div style={{ padding: '0 24px 24px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid var(--bd)', textAlign: 'left' }}>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>개소명</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>카테고리</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>구역</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>층</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>위치번호</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12 }}>상태</th>
-                  <th style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--t2)', fontSize: 12, width: 60 }}>액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cpList.length === 0 && (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--t3)', fontSize: 14 }}>해당 카테고리에 개소가 없습니다</td></tr>
-                )}
-                {cpList.map(cp => (
-                  <tr key={cp.id}
-                    onClick={() => setModal({ open: true, mode: 'edit', target: cp })}
-                    style={{ borderBottom: '1px solid var(--bd)', cursor: 'pointer', opacity: cp.isActive === 0 ? 0.45 : 1, transition: 'background 0.1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg3)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--t1)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--acl)' }}>
-                        {cp.category}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 8px', color: 'var(--t2)' }}>{ZONE_LABEL[cp.zone] ?? cp.zone}</td>
-                    <td style={{ padding: '10px 8px', color: 'var(--t2)' }}>{cp.floor}</td>
-                    <td style={{ padding: '10px 8px', color: 'var(--t2)', fontFamily: 'JetBrains Mono, monospace', fontSize: 12 }}>{cp.locationNo || '-'}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
-                        color: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)',
-                      }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: cp.isActive !== 0 ? 'var(--safe)' : 'var(--t3)' }} />
-                        {cp.isActive !== 0 ? '활성' : '비활성'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <span style={{ color: 'var(--acl)', fontSize: 12, fontWeight: 700 }}>수정</span>
-                    </td>
+          <div className="desktop-content data-table" style={{ padding: '0 24px 24px' }}>
+            <div className="desktop-table-wrap">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr className="border-b-2 border-border-default text-left">
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>개소명</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>카테고리</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>구역</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>층</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>위치번호</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>상태</th>
+                    <th className="text-caption font-bold" style={{ padding: '10px 8px', color: 'var(--text-secondary)', width: 60 }}>액션</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {cpList.length === 0 && (
+                    <tr><td colSpan={7} className="text-body-sm" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-tertiary)' }}>해당 카테고리에 개소가 없습니다</td></tr>
+                  )}
+                  {cpList.map(cp => (
+                    <tr key={cp.id}
+                      onClick={() => setModal({ open: true, mode: 'edit', target: cp })}
+                      className="border-b border-border-default"
+                      style={{ cursor: 'pointer', opacity: cp.isActive === 0 ? 0.45 : 1, transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-sunken)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '10px 8px', fontWeight: 600, color: 'var(--text-primary)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cp.location}</td>
+                      <td className="category-badge" style={{ padding: '10px 8px' }}>
+                        <span className="text-caption leading-none" style={{ padding: '2px 6px', borderRadius: 4, background: 'rgba(59,130,246,.13)', color: 'var(--accent)' }}>
+                          {cp.category}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{ZONE_LABEL[cp.zone] ?? cp.zone}</td>
+                      <td style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{cp.floor}</td>
+                      <td className="locationno-cell text-caption font-mono" style={{ padding: '10px 8px', color: 'var(--text-secondary)' }}>{cp.locationNo || '-'}</td>
+                      <td className="status-cell" style={{ padding: '10px 8px' }}>
+                        <span className="text-caption leading-none"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }}>
+                          <span className="status-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: cp.isActive !== 0 ? 'var(--status-safe-bar)' : 'var(--text-tertiary)' }} />
+                          {cp.isActive !== 0 ? '활성' : '비활성'}
+                        </span>
+                      </td>
+                      <td className="action-cell" style={{ padding: '10px 8px' }}>
+                        <span className="text-caption font-bold" style={{ color: 'var(--accent)' }}>수정</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* 모바일: 카드 리스트 */}
         {!isDesktop && selectedCategory !== '' && !isLoading && !isError && (
-          <div style={{ padding: '0 16px 80px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="card-list" style={{ padding: '0 16px 80px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {cpList.length === 0 && (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '40px 16px' }}>
-                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>해당 카테고리에 개소가 없습니다</div>
-                <div style={{ fontSize: 12, color: 'var(--t2)', textAlign: 'center' }}>개소 추가 버튼을 눌러 점검 개소를 등록하세요</div>
+                <div className="text-body font-bold" style={{ color: 'var(--text-primary)' }}>해당 카테고리에 개소가 없습니다</div>
+                <div className="text-caption" style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>개소 추가 버튼을 눌러 점검 개소를 등록하세요</div>
               </div>
             )}
             {cpList.map(cp => (
@@ -673,10 +675,11 @@ export default function CheckpointsPage() {
 
       {/* 모바일 FAB */}
       {!isDesktop && (
-        <div style={{ position: 'sticky', bottom: 0, padding: '0 16px', paddingBottom: 'calc(16px + var(--sab))', background: 'var(--bg)' }}>
-          <button onClick={() => setModal({ open: true, mode: 'add' })}
-            style={{ width: '100%', height: 52, background: 'var(--acl)', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <IconPlus size={18} color="#fff" />
+        <div className="mobile-fab-wrap" style={{ position: 'sticky', bottom: 0, padding: '0 16px', paddingBottom: 'calc(16px + var(--sab))', background: 'var(--surface-page)' }}>
+          <button className="mobile-fab-btn w-full h-[52px] bg-accent text-white rounded-xl flex items-center justify-center gap-2 text-body-sm font-bold"
+            onClick={() => setModal({ open: true, mode: 'add' })}
+            style={{ border: 'none', cursor: 'pointer' }}>
+            <Plus size={18} color="#fff" />
             개소 추가
           </button>
         </div>
