@@ -410,6 +410,170 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
 }
 
 // ══════════════════════════════════════════════════════════════════
+// ── 데스크톱: 3열 PPT 미리보기 (제출용 탭 활성 시) ────────────────────
+// ══════════════════════════════════════════════════════════════════
+function SubmissionPreviewPanel({ roundId }: { roundId: string }) {
+  const { data: round } = useQuery({
+    queryKey: ['legal-round', roundId],
+    queryFn: () => legalApi.get(roundId),
+    enabled: !!roundId,
+  })
+  const { data: findings, isLoading } = useQuery({
+    queryKey: ['legal-findings', roundId],
+    queryFn: () => legalApi.getFindings(roundId),
+    enabled: !!roundId,
+    staleTime: 30_000,
+  })
+
+  // 선택된 finding 만 (체크박스 ON + 사진 둘 다 있음 = PPT 포함 가능)
+  const eligibleFindings = (findings ?? []).filter(f =>
+    f.submissionSelected && f.photoKeys.length > 0 && f.resolutionPhotoKeys.length > 0
+  )
+
+  // 라벨 (DB submissionLabel || prefill)
+  const labelFor = (f: LegalFinding): string =>
+    f.submissionLabel ?? `${f.location ?? ''} ${f.description}`.trim()
+
+  // 본문 슬라이드 = 지적 2건씩
+  const pages: Array<{ left: LegalFinding | null; right: LegalFinding | null }> = []
+  for (let i = 0; i < eligibleFindings.length; i += 2) {
+    pages.push({ left: eligibleFindings[i] ?? null, right: eligibleFindings[i + 1] ?? null })
+  }
+  const totalPages = pages.length
+
+  const [pageIdx, setPageIdx] = useState(0)
+  useEffect(() => {
+    if (pageIdx >= totalPages && totalPages > 0) setPageIdx(totalPages - 1)
+  }, [totalPages, pageIdx])
+  const currentPage = pages[pageIdx] ?? null
+
+  const isLocked = round?.submissionStatus === 'completed'
+  const count = eligibleFindings.length
+
+  // PPT 표지 텍스트 (round.title 그대로 사용 — 사용자 컨펌 후 수정 가능)
+  const coverTitle = round?.title ?? '지적사항 조치 작업사진'
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--surface-page)' }}>
+      {/* 헤더: 타이틀 (좌) + [인디케이터 + 저장하기] (우, bottom 정렬) */}
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-default)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+        <div className="text-label font-bold text-text-primary">
+          지적사항 조치 작업사진 <span className="text-accent">{count}</span>건
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
+          <div className="text-caption text-text-tertiary" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1, paddingBottom: 8 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor' }} />
+            W7 대기중
+          </div>
+          <button
+            type="button"
+            disabled
+            className="bg-surface-sunken text-text-disabled border-0"
+            style={{ height: 32, padding: '0 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'not-allowed', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >💾 저장하기 (W7)</button>
+        </div>
+      </div>
+
+      {/* 본문: 표지 + 현재 페이지 슬라이드 */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {isLoading ? (
+          <div className={SKELETON_CLS} style={SKELETON_STYLE} />
+        ) : count === 0 ? (
+          <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', lineHeight: 1.6 }}>
+            제출용 탭에서 PPT 에 포함할 지적사항을 체크해주세요<br />
+            <span className="text-caption text-text-disabled">사진이 조치 전/후 모두 있어야 PPT 포함 가능</span>
+          </div>
+        ) : (
+          <>
+            {/* 표지 (A4 가로 297:210) */}
+            <div>
+              <div className="text-caption text-text-tertiary" style={{ marginBottom: 4 }}>표지 (slide 1)</div>
+              <div style={{ aspectRatio: '297/210', background: '#fff', color: '#000', borderRadius: 8, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontSize: 36, fontWeight: 700 }}>{coverTitle}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 16 }}>지적사항 조치 작업사진</div>
+                <div style={{ fontSize: 18, marginTop: 24, color: '#444' }}>차바이오 컴플렉스</div>
+              </div>
+            </div>
+
+            {/* 본문 슬라이드 */}
+            {currentPage && (
+              <div>
+                <div className="text-caption text-text-tertiary" style={{ marginBottom: 4 }}>
+                  조치 전 / 후 (slide {pageIdx + 2} of {totalPages + 1}) — A4 가로
+                </div>
+                <div style={{ aspectRatio: '297/210', background: '#fff', color: '#000', borderRadius: 8, padding: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'auto 1fr auto 1fr', gap: 4, boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                  {/* Row 1: 라벨 (조치 전) */}
+                  <SlideLabelCell text={currentPage.left ? `${labelFor(currentPage.left)} 조치 전` : ''} />
+                  <SlideLabelCell text={currentPage.right ? `${labelFor(currentPage.right)} 조치 전` : ''} />
+                  {/* Row 2: 사진 (조치 전) */}
+                  <SlidePhotoCell src={currentPage.left?.photoKeys[0]} />
+                  <SlidePhotoCell src={currentPage.right?.photoKeys[0]} />
+                  {/* Row 3: 라벨 (조치 후) */}
+                  <SlideLabelCell text={currentPage.left ? `${labelFor(currentPage.left)} 조치 후` : ''} />
+                  <SlideLabelCell text={currentPage.right ? `${labelFor(currentPage.right)} 조치 후` : ''} />
+                  {/* Row 4: 사진 (조치 후) */}
+                  <SlidePhotoCell src={currentPage.left?.resolutionPhotoKeys[0]} />
+                  <SlidePhotoCell src={currentPage.right?.resolutionPhotoKeys[0]} />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* 페이지 네비 */}
+      {totalPages > 0 && (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-default)', background: 'var(--surface-raised)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setPageIdx(i => Math.max(0, i - 1))}
+            disabled={pageIdx === 0}
+            className="bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent"
+            style={{ width: 36, height: 36, borderRadius: 6, fontSize: 16, cursor: pageIdx === 0 ? 'not-allowed' : 'pointer' }}
+          >◀</button>
+          <div className="text-label font-bold text-text-primary" style={{ minWidth: 80, textAlign: 'center' }}>
+            {pageIdx + 1} / {totalPages}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPageIdx(i => Math.min(totalPages - 1, i + 1))}
+            disabled={pageIdx >= totalPages - 1}
+            className="bg-surface-sunken border border-border-strong text-text-primary disabled:text-text-disabled disabled:border-border-default disabled:bg-transparent"
+            style={{ width: 36, height: 36, borderRadius: 6, fontSize: 16, cursor: pageIdx >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
+          >▶</button>
+        </div>
+      )}
+
+      {isLocked && (
+        <div className="bg-safe-bg text-safe text-caption font-bold" style={{ padding: '6px 16px', textAlign: 'center', flexShrink: 0 }}>
+          🔒 제출 완료된 점검 — 재생성 불가
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SlideLabelCell({ text }: { text: string }) {
+  return (
+    <div style={{ border: '1px solid #888', background: '#f5f5f5', padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 11, fontWeight: 700, lineHeight: 1.4, overflow: 'hidden' }}>
+      {text}
+    </div>
+  )
+}
+
+function SlidePhotoCell({ src }: { src: string | undefined }) {
+  return (
+    <div style={{ border: '1px solid #888', background: '#e5e5e5', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {src ? (
+        <img src={'/api/uploads/' + src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <span style={{ color: '#888', fontSize: 11 }}>—</span>
+      )}
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ── 데스크톱: 우측 패널 (지적사항 상세) ──────────────────────────────
 // ══════════════════════════════════════════════════════════════════
 function FindingDetailPanel({ roundId, findingId }: { roundId: string; findingId: string }) {
@@ -868,9 +1032,11 @@ export default function LegalPage() {
           )}
         </div>
 
-        {/* 우측: 상세 */}
+        {/* 우측: 상세 — 2열 탭에 따라 swap */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {selectedFindingId && selectedRoundId ? (
+          {activeTab === 'submission' && selectedRoundId ? (
+            <SubmissionPreviewPanel key={selectedRoundId} roundId={selectedRoundId} />
+          ) : selectedFindingId && selectedRoundId ? (
             <FindingDetailPanel key={selectedFindingId} roundId={selectedRoundId} findingId={selectedFindingId} />
           ) : (
             <div className="text-label text-text-tertiary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
