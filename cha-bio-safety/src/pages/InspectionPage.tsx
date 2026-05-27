@@ -5063,7 +5063,7 @@ export default function InspectionPage() {
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Wrench size={14} className="text-danger" />
                     <span className="text-caption font-bold text-danger">미조치 항목</span>
-                    <span className="text-caption font-bold text-text-on-accent bg-danger rounded-pill px-1.5 py-0.5">{unresolvedItems.length}</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-danger-bar rounded-pill px-1.5 py-0.5">{unresolvedItems.length}</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {unresolvedItems.map(item => {
@@ -5094,7 +5094,7 @@ export default function InspectionPage() {
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <CheckCircle2 size={14} className="text-info" />
                     <span className="text-caption font-bold text-info">조치 완료 항목</span>
-                    <span className="text-caption font-bold text-text-on-accent bg-info rounded-pill px-1.5 py-0.5">{resolvedItems.length}</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-info-bar rounded-pill px-1.5 py-0.5">{resolvedItems.length}</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {resolvedItems.map(item => {
@@ -5125,7 +5125,7 @@ export default function InspectionPage() {
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <CheckCircle2 size={14} className="text-safe" />
                     <span className="text-caption font-bold text-safe">정상 항목</span>
-                    <span className="text-caption font-bold text-text-on-accent bg-safe rounded-pill px-1.5 py-0.5">{normalItems.length}</span>
+                    <span className="text-caption font-bold text-text-on-accent bg-safe-bar rounded-pill px-1.5 py-0.5">{normalItems.length}</span>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     {normalItems.map(item => (
