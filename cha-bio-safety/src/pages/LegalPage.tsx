@@ -251,12 +251,11 @@ function SubmissionTabPanel({ roundId, isLocked }: { roundId: string; isLocked: 
     legalApi.updateFinding(roundId, fid, { submission_label: label })
       .then(() => {
         setSaveStates(prev => ({ ...prev, [fid]: 'saved' }))
-        queryClient.invalidateQueries({ queryKey: ['legal-findings', roundId] })
-        setLocalLabels(prev => {
-          const next = { ...prev }
-          delete next[fid]
-          return next
-        })
+        // localLabels 는 그대로 유지 — textarea 의 controlled value 가 재설정되면
+        // 커서 위치가 문장 끝으로 점프하고 입력 중인 글자가 중복/소실되는 사고 (260527 발견)
+        // 라운드 전환 시 useEffect 에서 일괄 reset 함
+        // invalidateQueries 도 생략 — 라벨 저장은 다른 mutation 결과에 영향 X
+        // 체크박스 토글 (handleToggle) 은 별도로 invalidate
       })
       .catch((err: any) => {
         setSaveStates(prev => ({ ...prev, [fid]: 'error' }))
