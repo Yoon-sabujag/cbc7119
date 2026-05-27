@@ -438,7 +438,7 @@ export default function SchedulePage() {
           {item.status !== 'done' && (
             <button
               onClick={() => handleStatus(item, 'done')}
-              className="text-caption font-semibold rounded-sm border border-safe bg-safe-bg text-safe cursor-pointer"
+              className="text-caption font-semibold rounded-sm border border-safe-bar bg-safe-bg text-safe cursor-pointer"
               style={{ padding: '4px 10px', lineHeight: 1.4 }}
             >
               완료

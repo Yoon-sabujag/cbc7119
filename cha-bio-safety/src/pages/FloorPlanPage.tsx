@@ -1162,10 +1162,10 @@ export default function FloorPlanPage() {
         const statusLabel = { normal: '정상', caution: '주의', fault: '불량', bad: '불량', resolved: '조치완료' }[statusKey] ?? '미점검'
         // 메모리 룰 feedback_inspection_unresolved_color: bad/fault → fire (주황) 톤, danger 아님
         const iconBoxCls =
-          statusKey === 'normal'   ? 'bg-safe-bg border-[1.5px] border-safe' :
-          statusKey === 'caution'  ? 'bg-warning-bg border-[1.5px] border-warning' :
-          statusKey === 'bad' || statusKey === 'fault' ? 'bg-fire-bg border-[1.5px] border-fire' :
-          statusKey === 'resolved' ? 'bg-info-bg border-[1.5px] border-info' :
+          statusKey === 'normal'   ? 'bg-safe-bg border-[1.5px] border-safe-bar' :
+          statusKey === 'caution'  ? 'bg-warning-bg border-[1.5px] border-warning-bar' :
+          statusKey === 'bad' || statusKey === 'fault' ? 'bg-fire-bg border-[1.5px] border-fire-bar' :
+          statusKey === 'resolved' ? 'bg-info-bg border-[1.5px] border-info-bar' :
                                      'bg-surface-sunken border border-border-default'
         const statusTextCls =
           statusKey === 'normal'   ? 'text-safe' :
@@ -1812,9 +1812,9 @@ export default function FloorPlanPage() {
               ] as const).map(([val, label, Icon, tone]) => {
                 const sel = inspectResult === val
                 const cls = sel
-                  ? (tone === 'safe' ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
-                     : tone === 'warning' ? 'border-[1.5px] border-warning bg-warning-bg text-warning'
-                     : 'border-[1.5px] border-danger bg-danger-bg text-danger')
+                  ? (tone === 'safe' ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                     : tone === 'warning' ? 'border-[1.5px] border-warning-bar bg-warning-bg text-warning'
+                     : 'border-[1.5px] border-danger-bar bg-danger-bg text-danger')
                   : 'border border-border-default bg-surface-page text-text-secondary'
                 return (
                   <button
@@ -1887,9 +1887,9 @@ export default function FloorPlanPage() {
                     ] as const).map(([val, label, Icon, tone]) => {
                       const sel = inspectBcResult === val
                       const cls = sel
-                        ? (tone === 'safe' ? 'border-[1.5px] border-safe bg-safe-bg text-safe'
-                           : tone === 'warning' ? 'border-[1.5px] border-warning bg-warning-bg text-warning'
-                           : 'border-[1.5px] border-danger bg-danger-bg text-danger')
+                        ? (tone === 'safe' ? 'border-[1.5px] border-safe-bar bg-safe-bg text-safe'
+                           : tone === 'warning' ? 'border-[1.5px] border-warning-bar bg-warning-bg text-warning'
+                           : 'border-[1.5px] border-danger-bar bg-danger-bg text-danger')
                         : 'border border-border-default bg-surface-page text-text-secondary'
                       return (
                         <button

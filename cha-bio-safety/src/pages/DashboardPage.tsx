@@ -240,7 +240,7 @@ export default function DashboardPage() {
             <div className="flex gap-1.5">{assistant.map(s => <DutyChip key={s.id} staff={s} />)}</div>
           </div>
           {stats.streakDays > 0 && (
-            <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe px-3.5 py-1 rounded-pill">
+            <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe-bar px-3.5 py-1 rounded-pill">
               연속 {stats.streakDays}일 점검 달성
             </span>
           )}
@@ -525,7 +525,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-caption font-bold text-text-secondary">오늘 현황</span>
             {stats.streakDays > 0 && (
-              <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe px-2 py-0.5 rounded-pill">
+              <span className="font-mono text-caption font-semibold text-safe bg-safe-bg border border-safe-bar px-2 py-0.5 rounded-pill">
                 연속 {stats.streakDays}일 점검 달성 <Flame size={12} className="inline-block align-text-bottom ml-0.5" />
               </span>
             )}
