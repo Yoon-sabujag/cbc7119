@@ -15,42 +15,42 @@ interface Props {
   unresolvedCount?: number
 }
 
-export type MenuItem = { label: string; path: string; badge: number; soon: boolean; role?: 'admin' | 'assistant'; desktopOnly?: boolean }
+export type MenuItem = { label: string; path: string; badge: number; role?: 'admin' | 'assistant'; desktopOnly?: boolean }
 
 export const MENU: { section: string; items: MenuItem[] }[] = [
   { section: '주요 기능', items: [
-    { label: '대시보드',    path: '/dashboard',      badge: 0, soon: false },
-    { label: '일반 점검',   path: '/inspection',     badge: 0, soon: false },
-    { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0, soon: false },
-    { label: '조치 관리',   path: '/remediation',    badge: 0, soon: false },
-    { label: '승강기 관리', path: '/elevator',       badge: 0, soon: false },
+    { label: '대시보드',    path: '/dashboard',      badge: 0 },
+    { label: '일반 점검',   path: '/inspection',     badge: 0 },
+    { label: 'QR 스캔',    path: '/inspection/qr',  badge: 0 },
+    { label: '조치 관리',   path: '/remediation',    badge: 0 },
+    { label: '승강기 관리', path: '/elevator',       badge: 0 },
   ]},
   { section: '시설 관리', items: [
-    { label: 'DIV 압력 관리',   path: '/div',           badge: 0, soon: false },
+    { label: 'DIV 압력 관리',   path: '/div',           badge: 0 },
     // 소화기 관리: 데스크톱만 노출. 모바일은 점검 페이지/도면 동행으로 진입 (기존 동작 유지)
-    { label: '소화기 관리',      path: '/extinguishers', badge: 0, soon: false, desktopOnly: true },
+    { label: '소화기 관리',      path: '/extinguishers', badge: 0, desktopOnly: true },
     // CCTV 현황: 데스크톱만 노출. 모바일은 CCTV 점검 모달 헤더 버튼으로 진입
-    { label: 'CCTV 현황',       path: '/cctv',          badge: 0, soon: false, desktopOnly: true },
-    { label: '소방 시설 도면',   path: '/floorplan',     badge: 0, soon: false },
-    { label: '소방 점검 관리',   path: '/legal',         badge: 0, soon: false },
-    { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, soon: false, role: 'admin' },
+    { label: 'CCTV 현황',       path: '/cctv',          badge: 0, desktopOnly: true },
+    { label: '소방 시설 도면',   path: '/floorplan',     badge: 0 },
+    { label: '소방 점검 관리',   path: '/legal',         badge: 0 },
+    { label: '소방 시설 추가',  path: '/checkpoints',   badge: 0, role: 'admin' },
   ]},
   { section: '문서 관리', items: [
-    { label: '일일 업무 일지',   path: '/daily-report',  badge: 0, soon: false },
-    { label: '업무 수행 기록표', path: '/worklog', badge: 0, soon: false, role: 'admin' },
-    { label: '월간 점검 계획', path: '/schedule',      badge: 0, soon: false },
-    { label: '월간 출근부',   path: '/workshift',      badge: 0, soon: false },
-    { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0, soon: false },
-    { label: '소방계획서/훈련자료', path: '/documents', badge: 0, soon: false },
-    { label: '점검 일지 출력', path: '/reports',        badge: 0, soon: false },
-    { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0, soon: false },
+    { label: '일일 업무 일지',   path: '/daily-report',  badge: 0 },
+    { label: '업무 수행 기록표', path: '/worklog', badge: 0, role: 'admin' },
+    { label: '월간 점검 계획', path: '/schedule',      badge: 0 },
+    { label: '월간 출근부',   path: '/workshift',      badge: 0 },
+    { label: '연간 업무 추진 계획', path: '/annual-plan', badge: 0 },
+    { label: '소방계획서/훈련자료', path: '/documents', badge: 0 },
+    { label: '점검 일지 출력', path: '/reports',        badge: 0 },
+    { label: 'QR 코드 출력',  path: '/qr-print',      badge: 0 },
   ]},
   { section: '근무·복지', items: [
-    { label: '연차 및 식사', path: '/staff-service',  badge: 0, soon: false },
-    { label: '보수교육',    path: '/education',      badge: 0, soon: false },
+    { label: '연차 및 식사', path: '/staff-service',  badge: 0 },
+    { label: '보수교육',    path: '/education',      badge: 0 },
   ]},
   { section: '시스템', items: [
-    { label: '직원 관리', path: '/staff-manage', badge: 0, soon: false, role: 'admin' },
+    { label: '직원 관리', path: '/staff-manage', badge: 0, role: 'admin' },
   ]},
 ]
 
@@ -162,17 +162,6 @@ export function SideMenu({ open, onClose, unresolvedCount = 0 }: Props) {
             if (!meta) return null
             if (meta.role && staff?.role !== meta.role) return null
             if (meta.desktopOnly) return null
-            if (meta.soon) {
-              return (
-                <div
-                  key={`i-${entry.path}-${idx}`}
-                  className="flex items-center gap-2.5 px-3 py-2.5 mx-3 mb-[5px] rounded-[9px] text-text-tertiary opacity-50 cursor-default pointer-events-none"
-                >
-                  <span className="text-body font-medium flex-1">{meta.label}</span>
-                  <span className="text-caption text-text-tertiary bg-surface-sunken rounded-[6px] px-[7px] py-[2px]">준비중</span>
-                </div>
-              )
-            }
             const badgeCount = meta.path === '/remediation' ? unresolvedCount : meta.badge
             return (
               <div

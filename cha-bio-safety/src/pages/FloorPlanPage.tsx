@@ -16,11 +16,11 @@ import { AccessBlockedPopup } from '../components/AccessBlockedPopup'
 
 // ── 도면 종류 ──────────────────────────────────────────
 type PlanType = 'guidelamp' | 'detector' | 'sprinkler' | 'extinguisher'
-const PLAN_TYPES: { key: PlanType; label: string; ready: boolean }[] = [
-  { key: 'guidelamp',    label: '유도등',       ready: true  },
-  { key: 'detector',     label: '감지기',       ready: true  },
-  { key: 'sprinkler',    label: '스프링클러',    ready: true  },
-  { key: 'extinguisher', label: '소화기·소화전', ready: true  },
+const PLAN_TYPES: { key: PlanType; label: string }[] = [
+  { key: 'guidelamp',    label: '유도등'        },
+  { key: 'detector',     label: '감지기'        },
+  { key: 'sprinkler',    label: '스프링클러'     },
+  { key: 'extinguisher', label: '소화기·소화전' },
 ]
 
 // ── 층 목록 (위→아래 순서) ──────────────────────────────
@@ -942,7 +942,6 @@ export default function FloorPlanPage() {
 
   // ── 도면 URL & 현재 마커 타입 목록 ─────────────────────
   const floorPlanUrl = getFloorPlanUrl(planType, floor)
-  const planReady = PLAN_TYPES.find(p => p.key === planType)?.ready
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-surface-page relative">
@@ -990,17 +989,12 @@ export default function FloorPlanPage() {
           {PLAN_TYPES.map(p => (
             <button
               key={p.key}
-              onClick={() => p.ready && setPlanType(p.key)}
+              onClick={() => setPlanType(p.key)}
               className={planType === p.key
-                ? "relative flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent"
-                : `relative flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap transition-colors border border-border-strong bg-surface-page text-text-secondary ${p.ready ? 'cursor-pointer' : 'cursor-default opacity-40'}`}
+                ? "flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border-[1.5px] border-accent bg-accent text-text-on-accent"
+                : "flex-1 basis-0 min-w-0 inline-flex items-center justify-center gap-1.5 px-2 py-2 rounded-sm text-label font-bold whitespace-nowrap cursor-pointer transition-colors border border-border-strong bg-surface-page text-text-secondary"}
             >
               {p.label}
-              {!p.ready && (
-                <span className="absolute -top-1.5 -right-0.5 text-[8px] bg-surface-sunken text-text-tertiary px-1 py-0.5 rounded-sm border border-border-default">
-                  준비중
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -1052,16 +1046,15 @@ export default function FloorPlanPage() {
           </div>
         )}
 
-        {planReady ? (
-          <div
-            ref={imgRef}
-            style={{
-              width: '100%', height: '100%', position: 'relative',
-              transform: `translate3d(${translate.x}px, ${translate.y}px, 0) scale(${scale})`,
-              transformOrigin: 'center center',
-              willChange: 'transform',
-            }}
-          >
+        <div
+          ref={imgRef}
+          style={{
+            width: '100%', height: '100%', position: 'relative',
+            transform: `translate3d(${translate.x}px, ${translate.y}px, 0) scale(${scale})`,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+          }}
+        >
             <img
               src={floorPlanUrl}
               alt={`${floor} ${planType}`}
@@ -1146,12 +1139,7 @@ export default function FloorPlanPage() {
                 </div>
               )
             })}
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--t3)', fontSize: 14, fontWeight: 600 }}>
-            도면 준비 중
-          </div>
-        )}
+        </div>
 
         {/* ── 마커 상세 (데스크톱: 말풍선 / 모바일: 바텀시트) ── */}
         {selected && !addModal && !editMarker && (() => {

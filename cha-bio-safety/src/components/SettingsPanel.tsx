@@ -42,6 +42,7 @@ import { useAuthStore } from '../stores/authStore'
 import { authApi, pushApi, staffApi, NotificationPreferences } from '../utils/api'
 import { useStaffList } from '../hooks/useStaffList'
 import { MenuSettingsSection } from './MenuSettingsSection'
+import { getThemePreference, setThemePreference, type ThemePreference } from '../utils/theme'
 
 interface Props {
   open: boolean
@@ -334,6 +335,12 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
   const [showProfileEdit, setShowProfileEdit] = useState(false)
   const [notifCollapsed, setNotifCollapsed] = usePersistedCollapse('settings.notif.collapsed', true)
   const [displayCollapsed, setDisplayCollapsed] = usePersistedCollapse('settings.display.collapsed', true)
+  const [themePref, setThemePrefState] = useState<ThemePreference>(() => getThemePreference())
+  const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const v = e.target.value as ThemePreference
+    setThemePreference(v)
+    setThemePrefState(v)
+  }
   const [accountCollapsed, setAccountCollapsed] = usePersistedCollapse('settings.account.collapsed', true)
   const [dbCollapsed, setDbCollapsed] = usePersistedCollapse('settings.db.collapsed', true)
   const [appInfoCollapsed, setAppInfoCollapsed] = usePersistedCollapse('settings.appinfo.collapsed', true)
@@ -817,16 +824,16 @@ export function SettingsPanel({ open, onClose, isDesktop = false }: Props) {
           <SectionHeader label="화면" collapsed={displayCollapsed} onToggle={() => setDisplayCollapsed(c => !c)} />
           {!displayCollapsed && <>
             <Row label="테마">
-              <select className="bg-surface-active border border-border-strong text-text-primary text-label leading-none px-2.5 py-1.5 rounded-sm outline-none">
-                <option>다크</option><option>라이트</option><option>시스템</option>
+              <select
+                value={themePref}
+                onChange={handleThemeChange}
+                className="bg-surface-active border border-border-strong text-text-primary text-label leading-none px-2.5 py-1.5 rounded-sm outline-none"
+              >
+                <option value="dark">다크</option>
+                <option value="light">라이트</option>
+                <option value="auto">시스템</option>
               </select>
             </Row>
-            <Row label="주간 현황 기준">
-              <select className="bg-surface-active border border-border-strong text-text-primary text-label leading-none px-2.5 py-1.5 rounded-sm outline-none">
-                <option>이번 주</option><option>최근 7일</option>
-              </select>
-            </Row>
-            <Row label="결과 즉시 저장"><Toggle on={true} /></Row>
           </>}
         </div>
 

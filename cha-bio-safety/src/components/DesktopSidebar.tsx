@@ -108,7 +108,6 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
                 if (item.role && staff?.role !== item.role) return null
 
                 const active = isActive(path)
-                const isSoon = item.soon
                 const showBadge = path === '/remediation' && unresolvedCount > 0
 
                 return (
@@ -116,11 +115,8 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
                     key={path}
                     label={item.label}
                     active={active}
-                    soon={isSoon}
                     badge={showBadge ? unresolvedCount : 0}
-                    onClick={() => {
-                      if (!isSoon) navigate(path)
-                    }}
+                    onClick={() => navigate(path)}
                   />
                 )
               })}
@@ -181,16 +177,15 @@ export function DesktopSidebar({ unresolvedCount, onSettingsOpen }: DesktopSideb
 interface NavItemProps {
   label: string
   active: boolean
-  soon: boolean
   badge: number
   onClick: () => void
 }
 
-function NavItem({ label, active, soon, badge, onClick }: NavItemProps) {
+function NavItem({ label, active, badge, onClick }: NavItemProps) {
   const [hovered, setHovered] = useState(false)
 
   const bg = active ? 'var(--bg4)' : hovered ? 'var(--bg3)' : 'transparent'
-  const color = soon ? 'var(--t3)' : active ? 'var(--acl)' : 'var(--t1)'
+  const color = active ? 'var(--acl)' : 'var(--t1)'
 
   return (
     <button
@@ -206,8 +201,7 @@ function NavItem({ label, active, soon, badge, onClick }: NavItemProps) {
         background: bg,
         border: 'none',
         borderLeft: active ? '3px solid var(--acl)' : '3px solid transparent',
-        cursor: soon ? 'default' : 'pointer',
-        pointerEvents: soon ? 'none' : 'auto',
+        cursor: 'pointer',
         textAlign: 'left',
         gap: 4,
       }}
